@@ -175,7 +175,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
            "t5layernorm[bfp16|fp16], adam[fp16], ampadam, reduceextreme[bfp16|fp16], "
            "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
-           "getitem[bfp16|fp16], reducecalculation[bfp16|fp16|uint8], rope[bfp16|fp16], "
+           "getitem[bfp16|fp16], reducecalculation[bfp16|fp16|int8|uint8], rope[bfp16|fp16], "
            "prelu[bfp16|fp16], kthvalue[bfp16|fp16], glu[bfp16|fp16], softmarginloss[bfp16|fp16], "
            "multimarginloss[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
@@ -209,12 +209,13 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "getitem" &&
        arg != "getitemfp16" && arg != "getitembfp16" && arg != "reducecalculation" &&
        arg != "reducecalculationfp16" && arg != "reducecalculationbfp16" &&
-       arg != "reducecalculationuint8" && arg != "rope" && arg != "ropefp16" &&
-       arg != "ropebfp16" && arg != "prelu" && arg != "prelufp16" && arg != "prelubfp16" &&
-       arg != "kthvalue" && arg != "kthvaluefp16" && arg != "kthvaluebfp16" && arg != "glu" &&
-       arg != "glufp16" && arg != "glubfp16" && arg != "softmarginloss" &&
-       arg != "softmarginlossfp16" && arg != "softmarginlossbfp16" && arg != "multimarginloss" &&
-       arg != "multimarginlossfp16" && arg != "multimarginlossbfp16" && arg != "--version")
+       arg != "reducecalculationint8" && arg != "reducecalculationuint8" && arg != "rope" &&
+       arg != "ropefp16" && arg != "ropebfp16" && arg != "prelu" && arg != "prelufp16" &&
+       arg != "prelubfp16" && arg != "kthvalue" && arg != "kthvaluefp16" &&
+       arg != "kthvaluebfp16" && arg != "glu" && arg != "glufp16" && arg != "glubfp16" &&
+       arg != "softmarginloss" && arg != "softmarginlossfp16" && arg != "softmarginlossbfp16" &&
+       arg != "multimarginloss" && arg != "multimarginlossfp16" && arg != "multimarginlossbfp16" &&
+       arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();

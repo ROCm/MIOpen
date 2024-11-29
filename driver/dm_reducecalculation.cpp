@@ -35,7 +35,9 @@ static Driver* makeDriver(const std::string& base_arg)
     if(base_arg == "reducecalculationbfp16")
         return new ReduceCalculationDriver<bfloat16, float>();
     if(base_arg == "reducecalculationuint8")
-        return new ReduceCalculationDriver<uint8_t, uint8_t>();
+        return new ReduceCalculationDriver<uint8_t>();
+    if(base_arg == "reducecalculationint8")
+        return new ReduceCalculationDriver<int8_t>();
 
     return nullptr;
 }

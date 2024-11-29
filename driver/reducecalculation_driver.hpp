@@ -119,7 +119,7 @@ int32_t mloReduceLogicalCalculationForwardRunHost(const miopenTensorDescriptor_t
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
+template <typename Tgpu, typename Tref = float>
 class ReduceCalculationDriver : public Driver
 {
 public:
