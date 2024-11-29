@@ -35,7 +35,7 @@ struct NetworkConfig;
 
 namespace tensorOp {
 
-struct ProblemDescription : ProblemDescriptionBase
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const miopenTensorOp_t tensorOp_,
                        const void* beta_,
