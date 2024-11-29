@@ -40,8 +40,8 @@ namespace solver {
 
 namespace reduce {
 
-bool Any::IsApplicable(const ExecutionContext& context,
-                       const miopen::reduce::ProblemDescriptionCalculation& problem) const
+bool AnyForward::IsApplicable(const ExecutionContext& context,
+                              const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     if(!problem.IsValidDim())
         return false;
@@ -54,8 +54,9 @@ bool Any::IsApplicable(const ExecutionContext& context,
     return true;
 }
 
-ConvSolution Any::GetSolution(const ExecutionContext& context,
-                              const miopen::reduce::ProblemDescriptionCalculation& problem) const
+ConvSolution
+AnyForward::GetSolution(const ExecutionContext& context,
+                        const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -93,7 +94,7 @@ ConvSolution Any::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OP_TYPE", "ReduceCalculationOp_t::Any"},
+            {"OP_TYPE", "ReduceCalculationOp_t::lOR"},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
             {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
             {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY}};
@@ -130,7 +131,7 @@ ConvSolution Any::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OP_TYPE", "ReduceCalculationOp_t::Any"},
+            {"OP_TYPE", "ReduceCalculationOp_t::lOR"},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
             {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
             {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY}};
@@ -236,8 +237,8 @@ ConvSolution Any::GetSolution(const ExecutionContext& context,
 }
 
 std::size_t
-Any::GetWorkspaceSize(const ExecutionContext& context,
-                      const miopen::reduce::ProblemDescriptionCalculation& problem) const
+AnyForward::GetWorkspaceSize(const ExecutionContext& context,
+                             const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     auto xdims = problem.GetXDesc().GetLengths();
     auto ydims = problem.GetYDesc().GetLengths();

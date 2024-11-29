@@ -31,14 +31,14 @@ enum class ReduceCalculationOp_t
     First_ = 1,
     Prod   = First_,
     Sum,
-    Any,
-    Last_ = Any,
+    lOR, // Logical OR, to distinguish from bitwise OR
+    Last_ = lOR,
 };
 
 #ifndef __HIP_DEVICE_COMPILE__
 static_assert(MIOPEN_REDUCE_CALCULATION_PROD == static_cast<int>(ReduceCalculationOp_t::Prod));
 static_assert(MIOPEN_REDUCE_CALCULATION_SUM == static_cast<int>(ReduceCalculationOp_t::Sum));
-static_assert(MIOPEN_REDUCE_CALCULATION_ANY == static_cast<int>(ReduceCalculationOp_t::Any));
+static_assert(MIOPEN_REDUCE_CALCULATION_ANY == static_cast<int>(ReduceCalculationOp_t::lOR));
 #endif
 
 template <typename T, ReduceCalculationOp_t op>
@@ -60,7 +60,7 @@ struct reduce_func<T, ReduceCalculationOp_t::Sum>
 };
 
 template <typename T>
-struct reduce_func<T, ReduceCalculationOp_t::Any>
+struct reduce_func<T, ReduceCalculationOp_t::lOR>
 {
     inline constexpr void calculate(T& a, T b) const { a = a || b; }
 };

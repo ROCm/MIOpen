@@ -102,7 +102,8 @@ ProdForward::GetSolution(const ExecutionContext& context,
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"OP_TYPE", "ReduceCalculationOp_t::Prod"},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
-            {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM}};
+            {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
+            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -138,7 +139,8 @@ ProdForward::GetSolution(const ExecutionContext& context,
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"OP_TYPE", "ReduceCalculationOp_t::Prod"},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
-            {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM}};
+            {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
+            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 

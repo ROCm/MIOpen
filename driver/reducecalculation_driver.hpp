@@ -428,7 +428,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::RunForwardCPU()
     }
     else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY)
     {
-        status = mloReduceLogicalCalculationForwardRunHost<Tgpu, Tref, ReduceCalculationOp_t::Any>(
+        status = mloReduceLogicalCalculationForwardRunHost<Tgpu, Tref, ReduceCalculationOp_t::lOR>(
             inputDesc, outputDesc, in.data(), logical_outhost.data(), dim);
     }
 

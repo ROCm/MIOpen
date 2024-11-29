@@ -126,9 +126,9 @@ struct SumForward final : ReduceCalculationSolver
     bool MayNeedWorkspace() const override { return true; }
 };
 
-struct Any final : ReduceCalculationSolver
+struct AnyForward final : ReduceCalculationSolver
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<Any>(); }
+    const std::string& SolverDbId() const override { return GetSolverDbId<AnyForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::reduce::ProblemDescriptionCalculation& problem) const override;

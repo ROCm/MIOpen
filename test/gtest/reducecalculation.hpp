@@ -231,7 +231,7 @@ protected:
         }
         else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY)
         {
-            cpu_logical_calculation_forward<T, T_out, ReduceCalculationOp_t::Any>(
+            cpu_logical_calculation_forward<T, T_out, ReduceCalculationOp_t::lOR>(
                 input, ref_output, dim);
         }
 
