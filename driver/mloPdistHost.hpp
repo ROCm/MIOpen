@@ -25,12 +25,12 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/miopen.h"
 #include <math.h>
 
+#include <miopen/miopen.h>
+#include <miopen/pdist/utils.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
-#include <miopen/pdist/utils.hpp>
 #include <../test/ford.hpp>
 
 template <typename Tgpu, typename Tcheck>
@@ -60,20 +60,19 @@ int32_t mloPdistBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
     {
         for(size_t j = i + 1; j < N; ++j)
         {
-            size_t k        = j + N * i - i * (i + 1) / 2 - i - 1;
-            double grad_k   = static_cast<double>(doutput[doutput_tv.get_tensor_view_idx({k})]);
-            double output_k = static_cast<double>(output[output_tv.get_tensor_view_idx({k})]);
+            size_t k       = j + N * i - i * (i + 1) / 2 - i - 1;
+            float grad_k   = static_cast<float>(doutput[doutput_tv.get_tensor_view_idx({k})]);
+            float output_k = static_cast<float>(output[output_tv.get_tensor_view_idx({k})]);
 
             for(size_t m = 0; m < M; ++m)
             {
-                double input_first =
-                    static_cast<double>(input[input_tv.get_tensor_view_idx({i, m})]);
-                double input_second =
-                    static_cast<double>(input[input_tv.get_tensor_view_idx({j, m})]);
-                double diff = input_first - input_second;
+                float input_first = static_cast<float>(input[input_tv.get_tensor_view_idx({i, m})]);
+                float input_second =
+                    static_cast<float>(input[input_tv.get_tensor_view_idx({j, m})]);
+                float diff = input_first - input_second;
 
                 Tcheck res =
-                    static_cast<Tcheck>(miopen::pdist::backward(diff, grad_k, output_k, p));
+                    static_cast<Tcheck>(miopen::pdist::backward<float>(diff, grad_k, output_k, p));
 
                 dinputHost[dinput_tv.get_tensor_view_idx({i, m})] += res;
                 dinputHost[dinput_tv.get_tensor_view_idx({j, m})] -= res;
