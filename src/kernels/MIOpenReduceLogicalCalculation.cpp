@@ -32,10 +32,9 @@
 #include "miopen_cstdint.hpp"
 #include "MIOpenReduceCalculation.hpp"
 
-// logical calculation
 template <typename TI, ReduceCalculationOp_t op>
 __device__ void logical_calculationparallelfwdcontiguous(const TI* __restrict__ x,
-                                                         uint8_t* __restrict__ y,
+                                                         bool* __restrict__ y,
                                                          const uint64_t output_numel,
                                                          const uint64_t reduce_size,
                                                          const uint64_t parallelism_size,
@@ -82,20 +81,19 @@ __device__ void logical_calculationparallelfwdcontiguous(const TI* __restrict__ 
 }
 
 extern "C" __global__ void LogicalCalculationParallelFwdContiguous(const INPUT_TYPE* __restrict__ x,
-                                                                   uint8_t* __restrict__ y,
+                                                                   bool* __restrict__ y,
                                                                    const uint64_t output_numel,
                                                                    const uint64_t reduce_size,
                                                                    const uint64_t parallelism_size,
                                                                    const uint64_t inner_size)
 {
-    // instantiate the kernel
     logical_calculationparallelfwdcontiguous<INPUT_TYPE, OP_TYPE>(
         x, y, output_numel, reduce_size, parallelism_size, inner_size);
 }
 
 template <typename TI, ReduceCalculationOp_t op>
 __device__ void logical_calculationfwdcontiguous(const TI* __restrict__ x,
-                                                 uint8_t* __restrict__ y,
+                                                 bool* __restrict__ y,
                                                  const uint64_t output_numel,
                                                  const uint64_t reduce_size,
                                                  const uint64_t inner_size)
@@ -133,12 +131,11 @@ __device__ void logical_calculationfwdcontiguous(const TI* __restrict__ x,
 }
 
 extern "C" __global__ void LogicalCalculationFwdContiguous(const INPUT_TYPE* __restrict__ x,
-                                                           uint8_t* __restrict__ y,
+                                                           bool* __restrict__ y,
                                                            const uint64_t output_numel,
                                                            const uint64_t reduce_size,
                                                            const uint64_t inner_size)
 {
-    // instantiate the kernel
     logical_calculationfwdcontiguous<INPUT_TYPE, OP_TYPE>(
         x, y, output_numel, reduce_size, inner_size);
 }

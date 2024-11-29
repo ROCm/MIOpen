@@ -247,7 +247,6 @@ int ReduceCalculationDriver<Tgpu, Tref>::GetandSetData()
     nanPropagation =
         static_cast<miopenReduceCalculationNanPropagation_t>(inflags.GetValueInt("NanPropagation"));
 
-    // return 0;
     return miopenStatusSuccess;
 }
 
