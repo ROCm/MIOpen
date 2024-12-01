@@ -27,6 +27,8 @@
 #ifndef GUARD_TENSOR_UTIL_HPP
 #define GUARD_TENSOR_UTIL_HPP
 
+#include <type_traits>
+
 #include <miopen/miopen.h>
 #include <miopen/filesystem.hpp>
 #include <miopen/tensor.hpp>
@@ -35,30 +37,31 @@
 namespace fs = miopen::fs;
 
 // loop over sub-tensor, and operate on each data
-template <typename T, template <typename> class data_operator_t>
+template <typename T, template <typename> class data_operator_t, typename Container>
 void operate_over_subtensor(const data_operator_t<T>& r_data_operator,
-                            tensor<T>& rSuperTensor,
+                            Container& rSuperTensor,
                             const miopen::TensorDescriptor& rSubDesc,
-                            const int offset)
+                            const int64_t offset)
 {
+    static_assert(std::is_same_v<T, typename Container::value_type>);
     operate_over_subtensor_impl(r_data_operator, rSuperTensor, rSubDesc, 0, offset);
 }
 
 // loop over part of sub-tensor (dimensions lower than "current_dim"), and operate on
 // each data
-template <typename T, template <typename> class data_operator_t>
+template <typename T, template <typename> class data_operator_t, typename Container>
 void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
-                                 tensor<T>& rSuperTensor,
+                                 Container& rSuperTensor,
                                  const miopen::TensorDescriptor& rSubDesc,
-                                 const unsigned current_dim,
-                                 const int offset)
+                                 const size_t current_dim,
+                                 const int64_t offset)
 {
-    auto max_dim        = static_cast<int>(rSubDesc.GetLengths().size() - 1);
-    auto current_stride = static_cast<int>(rSubDesc.GetStrides()[current_dim]);
+    const auto max_dim        = rSubDesc.GetLengths().size() - 1;
+    const auto current_stride = rSubDesc.GetStrides()[current_dim];
 
-    int index = offset;
+    int64_t index = offset;
 
-    for(int i = 0; i < rSubDesc.GetLengths()[current_dim]; ++i)
+    for(size_t i = 0; i < rSubDesc.GetLengths()[current_dim]; ++i)
     {
         if(current_dim == max_dim)
         {
