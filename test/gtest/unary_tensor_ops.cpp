@@ -103,8 +103,8 @@ protected:
 
         ASSERT_EQ(result.size(), mismatch_index)
             << "The first mismatched elements are:"                           //
-            << " GPU[" << mismatch_index << "] " << result[mismatch_index] << //
-            " Ref[" << mismatch_index << "] " << superCpu[mismatch_index];    //
+            << " GPU[" << mismatch_index << "] " << result[mismatch_index]    //
+            << " Ref[" << mismatch_index << "] " << superCpu[mismatch_index]; //
     }
 
     void RunScale()
