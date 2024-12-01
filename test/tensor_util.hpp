@@ -37,14 +37,12 @@
 namespace fs = miopen::fs;
 
 // unary operation
-template <typename T, template <typename> class data_operator_t, typename Container>
-void operate_over_subtensor(const data_operator_t<T>& dataOp,
+template <class DataOp, typename Container>
+void operate_over_subtensor(DataOp&& dataOp,
                             Container& srcSuperTensor,
                             const miopen::TensorDescriptor& srcSubDesc,
                             const int64_t srcOffset)
 {
-    static_assert(std::is_same_v<T, typename Container::value_type>);
-
     const auto& srcStrides = srcSubDesc.GetStrides();
     const auto& srcLens    = srcSubDesc.GetLengths();
 
@@ -115,8 +113,8 @@ void operate_over_subtensor(DataOp&& dataOp,
 }
 
 // ternary operation, it implies broadcasting for src2
-template <typename T, template <typename> class DataOp, typename Container>
-void operate_over_subtensor(DataOp<T>&& dataOp,
+template <typename DataOp, typename Container>
+void operate_over_subtensor(DataOp&& dataOp,
                             Container& dstSuperTensor,
                             const Container& src1SuperTensor,
                             const Container& src2SuperTensor,
@@ -127,8 +125,6 @@ void operate_over_subtensor(DataOp<T>&& dataOp,
                             const int64_t src1Offset,
                             const int64_t src2Offset)
 {
-    static_assert(std::is_same_v<T, typename Container::value_type>);
-
     const auto& dstStrides  = dstSubDesc.GetStrides();
     const auto& src1Strides = src1SubDesc.GetStrides();
     const auto& src2Strides = src2SubDesc.GetStrides();

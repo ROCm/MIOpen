@@ -38,22 +38,6 @@ namespace {
 using UnaryTensorOpsCase = std::tuple<std::vector<size_t>, int>;
 
 template <typename T>
-struct scale_data_t
-{
-    const T alpha;
-
-    void operator()(T& r_data) const { r_data *= alpha; }
-};
-
-template <typename T>
-struct set_data_t
-{
-    const T alpha;
-
-    void operator()(T& r_data) const { r_data = alpha; }
-};
-
-template <typename T>
 class GPU_unaryTensorOps : public ::testing::TestWithParam<UnaryTensorOpsCase>
 {
 public:
@@ -109,12 +93,14 @@ protected:
 
     void RunScale()
     {
-        Run(scale_data_t<T>{alpha}, [](auto&&... params) { miopen::ScaleTensor(params...); });
+        Run([alpha](auto& val) { val *= alpha; },
+            [](auto&&... params) { miopen::ScaleTensor(params...); });
     }
 
     void RunSet()
     {
-        Run(set_data_t<T>{alpha}, [](auto&&... params) { miopen::SetTensor(params...); });
+        Run([alpha](auto& val) { val = alpha; },
+            [](auto&&... params) { miopen::SetTensor(params...); });
     }
 
     void TearDown() override {}

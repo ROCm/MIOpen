@@ -37,39 +37,6 @@
 namespace {
 using BinaryTensorOpsCase = std::tuple<std::vector<size_t>, std::vector<int>, float, bool>;
 
-template <typename DstType, typename SrcType>
-struct cast_data_t
-{
-    const float alpha;
-
-    void operator()(DstType& l_data, SrcType r_data) const
-    {
-        l_data = static_cast<DstType>(static_cast<float>(r_data) * alpha);
-    }
-};
-
-template <typename DstType, typename SrcType>
-struct cast_clamp_data_t
-{
-    const float alpha;
-    static const float clampVal;
-
-    void operator()(DstType& l_data, SrcType r_data) const
-    {
-        l_data = static_cast<DstType>(std::min(static_cast<float>(r_data) * alpha, clampVal));
-    }
-};
-
-template <typename DstType, typename SrcType>
-const float cast_clamp_data_t<DstType, SrcType>::clampVal =
-    static_cast<float>(std::numeric_limits<DstType>::max());
-
-template <typename T>
-struct copy_data_t
-{
-    void operator()(T& l_data, T r_data) const { l_data = r_data; }
-};
-
 template <typename DstType, typename SrcType = DstType>
 class GPU_binaryTensorOps : public ::testing::TestWithParam<BinaryTensorOpsCase>
 {
@@ -154,23 +121,28 @@ protected:
 
         if(clamp)
         {
-            operate_over_subtensor(cast_clamp_data_t<DstType, SrcType>{alpha},
-                                   dstSuperCpu,
-                                   srcSuperCpu,
-                                   dstDesc,
-                                   srcDesc,
-                                   dstOffset,
-                                   srcOffset);
+            operate_over_subtensor(
+                [alpha, clampVal = static_cast<float>(std::numeric_limits<DstType>::max())](
+                    auto& dst, auto src) {
+                    dst = std::min(static_cast<float>(src) * alpha, clampVal);
+                },
+                dstSuperCpu,
+                srcSuperCpu,
+                dstDesc,
+                srcDesc,
+                dstOffset,
+                srcOffset);
         }
         else
         {
-            operate_over_subtensor(cast_data_t<DstType, SrcType>{alpha},
-                                   dstSuperCpu,
-                                   srcSuperCpu,
-                                   dstDesc,
-                                   srcDesc,
-                                   dstOffset,
-                                   srcOffset);
+            operate_over_subtensor(
+                [alpha](auto& dst, auto src) { dst = static_cast<float>(src) * alpha; },
+                dstSuperCpu,
+                srcSuperCpu,
+                dstDesc,
+                srcDesc,
+                dstOffset,
+                srcOffset);
         }
 
         auto mismatch_index     = miopen::mismatch_idx(dstSuperCpu, result, miopen::float_equal);
@@ -201,7 +173,7 @@ protected:
 
         auto result = handle.Read<DstType>(dstSuper_dev, dstDataSize);
 
-        operate_over_subtensor(copy_data_t<DstType>{},
+        operate_over_subtensor([](auto& dst, auto src) { dst = src; },
                                dstSuperCpu,
                                srcSuperCpu,
                                dstDesc,
@@ -267,7 +239,10 @@ X_INSTANTIATE_CAST(BFP16, bfloat16, float16, DISABLED_);
 X_INSTANTIATE_CAST(INT32, int, float16);
 X_INSTANTIATE_CAST(INT8, int8_t, float16);
 
-X_INSTANTIATE_CAST(FP32, float, bfloat16, DISABLED_); //bfp16 is just broken except float->bfp16 case
+X_INSTANTIATE_CAST(FP32,
+                   float,
+                   bfloat16,
+                   DISABLED_); // bfp16 is just broken except float->bfp16 case
 X_INSTANTIATE_CAST(FP16, float16, bfloat16, DISABLED_);
 X_INSTANTIATE_CAST(BFP16, bfloat16, bfloat16, DISABLED_);
 X_INSTANTIATE_CAST(INT32, int, bfloat16, DISABLED_);
