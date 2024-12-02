@@ -814,10 +814,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
 
             auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
             std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
-            if constexpr(std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::half_t>> ||
-                         std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
-                         std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
-                         std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>>)
+            if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
             {
                 if(split_k.has_value())
                 {
@@ -907,10 +904,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
                 std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
-                if constexpr(std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::half_t>> ||
-                             std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
-                             std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
-                             std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>>)
+                if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
                 {
                     argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
                                                       data_ctx.tensors,
