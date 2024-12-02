@@ -32,64 +32,241 @@
 
 namespace miopen {
 
-template <typename T, uint8_t N>
+template <typename T, std::size_t N>
 class InlineVector
 {
 public:
     using value_type = T;
 
-    InlineVector() noexcept : real_size(0){};
+    // Default constructor
+    InlineVector() : real_size(0)
+    {
+        if(!std::is_scalar_v<T>)
+        {
+            MIOPEN_THROW("InlineVector support only scalar values for now");
+        }
+    };
 
+    // Copy and move constructor
     InlineVector(const InlineVector& inline_vec)     = default;
     InlineVector(InlineVector&& inline_vec) noexcept = default;
 
-    InlineVector(std::initializer_list<T> _data) : real_size(_data.size())
+    InlineVector(std::initializer_list<T> __data) : real_size(__data.size())
     {
-        if(_data.size() > N)
+        if(real_size > N)
         {
             MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
         }
-        std::copy(_data.begin(), _data.end(), data.begin());
+
+        if(!std::is_scalar_v<T>)
+        {
+            MIOPEN_THROW("InlineVector support only scalar values for now");
+        }
+
+        std::copy(__data.begin(), __data.end(), _data.begin());
     }
 
     template <typename _InputIterator, typename = std::_RequireInputIter<_InputIterator>>
-    InlineVector(_InputIterator first, _InputIterator last)
+    InlineVector(_InputIterator first, _InputIterator last) : real_size(std::distance(first, last))
     {
-        if(std::distance(first, last) > N)
+        if(real_size > N)
         {
             MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
         }
-        std::copy(first, last, data.begin());
-        real_size = std::distance(first, last);
+
+        if(!std::is_scalar_v<T>)
+        {
+            MIOPEN_THROW("InlineVector support only scalar values for now");
+        }
+
+        std::copy(first, last, _data.begin());
     }
 
-    // Iterators
-    T* begin() { return data.begin(); }
+    // Copy/move operator
+    InlineVector& operator=(const InlineVector& inline_vec)     = default;
+    InlineVector& operator=(InlineVector&& inline_vec) noexcept = default;
 
-    T* end() { return (data.begin() + real_size); }
+    // Iterators
+    T* begin() noexcept { return _data.begin(); }
+
+    const T* begin() const noexcept { return _data.begin(); }
+
+    T* end() noexcept { return (_data.begin() + real_size); }
+
+    const T* end() const noexcept { return (_data.begin() + real_size); }
+
+    // Constant iterator
+    const T* cbegin() const noexcept { return _data.cbegin(); }
+
+    const T* cend() const noexcept { return (_data.cbegin() + real_size); }
 
     // Reverse iterators
-    std::reverse_iterator<T*> rbegin() { return std::reverse_iterator<T*>(end()); }
+    std::reverse_iterator<T*> rbegin() noexcept { return std::reverse_iterator<T*>(end()); }
 
-    std::reverse_iterator<T*> rend() { return std::reverse_iterator<T*>(begin()); }
+    std::reverse_iterator<const T*> rbegin() const noexcept
+    {
+        return std::reverse_iterator<const T*>(end());
+    }
+
+    std::reverse_iterator<T*> rend() noexcept { return std::reverse_iterator<T*>(begin()); }
+
+    std::reverse_iterator<const T*> rend() const noexcept
+    {
+        return std::reverse_iterator<const T*>(begin());
+    }
+
+    // Constant reverse iterators
+    std::reverse_iterator<const T*> crbegin() const noexcept
+    {
+        return std::reverse_iterator<const T*>(cend());
+    }
+
+    std::reverse_iterator<const T*> crend() const noexcept
+    {
+        return std::reverse_iterator<const T*>(cbegin());
+    }
 
     // Element access
-    T& operator[](std::size_t n) { return data[n]; }
+    T& operator[](std::size_t n) noexcept { return _data[n]; }
 
-    const T& operator[](std::size_t n) const { return data[n]; }
+    const T& operator[](std::size_t n) const noexcept { return _data[n]; }
+
+    // Element access with boundaries check
+    T& at(std::size_t n)
+    {
+        if(n >= real_size)
+        {
+            MIOPEN_THROW("Access to InlineVector is out of range");
+        }
+        return _data.at(n);
+    }
+
+    const T& at(std::size_t n) const
+    {
+        if(n >= real_size)
+        {
+            MIOPEN_THROW("Access to InlineVector is out of range");
+        }
+        return _data.at(n);
+    }
+
+    // Access to first element
+    T& front()
+    {
+        if(empty())
+        {
+            MIOPEN_THROW("Cannot get front element, InlineVector is empty");
+        }
+        return (*begin());
+    }
+
+    const T& front() const
+    {
+        if(empty())
+        {
+            MIOPEN_THROW("Cannot get front element, InlineVector is empty");
+        }
+        return (*begin());
+    }
+
+    // Access to last element
+    T& back()
+    {
+        if(empty())
+        {
+            MIOPEN_THROW("Cannot get back element, InlineVector is empty");
+        }
+        return *(end() - 1);
+    }
+
+    const T& back() const
+    {
+        if(empty())
+        {
+            MIOPEN_THROW("Cannot get back element, InlineVector is empty");
+        }
+        return *(end() - 1);
+    }
+
+    // Pointer to start of array
+    T* data() noexcept { return _data.data(); }
+
+    const T* data() const noexcept { return _data.data(); }
+
+    // Resize
+    void resize(std::size_t n)
+    {
+        if(n > N)
+        {
+            MIOPEN_THROW("It is not possible to resize beyond capacity");
+        }
+
+        real_size = n;
+    }
+
+    void resize(std::size_t n, const T& v)
+    {
+        if(n > N)
+        {
+            MIOPEN_THROW("It is not possible to resize beyond capacity");
+        }
+
+        if(n > real_size)
+        {
+            std::fill(begin() + real_size, begin() + n, v);
+        }
+
+        real_size = n;
+    }
+
+    // Add element to the back
+    void push_back(const T& e)
+    {
+        if(real_size == N)
+        {
+            MIOPEN_THROW("InlineVector already full");
+        }
+        _data[real_size++] = e;
+    }
+
+    void push_back(const T&& e)
+    {
+        if(real_size == N)
+        {
+            MIOPEN_THROW("InlineVector already full");
+        }
+        _data[real_size++] = std::move(e);
+    }
+
+    // Create element and add it to the back
+    template <typename... _Args>
+    void emplace_back(_Args&&... args)
+    {
+        if(real_size == N)
+        {
+            MIOPEN_THROW("InlineVector already full");
+        }
+        _data[real_size++] = T(std::forward<_Args>(args)...);
+    }
+
+    // Remove element from the back
+    void pop_back() noexcept { real_size = ((real_size - 1) >= 0) ? (real_size - 1) : 0; }
+
+    // Clear
+    constexpr void clear() noexcept { real_size = 0; }
 
     // Empty
-    bool empty() const { return real_size == 0; }
+    bool empty() const noexcept { return real_size == 0; }
 
     // Real size
-    uint8_t size() const { return real_size; }
+    std::size_t size() const noexcept { return real_size; }
 
     // Capacity
-    constexpr uint8_t capacity() const { return N; }
+    constexpr std::size_t capacity() const { return N; }
 
 private:
-    std::array<T, N> data;
-    uint8_t real_size;
+    std::array<T, N> _data{};
+    std::size_t real_size;
 };
 
 } // namespace miopen

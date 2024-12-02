@@ -35,8 +35,8 @@ namespace {
 
 TEST(CPU_InlineVectorSizeAndAccumulate_NONE, Test)
 {
-    miopen::InlineVector<std::size_t, 5> in_v1{4, 2, 1};
-    std::vector<size_t> v1{4, 2, 1};
+    miopen::InlineVector<int, 5> in_v1{4, 2, 1};
+    std::vector<int> v1{4, 2, 1};
 
     EXPECT_EQ(in_v1.size(), v1.size());
 
@@ -60,11 +60,12 @@ TEST(CPU_InlineVectorFindIfAndDistance_NONE, Test)
     auto first_not_one_in_v2 =
         std::find_if(in_v2.rbegin(), in_v2.rend(), [](int i) { return i != 1; });
     auto first_note_one_v2 = std::find_if(v2.rbegin(), v2.rend(), [](int i) { return i != 1; });
-    EXPECT_EQ(*first_not_one_in_v2, *first_note_one_v2);
 
     auto d_in_v2 = std::distance(in_v2.begin(), first_not_one_in_v2.base());
     auto d_v2    = std::distance(v2.begin(), first_note_one_v2.base());
-    EXPECT_EQ(d_in_v2, d_v2);
+
+    ASSERT_EQ(d_in_v2, d_v2);
+    EXPECT_EQ(*first_not_one_in_v2, *first_note_one_v2);
 }
 
 TEST(CPU_InlineVecotrTie_NONE, Test)
@@ -116,6 +117,91 @@ TEST(CPU_InlineVectorConstructorException_NONE, Test)
     auto constructor_2 = [init_list_v6]() { miopen::InlineVector<size_t, 5> v6(init_list_v6); };
     ASSERT_ANY_THROW(constructor_1());
     ASSERT_ANY_THROW(constructor_2());
+}
+
+TEST(CPU_InlineVectorAllOf_NONE, Test)
+{
+    miopen::InlineVector<size_t, 5> in_v7({3, 1, 1});
+    std::vector<size_t> v7{3, 2, 1};
+
+    bool all_of_in_v7 = std::all_of(in_v7.cbegin(), in_v7.cend(), [](size_t x) { return x > 0; });
+    bool all_of_v7    = std::all_of(v7.cbegin(), v7.cend(), [](size_t x) { return x > 0; });
+
+    EXPECT_EQ(all_of_in_v7, all_of_v7);
+}
+
+TEST(CPU_InlineVectorResize_NONE, Test)
+{
+    miopen::InlineVector<size_t, 5> in_v8({2, 2, 2, 2, 2});
+    in_v8.resize(2);
+
+    EXPECT_EQ(in_v8.size(), 2);
+
+    in_v8.resize(4, 1);
+
+    std::vector<size_t> v8{2, 2, 1, 1};
+
+    EXPECT_EQ(in_v8.size(), v8.size());
+
+    for(uint8_t i = 0; i < in_v8.size(); i++)
+    {
+        EXPECT_EQ(in_v8[i], v8[i]);
+    }
+}
+
+TEST(CPU_InlineVectorPushBackPopBack_NONE, Test)
+{
+    miopen::InlineVector<size_t, 5> in_v9 = {8, 7, 6};
+    std::vector<size_t> v9{8, 7, 6, 5};
+
+    in_v9.push_back(5);
+
+    EXPECT_EQ(in_v9.size(), v9.size());
+    for(uint8_t i = 0; i < in_v9.size(); i++)
+    {
+        EXPECT_EQ(in_v9[i], v9[i]);
+    }
+
+    v9.pop_back();
+    in_v9.pop_back();
+
+    EXPECT_EQ(in_v9.size(), v9.size());
+    for(uint8_t i = 0; i < in_v9.size(); i++)
+    {
+        EXPECT_EQ(in_v9[i], v9[i]);
+    }
+
+    in_v9.push_back(5);
+    in_v9.push_back(4);
+    EXPECT_ANY_THROW({ in_v9.push_back(3); });
+}
+
+TEST(CPU_InlineVectorAt_NONE, Test)
+{
+    miopen::InlineVector<size_t, 5> in_v10{2, 4, 6};
+    std::vector<size_t> v10{2, 4, 6};
+
+    EXPECT_ANY_THROW(in_v10.at(3));
+    EXPECT_ANY_THROW(in_v10.at(5));
+    EXPECT_EQ(in_v10.at(1), v10.at(1));
+}
+
+TEST(CPU_InlineVectorFrontBack_NONE, Test)
+{
+    miopen::InlineVector<size_t, 5> in_v11{};
+
+    EXPECT_ANY_THROW(in_v11.front());
+    EXPECT_ANY_THROW(in_v11.back());
+
+    in_v11.push_back(10);
+    EXPECT_EQ(in_v11.front(), in_v11.back());
+}
+
+TEST(CPU_InlineVectorClear_NONE, Test)
+{
+    miopen::InlineVector<size_t, 5> in_v12{1, 2, 3, 4, 5};
+    in_v12.clear();
+    EXPECT_EQ(in_v12.size(), 0);
 }
 
 } // namespace
