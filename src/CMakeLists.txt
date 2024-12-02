@@ -166,9 +166,9 @@ set( MIOpen_Source
     multimarginloss_api.cpp
     op_args.cpp
     operator.cpp
-    performance_config.cpp
     pdist_api.cpp
     pdist/problem_description.cpp
+    performance_config.cpp
     pooling/problem_description.cpp
     pooling_api.cpp
     prelu/problem_description.cpp

@@ -53,29 +53,35 @@ int32_t mloPdistBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
     size_t N         = miopen::deref(inputDesc).GetLengths()[0];
     size_t M         = miopen::deref(inputDesc).GetLengths()[1];
 
-    // Fill dinputHost with zeros
     std::fill(dinputHost, dinputHost + input_numel, static_cast<Tcheck>(0));
 
+    float p_ = static_cast<float>(p);
     for(size_t i = 0; i < N - 1; ++i)
     {
         for(size_t j = i + 1; j < N; ++j)
         {
-            size_t k       = j + N * i - i * (i + 1) / 2 - i - 1;
+            size_t k = j + N * i - i * (i + 1) / 2 - i - 1;
+
             float grad_k   = static_cast<float>(doutput[doutput_tv.get_tensor_view_idx({k})]);
             float output_k = static_cast<float>(output[output_tv.get_tensor_view_idx({k})]);
 
             for(size_t m = 0; m < M; ++m)
             {
-                float input_first = static_cast<float>(input[input_tv.get_tensor_view_idx({i, m})]);
-                float input_second =
-                    static_cast<float>(input[input_tv.get_tensor_view_idx({j, m})]);
-                float diff = input_first - input_second;
+                float input0 = static_cast<float>(input[input_tv.get_tensor_view_idx({i, m})]);
+                float input1 = static_cast<float>(input[input_tv.get_tensor_view_idx({j, m})]);
+                float diff   = input0 - input1;
 
-                Tcheck res =
-                    static_cast<Tcheck>(miopen::pdist::backward<float>(diff, grad_k, output_k, p));
+                float res = miopen::pdist::backward(diff, grad_k, output_k, p_);
 
-                dinputHost[dinput_tv.get_tensor_view_idx({i, m})] += res;
-                dinputHost[dinput_tv.get_tensor_view_idx({j, m})] -= res;
+                float prev_dinput0 =
+                    static_cast<float>(dinputHost[dinput_tv.get_tensor_view_idx({i, m})]);
+                float prev_dinput1 =
+                    static_cast<float>(dinputHost[dinput_tv.get_tensor_view_idx({j, m})]);
+
+                dinputHost[dinput_tv.get_tensor_view_idx({i, m})] =
+                    static_cast<Tcheck>(prev_dinput0 + res);
+                dinputHost[dinput_tv.get_tensor_view_idx({j, m})] =
+                    static_cast<Tcheck>(prev_dinput1 - res);
             }
         }
     }

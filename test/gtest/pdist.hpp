@@ -81,7 +81,6 @@ struct PdistTestCase
 inline std::vector<PdistTestCase> PdistTestConfigs()
 {
     return {
-
         PdistTestCase({2, 5}, 2.0, true),
         PdistTestCase({2, 10}, 5.0, true),
         PdistTestCase({5, 1}, 0.0, true),

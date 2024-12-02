@@ -69,10 +69,17 @@ void cpu_pdist_backward(const tensor<T> input,
                     static_cast<double>(input[input_tv.get_tensor_view_idx({j, m})]);
                 double diff = input_first - input_second;
 
-                T res = static_cast<T>(miopen::pdist::backward(diff, grad_k, output_k, p));
+                double res = miopen::pdist::backward(diff, grad_k, output_k, p);
 
-                ref_input_grad[input_grad_tv.get_tensor_view_idx({i, m})] += res;
-                ref_input_grad[input_grad_tv.get_tensor_view_idx({j, m})] -= res;
+                double prev_input_grad0 =
+                    static_cast<double>(ref_input_grad[input_grad_tv.get_tensor_view_idx({i, m})]);
+                double prev_input_grad1 =
+                    static_cast<double>(ref_input_grad[input_grad_tv.get_tensor_view_idx({j, m})]);
+
+                ref_input_grad[input_grad_tv.get_tensor_view_idx({i, m})] =
+                    static_cast<T>(prev_input_grad0 + res);
+                ref_input_grad[input_grad_tv.get_tensor_view_idx({j, m})] =
+                    static_cast<T>(prev_input_grad1 - res);
             }
         }
     }
