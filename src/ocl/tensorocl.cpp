@@ -2135,7 +2135,6 @@ void CastTensor(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
     }
 
-
     auto miopen_alpha = *(static_cast<const float*>(alpha));
 
     if(srcDesc.GetType() == dstDesc.GetType() && srcOffset == 0 && dstOffset == 0 &&
@@ -2149,7 +2148,7 @@ void CastTensor(const Handle& handle,
 
         const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
 
-        //TODO: make proper network config
+        // TODO: make proper network config
         std::string network_config = "cast " + std::to_string(srcDesc_flat.GetType()) +
                                      std::to_string(dstDesc_flat.GetType());
         for(auto& len : lens)
