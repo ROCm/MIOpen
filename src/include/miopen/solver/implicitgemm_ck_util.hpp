@@ -62,6 +62,31 @@ using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
 template <typename DataType>
 using DeviceOpGWrwPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrw<DataType>>;
+
+using InLayout    = ck::tensor_layout::convolution::NDHWGC;
+using WeiLayout   = ck::tensor_layout::convolution::GKZYXC;
+using OutLayout   = ck::tensor_layout::convolution::NDHWGK;
+using PassThrough = ck::tensor_operation::element_wise::PassThrough;
+
+
+template <typename DataType>
+using DeviceOpGBwdWeightDefault =
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeight<3,
+                                                             InLayout,
+                                                             WeiLayout,
+                                                             OutLayout,
+                                                             DataType,
+                                                             DataType,
+                                                             DataType,
+                                                             PassThrough,
+                                                             PassThrough,
+                                                             PassThrough>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightDefaultPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightDefault<DataType>>;
+
 } // namespace conv
 #endif
 

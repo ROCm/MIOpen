@@ -35,7 +35,6 @@
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
@@ -48,10 +47,6 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-using InLayout    = ck::tensor_layout::convolution::NDHWGC;
-using WeiLayout   = ck::tensor_layout::convolution::GKZYXC;
-using OutLayout   = ck::tensor_layout::convolution::NDHWGK;
-using PassThrough = ck::tensor_operation::element_wise::PassThrough;
 using Bilinear    = ck::tensor_operation::element_wise::Bilinear;
 using Scale       = ck::tensor_operation::element_wise::Scale;
 
@@ -88,19 +83,6 @@ using DeviceOpGBwdWeightScale =
                                                                       PassThrough>;
 
 template <typename DataType>
-using DeviceOpGBwdWeightDefault =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeight<NumDimSpatial,
-                                                             InLayout,
-                                                             WeiLayout,
-                                                             OutLayout,
-                                                             DataType,
-                                                             DataType,
-                                                             DataType,
-                                                             PassThrough,
-                                                             PassThrough,
-                                                             PassThrough>;
-
-template <typename DataType>
 using DeviceOpGBwdWeightBilinearPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOpGBwdWeightBilinear<DataType>>;
@@ -109,11 +91,6 @@ template <typename DataType>
 using DeviceOpGBwdWeightScalePtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOpGBwdWeightScale<DataType>>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightDefaultPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightDefault<DataType>>;
 
 namespace {
 
