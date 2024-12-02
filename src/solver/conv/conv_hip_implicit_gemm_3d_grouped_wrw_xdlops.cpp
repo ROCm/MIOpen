@@ -329,7 +329,7 @@ struct CKArgs
     int Z;
     miopenAlphaBetaCase_t alpha_beta_case;
     miopenDataType_t data_type;
-    ck::index_t split_k_fix = 2;
+    //ck::index_t split_k_fix = 2;
     std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> out_lengths;
