@@ -230,14 +230,14 @@ using float16 = half_float::half;
 X_INSTANTIATE_CAST(FP32, float, float);
 X_INSTANTIATE_CAST(FP16, float16, float);
 X_INSTANTIATE_CAST(BFP16, bfloat16, float);
-X_INSTANTIATE_CAST(INT32, int, float);
-X_INSTANTIATE_CAST(INT8, int8_t, float);
+X_INSTANTIATE_CAST(I32, int, float);
+X_INSTANTIATE_CAST(I8, int8_t, float);
 
 X_INSTANTIATE_CAST(FP32, float, float16);
 X_INSTANTIATE_CAST(FP16, float16, float16);
 X_INSTANTIATE_CAST(BFP16, bfloat16, float16, DISABLED_);
-X_INSTANTIATE_CAST(INT32, int, float16);
-X_INSTANTIATE_CAST(INT8, int8_t, float16);
+X_INSTANTIATE_CAST(I32, int, float16);
+X_INSTANTIATE_CAST(I8, int8_t, float16);
 
 X_INSTANTIATE_CAST(FP32,
                    float,
@@ -245,20 +245,20 @@ X_INSTANTIATE_CAST(FP32,
                    DISABLED_); // bfp16 is just broken except float->bfp16 case
 X_INSTANTIATE_CAST(FP16, float16, bfloat16, DISABLED_);
 X_INSTANTIATE_CAST(BFP16, bfloat16, bfloat16, DISABLED_);
-X_INSTANTIATE_CAST(INT32, int, bfloat16, DISABLED_);
-X_INSTANTIATE_CAST(INT8, int8_t, bfloat16, DISABLED_);
+X_INSTANTIATE_CAST(I32, int, bfloat16, DISABLED_);
+X_INSTANTIATE_CAST(I8, int8_t, bfloat16, DISABLED_);
 
 X_INSTANTIATE_CAST(FP32, float, int);
 X_INSTANTIATE_CAST(FP16, float16, int);
 X_INSTANTIATE_CAST(BFP16, bfloat16, int, DISABLED_);
-X_INSTANTIATE_CAST(INT32, int, int);
-X_INSTANTIATE_CAST(INT8, int8_t, int);
+X_INSTANTIATE_CAST(I32, int, int);
+X_INSTANTIATE_CAST(I8, int8_t, int);
 
 X_INSTANTIATE_CAST(FP32, float, int8_t);
 X_INSTANTIATE_CAST(FP16, float16, int8_t);
 X_INSTANTIATE_CAST(BFP16, bfloat16, int8_t, DISABLED_);
-X_INSTANTIATE_CAST(INT32, int, int8_t);
-X_INSTANTIATE_CAST(INT8, int8_t, int8_t);
+X_INSTANTIATE_CAST(I32, int, int8_t);
+X_INSTANTIATE_CAST(I8, int8_t, int8_t);
 
 #undef X_INSTANTIATE_CAST
 

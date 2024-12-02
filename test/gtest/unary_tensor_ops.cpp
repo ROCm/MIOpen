@@ -130,8 +130,8 @@ using float16 = half_float::half;
 
 X_INSTANTIATE(FP32, float);
 X_INSTANTIATE(FP16, float16);
-X_INSTANTIATE(INT32, int);
-X_INSTANTIATE(INT8, int8_t, DISABLED_);    // disable Scale for int8
+X_INSTANTIATE(I32, int);
+X_INSTANTIATE(I8, int8_t, DISABLED_);      // disable Scale for int8
 X_INSTANTIATE(BFP16, bfloat16, DISABLED_); // disable Scale for bfloat16
 
 #undef X_INSTANTIATE
