@@ -22,7 +22,7 @@ subtrees:
   - file: conceptual/finddb.rst
     title: Find database
   - file: conceptual/cache.rst
-    title: Cache
+    title: Kernel cache
   - file: conceptual/perfdb.rst
     title: Performance database
   - file: conceptual/MI200-alt-implementation.rst
@@ -33,11 +33,11 @@ subtrees:
 - caption: How to
   entries:
   - file: how-to/use-fusion-api.rst
-    title: Use Fusion API
+    title: Use the Fusion API
   - file: how-to/debug-log.rst
-    title: Log & debug
+    title: Log and debug
   - file: how-to/find-and-immediate.rst
-    title: Use find APIs & immediate mode
+    title: Use the find APIs and immediate mode
 
 
 - caption: Reference

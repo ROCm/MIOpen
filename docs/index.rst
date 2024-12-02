@@ -29,17 +29,17 @@ The MIOpen public repository is located at `<https://github.com/ROCm/MIOpen>`_.
   
   .. grid-item-card:: Conceptual
 
-    * :doc:`MI200 alternate implementation <./conceptual/MI200-alt-implementation>`
-    * :doc:`Cache <./conceptual/cache>`
     * :doc:`Find database <./conceptual/finddb>`
+    * :doc:`Kernel cache <./conceptual/cache>`
     * :doc:`Performance database <./conceptual/perfdb>`
+    * :doc:`MI200 alternate implementation <./conceptual/MI200-alt-implementation>`
     * :doc:`Porting to MIOpen <./conceptual/porting-guide>`
 
   .. grid-item-card:: How to
 
-    * :doc:`Use fusion <./how-to/use-fusion-api>`
-    * :doc:`Log & debug <./how-to/debug-log>`
-    * :doc:`Use the find APIs & immediate mode <./how-to/find-and-immediate>`
+    * :doc:`Use the fusion API <./how-to/use-fusion-api>`
+    * :doc:`Log and debug <./how-to/debug-log>`
+    * :doc:`Use the find APIs and immediate mode <./how-to/find-and-immediate>`
 
   ..  grid-item-card:: Reference
 
