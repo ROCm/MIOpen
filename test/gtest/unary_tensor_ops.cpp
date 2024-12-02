@@ -93,13 +93,13 @@ protected:
 
     void RunScale()
     {
-        Run([alpha](auto& val) { val *= alpha; },
+        Run([a = alpha](auto& val) { val *= a; },
             [](auto&&... params) { miopen::ScaleTensor(params...); });
     }
 
     void RunSet()
     {
-        Run([alpha](auto& val) { val = alpha; },
+        Run([a = alpha](auto& val) { val = a; },
             [](auto&&... params) { miopen::SetTensor(params...); });
     }
 
