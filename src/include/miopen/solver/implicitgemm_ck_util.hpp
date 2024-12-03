@@ -193,17 +193,9 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
     return valid_kernels;
 }
 
-template <typename DeviceOpType,
-          typename CKArgsType,
-          typename ProblemDescriptionType = miopen::conv::ProblemDescription,
-          bool CheckSplitK                = false>
-bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
-{
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(!kernel_id.empty())
-    {
-        auto conv_ptrs = DeviceOpType::GetInstances();
-        if constexpr(std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::half_t>> ||
+template <typename DeviceOpType>
+inline constexpr bool IsSplitKNeeded(){
+    return std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::half_t>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>> ||
@@ -218,8 +210,20 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
                      std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::half_t>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<float>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<int8_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::bhalf_t>> ||
-                     CheckSplitK)
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::bhalf_t>>;
+}
+
+template <typename DeviceOpType,
+          typename CKArgsType,
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription,
+          bool CheckSplitK                = false>
+bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
+{
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    if(!kernel_id.empty())
+    {
+        auto conv_ptrs = DeviceOpType::GetInstances();
+        if constexpr(IsSplitKNeeded<DeviceOpType>()|| CheckSplitK)
         {
             auto pos = kernel_id.find_last_of('+');
             if(pos == std::string::npos)
@@ -869,7 +873,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
 
             auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
             std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
-            if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
+            if constexpr(IsSplitKNeeded<DeviceOpType>())
             {
                 if(split_k.has_value())
                 {
@@ -960,7 +964,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
                 std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
-                if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
+                if constexpr(IsSplitKNeeded<DeviceOpType>())
                 {
                     argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
                                                       data_ctx.tensors,
