@@ -28,16 +28,12 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#ifndef T_TYPE
-#define T_TYPE int
-#endif
-
-#ifndef DTYPE_LOWEST
-#define DTYPE_LOWEST 0
-#endif
-
 #include "float_types.h"
 #include "tensor_view.hpp"
+
+#ifndef T_TYPE
+#define T_TYPE int32_t
+#endif
 
 template <typename T, typename Ta>
 __device__ void sparseSoftmaxCrossEntropyWithLogitsForward(const T* input,
@@ -54,7 +50,7 @@ __device__ void sparseSoftmaxCrossEntropyWithLogitsForward(const T* input,
     uint64_t lid = threadIdx.x;
 
     __shared__ FLOAT_ACCUM lmax[LOCAL_SIZE], lsum[LOCAL_SIZE];
-    lmax[lid] = DTYPE_LOWEST;
+    lmax[lid] = log(0.0f);
     lsum[lid] = 0.0f;
     __shared__ uint64_t label;
 
@@ -137,7 +133,7 @@ __device__ void sparseSoftmaxCrossEntropyWithLogitsForwardContiguous(
     uint64_t lid = threadIdx.x;
 
     __shared__ FLOAT_ACCUM lmax[LOCAL_SIZE], lsum[LOCAL_SIZE];
-    lmax[lid] = DTYPE_LOWEST;
+    lmax[lid] = log(0.0f);
     lsum[lid] = 0.0f;
     __shared__ uint64_t label;
     uint64_t batch_offset = gid * num_class;

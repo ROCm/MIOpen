@@ -68,11 +68,11 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidType() const
     {
-        if(targetDesc.GetType() != miopenInt32)
+        if(targetDesc.GetType() != miopenInt32 && targetDesc.GetType() != miopenInt64)
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "SparseSoftmaxCrossEntropyWithLogitsForward: target tensor must be int32, "
-                         "unsign int32, or unsign int64.");
+                         "SparseSoftmaxCrossEntropyWithLogitsForward: target tensor must be int32 "
+                         "or int64.");
         }
         return true;
     }

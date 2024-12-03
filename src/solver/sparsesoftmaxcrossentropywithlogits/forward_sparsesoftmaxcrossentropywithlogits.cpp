@@ -70,7 +70,7 @@ ConvSolution SparseSoftmaxCrossEntropyWithLogitsForward::GetSolution(
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         {"LOCAL_SIZE", LOCAL_SIZE_FWD},
-        {"T_TYPE", target_dtype},
+        {"T_TYPE", target_dtype == "int64" ? "size_t" : target_dtype},
     };
 
     if(!problem.IsAllContiguous())
