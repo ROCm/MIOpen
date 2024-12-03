@@ -47,7 +47,7 @@ public:
     using const_iterator         = storage_type::const_iterator;
     using reverse_iterator       = storage_type::reverse_iterator;
     using const_reverse_iterator = storage_type::const_reverse_iterator;
-    static_assert(std::is_scalar_v<T>, "Input data size is bigger than InlineVector's capacity");
+    static_assert(std::is_scalar_v<T>, "InlineVector currently supports scalar type only");
 
     // Default constructor
     InlineVector() = default;
@@ -56,14 +56,14 @@ public:
     InlineVector(const InlineVector& inline_vec)     = default;
     InlineVector(InlineVector&& inline_vec) noexcept = default;
 
-    InlineVector(std::initializer_list<T> __data) : real_size(__data.size())
+    InlineVector(std::initializer_list<T> data) : real_size(data.size())
     {
         if(real_size > N)
         {
             MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
         }
 
-        std::copy(__data.begin(), __data.end(), _data.begin());
+        std::copy(data.begin(), data.end(), storage.begin());
     }
 
     template <typename _InputIterator, typename = std::_RequireInputIter<_InputIterator>>
@@ -74,7 +74,7 @@ public:
             MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
         }
 
-        std::copy(first, last, _data.begin());
+        std::copy(first, last, storage.begin());
     }
 
     // Copy/move operator
@@ -82,13 +82,13 @@ public:
     InlineVector& operator=(InlineVector&& inline_vec) noexcept = default;
 
     // Iterators
-    iterator begin() noexcept { return _data.begin(); }
+    iterator begin() noexcept { return storage.begin(); }
 
-    const_iterator begin() const noexcept { return _data.begin(); }
+    const_iterator begin() const noexcept { return storage.begin(); }
 
-    iterator end() noexcept { return (_data.begin() + real_size); }
+    iterator end() noexcept { return (storage.begin() + real_size); }
 
-    const_iterator end() const noexcept { return (_data.begin() + real_size); }
+    const_iterator end() const noexcept { return (storage.begin() + real_size); }
 
     // Constant iterator
     const_iterator cbegin() const noexcept { return begin(); }
@@ -122,9 +122,9 @@ public:
     }
 
     // Element access
-    reference operator[](std::size_t n) noexcept { return _data[n]; }
+    reference operator[](std::size_t n) noexcept { return storage[n]; }
 
-    const_reference operator[](std::size_t n) const noexcept { return _data[n]; }
+    const_reference operator[](std::size_t n) const noexcept { return storage[n]; }
 
     // Element access with boundaries check
     reference at(std::size_t n)
@@ -133,7 +133,7 @@ public:
         {
             MIOPEN_THROW("Access to InlineVector is out of range");
         }
-        return _data.at(n);
+        return storage.at(n);
     }
 
     const_reference at(std::size_t n) const
@@ -142,7 +142,7 @@ public:
         {
             MIOPEN_THROW("Access to InlineVector is out of range");
         }
-        return _data.at(n);
+        return storage.at(n);
     }
 
     // Access to first element
@@ -184,9 +184,9 @@ public:
     }
 
     // Pointer to start of array
-    pointer data() noexcept { return _data.data(); }
+    pointer data() noexcept { return storage.data(); }
 
-    const_pointer data() const noexcept { return _data.data(); }
+    const_pointer data() const noexcept { return storage.data(); }
 
     // Resize
     void resize(std::size_t n) { resize(n, T{}); }
@@ -213,7 +213,7 @@ public:
         {
             MIOPEN_THROW("InlineVector already full");
         }
-        _data[real_size++] = e;
+        storage[real_size++] = e;
     }
 
     void push_back(const T&& e)
@@ -222,7 +222,7 @@ public:
         {
             MIOPEN_THROW("InlineVector already full");
         }
-        _data[real_size++] = std::move(e);
+        storage[real_size++] = std::move(e);
     }
 
     // Create element and add it to the back
@@ -233,7 +233,7 @@ public:
         {
             MIOPEN_THROW("InlineVector already full");
         }
-        _data[real_size++] = T(std::forward<_Args>(args)...);
+        storage[real_size++] = T(std::forward<_Args>(args)...);
     }
 
     // Remove element from the back
@@ -252,7 +252,7 @@ public:
     constexpr size_type capacity() const { return N; }
 
 private:
-    storage_type _data{};
+    storage_type storage{};
     size_type real_size = 0;
 };
 
