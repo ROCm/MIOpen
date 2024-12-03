@@ -66,7 +66,7 @@ public:
         std::copy(data.begin(), data.end(), storage.begin());
     }
 
-    template <typename _InputIterator, typename = std::_RequireInputIter<_InputIterator>>
+    template <typename _InputIterator>
     InlineVector(_InputIterator first, _InputIterator last) : real_size(std::distance(first, last))
     {
         if(real_size > N)
