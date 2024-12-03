@@ -46,9 +46,13 @@ public:
 
     static void SetUpTestSuite()
     {
-        uint64_t maxValue = miopen_type<DstType>{} == miopenHalf
-                                ? 5
-                                : (miopen_type<DstType>{} == miopenInt8 ? 126 : 32767);
+        static constexpr auto dstType = miopen_type<DstType>{};
+        static constexpr auto srcType = miopen_type<SrcType>{};
+
+        uint64_t dstMaxValue = dstType == miopenHalf ? 5 : (dstType == miopenInt8 ? 126 : 32767);
+        uint64_t srcMaxValue = srcType == miopenHalf ? 5 : (srcType == miopenInt8 ? 126 : 32767);
+
+        uint64_t maxValue = std::min(dstMaxValue, srcMaxValue);
 
         dstSuperTensor = tensor<DstType>{std::vector<size_t>{32, 32, 16, 16, 16}}.generate(
             tensor_elem_gen_integer{maxValue});
