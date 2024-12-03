@@ -207,28 +207,31 @@ tensor<SrcType> GPU_binaryTensorOps<DstType, SrcType>::srcSuperTensor;
 
 using float16 = half_float::half;
 
-#define X_INSTANTIATE_CAST(TEST_TYPE, DST_TYPE, SRC_TYPE, ...)                             \
-    using GPU_binaryTensorOps_cast_##SRC_TYPE##_##TEST_TYPE =                              \
-        GPU_binaryTensorOps<DST_TYPE, SRC_TYPE>;                                           \
-    TEST_P(GPU_binaryTensorOps_cast_##SRC_TYPE##_##TEST_TYPE, __VA_ARGS__##TestTensorCast) \
-    {                                                                                      \
-        RunCast();                                                                         \
-    };                                                                                     \
-                                                                                           \
-    INSTANTIATE_TEST_SUITE_P(                                                              \
-        Smoke,                                                                             \
-        GPU_binaryTensorOps_cast_##SRC_TYPE##_##TEST_TYPE,                                 \
-        testing::Combine(testing::Values(std::vector<size_t>{32, 8, 10}),                  \
-                         testing::Values(std::vector<int>{7, 11}),                         \
-                         testing::ValuesIn({1.0f / 127 / 127, 1.0f / 127, 127.0f, 1.0f}),  \
-                         testing::Values(true, false)));                                   \
-                                                                                           \
-    INSTANTIATE_TEST_SUITE_P(                                                              \
-        Full,                                                                              \
-        GPU_binaryTensorOps_cast_##SRC_TYPE##_##TEST_TYPE,                                 \
-        testing::Combine(testing::ValuesIn(get_sub_tensor<size_t>()),                      \
-                         testing::ValuesIn(get_tensor_offsets()),                          \
-                         testing::ValuesIn({1.0f / 127 / 127, 1.0f / 127, 127.0f, 1.0f}),  \
+#define X_CONCAT_FIRST_SECOND_(first, second) first##second
+
+#define X_INSTANTIATE_CAST(TEST_TYPE, DST_TYPE, SRC_TYPE, ...)                            \
+    using GPU_binaryTensorOps_cast_##SRC_TYPE##_##TEST_TYPE =                             \
+        GPU_binaryTensorOps<DST_TYPE, SRC_TYPE>;                                          \
+    TEST_P(GPU_binaryTensorOps_cast_##SRC_TYPE##_##TEST_TYPE,                             \
+           X_CONCAT_FIRST_SECOND_(__VA_ARGS__, TestTensorCast))                           \
+    {                                                                                     \
+        RunCast();                                                                        \
+    };                                                                                    \
+                                                                                          \
+    INSTANTIATE_TEST_SUITE_P(                                                             \
+        Smoke,                                                                            \
+        GPU_binaryTensorOps_cast_##SRC_TYPE##_##TEST_TYPE,                                \
+        testing::Combine(testing::Values(std::vector<size_t>{32, 8, 10}),                 \
+                         testing::Values(std::vector<int>{7, 11}),                        \
+                         testing::ValuesIn({1.0f / 127 / 127, 1.0f / 127, 127.0f, 1.0f}), \
+                         testing::Values(true, false)));                                  \
+                                                                                          \
+    INSTANTIATE_TEST_SUITE_P(                                                             \
+        Full,                                                                             \
+        GPU_binaryTensorOps_cast_##SRC_TYPE##_##TEST_TYPE,                                \
+        testing::Combine(testing::ValuesIn(get_sub_tensor<size_t>()),                     \
+                         testing::ValuesIn(get_tensor_offsets()),                         \
+                         testing::ValuesIn({1.0f / 127 / 127, 1.0f / 127, 127.0f, 1.0f}), \
                          testing::Values(true, false)));
 
 X_INSTANTIATE_CAST(FP32, float, float);
@@ -265,6 +268,7 @@ X_INSTANTIATE_CAST(I32, int, int8_t);
 X_INSTANTIATE_CAST(I8, int8_t, int8_t);
 
 #undef X_INSTANTIATE_CAST
+#undef X_CONCAT_FIRST_SECOND_
 
 #define X_INSTANTIATE_COPY(TEST_TYPE, REAL_TYPE)                                               \
     using GPU_binaryTensorOps_copy_##TEST_TYPE = GPU_binaryTensorOps<REAL_TYPE>;               \

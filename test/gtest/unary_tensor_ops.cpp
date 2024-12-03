@@ -113,19 +113,24 @@ tensor<T> GPU_unaryTensorOps<T>::superTensor;
 
 using float16 = half_float::half;
 
-#define X_INSTANTIATE(TEST_TYPE, REAL_TYPE, ...)                                                \
-    using GPU_unaryTensorOps_##TEST_TYPE = GPU_unaryTensorOps<REAL_TYPE>;                       \
-    TEST_P(GPU_unaryTensorOps_##TEST_TYPE, __VA_ARGS__##TestTensorScale) { RunScale(); };       \
-    TEST_P(GPU_unaryTensorOps_##TEST_TYPE, TestTensorSet) { RunSet(); };                        \
-                                                                                                \
-    INSTANTIATE_TEST_SUITE_P(                                                                   \
-        Smoke,                                                                                  \
-        GPU_unaryTensorOps_##TEST_TYPE,                                                         \
-        testing::Combine(testing::Values(std::vector<size_t>{32, 8, 10}), testing::Values(7))); \
-                                                                                                \
-    INSTANTIATE_TEST_SUITE_P(Full,                                                              \
-                             GPU_unaryTensorOps_##TEST_TYPE,                                    \
-                             testing::Combine(testing::ValuesIn(get_sub_tensor<size_t>()),      \
+#define X_CONCAT_FIRST_SECOND_(first, second) first##second
+
+#define X_INSTANTIATE(TEST_TYPE, REAL_TYPE, ...)                                                 \
+    using GPU_unaryTensorOps_##TEST_TYPE = GPU_unaryTensorOps<REAL_TYPE>;                        \
+    TEST_P(GPU_unaryTensorOps_##TEST_TYPE, X_CONCAT_FIRST_SECOND_(__VA_ARGS__, TestTensorScale)) \
+    {                                                                                            \
+        RunScale();                                                                              \
+    };                                                                                           \
+    TEST_P(GPU_unaryTensorOps_##TEST_TYPE, TestTensorSet) { RunSet(); };                         \
+                                                                                                 \
+    INSTANTIATE_TEST_SUITE_P(                                                                    \
+        Smoke,                                                                                   \
+        GPU_unaryTensorOps_##TEST_TYPE,                                                          \
+        testing::Combine(testing::Values(std::vector<size_t>{32, 8, 10}), testing::Values(7)));  \
+                                                                                                 \
+    INSTANTIATE_TEST_SUITE_P(Full,                                                               \
+                             GPU_unaryTensorOps_##TEST_TYPE,                                     \
+                             testing::Combine(testing::ValuesIn(get_sub_tensor<size_t>()),       \
                                               testing::ValuesIn(get_tensor_offset())));
 
 X_INSTANTIATE(FP32, float);
@@ -135,3 +140,4 @@ X_INSTANTIATE(I8, int8_t, DISABLED_);      // disable Scale for int8
 X_INSTANTIATE(BFP16, bfloat16, DISABLED_); // disable Scale for bfloat16
 
 #undef X_INSTANTIATE
+#undef X_CONCAT_FIRST_SECOND_
