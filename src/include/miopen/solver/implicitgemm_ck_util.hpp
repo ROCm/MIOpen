@@ -127,7 +127,8 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
 
 template <typename DeviceOpType,
           typename CKArgsType,
-          typename ProblemDescriptionType = miopen::conv::ProblemDescription>
+          typename ProblemDescriptionType = miopen::conv::ProblemDescription,
+          bool CheckSplitK                = false>
 bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string& kernel_id)
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -137,10 +138,28 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
         if constexpr(std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::half_t>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>>)
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>> ||
+                     CheckSplitK)
         {
-            auto pos      = kernel_id.find_last_of('+');
-            int split_k   = std::stoi(kernel_id.substr(pos + 1));
+            auto pos = kernel_id.find_last_of('+');
+            if(pos == std::string::npos)
+            {
+                MIOPEN_LOG_WE("Unable to parse split_k from kernel_id for wrw: " << kernel_id);
+                return false;
+            }
+
+            int split_k = 1;
+            try
+            {
+                split_k = std::stoi(kernel_id.substr(pos + 1));
+            }
+            catch(std::exception& e)
+            {
+                MIOPEN_LOG_WE("Unable to parse split_k from kernel_id for wrw: "
+                              << kernel_id << " : " << e.what());
+                return false;
+            }
+
             auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id.substr(0, pos));
             return (ptr_iter != conv_ptrs.end()) &&
                    CKArgsType{problem}.IsSupportedBySplitK(*ptr_iter, split_k);
