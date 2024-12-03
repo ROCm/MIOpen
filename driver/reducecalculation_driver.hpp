@@ -65,15 +65,17 @@ mloReduceCalculationForwardRunHost(const miopenTensorDescriptor_t inputDesc,
     {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
-        Tcheck calculation = 0.0f;
+        // Tcheck calculation = 0.0f;
+        float calculation = reduce_func<float, op>{}.get_initial_value();
         for(size_t i = 0; i < reduce_size; ++i)
         {
-            Tcheck val = static_cast<Tcheck>(input[input_idx]);
+            // Tcheck val = static_cast<Tcheck>(input[input_idx]);
+            float val = static_cast<float>(input[input_idx]);
             if(nanPropagation && isnan(val))
             {
                 val = 0.0f;
             }
-            reduce_func<Tcheck, op>{}.calculate(calculation, val);
+            reduce_func<float, op>{}.calculate(calculation, val);
             input_idx += inner_size;
         }
         outputhost[o] = calculation;
@@ -105,11 +107,11 @@ int32_t mloReduceLogicalCalculationForwardRunHost(const miopenTensorDescriptor_t
     {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
-        Tcheck calculation = 0.0f;
+        float calculation = reduce_func<float, op>{}.get_initial_value();
         for(size_t i = 0; i < reduce_size; ++i)
         {
-            Tcheck val = static_cast<Tcheck>(input[input_idx]);
-            reduce_func<Tcheck, op>{}.calculate(calculation, val);
+            float val = static_cast<float>(input[input_idx]);
+            reduce_func<float, op>{}.calculate(calculation, val);
             input_idx += inner_size;
         }
         outputhost[o] = calculation == 0 ? 0 : 1;
@@ -191,14 +193,21 @@ int ReduceCalculationDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[]
     reduceCalculationOp =
         static_cast<miopenReduceCalculationOp_t>(inflags.GetValueInt("ReduceCalculationOp"));
 
-    if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY)
+    if(reduceCalculationOp < 1 || reduceCalculationOp > 4)
+    {
+        std::cerr << "Error ReduceCalculationOp(1-4)" << std::endl;
+        return miopenStatusBadParm;
+    }
+
+    if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY ||
+       reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ALL)
     {
         isLogicalCalculation = true;
     }
     else
     {
-        if(!(data_type == miopenFloat) || (data_type == miopenHalf) ||
-           (data_type == miopenBFloat16))
+        if(!((data_type == miopenFloat) || (data_type == miopenHalf) ||
+             (data_type == miopenBFloat16)))
         {
             std::cerr << "Only float, half and bfloat16 are supported for numeric calculations"
                       << std::endl;
@@ -264,7 +273,6 @@ int ReduceCalculationDriver<Tgpu, Tref>::AddCmdLineArgs()
         "Nan number propagation mode (check the miopenReduceCalculationNanPropagation_t in "
         "miopen.h) (Default=0 to indicate no Nan propagation)",
         "int");
-
     inflags.AddInputFlag(
         "ReduceCalculationOp",
         'O',
@@ -428,6 +436,11 @@ int ReduceCalculationDriver<Tgpu, Tref>::RunForwardCPU()
     else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY)
     {
         status = mloReduceLogicalCalculationForwardRunHost<Tgpu, Tref, ReduceCalculationOp_t::lOR>(
+            inputDesc, outputDesc, in.data(), logical_outhost.data(), dim);
+    }
+    else if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ALL)
+    {
+        status = mloReduceLogicalCalculationForwardRunHost<Tgpu, Tref, ReduceCalculationOp_t::lAND>(
             inputDesc, outputDesc, in.data(), logical_outhost.data(), dim);
     }
 
