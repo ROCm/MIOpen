@@ -33,8 +33,6 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
@@ -47,51 +45,6 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-
-using Bilinear    = ck::tensor_operation::element_wise::Bilinear;
-using Scale       = ck::tensor_operation::element_wise::Scale;
-
-static constexpr ck::index_t NumDimSpatial = 3;
-
-template <typename DataType>
-using DeviceOpGBwdWeightBilinear =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
-                                                                      InLayout,
-                                                                      WeiLayout,
-                                                                      OutLayout,
-                                                                      ck::Tuple<WeiLayout>,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      ck::Tuple<DataType>,
-                                                                      PassThrough,
-                                                                      Bilinear,
-                                                                      PassThrough>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightScale =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
-                                                                      InLayout,
-                                                                      WeiLayout,
-                                                                      OutLayout,
-                                                                      ck::Tuple<>,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      ck::Tuple<>,
-                                                                      PassThrough,
-                                                                      Scale,
-                                                                      PassThrough>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightBilinearPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightBilinear<DataType>>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightScalePtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightScale<DataType>>;
 
 namespace {
 
@@ -293,8 +246,10 @@ struct CKArgs
     {
         auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, 1);
         // Creat dummy workspace to pass the ck IsSupportedArgument check.
+
         int dummy_var = 1;
         conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
+
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 

@@ -36,6 +36,8 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
+#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
+#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
 namespace miopen {
@@ -67,7 +69,8 @@ using InLayout    = ck::tensor_layout::convolution::NDHWGC;
 using WeiLayout   = ck::tensor_layout::convolution::GKZYXC;
 using OutLayout   = ck::tensor_layout::convolution::NDHWGK;
 using PassThrough = ck::tensor_operation::element_wise::PassThrough;
-
+using Bilinear    = ck::tensor_operation::element_wise::Bilinear;
+using Scale       = ck::tensor_operation::element_wise::Scale;
 
 template <typename DataType>
 using DeviceOpGBwdWeightDefault =
@@ -86,6 +89,46 @@ template <typename DataType>
 using DeviceOpGBwdWeightDefaultPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOpGBwdWeightDefault<DataType>>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightBilinear =
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<3,
+                                                                      InLayout,
+                                                                      WeiLayout,
+                                                                      OutLayout,
+                                                                      ck::Tuple<WeiLayout>,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      ck::Tuple<DataType>,
+                                                                      PassThrough,
+                                                                      Bilinear,
+                                                                      PassThrough>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightScale =
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<3,
+                                                                      InLayout,
+                                                                      WeiLayout,
+                                                                      OutLayout,
+                                                                      ck::Tuple<>,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      ck::Tuple<>,
+                                                                      PassThrough,
+                                                                      Scale,
+                                                                      PassThrough>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightBilinearPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightBilinear<DataType>>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightScalePtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightScale<DataType>>;
 
 } // namespace conv
 #endif
@@ -164,6 +207,18 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
                      std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<ck::half_t>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<float>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<int8_t>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<ck::bhalf_t>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<ck::half_t>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<float>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<int8_t>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<ck::bhalf_t>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::half_t>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<float>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<int8_t>> ||
+                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::bhalf_t>> ||
                      CheckSplitK)
         {
             auto pos = kernel_id.find_last_of('+');
@@ -837,6 +892,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                                                   data_ctx.alpha.GetAsFloat(),
                                                   data_ctx.beta.GetAsFloat());
             }
+
 
             if(ck_buff_des.has_value() && ck_buff_des->ck_size)
             {
