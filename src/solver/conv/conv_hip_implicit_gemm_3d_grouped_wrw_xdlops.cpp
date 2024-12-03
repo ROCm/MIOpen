@@ -184,8 +184,12 @@ struct CKArgs
     }
 
     template <typename ConvPtr>
-    auto MakeScaleArgPtr(
-        const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy, float alpha, int split_k) const
+    auto MakeScaleArgPtr(const ConvPtr& conv_ptr,
+                         ConstData_t x,
+                         Data_t dw,
+                         ConstData_t dy,
+                         float alpha,
+                         int split_k) const
     {
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
@@ -210,7 +214,8 @@ struct CKArgs
     }
 
     template <typename ConvPtr>
-    auto MakeDefaultArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy, int split_k) const
+    auto MakeDefaultArgPtr(
+        const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy, int split_k) const
     {
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
@@ -284,7 +289,7 @@ struct CKArgs
     int Z;
     miopenAlphaBetaCase_t alpha_beta_case;
     miopenDataType_t data_type;
-    //ck::index_t split_k_fix = 2;
+    // ck::index_t split_k_fix = 2;
     std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> out_lengths;
@@ -319,7 +324,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescrip
     }
     index     = 0;
     split_k   = 1;
-    kernel_id     = valid_kernels[index] + "+" + std::to_string(split_k);
+    kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
 }
 
 template <typename DataType>

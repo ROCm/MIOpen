@@ -194,23 +194,24 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
 }
 
 template <typename DeviceOpType>
-inline constexpr bool IsSplitKNeeded(){
+inline constexpr bool IsSplitKNeeded()
+{
     return std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::half_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<ck::half_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<float>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<int8_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<ck::bhalf_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<ck::half_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<float>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<int8_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<ck::bhalf_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::half_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<float>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<int8_t>> ||
-                     std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::bhalf_t>>;
+           std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<ck::half_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<float>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<int8_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<ck::bhalf_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<ck::half_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<float>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<int8_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrs<ck::bhalf_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::half_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<float>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<int8_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::bhalf_t>>;
 }
 
 template <typename DeviceOpType,
@@ -223,7 +224,7 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
     if(!kernel_id.empty())
     {
         auto conv_ptrs = DeviceOpType::GetInstances();
-        if constexpr(IsSplitKNeeded<DeviceOpType>()|| CheckSplitK)
+        if constexpr(IsSplitKNeeded<DeviceOpType>() || CheckSplitK)
         {
             auto pos = kernel_id.find_last_of('+');
             if(pos == std::string::npos)
@@ -896,7 +897,6 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                                                   data_ctx.alpha.GetAsFloat(),
                                                   data_ctx.beta.GetAsFloat());
             }
-
 
             if(ck_buff_des.has_value() && ck_buff_des->ck_size)
             {
