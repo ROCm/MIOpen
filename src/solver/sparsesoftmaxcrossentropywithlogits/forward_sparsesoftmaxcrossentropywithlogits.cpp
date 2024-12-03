@@ -61,7 +61,6 @@ ConvSolution SparseSoftmaxCrossEntropyWithLogitsForward::GetSolution(
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
     auto target_dtype = miopen::GetDataType(problem.GetTargetDesc().GetType());
     auto dtype        = problem.GetOutputDesc().GetType();
-    auto dtype_lowest = std::numeric_limits<float>::lowest();
 
     auto result       = ConvSolution{miopenStatusSuccess};
     auto build_params = KernelBuildParameters{
@@ -72,7 +71,6 @@ ConvSolution SparseSoftmaxCrossEntropyWithLogitsForward::GetSolution(
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         {"LOCAL_SIZE", LOCAL_SIZE_FWD},
         {"T_TYPE", target_dtype},
-        {"DTYPE_LOWEST", dtype_lowest},
     };
 
     if(!problem.IsAllContiguous())

@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 
+#include <cmath>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
 #include <../test/ford.hpp>
@@ -58,16 +59,17 @@ mloSparseSoftmaxCrossEntropyWithLogitsForwardRunHost(const miopenTensorDescripto
 
         ford(num_class)([&](uint64_t j) {
             double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, j})]);
-            lsum += exp(val - lmax);
+            lsum += std::exp(val - lmax);
         });
 
         double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, label})]);
-        output[output_tv.get_tensor_view_idx({gid})] = static_cast<Tcheck>(log(lsum) - val + lmax);
+        output[output_tv.get_tensor_view_idx({gid})] =
+            static_cast<Tcheck>(std::log(lsum) - val + lmax);
 
-        ford(num_class)([&](uint64_t j) {
+        par_ford(num_class)([&](uint64_t j) {
             double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, j})]);
             double backprop_val =
-                (j == label) ? exp(val - lmax) / lsum - 1.0f : exp(val - lmax) / lsum;
+                (j == label) ? std::exp(val - lmax) / lsum - 1.0f : std::exp(val - lmax) / lsum;
 
             backprop[backprop_tv.get_tensor_view_idx({gid, j})] = static_cast<Tcheck>(backprop_val);
         });
@@ -94,7 +96,7 @@ mloSparseSoftmaxCrossEntropyWithLogitsBackwardRunHost(const miopenTensorDescript
         double output_grad_val =
             static_cast<double>(output_grad[output_grad_tv.get_tensor_view_idx({gid})]);
 
-        ford(num_class)([&](uint64_t j) {
+        par_ford(num_class)([&](uint64_t j) {
             double backprop_val =
                 static_cast<double>(backprop[backprop_tv.get_tensor_view_idx({gid, j})]);
 

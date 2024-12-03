@@ -58,7 +58,7 @@ void cpu_sparsesoftmaxcrossentropywithlogits_forward(const tensor<T> input,
         double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, label})]);
         output[output_tv.get_tensor_view_idx({gid})] = static_cast<T>(log(lsum) - val + lmax);
 
-        ford(num_class)([&](uint64_t j) {
+        par_ford(num_class)([&](uint64_t j) {
             double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, j})]);
             double backprop_val =
                 (j == label) ? exp(val - lmax) / lsum - 1.0f : exp(val - lmax) / lsum;
@@ -82,7 +82,7 @@ void cpu_sparsesoftmaxcrossentropywithlogits_backward(tensor<T> output_grad,
         double output_grad_val =
             static_cast<double>(output_grad[output_grad_tv.get_tensor_view_idx({gid})]);
 
-        ford(num_class)([&](uint64_t j) {
+        par_ford(num_class)([&](uint64_t j) {
             double backprop_val =
                 static_cast<double>(backprop[backprop_tv.get_tensor_view_idx({gid, j})]);
 
