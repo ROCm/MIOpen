@@ -36,7 +36,17 @@ template <typename T, std::size_t N>
 class InlineVector
 {
 public:
-    using value_type = T;
+    using storage_type           = std::array<T, N>;
+    using value_type             = storage_type::value_type;
+    using size_type              = storage_type::size_type;
+    using reference              = storage_type::reference;
+    using const_reference        = storage_type::const_reference;
+    using pointer                = storage_type::pointer;
+    using const_pointer          = storage_type::const_pointer;
+    using iterator               = storage_type::iterator;
+    using const_iterator         = storage_type::const_iterator;
+    using reverse_iterator       = storage_type::reverse_iterator;
+    using const_reverse_iterator = storage_type::const_reverse_iterator;
     static_assert(std::is_scalar_v<T>, "Input data size is bigger than InlineVector's capacity");
 
     // Default constructor
@@ -68,56 +78,56 @@ public:
     }
 
     // Copy/move operator
-    InlineVector& operator=(const InlineVector& inline_vec)     = default;
+    InlineVector& operator=(const InlineVector& inline_vec) = default;
     InlineVector& operator=(InlineVector&& inline_vec) noexcept = default;
 
     // Iterators
-    T* begin() noexcept { return _data.begin(); }
+    iterator begin() noexcept { return _data.begin(); }
 
-    const T* begin() const noexcept { return _data.begin(); }
+    const_iterator begin() const noexcept { return _data.begin(); }
 
-    T* end() noexcept { return (_data.begin() + real_size); }
+    iterator end() noexcept { return (_data.begin() + real_size); }
 
-    const T* end() const noexcept { return (_data.begin() + real_size); }
+    const_iterator end() const noexcept { return (_data.begin() + real_size); }
 
     // Constant iterator
-    const T* cbegin() const noexcept { return begin(); }
+    const_iterator cbegin() const noexcept { return begin(); }
 
-    const T* cend() const noexcept { return end(); }
+    const_iterator cend() const noexcept { return end(); }
 
     // Reverse iterators
-    std::reverse_iterator<T*> rbegin() noexcept { return std::reverse_iterator<T*>(end()); }
+    reverse_iterator rbegin() noexcept { return std::reverse_iterator<T*>(end()); }
 
-    std::reverse_iterator<const T*> rbegin() const noexcept
+    const_reverse_iterator rbegin() const noexcept
     {
         return std::reverse_iterator<const T*>(end());
     }
 
-    std::reverse_iterator<T*> rend() noexcept { return std::reverse_iterator<T*>(begin()); }
+    reverse_iterator rend() noexcept { return std::reverse_iterator<T*>(begin()); }
 
-    std::reverse_iterator<const T*> rend() const noexcept
+    const_reverse_iterator rend() const noexcept
     {
         return std::reverse_iterator<const T*>(begin());
     }
 
     // Constant reverse iterators
-    std::reverse_iterator<const T*> crbegin() const noexcept
+    const_reverse_iterator crbegin() const noexcept
     {
         return std::reverse_iterator<const T*>(cend());
     }
 
-    std::reverse_iterator<const T*> crend() const noexcept
+    const_reverse_iterator crend() const noexcept
     {
         return std::reverse_iterator<const T*>(cbegin());
     }
 
     // Element access
-    T& operator[](std::size_t n) noexcept { return _data[n]; }
+    reference operator[](std::size_t n) noexcept { return _data[n]; }
 
-    const T& operator[](std::size_t n) const noexcept { return _data[n]; }
+    const_reference operator[](std::size_t n) const noexcept { return _data[n]; }
 
     // Element access with boundaries check
-    T& at(std::size_t n)
+    reference at(std::size_t n)
     {
         if(n >= real_size)
         {
@@ -126,7 +136,7 @@ public:
         return _data.at(n);
     }
 
-    const T& at(std::size_t n) const
+    const_reference at(std::size_t n) const
     {
         if(n >= real_size)
         {
@@ -136,7 +146,7 @@ public:
     }
 
     // Access to first element
-    T& front()
+    reference front()
     {
         if(empty())
         {
@@ -145,7 +155,7 @@ public:
         return (*begin());
     }
 
-    const T& front() const
+    const_reference front() const
     {
         if(empty())
         {
@@ -155,7 +165,7 @@ public:
     }
 
     // Access to last element
-    T& back()
+    reference back()
     {
         if(empty())
         {
@@ -164,7 +174,7 @@ public:
         return *std::prev(end());
     }
 
-    const T& back() const
+    const_reference back() const
     {
         if(empty())
         {
@@ -174,9 +184,9 @@ public:
     }
 
     // Pointer to start of array
-    T* data() noexcept { return _data.data(); }
+    pointer data() noexcept { return _data.data(); }
 
-    const T* data() const noexcept { return _data.data(); }
+    const_pointer data() const noexcept { return _data.data(); }
 
     // Resize
     void resize(std::size_t n) { resize(n, T{}); }
@@ -236,14 +246,14 @@ public:
     bool empty() const noexcept { return real_size == 0; }
 
     // Real size
-    std::size_t size() const noexcept { return real_size; }
+    size_type size() const noexcept { return real_size; }
 
     // Capacity
-    constexpr std::size_t capacity() const { return N; }
+    constexpr size_type capacity() const { return N; }
 
 private:
-    std::array<T, N> _data{};
-    std::size_t real_size = 0;
+    storage_type _data{};
+    size_type real_size = 0;
 };
 
 } // namespace miopen
