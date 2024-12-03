@@ -141,6 +141,21 @@ struct AnyForward final : ReduceCalculationSolver
     bool MayNeedWorkspace() const override { return true; }
 };
 
+struct AllForward final : ReduceCalculationSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<AllForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::reduce::ProblemDescriptionCalculation& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::reduce::ProblemDescriptionCalculation& problem) const override;
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::reduce::ProblemDescriptionCalculation& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
+};
+
 } // namespace reduce
 
 } // namespace solver

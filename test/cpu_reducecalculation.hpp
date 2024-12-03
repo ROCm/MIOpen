@@ -32,9 +32,9 @@
 
 #include "../src/kernels/MIOpenReduceCalculation.hpp"
 
-template <typename T, typename T_out, ReduceCalculationOp_t op>
+template <typename T, ReduceCalculationOp_t op>
 void cpu_calculation_forward(tensor<T> input,
-                             tensor<T_out>& ref_output,
+                             tensor<T>& ref_output,
                              int32_t dim,
                              miopenReduceCalculationNanPropagation_t nanPropagation)
 {
@@ -51,7 +51,7 @@ void cpu_calculation_forward(tensor<T> input,
     par_ford(output_numel)([&](size_t o) {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
-        T calculation = static_cast<T>(0);
+        T calculation = reduce_func<T, op>{}.get_initial_value();
 
         ford(reduce_size)([&](size_t i) {
             T val = input[input_idx];
@@ -67,8 +67,8 @@ void cpu_calculation_forward(tensor<T> input,
     });
 }
 
-template <typename T, typename T_out, ReduceCalculationOp_t op>
-void cpu_logical_calculation_forward(tensor<T> input, tensor<T_out>& ref_output, int32_t dim)
+template <typename T, ReduceCalculationOp_t op>
+void cpu_logical_calculation_forward(tensor<T> input, tensor<uint8_t>& ref_output, int32_t dim)
 {
     auto input_dims  = input.desc.GetLengths();
     auto output_dims = ref_output.desc.GetLengths();
@@ -83,7 +83,7 @@ void cpu_logical_calculation_forward(tensor<T> input, tensor<T_out>& ref_output,
     par_ford(output_numel)([&](size_t o) {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
-        T calculation = static_cast<T>(0);
+        T calculation = reduce_func<T, op>{}.get_initial_value();
 
         ford(reduce_size)([&](size_t i) {
             T val = input[input_idx];

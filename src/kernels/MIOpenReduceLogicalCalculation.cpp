@@ -53,7 +53,7 @@ __device__ void logical_calculationparallelfwdcontiguous(const TI* __restrict__ 
 
     uint64_t parallel_id = slice_local_id / inner_size;
 #if MIOPEN_USE_INT8
-    TI calculation = static_cast<TI>(0);
+    TI calculation = reduce_func<TI, op>{}.get_initial_value();
     for(uint64_t k = parallel_id; k < reduce_size; k += parallelism_size)
     {
         TI val = x[input_idx];
@@ -63,7 +63,7 @@ __device__ void logical_calculationparallelfwdcontiguous(const TI* __restrict__ 
 
     y[gid] = calculation == 0 ? 0 : 1;
 #else
-    FLOAT_ACCUM calculation = static_cast<FLOAT_ACCUM>(0);
+    FLOAT_ACCUM calculation = reduce_func<FLOAT_ACCUM, op>{}.get_initial_value();
     for(uint64_t k = parallel_id; k < reduce_size; k += parallelism_size)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
@@ -104,7 +104,7 @@ __device__ void logical_calculationfwdcontiguous(const TI* __restrict__ x,
 
     uint64_t input_idx = (gid / inner_size) * inner_size * reduce_size + gid % inner_size;
 #if MIOPEN_USE_INT8
-    TI calculation = static_cast<TI>(0);
+    TI calculation = reduce_func<TI, op>{}.get_initial_value();
     for(uint64_t k = 0; k < reduce_size; ++k)
     {
         TI val = x[input_idx];
@@ -114,7 +114,7 @@ __device__ void logical_calculationfwdcontiguous(const TI* __restrict__ x,
 
     y[gid] = calculation == 0 ? 0 : 1;
 #else
-    FLOAT_ACCUM calculation = static_cast<FLOAT_ACCUM>(0);
+    FLOAT_ACCUM calculation = reduce_func<FLOAT_ACCUM, op>{}.get_initial_value();
     for(uint64_t k = 0; k < reduce_size; ++k)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);

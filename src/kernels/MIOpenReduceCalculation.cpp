@@ -53,7 +53,8 @@ __device__ void calculationparallelfwdcontiguous(const TI* __restrict__ x,
 
     uint64_t parallel_id = slice_local_id / inner_size;
 
-    FLOAT_ACCUM calculation = static_cast<FLOAT_ACCUM>(0);
+    FLOAT_ACCUM calculation = reduce_func<FLOAT_ACCUM, op>{}.get_initial_value();
+
     for(uint64_t k = parallel_id; k < reduce_size; k += parallelism_size)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
@@ -95,7 +96,7 @@ __device__ void calculationfwdcontiguous(const TI* __restrict__ x,
 
     uint64_t input_idx = (gid / inner_size) * inner_size * reduce_size + gid % inner_size;
 
-    FLOAT_ACCUM calculation = static_cast<FLOAT_ACCUM>(0);
+    FLOAT_ACCUM calculation = reduce_func<FLOAT_ACCUM, op>{}.get_initial_value();
     for(uint64_t k = 0; k < reduce_size; ++k)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);

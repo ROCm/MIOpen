@@ -23,46 +23,56 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_KERNELS_MIOPENREDUCECALCULATION_HPP
-#define GUARD_KERNELS_MIOPENREDUCECALCULATION_HPP
+#pragma once
 
 enum class ReduceCalculationOp_t
 {
     First_ = 1,
     Prod   = First_,
     Sum,
-    lOR, // Logical OR, to distinguish from bitwise OR
-    Last_ = lOR,
+    lOR,  // Logical OR, to distinguish from bitwise OR
+    lAND, // Logical AND, to distinguish from bitwise AND
+    Last_ = lAND,
 };
 
 #ifndef __HIP_DEVICE_COMPILE__
 static_assert(MIOPEN_REDUCE_CALCULATION_PROD == static_cast<int>(ReduceCalculationOp_t::Prod));
 static_assert(MIOPEN_REDUCE_CALCULATION_SUM == static_cast<int>(ReduceCalculationOp_t::Sum));
 static_assert(MIOPEN_REDUCE_CALCULATION_ANY == static_cast<int>(ReduceCalculationOp_t::lOR));
+static_assert(MIOPEN_REDUCE_CALCULATION_ALL == static_cast<int>(ReduceCalculationOp_t::lAND));
 #endif
 
 template <typename T, ReduceCalculationOp_t op>
 struct reduce_func
 {
     inline constexpr void calculate(T& a, T b) const;
+    inline constexpr T get_initial_value() const;
 };
 
 template <typename T>
 struct reduce_func<T, ReduceCalculationOp_t::Prod>
 {
     inline constexpr void calculate(T& a, T b) const { a *= b; }
+    inline constexpr T get_initial_value() const { return static_cast<T>(1); }
 };
 
 template <typename T>
 struct reduce_func<T, ReduceCalculationOp_t::Sum>
 {
     inline constexpr void calculate(T& a, T b) const { a += b; }
+    inline constexpr T get_initial_value() const { return static_cast<T>(0); }
 };
 
 template <typename T>
 struct reduce_func<T, ReduceCalculationOp_t::lOR>
 {
     inline constexpr void calculate(T& a, T b) const { a = a || b; }
+    inline constexpr T get_initial_value() const { return static_cast<T>(0); }
 };
 
-#endif // GUARD_GUARD_KERNELS_MIOPENREDUCEEXTREME_HPP
+template <typename T>
+struct reduce_func<T, ReduceCalculationOp_t::lAND>
+{
+    inline constexpr void calculate(T& a, T b) const { a = a && b; }
+    inline constexpr T get_initial_value() const { return static_cast<T>(1); }
+};

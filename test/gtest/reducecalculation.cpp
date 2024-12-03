@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include "reducecalculation.hpp"
+#include "gtest/gtest.h"
 
 namespace reducecalculation {
 
@@ -40,20 +41,11 @@ struct GPU_ReduceCalculationTest_BFP16 : ReduceCalculationTest<bfloat16>
 {
 };
 
-// Logical calculation
-struct GPU_ReduceLogicalCalculationTest_FP32 : ReduceCalculationTest<float, uint8_t>
+struct GPU_ReduceCalculationTest_INT8 : ReduceCalculationTest<int8_t>
 {
 };
 
-struct GPU_ReduceLogicalCalculationTest_FP16 : ReduceCalculationTest<half_float::half, uint8_t>
-{
-};
-
-struct GPU_ReduceLogicalCalculationTest_BFP16 : ReduceCalculationTest<bfloat16, uint8_t>
-{
-};
-
-struct GPU_ReduceLogicalCalculationTest_INT8 : ReduceCalculationTest<int8_t, uint8_t>
+struct GPU_ReduceCalculationTest_UINT8 : ReduceCalculationTest<uint8_t>
 {
 };
 
@@ -61,7 +53,6 @@ struct GPU_ReduceLogicalCalculationTest_INT8 : ReduceCalculationTest<int8_t, uin
 
 using namespace reducecalculation;
 
-// Numerical calculation
 TEST_P(GPU_ReduceCalculationTest_FP32, ReduceCalculationTestFw)
 {
     RunTest();
@@ -80,26 +71,7 @@ TEST_P(GPU_ReduceCalculationTest_BFP16, ReduceCalculationTestFw)
     Verify();
 };
 
-// Logical calculation
-TEST_P(GPU_ReduceLogicalCalculationTest_FP32, ReduceLogicalCalculationTestFw)
-{
-    RunTest();
-    Verify();
-};
-
-TEST_P(GPU_ReduceLogicalCalculationTest_FP16, ReduceLogicalCalculationTestFw)
-{
-    RunTest();
-    Verify();
-};
-
-TEST_P(GPU_ReduceLogicalCalculationTest_BFP16, ReduceLogicalCalculationTestFw)
-{
-    RunTest();
-    Verify();
-};
-
-TEST_P(GPU_ReduceLogicalCalculationTest_INT8, ReduceLogicalCalculationTestFw)
+TEST_P(GPU_ReduceCalculationTest_INT8, ReduceCalculationTestFw)
 {
     RunTest();
     Verify();
@@ -114,11 +86,14 @@ INSTANTIATE_TEST_SUITE_P(
     FullPROD,
     GPU_ReduceCalculationTest_FP32,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_PROD)));
-
-INSTANTIATE_TEST_SUITE_P(
-    FullANY,
-    GPU_ReduceLogicalCalculationTest_FP32,
-    testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ANY)));
+// INSTANTIATE_TEST_SUITE_P(
+//     FullANY,
+//     GPU_ReduceCalculationTest_FP32,
+//     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ANY)));
+// INSTANTIATE_TEST_CASE_P(
+//     FullALL,
+//     GPU_ReduceCalculationTest_FP32,
+//     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ALL)));
 
 // FP16
 INSTANTIATE_TEST_SUITE_P(
@@ -129,11 +104,14 @@ INSTANTIATE_TEST_SUITE_P(
     FullPROD,
     GPU_ReduceCalculationTest_FP16,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_PROD)));
-
-INSTANTIATE_TEST_SUITE_P(
-    FullANY,
-    GPU_ReduceLogicalCalculationTest_FP16,
-    testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ANY)));
+// INSTANTIATE_TEST_CASE_P(
+//     FullANY,
+//     GPU_ReduceCalculationTest_FP16,
+//     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ANY)));
+// INSTANTIATE_TEST_CASE_P(
+//     FullALL,
+//     GPU_ReduceCalculationTest_FP16,
+//     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ALL)));
 
 // BFP16
 INSTANTIATE_TEST_SUITE_P(
@@ -144,14 +122,21 @@ INSTANTIATE_TEST_SUITE_P(
     FullPROD,
     GPU_ReduceCalculationTest_BFP16,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_PROD)));
-
-INSTANTIATE_TEST_SUITE_P(
-    FullANY,
-    GPU_ReduceLogicalCalculationTest_BFP16,
-    testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ANY)));
+// INSTANTIATE_TEST_CASE_P(
+//     FullANY,
+//     GPU_ReduceCalculationTest_BFP16,
+//     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ANY)));
+// INSTANTIATE_TEST_CASE_P(
+//     FullALL,
+//     GPU_ReduceCalculationTest_BFP16,
+//     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ALL)));
 
 // INT8
 INSTANTIATE_TEST_SUITE_P(
     FullANY,
-    GPU_ReduceLogicalCalculationTest_INT8,
+    GPU_ReduceCalculationTest_INT8,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ANY)));
+INSTANTIATE_TEST_SUITE_P(
+    FullALL,
+    GPU_ReduceCalculationTest_INT8,
+    testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ALL)));

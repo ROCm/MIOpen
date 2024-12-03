@@ -700,6 +700,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::AnyForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Reduce, reduce::AllForward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 
