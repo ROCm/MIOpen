@@ -187,7 +187,7 @@ private:
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
                                             const ConvolutionDescriptor& conv_desc,
-                                            const Problem& problem) const;
+                                            const Problem& original) const;
 
     std::vector<Solution> FindSolutionsImpl(Handle& handle,
                                             const FindOptions& options,
