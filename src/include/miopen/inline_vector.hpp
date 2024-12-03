@@ -37,15 +37,10 @@ class InlineVector
 {
 public:
     using value_type = T;
+    static_assert(std::is_scalar_v<T>, "Input data size is bigger than InlineVector's capacity");
 
     // Default constructor
-    InlineVector() : real_size(0)
-    {
-        if(!std::is_scalar_v<T>)
-        {
-            MIOPEN_THROW("InlineVector support only scalar values for now");
-        }
-    };
+    InlineVector() = default;
 
     // Copy and move constructor
     InlineVector(const InlineVector& inline_vec)     = default;
@@ -58,11 +53,6 @@ public:
             MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
         }
 
-        if(!std::is_scalar_v<T>)
-        {
-            MIOPEN_THROW("InlineVector support only scalar values for now");
-        }
-
         std::copy(__data.begin(), __data.end(), _data.begin());
     }
 
@@ -72,11 +62,6 @@ public:
         if(real_size > N)
         {
             MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
-        }
-
-        if(!std::is_scalar_v<T>)
-        {
-            MIOPEN_THROW("InlineVector support only scalar values for now");
         }
 
         std::copy(first, last, _data.begin());
@@ -96,9 +81,9 @@ public:
     const T* end() const noexcept { return (_data.begin() + real_size); }
 
     // Constant iterator
-    const T* cbegin() const noexcept { return _data.cbegin(); }
+    const T* cbegin() const noexcept { return begin(); }
 
-    const T* cend() const noexcept { return (_data.cbegin() + real_size); }
+    const T* cend() const noexcept { return end(); }
 
     // Reverse iterators
     std::reverse_iterator<T*> rbegin() noexcept { return std::reverse_iterator<T*>(end()); }
@@ -176,7 +161,7 @@ public:
         {
             MIOPEN_THROW("Cannot get back element, InlineVector is empty");
         }
-        return *(end() - 1);
+        return *std::prev(end());
     }
 
     const T& back() const
@@ -185,7 +170,7 @@ public:
         {
             MIOPEN_THROW("Cannot get back element, InlineVector is empty");
         }
-        return *(end() - 1);
+        return *std::prev(end());
     }
 
     // Pointer to start of array
@@ -194,15 +179,7 @@ public:
     const T* data() const noexcept { return _data.data(); }
 
     // Resize
-    void resize(std::size_t n)
-    {
-        if(n > N)
-        {
-            MIOPEN_THROW("It is not possible to resize beyond capacity");
-        }
-
-        real_size = n;
-    }
+    void resize(std::size_t n) { resize(n, T{}); }
 
     void resize(std::size_t n, const T& v)
     {
@@ -250,10 +227,10 @@ public:
     }
 
     // Remove element from the back
-    void pop_back() noexcept { real_size = ((real_size - 1) >= 0) ? (real_size - 1) : 0; }
+    void pop_back() noexcept { real_size = (real_size > 1) ? (real_size - 1) : 0; }
 
     // Clear
-    constexpr void clear() noexcept { real_size = 0; }
+    void clear() noexcept { real_size = 0; }
 
     // Empty
     bool empty() const noexcept { return real_size == 0; }
@@ -266,7 +243,7 @@ public:
 
 private:
     std::array<T, N> _data{};
-    std::size_t real_size;
+    std::size_t real_size = 0;
 };
 
 } // namespace miopen
