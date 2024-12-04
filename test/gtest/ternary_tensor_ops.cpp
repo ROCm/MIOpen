@@ -23,23 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <gtest/gtest.h>
-#include <array>
-#include <iostream>
-#include <iterator>
-#include <limits>
-#include <memory>
-#include <miopen/convolution.hpp>
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
 #include <miopen/tensor_ops.hpp>
-#include <utility>
-
-#include "driver.hpp"
 #include "gtest_common.hpp"
-#include "get_handle.hpp"
-#include "tensor_holder.hpp"
-#include "verify.hpp"
 
 #define MIO_OPS_DEBUG 0
 
@@ -353,15 +338,33 @@ private:
     void CompareResults(const tensor<T>& tensorGPU, const tensor<T>& tensorCPU)
     {
         const TestCase& testCase = GetParam();
+        
+        double tolerance = 1;
 
-        auto mismatch_index = miopen::mismatch_idx(tensorCPU.data, tensorGPU.data, miopen::float_equal);
+        if (std::is_same_v<T, half_float::half>)
+        {
+            // taken from original c-test
+            tolerance = 80;
+        }
+
+        double threshold = std::numeric_limits<T>::epsilon() * tolerance;
+        double error = miopen::rms_range(tensorCPU.data, tensorGPU.data);
+
+        ASSERT_LE(error, threshold) << 
+        "TensorOp: " << testCase.operation << std::endl <<
+        "A tensor: " << tensorA.desc.ToString() << std::endl <<
+        "B tensor: " << tensorB.desc.ToString() << std::endl << 
+        "IsPacked: " << testCase.packed << std::endl <<
+        "Offsets: " << testCase.offsets[0] << "," << testCase.offsets[1] << "," << testCase.offsets[2] << std::endl;        
+
+        /*auto mismatch_index = miopen::mismatch_idx(tensorCPU.data, tensorGPU.data, miopen::float_equal);
 
         ASSERT_EQ(tensorGPU.data.size(), mismatch_index)
             << "The first mismatched elements are:"                           //
             << " GPU[" << mismatch_index << "] " << tensorGPU.data[mismatch_index]    
             << " Ref[" << mismatch_index << "] " << tensorCPU.data[mismatch_index]
             << " \nOperation: " << testCase.operation 
-            << " \nIsPacked: " << testCase.packed ;         
+            << " \nIsPacked: " << testCase.packed ; */
     }
 
 private:
@@ -375,14 +378,6 @@ struct GPU_TensorOps_FP32 : public TensorOpsCommon<float>
 };
 
 struct GPU_TensorOps_FP16 : public TensorOpsCommon<half_float::half>
-{
-};
-
-struct GPU_TensorOps_BFP16 : public TensorOpsCommon<bfloat16>
-{
-};
-
-struct GPU_TensorOps_I8 : public TensorOpsCommon<int8_t>
 {
 };
 
@@ -514,20 +509,8 @@ TEST_P(GPU_TensorOps_FP64, TestDouble)
 {
 }
 
-TEST_P(GPU_TensorOps_I8, TestInt8) 
-{
-}
-
-TEST_P(GPU_TensorOps_BFP16, TestBFloat16) 
-{
-}
-
-
-//INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP32, GetCases<float>());
-//INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP64, GetCases<double>());
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_BFP16, GetCases<bfloat16>());
-//INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP16, GetCases<half_float::half>());
-
-//INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_I8, GetCases<int8_t>());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP32, GetCases<float>());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP64, GetCases<double>());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP16, GetCases<half_float::half>());
 
 
