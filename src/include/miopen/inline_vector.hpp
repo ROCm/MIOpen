@@ -66,8 +66,8 @@ public:
         std::copy(data.begin(), data.end(), storage.begin());
     }
 
-    template <typename _InputIterator>
-    InlineVector(_InputIterator first, _InputIterator last) : real_size(std::distance(first, last))
+    template <typename InputIterator>
+    InlineVector(InputIterator first, InputIterator last) : real_size(std::distance(first, last))
     {
         if(real_size > N)
         {
@@ -122,9 +122,17 @@ public:
     }
 
     // Element access
-    reference operator[](std::size_t n) noexcept { return storage[n]; }
+    reference operator[](std::size_t n)
+    {
+        assert(n < N);
+        return storage[n];
+    }
 
-    const_reference operator[](std::size_t n) const noexcept { return storage[n]; }
+    const_reference operator[](std::size_t n) const
+    {
+        assert(n < N);
+        return storage[n];
+    }
 
     // Element access with boundaries check
     reference at(std::size_t n)
@@ -226,14 +234,14 @@ public:
     }
 
     // Create element and add it to the back
-    template <typename... _Args>
-    void emplace_back(_Args&&... args)
+    template <typename... Args>
+    void emplace_back(Args&&... args)
     {
         if(real_size == N)
         {
             MIOPEN_THROW("InlineVector already full");
         }
-        storage[real_size++] = T(std::forward<_Args>(args)...);
+        storage[real_size++] = T(std::forward<Args>(args)...);
     }
 
     // Remove element from the back
