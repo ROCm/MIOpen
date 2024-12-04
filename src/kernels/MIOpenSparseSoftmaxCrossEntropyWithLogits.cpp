@@ -165,13 +165,8 @@ __device__ void sparseSoftmaxCrossEntropyWithLogitsBackward(const T* output_grad
     uint64_t gid = blockIdx.x;
     uint64_t lid = threadIdx.x;
 
-    __shared__ FLOAT_ACCUM output_grad_val;
-
-    if(lid == 0)
-    {
-        output_grad_val = CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx({gid})]);
-    }
-    __syncthreads();
+    FLOAT_ACCUM output_grad_val =
+        CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx({gid})]);
 
     for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
     {
@@ -206,13 +201,7 @@ __device__ void sparseSoftmaxCrossEntropyWithLogitsBackwardContiguous(const T* o
 
     uint64_t batch_offset = gid * num_class;
 
-    __shared__ FLOAT_ACCUM output_grad_val;
-
-    if(lid == 0)
-    {
-        output_grad_val = CVT_FLOAT2ACCUM(output_grad[gid]);
-    }
-    __syncthreads();
+    FLOAT_ACCUM output_grad_val = CVT_FLOAT2ACCUM(output_grad[gid]);
 
     for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
     {
