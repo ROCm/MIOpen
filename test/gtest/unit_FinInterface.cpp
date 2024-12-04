@@ -200,7 +200,11 @@ template <>
 const auto& GetSolversInfo<ConvSolverInfo>()
 {
     /// \anchor fin_interface_solver_info_coverage
-    // This is the initial list of solvers for testing the interface. At the time of its creation, it included all the available solvers. This was necessary to verify that all solvers were correctly added to the solver registry. There is no need to keep it up to date by adding new solvers as all new solvers will be added to the registry according to the existing template, and it won't improve test coverage (and will only waste extra time).
+    // This is the initial list of solvers for testing the interface. At the time of its creation,
+    // it included all the available solvers. This was necessary to verify that all solvers were
+    // correctly added to the solver registry. There is no need to keep it up to date by adding new
+    // solvers as all new solvers will be added to the registry according to the existing template,
+    // and it won't improve test coverage (and will only waste extra time).
     static const std::unordered_map<std::string, ConvSolverInfo> solver_info = {
         // clang-format off
         {"ConvAsm3x3U",                                         {1,     false,  true,   "miopenConvolutionFwdAlgoDirect"}},
@@ -342,7 +346,9 @@ template <>
 const auto& GetSolverConfigs<ConvSolverConfig>()
 {
     /// \anchor fin_interface_solver_config_coverage
-    // This list should include solvers that allow testing the core functionality, such as tunable and non-tunable solvers. There's no need to add all solvers here, as it won't improve test coverage (and will only waste extra time).
+    // This list should include solvers that allow testing the core functionality, such as tunable
+    // and non-tunable solvers. There's no need to add all solvers here, as it won't improve test
+    // coverage (and will only waste extra time).
     static const std::unordered_map<std::string, ConvSolverConfig> configs = {
         // clang-format off
         // Non-tunable solvers
