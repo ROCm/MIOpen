@@ -73,35 +73,6 @@ static std::vector<miopenTensorOp_t> operationArr = {
 
 struct TestCase
 {
-    template <typename Tarr>
-    void printArray(const std::string& name, const std::vector<Tarr>& arr)
-    {
-        std::cout << name << ": [";
-
-        for(size_t i = 0; i < arr.size(); ++i)
-        {
-            std::cout << arr[i];
-
-            if(i < arr.size() - 1)
-            {
-                std::cout << ",";
-            }
-        }
-
-        std::cout << "]" << std::endl;
-    }
-
-    void Dump()
-    {
-        printArray("tensorAC", tensorlens_ac);
-        printArray("tensorB", tensorlens_b);
-        printArray("offsets", offsets);
-        printArray("alphabeta", alphabeta);
-
-        std::cout << "packed: " << packed << std::endl;
-        std::cout << "operation: " << operation << std::endl;
-    }
-
     std::vector<int> tensorlens_ac;
     std::vector<int> tensorlens_b;
     std::vector<int64_t> offsets;
@@ -126,8 +97,6 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
         tensor<T> tensorCPU = std::move(CalculateOnCPU());
 
         CompareResults(tensorGPU, tensorCPU);
-
-        // miopen::Handle& handle = get_handle();
     }
 
 private:
@@ -245,7 +214,6 @@ private:
         auto clens = r.desc.GetLengths();
         auto blens = tensorB.desc.GetLengths();
 
-        // TODO support 4 operations
         operate_over_subtensor<>(dataOp,
                                  r.data,
                                  tensorA.data,
@@ -340,16 +308,6 @@ private:
             << "IsPacked: " << testCase.packed << std::endl
             << "Offsets: " << testCase.offsets[0] << "," << testCase.offsets[1] << ","
             << testCase.offsets[2] << std::endl;
-
-        /*auto mismatch_index = miopen::mismatch_idx(tensorCPU.data, tensorGPU.data,
-        miopen::float_equal);
-
-        ASSERT_EQ(tensorGPU.data.size(), mismatch_index)
-            << "The first mismatched elements are:"                           //
-            << " GPU[" << mismatch_index << "] " << tensorGPU.data[mismatch_index]
-            << " Ref[" << mismatch_index << "] " << tensorCPU.data[mismatch_index]
-            << " \nOperation: " << testCase.operation
-            << " \nIsPacked: " << testCase.packed ; */
     }
 
 private:
