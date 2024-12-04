@@ -25,13 +25,10 @@
  *******************************************************************************/
 
 #include <gtest/gtest.h>
-
 #include <numeric>
 
 #include <miopen/inline_vector.hpp>
 #include <miopen/tensor.hpp>
-
-namespace {
 
 TEST(CPU_InlineVectorSizeAndAccumulate_NONE, Test)
 {
@@ -203,5 +200,3 @@ TEST(CPU_InlineVectorClear_NONE, Test)
     in_v12.clear();
     EXPECT_EQ(in_v12.size(), 0);
 }
-
-} // namespace
