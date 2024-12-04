@@ -82,53 +82,41 @@ public:
     InlineVector& operator=(InlineVector&& inline_vec) noexcept = default;
 
     // Iterators
-    iterator begin() noexcept { return storage.begin(); }
+    iterator begin() noexcept { return iterator(data()); }
 
-    const_iterator begin() const noexcept { return storage.begin(); }
+    const_iterator begin() const noexcept { return const_iterator(data()); }
 
-    iterator end() noexcept { return (storage.begin() + real_size); }
+    iterator end() noexcept { return iterator(data() + real_size); }
 
-    const_iterator end() const noexcept { return (storage.begin() + real_size); }
+    const_iterator end() const noexcept { return const_iterator(data() + real_size); }
 
     // Constant iterator
-    const_iterator cbegin() const noexcept { return begin(); }
+    const_iterator cbegin() const noexcept { return const_iterator(data()); }
 
-    const_iterator cend() const noexcept { return end(); }
+    const_iterator cend() const noexcept { return const_iterator(data() + real_size); }
 
     // Reverse iterators
-    reverse_iterator rbegin() noexcept { return std::reverse_iterator<T*>(end()); }
+    reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
 
-    const_reverse_iterator rbegin() const noexcept
-    {
-        return std::reverse_iterator<const T*>(end());
-    }
+    const_reverse_iterator rbegin() const noexcept { return const_reverse_iterator(end()); }
 
-    reverse_iterator rend() noexcept { return std::reverse_iterator<T*>(begin()); }
+    reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
 
-    const_reverse_iterator rend() const noexcept
-    {
-        return std::reverse_iterator<const T*>(begin());
-    }
+    const_reverse_iterator rend() const noexcept { return const_reverse_iterator(begin()); }
 
     // Constant reverse iterators
-    const_reverse_iterator crbegin() const noexcept
-    {
-        return std::reverse_iterator<const T*>(cend());
-    }
+    const_reverse_iterator crbegin() const noexcept { return const_reverse_iterator(end()); }
 
-    const_reverse_iterator crend() const noexcept
-    {
-        return std::reverse_iterator<const T*>(cbegin());
-    }
+    const_reverse_iterator crend() const noexcept { return const_reverse_iterator(begin()); }
 
     // Element access
-    reference operator[](std::size_t n)
+    reference operator[](std::size_t n) noexcept
     {
         assert(n < N);
         return storage[n];
     }
 
-    const_reference operator[](std::size_t n) const
+    const_reference operator[](std::size_t n) const noexcept
     {
         assert(n < N);
         return storage[n];
