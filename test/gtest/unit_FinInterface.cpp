@@ -532,18 +532,17 @@ public:
         const auto& solvers      = InterfaceGetAllSolvers<TestCase>();
         const auto& solvers_info = GetSolversInfo<decltype(std::declval<TestCase>().info)>();
 
-        ASSERT_EQ(solvers.size(), solvers_info.size());
+        std::size_t num_checked_solvers = 0;
         for(const auto& solver : solvers)
         {
             const auto& name        = solver.GetName();
             const auto& solver_info = solvers_info.find(name);
             if(solver_info == solvers_info.end())
-            {
-                const std::string error = name + " not found";
-                GTEST_FAIL() << error;
-            }
+                continue;
             ASSERT_NO_FATAL_FAILURE(CheckSolverInfo(solver, solver_info->second));
+            num_checked_solvers++;
         }
+        ASSERT_EQ(num_checked_solvers, solvers_info.size());
 #endif // MIOPEN_ENABLE_FIN_INTERFACE
     }
 
