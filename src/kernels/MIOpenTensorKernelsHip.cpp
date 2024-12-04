@@ -276,9 +276,9 @@ extern "C" __global__ void Op4dTensorGeneric(MIOPEN_TYPE* a,
         {
             int lid = threadIdx.x;
 
-            int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
-            int o_c_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
-            int o_n_div = o_c_div * (bitmap & (1 << 2) ? 1 : c_c);
+            int o_h_div = (bitmap & (1 << 0)) ? 1 : c_w;
+            int o_c_div = o_h_div * ((bitmap & (1 << 1)) ? 1 : c_h);
+            int o_n_div = o_c_div * ((bitmap & (1 << 2)) ? 1 : c_c);
 
             int o_w_gid_off = gid % b_w;
             int o_h_gid_off = (gid / b_w) % b_h;
@@ -310,9 +310,9 @@ extern "C" __global__ void Op4dTensorGeneric(MIOPEN_TYPE* a,
         {
             int lid = threadIdx.x;
 
-            int o_h_div = bitmap & (1 << 0) ? 1 : c_w;
-            int o_c_div = o_h_div * (bitmap & (1 << 1) ? 1 : c_h);
-            int o_n_div = o_c_div * (bitmap & (1 << 2) ? 1 : c_c);
+            int o_h_div = (bitmap & (1 << 0)) ? 1 : c_w;
+            int o_c_div = o_h_div * ((bitmap & (1 << 1)) ? 1 : c_h);
+            int o_n_div = o_c_div * ((bitmap & (1 << 2)) ? 1 : c_c);
 
             int o_w_gid_off = gid % b_w;
             int o_h_gid_off = (gid / b_w) % b_h;
