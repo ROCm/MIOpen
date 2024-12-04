@@ -37,16 +37,16 @@ class InlineVector
 {
 public:
     using storage_type           = std::array<T, N>;
-    using value_type             = storage_type::value_type;
-    using size_type              = storage_type::size_type;
-    using reference              = storage_type::reference;
-    using const_reference        = storage_type::const_reference;
-    using pointer                = storage_type::pointer;
-    using const_pointer          = storage_type::const_pointer;
-    using iterator               = storage_type::iterator;
-    using const_iterator         = storage_type::const_iterator;
-    using reverse_iterator       = storage_type::reverse_iterator;
-    using const_reverse_iterator = storage_type::const_reverse_iterator;
+    using value_type             = typename storage_type::value_type;
+    using size_type              = typename storage_type::size_type;
+    using reference              = typename storage_type::reference;
+    using const_reference        = typename storage_type::const_reference;
+    using pointer                = typename storage_type::pointer;
+    using const_pointer          = typename storage_type::const_pointer;
+    using iterator               = typename storage_type::iterator;
+    using const_iterator         = typename storage_type::const_iterator;
+    using reverse_iterator       = typename storage_type::reverse_iterator;
+    using const_reverse_iterator = typename storage_type::const_reverse_iterator;
     static_assert(std::is_scalar_v<T>, "InlineVector currently supports scalar type only");
 
     // Default constructor
