@@ -613,11 +613,11 @@ protected:
 // Convolution
 using CPU_FinInterfaceTestGetAllConvSolvers_NONE = TestGetAllSolvers<ConvTestCase>;
 using CPU_FinInterfaceTestGetConvSolvers_NONE    = TestGetSolvers<ConvTestCase>;
-using CPU_FinInterfaceTestGetConvSolver_NONE     = TestGetSolver<ConvTestCase>;
+using GPU_FinInterfaceTestGetConvSolver_FP32     = TestGetSolver<ConvTestCase>;
 
 TEST_P(CPU_FinInterfaceTestGetAllConvSolvers_NONE, FinInterface) { this->RunTest(); };
 TEST_P(CPU_FinInterfaceTestGetConvSolvers_NONE, FinInterface) { this->RunTest(); };
-TEST_P(CPU_FinInterfaceTestGetConvSolver_NONE, FinInterface) { this->RunTest(); };
+TEST_P(GPU_FinInterfaceTestGetConvSolver_FP32, FinInterface) { this->RunTest(); };
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_FinInterfaceTestGetAllConvSolvers_NONE,
@@ -628,18 +628,18 @@ INSTANTIATE_TEST_SUITE_P(Full,
                          testing::Values(GetTestParams()));
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_FinInterfaceTestGetConvSolver_NONE,
+                         GPU_FinInterfaceTestGetConvSolver_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::ValuesIn(GetTestCases<ConvTestCase>())));
 
 // Batch normalization
 using CPU_FinInterfaceTestGetAllBatchNormSolvers_NONE = TestGetAllSolvers<BatchNormTestCase>;
 using CPU_FinInterfaceTestGetBatchNormSolvers_NONE    = TestGetSolvers<BatchNormTestCase>;
-using CPU_FinInterfaceTestGetBatchNormSolver_NONE     = TestGetSolver<BatchNormTestCase>;
+using GPU_FinInterfaceTestGetBatchNormSolver_FP32     = TestGetSolver<BatchNormTestCase>;
 
 TEST_P(CPU_FinInterfaceTestGetAllBatchNormSolvers_NONE, FinInterface) { this->RunTest(); };
 TEST_P(CPU_FinInterfaceTestGetBatchNormSolvers_NONE, FinInterface) { this->RunTest(); };
-TEST_P(CPU_FinInterfaceTestGetBatchNormSolver_NONE, FinInterface) { this->RunTest(); };
+TEST_P(GPU_FinInterfaceTestGetBatchNormSolver_FP32, FinInterface) { this->RunTest(); };
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_FinInterfaceTestGetAllBatchNormSolvers_NONE,
@@ -651,7 +651,7 @@ INSTANTIATE_TEST_SUITE_P(Full,
 
 // clang-format off
 INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_FinInterfaceTestGetBatchNormSolver_NONE,
+                         GPU_FinInterfaceTestGetBatchNormSolver_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::ValuesIn(GetTestCases<BatchNormTestCase>())));
 // clang-format on
