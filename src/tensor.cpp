@@ -626,15 +626,12 @@ std::size_t TensorDescriptor::GetIndex(std::initializer_list<int> l) const
 
 std::size_t TensorDescriptor::GetElementSpace() const
 {
-    std::vector<std::size_t> maxIndices(lens.size());
-    std::transform(lens.begin(),
-                   lens.end(),
-                   std::vector<std::size_t>(lens.size(), 1).begin(),
-                   maxIndices.begin(),
-                   std::minus<std::size_t>());
-    return std::inner_product(
-               maxIndices.begin(), maxIndices.end(), strides.begin(), std::size_t{0}) +
-           vector_length;
+    return std::inner_product(lens.begin(),
+                              lens.end(),
+                              strides.begin(),
+                              vector_length,
+                              std::plus<size_t>(),
+                              [](size_t len, size_t stride) { return (len - 1) * stride; });
 }
 
 // For vectorized layouts storage_layout must be without the ending 'c'
