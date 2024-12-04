@@ -30,6 +30,7 @@
 
 #include "float_types.h"
 #include "tensor_view.hpp"
+#include "block_reduce.hpp"
 
 #ifndef T_TYPE
 #define T_TYPE int32_t
@@ -49,63 +50,38 @@ __device__ void sparseSoftmaxCrossEntropyWithLogitsForward(const T* input,
     uint64_t gid = blockIdx.x;
     uint64_t lid = threadIdx.x;
 
-    __shared__ FLOAT_ACCUM lmax[LOCAL_SIZE], lsum[LOCAL_SIZE];
-    lmax[lid] = log(0.0f);
-    lsum[lid] = 0.0f;
     __shared__ uint64_t label;
+    FLOAT_ACCUM lmax = log(0.0f), lsum = 0.0f;
+
+    if(lid == 0)
+        label = static_cast<uint64_t>(target[target_tv.get_tensor_view_idx({gid})]);
+
+    for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
+    {
+        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx({gid, i})]);
+        lmax            = max(lmax, val);
+    }
+    lmax = block_reduce<BinaryOp_t::Max, LOCAL_SIZE, ReduceThreadDim::X>(lmax);
+
+    for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
+    {
+        FLOAT_ACCUM val =
+            exp(CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx({gid, i})]) - lmax);
+        lsum += val;
+    }
+    lsum = block_reduce<BinaryOp_t::Add, LOCAL_SIZE, ReduceThreadDim::X>(lsum);
 
     if(lid == 0)
     {
-        label = static_cast<uint64_t>(target[target_tv.get_tensor_view_idx({gid})]);
-    }
-
-    for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
-    {
-        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx({gid, i})]);
-        lmax[lid]       = max(lmax[lid], val);
-    }
-    __syncthreads();
-
-    for(uint64_t i = LOCAL_SIZE >> 1; i > 0; i >>= 1)
-    {
-        if(lid < i)
-        {
-            lmax[lid] = max(lmax[lid], lmax[lid + i]);
-        }
-        __syncthreads();
-    }
-
-    for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
-    {
-        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx({gid, i})]);
-        lsum[lid] += exp(val - lmax[0]);
-    }
-    __syncthreads();
-
-    for(uint64_t i = LOCAL_SIZE >> 1; i > 0; i >>= 1)
-    {
-        if(lid < i)
-        {
-            lsum[lid] += lsum[lid + i];
-        }
-        __syncthreads();
-    }
-
-    for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
-    {
-        if(i == label)
-        {
-            FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx({gid, i})]);
-            output[output_tv.get_tensor_view_idx({gid})] =
-                CVT_ACCUM2FLOAT(log(lsum[0]) - val + lmax[0]);
-        }
+        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx({gid, label})]);
+        output[gid]     = CVT_ACCUM2FLOAT(log(lsum) - val + lmax);
     }
 
     for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx({gid, i})]);
         FLOAT_ACCUM backprop_val =
-            (i == label) ? exp(val - lmax[0]) / lsum[0] - 1.0f : exp(val - lmax[0]) / lsum[0];
+            (i == label) ? exp(val - lmax) / lsum - 1.0f : exp(val - lmax) / lsum;
 
         backprop[backprop_tv.get_tensor_view_idx({gid, i})] = CVT_ACCUM2FLOAT(backprop_val);
     }
@@ -129,66 +105,43 @@ template <typename T, typename Ta>
 __device__ void sparseSoftmaxCrossEntropyWithLogitsForwardContiguous(
     const T* input, const Ta* target, T* output, T* backprop, uint64_t num_class)
 {
-    uint64_t gid = blockIdx.x;
-    uint64_t lid = threadIdx.x;
-
-    __shared__ FLOAT_ACCUM lmax[LOCAL_SIZE], lsum[LOCAL_SIZE];
-    lmax[lid] = log(0.0f);
-    lsum[lid] = 0.0f;
-    __shared__ uint64_t label;
+    uint64_t gid          = blockIdx.x;
+    uint64_t lid          = threadIdx.x;
     uint64_t batch_offset = gid * num_class;
+
+    __shared__ uint64_t label;
+
+    FLOAT_ACCUM lmax = log(0.0f), lsum = 0.0f;
+
+    if(lid == 0)
+        label = static_cast<uint64_t>(target[gid]);
+
+    for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
+    {
+        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[i + batch_offset]);
+        lmax            = max(lmax, val);
+    }
+    lmax = block_reduce<BinaryOp_t::Max, LOCAL_SIZE, ReduceThreadDim::X>(lmax);
+
+    for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
+    {
+        FLOAT_ACCUM val = exp(CVT_FLOAT2ACCUM(input[i + batch_offset]) - lmax);
+        lsum += val;
+    }
+    lsum = block_reduce<BinaryOp_t::Add, LOCAL_SIZE, ReduceThreadDim::X>(lsum);
 
     if(lid == 0)
     {
-        label = static_cast<uint64_t>(target[gid]);
-    }
-
-    for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
-    {
-        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[i + batch_offset]);
-        lmax[lid]       = max(lmax[lid], val);
-    }
-    __syncthreads();
-
-    for(uint64_t i = LOCAL_SIZE >> 1; i > 0; i >>= 1)
-    {
-        if(lid < i)
-        {
-            lmax[lid] = max(lmax[lid], lmax[lid + i]);
-        }
-        __syncthreads();
-    }
-
-    for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
-    {
-        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[i + batch_offset]);
-        lsum[lid] += exp(val - lmax[0]);
-    }
-    __syncthreads();
-
-    for(uint64_t i = LOCAL_SIZE >> 1; i > 0; i >>= 1)
-    {
-        if(lid < i)
-        {
-            lsum[lid] += lsum[lid + i];
-        }
-        __syncthreads();
-    }
-
-    for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
-    {
-        if(i == label)
-        {
-            FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[i + batch_offset]);
-            output[gid]     = CVT_ACCUM2FLOAT(log(lsum[0]) - val + lmax[0]);
-        }
+        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[label + batch_offset]);
+        output[gid]     = CVT_ACCUM2FLOAT(log(lsum) - val + lmax);
     }
 
     for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[i + batch_offset]);
         FLOAT_ACCUM backprop_val =
-            (i == label) ? exp(val - lmax[0]) / lsum[0] - 1.0f : exp(val - lmax[0]) / lsum[0];
+            (i == label) ? exp(val - lmax) / lsum - 1.0f : exp(val - lmax) / lsum;
+
         backprop[i + batch_offset] = CVT_ACCUM2FLOAT(backprop_val);
     }
 }

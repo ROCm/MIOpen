@@ -36,6 +36,7 @@
 enum class BinaryOp_t
 {
     Add,
+    Max,
 };
 
 template <BinaryOp_t Op, typename T>
@@ -47,11 +48,17 @@ struct BinaryFunc<BinaryOp_t::Add, T>
     constexpr void exec(T& a, const T& b) { a += b; }
 };
 
+template <typename T>
+struct BinaryFunc<BinaryOp_t::Max, T>
+{
+    constexpr void exec(T& a, const T& b) { a = max(a, b); }
+};
+
 template <BinaryOp_t Op, uint32_t ws = warpSize>
 __device__ FLOAT_ACCUM warp_reduce(FLOAT_ACCUM val)
 {
     for(auto d = ws / 2; d >= 1; d >>= 1)
-        BinaryFunc<Op, FLOAT_ACCUM>{}.exec(val, __shfl_down(val, d));
+        BinaryFunc<Op, FLOAT_ACCUM>{}.exec(val, __shfl_xor(val, d));
     return val;
 }
 
