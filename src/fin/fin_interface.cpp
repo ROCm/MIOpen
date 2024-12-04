@@ -329,6 +329,7 @@ AnySolver<miopen::ExecutionContext, miopen::conv::ProblemDescription>::AnySolver
     case 151: SetObject<miopen::solver::conv::ConvHipImplicitGemmF16F8F16WrwXdlops>(); break;
     case 155: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops>(); break;
     case 156: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops>(); break;
+    // New tunable solver should be added here
     default: MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID");
     }
 }
@@ -349,6 +350,7 @@ AnySolver<miopen::ExecutionContext, miopen::batchnorm::ProblemDescription>::AnyS
     case 142: SetObject<miopen::solver::batchnorm::BnCKFwdInference>(); break;
     case 143: SetObject<miopen::solver::batchnorm::BnCKBwdBackward>(); break;
     case 144: SetObject<miopen::solver::batchnorm::BnCKFwdTraining>(); break;
+    // New tunable solver should be added here
     default: MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID");
     }
 }
