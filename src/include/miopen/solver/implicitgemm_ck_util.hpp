@@ -193,6 +193,7 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
     return valid_kernels;
 }
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <typename DeviceOpType>
 inline constexpr bool IsSplitKNeeded()
 {
@@ -213,6 +214,7 @@ inline constexpr bool IsSplitKNeeded()
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<int8_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::bhalf_t>>;
 }
+#endif
 
 template <typename DeviceOpType,
           typename CKArgsType,
