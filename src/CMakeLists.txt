@@ -126,11 +126,12 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
+    getitem/problem_description.cpp
     getitem_api.cpp
     glu/problem_description.cpp
     glu_api.cpp
-    gradientdescent_api.cpp
     gradientdescent/problem_description.cpp
+    gradientdescent_api.cpp
     graphapi/convolution.cpp
     graphapi/conv_bias_res_add_activ_forward_executor.cpp
     graphapi/engine.cpp
@@ -147,11 +148,10 @@ set( MIOpen_Source
     graphapi/rng.cpp
     graphapi/tensor.cpp
     graphapi/variant_pack.cpp
-    groupnorm_api.cpp
     groupnorm/problem_description.cpp
+    groupnorm_api.cpp
     handle_api.cpp
     invoker_cache.cpp
-    getitem/problem_description.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     kthvalue/problem_description.cpp
@@ -302,11 +302,11 @@ set( MIOpen_Source
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
+    solver/getitem/backward_getitem.cpp
     solver/glu/backward_glu.cpp
     solver/glu/forward_glu.cpp
     solver/gradientdescent/gradientdescent.cpp
     solver/groupnorm/forward_groupnorm.cpp
-    solver/getitem/backward_getitem.cpp
     solver/kthvalue/forward_kthvalue.cpp
     solver/layernorm/backward_t5layernorm.cpp
     solver/layernorm/forward_addlayernorm.cpp
@@ -671,10 +671,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         addlayernorm.cpp
         cat.cpp
         exec_utils.cpp
-        groupnorm.cpp
         getitem.cpp
         glu.cpp
         gradientdescent.cpp
+        groupnorm.cpp
         kernel_cache.cpp
         kthvalue.cpp
         layernorm.cpp
