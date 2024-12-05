@@ -221,16 +221,10 @@ public:
         storage[real_size++] = std::move(e);
     }
 
-    // Create element and add it to the back
-    template <typename... Args>
-    void emplace_back(Args&&... args)
-    {
-        if(real_size == N)
-        {
-            MIOPEN_THROW("InlineVector already full");
-        }
-        storage[real_size++] = T(std::forward<Args>(args)...);
-    }
+    /*
+        Because only scalar type is supported there is no need for emplace_back method.
+        Implement emplace_back method when adding support for other data types.
+    */
 
     // Remove element from the back
     void pop_back() noexcept { real_size = (real_size > 1) ? (real_size - 1) : 0; }
