@@ -112,13 +112,13 @@ public:
     // Element access
     reference operator[](std::size_t n) noexcept
     {
-        assert(n < N);
+        assert(n < real_size);
         return storage[n];
     }
 
     const_reference operator[](std::size_t n) const noexcept
     {
-        assert(n < N);
+        assert(n < real_size);
         return storage[n];
     }
 
