@@ -31,7 +31,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-namespace sparsesoftmaxcrossentropywithlogits {
+namespace sparse_softmax_cross_entropy_with_logits {
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 SparseSoftmaxCrossEntropyWithLogitsForward(Handle& handle,
@@ -53,6 +53,6 @@ SparseSoftmaxCrossEntropyWithLogitsBackward(Handle& handle,
                                             const TensorDescriptor& inputGradDesc,
                                             Data_t input_grad);
 
-} // namespace sparsesoftmaxcrossentropywithlogits
+} // namespace sparse_softmax_cross_entropy_with_logits
 
 } // namespace miopen

@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/sparsesoftmaxcrossentropywithlogits.hpp>
+#include <miopen/sparse_softmax_cross_entropy_with_logits.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
@@ -52,15 +52,15 @@ inline void LogCmdSparseSoftmaxCrossEntropyWithLogits(const miopenTensorDescript
         auto dtype = miopen::deref(iDesc).GetType();
         if(dtype == miopenHalf)
         {
-            ss << "sparsesoftmaxcrossentropywithlogitsfp16";
+            ss << "sparse_softmax_cross_entropy_with_logitsfp16";
         }
         else if(dtype == miopenFloat)
         {
-            ss << "sparsesoftmaxcrossentropywithlogitsfp32";
+            ss << "sparse_softmax_cross_entropy_with_logitsfp32";
         }
         else if(dtype == miopenBFloat16)
         {
-            ss << "sparsesoftmaxcrossentropywithlogitsbfp16";
+            ss << "sparse_softmax_cross_entropy_with_logitsbfp16";
         }
         ss << " -Is ";
         ss << miopen::deref(iDesc).GetLengths();
@@ -86,16 +86,16 @@ miopenSparseSoftmaxCrossEntropyWithLogitsForward(miopenHandle_t handle,
     LogCmdSparseSoftmaxCrossEntropyWithLogits(inputDesc, true);
 
     return miopen::try_([&] {
-        miopen::sparsesoftmaxcrossentropywithlogits::SparseSoftmaxCrossEntropyWithLogitsForward(
-            miopen::deref(handle),
-            miopen::deref(inputDesc),
-            DataCast(input),
-            miopen::deref(targetDesc),
-            DataCast(target),
-            miopen::deref(outputDesc),
-            DataCast(output),
-            miopen::deref(backpropDesc),
-            DataCast(backprop));
+        miopen::sparse_softmax_cross_entropy_with_logits::
+            SparseSoftmaxCrossEntropyWithLogitsForward(miopen::deref(handle),
+                                                       miopen::deref(inputDesc),
+                                                       DataCast(input),
+                                                       miopen::deref(targetDesc),
+                                                       DataCast(target),
+                                                       miopen::deref(outputDesc),
+                                                       DataCast(output),
+                                                       miopen::deref(backpropDesc),
+                                                       DataCast(backprop));
     });
 }
 
@@ -114,13 +114,13 @@ miopenSparseSoftmaxCrossEntropyWithLogitsBackward(miopenHandle_t handle,
     LogCmdSparseSoftmaxCrossEntropyWithLogits(inputGradDesc, false);
 
     return miopen::try_([&] {
-        miopen::sparsesoftmaxcrossentropywithlogits::SparseSoftmaxCrossEntropyWithLogitsBackward(
-            miopen::deref(handle),
-            miopen::deref(outputGradDesc),
-            DataCast(output_grad),
-            miopen::deref(backpropDesc),
-            DataCast(backprop),
-            miopen::deref(inputGradDesc),
-            DataCast(input_grad));
+        miopen::sparse_softmax_cross_entropy_with_logits::
+            SparseSoftmaxCrossEntropyWithLogitsBackward(miopen::deref(handle),
+                                                        miopen::deref(outputGradDesc),
+                                                        DataCast(output_grad),
+                                                        miopen::deref(backpropDesc),
+                                                        DataCast(backprop),
+                                                        miopen::deref(inputGradDesc),
+                                                        DataCast(input_grad));
     });
 }

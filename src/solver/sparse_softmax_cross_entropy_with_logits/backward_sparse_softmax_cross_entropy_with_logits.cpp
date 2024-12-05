@@ -25,9 +25,9 @@
  *******************************************************************************/
 
 #include <miopen/datatype.hpp>
-#include <miopen/sparsesoftmaxcrossentropywithlogits.hpp>
-#include <miopen/sparsesoftmaxcrossentropywithlogits/invoke_params.hpp>
-#include <miopen/sparsesoftmaxcrossentropywithlogits/solvers.hpp>
+#include <miopen/sparse_softmax_cross_entropy_with_logits.hpp>
+#include <miopen/sparse_softmax_cross_entropy_with_logits/invoke_params.hpp>
+#include <miopen/sparse_softmax_cross_entropy_with_logits/solvers.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view_utils.hpp>
@@ -38,11 +38,11 @@ namespace miopen {
 
 namespace solver {
 
-namespace sparsesoftmaxcrossentropywithlogits {
+namespace sparse_softmax_cross_entropy_with_logits {
 
 bool SparseSoftmaxCrossEntropyWithLogitsBackward::IsApplicable(
     const ExecutionContext&,
-    const miopen::sparsesoftmaxcrossentropywithlogits::BwdProblemDescription& problem) const
+    const miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription& problem) const
 {
     if(!(problem.GetOutputGradDesc().GetType() == miopenHalf ||
          problem.GetOutputGradDesc().GetType() == miopenFloat ||
@@ -55,7 +55,7 @@ bool SparseSoftmaxCrossEntropyWithLogitsBackward::IsApplicable(
 
 ConvSolution SparseSoftmaxCrossEntropyWithLogitsBackward::GetSolution(
     const ExecutionContext& context,
-    const miopen::sparsesoftmaxcrossentropywithlogits::BwdProblemDescription& problem) const
+    const miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription& problem) const
 {
     std::ignore       = context;
     auto output_dtype = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
@@ -83,9 +83,8 @@ ConvSolution SparseSoftmaxCrossEntropyWithLogitsBackward::GetSolution(
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels[0]);
-                decltype(auto) params =
-                    raw_params
-                        .CastTo<miopen::sparsesoftmaxcrossentropywithlogits::BwdInvokeParams>();
+                decltype(auto) params = raw_params.CastTo<
+                    miopen::sparse_softmax_cross_entropy_with_logits::BwdInvokeParams>();
                 auto output_grad_tv = get_inner_expanded_tv<1>(deref(params.outputGradDesc));
                 auto backprop_tv    = get_inner_expanded_tv<2>(deref(params.backpropDesc));
                 auto input_grad_tv  = get_inner_expanded_tv<2>(deref(params.inputGradDesc));
@@ -113,9 +112,8 @@ ConvSolution SparseSoftmaxCrossEntropyWithLogitsBackward::GetSolution(
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels[0]);
-                decltype(auto) params =
-                    raw_params
-                        .CastTo<miopen::sparsesoftmaxcrossentropywithlogits::BwdInvokeParams>();
+                decltype(auto) params = raw_params.CastTo<
+                    miopen::sparse_softmax_cross_entropy_with_logits::BwdInvokeParams>();
                 auto num_class = deref(params.inputGradDesc).GetLengths()[1];
 
                 kernel(params.output_grad, params.backprop, params.input_grad, num_class);
@@ -126,7 +124,7 @@ ConvSolution SparseSoftmaxCrossEntropyWithLogitsBackward::GetSolution(
     return result;
 }
 
-} // namespace sparsesoftmaxcrossentropywithlogits
+} // namespace sparse_softmax_cross_entropy_with_logits
 
 } // namespace solver
 

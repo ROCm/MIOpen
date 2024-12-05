@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "sparsesoftmaxcrossentropywithlogits.hpp"
+#include "sparse_softmax_cross_entropy_with_logits.hpp"
 using float16 = half_float::half;
 
 // FORWARD TEST

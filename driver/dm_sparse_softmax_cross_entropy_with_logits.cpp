@@ -24,15 +24,15 @@
  *
  *******************************************************************************/
 #include "registry_driver_maker.hpp"
-#include "sparsesoftmaxcrossentropywithlogits_driver.hpp"
+#include "sparse_softmax_cross_entropy_with_logits_driver.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    if(base_arg == "sparsesoftmaxcrossentropywithlogits")
+    if(base_arg == "sparse_softmax_cross_entropy_with_logits")
         return new SparseSoftmaxCrossEntropyWithLogitsDriver<float, float>();
-    if(base_arg == "sparsesoftmaxcrossentropywithlogitsfp16")
+    if(base_arg == "sparse_softmax_cross_entropy_with_logitsfp16")
         return new SparseSoftmaxCrossEntropyWithLogitsDriver<float16, float>();
-    if(base_arg == "sparsesoftmaxcrossentropywithlogitsbfp16")
+    if(base_arg == "sparse_softmax_cross_entropy_with_logitsbfp16")
         return new SparseSoftmaxCrossEntropyWithLogitsDriver<bfloat16, float>();
     return nullptr;
 }

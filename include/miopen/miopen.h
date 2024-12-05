@@ -8010,7 +8010,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  *  @{
  */
 
-/*! @brief Execute a sparsesoftmaxcrossentropywithlogits forward layer
+/*! @brief Execute a sparse_softmax_cross_entropy_with_logits forward layer
  *
  * @param handle                MIOpen handle (input)
  * @param inputDesc             Tensor descriptor for input  tensor (input)
@@ -8034,7 +8034,7 @@ miopenSparseSoftmaxCrossEntropyWithLogitsForward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t backpropDesc,
                                                  void* backprop);
 
-/*! @brief Execute a sparsesoftmaxcrossentropywithlogits backward layer
+/*! @brief Execute a sparse_softmax_cross_entropy_with_logits backward layer
  *
  * @param handle                MIOpen handle (input)
  * @param outputGradDesc        Tensor descriptor for output grad tensor (input)

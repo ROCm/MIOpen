@@ -23,12 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "cpu_sparsesoftmaxcrossentropywithlogits.hpp"
+#include "cpu_sparse_softmax_cross_entropy_with_logits.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
-#include <miopen/sparsesoftmaxcrossentropywithlogits.hpp>
+#include <miopen/sparse_softmax_cross_entropy_with_logits.hpp>
 #include <miopen/miopen.h>
 
 template <class T>
@@ -92,14 +92,14 @@ struct SparseSoftmaxCrossEntropyWithLogitsTestFwd
 protected:
     void SetUp() override
     {
-        auto&& handle                              = get_handle();
-        sparsesoftmaxcrossentropywithlogits_config = GetParam();
-        in_dim = sparsesoftmaxcrossentropywithlogits_config.input_dim;
+        auto&& handle                                   = get_handle();
+        sparse_softmax_cross_entropy_with_logits_config = GetParam();
+        in_dim = sparse_softmax_cross_entropy_with_logits_config.input_dim;
 
         auto gen_input_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
         };
-        auto in_stride = sparsesoftmaxcrossentropywithlogits_config.ComputeStrides(in_dim);
+        auto in_stride = sparse_softmax_cross_entropy_with_logits_config.ComputeStrides(in_dim);
         input          = tensor<T>{in_dim, in_stride}.generate(gen_input_value);
 
         auto gen_target_value = [this](auto...) { return prng::gen_A_to_B<int>(0, in_dim[1] - 1); };
@@ -128,20 +128,19 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        cpu_sparsesoftmaxcrossentropywithlogits_forward<T, int>(
+        cpu_sparse_softmax_cross_entropy_with_logits_forward<T, int>(
             input, target, ref_output, ref_backprop, in_dim[1]);
 
-        status =
-            miopen::sparsesoftmaxcrossentropywithlogits::SparseSoftmaxCrossEntropyWithLogitsForward(
-                handle,
-                input.desc,
-                input_dev.get(),
-                target.desc,
-                target_dev.get(),
-                output.desc,
-                output_dev.get(),
-                backprop.desc,
-                backprop_dev.get());
+        status = miopen::sparse_softmax_cross_entropy_with_logits::
+            SparseSoftmaxCrossEntropyWithLogitsForward(handle,
+                                                       input.desc,
+                                                       input_dev.get(),
+                                                       target.desc,
+                                                       target_dev.get(),
+                                                       output.desc,
+                                                       output_dev.get(),
+                                                       backprop.desc,
+                                                       backprop_dev.get());
         ASSERT_EQ(status, miopenStatusSuccess);
         output.data   = handle.Read<T>(output_dev, output.data.size());
         backprop.data = handle.Read<T>(backprop_dev, backprop.data.size());
@@ -163,7 +162,7 @@ protected:
             << "Error forward Backprop beyond 10xthreshold : " << backprop_error
             << " Tolerance: " << threshold * 10;
     }
-    SparseSoftmaxCrossEntropyWithLogitsTestCase sparsesoftmaxcrossentropywithlogits_config;
+    SparseSoftmaxCrossEntropyWithLogitsTestCase sparse_softmax_cross_entropy_with_logits_config;
 
     std::vector<size_t> in_dim;
 
@@ -188,17 +187,18 @@ struct SparseSoftmaxCrossEntropyWithLogitsTestBwd
 protected:
     void SetUp() override
     {
-        auto&& handle                              = get_handle();
-        sparsesoftmaxcrossentropywithlogits_config = GetParam();
-        in_dim = sparsesoftmaxcrossentropywithlogits_config.input_dim;
+        auto&& handle                                   = get_handle();
+        sparse_softmax_cross_entropy_with_logits_config = GetParam();
+        in_dim = sparse_softmax_cross_entropy_with_logits_config.input_dim;
 
         auto gen_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
         };
         output_grad = tensor<T>{in_dim[0]}.generate(gen_value);
 
-        auto backprop_stride = sparsesoftmaxcrossentropywithlogits_config.ComputeStrides({in_dim});
-        backprop             = tensor<T>{in_dim, backprop_stride}.generate(gen_value);
+        auto backprop_stride =
+            sparse_softmax_cross_entropy_with_logits_config.ComputeStrides({in_dim});
+        backprop = tensor<T>{in_dim, backprop_stride}.generate(gen_value);
 
         input_grad = tensor<T>{in_dim};
         std::fill(input_grad.begin(), input_grad.end(), 0.0f);
@@ -215,10 +215,10 @@ protected:
     {
         auto&& handle         = get_handle();
         miopenStatus_t status = miopenStatusSuccess;
-        cpu_sparsesoftmaxcrossentropywithlogits_backward<T>(
+        cpu_sparse_softmax_cross_entropy_with_logits_backward<T>(
             output_grad, backprop, ref_input_grad, in_dim[1]);
 
-        status = miopen::sparsesoftmaxcrossentropywithlogits::
+        status = miopen::sparse_softmax_cross_entropy_with_logits::
             SparseSoftmaxCrossEntropyWithLogitsBackward(handle,
                                                         output_grad.desc,
                                                         output_grad_dev.get(),
@@ -240,7 +240,7 @@ protected:
             << "Error backward Input grad beyond 10xthreshold : " << error
             << " Tolerance: " << threshold * 10;
     }
-    SparseSoftmaxCrossEntropyWithLogitsTestCase sparsesoftmaxcrossentropywithlogits_config;
+    SparseSoftmaxCrossEntropyWithLogitsTestCase sparse_softmax_cross_entropy_with_logits_config;
 
     std::vector<size_t> in_dim;
 

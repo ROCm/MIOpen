@@ -34,7 +34,7 @@ namespace miopen {
 
 struct NetworkConfig;
 
-namespace sparsesoftmaxcrossentropywithlogits {
+namespace sparse_softmax_cross_entropy_with_logits {
 
 struct FwdProblemDescription : ProblemDescriptionBase
 {
@@ -152,6 +152,6 @@ private:
     TensorDescriptor inputGradDesc;
 };
 
-} // namespace sparsesoftmaxcrossentropywithlogits
+} // namespace sparse_softmax_cross_entropy_with_logits
 
 } // namespace miopen

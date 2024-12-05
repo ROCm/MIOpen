@@ -31,7 +31,7 @@
 
 namespace miopen {
 
-namespace sparsesoftmaxcrossentropywithlogits {
+namespace sparse_softmax_cross_entropy_with_logits {
 
 struct FwdInvokeParams : public miopen::InvokeParams
 {
@@ -69,6 +69,6 @@ struct BwdInvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-} // namespace sparsesoftmaxcrossentropywithlogits
+} // namespace sparse_softmax_cross_entropy_with_logits
 
 } // namespace miopen

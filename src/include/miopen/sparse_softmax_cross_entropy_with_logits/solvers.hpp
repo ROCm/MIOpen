@@ -29,7 +29,7 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/sparsesoftmaxcrossentropywithlogits/problem_description.hpp>
+#include <miopen/sparse_softmax_cross_entropy_with_logits/problem_description.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -38,7 +38,7 @@ namespace miopen {
 
 namespace solver {
 
-namespace sparsesoftmaxcrossentropywithlogits {
+namespace sparse_softmax_cross_entropy_with_logits {
 
 const auto make_hip_kernel = [](std::vector<size_t> localsize,
                                 std::vector<size_t> gridsize,
@@ -57,11 +57,11 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
 
 using SparseSoftmaxCrossEntropyWithLogitsForwardSolver =
     NonTunableSolverBase<ExecutionContext,
-                         miopen::sparsesoftmaxcrossentropywithlogits::FwdProblemDescription>;
+                         miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription>;
 
 using SparseSoftmaxCrossEntropyWithLogitsBackwardSolver =
     NonTunableSolverBase<ExecutionContext,
-                         miopen::sparsesoftmaxcrossentropywithlogits::BwdProblemDescription>;
+                         miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription>;
 
 // FORWARD
 struct SparseSoftmaxCrossEntropyWithLogitsForward final
@@ -73,13 +73,13 @@ struct SparseSoftmaxCrossEntropyWithLogitsForward final
     }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::sparsesoftmaxcrossentropywithlogits::FwdProblemDescription&
+                      const miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription&
                           problem) const override;
 
     ConvSolution
     GetSolution(const ExecutionContext& context,
-                const miopen::sparsesoftmaxcrossentropywithlogits::FwdProblemDescription& problem)
-        const override;
+                const miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription&
+                    problem) const override;
 };
 
 // BACKWARD
@@ -92,16 +92,16 @@ struct SparseSoftmaxCrossEntropyWithLogitsBackward final
     }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::sparsesoftmaxcrossentropywithlogits::BwdProblemDescription&
+                      const miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription&
                           problem) const override;
 
     ConvSolution
     GetSolution(const ExecutionContext& context,
-                const miopen::sparsesoftmaxcrossentropywithlogits::BwdProblemDescription& problem)
-        const override;
+                const miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription&
+                    problem) const override;
 };
 
-} // namespace sparsesoftmaxcrossentropywithlogits
+} // namespace sparse_softmax_cross_entropy_with_logits
 
 } // namespace solver
 

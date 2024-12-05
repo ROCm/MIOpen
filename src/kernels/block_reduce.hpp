@@ -63,7 +63,7 @@ __device__ FLOAT_ACCUM block_reduce(FLOAT_ACCUM val)
         shared[wid] = val;
     __syncthreads();
 
-    val = (tid < reduce_size / warpSize) ? shared[lane] : 0;
+    val = tid < reduce_size / warpSize ? shared[lane] : 0;
     if(wid == 0)
         val = warp_reduce<Op>(val);
 
