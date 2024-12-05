@@ -29,6 +29,7 @@
 #if MIOPEN_ENABLE_FIN_INTERFACE
 
 #include <memory>
+#include <sstream>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -39,6 +40,7 @@
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/type_name.hpp>
 
 namespace miopen {
 namespace fin_interface {
@@ -245,10 +247,16 @@ private:
     template <class T>
     void SetObject()
     {
-        // Test cast
+        // Test the cast in the constructor using dynamic_cast, so that later we can use static_cast everywhere
         const T* ptr = dynamic_cast<const T*>(sbase);
         if(ptr == nullptr)
-            MIOPEN_THROW(miopenStatusInternalError);
+        {
+            std::ostringstream ss;
+            ss << "Wrong object (T = " << type_name_bare<T>();
+            ss << ", name = " << sbase->SolverDbId();
+            ss << ")";
+            MIOPEN_THROW(miopenStatusInternalError, ss.str());
+        }
 
         static const AnySolver_impl<T> impl;
         obj = &impl;
@@ -330,7 +338,7 @@ AnySolver<miopen::ExecutionContext, miopen::conv::ProblemDescription>::AnySolver
     case 155: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops>(); break;
     case 156: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops>(); break;
     // New tunable solver should be added here
-    default: MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID");
+    default: MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID (" + std::to_string(id) + ")");
     }
 }
 
@@ -351,7 +359,7 @@ AnySolver<miopen::ExecutionContext, miopen::batchnorm::ProblemDescription>::AnyS
     case 143: SetObject<miopen::solver::batchnorm::BnCKBwdBackward>(); break;
     case 144: SetObject<miopen::solver::batchnorm::BnCKFwdTraining>(); break;
     // New tunable solver should be added here
-    default: MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID");
+    default: MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID (" + std::to_string(id) + ")");
     }
 }
 
@@ -401,6 +409,13 @@ bool Solver::IsDynamic() const
 
 // ================== SolverMixin ==================
 template <class Context, class Problem>
+SolverMixin<Context, Problem>::SolverMixin(const miopen::solver::SolverBase* solver_base, uint64_t solver_id) : Solver(solver_base, solver_id), asolver(AnySolver<Context, Problem>(sbase, id))
+{
+    // std::any: avoid dynamic allocations for small objects
+    static_assert(std::is_nothrow_move_constructible_v<AnySolver<Context, Problem>>);
+}
+
+template <class Context, class Problem>
 bool SolverMixin<Context, Problem>::IsApplicable(const Context& ctx, const Problem& problem) const
 {
     if(sbase == nullptr)
@@ -432,7 +447,7 @@ SolverMixin<Context, Problem>::FindSolution(const Context& ctx,
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusNotInitialized);
 
-    const auto solver = AnySolver<Context, Problem>(sbase, id);
+    const auto& solver = std::any_cast<const AnySolver<Context, Problem>&>(asolver);
     return solver.FindSolution(ctx, problem, db, invoke_ctx, perf_cfg);
 }
 
@@ -443,7 +458,7 @@ SolverMixin<Context, Problem>::GetAllSolutions(const Context& ctx, const Problem
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusNotInitialized);
 
-    const auto solver = AnySolver<Context, Problem>(sbase, id);
+    const auto& solver = std::any_cast<const AnySolver<Context, Problem>&>(asolver);
     return solver.GetAllSolutions(ctx, problem);
 }
 
@@ -455,7 +470,7 @@ std::string SolverMixin<Context, Problem>::GetPerfCfgParams(const Context& ctx,
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusNotInitialized);
 
-    const auto solver = AnySolver<Context, Problem>(sbase, id);
+    const auto& solver = std::any_cast<const AnySolver<Context, Problem>&>(asolver);
     return solver.GetPerfCfgParams(ctx, problem, db);
 }
 
@@ -467,7 +482,7 @@ bool SolverMixin<Context, Problem>::TestPerfCfgParams(const Context& ctx,
     if(sbase == nullptr)
         MIOPEN_THROW(miopenStatusNotInitialized);
 
-    const auto solver = AnySolver<Context, Problem>(sbase, id);
+    const auto& solver = std::any_cast<const AnySolver<Context, Problem>&>(asolver);
     return solver.TestPerfCfgParams(ctx, problem, params);
 }
 

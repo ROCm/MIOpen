@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <any>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -80,11 +81,6 @@ protected:
     const miopen::solver::SolverBase* const sbase = nullptr;
     const std::string rname;
     uint64_t id;
-
-    template <class Solver>
-    friend const std::vector<Solver>& GetAllSolvers();
-    template <class Solver>
-    friend Solver GetSolver(const std::string&);
 };
 
 template <class Context, class Problem>
@@ -113,7 +109,15 @@ public:
     TestPerfCfgParams(const Context& ctx, const Problem& problem, const std::string& params) const;
 
 protected:
+    SolverMixin(const miopen::solver::SolverBase* solver_base, uint64_t solver_id);
     using Solver::Solver;
+
+    std::any asolver;
+
+    template <class Solver>
+    friend const std::vector<Solver>& GetAllSolvers();
+    template <class Solver>
+    friend Solver GetSolver(const std::string&);
 };
 
 extern template class SolverMixin<miopen::ExecutionContext, miopen::conv::ProblemDescription>;
