@@ -635,6 +635,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, Primitive::Normalization, layernorm::Layernorm4DCKForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Normalization, layernorm::LayernormForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::SumForward{}.SolverDbId());
+    ++id;
+    ++id;
+    ++id;
     Register(registry,
              ++id,
              Primitive::Fusion,
