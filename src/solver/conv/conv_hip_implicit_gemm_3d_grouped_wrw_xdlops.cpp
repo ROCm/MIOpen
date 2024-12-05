@@ -289,7 +289,6 @@ struct CKArgs
     int Z;
     miopenAlphaBetaCase_t alpha_beta_case;
     miopenDataType_t data_type;
-    // ck::index_t split_k_fix = 2;
     std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> out_lengths;
@@ -390,20 +389,11 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::SetNextValue(
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
     {
-        switch(problem.GetInDataType())
+        HeuristicInit(problem);
+        if(valid_kernels.empty())
         {
-        case miopenHalf: Init<ck::half_t>(problem); break;
-        case miopenFloat: Init<float>(problem); break;
-        case miopenInt8: Init<int8_t>(problem); break;
-        case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
-        case miopenInt64:
-        case miopenInt32:
-        case miopenFloat8:
-        case miopenBFloat8:
-        case miopenDouble: break;
+            return false;
         }
-        assert(!valid_kernels.empty());
-        return true;
     }
     do
     {
