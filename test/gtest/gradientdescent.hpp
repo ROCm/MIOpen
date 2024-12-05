@@ -73,13 +73,13 @@ struct GradientDescentTestCase
 inline std::vector<GradientDescentTestCase> GradientDescentTestConfigs()
 { // n c d h w lr momentum dampening weightDecay nesterov momentumInitialized
     return {
-        // {{50, 10}, true},
+        {{50, 10}, true},
         {{50, 10}, false},
-        // {{50, 10, 20}, true},
+        {{50, 10, 20}, true},
         {{50, 10, 20}, false},
-        // {{50, 10, 20, 30}, true},
+        {{50, 10, 20, 30}, true},
         {{50, 10, 20, 30}, false},
-        // {{50, 10, 20, 30, 4}, true},
+        {{50, 10, 20, 30, 4}, true},
         {{50, 10, 20, 30, 4}, false},
     };
 }

@@ -304,9 +304,9 @@ set( MIOpen_Source
     solver/conv_winoRxS_fused.cpp
     solver/glu/backward_glu.cpp
     solver/glu/forward_glu.cpp
+    solver/gradientdescent/gradientdescent.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/getitem/backward_getitem.cpp
-    solver/gradientdescent/gradientdescent.cpp
     solver/kthvalue/forward_kthvalue.cpp
     solver/layernorm/backward_t5layernorm.cpp
     solver/layernorm/forward_addlayernorm.cpp

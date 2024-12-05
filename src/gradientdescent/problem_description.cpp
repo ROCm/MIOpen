@@ -43,7 +43,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "input_lengths";
     for(auto length : input_lengths)
         ss << length << ',';
-    ss << "is_contiguous" << IsAllContiguous();
+    ss << "is_allpacked_samestride" << IsAllPackedSameStride();
 
     return NetworkConfig{ss.str()};
 }

@@ -76,9 +76,11 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllContiguous() const
+    bool IsAllPackedSameStride() const
     {
-        return varInDesc.IsContiguous() && varOutDesc.IsContiguous() && deltaInDesc.IsContiguous();
+        return varInDesc.IsPacked() && varOutDesc.IsPacked() && deltaInDesc.IsPacked() &&
+               varInDesc.GetStrides() == varOutDesc.GetStrides() &&
+               varInDesc.GetStrides() == deltaInDesc.GetStrides();
     }
     NetworkConfig MakeNetworkConfig() const override;
 

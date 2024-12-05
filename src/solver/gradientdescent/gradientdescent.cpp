@@ -59,10 +59,11 @@ GradientDescent::GetSolution([[maybe_unused]] const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto is_contiguous = problem.IsAllContiguous();
-    auto dtype         = problem.GetvarInDesc().GetType();
-    auto d_dtype       = miopen::GetDataType(dtype);
-    auto nelems        = problem.GetvarInDesc().GetElementSize();
+    auto is_allpacked_samestride = problem.IsAllPackedSameStride();
+
+    auto dtype   = problem.GetvarInDesc().GetType();
+    auto d_dtype = miopen::GetDataType(dtype);
+    auto nelems  = problem.GetvarInDesc().GetElementSize();
 
     const auto build_params = KernelBuildParameters{
         {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -91,7 +92,7 @@ GradientDescent::GetSolution([[maybe_unused]] const ExecutionContext& context,
     kernel.g_wk.push_back(ygridsize);
     kernel.g_wk.push_back(zgridsize);
 
-    if(is_contiguous)
+    if(is_allpacked_samestride)
     {
         kernel.kernel_name = "ResourceApplyGradientDescentContiguous";
         result.construction_params.push_back(kernel);
@@ -117,7 +118,6 @@ GradientDescent::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
                 auto var_in_tv   = get_inner_expanded_tv<5>(deref(params.varInDesc));
                 auto var_out_tv  = get_inner_expanded_tv<5>(deref(params.varOutDesc));
-                auto alpha_in_tv = get_inner_expanded_tv<1>(deref(params.alphaInDesc));
                 auto delta_in_tv = get_inner_expanded_tv<5>(deref(params.deltaInDesc));
 
                 kernel(params.var_in,
@@ -127,7 +127,6 @@ GradientDescent::GetSolution([[maybe_unused]] const ExecutionContext& context,
                        nelems,
                        var_in_tv,
                        var_out_tv,
-                       alpha_in_tv,
                        delta_in_tv);
             };
         };

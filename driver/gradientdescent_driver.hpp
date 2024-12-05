@@ -43,10 +43,9 @@
 #include <miopen/miopen.h>
 #include <vector>
 
-template <typename Tgpu, typename Tcheck, typename Tseg>
+template <typename Tgpu, typename Tcheck>
 int32_t mloGradientDescentRunHost(const miopenTensorDescriptor_t varInDesc,
                                   const miopenTensorDescriptor_t varOutDesc,
-                                  const miopenTensorDescriptor_t alphaInDesc,
                                   const miopenTensorDescriptor_t deltaInDesc,
                                   const Tgpu* var_in,
                                   Tcheck* var_out,
@@ -55,14 +54,13 @@ int32_t mloGradientDescentRunHost(const miopenTensorDescriptor_t varInDesc,
 {
     auto var_in_tv   = miopen::get_inner_expanded_tv<5>(miopen::deref(varInDesc));
     auto var_out_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(varOutDesc));
-    auto alpha_in_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(alphaInDesc));
     auto delta_in_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(deltaInDesc));
     uint64_t N       = miopen::deref(varInDesc).GetElementSize();
 
     par_ford(N)([&](uint64_t gid) {
         auto tensor_layout = tensor_layout_t<5>(var_in_tv, gid);
         double var   = static_cast<double>(var_in[var_in_tv.get_tensor_view_idx(tensor_layout)]);
-        double alpha = static_cast<double>(alpha_in[alpha_in_tv.get_tensor_view_idx({0})]);
+        double alpha = static_cast<double>(alpha_in[0]);
         double delta =
             static_cast<double>(delta_in[delta_in_tv.get_tensor_view_idx(tensor_layout)]);
 
@@ -327,14 +325,13 @@ int GradientDescentDriver<Tgpu, Tref>::RunForwardCPU()
 {
     int status = miopenStatusSuccess;
 
-    status = mloGradientDescentRunHost<Tgpu, Tref, int>(varInDesc,
-                                                        varOutDesc,
-                                                        alphaInDesc,
-                                                        deltaInDesc,
-                                                        var_in.data(),
-                                                        var_out_host.data(),
-                                                        alpha_in.data(),
-                                                        delta_in.data());
+    status = mloGradientDescentRunHost<Tgpu, Tref>(varInDesc,
+                                                   varOutDesc,
+                                                   deltaInDesc,
+                                                   var_in.data(),
+                                                   var_out_host.data(),
+                                                   alpha_in.data(),
+                                                   delta_in.data());
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloGradientDescentRunHost");
 
     return status;

@@ -39,7 +39,6 @@ __device__ void resourceApplyGradientDescent(const TIO* __restrict__ var_in,
                                              const uint64_t input_size,
                                              tensor_view_t<5> var_in_tv,
                                              tensor_view_t<5> var_out_tv,
-                                             tensor_view_t<1> alpha_in_tv,
                                              tensor_view_t<5> delta_in_tv)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
@@ -48,7 +47,7 @@ __device__ void resourceApplyGradientDescent(const TIO* __restrict__ var_in,
     auto tensor_layout = tensor_layout_t<5>(var_in_tv, gid);
 
     FLOAT_ACCUM var   = CVT_FLOAT2ACCUM(var_in[var_in_tv.get_tensor_view_idx(tensor_layout)]);
-    FLOAT_ACCUM alpha = CVT_FLOAT2ACCUM(alpha_in[alpha_in_tv.get_tensor_view_idx({0})]);
+    FLOAT_ACCUM alpha = CVT_FLOAT2ACCUM(alpha_in[0]);
     FLOAT_ACCUM delta = CVT_FLOAT2ACCUM(delta_in[delta_in_tv.get_tensor_view_idx(tensor_layout)]);
 
     var -= alpha * delta;
@@ -63,18 +62,10 @@ extern "C" __global__ void ResourceApplyGradientDescent(const D_TYPE* __restrict
                                                         const uint64_t input_size,
                                                         tensor_view_t<5> var_in_tv,
                                                         tensor_view_t<5> var_out_tv,
-                                                        tensor_view_t<1> alpha_in_tv,
                                                         tensor_view_t<5> delta_in_tv)
 {
-    resourceApplyGradientDescent<D_TYPE>(var_in,
-                                         var_out,
-                                         alpha_in,
-                                         delta_in,
-                                         input_size,
-                                         var_in_tv,
-                                         var_out_tv,
-                                         alpha_in_tv,
-                                         delta_in_tv);
+    resourceApplyGradientDescent<D_TYPE>(
+        var_in, var_out, alpha_in, delta_in, input_size, var_in_tv, var_out_tv, delta_in_tv);
 }
 
 template <typename TIO>

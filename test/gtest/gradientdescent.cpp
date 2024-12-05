@@ -55,12 +55,12 @@ TEST_P(GPU_GradientDescent_BFP16, Test)
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_GradientDescent_FP32,
                          testing::ValuesIn(GradientDescentTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_GradientDescent_FP16,
                          testing::ValuesIn(GradientDescentTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_GradientDescent_BFP16,
                          testing::ValuesIn(GradientDescentTestConfigs()));
