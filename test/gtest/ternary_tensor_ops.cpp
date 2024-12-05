@@ -27,38 +27,37 @@
 #include <tensor_util.hpp>
 #include "gtest_common.hpp"
 
-namespace
-{
+namespace {
 std::vector<std::vector<size_t>> tensorALensArr = {{32, 16, 8, 4, 4}, // tensor A
-                                                       {16, 20, 16, 8},
-                                                       {20, 16, 8},
-                                                       {1, 16, 8},
-                                                       {16, 8},
-                                                       {8}};
+                                                   {16, 20, 16, 8},
+                                                   {20, 16, 8},
+                                                   {1, 16, 8},
+                                                   {16, 8},
+                                                   {8}};
 
 std::vector<std::vector<size_t>> tensorBLensArr = {{32, 16, 8, 4, 4}, // tensor B
-                                                       {32, 16, 1, 1, 1},
-                                                       {1, 16, 8, 1, 1},
-                                                       {1, 1, 8, 4, 1},
-                                                       {16, 20, 16, 8},
-                                                       {16, 20, 16, 1},
-                                                       {16, 20, 1, 1},
-                                                       {16, 1, 1, 1},
-                                                       {1, 20, 16, 8},
-                                                       {1, 20, 16, 1},
-                                                       {1, 20, 1, 1},
-                                                       {1, 1, 16, 8},
-                                                       {1, 1, 1, 8},
-                                                       {20, 16, 8},
-                                                       {20, 16, 1},
-                                                       {1, 16, 8},
-                                                       {1, 16, 1},
-                                                       {20, 1, 1},
-                                                       {16, 8},
-                                                       {16, 1},
-                                                       {1, 8},
-                                                       {8},
-                                                       {1}};
+                                                   {32, 16, 1, 1, 1},
+                                                   {1, 16, 8, 1, 1},
+                                                   {1, 1, 8, 4, 1},
+                                                   {16, 20, 16, 8},
+                                                   {16, 20, 16, 1},
+                                                   {16, 20, 1, 1},
+                                                   {16, 1, 1, 1},
+                                                   {1, 20, 16, 8},
+                                                   {1, 20, 16, 1},
+                                                   {1, 20, 1, 1},
+                                                   {1, 1, 16, 8},
+                                                   {1, 1, 1, 8},
+                                                   {20, 16, 8},
+                                                   {20, 16, 1},
+                                                   {1, 16, 8},
+                                                   {1, 16, 1},
+                                                   {20, 1, 1},
+                                                   {16, 8},
+                                                   {16, 1},
+                                                   {1, 8},
+                                                   {8},
+                                                   {1}};
 
 std::vector<std::vector<int64_t>> offsetsArr = {
     {0, 0, 0}, {64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
@@ -71,7 +70,7 @@ std::vector<bool> packedArr = {true, false};
 
 std::vector<miopenTensorOp_t> operationArr = {
     miopenTensorOpAdd, miopenTensorOpMul, miopenTensorOpMin, miopenTensorOpMax};
-}
+} // namespace
 
 struct TestCase
 {
@@ -95,10 +94,10 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
 
         CreateTensors();
 
-        tensor<T> tensorGPU = CalculateOnGPU();
-        tensor<T> tensorCPU = CalculateOnCPU();
+        std::vector<T> tensorGPUData = CalculateOnGPU();
+        std::vector<T> tensorCPUData = CalculateOnCPU();
 
-        CompareResults(tensorGPU, tensorCPU);
+        CompareResults(tensorGPUData, tensorCPUData);
     }
 
 private:
@@ -124,7 +123,7 @@ private:
         if(!isPacked)
         {
             std::vector<size_t> real_strides(strides.begin() + (strides.size() - lens.size()),
-                                          strides.end());
+                                             strides.end());
             auto r = tensor<T>{lens, real_strides}.generate(tensor_elem_gen_integer{max_value});
             r.data.resize(r.data.size() + offset);
             return r;
@@ -135,7 +134,7 @@ private:
         }
     }
 
-    tensor<T> CalculateOnGPU() const
+    std::vector<T> CalculateOnGPU() const
     {
         const TestCase& testCase = GetParam();
 
@@ -161,13 +160,10 @@ private:
                          testCase.offsets[2],
                          false); // it does not verify non-standard behaviour
 
-        auto r = tensorC;
-        r.data = handle.Read<T>(c_dev, r.data.size());
-
-        return r;
+        return handle.Read<T>(c_dev, tensorC.data.size());
     }
 
-    tensor<T> CalculateOnCPU()
+    std::vector<T> CalculateOnCPU()
     {
         const TestCase& testCase = GetParam();
 
@@ -202,13 +198,11 @@ private:
     }
 
     template <typename DataOp>
-    tensor<T> CalculateOnCPUDataOp(DataOp&& dataOp)
+    std::vector<T> CalculateOnCPUDataOp(DataOp&& dataOp)
     {
         const TestCase& testCase = GetParam();
 
-        auto r     = tensorC;
-        auto clens = r.desc.GetLengths();
-        auto blens = tensorB.desc.GetLengths();
+        auto r = tensorC;
 
         operate_over_subtensor<>(dataOp,
                                  r.data,
@@ -221,10 +215,10 @@ private:
                                  testCase.offsets[0],
                                  testCase.offsets[1]);
 
-        return r;
+        return r.data;
     }
 
-    void CompareResults(const tensor<T>& tensorGPU, const tensor<T>& tensorCPU)
+    void CompareResults(const std::vector<T>& tensorGPUData, const std::vector<T>& tensorCPUData)
     {
         const TestCase& testCase = GetParam();
 
@@ -237,7 +231,7 @@ private:
         }
 
         double threshold = std::numeric_limits<T>::epsilon() * tolerance;
-        double error     = miopen::rms_range(tensorCPU.data, tensorGPU.data);
+        double error     = miopen::rms_range(tensorCPUData, tensorGPUData);
 
         ASSERT_LE(error, threshold)
             << "TensorOp: " << testCase.operation << std::endl
@@ -254,17 +248,9 @@ private:
     tensor<T> tensorC;
 };
 
-struct GPU_TensorOps_FP32 : public TensorOpsCommon<float>
-{
-};
-
-struct GPU_TensorOps_FP16 : public TensorOpsCommon<half_float::half>
-{
-};
-
-struct GPU_TensorOps_FP64 : public TensorOpsCommon<double>
-{
-};
+using GPU_TensorOps_FP32 = TensorOpsCommon<float>;
+using GPU_TensorOps_FP16 = TensorOpsCommon<half_float::half>;
+using GPU_TensorOps_FP64 = TensorOpsCommon<double>;
 
 bool checkTensorsCompatibility(const std::vector<size_t>& tensorALens,
                                const std::vector<size_t>& tensorBLens)
@@ -286,8 +272,8 @@ bool checkTensorsCompatibility(const std::vector<size_t>& tensorALens,
 }
 
 void AddTestCases(std::vector<TestCase>& testCases,
-                  const std::vector<size_t> tensorALens,
-                  const std::vector<size_t> tensorBLens)
+                  const std::vector<size_t>& tensorALens,
+                  const std::vector<size_t>& tensorBLens)
 {
     const auto& stride_a = stridesArr[0];
     const auto& stride_b = stridesArr[0];
@@ -356,7 +342,6 @@ void AddTestCases(std::vector<TestCase>& testCases,
         }
 }
 
-
 std::vector<TestCase> GenCases()
 {
     std::vector<TestCase> testCases;
@@ -371,7 +356,7 @@ std::vector<TestCase> GenCases()
 
             AddTestCases(testCases, tensorALens, tensorBLens);
         }
-    
+
     return testCases;
 }
 
