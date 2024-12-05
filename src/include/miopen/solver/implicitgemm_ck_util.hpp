@@ -86,11 +86,6 @@ using DeviceOpGBwdWeightDefault =
                                                              PassThrough>;
 
 template <typename DataType>
-using DeviceOpGBwdWeightDefaultPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightDefault<DataType>>;
-
-template <typename DataType>
 using DeviceOpGBwdWeightBilinear =
     ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<3,
                                                                       InLayout,
@@ -119,6 +114,11 @@ using DeviceOpGBwdWeightScale =
                                                                       PassThrough,
                                                                       Scale,
                                                                       PassThrough>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightDefaultPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightDefault<DataType>>;
 
 template <typename DataType>
 using DeviceOpGBwdWeightBilinearPtrs =
