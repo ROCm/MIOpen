@@ -247,7 +247,8 @@ private:
     template <class T>
     void SetObject()
     {
-        // Test the cast in the constructor using dynamic_cast, so that later we can use static_cast everywhere
+        // Test the cast in the constructor using dynamic_cast, so that later we can use static_cast
+        // everywhere
         const T* ptr = dynamic_cast<const T*>(sbase);
         if(ptr == nullptr)
         {
@@ -338,7 +339,8 @@ AnySolver<miopen::ExecutionContext, miopen::conv::ProblemDescription>::AnySolver
     case 155: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops>(); break;
     case 156: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops>(); break;
     // New tunable solver should be added here
-    default: MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID (" + std::to_string(id) + ")");
+    default:
+        MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID (" + std::to_string(id) + ")");
     }
 }
 
@@ -359,7 +361,8 @@ AnySolver<miopen::ExecutionContext, miopen::batchnorm::ProblemDescription>::AnyS
     case 143: SetObject<miopen::solver::batchnorm::BnCKBwdBackward>(); break;
     case 144: SetObject<miopen::solver::batchnorm::BnCKFwdTraining>(); break;
     // New tunable solver should be added here
-    default: MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID (" + std::to_string(id) + ")");
+    default:
+        MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID (" + std::to_string(id) + ")");
     }
 }
 
@@ -409,7 +412,9 @@ bool Solver::IsDynamic() const
 
 // ================== SolverMixin ==================
 template <class Context, class Problem>
-SolverMixin<Context, Problem>::SolverMixin(const miopen::solver::SolverBase* solver_base, uint64_t solver_id) : Solver(solver_base, solver_id), asolver(AnySolver<Context, Problem>(sbase, id))
+SolverMixin<Context, Problem>::SolverMixin(const miopen::solver::SolverBase* solver_base,
+                                           uint64_t solver_id)
+    : Solver(solver_base, solver_id), asolver(AnySolver<Context, Problem>(sbase, id))
 {
     // std::any: avoid dynamic allocations for small objects
     static_assert(std::is_nothrow_move_constructible_v<AnySolver<Context, Problem>>);
