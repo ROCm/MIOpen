@@ -25,15 +25,15 @@
  *******************************************************************************/
 #include "unsortedsegmentsum.hpp"
 
-struct GPU_UnsortedSegmentSum_fwd_FP32 : UnsortedSegmentSumTestFwd<float>
+struct GPU_UnsortedSegmentSum_fwd_FP32 : UnsortedSegmentSumTestFwd<float, int>
 {
 };
 
-struct GPU_UnsortedSegmentSum_fwd_FP16 : UnsortedSegmentSumTestFwd<half>
+struct GPU_UnsortedSegmentSum_fwd_FP16 : UnsortedSegmentSumTestFwd<half, int>
 {
 };
 
-struct GPU_UnsortedSegmentSum_fwd_BFP16 : UnsortedSegmentSumTestFwd<bfloat16>
+struct GPU_UnsortedSegmentSum_fwd_BFP16 : UnsortedSegmentSumTestFwd<bfloat16, int>
 {
 };
 

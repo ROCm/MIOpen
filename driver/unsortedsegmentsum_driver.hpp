@@ -62,7 +62,9 @@ int32_t mloUnsortedSegmentSumForwardRunHost(const miopenTensorDescriptor_t Input
         if(output_segment_index < num_segments)
         {
             uint64_t output_index = output_segment_index * inner_dim_size + segment_offset;
-            output[output_index] += input[gid];
+            double val            = static_cast<double>(output[output_index]);
+            val += static_cast<double>(input[gid]);
+            output[output_index] = static_cast<Tcheck>(val);
         }
     });
     return miopenStatusSuccess;
@@ -93,7 +95,7 @@ int32_t mloUnsortedSegmentSumBackwardRunHost(const miopenTensorDescriptor_t Inpu
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref = Tgpu>
+template <typename Tgpu, typename Tref, typename Tseg>
 class UnsortedSegmentSumDriver : public Driver
 {
 public:
@@ -105,7 +107,8 @@ public:
         miopenCreateTensorDescriptor(&OutputGradDesc);
         miopenCreateTensorDescriptor(&SegmentIdsDesc);
 
-        data_type = miopen_type<Tgpu>{};
+        data_type         = miopen_type<Tgpu>{};
+        segment_data_type = miopen_type<Tseg>{};
     }
 
     int AddCmdLineArgs() override;
@@ -136,6 +139,7 @@ public:
 
 private:
     InputFlags inflags;
+    miopenDataType_t segment_data_type;
 
     miopenTensorDescriptor_t InputDesc;
     miopenTensorDescriptor_t OutputDesc;
@@ -154,7 +158,7 @@ private:
     std::vector<Tgpu> output_init;
     std::vector<Tgpu> input_grad;
     std::vector<Tgpu> output_grad;
-    std::vector<int> segment_ids;
+    std::vector<Tseg> segment_ids;
 
     std::vector<Tref> output_host;
     std::vector<Tref> input_grad_host;
@@ -163,8 +167,8 @@ private:
     std::vector<int> input_dims;
 };
 
-template <typename Tgpu, typename Tref>
-int UnsortedSegmentSumDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref, typename Tseg>
+int UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -175,8 +179,8 @@ int UnsortedSegmentSumDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int UnsortedSegmentSumDriver<Tgpu, Tref>::GetandSetData()
+template <typename Tgpu, typename Tref, typename Tseg>
+int UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::GetandSetData()
 {
     input_dims   = inflags.GetValueTensor("input_dims").lengths;
     num_segments = inflags.GetValueInt("num_segments");
@@ -196,14 +200,14 @@ int UnsortedSegmentSumDriver<Tgpu, Tref>::GetandSetData()
                      ".");
     if(SetTensorNd(OutputGradDesc, output_dims, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output gradient tensor.");
-    if(SetTensorNd(SegmentIdsDesc, {segment_ids_dims}, miopen_type<int>{}) != miopenStatusSuccess)
+    if(SetTensorNd(SegmentIdsDesc, {segment_ids_dims}, segment_data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing segment ids tensor.");
 
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int UnsortedSegmentSumDriver<Tgpu, Tref>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref, typename Tseg>
+int UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw", 'F', "1", "Run only Forward UnsortedSegmentSum (Default=1)", "int");
@@ -226,8 +230,8 @@ int UnsortedSegmentSumDriver<Tgpu, Tref>::AddCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int UnsortedSegmentSumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref, typename Tseg>
+int UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::AllocateBuffersAndCopy()
 {
     size_t input_element_size  = miopen::deref(InputDesc).GetElementSize();
     size_t output_element_size = miopen::deref(OutputDesc).GetElementSize();
@@ -239,14 +243,14 @@ int UnsortedSegmentSumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     output_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_element_size, sizeof(Tgpu)));
     input_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_element_size, sizeof(Tgpu)));
     output_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_element_size, sizeof(Tgpu)));
-    segment_ids_dev = std::make_unique<GPUMem>(ctx, segment_ids_size, sizeof(int));
+    segment_ids_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, segment_ids_size, sizeof(Tseg)));
 
     input       = std::vector<Tgpu>(input_element_size, static_cast<Tgpu>(0));
     output      = std::vector<Tgpu>(output_element_size, static_cast<Tgpu>(0));
     output_init = std::vector<Tgpu>(output_element_size, static_cast<Tgpu>(0));
     input_grad  = std::vector<Tgpu>(input_element_size, static_cast<Tgpu>(0));
     output_grad = std::vector<Tgpu>(output_element_size, static_cast<Tgpu>(0));
-    segment_ids = std::vector<int>(segment_ids_size, static_cast<Tgpu>(0));
+    segment_ids = std::vector<Tseg>(segment_ids_size, static_cast<Tgpu>(0));
 
     output_host     = std::vector<Tref>(output_element_size, static_cast<Tref>(0));
     input_grad_host = std::vector<Tref>(input_element_size, static_cast<Tref>(0));
@@ -258,7 +262,7 @@ int UnsortedSegmentSumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < segment_ids_size; i++)
     {
-        segment_ids[i] = prng::gen_A_to_B<int>(0, num_segments);
+        segment_ids[i] = prng::gen_A_to_B<Tseg>(0, num_segments);
     }
 
     for(int i = 0; i < output_element_size; i++)
@@ -298,8 +302,8 @@ int UnsortedSegmentSumDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int UnsortedSegmentSumDriver<Tgpu, Tref>::RunForwardGPU()
+template <typename Tgpu, typename Tref, typename Tseg>
+int UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::RunForwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
@@ -354,20 +358,20 @@ int UnsortedSegmentSumDriver<Tgpu, Tref>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int UnsortedSegmentSumDriver<Tgpu, Tref>::RunForwardCPU()
+template <typename Tgpu, typename Tref, typename Tseg>
+int UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::RunForwardCPU()
 {
     int status = miopenStatusSuccess;
 
-    status = mloUnsortedSegmentSumForwardRunHost<Tgpu, Tref, int>(
+    status = mloUnsortedSegmentSumForwardRunHost<Tgpu, Tref, Tseg>(
         InputDesc, input.data(), output_host.data(), segment_ids.data(), num_segments);
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloUnsortedSegmentSumForwardRunHost");
 
     return status;
 }
 
-template <typename Tgpu, typename Tref>
-int UnsortedSegmentSumDriver<Tgpu, Tref>::RunBackwardGPU()
+template <typename Tgpu, typename Tref, typename Tseg>
+int UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::RunBackwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
@@ -417,30 +421,30 @@ int UnsortedSegmentSumDriver<Tgpu, Tref>::RunBackwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int UnsortedSegmentSumDriver<Tgpu, Tref>::RunBackwardCPU()
+template <typename Tgpu, typename Tref, typename Tseg>
+int UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::RunBackwardCPU()
 {
     int status = miopenStatusSuccess;
 
-    status = mloUnsortedSegmentSumBackwardRunHost<Tgpu, Tref, int>(InputGradDesc,
-                                                                   output_grad.data(),
-                                                                   input_grad_host.data(),
-                                                                   segment_ids.data(),
-                                                                   num_segments);
+    status = mloUnsortedSegmentSumBackwardRunHost<Tgpu, Tref, Tseg>(InputGradDesc,
+                                                                    output_grad.data(),
+                                                                    input_grad_host.data(),
+                                                                    segment_ids.data(),
+                                                                    num_segments);
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloUnsortedSegmentSumBackwardRunHost");
 
     return status;
 }
 
-template <typename Tgpu, typename Tref>
-Tref UnsortedSegmentSumDriver<Tgpu, Tref>::GetTolerance()
+template <typename Tgpu, typename Tref, typename Tseg>
+Tref UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::GetTolerance()
 {
     Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
-template <typename Tgpu, typename Tref>
-int UnsortedSegmentSumDriver<Tgpu, Tref>::VerifyForward()
+template <typename Tgpu, typename Tref, typename Tseg>
+int UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::VerifyForward()
 {
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
@@ -461,8 +465,8 @@ int UnsortedSegmentSumDriver<Tgpu, Tref>::VerifyForward()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int UnsortedSegmentSumDriver<Tgpu, Tref>::VerifyBackward()
+template <typename Tgpu, typename Tref, typename Tseg>
+int UnsortedSegmentSumDriver<Tgpu, Tref, Tseg>::VerifyBackward()
 {
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();

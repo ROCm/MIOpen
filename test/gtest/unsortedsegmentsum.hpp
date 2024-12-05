@@ -67,7 +67,7 @@ inline std::vector<UnsortedSegmentSumTestCase> UnsortedSegmentSumTestConfigs()
     };
 }
 
-template <typename T = float>
+template <typename T = float, typename Tseg = int>
 struct UnsortedSegmentSumTestFwd : public ::testing::TestWithParam<UnsortedSegmentSumTestCase>
 {
 protected:
@@ -79,14 +79,14 @@ protected:
         num_segments   = UnsortedSegmentSum_config.num_segments;
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         auto gen_segment_ids = [this](auto...) {
-            return prng::gen_descreet_uniform_sign<int>(0, num_segments);
+            return prng::gen_descreet_uniform_sign<Tseg>(0, num_segments);
         };
 
         auto dims        = UnsortedSegmentSum_config.dims;
         auto output_dims = dims;
         output_dims[0]   = num_segments;
 
-        segment_ids = tensor<int>{dims[0]}.generate(gen_segment_ids);
+        segment_ids = tensor<Tseg>{dims[0]}.generate(gen_segment_ids);
         input       = tensor<T>{dims}.generate(gen_value);
         output      = tensor<T>{output_dims};
         ref_output  = tensor<T>(output);
@@ -102,7 +102,7 @@ protected:
     void RunTest()
     {
         auto&& handle = get_handle();
-        cpu_UnsortedSegmentSum_forward<T, int>(input, ref_output, segment_ids, num_segments);
+        cpu_UnsortedSegmentSum_forward<T, Tseg>(input, ref_output, segment_ids, num_segments);
         miopenStatus_t status = miopenStatusSuccess;
 
         status = miopen::UnsortedSegmentSum::UnsortedSegmentSumForward(handle,
@@ -129,7 +129,7 @@ protected:
 
     tensor<T> input;
     tensor<T> output;
-    tensor<int> segment_ids;
+    tensor<Tseg> segment_ids;
 
     tensor<T> ref_output;
 
@@ -140,7 +140,7 @@ protected:
     size_t num_segments;
 };
 
-template <typename T = float>
+template <typename T = float, typename Tseg = int>
 struct UnsortedSegmentSumTestBwd : public ::testing::TestWithParam<UnsortedSegmentSumTestCase>
 {
 protected:
@@ -151,14 +151,14 @@ protected:
         num_segments              = UnsortedSegmentSum_config.num_segments;
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         auto gen_segment_ids = [this](auto...) {
-            return prng::gen_descreet_uniform_sign<int>(0, num_segments);
+            return prng::gen_descreet_uniform_sign<Tseg>(0, num_segments);
         };
 
         auto dims        = UnsortedSegmentSum_config.dims;
         auto output_dims = dims;
         output_dims[0]   = num_segments;
 
-        segment_ids    = tensor<int>{dims[0]}.generate(gen_segment_ids);
+        segment_ids    = tensor<Tseg>{dims[0]}.generate(gen_segment_ids);
         output_grad    = tensor<T>{output_dims}.generate(gen_value);
         input_grad     = tensor<T>{dims};
         ref_input_grad = tensor<T>(input_grad);
@@ -174,7 +174,7 @@ protected:
     void RunTest()
     {
         auto&& handle = get_handle();
-        cpu_UnsortedSegmentSum_backward<T, int>(
+        cpu_UnsortedSegmentSum_backward<T, Tseg>(
             output_grad, ref_input_grad, segment_ids, num_segments);
         miopenStatus_t status = miopenStatusSuccess;
 
@@ -202,7 +202,7 @@ protected:
 
     tensor<T> output_grad;
     tensor<T> input_grad;
-    tensor<int> segment_ids;
+    tensor<Tseg> segment_ids;
 
     tensor<T> ref_input_grad;
 

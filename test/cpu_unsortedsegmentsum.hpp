@@ -45,7 +45,9 @@ void cpu_UnsortedSegmentSum_forward(const tensor<T>& input,
         if(output_segment_index < num_segments)
         {
             uint64_t output_index = output_segment_index * inner_dim_size + segment_offset;
-            output[output_index] += input[gid];
+            double val            = static_cast<double>(output[output_index]);
+            val += static_cast<double>(input[gid]);
+            output[output_index] = static_cast<T>(val);
         }
     });
 }
