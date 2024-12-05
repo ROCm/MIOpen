@@ -30,8 +30,6 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace conv_ck_igemm_fwd_v6r1_dlops_nchw {
 
 auto GetTestCases()
@@ -75,7 +73,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return env::disabled(MIOPEN_TEST_ALL); }
 class GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32
     : public FloatTestCase<std::vector<TestCase>>
 {
@@ -97,7 +94,7 @@ using namespace conv_ck_igemm_fwd_v6r1_dlops_nchw;
 
 TEST_P(GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32, FloatTest)
 {
-    if(IsTestSupportedForDevice() && !SkipTest())
+    if(IsTestSupportedForDevice())
     {
         invoke_with_params<conv2d_driver, GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32>(
             default_check);
@@ -110,7 +107,7 @@ TEST_P(GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP32, FloatTest)
 
 TEST_P(GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP16, HalfTest)
 {
-    if(IsTestSupportedForDevice() && !SkipTest())
+    if(IsTestSupportedForDevice())
     {
         invoke_with_params<conv2d_driver, GPU_Conv2d_conv_ck_igemm_fwd_v6r1_dlops_nchw_FP16>(
             default_check);

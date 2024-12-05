@@ -119,6 +119,24 @@ std::string ProblemDescription::GetAlphaBetaCaseStr() const
     }
 }
 
+void ProblemDescription::HeuristicUpdateLayouts()
+{
+    static const std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "CHWN", "NCDHW"};
+
+    for(const std::string& layout : supported_layouts)
+    {
+        if(in.IsPossibleLayout4D5D(layout) && out.IsPossibleLayout4D5D(layout) &&
+           weights.IsPossibleLayout4D5D(layout))
+        {
+            in_layout      = layout;
+            weights_layout = layout;
+            out_layout     = layout;
+            return;
+        }
+    }
+    // If we did not find consistent layout, leave them as-is
+}
+
 void ProblemDescription::MakeNetworkConfig(std::string& conf_key) const
 {
     std::ostringstream ss;

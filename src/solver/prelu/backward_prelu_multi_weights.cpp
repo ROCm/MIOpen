@@ -87,7 +87,6 @@ MultiWeightsBackward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"OUTPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"REDUCE_SIZE", LOCAL_SIZE_MW_REDUCE_BWD},
         };
         result.construction_params.push_back(
