@@ -50,11 +50,11 @@ __device__ FLOAT_ACCUM block_reduce(FLOAT_ACCUM val)
     static __shared__ FLOAT_ACCUM shared[reduce_size / warpSize];
     uint64_t tid = 0;
     if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::X))
-        tid = threadIdx.x;
+        tid += threadIdx.x;
     if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::Y))
-        tid += tid * blockDim.y + threadIdx.y;
+        tid = tid * blockDim.y + threadIdx.y;
     if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::Z))
-        tid += tid * blockDim.z + threadIdx.z;
+        tid = tid * blockDim.z + threadIdx.z;
     const uint64_t lane = tid % warpSize;
     const uint64_t wid  = tid / warpSize;
 
