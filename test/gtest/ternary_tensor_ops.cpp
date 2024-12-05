@@ -24,18 +24,19 @@
  *
  *******************************************************************************/
 #include <miopen/tensor_ops.hpp>
+#include <tensor_util.hpp>
 #include "gtest_common.hpp"
 
-#define MIO_OPS_DEBUG 0
-
-static std::vector<std::vector<int>> tensorALensArr = {{32, 16, 8, 4, 4}, // tensor A
+namespace
+{
+std::vector<std::vector<size_t>> tensorALensArr = {{32, 16, 8, 4, 4}, // tensor A
                                                        {16, 20, 16, 8},
                                                        {20, 16, 8},
                                                        {1, 16, 8},
                                                        {16, 8},
                                                        {8}};
 
-static std::vector<std::vector<int>> tensorBLensArr = {{32, 16, 8, 4, 4}, // tensor B
+std::vector<std::vector<size_t>> tensorBLensArr = {{32, 16, 8, 4, 4}, // tensor B
                                                        {32, 16, 1, 1, 1},
                                                        {1, 16, 8, 1, 1},
                                                        {1, 1, 8, 4, 1},
@@ -59,26 +60,27 @@ static std::vector<std::vector<int>> tensorBLensArr = {{32, 16, 8, 4, 4}, // ten
                                                        {8},
                                                        {1}};
 
-static std::vector<std::vector<int64_t>> offsetsArr = {
+std::vector<std::vector<int64_t>> offsetsArr = {
     {0, 0, 0}, {64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
 
-static std::vector<std::vector<float>> alphabetaArr = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
+std::vector<std::vector<float>> alphabetaArr = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
 
-static std::vector<std::vector<int>> stridesArr = {{8 * 16 * 20 * 16, 8 * 16 * 20, 8 * 16, 8, 1}};
+std::vector<std::vector<size_t>> stridesArr = {{8 * 16 * 20 * 16, 8 * 16 * 20, 8 * 16, 8, 1}};
 
-static std::vector<bool> packedArr = {true, false};
+std::vector<bool> packedArr = {true, false};
 
-static std::vector<miopenTensorOp_t> operationArr = {
+std::vector<miopenTensorOp_t> operationArr = {
     miopenTensorOpAdd, miopenTensorOpMul, miopenTensorOpMin, miopenTensorOpMax};
+}
 
 struct TestCase
 {
-    std::vector<int> tensorlens_ac;
-    std::vector<int> tensorlens_b;
+    std::vector<size_t> tensorlens_ac;
+    std::vector<size_t> tensorlens_b;
     std::vector<int64_t> offsets;
-    std::vector<int> stride_a;
-    std::vector<int> stride_b;
-    std::vector<int> stride_c;
+    std::vector<size_t> stride_a;
+    std::vector<size_t> stride_b;
+    std::vector<size_t> stride_c;
     std::vector<float> alphabeta;
     bool packed;
     miopenTensorOp_t operation;
@@ -93,8 +95,8 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
 
         CreateTensors();
 
-        tensor<T> tensorGPU = std::move(CalculateOnGPU());
-        tensor<T> tensorCPU = std::move(CalculateOnCPU());
+        tensor<T> tensorGPU = CalculateOnGPU();
+        tensor<T> tensorCPU = CalculateOnCPU();
 
         CompareResults(tensorGPU, tensorCPU);
     }
@@ -104,24 +106,24 @@ private:
     {
         const TestCase& testCase = GetParam();
 
-        tensorA = std::move(CreateTensor(
-            testCase.tensorlens_ac, testCase.stride_a, testCase.offsets[0], testCase.packed));
-        tensorB = std::move(CreateTensor(
-            testCase.tensorlens_b, testCase.stride_b, testCase.offsets[1], testCase.packed));
-        tensorC = std::move(CreateTensor(
-            testCase.tensorlens_ac, testCase.stride_c, testCase.offsets[2], testCase.packed));
+        tensorA = CreateTensor(
+            testCase.tensorlens_ac, testCase.stride_a, testCase.offsets[0], testCase.packed);
+        tensorB = CreateTensor(
+            testCase.tensorlens_b, testCase.stride_b, testCase.offsets[1], testCase.packed);
+        tensorC = CreateTensor(
+            testCase.tensorlens_ac, testCase.stride_c, testCase.offsets[2], testCase.packed);
     }
 
-    tensor<T> CreateTensor(const std::vector<int>& lens,
-                           const std::vector<int>& strides,
-                           int offset,
+    tensor<T> CreateTensor(const std::vector<size_t>& lens,
+                           const std::vector<size_t>& strides,
+                           int64_t offset,
                            bool isPacked)
     {
         uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         if(!isPacked)
         {
-            std::vector<int> real_strides(strides.begin() + (strides.size() - lens.size()),
+            std::vector<size_t> real_strides(strides.begin() + (strides.size() - lens.size()),
                                           strides.end());
             auto r = tensor<T>{lens, real_strides}.generate(tensor_elem_gen_integer{max_value});
             r.data.resize(r.data.size() + offset);
@@ -161,13 +163,7 @@ private:
 
         auto r = tensorC;
         r.data = handle.Read<T>(c_dev, r.data.size());
-#if(MIO_OPS_DEBUG)
-        handle.Finish();
-        auto clens    = r.desc.GetLengths();
-        auto cstrides = r.desc.GetStrides();
-        for(int i = 0; i < r.desc.GetElementSize(); i++)
-            printf("GPU_C[%d]: %f\n", i, c.data[i + Coffset]);
-#endif
+
         return r;
     }
 
@@ -194,13 +190,13 @@ private:
         else if(testCase.operation == miopenTensorOpMin)
         {
             return CalculateOnCPUDataOp([alpha1, alpha2, beta](auto& C, auto A, auto B) {
-                C = ((A * alpha1) < B * alpha2 ? A * alpha1 : B * alpha2) + C * beta;
+                C = std::min(A * alpha1, B * alpha2) + C * beta;
             });
         }
         else
         {
             return CalculateOnCPUDataOp([alpha1, alpha2, beta](auto& C, auto A, auto B) {
-                C = ((A * alpha1) > B * alpha2 ? A * alpha1 : B * alpha2) + C * beta;
+                C = std::max(A * alpha1, B * alpha2) + C * beta;
             });
         }
     }
@@ -225,65 +221,7 @@ private:
                                  testCase.offsets[0],
                                  testCase.offsets[1]);
 
-#if(MIO_OPS_DEBUG)
-        for(int i = 0; i < r.desc.GetElementSize(); i++)
-            printf("CPU_C[%d]: %f\n", i, r.data[i + Coffset]);
-#endif
         return r;
-    }
-
-    template <typename DataOp, typename Container>
-    void operate_over_subtensor(DataOp&& dataOp,
-                                Container& dstSuperTensor,
-                                const Container& src1SuperTensor,
-                                const Container& src2SuperTensor,
-                                const miopen::TensorDescriptor& dstSubDesc,
-                                const miopen::TensorDescriptor& src1SubDesc,
-                                const miopen::TensorDescriptor& src2SubDesc,
-                                const int64_t dstOffset,
-                                const int64_t src1Offset,
-                                const int64_t src2Offset)
-    {
-        const auto& dstStrides  = dstSubDesc.GetStrides();
-        const auto& src1Strides = src1SubDesc.GetStrides();
-        const auto& src2Strides = src2SubDesc.GetStrides();
-
-        const auto& src1Lens = src1SubDesc.GetLengths();
-        const auto& src2Lens = src2SubDesc.GetLengths();
-
-        auto operate_over_subtensor_impl =
-            [&, dataOp, max_dim = src1Lens.size() - 1](auto&& self,
-                                                       const size_t current_dim,
-                                                       const int64_t dstOff,
-                                                       const int64_t src1Off,
-                                                       const int64_t src2Off) -> void {
-            const auto dstStride  = dstStrides[current_dim];
-            const auto src1Stride = src1Strides[current_dim];
-            const auto src2Stride = src2Strides[current_dim];
-            const bool squashed   = src1Lens[current_dim] != src2Lens[current_dim];
-
-            int64_t dstIdx  = dstOff;
-            int64_t src1Idx = src1Off;
-            int64_t src2Idx = src2Off;
-
-            for(size_t i = 0; i < src1Lens[current_dim]; ++i)
-            {
-                if(current_dim < max_dim)
-                {
-                    self(self, current_dim + 1, dstIdx, src1Idx, src2Idx);
-                }
-                else
-                {
-                    dataOp(
-                        dstSuperTensor[dstIdx], src1SuperTensor[src1Idx], src2SuperTensor[src2Idx]);
-                }
-                dstIdx += dstStride;
-                src1Idx += src1Stride;
-                src2Idx += squashed ? 0 : src2Stride;
-            }
-        };
-        operate_over_subtensor_impl(
-            operate_over_subtensor_impl, 0, dstOffset, src1Offset, src2Offset);
     }
 
     void CompareResults(const tensor<T>& tensorGPU, const tensor<T>& tensorCPU)
@@ -328,8 +266,8 @@ struct GPU_TensorOps_FP64 : public TensorOpsCommon<double>
 {
 };
 
-bool checkTensorsCompatibility(const std::vector<int>& tensorALens,
-                               const std::vector<int>& tensorBLens)
+bool checkTensorsCompatibility(const std::vector<size_t>& tensorALens,
+                               const std::vector<size_t>& tensorBLens)
 {
     if(tensorALens.size() != tensorBLens.size())
     {
@@ -347,10 +285,9 @@ bool checkTensorsCompatibility(const std::vector<int>& tensorALens,
     return true;
 }
 
-template <typename T>
 void AddTestCases(std::vector<TestCase>& testCases,
-                  const std::vector<int> tensorALens,
-                  const std::vector<int> tensorBLens)
+                  const std::vector<size_t> tensorALens,
+                  const std::vector<size_t> tensorBLens)
 {
     const auto& stride_a = stridesArr[0];
     const auto& stride_b = stridesArr[0];
@@ -368,8 +305,8 @@ void AddTestCases(std::vector<TestCase>& testCases,
                 final_offsets = offsets;
             }
 
-            auto checkStride = [p = packed](const std::vector<int>& lens,
-                                            const std::vector<int>& strides) {
+            auto checkStride = [p = packed](const std::vector<size_t>& lens,
+                                            const std::vector<size_t>& strides) {
                 if(p)
                     return true;
 
@@ -380,12 +317,14 @@ void AddTestCases(std::vector<TestCase>& testCases,
                 // dimension strides
                 if(strides.back() == 1)
                 {
+                    // we use float here for all types because strides are independent to type
                     auto packedStrides =
-                        miopen::TensorDescriptor(miopen_type<T>{}, lens).GetStrides();
+                        miopen::TensorDescriptor(miopen_type<float>{}, lens).GetStrides();
+
                     return std::equal(packedStrides.rbegin(),
                                       packedStrides.rend(),
                                       strides.rbegin(),
-                                      [](int ps, int s) { return s >= ps; });
+                                      [](size_t ps, size_t s) { return s >= ps; });
                 }
 
                 // currently tensor operations do not support non-one stride in the last dimention.
@@ -417,15 +356,10 @@ void AddTestCases(std::vector<TestCase>& testCases,
         }
 }
 
-template <typename T>
-inline auto GetCases()
-{
-    static std::vector<TestCase> testCases;
 
-    if(!testCases.empty())
-    {
-        return testing::ValuesIn(testCases);
-    }
+std::vector<TestCase> GenCases()
+{
+    std::vector<TestCase> testCases;
 
     for(const auto& tensorALens : tensorALensArr)
         for(const auto& tensorBLens : tensorBLensArr)
@@ -435,10 +369,16 @@ inline auto GetCases()
                 continue;
             }
 
-            AddTestCases<T>(testCases, tensorALens, tensorBLens);
+            AddTestCases(testCases, tensorALens, tensorBLens);
         }
+    
+    return testCases;
+}
 
-    return testing::ValuesIn(testCases);
+inline auto GetCases()
+{
+    static const auto cases = testing::ValuesIn(GenCases());
+    return cases;
 }
 
 TEST_P(GPU_TensorOps_FP32, TestFloat) {}
@@ -447,6 +387,6 @@ TEST_P(GPU_TensorOps_FP16, TestFloat16) {}
 
 TEST_P(GPU_TensorOps_FP64, TestDouble) {}
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP32, GetCases<float>());
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP64, GetCases<double>());
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP16, GetCases<half_float::half>());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP32, GetCases());
+INSTANTIATE_TEST_SUITE_P(Full, GPU_TensorOps_FP64, GetCases());
+INSTANTIATE_TEST_SUITE_P(Full, GPU_TensorOps_FP16, GetCases());
