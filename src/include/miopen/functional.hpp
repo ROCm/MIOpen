@@ -34,7 +34,8 @@ namespace miopen {
 namespace detail {
 
 template <class F, std::size_t... Ns>
-auto each_i_impl(F f, seq<Ns...>) MIOPEN_RETURNS(f(std::integral_constant<std::size_t, Ns>{}...));
+auto each_i_impl(F f, std::index_sequence<Ns...>)
+    MIOPEN_RETURNS(f(std::integral_constant<std::size_t, Ns>{}...));
 } // namespace detail
 
 template <class F, class P>
@@ -87,8 +88,7 @@ struct sequence_t
     F f;
     template <class IntegralConstant>
     auto operator()(IntegralConstant) const
-        MIOPEN_RETURNS(detail::each_i_impl(f,
-                                           typename detail::gens<IntegralConstant::value>::type{}));
+        MIOPEN_RETURNS(detail::each_i_impl(f, std::make_index_sequence<IntegralConstant::value>()));
 };
 
 template <class F>

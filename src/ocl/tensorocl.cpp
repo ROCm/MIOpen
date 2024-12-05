@@ -2135,8 +2135,10 @@ void CastTensor(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
     }
 
+    auto miopen_alpha = *(static_cast<const float*>(alpha));
+
     if(srcDesc.GetType() == dstDesc.GetType() && srcOffset == 0 && dstOffset == 0 &&
-       srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())
+       srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked() && float_equal(miopen_alpha, 1.0))
     {
         handle.Copy(src, dst, srcDesc_flat.GetElementSize() * GetTypeSize(srcDesc_flat.GetType()));
     }
@@ -2146,7 +2148,9 @@ void CastTensor(const Handle& handle,
 
         const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
 
-        std::string network_config = "cast " + std::to_string(dstDesc_flat.GetType());
+        // TODO: make proper network config
+        std::string network_config = "cast " + std::to_string(srcDesc_flat.GetType()) +
+                                     std::to_string(dstDesc_flat.GetType());
         for(auto& len : lens)
         {
             network_config += " " + std::to_string(len);
@@ -2154,8 +2158,6 @@ void CastTensor(const Handle& handle,
 
         auto&& kernels = handle.GetKernels(kernel_name, network_config);
         KernelInvoke kernel;
-
-        auto miopen_alpha = *(static_cast<const float*>(alpha));
 
         if(!kernels.empty())
         {
