@@ -29,11 +29,11 @@
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "unsortedsegmentsum")
-        return new UnsortedSegmentSumDriver<float, float>();
+        return new UnsortedSegmentSumDriver<float, float, int64_t>();
     if(base_arg == "unsortedsegmentsumfp16")
-        return new UnsortedSegmentSumDriver<float16, float>();
+        return new UnsortedSegmentSumDriver<float16, float, int64_t>();
     if(base_arg == "unsortedsegmentsumbfp16")
-        return new UnsortedSegmentSumDriver<bfloat16, float>();
+        return new UnsortedSegmentSumDriver<bfloat16, float, int64_t>();
     return nullptr;
 }
 
