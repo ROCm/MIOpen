@@ -252,6 +252,8 @@ using GPU_TensorOps_FP32 = TensorOpsCommon<float>;
 using GPU_TensorOps_FP16 = TensorOpsCommon<half_float::half>;
 using GPU_TensorOps_FP64 = TensorOpsCommon<double>;
 
+namespace
+{
 bool checkTensorsCompatibility(const std::vector<size_t>& tensorALens,
                                const std::vector<size_t>& tensorBLens)
 {
@@ -365,6 +367,7 @@ inline auto GetCases()
     static const auto cases = testing::ValuesIn(GenCases());
     return cases;
 }
+} // namespace
 
 TEST_P(GPU_TensorOps_FP32, TestFloat) {}
 
