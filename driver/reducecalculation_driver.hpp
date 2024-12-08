@@ -31,6 +31,7 @@
 #include "timer.hpp"
 #include "random.hpp"
 #include <cfloat>
+#include <cstdint>
 #include <cstdlib>
 #include <memory>
 #include <miopen/miopen.h>
@@ -65,11 +66,9 @@ mloReduceCalculationForwardRunHost(const miopenTensorDescriptor_t inputDesc,
     {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
-        // Tcheck calculation = 0.0f;
         float calculation = reduce_func<float, op>{}.get_initial_value();
         for(size_t i = 0; i < reduce_size; ++i)
         {
-            // Tcheck val = static_cast<Tcheck>(input[input_idx]);
             float val = static_cast<float>(input[input_idx]);
             if(nanPropagation && isnan(val))
             {
@@ -78,7 +77,7 @@ mloReduceCalculationForwardRunHost(const miopenTensorDescriptor_t inputDesc,
             reduce_func<float, op>{}.calculate(calculation, val);
             input_idx += inner_size;
         }
-        outputhost[o] = calculation;
+        outputhost[o] = static_cast<Tcheck>(calculation);
     }
 
     return miopenStatusSuccess;
@@ -114,7 +113,14 @@ int32_t mloReduceLogicalCalculationForwardRunHost(const miopenTensorDescriptor_t
             reduce_func<float, op>{}.calculate(calculation, val);
             input_idx += inner_size;
         }
-        outputhost[o] = calculation == 0 ? 0 : 1;
+        if(std::is_same<Tgpu, uint8_t>::value)
+        {
+            outputhost[o] = static_cast<uint8_t>(calculation);
+        }
+        else
+        {
+            outputhost[o] = static_cast<bool>(calculation);
+        }
     }
 
     return miopenStatusSuccess;
@@ -153,6 +159,20 @@ public:
 
     int VerifyBackward() override;
     int VerifyForward() override;
+
+    // Utils
+    inline bool IsValidFloatTypes()
+    {
+        return std::is_same<Tgpu, float>::value || std::is_same<Tgpu, half_float::half>::value ||
+               std::is_same<Tgpu, bfloat16>::value;
+    };
+
+    inline bool IsLogicalCalculation()
+    {
+        return reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY ||
+               reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ALL;
+    };
+
     ~ReduceCalculationDriver() override
     {
         miopenDestroyTensorDescriptor(inputDesc);
@@ -181,8 +201,6 @@ private:
     int dim;
     miopenReduceCalculationNanPropagation_t nanPropagation;
     miopenReduceCalculationOp_t reduceCalculationOp;
-
-    bool isLogicalCalculation = false;
 };
 
 template <typename Tgpu, typename Tref>
@@ -199,20 +217,12 @@ int ReduceCalculationDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[]
         return miopenStatusBadParm;
     }
 
-    if(reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY ||
-       reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ALL)
+    if(!IsLogicalCalculation() && !IsValidFloatTypes())
     {
-        isLogicalCalculation = true;
-    }
-    else
-    {
-        if(!((data_type == miopenFloat) || (data_type == miopenHalf) ||
-             (data_type == miopenBFloat16)))
-        {
-            std::cerr << "Only float, half and bfloat16 are supported for numeric calculations"
-                      << std::endl;
-            return miopenStatusBadParm;
-        }
+        std::cerr << "Unsupported input dtype setup: Input type should be float, half or bfloat16 "
+                     "for numeric calculation."
+                  << std::endl;
+        return miopenStatusBadParm;
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -246,8 +256,8 @@ int ReduceCalculationDriver<Tgpu, Tref>::GetandSetData()
     if(out_len.empty())
         out_len.push_back(1);
 
-    auto output_init_status = isLogicalCalculation ? SetTensorNd(outputDesc, out_len, miopenInt8)
-                                                   : SetTensorNd(outputDesc, out_len, data_type);
+    auto output_init_status = IsLogicalCalculation() ? SetTensorNd(outputDesc, out_len, miopenInt8)
+                                                     : SetTensorNd(outputDesc, out_len, data_type);
 
     if(output_init_status != miopenStatusSuccess)
         MIOPEN_THROW("Error setting output tensor.");
@@ -303,13 +313,13 @@ int ReduceCalculationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     uint32_t ctx = 0;
 
     in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    out_dev       = isLogicalCalculation ? std::make_unique<GPUMem>(ctx, out_sz, sizeof(bool))
-                                         : std::make_unique<GPUMem>(ctx, out_sz, sizeof(Tgpu));
+    out_dev       = IsLogicalCalculation() ? std::make_unique<GPUMem>(ctx, out_sz, sizeof(bool))
+                                           : std::make_unique<GPUMem>(ctx, out_sz, sizeof(Tgpu));
     workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
 
     in = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
 
-    if(isLogicalCalculation)
+    if(IsLogicalCalculation())
     {
         logical_out     = std::vector<uint8_t>(out_sz, 0);
         logical_outhost = std::vector<uint8_t>(out_sz, 0);
@@ -333,7 +343,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         return miopenStatusAllocFailed;
     }
 
-    if(isLogicalCalculation)
+    if(IsLogicalCalculation())
     {
         if(out_dev->ToGPU(GetStream(), logical_out.data()) != 0)
         {
@@ -396,7 +406,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::RunForwardGPU()
                   << " ms" << std::endl;
     }
 
-    if(isLogicalCalculation)
+    if(IsLogicalCalculation())
     {
         if(out_dev->FromGPU(GetStream(), logical_out.data()) != 0)
         {
@@ -465,7 +475,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
 
-    if(isLogicalCalculation)
+    if(IsLogicalCalculation())
     {
         auto is_equal = logical_outhost == logical_out;
 

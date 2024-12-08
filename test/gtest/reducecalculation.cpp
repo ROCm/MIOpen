@@ -77,6 +77,12 @@ TEST_P(GPU_ReduceCalculationTest_INT8, ReduceCalculationTestFw)
     Verify();
 };
 
+TEST_P(GPU_ReduceCalculationTest_UINT8, ReduceCalculationTestFw)
+{
+    RunTest();
+    Verify();
+};
+
 // FP32
 INSTANTIATE_TEST_SUITE_P(
     FullSUM,
@@ -139,4 +145,14 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     FullALL,
     GPU_ReduceCalculationTest_INT8,
+    testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ALL)));
+
+// UINT8
+INSTANTIATE_TEST_SUITE_P(
+    FullANY,
+    GPU_ReduceCalculationTest_UINT8,
+    testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ANY)));
+INSTANTIATE_TEST_SUITE_P(
+    FullALL,
+    GPU_ReduceCalculationTest_UINT8,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ALL)));
