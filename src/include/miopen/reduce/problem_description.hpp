@@ -292,6 +292,29 @@ struct ProblemDescriptionCalculation : ProblemDescriptionBase
         return true;
     }
 
+    bool IsLogicalCalculation() const
+    {
+        return reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ANY ||
+               reduceCalculationOp == MIOPEN_REDUCE_CALCULATION_ALL;
+    }
+
+    bool IsValidNanPropagationMode() const
+    {
+        if(IsLogicalCalculation() && nanPropagation != MIOPEN_REDUCE_CALCULATION_PROPAGATE_NAN)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Reduce: Nan propagation mode must be true for logical calculation.");
+        }
+
+        return true;
+    }
+
+    bool IsValidFloatTypes() const
+    {
+        return xDesc.GetType() == miopenFloat || xDesc.GetType() == miopenHalf ||
+               xDesc.GetType() == miopenBFloat16;
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:

@@ -101,9 +101,13 @@ ProdForward::GetSolution(const ExecutionContext& context,
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"OP_TYPE", "ReduceCalculationOp_t::Prod"},
+            {"CALCULATION_DTYPE", problem.IsValidFloatTypes() ? "FLOAT_ACCUM" : input_dtype},
+            {"IS_LOGICAL_CALCULATION", "false"},
+            {"IS_USE_FLOAT_DTYPE", problem.IsValidFloatTypes()},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
             {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
-            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY}};
+            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY},
+            {"MIOPEN_REDUCE_CALCULATION_ALL", MIOPEN_REDUCE_CALCULATION_ALL}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -138,9 +142,13 @@ ProdForward::GetSolution(const ExecutionContext& context,
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"OP_TYPE", "ReduceCalculationOp_t::Prod"},
+            {"CALCULATION_DTYPE", problem.IsValidFloatTypes() ? "FLOAT_ACCUM" : input_dtype},
+            {"IS_LOGICAL_CALCULATION", "false"},
+            {"IS_USE_FLOAT_DTYPE", problem.IsValidFloatTypes()},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
             {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
-            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY}};
+            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY},
+            {"MIOPEN_REDUCE_CALCULATION_ALL", MIOPEN_REDUCE_CALCULATION_ALL}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 

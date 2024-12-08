@@ -29,16 +29,22 @@
 #endif
 
 #include "float_types.h"
+#include "miopen_cstdint.hpp"
 #include "MIOpenReduceCalculation.hpp"
 
-template <typename TI, typename TO, ReduceCalculationOp_t op>
+template <typename TI,
+          typename TO,
+          ReduceCalculationOp_t op,
+          typename CAL_TYPE,
+          bool IS_LOGICAL,
+          bool IS_USE_FLOAT>
 __device__ void calculationparallelfwdcontiguous(const TI* __restrict__ x,
                                                  TO* __restrict__ y,
-                                                 uint64_t output_numel,
-                                                 uint64_t reduce_size,
-                                                 uint64_t parallelism_size,
-                                                 uint64_t inner_size,
-                                                 bool nanPropagation)
+                                                 const uint64_t output_numel,
+                                                 const uint64_t reduce_size,
+                                                 const uint64_t parallelism_size,
+                                                 const uint64_t inner_size,
+                                                 const bool nanPropagation)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= parallelism_size * output_numel)
@@ -53,42 +59,78 @@ __device__ void calculationparallelfwdcontiguous(const TI* __restrict__ x,
 
     uint64_t parallel_id = slice_local_id / inner_size;
 
-    FLOAT_ACCUM calculation = reduce_func<FLOAT_ACCUM, op>{}.get_initial_value();
+    CAL_TYPE calculation = reduce_func<CAL_TYPE, op>{}.get_initial_value();
 
     for(uint64_t k = parallel_id; k < reduce_size; k += parallelism_size)
     {
-        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
-        if(nanPropagation && isnan(val))
+        // preprocess val
+        CAL_TYPE val;
+        if constexpr(IS_LOGICAL || !IS_USE_FLOAT)
         {
-            val = static_cast<FLOAT_ACCUM>(0);
+            // For logical calculation or integer calculation, no need to convert to float
+            // because there's no need for precision
+            val = x[input_idx];
         }
-        reduce_func<FLOAT_ACCUM, op>{}.calculate(calculation, val);
+        else
+        {
+            val = CVT_FLOAT2ACCUM(x[input_idx]);
+        }
+
+        // handle nan
+        // only need to check nan values for inputs with float type
+        // and for numerical calculation
+        if constexpr(IS_USE_FLOAT && !IS_LOGICAL)
+        {
+            if(nanPropagation && isnan(val))
+            {
+                val = static_cast<TI>(0);
+            }
+        }
+
+        reduce_func<CAL_TYPE, op>{}.calculate(calculation, val);
         input_idx += inner_size * parallelism_size;
     }
 
-    y[gid] = CVT_ACCUM2FLOAT(calculation);
+    if constexpr(IS_LOGICAL)
+    {
+        y[gid] = static_cast<TO>(calculation);
+    }
+    else
+    {
+        y[gid] = CVT_ACCUM2FLOAT(calculation);
+    }
 }
 
 extern "C" __global__ void CalculationParallelFwdContiguous(const INPUT_TYPE* __restrict__ x,
                                                             OUTPUT_TYPE* __restrict__ y,
-                                                            uint64_t output_numel,
-                                                            uint64_t reduce_size,
-                                                            uint64_t parallelism_size,
-                                                            uint64_t inner_size,
-                                                            bool nanPropagation)
+                                                            const uint64_t output_numel,
+                                                            const uint64_t reduce_size,
+                                                            const uint64_t parallelism_size,
+                                                            const uint64_t inner_size,
+                                                            const bool nanPropagation)
 {
     // instantiate the kernel
-    calculationparallelfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE, OP_TYPE>(
+    calculationparallelfwdcontiguous<INPUT_TYPE,
+                                     OUTPUT_TYPE,
+                                     OP_TYPE,
+                                     CALCULATION_DTYPE,
+                                     IS_LOGICAL_CALCULATION,
+                                     IS_USE_FLOAT_DTYPE>(
         x, y, output_numel, reduce_size, parallelism_size, inner_size, nanPropagation);
 }
 
-template <typename TI, typename TO, ReduceCalculationOp_t op>
+template <typename TI,
+          typename TO,
+          ReduceCalculationOp_t op,
+          typename CAL_TYPE,
+          bool IS_LOGICAL,
+          bool IS_USE_FLOAT>
 __device__ void calculationfwdcontiguous(const TI* __restrict__ x,
                                          TO* __restrict__ y,
-                                         uint64_t output_numel,
-                                         uint64_t reduce_size,
-                                         uint64_t inner_size,
-                                         bool nanPropagation)
+                                         const uint64_t output_numel,
+                                         const uint64_t reduce_size,
+                                         const uint64_t inner_size,
+                                         const bool nanPropagation)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_numel)
@@ -96,29 +138,61 @@ __device__ void calculationfwdcontiguous(const TI* __restrict__ x,
 
     uint64_t input_idx = (gid / inner_size) * inner_size * reduce_size + gid % inner_size;
 
-    FLOAT_ACCUM calculation = reduce_func<FLOAT_ACCUM, op>{}.get_initial_value();
+    CAL_TYPE calculation = reduce_func<CAL_TYPE, op>{}.get_initial_value();
+
     for(uint64_t k = 0; k < reduce_size; ++k)
     {
-        FLOAT_ACCUM val = CVT_FLOAT2ACCUM(x[input_idx]);
-        if(nanPropagation && isnan(val))
+        // preprocess val
+        CAL_TYPE val;
+        if constexpr(IS_LOGICAL || !IS_USE_FLOAT)
         {
-            val = static_cast<FLOAT_ACCUM>(0);
+            // For logical calculation or integer calculation, no need to convert to float
+            // because there's no need for precision
+            val = x[input_idx];
         }
-        reduce_func<FLOAT_ACCUM, op>{}.calculate(calculation, val);
+        else
+        {
+            val = CVT_FLOAT2ACCUM(x[input_idx]);
+        }
+
+        // handle nan
+        if constexpr(IS_USE_FLOAT && !IS_LOGICAL)
+        {
+            // Only need to check nan values for inputs with float type
+            // and for numerical calculation
+            if(nanPropagation && isnan(val))
+            {
+                val = static_cast<TI>(0);
+            }
+        }
+
+        reduce_func<CAL_TYPE, op>{}.calculate(calculation, val);
         input_idx += inner_size;
     }
 
-    y[gid] = CVT_ACCUM2FLOAT(calculation);
+    if constexpr(IS_LOGICAL)
+    {
+        y[gid] = static_cast<TO>(calculation);
+    }
+    else
+    {
+        y[gid] = CVT_ACCUM2FLOAT(calculation);
+    }
 }
 
 extern "C" __global__ void CalculationFwdContiguous(const INPUT_TYPE* __restrict__ x,
                                                     OUTPUT_TYPE* __restrict__ y,
-                                                    uint64_t output_numel,
-                                                    uint64_t reduce_size,
-                                                    uint64_t inner_size,
-                                                    bool nanPropagation)
+                                                    const uint64_t output_numel,
+                                                    const uint64_t reduce_size,
+                                                    const uint64_t inner_size,
+                                                    const bool nanPropagation)
 {
     // instantiate the kernel
-    calculationfwdcontiguous<INPUT_TYPE, OUTPUT_TYPE, OP_TYPE>(
+    calculationfwdcontiguous<INPUT_TYPE,
+                             OUTPUT_TYPE,
+                             OP_TYPE,
+                             CALCULATION_DTYPE,
+                             IS_LOGICAL_CALCULATION,
+                             IS_USE_FLOAT_DTYPE>(
         x, y, output_numel, reduce_size, inner_size, nanPropagation);
 }

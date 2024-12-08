@@ -60,11 +60,12 @@ AnyForward::GetSolution(const ExecutionContext& context,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype       = problem.GetXDesc().GetType();
-    auto input_dtype = miopen::GetDataType(problem.GetXDesc().GetType());
-    auto xdims       = problem.GetXDesc().GetLengths();
-    auto ydims       = problem.GetYDesc().GetLengths();
-    auto dim         = problem.GetDim();
+    auto dtype        = problem.GetXDesc().GetType();
+    auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
+    auto xdims        = problem.GetXDesc().GetLengths();
+    auto ydims        = problem.GetYDesc().GetLengths();
+    auto dim          = problem.GetDim();
 
     auto reduce_size = xdims[dim];
     auto output_numel =
@@ -85,8 +86,8 @@ AnyForward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenReduceLogicalCalculation.cpp";
-        kernel.kernel_name = "LogicalCalculationParallelFwdContiguous";
+        kernel.kernel_file = "MIOpenReduceCalculation.cpp";
+        kernel.kernel_name = "CalculationParallelFwdContiguous";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_INT8", static_cast<int32_t>(dtype == miopenInt8)},
@@ -94,10 +95,15 @@ AnyForward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"OUTPUT_TYPE", output_dtype},
             {"OP_TYPE", "ReduceCalculationOp_t::lOR"},
+            {"CALCULATION_DTYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"IS_LOGICAL_CALCULATION", "true"},
+            {"IS_USE_FLOAT_DTYPE", problem.IsValidFloatTypes()},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
             {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
-            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY}};
+            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY},
+            {"MIOPEN_REDUCE_CALCULATION_ALL", MIOPEN_REDUCE_CALCULATION_ALL}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -122,8 +128,8 @@ AnyForward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenReduceLogicalCalculation.cpp";
-        kernel.kernel_name = "LogicalCalculationFwdContiguous";
+        kernel.kernel_file = "MIOpenReduceCalculation.cpp";
+        kernel.kernel_name = "CalculationFwdContiguous";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_INT8", static_cast<int32_t>(dtype == miopenInt8)},
@@ -131,10 +137,15 @@ AnyForward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"OUTPUT_TYPE", output_dtype},
             {"OP_TYPE", "ReduceCalculationOp_t::lOR"},
+            {"CALCULATION_DTYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+            {"IS_LOGICAL_CALCULATION", "true"},
+            {"IS_USE_FLOAT_DTYPE", problem.IsValidFloatTypes()},
             {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
             {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
-            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY}};
+            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY},
+            {"MIOPEN_REDUCE_CALCULATION_ALL", MIOPEN_REDUCE_CALCULATION_ALL}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
