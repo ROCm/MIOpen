@@ -88,10 +88,10 @@ struct TestCase
 template <typename T>
 struct TensorOpsCommon : public testing::TestWithParam<TestCase>
 {
-    void SetUp() override
-    {
-        prng::reset_seed();
+    void SetUp() override { prng::reset_seed(); }
 
+    void Run()
+    {
         CreateTensors();
 
         std::vector<T> tensorGPUData = CalculateOnGPU();
@@ -368,11 +368,11 @@ inline auto GetCases()
 }
 } // namespace
 
-TEST_P(GPU_TensorOps_FP32, TestFloat) {}
+TEST_P(GPU_TensorOps_FP32, TestFloat) { this->Run(); }
 
-TEST_P(GPU_TensorOps_FP16, TestFloat16) {}
+TEST_P(GPU_TensorOps_FP16, TestFloat16) { this->Run(); }
 
-TEST_P(GPU_TensorOps_FP64, TestDouble) {}
+TEST_P(GPU_TensorOps_FP64, TestDouble) { this->Run(); }
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP32, GetCases());
 INSTANTIATE_TEST_SUITE_P(Full, GPU_TensorOps_FP64, GetCases());
