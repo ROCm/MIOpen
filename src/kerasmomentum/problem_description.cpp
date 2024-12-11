@@ -24,33 +24,30 @@
  *
  *******************************************************************************/
 
-#pragma once
+#include <miopen/kerasmomentum/problem_description.hpp>
+#include <miopen/names.hpp>
 
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
+#include <sstream>
 
 namespace miopen {
 
-namespace GradientDescent {
+namespace KerasMomentum {
 
-struct InvokeParams : public miopen::InvokeParams
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    InvokeParams() = default;
+    auto dtype         = varInDesc.GetType();
+    auto input_lengths = varInDesc.GetLengths();
 
-    const TensorDescriptor* varInDesc   = nullptr;
-    const TensorDescriptor* varOutDesc  = nullptr;
-    const TensorDescriptor* alphaInDesc = nullptr;
-    const TensorDescriptor* deltaInDesc = nullptr;
+    std::ostringstream ss;
+    ss << "dtype" << dtype;
+    ss << "input_lengths";
+    for(auto length : input_lengths)
+        ss << length << ',';
+    ss << "is_allpacked_samestride" << IsAllPackedSameStride();
 
-    ConstData_t var_in   = nullptr;
-    Data_t var_out       = nullptr;
-    ConstData_t alpha_in = nullptr;
-    ConstData_t delta_in = nullptr;
+    return NetworkConfig{ss.str()};
+}
 
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
-};
-
-} // namespace GradientDescent
+} // namespace KerasMomentum
 
 } // namespace miopen

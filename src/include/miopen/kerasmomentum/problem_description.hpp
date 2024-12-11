@@ -34,18 +34,24 @@ namespace miopen {
 
 struct NetworkConfig;
 
-namespace GradientDescent {
+namespace KerasMomentum {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& varInDesc_,
                        const TensorDescriptor& varOutDesc_,
-                       const TensorDescriptor& alphaInDesc_,
-                       const TensorDescriptor& deltaInDesc_)
+                       const TensorDescriptor& accumInDesc_,
+                       const TensorDescriptor& accumOutDesc_,
+                       const TensorDescriptor& lrInDesc_,
+                       const TensorDescriptor& gradInDesc_,
+                       const TensorDescriptor& momentumInDesc_)
         : varInDesc(varInDesc_),
           varOutDesc(varOutDesc_),
-          alphaInDesc(alphaInDesc_),
-          deltaInDesc(deltaInDesc_)
+          accumInDesc(accumInDesc_),
+          accumOutDesc(accumOutDesc_),
+          lrInDesc(lrInDesc_),
+          gradInDesc(gradInDesc_),
+          momentumInDesc(momentumInDesc_)
     {
         IsSameType();
         IsSameDims();
@@ -53,15 +59,22 @@ struct ProblemDescription : ProblemDescriptionBase
 
     const TensorDescriptor& GetvarInDesc() const { return varInDesc; }
     const TensorDescriptor& GetvarOutDesc() const { return varOutDesc; }
-    const TensorDescriptor& GetalphaInDesc() const { return alphaInDesc; }
+    const TensorDescriptor& GetaccumInDesc() const { return accumInDesc; }
+    const TensorDescriptor& GetaccumOutDesc() const { return accumOutDesc; }
+    const TensorDescriptor& GetlrInDesc() const { return lrInDesc; }
+    const TensorDescriptor& GetgradInDesc() const { return gradInDesc; }
+    const TensorDescriptor& GetmomentumInDesc() const { return momentumInDesc; }
 
     bool IsSameType() const
     {
         if(varInDesc.GetType() != varOutDesc.GetType() ||
-           varInDesc.GetType() != alphaInDesc.GetType() ||
-           varInDesc.GetType() != deltaInDesc.GetType())
+           varInDesc.GetType() != accumInDesc.GetType() ||
+           varInDesc.GetType() != accumOutDesc.GetType() ||
+           varInDesc.GetType() != lrInDesc.GetType() ||
+           varInDesc.GetType() != gradInDesc.GetType() ||
+           varInDesc.GetType() != momentumInDesc.GetType())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "GradientDescent: Tensor types do not match.");
+            MIOPEN_THROW(miopenStatusBadParm, "KerasMomentum: Tensor types do not match.");
         }
         return true;
     }
@@ -69,28 +82,36 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsSameDims() const
     {
         if(varInDesc.GetLengths() != varOutDesc.GetLengths() ||
-           varInDesc.GetLengths() != deltaInDesc.GetLengths())
+           varInDesc.GetLengths() != accumInDesc.GetLengths() ||
+           varInDesc.GetLengths() != accumOutDesc.GetLengths() ||
+           varInDesc.GetLengths() != gradInDesc.GetLengths())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "GradientDescent: Tensor dimensions do not match.");
+            MIOPEN_THROW(miopenStatusBadParm, "KerasMomentum: Tensor dimensions do not match.");
         }
         return true;
     }
 
     bool IsAllPackedSameStride() const
     {
-        return varInDesc.IsPacked() && varOutDesc.IsPacked() && deltaInDesc.IsPacked() &&
+        return varInDesc.IsPacked() && varOutDesc.IsPacked() && accumInDesc.IsPacked() &&
+               accumOutDesc.IsPacked() && gradInDesc.IsPacked() &&
                varInDesc.GetStrides() == varOutDesc.GetStrides() &&
-               varInDesc.GetStrides() == deltaInDesc.GetStrides();
+               varInDesc.GetStrides() == accumInDesc.GetStrides() &&
+               varInDesc.GetStrides() == accumOutDesc.GetStrides() &&
+               varInDesc.GetStrides() == gradInDesc.GetStrides();
     }
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     TensorDescriptor varInDesc;
     TensorDescriptor varOutDesc;
-    TensorDescriptor alphaInDesc;
-    TensorDescriptor deltaInDesc;
+    TensorDescriptor accumInDesc;
+    TensorDescriptor accumOutDesc;
+    TensorDescriptor lrInDesc;
+    TensorDescriptor gradInDesc;
+    TensorDescriptor momentumInDesc;
 };
 
-} // namespace GradientDescent
+} // namespace KerasMomentum
 
 } // namespace miopen

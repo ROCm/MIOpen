@@ -25,32 +25,30 @@
  *******************************************************************************/
 #pragma once
 
-#include "tensor_holder.hpp"
-#include "tensor_view.hpp"
-#include <miopen/tensor_view_utils.hpp>
+#include <miopen/solver.hpp>
+#include <miopen/kerasmomentum/problem_description.hpp>
 
-template <class T>
-void cpu_GradientDescent(const tensor<T>& var_in,
-                         tensor<T>& var_out,
-                         const tensor<T>& alpha_in,
-                         const tensor<T>& delta_in)
+namespace miopen {
+
+namespace solver {
+
+namespace KerasMomentum {
+
+using KerasMomentumSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::KerasMomentum::ProblemDescription>;
+
+struct KerasMomentum final : KerasMomentumSolver
 {
-    auto var_in_tv   = miopen::get_inner_expanded_tv<5>(var_in.desc);
-    auto var_out_tv  = miopen::get_inner_expanded_tv<5>(var_out.desc);
-    auto alpha_in_tv = miopen::get_inner_expanded_tv<1>(alpha_in.desc);
-    auto delta_in_tv = miopen::get_inner_expanded_tv<5>(delta_in.desc);
+    const std::string& SolverDbId() const override { return GetSolverDbId<KerasMomentum>(); }
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::KerasMomentum::ProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::KerasMomentum::ProblemDescription& problem) const override;
+};
 
-    uint64_t N = var_in.desc.GetElementSize();
+} // namespace KerasMomentum
 
-    par_ford(N)([&](uint64_t gid) {
-        auto tensor_layout = tensor_layout_t<5>(var_in_tv, gid);
-        double var   = static_cast<double>(var_in[var_in_tv.get_tensor_view_idx(tensor_layout)]);
-        double alpha = static_cast<double>(alpha_in[alpha_in_tv.get_tensor_view_idx({0})]);
-        double delta =
-            static_cast<double>(delta_in[delta_in_tv.get_tensor_view_idx(tensor_layout)]);
+} // namespace solver
 
-        var -= alpha * delta;
-
-        var_out[var_out_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(var);
-    });
-}
+} // namespace miopen

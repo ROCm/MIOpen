@@ -8004,34 +8004,48 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// gradientdescent APIs
+// kerasmomentum APIs
 /** @addtogroup SGD
  *
  * @{
  */
-/*! @brief Execute a gradientdescent layer
+/*! @brief Execute a kerasmomentum layer
  *
  * @param handle                   MIOpen handle (input)
  * @param varInDesc                Tensor descriptor for the input variable tensor (input)
  * @param var_in                   Input variable tensor (input)
  * @param varOutDesc               Tensor descriptor for the output variable tensor (input)
  * @param var_out                  Output variable tensor (output)
- * @param alphaInDesc              Tensor descriptor for the input alpha tensor (input)
- * @param alpha_in                 Input alpha tensor (input)
- * @param deltaInDesc              Tensor descriptor for the input delta tensor (input)
- * @param delta_in                 Input delta tensor (input)
+ * @param accumInDesc              Tensor descriptor for the input accumulator tensor (input)
+ * @param accum_in                 Input accumulator tensor (input)
+ * @param accumOutDesc             Tensor descriptor for the output accumulator tensor (input)
+ * @param accum_out                Output accumulator tensor (output)
+ * @param lrInDesc                 Tensor descriptor for the input learning rate tensor (input)
+ * @param lr_in                    Input learning rate tensor (input)
+ * @param gradInDesc               Tensor descriptor for the input gradient tensor (input)
+ * @param grad_in                  Input gradient tensor (input)
+ * @param momentumInDesc           Tensor descriptor for the input momentum tensor (input)
+ * @param momentum_in              Input momentum tensor (input)
+ * @param nesterov                 Flag indicating whether to use Nesterov momentum (input)
  * @return                         miopenStatus_t
  */
 
-MIOPEN_EXPORT miopenStatus_t miopenGradientDescent(miopenHandle_t handle,
-                                                   const miopenTensorDescriptor_t varInDesc,
-                                                   const void* var_in,
-                                                   const miopenTensorDescriptor_t varOutDesc,
-                                                   void* var_out,
-                                                   const miopenTensorDescriptor_t alphaInDesc,
-                                                   const void* alpha_in,
-                                                   const miopenTensorDescriptor_t deltaInDesc,
-                                                   const void* delta_in);
+MIOPEN_EXPORT miopenStatus_t miopenKerasMomentum(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t varInDesc,
+                                                 const void* var_in,
+                                                 const miopenTensorDescriptor_t varOutDesc,
+                                                 void* var_out,
+                                                 const miopenTensorDescriptor_t accumInDesc,
+                                                 const void* accum_in,
+                                                 const miopenTensorDescriptor_t accumOutDesc,
+                                                 void* accum_out,
+                                                 const miopenTensorDescriptor_t lrInDesc,
+                                                 const void* lr_in,
+                                                 const miopenTensorDescriptor_t gradInDesc,
+                                                 const void* grad_in,
+                                                 const miopenTensorDescriptor_t momentumInDesc,
+                                                 const void* momentum_in,
+                                                 const bool nesterov);
 
 /** @} */
 // CLOSEOUT SGD DOXYGEN GROUP

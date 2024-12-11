@@ -45,8 +45,8 @@ add_executable(MIOpenDriver
     dm_gemm.cpp
     dm_getitem.cpp
     dm_glu.cpp
-    dm_gradientdescent.cpp
     dm_groupnorm.cpp
+    dm_kerasmomentum.cpp
     dm_kthvalue.cpp
     dm_layernorm.cpp
     dm_lrn.cpp

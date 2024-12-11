@@ -24,30 +24,41 @@
  *
  *******************************************************************************/
 
-#include <miopen/gradientdescent/problem_description.hpp>
-#include <miopen/names.hpp>
+#pragma once
 
-#include <sstream>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
-namespace GradientDescent {
+namespace KerasMomentum {
 
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+struct InvokeParams : public miopen::InvokeParams
 {
-    auto dtype         = varInDesc.GetType();
-    auto input_lengths = varInDesc.GetLengths();
+    InvokeParams() = default;
 
-    std::ostringstream ss;
-    ss << "dtype" << dtype;
-    ss << "input_lengths";
-    for(auto length : input_lengths)
-        ss << length << ',';
-    ss << "is_allpacked_samestride" << IsAllPackedSameStride();
+    const TensorDescriptor* varInDesc      = nullptr;
+    const TensorDescriptor* varOutDesc     = nullptr;
+    const TensorDescriptor* accumInDesc    = nullptr;
+    const TensorDescriptor* accumOutDesc   = nullptr;
+    const TensorDescriptor* lrInDesc       = nullptr;
+    const TensorDescriptor* gradInDesc     = nullptr;
+    const TensorDescriptor* momentumInDesc = nullptr;
 
-    return NetworkConfig{ss.str()};
-}
+    ConstData_t var_in      = nullptr;
+    Data_t var_out          = nullptr;
+    ConstData_t accum_in    = nullptr;
+    Data_t accum_out        = nullptr;
+    ConstData_t lr_in       = nullptr;
+    ConstData_t grad_in     = nullptr;
+    ConstData_t momentum_in = nullptr;
 
-} // namespace GradientDescent
+    bool nesterov = false;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace KerasMomentum
 
 } // namespace miopen

@@ -33,7 +33,7 @@
 #include <miopen/glu/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
 #include <miopen/getitem/solvers.hpp>
-#include <miopen/gradientdescent/solvers.hpp>
+#include <miopen/kerasmomentum/solvers.hpp>
 #include <miopen/kthvalue/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
@@ -701,10 +701,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
 
-    Register(registry,
-             ++id,
-             Primitive::GradientDescent,
-             GradientDescent::GradientDescent{}.SolverDbId());
+    Register(registry, ++id, Primitive::KerasMomentum, KerasMomentum::KerasMomentum{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

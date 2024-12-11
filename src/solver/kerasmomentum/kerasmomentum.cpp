@@ -27,12 +27,12 @@
 #include <miopen/execution_context.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor_view_utils.hpp>
-#include <miopen/gradientdescent/solvers.hpp>
+#include <miopen/kerasmomentum/solvers.hpp>
 
-#include <miopen/gradientdescent/invoke_params.hpp>
+#include <miopen/kerasmomentum/invoke_params.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/gradientdescent.hpp>
+#include <miopen/kerasmomentum.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256
@@ -41,10 +41,10 @@ namespace miopen {
 
 namespace solver {
 
-namespace GradientDescent {
+namespace KerasMomentum {
 
-bool GradientDescent::IsApplicable([[maybe_unused]] const ExecutionContext& context,
-                                   const miopen::GradientDescent::ProblemDescription& problem) const
+bool KerasMomentum::IsApplicable([[maybe_unused]] const ExecutionContext& context,
+                                 const miopen::KerasMomentum::ProblemDescription& problem) const
 {
     if(!(problem.GetvarInDesc().GetType() == miopenFloat ||
          problem.GetvarInDesc().GetType() == miopenHalf ||
@@ -54,8 +54,8 @@ bool GradientDescent::IsApplicable([[maybe_unused]] const ExecutionContext& cont
 }
 
 ConvSolution
-GradientDescent::GetSolution([[maybe_unused]] const ExecutionContext& context,
-                             const miopen::GradientDescent::ProblemDescription& problem) const
+KerasMomentum::GetSolution([[maybe_unused]] const ExecutionContext& context,
+                           const miopen::KerasMomentum::ProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -81,7 +81,7 @@ GradientDescent::GetSolution([[maybe_unused]] const ExecutionContext& context,
     size_t zgridsize  = 1;
 
     auto kernel         = KernelInfo{};
-    kernel.kernel_file  = "MIOpenGradientDescent.cpp";
+    kernel.kernel_file  = "MIOpenKerasMomentum.cpp";
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
     kernel.l_wk.push_back(xlocalsize);
@@ -94,47 +94,63 @@ GradientDescent::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     if(is_allpacked_samestride)
     {
-        kernel.kernel_name = "ResourceApplyGradientDescentContiguous";
+        kernel.kernel_name = "ResourceApplyKerasMomentumContiguous";
         result.construction_params.push_back(kernel);
 
         result.invoker_factory = [nelems](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params = raw_params.CastTo<miopen::GradientDescent::InvokeParams>();
+                decltype(auto) params = raw_params.CastTo<miopen::KerasMomentum::InvokeParams>();
 
-                kernel(params.var_in, params.var_out, params.alpha_in, params.delta_in, nelems);
+                kernel(params.var_in,
+                       params.var_out,
+                       params.accum_in,
+                       params.accum_out,
+                       params.lr_in,
+                       params.grad_in,
+                       params.momentum_in,
+                       nelems,
+                       params.nesterov);
             };
         };
     }
     else
     {
-        kernel.kernel_name = "ResourceApplyGradientDescent";
+        kernel.kernel_name = "ResourceApplyKerasMomentum";
         result.construction_params.push_back(kernel);
 
         result.invoker_factory = [nelems](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
-                decltype(auto) params = raw_params.CastTo<miopen::GradientDescent::InvokeParams>();
+                decltype(auto) params = raw_params.CastTo<miopen::KerasMomentum::InvokeParams>();
 
-                auto var_in_tv   = get_inner_expanded_tv<5>(deref(params.varInDesc));
-                auto var_out_tv  = get_inner_expanded_tv<5>(deref(params.varOutDesc));
-                auto delta_in_tv = get_inner_expanded_tv<5>(deref(params.deltaInDesc));
+                auto var_in_tv    = get_inner_expanded_tv<5>(deref(params.varInDesc));
+                auto var_out_tv   = get_inner_expanded_tv<5>(deref(params.varOutDesc));
+                auto accum_in_tv  = get_inner_expanded_tv<5>(deref(params.accumInDesc));
+                auto accum_out_tv = get_inner_expanded_tv<5>(deref(params.accumOutDesc));
+                auto grad_in_tv   = get_inner_expanded_tv<5>(deref(params.gradInDesc));
 
                 kernel(params.var_in,
                        params.var_out,
-                       params.alpha_in,
-                       params.delta_in,
+                       params.accum_in,
+                       params.accum_out,
+                       params.lr_in,
+                       params.grad_in,
+                       params.momentum_in,
                        nelems,
+                       params.nesterov,
                        var_in_tv,
                        var_out_tv,
-                       delta_in_tv);
+                       accum_in_tv,
+                       accum_out_tv,
+                       grad_in_tv);
             };
         };
     }
     return result;
 }
 
-} // namespace GradientDescent
+} // namespace KerasMomentum
 
 } // namespace solver
 

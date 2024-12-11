@@ -23,18 +23,44 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "registry_driver_maker.hpp"
-#include "gradientdescent_driver.hpp"
+#include "kerasmomentum.hpp"
 
-static Driver* makeDriver(const std::string& base_arg)
+struct GPU_KerasMomentum_FP32 : KerasMomentumTest<float>
 {
-    if(base_arg == "gradientdescent")
-        return new GradientDescentDriver<float, float>();
-    if(base_arg == "gradientdescentfp16")
-        return new GradientDescentDriver<float16, float>();
-    if(base_arg == "gradientdescentbfp16")
-        return new GradientDescentDriver<bfloat16, float>();
-    return nullptr;
-}
+};
 
-REGISTER_DRIVER_MAKER(makeDriver);
+struct GPU_KerasMomentum_FP16 : KerasMomentumTest<half>
+{
+};
+
+struct GPU_KerasMomentum_BFP16 : KerasMomentumTest<bfloat16>
+{
+};
+
+TEST_P(GPU_KerasMomentum_FP32, Test)
+{
+    RunTest();
+    Verify();
+};
+
+TEST_P(GPU_KerasMomentum_FP16, Test)
+{
+    RunTest();
+    Verify();
+};
+
+TEST_P(GPU_KerasMomentum_BFP16, Test)
+{
+    RunTest();
+    Verify();
+};
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_KerasMomentum_FP32,
+                         testing::ValuesIn(KerasMomentumTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_KerasMomentum_FP16,
+                         testing::ValuesIn(KerasMomentumTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_KerasMomentum_BFP16,
+                         testing::ValuesIn(KerasMomentumTestConfigs()));

@@ -31,18 +31,25 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-namespace GradientDescent {
+namespace KerasMomentum {
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t GradientDescent(Handle& handle,
-                                                       const TensorDescriptor& varInDesc,
-                                                       ConstData_t var_in,
-                                                       const TensorDescriptor& varOutDesc,
-                                                       Data_t var_out,
-                                                       const TensorDescriptor& alphaInDesc,
-                                                       ConstData_t alpha_in,
-                                                       const TensorDescriptor& deltaInDesc,
-                                                       ConstData_t delta_in);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t KerasMomentum(Handle& handle,
+                                                     const TensorDescriptor& varInDesc,
+                                                     ConstData_t var_in,
+                                                     const TensorDescriptor& varOutDesc,
+                                                     Data_t var_out,
+                                                     const TensorDescriptor& accumInDesc,
+                                                     ConstData_t accum_in,
+                                                     const TensorDescriptor& accumOutDesc,
+                                                     Data_t accum_out,
+                                                     const TensorDescriptor& lrInDesc,
+                                                     ConstData_t lr_in,
+                                                     const TensorDescriptor& gradInDesc,
+                                                     ConstData_t grad_in,
+                                                     const TensorDescriptor& momentumInDesc,
+                                                     ConstData_t momentum_in,
+                                                     bool nesterov);
 
-} // namespace GradientDescent
+} // namespace KerasMomentum
 
 } // namespace miopen
