@@ -181,12 +181,12 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
+    case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
-    case miopenBFloat16:
     case miopenDouble: break;
     }
 #endif
@@ -223,12 +223,12 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
+    case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
-    case miopenBFloat16:
     case miopenDouble: break;
     }
 #endif
@@ -304,12 +304,12 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
+    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenFloat8:
     case miopenBFloat8:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
-    case miopenBFloat16:
     case miopenDouble: break;
     }
 #endif
@@ -334,10 +334,14 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
                                       CKArgs,
                                       miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
+    case miopenBFloat16:
+        return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<ck::bhalf_t>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
-    case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
