@@ -79,6 +79,9 @@ struct SolverBase
         return null_id;
     }
 
+    /// Returns true for tunable solvers
+    virtual bool IsTunable() const = 0;
+
     /// [Informative as of Sep 2020] The minimum requirement for Dynamic Solvers:
     /// Batch size and input picture size (N, W, H) must NOT be compiled into the
     /// kernel(s) that consist a Solution. These must go into the kernel as a
@@ -92,19 +95,37 @@ protected:
     template <class Solver>
     static const std::string& GetSolverDbId()
     {
-        static const auto result = ComputeSolverDbId(get_type_name<Solver>());
+#if BUILD_SHARED_LIBS && MIOPEN_ENABLE_FIN_INTERFACE
+        /// When using this function outside of the shared library, the static local variable is
+        /// duplicated, both the library and the program using it have their own copy, but only one
+        /// of them is initialized, depending on which entity calls the function first—the library
+        /// or the program.
+        /// \todo This needs to be removed when the interface matures, and internal class/function
+        /// templates are no longer used by the fin.
+        static std::string result;
+        if(result.empty())
+        {
+            // The "new" operator is used here to avoid segmentation fault (since the variable is
+            // not initialized).
+            new(&result) std::string(ComputeSolverDbId(type_name_bare<Solver>()));
+        }
+#else  // !BUILD_SHARED_LIBS || !MIOPEN_ENABLE_FIN_INTERFACE
+        static const auto result = ComputeSolverDbId(type_name_bare<Solver>());
+#endif // !BUILD_SHARED_LIBS || !MIOPEN_ENABLE_FIN_INTERFACE
         return result;
     }
     SolverBase()                  = default;
     SolverBase(const SolverBase&) = default;
 
 private:
-    static std::string ComputeSolverDbId(const std::string& type_name)
+    static std::string ComputeSolverDbId(std::string_view type_name)
     {
-        auto idx  = type_name.find_last_of(':');
-        auto name = type_name.substr(idx + 1);
-        std::replace(name.begin(), name.end(), ',', '-');
-        name.erase(std::remove(name.begin(), name.end(), ' '), name.end());
+        auto name = std::string(type_name);
+        if(name.back() == '>')
+        {
+            std::replace(name.begin(), name.end(), ',', '-');
+            name.erase(std::remove(name.begin(), name.end(), ' '), name.end());
+        }
 
         return name;
     }
@@ -159,6 +180,8 @@ struct SolverInterfaceTunable : SolverInterface<Context, Problem>
 template <class Context, class Problem>
 struct SolverBaseNonTunable : SolverInterfaceNonTunable<Context, Problem>
 {
+    bool IsTunable() const final { return false; };
+
     InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem) const
     {
         const auto solution = this->GetSolution(ctx, problem);
@@ -174,6 +197,8 @@ struct TunableSolverTrait
 template <class Context, class Problem, class PerformanceConfig>
 struct SolverBaseTunable : SolverInterfaceTunable<Context, Problem>, TunableSolverTrait
 {
+    bool IsTunable() const final { return true; };
+
     /// Initializes performance config to the default values.
     /// The function may involve some heuristic to guess the best solution
     /// configuration. It is assumed that the function takes constant time
