@@ -333,9 +333,6 @@ AnySolver<miopen::ExecutionContext, miopen::conv::ProblemDescription>::AnySolver
     case 138: SetObject<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(); break;
     case 140: SetObject<miopen::solver::conv::ConvHipImplicitGemm3DGroupWrwXdlops>(); break;
     case 141: SetObject<miopen::solver::conv::ConvHipImplicitGemm3DGroupBwdXdlops>(); break;
-    case 149: SetObject<miopen::solver::conv::ConvHipImplicitGemmF16F8F16FwdXdlops>(); break;
-    case 150: SetObject<miopen::solver::conv::ConvHipImplicitGemmF16F8F16BwdXdlops>(); break;
-    case 151: SetObject<miopen::solver::conv::ConvHipImplicitGemmF16F8F16WrwXdlops>(); break;
     case 155: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops>(); break;
     case 156: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops>(); break;
     // New tunable solver should be added here
