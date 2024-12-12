@@ -126,9 +126,10 @@ struct MIOPEN_EXPORT Handle : miopenHandle
 
         std::vector<KernelInvoke> kernelInvokers;
         kernelInvokers.resize(kernels.size());
-        std::transform(kernels.begin(), kernels.end(), kernelInvokers.begin(), [this](const Kernel& k) {
-            return this->Run(k);
-        });
+        std::transform(kernels.begin(),
+                       kernels.end(),
+                       kernelInvokers.begin(),
+                       [this](const Kernel& k) { return this->Run(k); });
 
         return kernelInvokers;
     }
