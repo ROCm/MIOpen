@@ -37,6 +37,9 @@ namespace reduce {
 
 using ReduceExtremeSolver =
     NonTunableSolverBase<ExecutionContext, miopen::reduce::ProblemDescriptionExtreme>;
+using ReduceExtremeAminmaxBackwardSolver =
+    NonTunableSolverBase<ExecutionContext,
+                         miopen::reduce::ProblemDescriptionExtremeAminmaxBackward>;
 using ReduceCalculationSolver =
     NonTunableSolverBase<ExecutionContext, miopen::reduce::ProblemDescriptionCalculation>;
 
@@ -94,6 +97,18 @@ struct MinForward final : ReduceExtremeSolver
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::reduce::ProblemDescriptionExtreme& problem) const override;
+};
+
+struct AMinMaxBackward final : ReduceExtremeAminmaxBackwardSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<AMinMaxBackward>(); }
+
+    bool IsApplicable(
+        const ExecutionContext& context,
+        const miopen::reduce::ProblemDescriptionExtremeAminmaxBackward& problem) const override;
+    ConvSolution GetSolution(
+        const ExecutionContext& context,
+        const miopen::reduce::ProblemDescriptionExtremeAminmaxBackward& problem) const override;
 };
 
 struct ProdForward final : ReduceCalculationSolver

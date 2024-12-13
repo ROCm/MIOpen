@@ -705,6 +705,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::GradientDescent,
              GradientDescent::GradientDescent{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::Reduce, reduce::AMinMaxBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

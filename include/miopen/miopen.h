@@ -6000,6 +6000,12 @@ typedef enum
         3, /*!< the operation is getting the minimum value and index of the reduced elements */
     MIOPEN_REDUCE_EXTREME_MAX =
         4, /*!< the operation is getting the maximum value and index of the reduced elements */
+    MIOPEN_REDUCE_EXTREME_AMIN =
+        5, /*!< the operation is getting the minimum value and index of each slice of the input
+              tensor in the given dimension(s) dim */
+    MIOPEN_REDUCE_EXTREME_AMAX =
+        6, /*!< the operation is getting the maximum value and index of each slice of the input
+              tensor in the given dimension(s) dim */
 } miopenReduceExtremeOp_t;
 
 // ReduceExtreme APIs
@@ -6032,6 +6038,41 @@ miopenReduceExtremeForward(miopenHandle_t handle,
                            void* y,
                            const miopenTensorDescriptor_t indiceDesc,
                            void* indice);
+
+/*! @brief Execute a Reduce Extreme backward.
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param xGradDesc                Tensor descriptor for data input tensor x_grad (input)
+ * @param x_grad                   Data tensor x_grad (output)
+ * @param yDesc                    Tensor descriptor for reduce data tensor y (input)
+ * @param y                        Data tensor y (input)
+ * @param yGradDesc                Tensor descriptor for data input tensor y_grad (input)
+ * @param y_grad                   Data tensor y_grad (input)
+ * @param dimDesc                  Tensor descriptor for data dimension(s). (input)
+ * @param dim                      Data tensor dimension(s) to reduce argmax. (input)
+ * @param reduceExtremeOp          Enumerant specifying the operation used by ReduceExtreme
+ * (input)
+ * @param indiceDesc               Tensor descriptor for reduce data tensor indice (input)
+ * @param indice                   Data tensor indice (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenReduceExtremeBackward(miopenHandle_t handle,
+                            const miopenTensorDescriptor_t xDesc,
+                            const void* x,
+                            const miopenTensorDescriptor_t xGradDesc,
+                            void* x_grad,
+                            const miopenTensorDescriptor_t yDesc,
+                            const void* y,
+                            const miopenTensorDescriptor_t yGradDesc,
+                            const void* y_grad,
+                            const miopenTensorDescriptor_t dimDesc,
+                            const int32_t* dim,
+                            const miopenReduceExtremeOp_t reduceExtremeOp,
+                            const miopenTensorDescriptor_t indiceDesc,
+                            const void* indice);
 
 /** @} */
 // CLOSEOUT REDUCEEXTREME DOXYGEN GROUP

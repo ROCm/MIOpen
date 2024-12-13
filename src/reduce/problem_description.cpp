@@ -70,6 +70,40 @@ NetworkConfig ProblemDescriptionExtreme::MakeNetworkConfig() const
     return NetworkConfig{ss.str()};
 }
 
+NetworkConfig ProblemDescriptionExtremeAminmaxBackward::MakeNetworkConfig() const
+{
+    auto xlength = xDesc.GetLengths();
+    std::vector<std::size_t> outputlength;
+    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
+       (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
+        outputlength = yDesc.GetLengths();
+    else
+        outputlength = indiceDesc.GetLengths();
+
+    auto output_numel = std::accumulate(outputlength.begin(),
+                                        outputlength.end(),
+                                        static_cast<size_t>(1),
+                                        std::multiplies<size_t>());
+    auto inputdtype   = xDesc.GetType();
+    auto outputdtype  = yDesc.GetType();
+
+    std::ostringstream ss;
+
+    ss << "inputdtype" << inputdtype;
+    ss << "outputdtype" << outputdtype;
+    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN) ||
+       (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX))
+    {
+        auto indicedtype = indiceDesc.GetType();
+        ss << "indicedtype" << indicedtype;
+    }
+
+    ss << "output_numel" << output_numel;
+    ss << "reduceExtremeOp" << reduceExtremeOp;
+
+    return NetworkConfig{ss.str()};
+}
+
 NetworkConfig ProblemDescriptionCalculation::MakeNetworkConfig() const
 {
     auto xlength = xDesc.GetLengths();

@@ -119,3 +119,50 @@ extern "C" miopenStatus_t miopenReduceExtremeForward(miopenHandle_t handle,
         });
     }
 }
+
+extern "C" miopenStatus_t miopenReduceExtremeBackward(miopenHandle_t handle,
+                                                      const miopenTensorDescriptor_t xDesc,
+                                                      const void* x,
+                                                      const miopenTensorDescriptor_t xGradDesc,
+                                                      void* x_grad,
+                                                      const miopenTensorDescriptor_t yDesc,
+                                                      const void* y,
+                                                      const miopenTensorDescriptor_t yGradDesc,
+                                                      const void* y_grad,
+                                                      const miopenTensorDescriptor_t dimDesc,
+                                                      const int32_t* dim,
+                                                      const miopenReduceExtremeOp_t reduceExtremeOp,
+                                                      const miopenTensorDescriptor_t indiceDesc,
+                                                      const void* indice)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        xDesc,
+                        x,
+                        xGradDesc,
+                        x_grad,
+                        yDesc,
+                        y,
+                        yGradDesc,
+                        y_grad,
+                        dim,
+                        reduceExtremeOp,
+                        indiceDesc,
+                        indice);
+
+    return miopen::try_([&] {
+        miopen::ReduceExtremeBackward(miopen::deref(handle),
+                                      miopen::deref(xDesc),
+                                      DataCast(x),
+                                      miopen::deref(xGradDesc),
+                                      DataCast(x_grad),
+                                      miopen::deref(yDesc),
+                                      DataCast(y),
+                                      miopen::deref(yGradDesc),
+                                      DataCast(y_grad),
+                                      miopen::deref(indiceDesc),
+                                      DataCast(indice),
+                                      miopen::deref(dimDesc),
+                                      DataCast(dim),
+                                      reduceExtremeOp);
+    });
+}

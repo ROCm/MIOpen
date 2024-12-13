@@ -30,6 +30,7 @@
 
 #include "float_types.h"
 #include "MIOpenReduceExtreme.hpp"
+#include "tensor_view.hpp"
 
 template <typename TI, typename TO, ReduceExtremeOp_t op>
 __device__ void extremefwdcontiguous(const TI* __restrict__ x,
@@ -69,4 +70,70 @@ extern "C" __global__ void ExtremeFwdContiguous(const INPUT_TYPE* __restrict__ x
     // instantiate the kernel
     extremefwdcontiguous<INPUT_TYPE, OUTPUT_TYPE, OP_TYPE>(
         x, y, indice, output_numel, reduce_size, inner_size);
+}
+
+template <typename TI, typename TO>
+__device__ void aminmaxBwd(const TI* __restrict__ input,
+                           TO* input_grad,
+                           const TI* output,
+                           const TI* output_grad,
+                           const int32_t* count,
+                           const uint64_t N,
+                           const int32_t* dims,
+                           tensor_view_t<5> input_tv,
+                           tensor_view_t<5> input_grad_tv,
+                           tensor_view_t<5> output_tv,
+                           tensor_view_t<5> output_grad_tv,
+                           tensor_view_t<5> count_tv)
+{
+    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    if(gid >= N)
+        return;
+
+    uint64_t oN, oC, oD, oH, oW;
+    tensor_layout_t<5> tensor_layout(input_tv, gid);
+
+    oN = dims[0] ? 0 : tensor_layout.layout[0];
+    oC = dims[1] ? 0 : tensor_layout.layout[1];
+    oD = dims[2] ? 0 : tensor_layout.layout[2];
+    oH = dims[3] ? 0 : tensor_layout.layout[3];
+    oW = dims[4] ? 0 : tensor_layout.layout[4];
+
+    int32_t minmax_count = count[count_tv.get_tensor_view_idx({oN, oC, oD, oH, oW})];
+
+    FLOAT_ACCUM temp =
+        (CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(tensor_layout)]) ==
+         CVT_FLOAT2ACCUM(output[output_tv.get_tensor_view_idx({oN, oC, oD, oH, oW})]))
+            ? CVT_FLOAT2ACCUM(
+                  output_grad[output_grad_tv.get_tensor_view_idx({oN, oC, oD, oH, oW})]) /
+                  minmax_count
+            : 0;
+    input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(temp);
+}
+
+extern "C" __global__ void AminmaxBwd(const INPUT_TYPE* __restrict__ input,
+                                      OUTPUT_TYPE* input_grad,
+                                      const INPUT_TYPE* output,
+                                      const INPUT_TYPE* output_grad,
+                                      const int32_t* count,
+                                      const uint64_t N,
+                                      const int32_t* dims,
+                                      tensor_view_t<5> input_tv,
+                                      tensor_view_t<5> input_grad_tv,
+                                      tensor_view_t<5> output_tv,
+                                      tensor_view_t<5> output_grad_tv,
+                                      tensor_view_t<5> count_tv)
+{
+    aminmaxBwd<INPUT_TYPE, OUTPUT_TYPE>(input,
+                                        input_grad,
+                                        output,
+                                        output_grad,
+                                        count,
+                                        N,
+                                        dims,
+                                        input_tv,
+                                        input_grad_tv,
+                                        output_tv,
+                                        output_grad_tv,
+                                        count_tv);
 }

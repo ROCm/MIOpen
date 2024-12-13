@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_REDUCEEXTREME_HPP_
-#define MIOPEN_REDUCEEXTREME_HPP_
+#pragma once
 
 #include <miopen/common.hpp>
 
@@ -53,5 +52,20 @@ ReduceExtremeForward(Handle& handle,
                      int32_t dim,
                      miopenReduceExtremeOp_t reduceExtremeOp);
 
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+ReduceExtremeBackward(Handle& handle,
+                      const TensorDescriptor& xDesc,
+                      ConstData_t x,
+                      const TensorDescriptor& xGradDesc,
+                      Data_t x_grad,
+                      const TensorDescriptor& yDesc,
+                      ConstData_t y,
+                      const TensorDescriptor& yGradDesc,
+                      ConstData_t y_grad,
+                      const TensorDescriptor& indiceDesc,
+                      ConstData_t indice,
+                      const TensorDescriptor& dimDesc,
+                      ConstData_t dim,
+                      miopenReduceExtremeOp_t reduceExtremeOp);
+
 } // namespace miopen
-#endif // MIOPEN_REDUCEEXTREME_HPP_

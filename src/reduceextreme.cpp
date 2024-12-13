@@ -157,4 +157,54 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
     return miopenStatusUnsupportedOp;
 }
 
+miopenStatus_t ReduceExtremeBackward(Handle& handle,
+                                     const TensorDescriptor& xDesc,
+                                     ConstData_t x,
+                                     const TensorDescriptor& xGradDesc,
+                                     Data_t x_grad,
+                                     const TensorDescriptor& yDesc,
+                                     ConstData_t y,
+                                     const TensorDescriptor& yGradDesc,
+                                     ConstData_t y_grad,
+                                     const TensorDescriptor& indiceDesc,
+                                     ConstData_t indice,
+                                     const TensorDescriptor& dimDesc,
+                                     ConstData_t dim,
+                                     miopenReduceExtremeOp_t reduceExtremeOp)
+{
+    if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMIN ||
+       reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX)
+    {
+        const auto problem = reduce::ProblemDescriptionExtremeAminmaxBackward{
+            xDesc, xGradDesc, yDesc, yGradDesc, indiceDesc, dimDesc, reduceExtremeOp};
+
+        const auto invoke_params = [&]() {
+            auto tmp       = reduce::ExtremeAminmaxBackwardInvokeParams{};
+            tmp.type       = InvokeType::Run;
+            tmp.xDesc      = &xDesc;
+            tmp.xGradDesc  = &xGradDesc;
+            tmp.yDesc      = &yDesc;
+            tmp.yGradDesc  = &yGradDesc;
+            tmp.indiceDesc = &indiceDesc;
+            tmp.dimDesc    = &dimDesc;
+            tmp.x          = x;
+            tmp.x_grad     = x_grad;
+            tmp.y          = y;
+            tmp.y_grad     = y_grad;
+            tmp.indice     = indice;
+            tmp.dim        = dim;
+            return tmp;
+        }();
+
+        const auto algo    = AlgorithmName{"AMinMaxBackward"};
+        const auto solvers = solver::SolverContainer<solver::reduce::AMinMaxBackward>{};
+
+        solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+        return miopenStatusSuccess;
+    }
+
+    return miopenStatusUnsupportedOp;
+}
+
 } // namespace miopen

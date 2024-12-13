@@ -196,6 +196,95 @@ private:
     NetworkConfig MakeForwardNetworkConfig() const;
 };
 
+struct ProblemDescriptionExtremeAminmaxBackward : ProblemDescriptionBase
+{
+    ProblemDescriptionExtremeAminmaxBackward(const TensorDescriptor& xDesc_,
+                                             const TensorDescriptor& xGradDesc_,
+                                             const TensorDescriptor& yDesc_,
+                                             const TensorDescriptor& yGradDesc_,
+                                             const TensorDescriptor& indiceDesc_,
+                                             const TensorDescriptor& dimDesc_,
+                                             miopenReduceExtremeOp_t reduceExtremeOp_)
+        : xDesc(xDesc_),
+          xGradDesc(xGradDesc_),
+          yDesc(yDesc_),
+          yGradDesc(yGradDesc_),
+          indiceDesc(indiceDesc_),
+          dimDesc(dimDesc_),
+          reduceExtremeOp(reduceExtremeOp_)
+    {
+    }
+
+    const TensorDescriptor& GetXDesc() const { return xDesc; }
+    const TensorDescriptor& GetYDesc() const { return yDesc; }
+    const TensorDescriptor& GetIndiceDesc() const { return indiceDesc; }
+    const TensorDescriptor& GetDimDesc() const { return dimDesc; }
+
+    bool IsValidInputNumel() const
+    {
+        auto xdims = xDesc.GetLengths();
+        auto input_numel =
+            std::accumulate(xdims.begin(), xdims.end(), 1ULL, std::multiplies<size_t>());
+        if(input_numel > INT32_MAX)
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: input numel is bigger than INT_MAX.");
+
+        return true;
+    }
+
+    bool IsSameType() const
+    {
+        if(xDesc.GetType() != yDesc.GetType())
+        {
+            return false;
+        }
+        return true;
+    }
+
+    bool IsAllContiguous() const
+    {
+        if(!(xDesc.IsContiguous() && yDesc.IsContiguous()))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool IsAllContiguousWithIndice() const
+    {
+        if(!(xDesc.IsContiguous() && yDesc.IsContiguous() && indiceDesc.IsContiguous()))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool IsAllContiguousIndice() const
+    {
+        if(!(xDesc.IsContiguous() && indiceDesc.IsContiguous()))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    NetworkConfig MakeNetworkConfig() const override;
+
+private:
+    TensorDescriptor xDesc;
+    TensorDescriptor xGradDesc;
+    TensorDescriptor yDesc;
+    TensorDescriptor yGradDesc;
+    TensorDescriptor indiceDesc;
+    TensorDescriptor dimDesc;
+
+    miopenReduceExtremeOp_t reduceExtremeOp;
+
+    NetworkConfig MakeForwardNetworkConfig() const;
+};
+
 struct ProblemDescriptionCalculation : ProblemDescriptionBase
 {
     ProblemDescriptionCalculation(miopenReduceCalculationNanPropagation_t nanPropagation_,
