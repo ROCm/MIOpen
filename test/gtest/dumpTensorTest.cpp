@@ -145,7 +145,7 @@ void testDumpWithNan(const std::string& test_file_name)
 namespace {
 std::string GetFullFileName(const std::string& filename)
 {
-    return fs::temp_directory_path().append(test_file_name_prefix + filename);
+    return fs::temp_directory_path().append(test_file_name_prefix + filename).string();
 }
 } // namespace
 
