@@ -42,6 +42,13 @@
 #define LOCAL_SIZE 256
 #endif
 
+// #define IDX_TO_TV5D_IDX(tv, idx)                                                            \
+//     (tv.stride[0] * (size_t)((idx) / tv.size[4] / tv.size[3] / tv.size[2] / tv.size[1]) +   \
+//      tv.stride[1] * ((size_t)((idx) / tv.size[4] / tv.size[3] / tv.size[2]) % tv.size[1]) + \
+//      tv.stride[2] * ((size_t)((idx) / tv.size[4] / tv.size[3]) % tv.size[2]) +              \
+//      tv.stride[3] * ((size_t)((idx) / tv.size[4]) % tv.size[3]) +                           \
+//      tv.stride[4] * ((idx) % tv.size[4]) + tv.offset)
+
 template <typename DTYPE>
 __device__ void kthvalueFwd(const DTYPE* input,
                             DTYPE* output,
@@ -194,4 +201,81 @@ extern "C" __global__ void KthvalueFwd(const IN_OUT_TYPE* input,
                              input_tv,
                              output_tv,
                              indices_tv);
+}
+
+template <typename DTYPE>
+__device__ void kthvalue_bwd(DTYPE* input_grad,
+                             const DTYPE* output_grad,
+                             const uint64_t* indices,
+                             uint64_t dim_size,
+                             uint64_t dim_stride,
+                             tensor_view_t<4> input_grad_tv,
+                             tensor_view_t<5> output_grad_tv,
+                             tensor_view_t<5> indices_tv)
+{
+    /*
+     * input_grad : {N, C, D, H, W}. Select dim: 2(D)
+     * output_grad/indices : {N, C, H, W} or {N, C, 1, H, W} (if keepDim param in miopen.h = True)
+     * lws = {256 or 512, 1, 1}
+     * gws = {A * B * D * E * lws.x, 1, 1},
+     */
+
+    // size_t lid = hipThreadIdx_x;
+    // size_t gid = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+    size_t lid = threadIdx.x;
+    size_t gid = blockIdx.x;
+
+    // output_grad
+    auto og_tl = tensor_layout_t<5>(output_grad_tv, gid);
+    // auto og_idx = output_grad_tv.get_tensor_view_idx(og_tl);
+    DTYPE val = output_grad[output_grad_tv.get_tensor_view_idx(og_tl)];
+    //   DTYPE val = GET_4D_VAL(output_grad, gid);
+
+    // indices
+    auto ids_tl = tensor_layout_t<5>(indices_tv, gid);
+    // auto ids_idx = indices_tv.get_tensor_view_idx(ids_tl);
+    auto idx = indices[indices_tv.get_tensor_view_idx(ids_tl)];
+    // auto idx     = indices[ids_idx];
+    //   size_t idx = R_GET_4D_VAL(indices, gid);
+
+    // auto ig_gid_tl = tensor_layout_t<4>(input_grad_tv, gid);
+    // auto ig_idx    = input_grad_tv.get_tensor_view_idx(ig_gid_tl);
+
+    // input_grad_tensor_layout
+    tensor_layout_t<4> ig_gid_tl(input_grad_tv, gid);
+    auto ig_idx = input_grad_tv.get_tensor_view_idx(ig_gid_tl);
+
+    for(uint64_t i = lid; i < dim_size; i += LOCAL_SIZE)
+    {
+        uint64_t input_grad_idx    = ig_idx + i * dim_stride;
+        input_grad[input_grad_idx] = i == idx ? val : static_cast<DTYPE>(0);
+
+        // input_grad[input_grad_idx] = i == idx ? val : static_cast<DTYPE>(0);
+        // auto ig_tl          = tensor_layout_t<4>(input_grad_tv, ig_idx + i * dim_stride);
+        // auto input_grad_idx = input_grad_tv.get_tensor_view_idx(ig_tl);
+        // uint64_t input_grad_idx = IDX_TO_TV4D_IDX(input_grad_tv, gid) + i * dim_stride;
+
+        // input_grad[input_grad_idx] = i == idx ? val : static_cast<DTYPE>(0);
+        // input_grad[input_grad_tv.get_tensor_view_idx(ig_tl)] = i == idx ? val :
+        // static_cast<DTYPE>(0); SET(input_grad, input_grad_idx, i == idx ? val : 0);
+    }
+}
+
+extern "C" __global__ void KthvalueBwd(IN_OUT_TYPE* input_grad,
+                                       const IN_OUT_TYPE* output_grad,
+                                       const uint64_t* indices,
+                                       uint64_t dim_size,
+                                       uint64_t dim_stride,
+                                       tensor_view_t<4> input_grad_tv,
+                                       tensor_view_t<5> output_grad_tv,
+                                       tensor_view_t<5> indices_tv)
+{
+    kthvalue_bwd<IN_OUT_TYPE>(input_grad,
+                              output_grad,
+                              indices,
+                              dim_size,
+                              dim_stride,
+                              input_grad_tv,
+                              output_grad_tv,
+                              indices_tv);
 }

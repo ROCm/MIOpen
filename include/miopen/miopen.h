@@ -72,6 +72,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
+ * @defgroup median
  *
  */
 
@@ -8001,6 +8002,65 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// Median APIs
+/** @addtogroup median
+ *
+ *  @{
+ */
+
+/*! @brief Execute a Median forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @param indicesDesc              Tensor descriptor for indices tensor (input)
+ * @param indices                  Data tensor indices (output)
+ * @param dim                      The dimension to reduce (input)
+ * @param keepdim                  Whether the output tensor has dim
+                                   retained or not (Default=False) (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenMedianForward(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t inputDesc,
+                                                 const void* input,
+                                                 const miopenTensorDescriptor_t outputDesc,
+                                                 void* output,
+                                                 const miopenTensorDescriptor_t indicesDesc,
+                                                 size_t* indices,
+                                                 const uint64_t dim,
+                                                 const bool keepdim = false);
+
+/*! @brief Execute a Median backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param outputGradDesc           Tensor descriptor for output gradient tensor (input)
+ * @param outputGrad               Output gradient tensor (input)
+ * @param indicesDesc              Tensor descriptor for indices tensor (input)
+ * @param indices                  Data tensor indices (input)
+ * @param inputGradDesc            Tensor descriptor for input gradient tensor (input)
+ * @param inputGrad                Input gradient tensor (output)
+ * @param dim                      The dimension to reduce (input)
+ * @param keepdim                  Whether the output tensor has dim
+                                   retained or not (Default=False) (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenMedianBackward(miopenHandle_t handle,
+                                                  const miopenTensorDescriptor_t outputGradDesc,
+                                                  const void* outputGrad,
+                                                  const miopenTensorDescriptor_t indicesDesc,
+                                                  const size_t* indices,
+                                                  const miopenTensorDescriptor_t inputGradDesc,
+                                                  void* inputGrad,
+                                                  const uint64_t dim,
+                                                  const bool keepdim = false);
+
+/** @} */
+// CLOSEOUT MEDIAN DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

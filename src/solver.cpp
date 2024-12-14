@@ -35,6 +35,7 @@
 #include <miopen/getitem/solvers.hpp>
 #include <miopen/kthvalue/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
+#include <miopen/median/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/prelu/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
@@ -699,7 +700,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
-
+    Register(registry, ++id, Primitive::Median, median::MedianForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::Median, median::MedianBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

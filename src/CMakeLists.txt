@@ -160,6 +160,8 @@ set( MIOpen_Source
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
+    median/problem_description.cpp
+    median_api.cpp
     mha/mha_descriptor.cpp
     mha/problem_description.cpp
     multimarginloss/problem_description.cpp
@@ -311,6 +313,8 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/layernorm/forward_t5layernorm.cpp
+    solver/median/backward_median.cpp
+    solver/median/forward_median.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
     solver/multimarginloss/forward_multimarginloss.cpp
@@ -674,6 +678,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kthvalue.cpp
         layernorm.cpp
         lrn.cpp
+        median.cpp
         mlo_dir_conv.cpp
         multimarginloss.cpp
         ocl/activ_ocl.cpp

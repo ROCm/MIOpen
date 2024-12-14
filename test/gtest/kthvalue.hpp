@@ -176,6 +176,9 @@ protected:
         EXPECT_TRUE(miopen::range_distance(outputHost) == miopen::range_distance(output));
         EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error: " << error
                                             << ",  Thresholdx10: " << threshold * 10;
+
+        bool is_equal = indices == indicesHost;
+        ASSERT_TRUE(is_equal) << "Indices are not equal";
     }
     KthvalueTestCase config;
 
