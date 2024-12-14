@@ -105,6 +105,15 @@ struct MedianTestCase
         return strides;
     }
 
+    // std::vector<size_t> ComputeStridesFor1DTensor() const
+    // {
+    //     if(is_contiguous) {
+    //         return std::vector<size_t>{1};
+    //     } else {
+    //         return std::vector<size_t>{2};
+    //     }
+    // }
+
     // std::vector<size_t> ComputeStrides2(std::vector<size_t>& inputDim) const
     // {
     //     // if(!is_contiguous)
@@ -144,6 +153,9 @@ inline std::vector<MedianTestCase> MedianTestConfigs()
         // MedianTestCase({3, 4, 5}, true, 2, false),
         //         MedianTestCase({3, 4, 5, 6}, true, 2, false),
 
+        MedianTestCase({100}, true),
+        MedianTestCase({100}, false),
+
         MedianTestCase({100, 500}, true, 0, true),
         MedianTestCase({100, 500}, true, 1, true),
         MedianTestCase({100, 500}),
@@ -172,8 +184,18 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        auto input_dims    = config.GetDims();
-        auto input_strides = config.ComputeStrides(input_dims);
+        auto input_dims = config.GetDims();
+        // input_dims    =  config.GetDims();
+        // std::vector<size_t> input_strides = input_dims.size() == 1 ? {2} :
+        // config.ComputeStrides(input_dims); std::vector<size_t> input_strides = input_dims.size()
+        // == 1 ? std::vector<size_t>{2} : config.ComputeStrides(input_dims);
+        std::vector<size_t> input_strides =
+            input_dims.size() == 1 ? std::vector<size_t>{2} : config.ComputeStrides(input_dims);
+
+        // if (!config.is_contiguous && input_dims.size() == 1) {
+        //     input_dims[0] *= 2;
+        //     input_strides[0] = 2;
+        // }
 
         // if(config.test) {
         //     input_strides[0] +=2;
@@ -311,6 +333,11 @@ protected:
 
     uint64_t dim;
     bool keepdim;
+
+    // Helper
+    // std::vector<size_t> input_dims;
+    // std::vector<size_t> input_strides;
+    // bool is_contiguous;
 };
 
 template <typename T>
@@ -348,7 +375,10 @@ protected:
         {
             output_grad_dims[dim] = 1;
         }
-        auto output_grad_strides = config.ComputeStrides(output_grad_dims);
+        // auto output_grad_strides = config.ComputeStrides(output_grad_dims);
+        std::vector<size_t> output_grad_strides = output_grad_strides.size() == 1
+                                                      ? std::vector<size_t>{2}
+                                                      : config.ComputeStrides(output_grad_dims);
 
         auto dim_size = input_grad_dims[dim];
 

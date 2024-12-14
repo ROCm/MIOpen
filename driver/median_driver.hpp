@@ -226,8 +226,9 @@ int MedianDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int MedianDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto input_dims    = inflags.GetValueTensor("input-dims").lengths;
-    auto input_strides = ComputeStrides(input_dims);
+    auto input_dims = inflags.GetValueTensor("input-dims").lengths;
+    // auto input_strides = ComputeStrides(input_dims);
+    auto input_strides = input_dims.size() == 1 ? std::vector<int>{2} : ComputeStrides(input_dims);
     auto output_dims   = input_dims;
 
     if(!keepdim)
@@ -261,8 +262,8 @@ int MedianDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     // size_t input_sz  = GetTensorSize(inputDesc);
     // size_t output_sz = GetTensorSize(outputDesc);
     size_t input_size   = GetTensorSpace(inputDesc);
-    size_t output_size  = GetTensorSize(outputDesc);
-    size_t indices_size = GetTensorSize(indicesDesc);
+    size_t output_size  = GetTensorSpace(outputDesc);
+    size_t indices_size = GetTensorSpace(indicesDesc);
 
     size_t dim_size = miopen::deref(inputDesc).GetLengths()[dim];
 
