@@ -26,7 +26,7 @@
 #include <miopen/median.hpp>
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <numeric>
+// #include <numeric>
 // #include <ostream>
 
 #include "get_handle.hpp"

@@ -524,17 +524,29 @@ int MedianDriver<Tgpu, Tref>::VerifyForward()
 
     const Tref tolerance = GetTolerance();
     auto output_error    = miopen::rms_range(output_host, output);
-    bool is_equal        = indices_host == indices;
 
+    // Verify output
     if(!std::isfinite(output_error) || output_error > tolerance)
     {
         std::cout << "Forward Median FAILED: output_error=" << output_error << std::endl;
-        return EC_VerifyBwd;
+        return EC_VerifyFwd;
     }
 
-    if(!is_equal)
+    // Verify indices
+    if(indices_host.size() != indices.size())
     {
-        std::cout << "Forward Median FAILED: Indices are not equal" << std::endl;
+        std::cout << "Forward Median FAILED: Indices size are not equal" << std::endl;
+        return EC_VerifyFwd;
+    }
+
+    for(size_t i = 0; i < indices_host.size(); i++)
+    {
+        // Median value may not be unique, resulting in multiple valid indices
+        if(indices_host[i] != indices[i] && output_host[i] != output[i])
+        {
+            std::cout << "Forward Median FAILED: Indices are not equal" << std::endl;
+            return EC_VerifyFwd;
+        }
     }
 
     std::cout << "Forward Median Verifies on CPU and GPU (output_error: " << output_error << ")"

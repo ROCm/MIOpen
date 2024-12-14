@@ -30,10 +30,10 @@ static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "median")
         return new MedianDriver<float, float>();
-    // if(base_arg == "medianfp16")
-    //     return new MedianDriver<float16, float>();
-    // if(base_arg == "medianbfp16")
-    //     return new MedianDriver<bfloat16, float>();
+    if(base_arg == "medianfp16")
+        return new MedianDriver<float16, float>();
+    if(base_arg == "medianbfp16")
+        return new MedianDriver<bfloat16, float>();
     return nullptr;
 }
 
