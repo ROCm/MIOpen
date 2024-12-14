@@ -23,16 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
 #include "tensor_holder.hpp"
 #include "tensor_view.hpp"
-// #include "tensor_view_utils.hpp"
 
 #include <miopen/tensor_view_utils.hpp>
-
-// #include <vector>
 
 template <typename TIO>
 void cpu_kthvalue(tensor<TIO> input,
@@ -90,7 +86,6 @@ void cpu_kth_value_backward(const tensor<T> output_grad,
 {
     std::fill(ref_input_grad.begin(), ref_input_grad.end(), static_cast<T>(0));
 
-    // size_t num_slice = input_size / dim_size;
     auto input_grad_size = ref_input_grad.desc.GetElementSize();
 
     auto input_grad_lengths = ref_input_grad.desc.GetLengths();
@@ -104,48 +99,17 @@ void cpu_kth_value_backward(const tensor<T> output_grad,
     auto output_grad_tv            = miopen::get_inner_expanded_tv<5>(output_grad.desc);
     auto indices_tv                = miopen::get_inner_expanded_tv<5>(indices.desc);
 
-    // auto output_size = output_grad.desc.GetElementSize();
     size_t num_slice = input_grad_size / dim_size;
 
-    // for(int slice_id = 0; slice_id < num_slice; ++slice_id)
     par_ford(num_slice)([&](size_t slice_id) {
         tensor_layout_t<5> indices_layout(indices_tv, slice_id);
         size_t k_index = indices[indices_tv.get_tensor_view_idx(indices_layout)];
 
         tensor_layout_t<5> out_grad_layout(output_grad_tv, slice_id);
-        // size_t grad_output_idx = output_grad_tv.get_tensor_view_idx(out_grad_layout);
         T val = output_grad[output_grad_tv.get_tensor_view_idx(out_grad_layout)];
 
         tensor_layout_t<4> layout(input_grad_tv_without_dim, slice_id);
         auto idx = input_grad_tv_without_dim.get_tensor_view_idx(layout);
-
-        // Propagate gradient to the k-th position
-        // std::cout << "slice_id: " << slice_id << "; k_index: " << k_index << "; grad_output_idx:
-        // " << grad_output_idx << "; idx: " << idx << "; ref_input_grad_idx: " << idx + k_index *
-        // dim_stride << std::endl; std::cout << "output_grad[grad_output_idx]: " <<
-        // output_grad.data[grad_output_idx] << std::endl;
-
-        // ref_input_grad[idx + k_index * dim_stride] = output_grad.data[grad_output_idx];
         ref_input_grad[idx + k_index * dim_stride] = val;
     });
-    // }
-
-    // for(size_t i = 0; i < output_size; i++)
-    // {
-    //     tensor_layout_t<5> out_grad_layout(output_tv, i);
-    //     T val = output_grad[output_tv.get_tensor_view_idx(out_grad_layout)];
-
-    //     tensor_layout_t<5> indices_layout(indices_tv, i);
-    //     size_t idx = indices[indices_tv.get_tensor_view_idx(indices_layout)];
-
-    //     tensor_layout_t<4> in_grad_layout(input_grad_tv_without_dim, i);
-    //     auto ig_idx = input_grad_tv_without_dim.get_tensor_view_idx(in_grad_layout);
-    //     for(size_t j = 0; j < dim_size; j++)
-    //     {
-    //         size_t in_grad_idx = ig_idx + i * dim_stride;
-    //         // uint64_t in_grad_idx =
-    //         //     input_grad_tv_without_dim.get_tensor_view_idx(in_grad_layout) + j *
-    //         dim_stride; ref_input_grad[in_grad_idx] = (j == idx) ? val : static_cast<T>(0);
-    //     }
-    // }
 }

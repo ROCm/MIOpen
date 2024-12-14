@@ -26,8 +26,6 @@
 #include <miopen/median.hpp>
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-// #include <numeric>
-// #include <ostream>
 
 #include "get_handle.hpp"
 #include "random.hpp"
@@ -36,41 +34,26 @@
 
 #include "cpu_median.hpp"
 
-template <class T>
-inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
-{
-    // os << '{';
-    for(int i = 0; i < v.size(); ++i)
-    {
-        if(i != 0)
-            os << ", ";
-        os << v[i];
-    }
-    // os << '}';
-    return os;
-}
-
 struct MedianTestCase
 {
     std::vector<size_t> dims;
     bool is_contiguous;
     uint64_t dim;
     bool keepdim;
-    // bool test = false;
 
-    friend std::ostream& operator<<(std::ostream& os, const MedianTestCase& tc)
-    {
-        os << "dims: (";
-        for(auto dim_size : tc.dims)
-        {
-            os << dim_size << " ";
-        }
-        os << ")";
-        os << " is_contiguous: " << tc.is_contiguous;
-        os << " selected_dim: " << tc.dim;
+    // friend std::ostream& operator<<(std::ostream& os, const MedianTestCase& tc)
+    // {
+    //     os << "dims: (";
+    //     for(auto dim_size : tc.dims)
+    //     {
+    //         os << dim_size << " ";
+    //     }
+    //     os << ")";
+    //     os << " is_contiguous: " << tc.is_contiguous;
+    //     os << " selected_dim: " << tc.dim;
 
-        return os;
-    }
+    //     return os;
+    // }
 
     std::vector<size_t> GetDims() const { return dims; }
     uint64_t GetSelectedDim() const { return dim; }
@@ -86,12 +69,6 @@ struct MedianTestCase
     {
     }
 
-    // MedianTestCase(std::vector<size_t> dims_, bool is_contiguous_, uint64_t dim_, bool keepdim_,
-    // bool test_ = false)
-    //     : dims(dims_), is_contiguous(is_contiguous_), dim(dim_), keepdim(keepdim_), test(test_)
-    // {
-    // }
-
     std::vector<size_t> ComputeStrides(std::vector<size_t> inputDim) const
     {
         if(!is_contiguous)
@@ -104,55 +81,11 @@ struct MedianTestCase
             std::swap(strides.front(), strides.back());
         return strides;
     }
-
-    // std::vector<size_t> ComputeStridesFor1DTensor() const
-    // {
-    //     if(is_contiguous) {
-    //         return std::vector<size_t>{1};
-    //     } else {
-    //         return std::vector<size_t>{2};
-    //     }
-    // }
-
-    // std::vector<size_t> ComputeStrides2(std::vector<size_t>& inputDim) const
-    // {
-    //     // if(!is_contiguous)
-    //     //     std::swap(inputDim.front(), inputDim.back());
-    //     std::vector<size_t> strides(inputDim.size());
-    //     strides.back() = 1;
-    //     for(int i = inputDim.size() - 2; i >= 0; --i)
-    //         strides[i] = strides[i + 1] * inputDim[i + 1];
-    //     // if(!is_contiguous)
-    //     //     std::swap(strides.front(), strides.back());
-    //     if(!is_contiguous) {
-    //         strides[0] *= 2;
-    //         inputDim[0] *= 2;
-    //     }
-    //     return strides;
-    // }
-    // std::vector<size_t> ComputeStrides(std::vector<size_t>& input_dim) const
-    // {
-    //     if(!is_contiguous && !(input_dim.size() == 1)) {
-    //             std::swap(input_dim.front(), input_dim.back());
-    //     }
-    //     std::vector<size_t> strides(input_dim.size());
-    //     strides.back() = 1;
-    //     for(int i = input_dim.size() - 2; i >= 0; --i)
-    //         strides[i] = strides[i + 1] * input_dim[i + 1];
-    //     if(!is_contiguous && !(input_dim.size() == 1))
-    //         std::swap(strides.front(), strides.back());
-    //     return strides;
-    // }
 };
 
 inline std::vector<MedianTestCase> MedianTestConfigs()
 {
     return {
-        // MedianTestCase({3, 4, 5}, false, 2, true),
-        // MedianTestCase({3, 4, 5}, true, 2, false),
-        // MedianTestCase({3, 4, 5}, true, 2, false),
-        //         MedianTestCase({3, 4, 5, 6}, true, 2, false),
-
         MedianTestCase({100}, true),
         MedianTestCase({100}, false),
 
@@ -185,30 +118,8 @@ protected:
         config        = GetParam();
 
         auto input_dims = config.GetDims();
-        // input_dims    =  config.GetDims();
-        // std::vector<size_t> input_strides = input_dims.size() == 1 ? {2} :
-        // config.ComputeStrides(input_dims); std::vector<size_t> input_strides = input_dims.size()
-        // == 1 ? std::vector<size_t>{2} : config.ComputeStrides(input_dims);
         std::vector<size_t> input_strides =
             input_dims.size() == 1 ? std::vector<size_t>{2} : config.ComputeStrides(input_dims);
-
-        // if (!config.is_contiguous && input_dims.size() == 1) {
-        //     input_dims[0] *= 2;
-        //     input_strides[0] = 2;
-        // }
-
-        // if(config.test) {
-        //     input_strides[0] +=2;
-        // }
-        // std::vector<size_t> input_strides(input_dims.size());
-
-        // if(input_dims.size() == 1)
-        // {
-        //     input_dims[0] *= 2;
-        //     input_strides[0] = 2;
-        // } else {
-        //     input_strides = config.ComputeStrides(input_dims);
-        // }
 
         dim     = config.GetSelectedDim();
         keepdim = config.GetKeepDimValue();
@@ -225,25 +136,8 @@ protected:
             output_dims[dim] = 1;
         }
 
-        // auto in_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(0.1, 200); };
         auto in_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         input             = tensor<T>{input_dims, input_strides}.generate(in_gen_value);
-
-        // std::cout << "input_strides: ";
-        // for(auto i : input_strides)
-        // {
-        //     std::cout << i << " ";
-        // }
-        // std::cout << std::endl;
-        // std::cout << "total_input_elements: " << input.data.size() << std::endl;
-
-        // print input
-        // std::cout << "input: ";
-        // for(auto i : input)
-        // {
-        //     std::cout << i << ", ";
-        // }
-        // std::cout << std::endl;
 
         output = tensor<T>{output_dims};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
@@ -306,11 +200,6 @@ protected:
         ASSERT_TRUE(miopen::range_distance(ref_indices) == miopen::range_distance(indices));
         for(size_t i = 0; i < indices.data.size(); i++)
         {
-            // Check this logic again
-            // How about the situation, outputs are all 0 (inititialized data)
-            // And all ids are mismatch, but still pass this because of the
-            // condition below
-            // Need more "complete" condition: in the same dim,...
             if(indices.data[i] != ref_indices.data[i])
             {
                 ASSERT_TRUE(output.data[i] == output.data[i]) << "Error output (indices) mismatch";
@@ -333,11 +222,6 @@ protected:
 
     uint64_t dim;
     bool keepdim;
-
-    // Helper
-    // std::vector<size_t> input_dims;
-    // std::vector<size_t> input_strides;
-    // bool is_contiguous;
 };
 
 template <typename T>
@@ -351,15 +235,6 @@ protected:
 
         auto input_grad_dims    = config.GetDims();
         auto input_grad_strides = config.ComputeStrides(input_grad_dims);
-        // std::vector<size_t> input_grad_strides(input_grad_dims.size());
-
-        // if(input_grad_dims.size() == 1)
-        // {
-        //     input_grad_dims[0] *= 2;
-        //     input_grad_strides[0] = 2;
-        // } else {
-        //     input_grad_strides = config.ComputeStrides(input_grad_dims);
-        // }
 
         dim     = config.GetSelectedDim();
         keepdim = config.GetKeepDimValue();
@@ -375,65 +250,27 @@ protected:
         {
             output_grad_dims[dim] = 1;
         }
-        // auto output_grad_strides = config.ComputeStrides(output_grad_dims);
+
         std::vector<size_t> output_grad_strides = output_grad_strides.size() == 1
                                                       ? std::vector<size_t>{2}
                                                       : config.ComputeStrides(output_grad_dims);
 
         auto dim_size = input_grad_dims[dim];
 
-        // auto in_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(0.1, 200);
-        // };
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         auto gen_index = [dim_size](auto...) {
             return prng::gen_0_to_B(static_cast<size_t>(dim_size));
         };
-        // input_grad             = tensor<T>{input_grad_dims,
-        // input_grad_strides}.generate(in_gen_value);
+
         output_grad = tensor<T>{output_grad_dims, output_grad_strides}.generate(gen_value);
         indices     = tensor<size_t>{output_grad_dims, output_grad_strides}.generate(gen_index);
 
-        // test values
-        // indices.data[0]  = 3;
-        // indices.data[1]  = 0;
-        // indices.data[2]  = 2;
-        // indices.data[3]  = 4;
-        // indices.data[4]  = 1;
-        // indices.data[5]  = 4;
-        // indices.data[6]  = 3;
-        // indices.data[7]  = 3;
-        // indices.data[8]  = 2;
-        // indices.data[9]  = 2;
-        // indices.data[10] = 0;
-        // indices.data[11] = 0;
-
-        // // print output_grad
-        // std::cout << "output_grad: " << output_grad.data << std::endl;
-
-        // // print indices
-        // std::cout << "indices: " << indices.data << std::endl;
-
-        // input_grad = tensor<T>{input_grad_dims};
         input_grad = tensor<T>{input_grad_dims, input_grad_strides};
         std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
 
-        // ref_input_grad = tensor<T>{input_grad_dims};
         ref_input_grad = tensor<T>{input_grad_dims, input_grad_strides};
         std::fill(
             ref_input_grad.begin(), ref_input_grad.end(), std::numeric_limits<T>::quiet_NaN());
-
-        // indices = tensor<size_t>{output_grad_dims};
-        // std::fill(indices.begin(), indices.end(), 0);
-
-        // ref_output = tensor<T>{output_dims};
-        // std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
-
-        // ref_indices = tensor<size_t>{output_dims};
-        // std::fill(ref_indices.begin(), ref_indices.end(), 0);
-
-        // input_dev = handle.Write(input.data);
-        // output_dev = handle.Write(output.data);
-        // indices_dev = handle.Write(indices.data);
 
         output_grad_dev = handle.Write(output_grad.data);
         indices_dev     = handle.Write(indices.data);
@@ -473,13 +310,6 @@ protected:
 
     void Verify()
     {
-
-        // // print ref_input_grad
-        // std::cout << "ref_input_grad: " << ref_input_grad.data << std::endl;
-
-        // // print input_grad
-        // std::cout << "input_grad: " << input_grad.data << std::endl;
-
         double threshold = GetTolerance();
         auto error       = miopen::rms_range(ref_input_grad, input_grad);
         EXPECT_LT(error, threshold) << "Error output beyond tolerance Error: " << error
@@ -493,7 +323,6 @@ protected:
     tensor<T> input_grad;
 
     tensor<T> ref_input_grad;
-    // tensor<size_t> ref_indices;
 
     miopen::Allocator::ManageDataPtr output_grad_dev;
     miopen::Allocator::ManageDataPtr indices_dev;

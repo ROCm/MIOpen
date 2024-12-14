@@ -25,7 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-// #include "miopen/execution_context.hpp"
 #include <miopen/median/problem_description.hpp>
 #include <miopen/solver.hpp>
 

@@ -25,9 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include <math.h>
-#include <vector>
-
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
@@ -82,11 +79,6 @@ int32_t mloKthvalueFwdRunHost(const miopenTensorDescriptor_t inputDesc,
         output[output_tv.get_tensor_view_idx(output_layout)] =
             static_cast<Tcheck>(elements[ids[k - 1]]);
         indices[indices_tv.get_tensor_view_idx(indices_layout)] = ids[k - 1];
-
-        // std::cout << "output[output_tv.get_tensor_view_idx(output_layout)]: "
-        //           << output[output_tv.get_tensor_view_idx(output_layout)] << std::endl;
-        // std::cout << "indices[indices_tv.get_tensor_view_idx(indices_layout)]: " <<
-        // indices[indices_tv.get_tensor_view_idx(indices_layout)] << std::endl;
     }
 
     return miopenStatusSuccess;
@@ -105,7 +97,6 @@ int32_t mloKthvalueBwdRunHost(const miopenTensorDescriptor_t outputGradDesc,
 
     size_t dim_size   = miopen::deref(inputGradDesc).GetLengths()[dim];
     size_t dim_stride = miopen::deref(inputGradDesc).GetStrides()[dim];
-    // size_t output_size = input_grad_size / dim_size;
 
     auto input_grad_tv             = miopen::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
     auto input_grad_tv_without_dim = miopen::get_tv_without_dim<5>(input_grad_tv, dim);
@@ -121,7 +112,6 @@ int32_t mloKthvalueBwdRunHost(const miopenTensorDescriptor_t outputGradDesc,
         size_t k_index = indices[indices_tv.get_tensor_view_idx(indices_layout)];
 
         tensor_layout_t<5> out_grad_layout(output_grad_tv, slice_id);
-        // size_t grad_output_idx = output_grad_tv.get_tensor_view_idx(out_grad_layout);
         float val =
             static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx(out_grad_layout)]);
 
@@ -130,24 +120,6 @@ int32_t mloKthvalueBwdRunHost(const miopenTensorDescriptor_t outputGradDesc,
 
         input_grad[idx + k_index * dim_stride] = static_cast<Tcheck>(val);
     });
-
-    // for(size_t i = 0; i < output_size; i++)
-    // {
-    //     tensor_layout_t<5> out_grad_layout(output_tv, i);
-    //     Tgpu val = output_grad[output_tv.get_tensor_view_idx(out_grad_layout)];
-
-    //     tensor_layout_t<5> indices_layout(indices_tv, i);
-    //     size_t idx = indices[indices_tv.get_tensor_view_idx(indices_layout)];
-
-    //     tensor_layout_t<4> in_grad_layout(input_grad_tv_without_dim, i);
-    //     auto ig_idx = input_grad_tv_without_dim.get_tensor_view_idx(in_grad_layout);
-    //     for(size_t j = 0; j < dim_size; j++)
-    //     {
-    //         size_t in_grad_idx = ig_idx + i * dim_stride;
-    //         input_grad[in_grad_idx] =
-    //             (j == idx) ? static_cast<Tcheck>(val) : static_cast<Tcheck>(0);
-    //     }
-    // }
 
     return miopenStatusSuccess;
 }

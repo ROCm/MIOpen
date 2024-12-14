@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-// #include "miopen/convolution.hpp"
 #include <miopen/buffer_info.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/datatype.hpp>
@@ -51,13 +50,8 @@ namespace median {
 bool IsImprovementOverROCm(const miopen::median::FwdProblemDescription& problem)
 {
     // Add MIOpen condition here
-    return true;
-    // TensorDescriptor inputDesc = problem.GetInputDesc();
-    // size_t dimSize             = inputDesc.GetLengths()[problem.GetDim()];
-    // size_t dimStride           = inputDesc.GetStrides()[problem.GetDim()];
-    // size_t dimNum              = inputDesc.GetLengths().size();
 
-    // return dimNum >= 2 && dimStride == 1 && dimSize >= 300;
+    return true;
 }
 
 bool MedianForward::IsApplicable(const ExecutionContext& /*context*/,
@@ -87,15 +81,11 @@ ConvSolution MedianForward::GetSolution(const ExecutionContext& context,
     auto dim_size   = input_lengths[problem.GetDim()]; // reduce_size
     auto dim_stride = problem.GetInputDesc().GetStrides()[problem.GetDim()];
 
-    auto size = problem.GetInputDesc().GetElementSize();
-    // auto output_numel = problem.GetOutputDesc().GetElementSize();
+    auto size        = problem.GetInputDesc().GetElementSize();
     auto output_size = size / dim_size;
-
-    // auto dim = problem.GetDim();
 
     // Start building result.construction_params
     size_t xlocalsize = dim_size >= 8192 ? LOCAL_SIZE * 2 : LOCAL_SIZE;
-    // size_t xgridsize  = AlignUp(output_size, xlocalsize);
     size_t xgridsize  = output_size * xlocalsize;
     size_t ylocalsize = 1;
     size_t ygridsize  = 1;
@@ -132,7 +122,6 @@ ConvSolution MedianForward::GetSolution(const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::median::FwdInvokeParams>();
-            // size_t dim_stride     = params.inputDesc->GetStrides()[params.dim];
 
             auto input_tv                      = get_inner_expanded_tv<5>(deref(params.inputDesc));
             auto input_tv_without_selected_dim = get_tv_without_dim<5>(input_tv, params.dim);

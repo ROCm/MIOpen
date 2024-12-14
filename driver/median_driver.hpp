@@ -27,7 +27,6 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
-// #include "mloPdistHost.hpp"
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
@@ -35,8 +34,6 @@
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-// #include <memory>
-#include <cmath>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -45,20 +42,6 @@
 #include <miopen/tensor_view_utils.hpp>
 
 #include "mloKthValueHost.hpp"
-
-// template <class T>
-// inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
-// {
-//     os << '{';
-//     for(int i = 0; i < v.size(); ++i)
-//     {
-//         if(i != 0)
-//             os << ', ';
-//         os << v[i];
-//     }
-//     os << '}';
-//     return os;
-// }
 
 template <typename Tgpu, typename Tcheck>
 int mloMedianForwardRunHost(const miopenTensorDescriptor_t inputDesc,
@@ -226,8 +209,7 @@ int MedianDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int MedianDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto input_dims = inflags.GetValueTensor("input-dims").lengths;
-    // auto input_strides = ComputeStrides(input_dims);
+    auto input_dims    = inflags.GetValueTensor("input-dims").lengths;
     auto input_strides = input_dims.size() == 1 ? std::vector<int>{2} : ComputeStrides(input_dims);
     auto output_dims   = input_dims;
 
@@ -259,8 +241,6 @@ int MedianDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int MedianDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    // size_t input_sz  = GetTensorSize(inputDesc);
-    // size_t output_sz = GetTensorSize(outputDesc);
     size_t input_size   = GetTensorSpace(inputDesc);
     size_t output_size  = GetTensorSpace(outputDesc);
     size_t indices_size = GetTensorSpace(indicesDesc);
@@ -301,31 +281,12 @@ int MedianDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                       << std::endl;
             return miopenStatusInternalError;
         }
-
-        // std::cout << "input: " << input << std::endl;
-
-        // Transfer outputs to GPU -> are those necessary?
-        // if(output_dev->ToGPU(GetStream(), output.data()) != 0)
-        // {
-        //     std::cerr << "Error copying (output) to GPU, size: " << output_dev->GetSize()
-        //               << std::endl;
-        //     return miopenStatusInternalError;
-        // }
-
-        // if(indices_dev->ToGPU(GetStream(), indices.data()) != 0)
-        // {
-        //     std::cerr << "Error copying (indices) to GPU, size: " << indices_dev->GetSize()
-        //               << std::endl;
-        //     return miopenStatusInternalError;
-        // }
     }
 
     if(forw == 0 || forw == 2)
     {
         for(size_t i = 0; i < output_size; i++)
         {
-            // output_grad[i] = prng::gen_A_to_B<Tgpu>(std::numeric_limits<Tgpu>::min(),
-            //                                         std::numeric_limits<Tgpu>::max());
             output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
 
@@ -347,13 +308,6 @@ int MedianDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                       << std::endl;
             return miopenStatusInternalError;
         }
-
-        // if (input_grad_dev->ToGPU(GetStream(), input_grad.data()) != 0)
-        // {
-        //     std::cerr << "Error copying (input_grad) to GPU, size: " << input_grad_dev->GetSize()
-        //               << std::endl;
-        //     return miopenStatusInternalError;
-        // }
     }
 
     return miopenStatusSuccess;
@@ -517,12 +471,6 @@ int MedianDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
 
-    // // print output_host
-    // std::cout << "output_host: " << output_host << std::endl;
-
-    // // print output
-    // std::cout << "output: " << output << std::endl;
-
     const Tref tolerance = GetTolerance();
     auto output_error    = miopen::rms_range(output_host, output);
 
@@ -560,12 +508,6 @@ template <typename Tgpu, typename Tref>
 int MedianDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
-
-    // // print input_grad_host
-    // std::cout << "input_grad_host: " << input_grad_host << std::endl;
-
-    // // print input_grad
-    // std::cout << "input_grad: " << input_grad << std::endl;
 
     const Tref tolerance  = GetTolerance();
     auto input_grad_error = miopen::rms_range(input_grad_host, input_grad);

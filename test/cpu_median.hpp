@@ -25,11 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-// #include <miopen/tensor_view_utils.hpp>
-
-// #include "tensor_holder.hpp"
-// #include "tensor_view.hpp"
-
 #include "cpu_kthvalue.hpp"
 
 template <class T>

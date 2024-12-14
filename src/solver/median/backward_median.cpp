@@ -50,13 +50,10 @@ namespace median {
 bool IsImprovementOverROCm(const miopen::median::BwdProblemDescription& problem)
 {
     // Add MIOpen condition here
-    return true;
-    // TensorDescriptor inputDesc = problem.GetInputDesc();
-    // size_t dimSize             = inputDesc.GetLengths()[problem.GetDim()];
-    // size_t dimStride           = inputDesc.GetStrides()[problem.GetDim()];
-    // size_t dimNum              = inputDesc.GetLengths().size();
+    // Non-cont
+    // reduce-dim > ...
 
-    // return dimNum >= 2 && dimStride == 1 && dimSize >= 300;
+    return true;
 }
 
 bool MedianBackward::IsApplicable(const ExecutionContext& /*context*/,
@@ -77,16 +74,8 @@ ConvSolution MedianBackward::GetSolution(const ExecutionContext& context,
     std::ignore = context;
     auto result = ConvSolution{miopenStatusSuccess};
 
-    // dummy print
-    std::cout << "MedianBackward::GetSolution" << std::endl;
-
     auto dtype    = problem.GetInputGradDesc().GetType();
     auto io_dtype = miopen::GetDataType(dtype);
-
-    // auto input_numel  = problem.GetInputDesc().GetElementSize();
-    // auto output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
-    // auto size = problem.GetInputGradDesc().GetElementSize();
-    // auto output_size = size / dim_size;
 
     auto input_grad_lengths  = problem.GetInputGradDesc().GetLengths();
     auto output_grad_lengths = problem.GetOutputGradDesc().GetLengths();
@@ -98,7 +87,6 @@ ConvSolution MedianBackward::GetSolution(const ExecutionContext& context,
 
     // Start building result.construction_params
     size_t xlocalsize = LOCAL_SIZE;
-    // size_t xgridsize  = AlignUp(output_grad_numel, xlocalsize);
     size_t xgridsize  = output_size * xlocalsize;
     size_t ylocalsize = 1;
     size_t ygridsize  = 1;
@@ -144,9 +132,6 @@ ConvSolution MedianBackward::GetSolution(const ExecutionContext& context,
             auto output_grad_tv = get_inner_expanded_tv<5>(deref(params.outputGradDesc));
             auto indices_tv     = get_inner_expanded_tv<5>(deref(params.indicesDesc));
 
-            // auto dim = params.dim;
-            // auto k   = (input_lengths[dim] + 1) / 2;
-
             kernel(params.inputGrad,
                    params.outputGrad,
                    params.indices,
@@ -155,17 +140,6 @@ ConvSolution MedianBackward::GetSolution(const ExecutionContext& context,
                    input_grad_tv_without_selected_dim,
                    output_grad_tv,
                    indices_tv);
-
-            // kernel(params.input,
-            //        params.output,
-            //        params.indices,
-            //        k,
-            //        reduce_size,
-            //        dim_stride,
-            //        output_numel,
-            //        input_tv_without_selected_dim,
-            //        output_tv,
-            //        indices_tv);
         };
     };
 

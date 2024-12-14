@@ -26,8 +26,6 @@
 #include <sstream>
 
 #include <miopen/median/problem_description.hpp>
-// #include "miopen/names.hpp"
-// #include <miopen/names.hpp>
 
 namespace miopen {
 

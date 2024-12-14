@@ -42,13 +42,6 @@
 #define LOCAL_SIZE 256
 #endif
 
-// #define IDX_TO_TV5D_IDX(tv, idx)                                                            \
-//     (tv.stride[0] * (size_t)((idx) / tv.size[4] / tv.size[3] / tv.size[2] / tv.size[1]) +   \
-//      tv.stride[1] * ((size_t)((idx) / tv.size[4] / tv.size[3] / tv.size[2]) % tv.size[1]) + \
-//      tv.stride[2] * ((size_t)((idx) / tv.size[4] / tv.size[3]) % tv.size[2]) +              \
-//      tv.stride[3] * ((size_t)((idx) / tv.size[4]) % tv.size[3]) +                           \
-//      tv.stride[4] * ((idx) % tv.size[4]) + tv.offset)
-
 template <typename DTYPE>
 __device__ void kthvalueFwd(const DTYPE* input,
                             DTYPE* output,
@@ -220,26 +213,15 @@ __device__ void kthvalue_bwd(DTYPE* input_grad,
      * gws = {A * B * D * E * lws.x, 1, 1},
      */
 
-    // size_t lid = hipThreadIdx_x;
-    // size_t gid = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
     size_t lid = threadIdx.x;
     size_t gid = blockIdx.x;
 
-    // output_grad
     auto og_tl = tensor_layout_t<5>(output_grad_tv, gid);
-    // auto og_idx = output_grad_tv.get_tensor_view_idx(og_tl);
-    DTYPE val = output_grad[output_grad_tv.get_tensor_view_idx(og_tl)];
-    //   DTYPE val = GET_4D_VAL(output_grad, gid);
+    DTYPE val  = output_grad[output_grad_tv.get_tensor_view_idx(og_tl)];
 
     // indices
     auto ids_tl = tensor_layout_t<5>(indices_tv, gid);
-    // auto ids_idx = indices_tv.get_tensor_view_idx(ids_tl);
-    auto idx = indices[indices_tv.get_tensor_view_idx(ids_tl)];
-    // auto idx     = indices[ids_idx];
-    //   size_t idx = R_GET_4D_VAL(indices, gid);
-
-    // auto ig_gid_tl = tensor_layout_t<4>(input_grad_tv, gid);
-    // auto ig_idx    = input_grad_tv.get_tensor_view_idx(ig_gid_tl);
+    auto idx    = indices[indices_tv.get_tensor_view_idx(ids_tl)];
 
     // input_grad_tensor_layout
     tensor_layout_t<4> ig_gid_tl(input_grad_tv, gid);
@@ -249,15 +231,6 @@ __device__ void kthvalue_bwd(DTYPE* input_grad,
     {
         uint64_t input_grad_idx    = ig_idx + i * dim_stride;
         input_grad[input_grad_idx] = i == idx ? val : static_cast<DTYPE>(0);
-
-        // input_grad[input_grad_idx] = i == idx ? val : static_cast<DTYPE>(0);
-        // auto ig_tl          = tensor_layout_t<4>(input_grad_tv, ig_idx + i * dim_stride);
-        // auto input_grad_idx = input_grad_tv.get_tensor_view_idx(ig_tl);
-        // uint64_t input_grad_idx = IDX_TO_TV4D_IDX(input_grad_tv, gid) + i * dim_stride;
-
-        // input_grad[input_grad_idx] = i == idx ? val : static_cast<DTYPE>(0);
-        // input_grad[input_grad_tv.get_tensor_view_idx(ig_tl)] = i == idx ? val :
-        // static_cast<DTYPE>(0); SET(input_grad, input_grad_idx, i == idx ? val : 0);
     }
 }
 

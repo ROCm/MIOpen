@@ -25,9 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-// #include <miopen/activ.hpp>
-// #include <miopen/errors.hpp>
-// #include <miopen/miopen.h>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 
@@ -161,7 +158,6 @@ struct BwdProblemDescription : ProblemDescriptionBase
         IsSameType();
     }
 
-    // const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
