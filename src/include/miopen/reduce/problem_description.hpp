@@ -202,14 +202,14 @@ struct ProblemDescriptionExtremeAminmaxBackward : ProblemDescriptionBase
                                              const TensorDescriptor& xGradDesc_,
                                              const TensorDescriptor& yDesc_,
                                              const TensorDescriptor& yGradDesc_,
-                                             const TensorDescriptor& indiceDesc_,
+                                             const TensorDescriptor& countDesc_,
                                              const TensorDescriptor& dimDesc_,
                                              miopenReduceExtremeOp_t reduceExtremeOp_)
         : xDesc(xDesc_),
           xGradDesc(xGradDesc_),
           yDesc(yDesc_),
           yGradDesc(yGradDesc_),
-          indiceDesc(indiceDesc_),
+          countDesc(countDesc_),
           dimDesc(dimDesc_),
           reduceExtremeOp(reduceExtremeOp_)
     {
@@ -217,7 +217,7 @@ struct ProblemDescriptionExtremeAminmaxBackward : ProblemDescriptionBase
 
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
-    const TensorDescriptor& GetIndiceDesc() const { return indiceDesc; }
+    const TensorDescriptor& GetCountDesc() const { return countDesc; }
     const TensorDescriptor& GetDimDesc() const { return dimDesc; }
 
     bool IsValidInputNumel() const
@@ -250,9 +250,9 @@ struct ProblemDescriptionExtremeAminmaxBackward : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllContiguousWithIndice() const
+    bool IsAllContiguousWithCount() const
     {
-        if(!(xDesc.IsContiguous() && yDesc.IsContiguous() && indiceDesc.IsContiguous()))
+        if(!(xDesc.IsContiguous() && yDesc.IsContiguous() && countDesc.IsContiguous()))
         {
             return false;
         }
@@ -260,9 +260,9 @@ struct ProblemDescriptionExtremeAminmaxBackward : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllContiguousIndice() const
+    bool IsAllContiguousCount() const
     {
-        if(!(xDesc.IsContiguous() && indiceDesc.IsContiguous()))
+        if(!(xDesc.IsContiguous() && countDesc.IsContiguous()))
         {
             return false;
         }
@@ -277,7 +277,7 @@ private:
     TensorDescriptor xGradDesc;
     TensorDescriptor yDesc;
     TensorDescriptor yGradDesc;
-    TensorDescriptor indiceDesc;
+    TensorDescriptor countDesc;
     TensorDescriptor dimDesc;
 
     miopenReduceExtremeOp_t reduceExtremeOp;

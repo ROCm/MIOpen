@@ -54,18 +54,18 @@ struct ExtremeAminmaxBackwardInvokeParams : public miopen::InvokeParams
 {
     ExtremeAminmaxBackwardInvokeParams() = default;
 
-    const TensorDescriptor* xDesc      = nullptr;
-    const TensorDescriptor* xGradDesc  = nullptr;
-    const TensorDescriptor* yDesc      = nullptr;
-    const TensorDescriptor* yGradDesc  = nullptr;
-    const TensorDescriptor* indiceDesc = nullptr;
-    const TensorDescriptor* dimDesc    = nullptr;
+    const TensorDescriptor* xDesc     = nullptr;
+    const TensorDescriptor* xGradDesc = nullptr;
+    const TensorDescriptor* yDesc     = nullptr;
+    const TensorDescriptor* yGradDesc = nullptr;
+    const TensorDescriptor* countDesc = nullptr;
+    const TensorDescriptor* dimDesc   = nullptr;
 
     ConstData_t x              = nullptr;
     ConstData_t x_grad         = nullptr;
     ConstData_t y              = nullptr;
     ConstData_t y_grad         = nullptr;
-    ConstData_t indice         = nullptr;
+    ConstData_t count          = nullptr;
     std::size_t workspace_size = 0;
     ConstData_t dim            = nullptr;
 

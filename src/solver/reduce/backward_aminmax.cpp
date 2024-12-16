@@ -59,7 +59,7 @@ ConvSolution AMinMaxBackward::GetSolution(
     auto dtype        = problem.GetXDesc().GetType();
     auto input_dtype  = miopen::GetDataType(problem.GetXDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetYDesc().GetType());
-    auto indice_dtype = miopen::GetDataType(problem.GetIndiceDesc().GetType());
+    auto count_dtype  = miopen::GetDataType(problem.GetCountDesc().GetType());
     auto xdims        = problem.GetXDesc().GetLengths();
     auto ydims        = problem.GetYDesc().GetLengths();
     auto input_numel  = problem.GetXDesc().GetElementSize();
@@ -85,7 +85,7 @@ ConvSolution AMinMaxBackward::GetSolution(
             {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-            {"INDICE_TYPE", indice_dtype},
+            {"INDICE_TYPE", count_dtype},
             {"OP_TYPE", "ReduceExtremeOp_t::Max"},
             {"MIOPEN_REDUCE_EXTREME_ARGMIN", MIOPEN_REDUCE_EXTREME_ARGMIN},
             {"MIOPEN_REDUCE_EXTREME_ARGMAX", MIOPEN_REDUCE_EXTREME_ARGMAX},
@@ -115,13 +115,13 @@ ConvSolution AMinMaxBackward::GetSolution(
             auto input_grad_tv  = get_inner_expanded_tv<5>(deref(params.xGradDesc));
             auto output_tv      = get_inner_expanded_tv<5>(deref(params.yDesc));
             auto output_grad_tv = get_inner_expanded_tv<5>(deref(params.yGradDesc));
-            auto count_tv       = get_inner_expanded_tv<5>(deref(params.indiceDesc));
+            auto count_tv       = get_inner_expanded_tv<5>(deref(params.countDesc));
 
             kernel(params.x,
                    params.x_grad,
                    params.y,
                    params.y_grad,
-                   params.indice,
+                   params.count,
                    input_numel,
                    params.dim,
                    input_tv,

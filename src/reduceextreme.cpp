@@ -166,8 +166,8 @@ miopenStatus_t ReduceExtremeBackward(Handle& handle,
                                      ConstData_t y,
                                      const TensorDescriptor& yGradDesc,
                                      ConstData_t y_grad,
-                                     const TensorDescriptor& indiceDesc,
-                                     ConstData_t indice,
+                                     const TensorDescriptor& countDesc,
+                                     ConstData_t count,
                                      const TensorDescriptor& dimDesc,
                                      ConstData_t dim,
                                      miopenReduceExtremeOp_t reduceExtremeOp)
@@ -176,23 +176,23 @@ miopenStatus_t ReduceExtremeBackward(Handle& handle,
        reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX)
     {
         const auto problem = reduce::ProblemDescriptionExtremeAminmaxBackward{
-            xDesc, xGradDesc, yDesc, yGradDesc, indiceDesc, dimDesc, reduceExtremeOp};
+            xDesc, xGradDesc, yDesc, yGradDesc, countDesc, dimDesc, reduceExtremeOp};
 
         const auto invoke_params = [&]() {
-            auto tmp       = reduce::ExtremeAminmaxBackwardInvokeParams{};
-            tmp.type       = InvokeType::Run;
-            tmp.xDesc      = &xDesc;
-            tmp.xGradDesc  = &xGradDesc;
-            tmp.yDesc      = &yDesc;
-            tmp.yGradDesc  = &yGradDesc;
-            tmp.indiceDesc = &indiceDesc;
-            tmp.dimDesc    = &dimDesc;
-            tmp.x          = x;
-            tmp.x_grad     = x_grad;
-            tmp.y          = y;
-            tmp.y_grad     = y_grad;
-            tmp.indice     = indice;
-            tmp.dim        = dim;
+            auto tmp      = reduce::ExtremeAminmaxBackwardInvokeParams{};
+            tmp.type      = InvokeType::Run;
+            tmp.xDesc     = &xDesc;
+            tmp.xGradDesc = &xGradDesc;
+            tmp.yDesc     = &yDesc;
+            tmp.yGradDesc = &yGradDesc;
+            tmp.countDesc = &countDesc;
+            tmp.dimDesc   = &dimDesc;
+            tmp.x         = x;
+            tmp.x_grad    = x_grad;
+            tmp.y         = y;
+            tmp.y_grad    = y_grad;
+            tmp.count     = count;
+            tmp.dim       = dim;
             return tmp;
         }();
 

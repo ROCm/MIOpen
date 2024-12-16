@@ -6054,8 +6054,8 @@ miopenReduceExtremeForward(miopenHandle_t handle,
  * @param dim                      Data tensor dimension(s) to reduce argmax. (input)
  * @param reduceExtremeOp          Enumerant specifying the operation used by ReduceExtreme
  * (input)
- * @param indiceDesc               Tensor descriptor for reduce data tensor indice (input)
- * @param indice                   Data tensor indice (input)
+ * @param countDesc                Tensor descriptor for data tensor count (input)
+ * @param count                    Data tensor count (input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -6071,8 +6071,8 @@ miopenReduceExtremeBackward(miopenHandle_t handle,
                             const miopenTensorDescriptor_t dimDesc,
                             const int32_t* dim,
                             const miopenReduceExtremeOp_t reduceExtremeOp,
-                            const miopenTensorDescriptor_t indiceDesc,
-                            const void* indice);
+                            const miopenTensorDescriptor_t countDesc,
+                            const void* count);
 
 /** @} */
 // CLOSEOUT REDUCEEXTREME DOXYGEN GROUP
@@ -8043,40 +8043,6 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
-
-#ifdef MIOPEN_BETA_API
-// gradientdescent APIs
-/** @addtogroup SGD
- *
- * @{
- */
-/*! @brief Execute a gradientdescent layer
- *
- * @param handle                   MIOpen handle (input)
- * @param varInDesc                Tensor descriptor for the input variable tensor (input)
- * @param var_in                   Input variable tensor (input)
- * @param varOutDesc               Tensor descriptor for the output variable tensor (input)
- * @param var_out                  Output variable tensor (output)
- * @param alphaInDesc              Tensor descriptor for the input alpha tensor (input)
- * @param alpha_in                 Input alpha tensor (input)
- * @param deltaInDesc              Tensor descriptor for the input delta tensor (input)
- * @param delta_in                 Input delta tensor (input)
- * @return                         miopenStatus_t
- */
-
-MIOPEN_EXPORT miopenStatus_t miopenGradientDescent(miopenHandle_t handle,
-                                                   const miopenTensorDescriptor_t varInDesc,
-                                                   const void* var_in,
-                                                   const miopenTensorDescriptor_t varOutDesc,
-                                                   void* var_out,
-                                                   const miopenTensorDescriptor_t alphaInDesc,
-                                                   const void* alpha_in,
-                                                   const miopenTensorDescriptor_t deltaInDesc,
-                                                   const void* delta_in);
-
-/** @} */
-// CLOSEOUT SGD DOXYGEN GROUP
-#endif
 
 #ifdef __cplusplus
 }

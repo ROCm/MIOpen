@@ -78,7 +78,7 @@ NetworkConfig ProblemDescriptionExtremeAminmaxBackward::MakeNetworkConfig() cons
        (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
         outputlength = yDesc.GetLengths();
     else
-        outputlength = indiceDesc.GetLengths();
+        outputlength = countDesc.GetLengths();
 
     auto output_numel = std::accumulate(outputlength.begin(),
                                         outputlength.end(),
@@ -94,8 +94,8 @@ NetworkConfig ProblemDescriptionExtremeAminmaxBackward::MakeNetworkConfig() cons
     if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN) ||
        (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX))
     {
-        auto indicedtype = indiceDesc.GetType();
-        ss << "indicedtype" << indicedtype;
+        auto countdtype = countDesc.GetType();
+        ss << "countdtype" << countdtype;
     }
 
     ss << "output_numel" << output_numel;

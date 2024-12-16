@@ -132,8 +132,8 @@ extern "C" miopenStatus_t miopenReduceExtremeBackward(miopenHandle_t handle,
                                                       const miopenTensorDescriptor_t dimDesc,
                                                       const int32_t* dim,
                                                       const miopenReduceExtremeOp_t reduceExtremeOp,
-                                                      const miopenTensorDescriptor_t indiceDesc,
-                                                      const void* indice)
+                                                      const miopenTensorDescriptor_t countDesc,
+                                                      const void* count)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         xDesc,
@@ -146,8 +146,8 @@ extern "C" miopenStatus_t miopenReduceExtremeBackward(miopenHandle_t handle,
                         y_grad,
                         dim,
                         reduceExtremeOp,
-                        indiceDesc,
-                        indice);
+                        countDesc,
+                        count);
 
     return miopen::try_([&] {
         miopen::ReduceExtremeBackward(miopen::deref(handle),
@@ -159,8 +159,8 @@ extern "C" miopenStatus_t miopenReduceExtremeBackward(miopenHandle_t handle,
                                       DataCast(y),
                                       miopen::deref(yGradDesc),
                                       DataCast(y_grad),
-                                      miopen::deref(indiceDesc),
-                                      DataCast(indice),
+                                      miopen::deref(countDesc),
+                                      DataCast(count),
                                       miopen::deref(dimDesc),
                                       DataCast(dim),
                                       reduceExtremeOp);
