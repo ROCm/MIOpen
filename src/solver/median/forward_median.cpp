@@ -49,9 +49,13 @@ namespace median {
 
 bool IsImprovementOverROCm(const miopen::median::FwdProblemDescription& problem)
 {
-    // Add MIOpen condition here
+    auto dim           = problem.GetDim();
+    auto input_lengths = problem.GetInputDesc().GetLengths();
+    auto dim_size      = input_lengths[dim];
+    auto is_contiguous = problem.GetInputDesc().IsContiguous();
+    auto dim_stride    = problem.GetInputDesc().GetStrides()[dim];
 
-    return true;
+    return input_lengths.size() > 1 && !is_contiguous && dim_size > 300 && dim_stride == 1;
 }
 
 bool MedianForward::IsApplicable(const ExecutionContext& /*context*/,

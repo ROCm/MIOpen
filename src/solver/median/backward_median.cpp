@@ -49,11 +49,13 @@ namespace median {
 
 bool IsImprovementOverROCm(const miopen::median::BwdProblemDescription& problem)
 {
-    // Add MIOpen condition here
-    // Non-cont
-    // reduce-dim > ...
+    auto dim                = problem.GetDim();
+    auto input_grad_lengths = problem.GetInputGradDesc().GetLengths();
+    auto dim_size           = input_grad_lengths[dim];
+    auto is_contiguous      = problem.GetInputGradDesc().IsContiguous();
+    auto dim_stride         = problem.GetInputGradDesc().GetStrides()[dim];
 
-    return true;
+    return input_grad_lengths.size() > 1 && !is_contiguous && dim_size > 250 && dim_stride == 1;
 }
 
 bool MedianBackward::IsApplicable(const ExecutionContext& /*context*/,
