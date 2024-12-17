@@ -40,11 +40,11 @@ template <typename TI,
           bool IS_USE_FLOAT>
 __device__ void calculationparallelfwdcontiguous(const TI* __restrict__ x,
                                                  TO* __restrict__ y,
-                                                 const uint64_t output_numel,
-                                                 const uint64_t reduce_size,
-                                                 const uint64_t parallelism_size,
-                                                 const uint64_t inner_size,
-                                                 const bool nanPropagation)
+                                                 uint64_t output_numel,
+                                                 uint64_t reduce_size,
+                                                 uint64_t parallelism_size,
+                                                 uint64_t inner_size,
+                                                 bool nanPropagation)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= parallelism_size * output_numel)
@@ -63,7 +63,6 @@ __device__ void calculationparallelfwdcontiguous(const TI* __restrict__ x,
 
     for(uint64_t k = parallel_id; k < reduce_size; k += parallelism_size)
     {
-        // preprocess val
         CAL_TYPE val;
         if constexpr(IS_LOGICAL || !IS_USE_FLOAT)
         {
@@ -74,16 +73,9 @@ __device__ void calculationparallelfwdcontiguous(const TI* __restrict__ x,
         else
         {
             val = CVT_FLOAT2ACCUM(x[input_idx]);
-        }
-
-        // handle nan
-        // only need to check nan values for inputs with float type
-        // and for numerical calculation
-        if constexpr(IS_USE_FLOAT && !IS_LOGICAL)
-        {
             if(nanPropagation && isnan(val))
             {
-                val = static_cast<TI>(0);
+                val = reduce_func<CAL_TYPE, op>{}.get_initial_value();
             }
         }
 
@@ -103,11 +95,11 @@ __device__ void calculationparallelfwdcontiguous(const TI* __restrict__ x,
 
 extern "C" __global__ void CalculationParallelFwdContiguous(const INPUT_TYPE* __restrict__ x,
                                                             OUTPUT_TYPE* __restrict__ y,
-                                                            const uint64_t output_numel,
-                                                            const uint64_t reduce_size,
-                                                            const uint64_t parallelism_size,
-                                                            const uint64_t inner_size,
-                                                            const bool nanPropagation)
+                                                            uint64_t output_numel,
+                                                            uint64_t reduce_size,
+                                                            uint64_t parallelism_size,
+                                                            uint64_t inner_size,
+                                                            bool nanPropagation)
 {
     // instantiate the kernel
     calculationparallelfwdcontiguous<INPUT_TYPE,
@@ -127,10 +119,10 @@ template <typename TI,
           bool IS_USE_FLOAT>
 __device__ void calculationfwdcontiguous(const TI* __restrict__ x,
                                          TO* __restrict__ y,
-                                         const uint64_t output_numel,
-                                         const uint64_t reduce_size,
-                                         const uint64_t inner_size,
-                                         const bool nanPropagation)
+                                         uint64_t output_numel,
+                                         uint64_t reduce_size,
+                                         uint64_t inner_size,
+                                         bool nanPropagation)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_numel)
@@ -142,7 +134,6 @@ __device__ void calculationfwdcontiguous(const TI* __restrict__ x,
 
     for(uint64_t k = 0; k < reduce_size; ++k)
     {
-        // preprocess val
         CAL_TYPE val;
         if constexpr(IS_LOGICAL || !IS_USE_FLOAT)
         {
@@ -153,16 +144,9 @@ __device__ void calculationfwdcontiguous(const TI* __restrict__ x,
         else
         {
             val = CVT_FLOAT2ACCUM(x[input_idx]);
-        }
-
-        // handle nan
-        if constexpr(IS_USE_FLOAT && !IS_LOGICAL)
-        {
-            // Only need to check nan values for inputs with float type
-            // and for numerical calculation
             if(nanPropagation && isnan(val))
             {
-                val = static_cast<TI>(0);
+                val = reduce_func<CAL_TYPE, op>{}.get_initial_value();
             }
         }
 
@@ -182,10 +166,10 @@ __device__ void calculationfwdcontiguous(const TI* __restrict__ x,
 
 extern "C" __global__ void CalculationFwdContiguous(const INPUT_TYPE* __restrict__ x,
                                                     OUTPUT_TYPE* __restrict__ y,
-                                                    const uint64_t output_numel,
-                                                    const uint64_t reduce_size,
-                                                    const uint64_t inner_size,
-                                                    const bool nanPropagation)
+                                                    uint64_t output_numel,
+                                                    uint64_t reduce_size,
+                                                    uint64_t inner_size,
+                                                    bool nanPropagation)
 {
     // instantiate the kernel
     calculationfwdcontiguous<INPUT_TYPE,

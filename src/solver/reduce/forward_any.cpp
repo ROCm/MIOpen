@@ -63,14 +63,28 @@ AnyForward::GetSolution(const ExecutionContext& context,
     auto dtype       = problem.GetXDesc().GetType();
     auto input_dtype = miopen::GetDataType(problem.GetXDesc().GetType());
     auto xdims       = problem.GetXDesc().GetLengths();
-    auto ydims       = problem.GetYDesc().GetLengths();
     auto dim         = problem.GetDim();
 
-    auto reduce_size = xdims[dim];
-    auto output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+    auto reduce_size  = xdims[dim];
+    auto output_numel = problem.GetYDesc().GetElementSize();
 
     auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
+
+    const auto build_params = KernelBuildParameters{
+        {"MIOPEN_USE_INT8", static_cast<int>(dtype == miopenInt8)},
+        {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+        {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+        {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+        {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+        {"OUTPUT_TYPE", input_dtype == "uint8_t" ? "uint8_t" : "bool"},
+        {"OP_TYPE", "ReduceCalculationOp_t::lOR"},
+        {"CALCULATION_DTYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
+        {"IS_LOGICAL_CALCULATION", "true"},
+        {"IS_USE_FLOAT_DTYPE", problem.IsValidFloatTypes()},
+        {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
+        {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
+        {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY},
+        {"MIOPEN_REDUCE_CALCULATION_ALL", MIOPEN_REDUCE_CALCULATION_ALL}};
 
     if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
     {
@@ -87,22 +101,6 @@ AnyForward::GetSolution(const ExecutionContext& context,
 
         kernel.kernel_file = "MIOpenReduceCalculation.cpp";
         kernel.kernel_name = "CalculationParallelFwdContiguous";
-
-        const auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_INT8", static_cast<int32_t>(dtype == miopenInt8)},
-            {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-            {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", input_dtype == "uint8_t" ? "uint8_t" : "bool"},
-            {"OP_TYPE", "ReduceCalculationOp_t::lOR"},
-            {"CALCULATION_DTYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"IS_LOGICAL_CALCULATION", "true"},
-            {"IS_USE_FLOAT_DTYPE", problem.IsValidFloatTypes()},
-            {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
-            {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
-            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY},
-            {"MIOPEN_REDUCE_CALCULATION_ALL", MIOPEN_REDUCE_CALCULATION_ALL}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -130,22 +128,6 @@ AnyForward::GetSolution(const ExecutionContext& context,
         kernel.kernel_file = "MIOpenReduceCalculation.cpp";
         kernel.kernel_name = "CalculationFwdContiguous";
 
-        const auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_INT8", static_cast<int32_t>(dtype == miopenInt8)},
-            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", input_dtype == "uint8_t" ? "uint8_t" : "bool"},
-            {"OP_TYPE", "ReduceCalculationOp_t::lOR"},
-            {"CALCULATION_DTYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"IS_LOGICAL_CALCULATION", "true"},
-            {"IS_USE_FLOAT_DTYPE", problem.IsValidFloatTypes()},
-            {"MIOPEN_REDUCE_CALCULATION_PROD", MIOPEN_REDUCE_CALCULATION_PROD},
-            {"MIOPEN_REDUCE_CALCULATION_SUM", MIOPEN_REDUCE_CALCULATION_SUM},
-            {"MIOPEN_REDUCE_CALCULATION_ANY", MIOPEN_REDUCE_CALCULATION_ANY},
-            {"MIOPEN_REDUCE_CALCULATION_ALL", MIOPEN_REDUCE_CALCULATION_ALL}};
-
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         kernel.l_wk.push_back(xlocalsize);
@@ -169,12 +151,10 @@ AnyForward::GetSolution(const ExecutionContext& context,
                     raw_params.CastTo<miopen::reduce::CalculationInvokeParams>();
 
                 auto xdims = params.xDesc->GetLengths();
-                auto ydims = params.yDesc->GetLengths();
                 auto dim   = params.dim;
 
-                auto reduce_size = xdims[dim];
-                auto output_numel =
-                    std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+                auto reduce_size  = xdims[dim];
+                auto output_numel = params.yDesc->GetElementSize();
 
                 auto inner_size = std::accumulate(
                     xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
@@ -229,12 +209,10 @@ AnyForward::GetSolution(const ExecutionContext& context,
                     raw_params.CastTo<miopen::reduce::CalculationInvokeParams>();
 
                 auto xdims = params.xDesc->GetLengths();
-                auto ydims = params.yDesc->GetLengths();
                 auto dim   = params.dim;
 
-                auto reduce_size = xdims[dim];
-                auto output_numel =
-                    std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+                auto reduce_size  = xdims[dim];
+                auto output_numel = params.yDesc->GetElementSize();
 
                 auto inner_size = std::accumulate(
                     xdims.begin() + dim + 1, xdims.end(), 1ULL, std::multiplies<size_t>());
@@ -251,11 +229,9 @@ AnyForward::GetWorkspaceSize(const ExecutionContext& context,
                              const miopen::reduce::ProblemDescriptionCalculation& problem) const
 {
     auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetYDesc().GetLengths();
 
-    auto reduce_size = xdims[problem.GetDim()];
-    auto output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+    auto reduce_size  = xdims[problem.GetDim()];
+    auto output_numel = problem.GetYDesc().GetElementSize();
 
     auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
 

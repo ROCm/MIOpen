@@ -53,31 +53,31 @@ struct GPU_ReduceCalculationTest_UINT8 : ReduceCalculationTest<uint8_t>
 
 using namespace reducecalculation;
 
-TEST_P(GPU_ReduceCalculationTest_FP32, ReduceCalculationTestFw)
+TEST_P(GPU_ReduceCalculationTest_FP32, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_ReduceCalculationTest_FP16, ReduceCalculationTestFw)
+TEST_P(GPU_ReduceCalculationTest_FP16, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_ReduceCalculationTest_BFP16, ReduceCalculationTestFw)
+TEST_P(GPU_ReduceCalculationTest_BFP16, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_ReduceCalculationTest_INT8, ReduceCalculationTestFw)
+TEST_P(GPU_ReduceCalculationTest_INT8, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_ReduceCalculationTest_UINT8, ReduceCalculationTestFw)
+TEST_P(GPU_ReduceCalculationTest_UINT8, Test)
 {
     RunTest();
     Verify();

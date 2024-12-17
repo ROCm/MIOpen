@@ -33,17 +33,18 @@
 #include "../src/kernels/MIOpenReduceCalculation.hpp"
 
 template <typename T, ReduceCalculationOp_t op>
-void cpu_calculation_forward(tensor<T> input,
+void cpu_calculation_forward(const tensor<T> input,
                              tensor<T>& ref_output,
-                             int32_t dim,
+                             uint32_t dim,
                              miopenReduceCalculationNanPropagation_t nanPropagation)
 {
     auto input_dims  = input.desc.GetLengths();
     auto output_dims = ref_output.desc.GetLengths();
 
     auto reduce_size = input_dims[dim];
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
+    // auto output_numel =
+    //     std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
+    auto output_numel = ref_output.desc.GetElementSize();
 
     auto inner_size = std::accumulate(
         input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
@@ -57,7 +58,7 @@ void cpu_calculation_forward(tensor<T> input,
             T val = input[input_idx];
             if(nanPropagation && std::isnan(val))
             {
-                val = static_cast<T>(0.0);
+                val = op == ReduceCalculationOp_t::Prod ? static_cast<T>(1.0) : static_cast<T>(0.0);
             }
             reduce_func<T, op>{}.calculate(calculation, val);
             input_idx += inner_size;
@@ -68,14 +69,17 @@ void cpu_calculation_forward(tensor<T> input,
 }
 
 template <typename T, ReduceCalculationOp_t op>
-void cpu_logical_calculation_forward(tensor<T> input, tensor<uint8_t>& ref_output, int32_t dim)
+void cpu_logical_calculation_forward(const tensor<T> input,
+                                     tensor<uint8_t>& ref_output,
+                                     uint32_t dim)
 {
     auto input_dims  = input.desc.GetLengths();
     auto output_dims = ref_output.desc.GetLengths();
 
     auto reduce_size = input_dims[dim];
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
+    // auto output_numel =
+    //     std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
+    auto output_numel = ref_output.desc.GetElementSize();
 
     auto inner_size = std::accumulate(
         input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
@@ -87,10 +91,6 @@ void cpu_logical_calculation_forward(tensor<T> input, tensor<uint8_t>& ref_outpu
 
         ford(reduce_size)([&](size_t i) {
             T val = input[input_idx];
-            if(std::isnan(val))
-            {
-                val = static_cast<T>(1);
-            }
             reduce_func<T, op>{}.calculate(calculation, val);
             input_idx += inner_size;
         });

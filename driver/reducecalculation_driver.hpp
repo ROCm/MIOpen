@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,13 +42,12 @@
 #include "../src/kernels/MIOpenReduceCalculation.hpp"
 
 template <typename Tgpu, typename Tcheck, ReduceCalculationOp_t op>
-int32_t
-mloReduceCalculationForwardRunHost(const miopenTensorDescriptor_t inputDesc,
-                                   const miopenTensorDescriptor_t outputDesc,
-                                   const Tgpu* input,
-                                   Tcheck* outputhost,
-                                   const int32_t dim,
-                                   const miopenReduceCalculationNanPropagation_t nanPropagation)
+int32_t mloReduceCalculationForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                           const miopenTensorDescriptor_t outputDesc,
+                                           const Tgpu* input,
+                                           Tcheck* outputhost,
+                                           int32_t dim,
+                                           miopenReduceCalculationNanPropagation_t nanPropagation)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
     auto output_dims = miopen::deref(outputDesc).GetLengths();
@@ -72,7 +71,7 @@ mloReduceCalculationForwardRunHost(const miopenTensorDescriptor_t inputDesc,
             float val = static_cast<float>(input[input_idx]);
             if(nanPropagation && isnan(val))
             {
-                val = 0.0f;
+                val = op == ReduceCalculationOp_t::Prod ? 1.0f : 0.0f;
             }
             reduce_func<float, op>{}.calculate(calculation, val);
             input_idx += inner_size;
@@ -88,7 +87,7 @@ int32_t mloReduceLogicalCalculationForwardRunHost(const miopenTensorDescriptor_t
                                                   const miopenTensorDescriptor_t outputDesc,
                                                   const Tgpu* input,
                                                   uint8_t* outputhost,
-                                                  const int32_t dim)
+                                                  int32_t dim)
 {
     auto input_dims  = miopen::deref(inputDesc).GetLengths();
     auto output_dims = miopen::deref(outputDesc).GetLengths();
