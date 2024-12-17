@@ -178,7 +178,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescri
         const int gemm_k_gid = k * y_dot_slice_gid[gemm_id] * x_dot_slice_gid[gemm_id];
         is_gemm_not_empty.emplace_back(gemm_k_gid > 0);
     }
-    bool need_set_zero = true;
 
     return [=](const std::vector<Kernel>& kernels) {
         const auto kernel = kernels[0];
@@ -186,14 +185,13 @@ InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescri
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             float elapsed           = 0;
-            if(need_set_zero)
-            {
-                float zero = 0.f;
-                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
 
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-            }
+            float zero = 0.f;
+            SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+
             for(int gemm_id = 0; gemm_id < num_of_gemms; gemm_id++)
             {
                 if(is_gemm_not_empty[gemm_id])
@@ -313,10 +311,10 @@ MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
         const int gemm_k_gid = k * y_dot_slice_gid[gemm_id] * x_dot_slice_gid[gemm_id];
         is_gemm_not_empty.emplace_back(gemm_k_gid > 0);
     }
-    bool need_set_zero = true;
-    int nxb            = cfg.nxb;
-    int b              = h_tilda_slice * w_tilda_slice;
-    b = (cfg.nxe == 0) ? (b) : ((b + nxb - 1) / nxb) * nxb; // pad to nxb modulo when nxe != 0
+
+    int nxb = cfg.nxb;
+    int b   = h_tilda_slice * w_tilda_slice;
+    b       = (cfg.nxe == 0) ? (b) : ((b + nxb - 1) / nxb) * nxb; // pad to nxb modulo when nxe != 0
 
     uint32_t nb_n0          = cfg.tensor_b_cluster_lengths[2] * cfg.tensor_b_thread_lengths[2];
     uint32_t nb_n1b         = cfg.tensor_b_cluster_lengths[3] * cfg.tensor_b_thread_lengths[3];
@@ -361,14 +359,13 @@ MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
             decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             float elapsed           = 0;
-            if(need_set_zero)
-            {
-                float zero = 0.f;
-                SetTensor(handle, tensors.outDesc, tensors.out, &zero);
 
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-            }
+            float zero = 0.f;
+            SetTensor(handle, tensors.outDesc, tensors.out, &zero);
+
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
+
             for(int gemm_id = 0; gemm_id < num_of_gemms; gemm_id++)
             {
                 if(is_gemm_not_empty[gemm_id])
@@ -492,7 +489,6 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     }
 
     // Clear buffer for all condition to resolve the NaN issue.
-    bool need_set_zero                 = true;
     bool use_fp32_global_split_on_fp16 = config.vector_store == 1 && config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
@@ -536,7 +532,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         if(problem.GetOut().GetType() == miopenHalf)
             return use_fp32_global_split_on_fp16;
         if(problem.GetOut().GetType() == miopenBFloat16)
-            return need_set_zero;
+            return config.gemm_k_global_split > 0;
         return false;
     }();
     const auto is_nchw = problem.IsLayoutDefault();
@@ -635,22 +631,19 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
                                 ? null_buf
                                 : handle.CreateSubBuffer(workSpace, cast_offset, cast_size);
 
-            if(need_set_zero)
-            {
-                auto zero_buf = need_cast
-                                    ? cast_buf.get()
-                                    : ((is_nchw && !trans_output_skippable) ? trans_output_buf.get()
-                                                                            : tensors.out);
-                auto& zero_desc =
-                    need_cast
-                        ? cast_desc
-                        : tensors.outDesc; // use the same desc for NCHW/NHWC for this dense tensor
-                float zero = 0.f;
+            auto zero_buf =
+                need_cast
+                    ? cast_buf.get()
+                    : ((is_nchw && !trans_output_skippable) ? trans_output_buf.get() : tensors.out);
+            auto& zero_desc =
+                need_cast
+                    ? cast_desc
+                    : tensors.outDesc; // use the same desc for NCHW/NHWC for this dense tensor
+            float zero = 0.f;
 
-                SetTensor(handle, zero_desc, zero_buf, &zero);
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-            }
+            SetTensor(handle, zero_desc, zero_buf, &zero);
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
 
             if(is_nchw)
             {
@@ -793,7 +786,6 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     int dtile_h  = num_of_gemms > 1 ? static_cast<int>(mdiv_group_mn.magic) : h_tilda;
     int dtile_w  = num_of_gemms > 1 ? static_cast<int>(mdiv_group_mn.shift) : w_tilda;
 
-    bool need_set_zero                 = true;
     bool use_fp32_global_split_on_fp16 = config.vector_store == 1 && config.gemm_k_global_split > 0;
 
     std::vector<OpKernelArg> opArgs;
@@ -849,7 +841,10 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
         if(problem.GetOut().GetType() == miopenHalf)
             return use_fp32_global_split_on_fp16;
         if(problem.GetOut().GetType() == miopenBFloat16)
-            return need_set_zero;
+        {
+            return (y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1 ||
+                    config.gemm_k_global_split > 0);
+        }
         return false;
     }();
     const auto is_nchw = problem.IsLayoutDefault();
@@ -948,22 +943,18 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                                 ? null_buf
                                 : handle.CreateSubBuffer(workSpace, cast_offset, cast_size);
 
-            if(need_set_zero)
-            {
-                auto zero_buf = need_cast
-                                    ? cast_buf.get()
-                                    : ((is_nchw && !trans_input_skippable) ? trans_input_buf.get()
-                                                                           : tensors.out);
-                auto& zero_desc =
-                    need_cast
-                        ? cast_desc
-                        : tensors.outDesc; // use the same desc for NCHW/NHWC for this dense tensor
-                float zero = 0.f;
+            auto zero_buf = need_cast ? cast_buf.get()
+                                      : ((is_nchw && !trans_input_skippable) ? trans_input_buf.get()
+                                                                             : tensors.out);
+            auto& zero_desc =
+                need_cast
+                    ? cast_desc
+                    : tensors.outDesc; // use the same desc for NCHW/NHWC for this dense tensor
+            float zero = 0.f;
 
-                SetTensor(handle, zero_desc, zero_buf, &zero);
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-            }
+            SetTensor(handle, zero_desc, zero_buf, &zero);
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
 
             if(is_nchw)
             {
