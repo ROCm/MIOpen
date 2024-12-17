@@ -53,7 +53,7 @@ inline tensor_view_t<N> get_inner_expanded_tv(const TensorDescriptor Desc)
         }
         else
         {
-            tensor_view.stride[i] = (i == 0 ? 1 : strides[i - 1]);
+            tensor_view.stride[i] = (i == 0 ? 1 : tensor_view.stride[i - 1]);
             tensor_view.size[i]   = 1;
         }
     }

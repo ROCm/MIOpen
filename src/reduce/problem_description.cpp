@@ -80,10 +80,8 @@ NetworkConfig ProblemDescriptionExtremeAminmaxBackward::MakeNetworkConfig() cons
     else
         outputlength = countDesc.GetLengths();
 
-    auto output_numel = std::accumulate(outputlength.begin(),
-                                        outputlength.end(),
-                                        static_cast<size_t>(1),
-                                        std::multiplies<size_t>());
+    auto input_numel  = xDesc.GetElementSize();
+    auto output_numel = yDesc.GetElementSize();
     auto inputdtype   = xDesc.GetType();
     auto outputdtype  = yDesc.GetType();
 
@@ -98,6 +96,7 @@ NetworkConfig ProblemDescriptionExtremeAminmaxBackward::MakeNetworkConfig() cons
         ss << "countdtype" << countdtype;
     }
 
+    ss << "input_numel" << input_numel;
     ss << "output_numel" << output_numel;
     ss << "reduceExtremeOp" << reduceExtremeOp;
 

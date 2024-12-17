@@ -30,6 +30,8 @@ enum class ReduceExtremeOp_t
 {
     Argmin = 1,
     Argmax,
+    AMin,
+    AMax,
     Min,
     Max,
     First_ = Argmin,
@@ -39,6 +41,8 @@ enum class ReduceExtremeOp_t
 #ifndef __HIP_DEVICE_COMPILE__
 static_assert(MIOPEN_REDUCE_EXTREME_ARGMIN == static_cast<int>(ReduceExtremeOp_t::Argmin));
 static_assert(MIOPEN_REDUCE_EXTREME_ARGMAX == static_cast<int>(ReduceExtremeOp_t::Argmax));
+static_assert(MIOPEN_REDUCE_EXTREME_AMIN == static_cast<int>(ReduceExtremeOp_t::AMin));
+static_assert(MIOPEN_REDUCE_EXTREME_AMAX == static_cast<int>(ReduceExtremeOp_t::AMax));
 static_assert(MIOPEN_REDUCE_EXTREME_MIN == static_cast<int>(ReduceExtremeOp_t::Min));
 static_assert(MIOPEN_REDUCE_EXTREME_MAX == static_cast<int>(ReduceExtremeOp_t::Max));
 #endif

@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_REDUCEEXTREME_DRIVER_HPP
-#define GUARD_MIOPEN_REDUCEEXTREME_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -37,8 +36,10 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <numeric>
 #include <vector>
+#include <../test/ford.hpp>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 #include "../src/kernels/MIOpenReduceExtreme.hpp"
@@ -94,6 +95,50 @@ int32_t mloReduceExtremeForwardRunHost(miopenTensorDescriptor_t xDesc,
     return ret;
 }
 
+template <typename Tgpu, typename Tcheck>
+int32_t mloReduceExtremeAminmaxBackwardRunHost(const miopenTensorDescriptor_t xDesc,
+                                               const miopenTensorDescriptor_t xGradDesc,
+                                               const miopenTensorDescriptor_t yDesc,
+                                               const miopenTensorDescriptor_t yGradDesc,
+                                               const miopenTensorDescriptor_t countDesc,
+                                               const Tgpu* x,
+                                               Tcheck* x_grad,
+                                               const Tgpu* y,
+                                               const Tgpu* y_grad,
+                                               const int32_t* count,
+                                               const int32_t* dims)
+{
+    auto x_tv      = miopen::get_inner_expanded_tv<5>(miopen::deref(xDesc));
+    auto x_grad_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(xGradDesc));
+    auto y_tv      = miopen::get_inner_expanded_tv<5>(miopen::deref(yDesc));
+    auto y_grad_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(yGradDesc));
+    auto count_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(countDesc));
+
+    auto N = miopen::deref(xDesc).GetElementSize();
+    par_ford(N)([&](size_t gid) {
+        uint64_t oN, oC, oD, oH, oW;
+        tensor_layout_t<5> tensor_layout(x_tv, gid);
+
+        oN = dims[0] ? 0 : tensor_layout.layout[0];
+        oC = dims[1] ? 0 : tensor_layout.layout[1];
+        oD = dims[2] ? 0 : tensor_layout.layout[2];
+        oH = dims[3] ? 0 : tensor_layout.layout[3];
+        oW = dims[4] ? 0 : tensor_layout.layout[4];
+
+        int32_t minmax_count = count[count_tv.get_tensor_view_idx({oN, oC, oD, oH, oW})];
+
+        double temp =
+            (static_cast<double>(x[x_tv.get_tensor_view_idx(tensor_layout)]) ==
+             static_cast<double>(y[y_tv.get_tensor_view_idx({oN, oC, oD, oH, oW})]))
+                ? static_cast<double>(y_grad[y_grad_tv.get_tensor_view_idx({oN, oC, oD, oH, oW})]) /
+                      minmax_count
+                : 0;
+        x_grad[x_grad_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(temp);
+    });
+
+    return miopenStatusSuccess;
+}
+
 template <typename Tgpu, typename Tref>
 class ReduceExtremeDriver : public Driver
 {
@@ -120,6 +165,7 @@ public:
     int RunForwardCPU();
 
     int RunBackwardGPU() override;
+    int RunBackwardCPU();
 
     Tref GetTolerance();
     int VerifyBackward() override;
@@ -133,20 +179,34 @@ public:
 
 private:
     InputFlags inflags;
+    int forw;
 
     miopenTensorDescriptor_t xDesc;
     miopenTensorDescriptor_t yDesc;
     miopenTensorDescriptor_t indiceDesc;
+    miopenTensorDescriptor_t xGradDesc;
+    miopenTensorDescriptor_t yGradDesc;
+    miopenTensorDescriptor_t countDesc;
+    miopenTensorDescriptor_t dimsDesc;
 
     std::unique_ptr<GPUMem> x_dev;
     std::unique_ptr<GPUMem> indice_dev;
     std::unique_ptr<GPUMem> y_dev;
+    std::unique_ptr<GPUMem> x_grad_dev;
+    std::unique_ptr<GPUMem> y_grad_dev;
+    std::unique_ptr<GPUMem> count_dev;
+    std::unique_ptr<GPUMem> dims_dev;
 
     std::vector<Tgpu> x;
     std::vector<Tgpu> y;
     std::vector<Tref> yhost;
     std::vector<int32_t> indice;
     std::vector<int32_t> indicehost;
+    std::vector<Tgpu> x_grad;
+    std::vector<Tgpu> y_grad;
+    std::vector<Tref> x_gradhost;
+    std::vector<int32_t> count;
+    std::vector<int32_t> dims;
 
     int dim;
     miopenReduceExtremeOp_t reduceExtremeOp;
@@ -158,6 +218,7 @@ template <typename Tgpu, typename Tref>
 int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+    forw = inflags.GetValueInt("forw");
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -169,7 +230,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
        (static_cast<ReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp")) >
         ReduceExtremeOp_t::Last_))
     {
-        std::cerr << "Error ReduceExtremeOp(1-4)" << std::endl;
+        std::cerr << "Error ReduceExtremeOp(1-6)" << std::endl;
         return miopenStatusBadParm;
     }
 
@@ -225,7 +286,12 @@ int ReduceExtremeDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward ReduceExtreme (Default=1)", "int");
     inflags.AddTensorFlag("input", 'X', "21x500x375", "input tensor descriptor");
     inflags.AddInputFlag(
-        "DimToReduce", 'R', "0", "The indice of the dimensions to be reduced(Default=1)", "int");
+        "DimToReduce", 'R', "0", "The indice of the dimensions to be reduced(Default=0)", "int");
+    inflags.AddTensorFlag("DimsToReduce",
+                          'D',
+                          "0",
+                          "The indices of the dimensions to be reduced. This option must be used "
+                          "in backward mode and run both backward and forward (Default=0).");
     inflags.AddInputFlag("ReduceExtremeOp",
                          'O',
                          "1",
@@ -455,5 +521,3 @@ int ReduceExtremeDriver<Tgpu, Tref>::VerifyBackward()
 {
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_REDUCEEXTREME_DRIVER_HPP

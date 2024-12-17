@@ -128,27 +128,12 @@ TEST_P(GPU_ReduceExtremeTest_bwd_BFP16, ReduceExtremeTestBw)
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(
-    FullAMIN,
-    GPU_ReduceExtremeTest_bwd_FP32,
-    testing::ValuesIn(ReduceExtremeTestConfigsBwd(MIOPEN_REDUCE_EXTREME_AMIN)));
-INSTANTIATE_TEST_SUITE_P(
-    FullAMAX,
-    GPU_ReduceExtremeTest_bwd_FP32,
-    testing::ValuesIn(ReduceExtremeTestConfigsBwd(MIOPEN_REDUCE_EXTREME_AMAX)));
-INSTANTIATE_TEST_SUITE_P(
-    FullAMIN,
-    GPU_ReduceExtremeTest_bwd_FP16,
-    testing::ValuesIn(ReduceExtremeTestConfigsBwd(MIOPEN_REDUCE_EXTREME_AMIN)));
-INSTANTIATE_TEST_SUITE_P(
-    FullAMAX,
-    GPU_ReduceExtremeTest_bwd_FP16,
-    testing::ValuesIn(ReduceExtremeTestConfigsBwd(MIOPEN_REDUCE_EXTREME_AMAX)));
-INSTANTIATE_TEST_SUITE_P(
-    FullAMIN,
-    GPU_ReduceExtremeTest_bwd_BFP16,
-    testing::ValuesIn(ReduceExtremeTestConfigsBwd(MIOPEN_REDUCE_EXTREME_AMIN)));
-INSTANTIATE_TEST_SUITE_P(
-    FullAMAX,
-    GPU_ReduceExtremeTest_bwd_BFP16,
-    testing::ValuesIn(ReduceExtremeTestConfigsBwd(MIOPEN_REDUCE_EXTREME_AMAX)));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ReduceExtremeTest_bwd_FP32,
+                         testing::ValuesIn(ReduceExtremeTestConfigsBwd()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ReduceExtremeTest_bwd_FP16,
+                         testing::ValuesIn(ReduceExtremeTestConfigsBwd()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ReduceExtremeTest_bwd_BFP16,
+                         testing::ValuesIn(ReduceExtremeTestConfigsBwd()));

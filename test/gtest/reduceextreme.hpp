@@ -99,7 +99,6 @@ void cpu_aminmax_backward(tensor<T> input,
     auto count_tv       = miopen::get_inner_expanded_tv<5>(count.desc);
 
     auto N = input.desc.GetElementSize();
-
     par_ford(N)([&](size_t gid) {
         uint64_t oN, oC, oD, oH, oW;
         tensor_layout_t<5> tensor_layout(input_tv, gid);
@@ -109,18 +108,6 @@ void cpu_aminmax_backward(tensor<T> input,
         oD = dims[2] ? 0 : tensor_layout.layout[2];
         oH = dims[3] ? 0 : tensor_layout.layout[3];
         oW = dims[4] ? 0 : tensor_layout.layout[4];
-
-        if(gid == 0)
-        {
-            std::cout << "oN, oC, oD, oH, oW = " << oN << ", " << oC << ", " << oD << ", " << oH
-                      << ", " << oW << std::endl;
-            std::cout << "count_id = " << count_tv.get_tensor_view_idx({oN, oC, oD, oH, oW})
-                      << std::endl;
-            std::cout << "output_id = " << output_tv.get_tensor_view_idx({oN, oC, oD, oH, oW})
-                      << std::endl;
-            std::cout << "output_grad_id = "
-                      << output_grad_tv.get_tensor_view_idx({oN, oC, oD, oH, oW}) << std::endl;
-        }
 
         int32_t minmax_count = count[count_tv.get_tensor_view_idx({oN, oC, oD, oH, oW})];
 
@@ -264,48 +251,31 @@ struct ReduceExtremeTestCaseBwd
     }
 };
 
-inline std::vector<ReduceExtremeTestCaseBwd>
-ReduceExtremeTestConfigsBwd(miopenReduceExtremeOp_t reduceExtremeOp)
+inline std::vector<ReduceExtremeTestCaseBwd> ReduceExtremeTestConfigsBwd()
 {
     // clang-format off
-    if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMIN)
-    {
-        return {
-            // {{2,2}, {0}, true, MIOPEN_REDUCE_EXTREME_AMIN},
-            // {{2,2}, {1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
-            // {{2,2}, {0, 1}, true, MIOPEN_REDUCE_EXTREME_AMIN},
-            // {{2,2}, {0, 1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
-            { {16, 21,513, 513, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //deeplabv3m
-            { {24, 21,513, 513, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},   //deeplabv3r
-            { {64, 21,230, 333, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //fcn_resnet_lraspp
-            { {64, 21,215, 288, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
-            { {1,  21,333, 500, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //stdc
-            { {1,  21,375, 500, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
-            { {15, 21,256, 256, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //unet
-            { {22, 21,256, 256, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
-            { {21, 412,500}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},
-            { {21, 333,500}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN}
-        };
-    }
-    else if (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX){
-        return {
-            // {{2,2}, {0}, true, MIOPEN_REDUCE_EXTREME_AMAX},
-            // {{2,2}, {1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
-            // {{2,2}, {0, 1}, true, MIOPEN_REDUCE_EXTREME_AMAX},
-            // {{2,2}, {0, 1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
-            { {16, 21,513, 513, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //deeplabv3m
-            { {24, 21,513, 513, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},   //deeplabv3r
-            { {64, 21,230, 333, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //fcn_resnet_lraspp
-            { {64, 21,215, 288, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
-            { {1,  21,333, 500, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //stdc
-            { {1,  21,375, 500, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
-            { {15, 21,256, 256, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //unet
-            { {22, 21,256, 256, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
-            { {21, 412,500}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},
-            { {21, 333,500}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX}
-        };
-    }
-    return {};
+    return {
+        { {16, 21,513, 513, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //deeplabv3m
+        { {24, 21,513, 513, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},   //deeplabv3r
+        { {64, 21,230, 333, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //fcn_resnet_lraspp
+        { {64, 21,215, 288, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
+        { {1,  21,333, 500, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //stdc
+        { {1,  21,375, 500, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
+        { {15, 21,256, 256, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //unet
+        { {22, 21,256, 256, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
+        { {21, 412,500}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},
+        { {21, 333,500}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
+        { {16, 21,513, 513, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //deeplabv3m
+        { {24, 21,513, 513, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},   //deeplabv3r
+        { {64, 21,230, 333, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //fcn_resnet_lraspp
+        { {64, 21,215, 288, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
+        { {1,  21,333, 500, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //stdc
+        { {1,  21,375, 500, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
+        { {15, 21,256, 256, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //unet
+        { {22, 21,256, 256, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
+        { {21, 412,500}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},
+        { {21, 333,500}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX}
+    };
     // clang-format on
 }
 
@@ -514,9 +484,6 @@ protected:
             out_dims.push_back(1);
         }
 
-        std::cout << "output dims = " << out_dims << std::endl;
-
-        std::cout << "not bug here 1 " << out_dims << std::endl;
         size_t num_reduce = 1;
         for(int32_t i = 0; i < in_dims.size(); ++i)
         {
@@ -530,8 +497,6 @@ protected:
         };
         count = tensor<int32_t>{out_dims}.generate(gen_value_count);
 
-        std::cout << "not bug here 2 " << out_dims << std::endl;
-
         auto gen_value_output = [](auto...) {
             return prng::gen_descreet_uniform_sign<T>(1e-2, 10);
         };
@@ -540,7 +505,6 @@ protected:
             return prng::gen_descreet_uniform_sign<T>(1e-2, 5);
         };
         output_grad = tensor<T>{out_dims}.generate(gen_value_output_grad);
-        std::cout << "not bug here 3 " << out_dims << std::endl;
 
         input_grad = tensor<T>{in_dims};
         std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
@@ -559,30 +523,34 @@ protected:
     void RunTest()
     {
         auto&& handle = get_handle();
+        miopenStatus_t status;
 
         if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMIN ||
            reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX)
         {
             cpu_aminmax_backward<T>(input, ref_input_grad, output, output_grad, count, dim);
         }
-        std::cout << "not bug here 4 " << std::endl;
+        // leave the rest of the cases for future backward implementation
 
-        miopenStatus_t status;
-        status = miopen::ReduceExtremeBackward(handle,
-                                               input.desc,
-                                               input_dev.get(),
-                                               input_grad.desc,
-                                               input_grad_dev.get(),
-                                               output.desc,
-                                               output_dev.get(),
-                                               output.desc,
-                                               output_grad_dev.get(),
-                                               count.desc,
-                                               count_dev.get(),
-                                               dim.desc,
-                                               dim_dev.get(),
-                                               reduceExtremeOp);
-        std::cout << "not bug here 5 " << std::endl;
+        if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMIN ||
+           reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX)
+        {
+            status = miopen::ReduceExtremeBackward(handle,
+                                                   input.desc,
+                                                   input_dev.get(),
+                                                   input_grad.desc,
+                                                   input_grad_dev.get(),
+                                                   output.desc,
+                                                   output_dev.get(),
+                                                   output.desc,
+                                                   output_grad_dev.get(),
+                                                   count.desc,
+                                                   count_dev.get(),
+                                                   dim.desc,
+                                                   dim_dev.get(),
+                                                   reduceExtremeOp);
+        }
+        // leave the rest of the cases for future backward implementation
 
         ASSERT_EQ(status, miopenStatusSuccess);
 
@@ -592,15 +560,10 @@ protected:
     void Verify()
     {
         double threshold = std::numeric_limits<T>::epsilon();
-
-        auto error = miopen::rms_range(ref_input_grad, input_grad);
-        // for(int i = 0; i < input_grad.GetSize(); ++i)
-        // {
-        //     std::cout << "GPU: " << input_grad[i] << " CPU: " << ref_input_grad[i] << std::endl;
-        // }
+        auto error       = miopen::rms_range(ref_input_grad, input_grad);
 
         ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));
-        EXPECT_LT(error, threshold * 10) << "Error forward Output beyond 10xthreshold : " << error
+        EXPECT_LT(error, threshold * 10) << "Error backward Output beyond 10xthreshold : " << error
                                          << " Tolerance: " << threshold * 10;
     }
     ReduceExtremeTestCaseBwd reduceextreme_config;
