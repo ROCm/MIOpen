@@ -430,6 +430,7 @@ protected:
     {
         auto&& handle        = get_handle();
         reduceextreme_config = GetParam();
+        auto in_dims         = reduceextreme_config.input_dim;
         auto gen_value_input = [](auto...) {
             return prng::gen_descreet_uniform_sign<T>(1e-2, 100);
         };
@@ -437,19 +438,16 @@ protected:
         auto dim_sort = reduceextreme_config.dim;
         std::sort(dim_sort.begin(), dim_sort.end());
         // one-hot dim
-        std::vector<int32_t> dim_onehot = {0, 0, 0, 0, 0};
+        std::vector<int32_t> dim_onehot = std::vector<int32_t>(in_dims.size(), 0);
         for(auto&& d : dim_sort)
         {
-            auto dim_d        = dim_sort[d];
-            dim_onehot[dim_d] = 1;
+            dim_onehot[d] = 1;
         }
         dim      = tensor<int32_t>{dim_onehot.size()};
         dim.data = dim_onehot;
 
         reduceExtremeOp = reduceextreme_config.reduceExtremeOp;
         keep_dim        = reduceextreme_config.keep_dim;
-
-        auto in_dims = reduceextreme_config.input_dim;
 
         input = tensor<T>{in_dims}.generate(gen_value_input);
 

@@ -130,7 +130,7 @@ extern "C" miopenStatus_t miopenReduceExtremeBackward(miopenHandle_t handle,
                                                       const miopenTensorDescriptor_t yGradDesc,
                                                       const void* y_grad,
                                                       const miopenTensorDescriptor_t dimDesc,
-                                                      const int32_t* dim,
+                                                      const void* dim,
                                                       const miopenReduceExtremeOp_t reduceExtremeOp,
                                                       const miopenTensorDescriptor_t countDesc,
                                                       const void* count)

@@ -130,8 +130,6 @@ set( MIOpen_Source
     getitem_api.cpp
     glu/problem_description.cpp
     glu_api.cpp
-    gradientdescent/problem_description.cpp
-    gradientdescent_api.cpp
     graphapi/convolution.cpp
     graphapi/conv_bias_res_add_activ_forward_executor.cpp
     graphapi/engine.cpp
@@ -305,7 +303,6 @@ set( MIOpen_Source
     solver/getitem/backward_getitem.cpp
     solver/glu/backward_glu.cpp
     solver/glu/forward_glu.cpp
-    solver/gradientdescent/gradientdescent.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/kthvalue/forward_kthvalue.cpp
     solver/layernorm/backward_t5layernorm.cpp
@@ -534,7 +531,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirGenFwd.cl
         kernels/MIOpenGetitem.cpp
         kernels/MIOpenGLU.cpp
-        kernels/MIOpenGradientDescent.cpp
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenKthvalue.cpp
         kernels/MIOpenLayerNorm.cpp
@@ -674,7 +670,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         exec_utils.cpp
         getitem.cpp
         glu.cpp
-        gradientdescent.cpp
         groupnorm.cpp
         kernel_cache.cpp
         kthvalue.cpp

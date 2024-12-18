@@ -148,11 +148,16 @@ public:
         miopenCreateTensorDescriptor(&xDesc);
         miopenCreateTensorDescriptor(&yDesc);
         miopenCreateTensorDescriptor(&indiceDesc);
+        miopenCreateTensorDescriptor(&xGradDesc);
+        miopenCreateTensorDescriptor(&yGradDesc);
+        miopenCreateTensorDescriptor(&countDesc);
+        miopenCreateTensorDescriptor(&dimsDesc);
 
-        data_type        = miopen_type<Tgpu>{};
-        indice_data_type = miopen_type<int32_t>{};
+        data_type       = miopen_type<Tgpu>{};
+        int32_data_type = miopen_type<int32_t>{};
     }
 
+    std::vector<int> ComputeStrides(std::vector<int> input);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
@@ -175,6 +180,10 @@ public:
         miopenDestroyTensorDescriptor(xDesc);
         miopenDestroyTensorDescriptor(yDesc);
         miopenDestroyTensorDescriptor(indiceDesc);
+        miopenDestroyTensorDescriptor(xGradDesc);
+        miopenDestroyTensorDescriptor(yGradDesc);
+        miopenDestroyTensorDescriptor(countDesc);
+        miopenDestroyTensorDescriptor(dimsDesc);
     }
 
 private:
@@ -210,15 +219,19 @@ private:
 
     int dim;
     miopenReduceExtremeOp_t reduceExtremeOp;
-
-    miopenDataType_t indice_data_type;
+    miopenDataType_t int32_data_type;
+    bool isContiguous;
 };
 
 template <typename Tgpu, typename Tref>
 int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
-    forw = inflags.GetValueInt("forw");
+    isContiguous     = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
+    forw             = inflags.GetValueInt("forw");
+    reduceExtremeOp  = static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp"));
+    dim              = inflags.GetValueInt("DimToReduce");
+    auto dims_parsed = inflags.GetValueTensor("DimsToReduce").lengths;
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -234,13 +247,53 @@ int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         return miopenStatusBadParm;
     }
 
-    auto inTensorParam = inflags.GetValueTensor("input");
+    auto in_len = inflags.GetValueTensor("input").lengths;
 
-    if((inflags.GetValueInt("DimToReduce") < 0) ||
-       (inflags.GetValueInt("DimToReduce") > inTensorParam.lengths.size() - 1))
+    if(reduceExtremeOp != MIOPEN_REDUCE_EXTREME_AMAX &&
+       reduceExtremeOp != MIOPEN_REDUCE_EXTREME_AMIN)
     {
-        std::cerr << "Error DimToReduce(0-" << inTensorParam.lengths.size() - 1 << ")" << std::endl;
-        return miopenStatusBadParm;
+        if((inflags.GetValueInt("DimToReduce") < 0) ||
+           (inflags.GetValueInt("DimToReduce") > in_len.size() - 1))
+        {
+            std::cerr << "Error DimToReduce(0-" << in_len.size() - 1 << ")" << std::endl;
+            return miopenStatusBadParm;
+        }
+    }
+    else
+    {
+        for(int each_dim : dims_parsed)
+        {
+            if((each_dim < 0) || (each_dim > in_len.size() - 1))
+            {
+                std::cerr << "Error DimsToReduce(0-" << in_len.size() - 1 << ")" << std::endl;
+                return miopenStatusBadParm;
+            }
+        }
+        // Sort and check if the dimensions to reduce are unique
+        std::sort(dims_parsed.begin(), dims_parsed.end());
+        if(std::adjacent_find(dims_parsed.begin(), dims_parsed.end()) != dims_parsed.end())
+        {
+            std::cerr << "Error DimsToReduce must be unique" << std::endl;
+            return miopenStatusBadParm;
+        }
+
+        // one-hot dims
+        dims = std::vector<int32_t>(in_len.size(), 0);
+        for(auto&& d : dims_parsed)
+        {
+            dims[d] = 1;
+        }
+    }
+
+    if(((forw == 0 || forw == 1) && (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMIN ||
+                                     reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX)) ||
+       ((forw == 0 || forw == 2) && (reduceExtremeOp != MIOPEN_REDUCE_EXTREME_AMIN &&
+                                     reduceExtremeOp != MIOPEN_REDUCE_EXTREME_AMAX)))
+    {
+        std::cerr << "Error: MIN and MAX, ARGMIN and ARGMAX are only supported in forward mode, "
+                     "AMIN and AMAX are only supported in backward mode"
+                  << std::endl;
+        return miopenStatusNotImplemented;
     }
 
     return miopenStatusSuccess;
@@ -249,35 +302,65 @@ int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int ReduceExtremeDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto inTensorParam = inflags.GetValueTensor("input");
-    auto in_len        = inTensorParam.lengths;
-
-    dim             = inflags.GetValueInt("DimToReduce");
-    reduceExtremeOp = static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp"));
-
+    std::vector<int> in_len    = inflags.GetValueTensor("input").lengths;
+    std::vector<int> in_stride = ComputeStrides(in_len);
     std::vector<int> out_len;
 
-    for(int i = 0; i < in_len.size(); ++i)
+    if(reduceExtremeOp != MIOPEN_REDUCE_EXTREME_AMIN &&
+       reduceExtremeOp != MIOPEN_REDUCE_EXTREME_AMAX)
     {
-        if(i != dim)
+        for(int i = 0; i < in_len.size(); ++i)
         {
-            out_len.push_back(in_len[i]);
+            if(i != dim)
+            {
+                out_len.push_back(in_len[i]);
+            }
         }
     }
-
+    else
+    {
+        for(int i = 0; i < in_len.size(); ++i)
+        {
+            if(dims[i] == 0)
+            {
+                out_len.push_back(in_len[i]);
+            }
+        }
+    }
     if(out_len.empty())
         out_len.push_back(1);
 
-    if(SetTensorNd(xDesc, in_len, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(xDesc, in_len, in_stride, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing x tensor: " + inflags.GetValueStr("input") + ".");
-
     if(SetTensorNd(yDesc, out_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting y tensor.");
-
-    if(SetTensorNd(indiceDesc, out_len, indice_data_type) != miopenStatusSuccess)
+    if(SetTensorNd(indiceDesc, out_len, int32_data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting indice tensor.");
+    if(SetTensorNd(xGradDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting xGrad tensor.");
+    if(SetTensorNd(yGradDesc, out_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting yGrad tensor.");
+    if(SetTensorNd(countDesc, out_len, int32_data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting count tensor.");
+    if(SetTensorNd(dimsDesc, out_len, int32_data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error setting dims tensor.");
 
     return 0;
+}
+
+// Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
+template <typename Tgpu, typename Tref>
+std::vector<int> ReduceExtremeDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!isContiguous)
+        std::swap(inputDim.front(), inputDim.back());
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!isContiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
 }
 
 template <typename Tgpu, typename Tref>
@@ -298,6 +381,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "Reduce Extreme Operation Type (check the enum miopenReduceExtremeOp_t in "
                          "miopen.h) (Default=1 to Find the the minimum index)",
                          "int");
+    inflags.AddInputFlag("is-contiguous", 'C', "1", "is-contiguous (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -347,6 +431,57 @@ int ReduceExtremeDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(y_dev->ToGPU(GetStream(), y.data()) != 0)
         {
             std::cerr << "Error copying (y) to GPU, size: " << y_dev->GetSize() << std::endl;
+            return miopenStatusAllocFailed;
+        }
+    }
+    else if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMIN) ||
+            (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX))
+    {
+        y_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+        x_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
+        y_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+        count_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(int32_t)));
+        dims_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(int32_t)));
+
+        y          = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+        x_grad     = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
+        y_grad     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
+        x_gradhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
+        count      = std::vector<int32_t>(out_sz, static_cast<int32_t>(0));
+
+        for(int32_t i = 0; i < out_sz; ++i)
+        {
+            y[i]      = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
+            y_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
+            count[i]  = prng::gen_A_to_B<int32_t>(1, 10);
+        }
+
+        if(y_dev->ToGPU(GetStream(), y.data()) != 0)
+        {
+            std::cerr << "Error copying (y) to GPU, size: " << y_dev->GetSize() << std::endl;
+            return miopenStatusAllocFailed;
+        }
+        if(x_grad_dev->ToGPU(GetStream(), x_grad.data()) != 0)
+        {
+            std::cerr << "Error copying (x_grad) to GPU, size: " << x_grad_dev->GetSize()
+                      << std::endl;
+            return miopenStatusAllocFailed;
+        }
+        if(y_grad_dev->ToGPU(GetStream(), y_grad.data()) != 0)
+        {
+            std::cerr << "Error copying (y_grad) to GPU, size: " << y_grad_dev->GetSize()
+                      << std::endl;
+            return miopenStatusAllocFailed;
+        }
+        if(count_dev->ToGPU(GetStream(), count.data()) != 0)
+        {
+            std::cerr << "Error copying (count) to GPU, size: " << count_dev->GetSize()
+                      << std::endl;
+            return miopenStatusAllocFailed;
+        }
+        if(dims_dev->ToGPU(GetStream(), dims.data()) != 0)
+        {
+            std::cerr << "Error copying (dims) to GPU, size: " << dims_dev->GetSize() << std::endl;
             return miopenStatusAllocFailed;
         }
     }
@@ -461,19 +596,91 @@ int ReduceExtremeDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int ReduceExtremeDriver<Tgpu, Tref>::RunBackwardGPU()
 {
+    float kernel_total_time = 0;
+    float kernel_first_time = 0;
+
+    Timer t;
+    START_TIME
+
+    for(int32_t i = 0; i < inflags.GetValueInt("iter"); ++i)
+    {
+        if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMIN) ||
+           (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX))
+        {
+            miopenReduceExtremeBackward(GetHandle(),
+                                        xDesc,
+                                        x_dev->GetMem(),
+                                        xGradDesc,
+                                        x_grad_dev->GetMem(),
+                                        yDesc,
+                                        y_dev->GetMem(),
+                                        yGradDesc,
+                                        y_grad_dev->GetMem(),
+                                        dimsDesc,
+                                        dims_dev->GetMem(),
+                                        reduceExtremeOp,
+                                        countDesc,
+                                        count_dev->GetMem());
+        }
+        // leave the else for future backward ops
+
+        float time = 0;
+        miopenGetKernelTime(GetHandle(), &time);
+        kernel_total_time += time;
+        if(i == 0)
+            kernel_first_time = time;
+    }
+
+    if(inflags.GetValueInt("time") == 1)
+    {
+        STOP_TIME
+        int32_t iter = inflags.GetValueInt("iter");
+        if(WALL_CLOCK)
+            std::cout << "Wall-clock Time Backward ReduceExtreme Elapsed: " << t.gettime_ms() / iter
+                      << " ms" << std::endl;
+
+        float kernel_average_time =
+            iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
+        std::cout << "GPU Kernel Time Backward ReduceExtreme Elapsed: " << kernel_average_time
+                  << " ms" << std::endl;
+    }
+
+    if(x_grad_dev->FromGPU(GetStream(), x_grad.data()) != 0)
+    {
+        std::cerr << "Error copying (x_grad_dev) from GPU, size: " << x_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
+
     return miopenStatusSuccess;
+}
+
+template <typename Tgpu, typename Tref>
+int ReduceExtremeDriver<Tgpu, Tref>::RunBackwardCPU()
+{
+    if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMIN ||
+       reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX)
+    {
+        return mloReduceExtremeAminmaxBackwardRunHost<Tgpu, Tref>(xDesc,
+                                                                  xGradDesc,
+                                                                  yDesc,
+                                                                  yGradDesc,
+                                                                  countDesc,
+                                                                  x.data(),
+                                                                  x_gradhost.data(),
+                                                                  y.data(),
+                                                                  y_grad.data(),
+                                                                  count.data(),
+                                                                  dims.data());
+    }
+
+    return miopenStatusInternalError;
 }
 
 template <typename Tgpu, typename Tref>
 Tref ReduceExtremeDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
@@ -510,7 +717,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::VerifyForward()
     }
     else
     {
-        std::cout << "Forward ReduceExtreme Incide Verifies on CPU and GPU" << std::endl;
+        std::cout << "Forward ReduceExtreme Indice Verifies on CPU and GPU" << std::endl;
     }
 
     return miopenStatusSuccess;
@@ -519,5 +726,21 @@ int ReduceExtremeDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int ReduceExtremeDriver<Tgpu, Tref>::VerifyBackward()
 {
+    RunBackwardCPU();
+
+    const Tref tolerance = GetTolerance();
+    auto error           = miopen::rms_range(x_gradhost, x_grad);
+
+    if(!std::isfinite(error) || error > tolerance)
+    {
+        std::cout << "Backward ReduceExtreme FAILED: " << error << " > " << tolerance << std::endl;
+        return EC_VerifyBwd;
+    }
+    else
+    {
+        std::cout << "Backward ReduceExtreme Verifies on CPU (" << error << " < " << tolerance
+                  << ')' << std::endl;
+    }
+
     return miopenStatusSuccess;
 }

@@ -5996,16 +5996,16 @@ typedef enum
         1, /*!< the operation is getting the minimum index of the reduced elements */
     MIOPEN_REDUCE_EXTREME_ARGMAX =
         2, /*!< the operation is getting the maximum index of the reduced elements */
-    MIOPEN_REDUCE_EXTREME_MIN =
-        3, /*!< the operation is getting the minimum value and index of the reduced elements */
-    MIOPEN_REDUCE_EXTREME_MAX =
-        4, /*!< the operation is getting the maximum value and index of the reduced elements */
     MIOPEN_REDUCE_EXTREME_AMIN =
-        5, /*!< the operation is getting the minimum value and index of each slice of the input
+        3, /*!< the operation is getting the minimum value and index of each slice of the input
               tensor in the given dimension(s) dim */
     MIOPEN_REDUCE_EXTREME_AMAX =
-        6, /*!< the operation is getting the maximum value and index of each slice of the input
+        4, /*!< the operation is getting the maximum value and index of each slice of the input
               tensor in the given dimension(s) dim */
+    MIOPEN_REDUCE_EXTREME_MIN =
+        5, /*!< the operation is getting the minimum value and index of the reduced elements */
+    MIOPEN_REDUCE_EXTREME_MAX =
+        6, /*!< the operation is getting the maximum value and index of the reduced elements */
 } miopenReduceExtremeOp_t;
 
 // ReduceExtreme APIs
@@ -6069,7 +6069,7 @@ miopenReduceExtremeBackward(miopenHandle_t handle,
                             const miopenTensorDescriptor_t yGradDesc,
                             const void* y_grad,
                             const miopenTensorDescriptor_t dimDesc,
-                            const int32_t* dim,
+                            const void* dim,
                             const miopenReduceExtremeOp_t reduceExtremeOp,
                             const miopenTensorDescriptor_t countDesc,
                             const void* count);
