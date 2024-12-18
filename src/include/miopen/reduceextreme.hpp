@@ -32,6 +32,8 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+namespace reduce {
+
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 ReduceExtremeForward(Handle& handle,
                      const TensorDescriptor& xDesc,
@@ -67,5 +69,7 @@ ReduceExtremeBackward(Handle& handle,
                       const TensorDescriptor& dimDesc,
                       ConstData_t dim,
                       miopenReduceExtremeOp_t reduceExtremeOp);
+
+} // namespace reduce
 
 } // namespace miopen

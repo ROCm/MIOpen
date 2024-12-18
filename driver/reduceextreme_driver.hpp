@@ -277,8 +277,9 @@ int ReduceExtremeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
             return miopenStatusBadParm;
         }
 
-        // one-hot dims
-        dims = std::vector<int32_t>(in_len.size(), 0);
+        // One-hot dims
+        size_t dims_size = in_len.size() < 5 ? 5 : in_len.size();
+        dims             = std::vector<int32_t>(dims_size, 0);
         for(auto&& d : dims_parsed)
         {
             dims[d] = 1;
@@ -368,13 +369,17 @@ int ReduceExtremeDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward ReduceExtreme (Default=1)", "int");
     inflags.AddTensorFlag("input", 'X', "21x500x375", "input tensor descriptor");
-    inflags.AddInputFlag(
-        "DimToReduce", 'R', "0", "The indice of the dimensions to be reduced(Default=0)", "int");
+    inflags.AddInputFlag("DimToReduce",
+                         'R',
+                         "0",
+                         "The indice of the dimensions to be reduced. This option must be used "
+                         "in Min, Max, ArgMin, and ArgMax mode(Default=0)",
+                         "int");
     inflags.AddTensorFlag("DimsToReduce",
                           'D',
                           "0",
                           "The indices of the dimensions to be reduced. This option must be used "
-                          "in backward mode and run both backward and forward (Default=0).");
+                          "in AMin, AMax mode only (Default=0).");
     inflags.AddInputFlag("ReduceExtremeOp",
                          'O',
                          "1",

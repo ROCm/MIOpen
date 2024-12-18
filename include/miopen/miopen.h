@@ -6051,7 +6051,7 @@ miopenReduceExtremeForward(miopenHandle_t handle,
  * @param yGradDesc                Tensor descriptor for data input tensor y_grad (input)
  * @param y_grad                   Data tensor y_grad (input)
  * @param dimDesc                  Tensor descriptor for data dimension(s). (input)
- * @param dim                      Data tensor dimension(s) to reduce argmax. (input)
+ * @param dim                      Data tensor dimension(s) to reduce. (input)
  * @param reduceExtremeOp          Enumerant specifying the operation used by ReduceExtreme
  * (input)
  * @param countDesc                Tensor descriptor for data tensor count (input)

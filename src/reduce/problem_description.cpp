@@ -72,30 +72,13 @@ NetworkConfig ProblemDescriptionExtreme::MakeNetworkConfig() const
 
 NetworkConfig ProblemDescriptionExtremeAminmaxBackward::MakeNetworkConfig() const
 {
-    auto xlength = xDesc.GetLengths();
-    std::vector<std::size_t> outputlength;
-    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
-       (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
-        outputlength = yDesc.GetLengths();
-    else
-        outputlength = countDesc.GetLengths();
-
     auto input_numel  = xDesc.GetElementSize();
     auto output_numel = yDesc.GetElementSize();
-    auto inputdtype   = xDesc.GetType();
-    auto outputdtype  = yDesc.GetType();
+    auto dtype        = xDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "inputdtype" << inputdtype;
-    ss << "outputdtype" << outputdtype;
-    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN) ||
-       (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX))
-    {
-        auto countdtype = countDesc.GetType();
-        ss << "countdtype" << countdtype;
-    }
-
+    ss << "dtype" << dtype;
     ss << "input_numel" << input_numel;
     ss << "output_numel" << output_numel;
     ss << "reduceExtremeOp" << reduceExtremeOp;

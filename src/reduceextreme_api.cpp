@@ -24,11 +24,24 @@
  *
  *******************************************************************************/
 
-#include <miopen/reduceextreme.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/reduceextreme.hpp>
 #include <miopen/tensor_ops.hpp>
+
+inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v)
+{
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
 
 static void LogCmdReduceExtreme(const miopenTensorDescriptor_t xDesc,
                                 const int32_t dim,
@@ -52,20 +65,45 @@ static void LogCmdReduceExtreme(const miopenTensorDescriptor_t xDesc,
             ss << "reduceextremebfp16";
         }
 
-        std::string input_sz;
-        auto input = miopen::deref(xDesc).GetLengths();
-        for(int32_t i = 0; i < input.size(); ++i)
-        {
-            input_sz += std::to_string(input[i]);
-            if(i != input.size() - 1)
-                input_sz += "x";
-        }
-
-        ss << " -input " << input_sz;
+        ss << " -input " << miopen::deref(xDesc).GetLengths();
 
         ss << " -F " << ((is_fwd) ? "1" : "2");
 
         ss << " -R " << dim;
+
+        ss << " -O " << reduceExtremeOp;
+
+        MIOPEN_LOG_DRIVER_CMD(ss.str());
+    }
+}
+
+static void LogCmdReduceExtremeAminmax(const miopenTensorDescriptor_t xDesc,
+                                       const miopenTensorDescriptor_t yDesc,
+                                       const miopenReduceExtremeOp_t reduceExtremeOp,
+                                       bool is_fwd)
+{
+    if(miopen::IsLoggingCmd())
+    {
+        std::stringstream ss;
+        auto dtype = miopen::deref(xDesc).GetType();
+        if(dtype == miopenHalf)
+        {
+            ss << "reduceextremefp16";
+        }
+        else if(dtype == miopenFloat)
+        {
+            ss << "reduceextremefp32";
+        }
+        else if(dtype == miopenBFloat16)
+        {
+            ss << "reduceextremebfp16";
+        }
+
+        ss << " -input " << miopen::deref(xDesc).GetLengths();
+
+        ss << " -output " << miopen::deref(yDesc).GetLengths();
+
+        ss << " -F " << ((is_fwd) ? "1" : "2");
 
         ss << " -O " << reduceExtremeOp;
 
@@ -92,13 +130,13 @@ extern "C" miopenStatus_t miopenReduceExtremeForward(miopenHandle_t handle,
         LogCmdReduceExtreme(xDesc, dim, reduceExtremeOp, true);
 
         return miopen::try_([&] {
-            miopen::ReduceExtremeForward(miopen::deref(handle),
-                                         miopen::deref(xDesc),
-                                         DataCast(x),
-                                         miopen::deref(indiceDesc),
-                                         DataCast(indice),
-                                         dim,
-                                         reduceExtremeOp);
+            miopen::reduce::ReduceExtremeForward(miopen::deref(handle),
+                                                 miopen::deref(xDesc),
+                                                 DataCast(x),
+                                                 miopen::deref(indiceDesc),
+                                                 DataCast(indice),
+                                                 dim,
+                                                 reduceExtremeOp);
         });
     }
     else
@@ -107,15 +145,15 @@ extern "C" miopenStatus_t miopenReduceExtremeForward(miopenHandle_t handle,
 
         LogCmdReduceExtreme(xDesc, dim, reduceExtremeOp, true);
         return miopen::try_([&] {
-            miopen::ReduceExtremeForward(miopen::deref(handle),
-                                         miopen::deref(xDesc),
-                                         DataCast(x),
-                                         miopen::deref(yDesc),
-                                         DataCast(y),
-                                         miopen::deref(indiceDesc),
-                                         DataCast(indice),
-                                         dim,
-                                         reduceExtremeOp);
+            miopen::reduce::ReduceExtremeForward(miopen::deref(handle),
+                                                 miopen::deref(xDesc),
+                                                 DataCast(x),
+                                                 miopen::deref(yDesc),
+                                                 DataCast(y),
+                                                 miopen::deref(indiceDesc),
+                                                 DataCast(indice),
+                                                 dim,
+                                                 reduceExtremeOp);
         });
     }
 }
@@ -149,20 +187,22 @@ extern "C" miopenStatus_t miopenReduceExtremeBackward(miopenHandle_t handle,
                         countDesc,
                         count);
 
+    LogCmdReduceExtremeAminmax(xDesc, yDesc, reduceExtremeOp, false);
+
     return miopen::try_([&] {
-        miopen::ReduceExtremeBackward(miopen::deref(handle),
-                                      miopen::deref(xDesc),
-                                      DataCast(x),
-                                      miopen::deref(xGradDesc),
-                                      DataCast(x_grad),
-                                      miopen::deref(yDesc),
-                                      DataCast(y),
-                                      miopen::deref(yGradDesc),
-                                      DataCast(y_grad),
-                                      miopen::deref(countDesc),
-                                      DataCast(count),
-                                      miopen::deref(dimDesc),
-                                      DataCast(dim),
-                                      reduceExtremeOp);
+        miopen::reduce::ReduceExtremeBackward(miopen::deref(handle),
+                                              miopen::deref(xDesc),
+                                              DataCast(x),
+                                              miopen::deref(xGradDesc),
+                                              DataCast(x_grad),
+                                              miopen::deref(yDesc),
+                                              DataCast(y),
+                                              miopen::deref(yGradDesc),
+                                              DataCast(y_grad),
+                                              miopen::deref(countDesc),
+                                              DataCast(count),
+                                              miopen::deref(dimDesc),
+                                              DataCast(dim),
+                                              reduceExtremeOp);
     });
 }

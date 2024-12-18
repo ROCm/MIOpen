@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 
+#include "miopen/miopen.h"
 #include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
@@ -213,6 +214,11 @@ struct ProblemDescriptionExtremeAminmaxBackward : ProblemDescriptionBase
           dimDesc(dimDesc_),
           reduceExtremeOp(reduceExtremeOp_)
     {
+        IsValidInputNumel();
+        IsSameType();
+        IsValidType();
+        IsSameDims();
+        IsValidDims();
     }
 
     const TensorDescriptor& GetXDesc() const { return xDesc; }
@@ -233,40 +239,42 @@ struct ProblemDescriptionExtremeAminmaxBackward : ProblemDescriptionBase
 
     bool IsSameType() const
     {
-        if(xDesc.GetType() != yDesc.GetType())
+        if(xDesc.GetType() != yDesc.GetType() || xDesc.GetType() != xGradDesc.GetType() ||
+           xDesc.GetType() != yGradDesc.GetType())
         {
-            return false;
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor types do not match.");
         }
         return true;
     }
 
-    bool IsAllContiguous() const
+    bool IsValidType() const
     {
-        if(!(xDesc.IsContiguous() && yDesc.IsContiguous()))
+        if(dimDesc.GetType() != miopenInt32 || countDesc.GetType() != miopenInt32)
         {
-            return false;
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Reduce: Tensor dim and count types should be int32.");
         }
-
         return true;
     }
 
-    bool IsAllContiguousWithCount() const
+    bool IsSameDims() const
     {
-        if(!(xDesc.IsContiguous() && yDesc.IsContiguous() && countDesc.IsContiguous()))
+        if(xDesc.GetLengths() != xGradDesc.GetLengths() ||
+           yDesc.GetLengths() != yGradDesc.GetLengths() ||
+           yDesc.GetLengths() != countDesc.GetLengths())
         {
-            return false;
+            MIOPEN_THROW(miopenStatusBadParm, "Reduce: Tensor dimension lengths do not match.");
         }
-
         return true;
     }
 
-    bool IsAllContiguousCount() const
+    bool IsValidDims() const
     {
-        if(!(xDesc.IsContiguous() && countDesc.IsContiguous()))
+        if(dimDesc.GetLengths().size() > 5 || xDesc.GetLengths().size() > 5 ||
+           yDesc.GetLengths().size() > 5)
         {
-            return false;
+            MIOPEN_THROW(miopenStatusNotImplemented, "Reduce: Only <= 5D tensors supported.");
         }
-
         return true;
     }
 
@@ -281,8 +289,6 @@ private:
     TensorDescriptor dimDesc;
 
     miopenReduceExtremeOp_t reduceExtremeOp;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
 };
 
 struct ProblemDescriptionCalculation : ProblemDescriptionBase

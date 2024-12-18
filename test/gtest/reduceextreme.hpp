@@ -99,6 +99,7 @@ void cpu_aminmax_backward(tensor<T> input,
     auto count_tv       = miopen::get_inner_expanded_tv<5>(count.desc);
 
     auto N = input.desc.GetElementSize();
+
     par_ford(N)([&](size_t gid) {
         uint64_t oN, oC, oD, oH, oW;
         tensor_layout_t<5> tensor_layout(input_tv, gid);
@@ -242,12 +243,11 @@ struct ReduceExtremeTestCaseBwd
 {
     std::vector<size_t> input_dim;
     std::vector<int32_t> dim;
-    bool keep_dim;
     miopenReduceExtremeOp_t reduceExtremeOp;
     friend std::ostream& operator<<(std::ostream& os, const ReduceExtremeTestCaseBwd& tc)
     {
         return os << " input_dim:" << tc.input_dim << " dim:" << tc.dim
-                  << " keep_dim:" << tc.keep_dim << " reduceExtremeOp:" << tc.reduceExtremeOp;
+                  << " reduceExtremeOp:" << tc.reduceExtremeOp;
     }
 };
 
@@ -255,26 +255,26 @@ inline std::vector<ReduceExtremeTestCaseBwd> ReduceExtremeTestConfigsBwd()
 {
     // clang-format off
     return {
-        { {16, 21,513, 513, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //deeplabv3m
-        { {24, 21,513, 513, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},   //deeplabv3r
-        { {64, 21,230, 333, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //fcn_resnet_lraspp
-        { {64, 21,215, 288, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
-        { {1,  21,333, 500, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //stdc
-        { {1,  21,375, 500, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
-        { {15, 21,256, 256, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},   //unet
-        { {22, 21,256, 256, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
-        { {21, 412,500}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMIN},
-        { {21, 333,500}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMIN},
-        { {16, 21,513, 513, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //deeplabv3m
-        { {24, 21,513, 513, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},   //deeplabv3r
-        { {64, 21,230, 333, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //fcn_resnet_lraspp
-        { {64, 21,215, 288, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
-        { {1,  21,333, 500, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //stdc
-        { {1,  21,375, 500, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
-        { {15, 21,256, 256, 1}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},   //unet
-        { {22, 21,256, 256, 1}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX},
-        { {21, 412,500}, {0,1}, true, MIOPEN_REDUCE_EXTREME_AMAX},
-        { {21, 333,500}, {0,1}, false, MIOPEN_REDUCE_EXTREME_AMAX}
+        { {16, 21,513, 513, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMIN},   //deeplabv3m
+        { {24, 21,513, 513, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMIN},   //deeplabv3r
+        { {64, 21,230, 333, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMIN},   //fcn_resnet_lraspp
+        { {64, 21,215, 288, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMIN},
+        { {1,  21,333, 500, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMIN},   //stdc
+        { {1,  21,375, 500, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMIN},
+        { {15, 21,256, 256, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMIN},   //unet
+        { {22, 21,256, 256, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMIN},
+        { {21, 412,500}, {0,1}, MIOPEN_REDUCE_EXTREME_AMIN},
+        { {21, 333,500}, {0,1}, MIOPEN_REDUCE_EXTREME_AMIN},
+        { {16, 21,513, 513, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMAX},   //deeplabv3m
+        { {24, 21,513, 513, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMAX},   //deeplabv3r
+        { {64, 21,230, 333, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMAX},   //fcn_resnet_lraspp
+        { {64, 21,215, 288, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMAX},
+        { {1,  21,333, 500, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMAX},   //stdc
+        { {1,  21,375, 500, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMAX},
+        { {15, 21,256, 256, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMAX},   //unet
+        { {22, 21,256, 256, 1}, {0,1}, MIOPEN_REDUCE_EXTREME_AMAX},
+        { {21, 412,500}, {0,1}, MIOPEN_REDUCE_EXTREME_AMAX},
+        { {21, 333,500}, {0,1}, MIOPEN_REDUCE_EXTREME_AMAX}
     };
     // clang-format on
 }
@@ -356,25 +356,25 @@ protected:
         if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
            (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
         {
-            status = miopen::ReduceExtremeForward(handle,
-                                                  input.desc,
-                                                  input_dev.get(),
-                                                  output.desc,
-                                                  output_dev.get(),
-                                                  indice.desc,
-                                                  indice_dev.get(),
-                                                  dim,
-                                                  reduceExtremeOp);
+            status = miopen::reduce::ReduceExtremeForward(handle,
+                                                          input.desc,
+                                                          input_dev.get(),
+                                                          output.desc,
+                                                          output_dev.get(),
+                                                          indice.desc,
+                                                          indice_dev.get(),
+                                                          dim,
+                                                          reduceExtremeOp);
         }
         else
         {
-            status = miopen::ReduceExtremeForward(handle,
-                                                  input.desc,
-                                                  input_dev.get(),
-                                                  indice.desc,
-                                                  indice_dev.get(),
-                                                  dim,
-                                                  reduceExtremeOp);
+            status = miopen::reduce::ReduceExtremeForward(handle,
+                                                          input.desc,
+                                                          input_dev.get(),
+                                                          indice.desc,
+                                                          indice_dev.get(),
+                                                          dim,
+                                                          reduceExtremeOp);
         }
 
         EXPECT_EQ(status, miopenStatusSuccess);
@@ -438,7 +438,8 @@ protected:
         auto dim_sort = reduceextreme_config.dim;
         std::sort(dim_sort.begin(), dim_sort.end());
         // one-hot dim
-        std::vector<int32_t> dim_onehot = std::vector<int32_t>(in_dims.size(), 0);
+        size_t size_dim                 = in_dims.size() < 5 ? 5 : in_dims.size();
+        std::vector<int32_t> dim_onehot = std::vector<int32_t>(size_dim, 0);
         for(auto&& d : dim_sort)
         {
             dim_onehot[d] = 1;
@@ -447,34 +448,16 @@ protected:
         dim.data = dim_onehot;
 
         reduceExtremeOp = reduceextreme_config.reduceExtremeOp;
-        keep_dim        = reduceextreme_config.keep_dim;
 
         input = tensor<T>{in_dims}.generate(gen_value_input);
 
         std::vector<size_t> out_dims;
 
-        if(keep_dim)
+        for(int32_t i = 0; i < in_dims.size(); ++i)
         {
-            for(int32_t i = 0; i < in_dims.size(); ++i)
+            if(dim[i] == 0)
             {
-                if(dim[i] == 0)
-                {
-                    out_dims.push_back(in_dims[i]);
-                }
-                else if(dim[i] == 1)
-                {
-                    out_dims.push_back(1);
-                }
-            }
-        }
-        else
-        {
-            for(int32_t i = 0; i < in_dims.size(); ++i)
-            {
-                if(dim[i] == 0)
-                {
-                    out_dims.push_back(in_dims[i]);
-                }
+                out_dims.push_back(in_dims[i]);
             }
         }
         if(out_dims.empty())
@@ -520,8 +503,8 @@ protected:
     }
     void RunTest()
     {
-        auto&& handle = get_handle();
-        miopenStatus_t status;
+        auto&& handle         = get_handle();
+        miopenStatus_t status = miopenStatusSuccess;
 
         if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMIN ||
            reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX)
@@ -533,20 +516,20 @@ protected:
         if(reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMIN ||
            reduceExtremeOp == MIOPEN_REDUCE_EXTREME_AMAX)
         {
-            status = miopen::ReduceExtremeBackward(handle,
-                                                   input.desc,
-                                                   input_dev.get(),
-                                                   input_grad.desc,
-                                                   input_grad_dev.get(),
-                                                   output.desc,
-                                                   output_dev.get(),
-                                                   output.desc,
-                                                   output_grad_dev.get(),
-                                                   count.desc,
-                                                   count_dev.get(),
-                                                   dim.desc,
-                                                   dim_dev.get(),
-                                                   reduceExtremeOp);
+            status = miopen::reduce::ReduceExtremeBackward(handle,
+                                                           input.desc,
+                                                           input_dev.get(),
+                                                           input_grad.desc,
+                                                           input_grad_dev.get(),
+                                                           output.desc,
+                                                           output_dev.get(),
+                                                           output.desc,
+                                                           output_grad_dev.get(),
+                                                           count.desc,
+                                                           count_dev.get(),
+                                                           dim.desc,
+                                                           dim_dev.get(),
+                                                           reduceExtremeOp);
         }
         // leave the rest of the cases for future backward implementation
 
@@ -583,5 +566,4 @@ protected:
     miopen::Allocator::ManageDataPtr dim_dev;
 
     miopenReduceExtremeOp_t reduceExtremeOp;
-    bool keep_dim;
 };

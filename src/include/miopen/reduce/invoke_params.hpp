@@ -30,6 +30,7 @@
 #include <miopen/tensor.hpp>
 
 namespace miopen {
+
 namespace reduce {
 
 struct ExtremeInvokeParams : public miopen::InvokeParams
@@ -61,13 +62,12 @@ struct ExtremeAminmaxBackwardInvokeParams : public miopen::InvokeParams
     const TensorDescriptor* countDesc = nullptr;
     const TensorDescriptor* dimDesc   = nullptr;
 
-    ConstData_t x              = nullptr;
-    ConstData_t x_grad         = nullptr;
-    ConstData_t y              = nullptr;
-    ConstData_t y_grad         = nullptr;
-    ConstData_t count          = nullptr;
-    std::size_t workspace_size = 0;
-    ConstData_t dim            = nullptr;
+    ConstData_t x      = nullptr;
+    Data_t x_grad      = nullptr;
+    ConstData_t y      = nullptr;
+    ConstData_t y_grad = nullptr;
+    ConstData_t count  = nullptr;
+    ConstData_t dim    = nullptr;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
