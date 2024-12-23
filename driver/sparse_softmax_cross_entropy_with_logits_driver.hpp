@@ -222,12 +222,12 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::AllocateBuffersAndCop
 
     if(forw == 0 || forw == 1)
     {
-        for(int i = 0; i < input_sz; i++)
+        for(size_t i = 0; i < input_sz; i++)
         {
             input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
 
-        for(int i = 0; i < output_sz; i++)
+        for(size_t i = 0; i < output_sz; i++)
         {
             target[i] = prng::gen_A_to_B<int>(0, in_len[1] - 1);
         }
@@ -253,7 +253,7 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::AllocateBuffersAndCop
 
     if(forw == 0 || forw == 2)
     {
-        for(int i = 0; i < output_sz; i++)
+        for(size_t i = 0; i < output_sz; i++)
         {
             output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
             backprop[i]    = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
