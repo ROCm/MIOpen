@@ -212,16 +212,14 @@ int ReduceCalculationDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[]
 
     if(reduceCalculationOp < 1 || reduceCalculationOp > 4)
     {
-        std::cerr << "Error ReduceCalculationOp(1-4)" << std::endl;
-        return miopenStatusBadParm;
+        MIOPEN_THROW(miopenStatusBadParm, "Error ReduceCalculationOp(1-4)");
     }
 
     if(!IsLogicalCalculation() && !IsValidFloatTypes())
     {
-        std::cerr << "Unsupported input dtype setup: Input type should be float, half or bfloat16 "
-                     "for numeric calculation."
-                  << std::endl;
-        return miopenStatusBadParm;
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "Unsupported input dtype setup: Input type should be float, half or bfloat16 "
+                     "for numeric calculation.");
     }
 
     if(inflags.GetValueInt("time") == 1)
@@ -272,7 +270,8 @@ int ReduceCalculationDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw", 'F', "1", "Run only Forward Reduce Calculation (Default=1)", "int");
-    inflags.AddTensorFlag("input", 'X', "256x4x8732", "input tensor descriptor");
+    inflags.AddTensorFlag(
+        "input", 'X', "256x4x8732", "input tensor descriptor (Default=256x4x8732)");
     inflags.AddInputFlag(
         "DimToReduce", 'R', "1", "The indice of the dimensions to be reduced(Default=1)", "int");
     inflags.AddInputFlag(
@@ -312,7 +311,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     uint32_t ctx = 0;
 
     in_dev        = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    out_dev       = IsLogicalCalculation() ? std::make_unique<GPUMem>(ctx, out_sz, sizeof(bool))
+    out_dev       = IsLogicalCalculation() ? std::make_unique<GPUMem>(ctx, out_sz, sizeof(uint8_t))
                                            : std::make_unique<GPUMem>(ctx, out_sz, sizeof(Tgpu));
     workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sizeInBytes, sizeof(std::byte)));
 
@@ -339,7 +338,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(in_dev->ToGPU(GetStream(), in.data()) != 0)
     {
         std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
-        return miopenStatusAllocFailed;
+        return miopenStatusInternalError;
     }
 
     if(IsLogicalCalculation())
@@ -347,7 +346,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(out_dev->ToGPU(GetStream(), logical_out.data()) != 0)
         {
             std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
-            return miopenStatusAllocFailed;
+            return miopenStatusInternalError;
         }
     }
     else
@@ -355,7 +354,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(out_dev->ToGPU(GetStream(), out.data()) != 0)
         {
             std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
-            return miopenStatusAllocFailed;
+            return miopenStatusInternalError;
         }
     }
 

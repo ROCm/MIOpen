@@ -41,9 +41,7 @@ void cpu_calculation_forward(const tensor<T> input,
     auto input_dims  = input.desc.GetLengths();
     auto output_dims = ref_output.desc.GetLengths();
 
-    auto reduce_size = input_dims[dim];
-    // auto output_numel =
-    //     std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
+    auto reduce_size  = input_dims[dim];
     auto output_numel = ref_output.desc.GetElementSize();
 
     auto inner_size = std::accumulate(
@@ -76,9 +74,7 @@ void cpu_logical_calculation_forward(const tensor<T> input,
     auto input_dims  = input.desc.GetLengths();
     auto output_dims = ref_output.desc.GetLengths();
 
-    auto reduce_size = input_dims[dim];
-    // auto output_numel =
-    //     std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
+    auto reduce_size  = input_dims[dim];
     auto output_numel = ref_output.desc.GetElementSize();
 
     auto inner_size = std::accumulate(
