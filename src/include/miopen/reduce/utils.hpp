@@ -71,9 +71,8 @@ inline bool IsImprovementOverROCm(const ExecutionContext& context,
     auto ydims = problem.GetYDesc().GetLengths();
     auto dim   = problem.GetDim();
 
-    auto reduce_size = xdims[dim];
-    auto output_numel =
-        std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());
+    auto reduce_size  = xdims[dim];
+    auto output_numel = problem.GetYDesc().GetElementSize();
 
     auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
 

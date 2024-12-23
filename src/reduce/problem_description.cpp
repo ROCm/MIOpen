@@ -72,25 +72,33 @@ NetworkConfig ProblemDescriptionExtreme::MakeNetworkConfig() const
 
 NetworkConfig ProblemDescriptionCalculation::MakeNetworkConfig() const
 {
-    auto xlength = xDesc.GetLengths();
-    std::vector<std::size_t> outputlength;
-    outputlength = yDesc.GetLengths();
+    auto x_lengths = xDesc.GetLengths();
+    auto y_lengths = yDesc.GetLengths();
 
-    auto size         = xlength[dim];
-    auto output_numel = std::accumulate(outputlength.begin(),
-                                        outputlength.end(),
-                                        static_cast<size_t>(1),
-                                        std::multiplies<size_t>());
-    auto inputdtype   = xDesc.GetType();
-    auto outputdtype  = yDesc.GetType();
+    auto reduce_size = x_lengths[dim];
+    auto x_dtype     = xDesc.GetType();
+    auto y_dtype     = yDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "inputdtype" << inputdtype;
-    ss << "outputdtype" << outputdtype;
+    ss << "x_dtype" << x_dtype;
+    if(!IsLogicalCalculation())
+    {
+        ss << "y_dtype" << y_dtype;
+    }
     ss << "dim" << dim;
-    ss << "size" << size;
-    ss << "output_numel" << output_numel;
+    ss << "x_lengths: ";
+    for(auto i : x_lengths)
+    {
+        ss << i << ",";
+    }
+    ss << "y_lengths: ";
+    for(auto i : y_lengths)
+    {
+        ss << i << ",";
+    }
+    ss << "is_all_contiguous" << IsAllContiguous();
+    ss << "size" << reduce_size;
     ss << "reduceCalculationOp" << reduceCalculationOp;
 
     return NetworkConfig{ss.str()};
