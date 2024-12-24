@@ -47,7 +47,6 @@ struct FwdProblemDescription : public ProblemDescriptionBase
           dim(dim_),
           keepdim(keepdim_)
     {
-        IsValidNumDims();
         IsValidDim();
         IsRightLength();
         IsSameType();
@@ -59,17 +58,7 @@ struct FwdProblemDescription : public ProblemDescriptionBase
     uint64_t GetDim() const { return dim; }
     bool GetKeepDim() const { return keepdim; }
 
-    bool IsValidNumDims() const
-    {
-        if(inputDesc.GetNumDims() > 5)
-        {
-            MIOPEN_THROW(
-                miopenStatusBadParm,
-                "MedianForward: A tensor with dimensions greater than 5 is not supported yet.");
-        }
-
-        return true;
-    }
+    bool IsValidNumDims() const { return inputDesc.GetNumDims() <= 5; }
 
     bool IsValidDim() const
     {
@@ -129,6 +118,11 @@ struct FwdProblemDescription : public ProblemDescriptionBase
                inputDesc.GetType() == miopenBFloat16;
     }
 
+    bool IsAllContiguous() const
+    {
+        return inputDesc.IsContiguous() && outputDesc.IsContiguous() && indicesDesc.IsContiguous();
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
@@ -152,7 +146,6 @@ struct BwdProblemDescription : ProblemDescriptionBase
           dim(dim_),
           keepdim(keepdim_)
     {
-        IsValidNumDims();
         IsValidDim();
         IsRightLength();
         IsSameType();
@@ -164,17 +157,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
     uint64_t GetDim() const { return dim; }
     bool GetKeepDim() const { return keepdim; }
 
-    bool IsValidNumDims() const
-    {
-        if(inputGradDesc.GetNumDims() > 5)
-        {
-            MIOPEN_THROW(
-                miopenStatusBadParm,
-                "MedianForward: A tensor with dimensions greater than 5 is not supported yet.");
-        }
-
-        return true;
-    }
+    bool IsValidNumDims() const { return inputGradDesc.GetNumDims() <= 5; }
 
     bool IsValidDim() const
     {
@@ -233,6 +216,12 @@ struct BwdProblemDescription : ProblemDescriptionBase
     {
         return inputGradDesc.GetType() == miopenFloat || inputGradDesc.GetType() == miopenHalf ||
                inputGradDesc.GetType() == miopenBFloat16;
+    }
+
+    bool IsAllContiguous() const
+    {
+        return inputGradDesc.IsContiguous() && outputGradDesc.IsContiguous() &&
+               indicesDesc.IsContiguous();
     }
 
     NetworkConfig MakeNetworkConfig() const override;

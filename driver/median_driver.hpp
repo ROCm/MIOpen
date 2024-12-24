@@ -155,7 +155,12 @@ template <typename Tgpu, typename Tref>
 std::vector<int> MedianDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
 {
     if(!is_contiguous)
+    {
+        if(inputDim.size() == 1)
+            return std::vector<int>{2};
+
         std::swap(inputDim.front(), inputDim.back());
+    }
     std::vector<int> strides(inputDim.size());
     strides.back() = 1;
     for(int i = inputDim.size() - 2; i >= 0; --i)
@@ -169,8 +174,10 @@ template <typename Tgpu, typename Tref>
 int MedianDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Median (Default=1)", "int");
-    inflags.AddTensorFlag(
-        "input-dims", 'D', "256x4x2", "The dimensional lengths of the input tensor (Default=3x4)");
+    inflags.AddTensorFlag("input-dims",
+                          'D',
+                          "256x4x2",
+                          "The dimensional lengths of the input tensor (Default=256x4x2)");
     inflags.AddInputFlag(
         "is-contiguous", 'C', "1", "Tensor is contiguous or not (Default=1)", "int");
     inflags.AddInputFlag("dim", 'd', "0", "the dimension to reduce (Default=0)", "int");
@@ -210,9 +217,9 @@ template <typename Tgpu, typename Tref>
 int MedianDriver<Tgpu, Tref>::GetandSetData()
 {
     auto input_dims    = inflags.GetValueTensor("input-dims").lengths;
-    auto input_strides = input_dims.size() == 1 ? std::vector<int>{2} : ComputeStrides(input_dims);
-    auto output_dims   = input_dims;
+    auto input_strides = ComputeStrides(input_dims);
 
+    auto output_dims = input_dims;
     if(!keepdim)
     {
         output_dims.erase(output_dims.begin() + dim);
@@ -334,7 +341,7 @@ int MedianDriver<Tgpu, Tref>::RunForwardGPU()
                                           dim,
                                           keepdim);
 
-        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMedianBackward");
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMedianForward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -481,21 +488,12 @@ int MedianDriver<Tgpu, Tref>::VerifyForward()
         return EC_VerifyFwd;
     }
 
-    // Verify indices
+    // Quick verification for indices
+    // A more detailed verification is done in test/gtest/median.hpp
     if(indices_host.size() != indices.size())
     {
         std::cout << "Forward Median FAILED: Indices size are not equal" << std::endl;
         return EC_VerifyFwd;
-    }
-
-    for(size_t i = 0; i < indices_host.size(); i++)
-    {
-        // Median value may not be unique, resulting in multiple valid indices
-        if(indices_host[i] != indices[i] && output_host[i] != output[i])
-        {
-            std::cout << "Forward Median FAILED: Indices are not equal" << std::endl;
-            return EC_VerifyFwd;
-        }
     }
 
     std::cout << "Forward Median Verifies on CPU and GPU (output_error: " << output_error << ")"

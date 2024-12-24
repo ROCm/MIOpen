@@ -25,11 +25,13 @@
  *******************************************************************************/
 #include <miopen/median.hpp>
 #include <miopen/miopen.h>
+#include "miopen/tensor_view_utils.hpp"
 #include <gtest/gtest.h>
 
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
+#include "tensor_view.hpp"
 #include "verify.hpp"
 
 #include "cpu_median.hpp"
@@ -41,19 +43,19 @@ struct MedianTestCase
     uint64_t dim;
     bool keepdim;
 
-    // friend std::ostream& operator<<(std::ostream& os, const MedianTestCase& tc)
-    // {
-    //     os << "dims: (";
-    //     for(auto dim_size : tc.dims)
-    //     {
-    //         os << dim_size << " ";
-    //     }
-    //     os << ")";
-    //     os << " is_contiguous: " << tc.is_contiguous;
-    //     os << " selected_dim: " << tc.dim;
+    friend std::ostream& operator<<(std::ostream& os, const MedianTestCase& tc)
+    {
+        os << "dims: (";
+        for(auto dim_size : tc.dims)
+        {
+            os << dim_size << " ";
+        }
+        os << ")";
+        os << " is_contiguous: " << tc.is_contiguous;
+        os << " selected_dim: " << tc.dim;
 
-    //     return os;
-    // }
+        return os;
+    }
 
     std::vector<size_t> GetDims() const { return dims; }
     uint64_t GetSelectedDim() const { return dim; }
@@ -72,7 +74,11 @@ struct MedianTestCase
     std::vector<size_t> ComputeStrides(std::vector<size_t> inputDim) const
     {
         if(!is_contiguous)
+        {
+            if(inputDim.size() == 1)
+                return std::vector<size_t>{2};
             std::swap(inputDim.front(), inputDim.back());
+        }
         std::vector<size_t> strides(inputDim.size());
         strides.back() = 1;
         for(int i = inputDim.size() - 2; i >= 0; --i)
@@ -83,28 +89,42 @@ struct MedianTestCase
     }
 };
 
+// This TestConfigs is used for testing the general cases
+// Some of those cases are not applicable for the condition IsImprovementOverROCm()
+// inline std::vector<MedianTestCase> MedianGeneralTestConfigs()
+// inline std::vector<MedianTestCase> MedianTestConfigs()
+// {
+//     return {
+//         MedianTestCase({3, 4, 5}),
+//         MedianTestCase({100}, true),
+//         MedianTestCase({100}, false),
+
+//         MedianTestCase({100, 500}, true, 0, true),
+//         MedianTestCase({100, 500}, true, 1, true),
+//         MedianTestCase({100, 500}, false, 1, true),
+//         MedianTestCase({100, 500}),
+//         MedianTestCase({100, 500}, true, 1),
+//         MedianTestCase({400, 10}, false),
+//         MedianTestCase({400, 10}, false, 1),
+//         MedianTestCase({10, 20, 300}),
+//         MedianTestCase({10, 20, 300}, true, 1),
+//         MedianTestCase({10, 20, 300}, true, 2),
+//         MedianTestCase({350, 10, 20}, false),
+//         MedianTestCase({350, 10, 20}, false, 1),
+//         MedianTestCase({350, 10, 20}, false, 2),
+//         MedianTestCase({8, 3, 10, 2000}),
+//         MedianTestCase({1000, 3, 10, 15}, false),
+//         MedianTestCase({2, 2, 4, 10, 3000}),
+//         MedianTestCase({3000, 8, 2, 4, 20}, false),
+//     };
+// }
+
 inline std::vector<MedianTestCase> MedianTestConfigs()
 {
     return {
-        MedianTestCase({100}, true),
-        MedianTestCase({100}, false),
-
-        MedianTestCase({100, 500}, true, 0, true),
-        MedianTestCase({100, 500}, true, 1, true),
-        MedianTestCase({100, 500}),
-        MedianTestCase({100, 500}, true, 1),
-        MedianTestCase({400, 10}, false),
-        MedianTestCase({400, 10}, false, 1),
-        MedianTestCase({10, 20, 300}),
-        MedianTestCase({10, 20, 300}, true, 1),
-        MedianTestCase({10, 20, 300}, true, 2),
-        MedianTestCase({350, 10, 20}, false),
-        MedianTestCase({350, 10, 20}, false, 1),
-        MedianTestCase({350, 10, 20}, false, 2),
-        MedianTestCase({8, 3, 10, 2000}),
-        MedianTestCase({1000, 3, 10, 15}, false),
-        MedianTestCase({2, 2, 4, 10, 3000}),
-        MedianTestCase({3000, 8, 2, 4, 20}, false),
+        MedianTestCase({700, 800}, false, 0, true),
+        MedianTestCase({600, 20, 10}, false, 0, true),
+        MedianTestCase({500, 40, 30, 20}, false, 0, true),
     };
 }
 
@@ -117,9 +137,8 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        auto input_dims = config.GetDims();
-        std::vector<size_t> input_strides =
-            input_dims.size() == 1 ? std::vector<size_t>{2} : config.ComputeStrides(input_dims);
+        auto input_dims                   = config.GetDims();
+        std::vector<size_t> input_strides = config.ComputeStrides(input_dims);
 
         dim     = config.GetSelectedDim();
         keepdim = config.GetKeepDimValue();
@@ -197,12 +216,35 @@ protected:
                                     << ", Threshold: " << threshold << std::endl;
 
         // Verify indices_tensor
-        ASSERT_TRUE(miopen::range_distance(ref_indices) == miopen::range_distance(indices));
-        for(size_t i = 0; i < indices.data.size(); i++)
+        ASSERT_EQ(miopen::range_distance(ref_indices), miopen::range_distance(indices));
+        auto input_tv      = miopen::get_inner_expanded_tv<5>(input.desc);
+        auto indices_numel = indices.desc.GetElementSize();
+        auto reduce_size   = input.desc.GetLengths()[dim];
+        auto inner_size    = std::accumulate(input.desc.GetLengths().begin() + dim + 1,
+                                          input.desc.GetLengths().end(),
+                                          1ULL,
+                                          std::multiplies<size_t>());
+
+        for(auto i = 0; i < indices_numel; ++i)
         {
-            if(indices.data[i] != ref_indices.data[i])
+            auto local_idx     = indices.data[i];
+            auto ref_local_idx = ref_indices.data[i];
+
+            if(local_idx != ref_local_idx)
             {
-                ASSERT_TRUE(output.data[i] == output.data[i]) << "Error output (indices) mismatch";
+                auto idx = (i / inner_size) * inner_size * reduce_size + i % inner_size +
+                           local_idx * inner_size;
+                auto ref_idx = (i / inner_size) * inner_size * reduce_size + i % inner_size +
+                               ref_local_idx * inner_size;
+
+                tensor_layout_t<5> input_layout(input_tv, idx);
+                tensor_layout_t<5> ref_input_layout(input_tv, ref_idx);
+
+                auto global_idx     = input_tv.get_tensor_view_idx(input_layout);
+                auto ref_global_idx = input_tv.get_tensor_view_idx(ref_input_layout);
+
+                ASSERT_EQ(input.data[global_idx], input.data[ref_global_idx])
+                    << "Error output (indices) mismatch." << std::endl;
             }
         }
     }
@@ -251,9 +293,7 @@ protected:
             output_grad_dims[dim] = 1;
         }
 
-        std::vector<size_t> output_grad_strides = output_grad_strides.size() == 1
-                                                      ? std::vector<size_t>{2}
-                                                      : config.ComputeStrides(output_grad_dims);
+        std::vector<size_t> output_grad_strides = config.ComputeStrides(output_grad_dims);
 
         auto dim_size = input_grad_dims[dim];
 
@@ -263,10 +303,19 @@ protected:
         };
 
         output_grad = tensor<T>{output_grad_dims, output_grad_strides}.generate(gen_value);
-        indices     = tensor<size_t>{output_grad_dims, output_grad_strides}.generate(gen_index);
+
+        // indices tensor has the same shape as output_grad tensor
+        indices = tensor<size_t>{output_grad_dims, output_grad_strides}.generate(gen_index);
 
         input_grad = tensor<T>{input_grad_dims, input_grad_strides};
-        std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
+        if(!config.is_contiguous)
+        {
+            std::fill(input_grad.begin(), input_grad.end(), static_cast<T>(0));
+        }
+        else
+        {
+            std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
+        }
 
         ref_input_grad = tensor<T>{input_grad_dims, input_grad_strides};
         std::fill(

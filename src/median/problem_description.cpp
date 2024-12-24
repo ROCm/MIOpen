@@ -42,6 +42,8 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
     ss << "input_lengths";
     for(auto length : input_lengths)
         ss << length << ',';
+    ss << "dim" << dim;
+    ss << "is_contiguous" << IsAllContiguous();
     ss << "dim_stride" << inputDesc.GetStrides()[dim];
 
     return NetworkConfig{ss.str()};
@@ -58,6 +60,8 @@ NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
     ss << "input_grad_lengths";
     for(auto length : input_grad_lengths)
         ss << length << ',';
+    ss << "dim" << dim;
+    ss << "is_contiguous" << IsAllContiguous();
     ss << "dim_stride" << inputGradDesc.GetStrides()[dim];
 
     return NetworkConfig{ss.str()};

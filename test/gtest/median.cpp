@@ -50,6 +50,10 @@ TEST_P(GPU_Median_fwd_BFP16, MedianTestFwd)
     Verify();
 };
 
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Median_fwd_FP32, testing::ValuesIn(MedianTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Median_fwd_FP16, testing::ValuesIn(MedianTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Median_fwd_BFP16, testing::ValuesIn(MedianTestConfigs()));
+
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Median_fwd_FP32, testing::ValuesIn(MedianTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Median_fwd_FP16, testing::ValuesIn(MedianTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Median_fwd_BFP16, testing::ValuesIn(MedianTestConfigs()));
@@ -76,6 +80,10 @@ TEST_P(GPU_Median_bwd_BFP16, MedianTestBwd)
     RunTest();
     Verify();
 };
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Median_bwd_FP32, testing::ValuesIn(MedianTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Median_bwd_FP16, testing::ValuesIn(MedianTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Median_bwd_BFP16, testing::ValuesIn(MedianTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Median_bwd_FP32, testing::ValuesIn(MedianTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Median_bwd_FP16, testing::ValuesIn(MedianTestConfigs()));

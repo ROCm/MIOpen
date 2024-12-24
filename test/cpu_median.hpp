@@ -45,6 +45,5 @@ void cpu_median_bwd(const tensor<T> output_grad,
                     tensor<T>& input_grad,
                     const uint64_t dim)
 {
-    std::cout << "output_grad: " << output_grad.data[3] << std::endl;
     cpu_kth_value_backward<T>(output_grad, indices, input_grad, dim);
 }

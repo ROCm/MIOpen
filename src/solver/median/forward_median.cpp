@@ -52,19 +52,22 @@ bool IsImprovementOverROCm(const miopen::median::FwdProblemDescription& problem)
     auto dim           = problem.GetDim();
     auto input_lengths = problem.GetInputDesc().GetLengths();
     auto dim_size      = input_lengths[dim];
-    auto is_contiguous = problem.GetInputDesc().IsContiguous();
     auto dim_stride    = problem.GetInputDesc().GetStrides()[dim];
 
-    return input_lengths.size() > 1 && !is_contiguous && dim_size > 300 && dim_stride == 1;
+    return input_lengths.size() > 1 && !problem.IsAllContiguous() && dim_size > 300 &&
+           dim_stride == 1;
 }
 
 bool MedianForward::IsApplicable(const ExecutionContext& /*context*/,
                                  const miopen::median::FwdProblemDescription& problem) const
 {
-    if(!IsImprovementOverROCm(problem))
+    if(!problem.IsValidNumDims())
         return false;
 
     if(!problem.IsValidFloat())
+        return false;
+
+    if(!IsImprovementOverROCm(problem))
         return false;
 
     return true;
@@ -79,8 +82,7 @@ ConvSolution MedianForward::GetSolution(const ExecutionContext& context,
     auto dtype    = problem.GetInputDesc().GetType();
     auto io_dtype = miopen::GetDataType(dtype);
 
-    auto input_lengths  = problem.GetInputDesc().GetLengths();
-    auto output_lengths = problem.GetOutputDesc().GetLengths();
+    auto input_lengths = problem.GetInputDesc().GetLengths();
 
     auto dim_size   = input_lengths[problem.GetDim()]; // reduce_size
     auto dim_stride = problem.GetInputDesc().GetStrides()[problem.GetDim()];

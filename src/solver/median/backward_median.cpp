@@ -52,19 +52,22 @@ bool IsImprovementOverROCm(const miopen::median::BwdProblemDescription& problem)
     auto dim                = problem.GetDim();
     auto input_grad_lengths = problem.GetInputGradDesc().GetLengths();
     auto dim_size           = input_grad_lengths[dim];
-    auto is_contiguous      = problem.GetInputGradDesc().IsContiguous();
     auto dim_stride         = problem.GetInputGradDesc().GetStrides()[dim];
 
-    return input_grad_lengths.size() > 1 && !is_contiguous && dim_size > 250 && dim_stride == 1;
+    return input_grad_lengths.size() > 1 && !problem.IsAllContiguous() && dim_size > 250 &&
+           dim_stride == 1;
 }
 
 bool MedianBackward::IsApplicable(const ExecutionContext& /*context*/,
                                   const miopen::median::BwdProblemDescription& problem) const
 {
-    if(!IsImprovementOverROCm(problem))
+    if(!problem.IsValidNumDims())
         return false;
 
     if(!problem.IsValidFloat())
+        return false;
+
+    if(!IsImprovementOverROCm(problem))
         return false;
 
     return true;
@@ -79,8 +82,7 @@ ConvSolution MedianBackward::GetSolution(const ExecutionContext& context,
     auto dtype    = problem.GetInputGradDesc().GetType();
     auto io_dtype = miopen::GetDataType(dtype);
 
-    auto input_grad_lengths  = problem.GetInputGradDesc().GetLengths();
-    auto output_grad_lengths = problem.GetOutputGradDesc().GetLengths();
+    auto input_grad_lengths = problem.GetInputGradDesc().GetLengths();
 
     auto dim_size = input_grad_lengths[problem.GetDim()];
 
