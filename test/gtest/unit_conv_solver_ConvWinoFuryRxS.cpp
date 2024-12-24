@@ -66,7 +66,7 @@ const auto& GetTestParams()
 using GPU_UnitTestConvSolverWinoFury2x3Fwd_FP16 = GPU_UnitTestConvSolverFwd_FP16;
 using GPU_UnitTestConvSolverWinoFury2x3Bwd_FP16 = GPU_UnitTestConvSolverBwd_FP16;
 using GPU_UnitTestConvSolverWinoFury2x3Wrw_FP16 = GPU_UnitTestConvSolverWrw_FP16;
-using CPU_UnitTestConvSolverDevApplicabilityWinoFury2x3Fwd_NONE =
+using CPU_UnitTestConvSolverWinoFury2x3DevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
 TEST_P(GPU_UnitTestConvSolverWinoFury2x3Fwd_FP16, ConvWinoFuryRxSf2x3)
@@ -84,7 +84,7 @@ TEST_P(GPU_UnitTestConvSolverWinoFury2x3Wrw_FP16, ConvWinoFuryRxSf2x3)
     this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicabilityWinoFury2x3Fwd_NONE, ConvWinoFuryRxSf2x3)
+TEST_P(CPU_UnitTestConvSolverWinoFury2x3DevApplicabilityFwd_NONE, ConvWinoFuryRxSf2x3)
 {
     this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
@@ -110,6 +110,6 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverDevApplicabilityWinoFury2x3Fwd_NONE,
+                         CPU_UnitTestConvSolverWinoFury2x3DevApplicabilityFwd_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenHalf)[0])));

@@ -70,90 +70,90 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvGemmRestSolverFwd_FP16  = GPU_UnitTestConvSolverFwd_FP16;
-using GPU_UnitTestConvGemmRestSolverFwd_BFP16 = GPU_UnitTestConvSolverFwd_BFP16;
-using GPU_UnitTestConvGemmRestSolverFwd_FP32  = GPU_UnitTestConvSolverFwd_FP32;
-using GPU_UnitTestConvGemmRestSolverFwd_I8    = GPU_UnitTestConvSolverFwd_I8;
-using CPU_UnitTestConvGemmRestSolverDevApplicabilityFwd_NONE =
+using GPU_UnitTestConvSolverGemmFwdRestFwd_FP16  = GPU_UnitTestConvSolverFwd_FP16;
+using GPU_UnitTestConvSolverGemmFwdRestFwd_BFP16 = GPU_UnitTestConvSolverFwd_BFP16;
+using GPU_UnitTestConvSolverGemmFwdRestFwd_FP32  = GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverGemmFwdRestFwd_I8    = GPU_UnitTestConvSolverFwd_I8;
+using CPU_UnitTestConvSolverGemmFwdRestDevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
-TEST_P(GPU_UnitTestConvGemmRestSolverFwd_FP16, GemmFwdRest)
+TEST_P(GPU_UnitTestConvSolverGemmFwdRestFwd_FP16, GemmFwdRest)
 {
     this->RunTest(miopen::solver::conv::GemmFwdRest{});
 };
 
-TEST_P(GPU_UnitTestConvGemmRestSolverFwd_BFP16, GemmFwdRest)
+TEST_P(GPU_UnitTestConvSolverGemmFwdRestFwd_BFP16, GemmFwdRest)
 {
     this->RunTest(miopen::solver::conv::GemmFwdRest{});
 };
 
-TEST_P(GPU_UnitTestConvGemmRestSolverFwd_FP32, GemmFwdRest)
+TEST_P(GPU_UnitTestConvSolverGemmFwdRestFwd_FP32, GemmFwdRest)
 {
     this->RunTest(miopen::solver::conv::GemmFwdRest{});
 };
 
-TEST_P(GPU_UnitTestConvGemmRestSolverFwd_I8, GemmFwdRest)
+TEST_P(GPU_UnitTestConvSolverGemmFwdRestFwd_I8, GemmFwdRest)
 {
     this->RunTest(miopen::solver::conv::GemmFwdRest{});
 };
 
-TEST_P(CPU_UnitTestConvGemmRestSolverDevApplicabilityFwd_NONE, GemmFwdRest)
+TEST_P(CPU_UnitTestConvSolverGemmFwdRestDevApplicabilityFwd_NONE, GemmFwdRest)
 {
     this->RunTest(miopen::solver::conv::GemmFwdRest{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvGemmRestSolverFwd_FP16,
+                         GPU_UnitTestConvSolverGemmFwdRestFwd_FP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvGemmRestSolverFwd_BFP16,
+                         GPU_UnitTestConvSolverGemmFwdRestFwd_BFP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvGemmRestSolverFwd_FP32,
+                         GPU_UnitTestConvSolverGemmFwdRestFwd_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvGemmRestSolverFwd_I8,
+                         GPU_UnitTestConvSolverGemmFwdRestFwd_I8,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenInt8))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvGemmRestSolverDevApplicabilityFwd_NONE,
+                         CPU_UnitTestConvSolverGemmFwdRestDevApplicabilityFwd_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
 
 // Full tests
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_UnitTestConvGemmRestSolverFwd_FP16,
+                         GPU_UnitTestConvSolverGemmFwdRestFwd_FP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCasesFull(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_UnitTestConvGemmRestSolverFwd_BFP16,
+                         GPU_UnitTestConvSolverGemmFwdRestFwd_BFP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCasesFull(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_UnitTestConvGemmRestSolverFwd_FP32,
+                         GPU_UnitTestConvSolverGemmFwdRestFwd_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCasesFull(miopenFloat))));
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_UnitTestConvGemmRestSolverFwd_I8,
+                         GPU_UnitTestConvSolverGemmFwdRestFwd_I8,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCasesFull(miopenInt8))));
