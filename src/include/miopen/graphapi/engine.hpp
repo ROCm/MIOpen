@@ -88,25 +88,27 @@ public:
 // generic executor that uses Find 2.0 Solution
 class GraphExecutorFind20 : public GraphPatternExecutor
 {
-    miopenSolution_t mSolution;
+    Solution mSolution;
     std::shared_ptr<TensorInfoMap> mTensorInfoMap;
 
 public:
-    GraphExecutorFind20(miopenSolution_t sol, const std::shared_ptr<TensorInfoMap>& tmap)
+    GraphExecutorFind20(const Solution& sol, const std::shared_ptr<TensorInfoMap>& tmap)
         : GraphPatternExecutor(), mSolution(sol), mTensorInfoMap(tmap)
     {
+        MIOPEN_THROW_IF(tmap.get() == nullptr,
+                        "TensorInfoMap should be allocated before GraphExecutorFind20 creation");
+    }
+
+    GraphExecutorFind20(Solution&& sol, const std::shared_ptr<TensorInfoMap>& tmap)
+        : GraphPatternExecutor(), mSolution(std::move(sol)), mTensorInfoMap(tmap)
+    {
+        MIOPEN_THROW_IF(tmap.get() == nullptr,
+                        "TensorInfoMap should be allocated before GraphExecutorFind20 creation");
     }
 
     void execute(miopenHandle_t handle, const VariantPack& vpk) final;
 
     size_t getWorkspaceSize() const final;
-
-    static std::unique_ptr<GraphPatternExecutor> make(miopenSolution_t sol,
-                                                      const std::shared_ptr<TensorInfoMap>& tmap)
-    {
-        GraphPatternExecutor* p = new GraphExecutorFind20(sol, tmap);
-        return std::unique_ptr<GraphPatternExecutor>(p);
-    }
 };
 
 class Engine
