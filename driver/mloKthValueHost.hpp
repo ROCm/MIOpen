@@ -52,34 +52,27 @@ int32_t mloKthvalueFwdRunHost(const miopenTensorDescriptor_t inputDesc,
 
     size_t num_slice = input_size / dim_size;
 
-    std::vector<float> elements;
-    std::vector<size_t> ids(dim_size);
-    for(size_t i = 0; i < dim_size; ++i)
-    {
-        ids[i] = i;
-    }
+    par_ford(num_slice)([&](size_t slice_id) {
+        std::vector<float> elements(dim_size);
+        std::vector<size_t> ids(dim_size);
+        std::iota(ids.begin(), ids.end(), 0);
 
-    for(size_t slide_id = 0; slide_id < num_slice; ++slide_id)
-    {
-        elements.clear();
-        tensor_layout_t<4> layout(input_tv_without_dim, slide_id);
+        tensor_layout_t<4> layout(input_tv_without_dim, slice_id);
         auto idx = input_tv_without_dim.get_tensor_view_idx(layout);
 
-        for(int j = 0; j < dim_size; ++j)
-        {
-            elements.push_back(static_cast<float>(input[idx + j * dim_stride]));
-        }
+        par_ford(dim_size)(
+            [&](size_t j) { elements[j] = static_cast<float>(input[idx + j * dim_stride]); });
 
         std::sort(ids.begin(), ids.end(), [=](size_t x, size_t y) -> bool {
             return elements[x] < elements[y];
         });
 
-        auto output_layout  = tensor_layout_t<5>(output_tv, slide_id);
-        auto indices_layout = tensor_layout_t<5>(indices_tv, slide_id);
+        auto output_layout  = tensor_layout_t<5>(output_tv, slice_id);
+        auto indices_layout = tensor_layout_t<5>(indices_tv, slice_id);
         output[output_tv.get_tensor_view_idx(output_layout)] =
             static_cast<Tcheck>(elements[ids[k - 1]]);
         indices[indices_tv.get_tensor_view_idx(indices_layout)] = ids[k - 1];
-    }
+    });
 
     return miopenStatusSuccess;
 }

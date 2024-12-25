@@ -48,34 +48,27 @@ void cpu_kthvalue(tensor<TIO> input,
 
     size_t numSlice = inputSize / dimSize;
 
-    std::vector<float> elements;
-    std::vector<size_t> ids(dimSize);
-    for(int i = 0; i < dimSize; ++i)
-    {
-        ids[i] = i;
-    }
+    par_ford(numSlice)([&](size_t sliceID) {
+        std::vector<float> elements(dimSize);
+        std::vector<size_t> ids(dimSize);
+        std::iota(ids.begin(), ids.end(), 0);
 
-    for(int slideID = 0; slideID < numSlice; ++slideID)
-    {
-        elements.clear();
-        tensor_layout_t<4> layout(inputTvWithoutDim, slideID);
+        tensor_layout_t<4> layout(inputTvWithoutDim, sliceID);
         auto idx = inputTvWithoutDim.get_tensor_view_idx(layout);
 
-        for(int j = 0; j < dimSize; ++j)
-        {
-            elements.push_back(static_cast<float>(input[idx + j * dimStride]));
-        }
+        par_ford(dimSize)(
+            [&](size_t j) { elements[j] = static_cast<float>(input[idx + j * dimStride]); });
 
         std::sort(ids.begin(), ids.end(), [=](size_t x, size_t y) -> bool {
             return elements[x] < elements[y];
         });
 
-        auto output_layout  = tensor_layout_t<5>(outputTv, slideID);
-        auto indices_layout = tensor_layout_t<5>(indicesTv, slideID);
+        auto output_layout  = tensor_layout_t<5>(outputTv, sliceID);
+        auto indices_layout = tensor_layout_t<5>(indicesTv, sliceID);
         outputHost[outputTv.get_tensor_view_idx(output_layout)] =
             static_cast<TIO>(elements[ids[k - 1]]);
         indices[indicesTv.get_tensor_view_idx(indices_layout)] = ids[k - 1];
-    }
+    });
 }
 
 template <class T>
