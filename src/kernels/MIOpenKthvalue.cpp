@@ -56,7 +56,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
 {
     /*
      * Input : {N, C, D, H, W}. Select dim: 2(D)
-     * Output/indices : {N, C, H, W} or {N, C, 1, H, W} (if keepDim param in miopen.h = True)
+     * Output/indices : {N, C, H, W}
      * Each lws handle dim_size elements to find the kth value.
      * Lws = {256 or 512, 1, 1}
      * Gws = {A * B * D * E * lws.x, 1, 1},
@@ -208,7 +208,7 @@ __device__ void kthvalue_bwd(DTYPE* input_grad,
 {
     /*
      * input_grad : {N, C, D, H, W}. Select dim: 2(D)
-     * output_grad/indices : {N, C, H, W} or {N, C, 1, H, W} (if keepDim param in miopen.h = True)
+     * output_grad/indices : {N, C, H, W}
      * lws = {256 or 512, 1, 1}
      * gws = {A * B * D * E * lws.x, 1, 1},
      */
