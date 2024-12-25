@@ -72,7 +72,7 @@ TEST_P(GPU_UnitTestConvSolverGemmFwd1x1_0_2Fwd_FP32, GemmFwd1x1_0_2)
     this->RunTest(miopen::solver::conv::GemmFwd1x1_0_2{});
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwd_NONE, GemmFwd1x1_0_2)
+TEST_P(CPU_UnitTestConvSolverGemmFwd1x1_0_2DevApplicabilityFwd_NONE, GemmFwd1x1_0_2)
 {
     this->RunTest(miopen::solver::conv::GemmFwd1x1_0_2{});
 };
