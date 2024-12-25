@@ -45,7 +45,6 @@ struct FwdInvokeParams : public miopen::InvokeParams
     uint64_t* indices = nullptr;
 
     uint64_t dim = 0;
-    bool keepdim = false;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
@@ -64,7 +63,6 @@ struct BwdInvokeParams : public miopen::InvokeParams
     Data_t inputGrad        = nullptr;
 
     uint64_t dim = 0;
-    bool keepdim = false;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

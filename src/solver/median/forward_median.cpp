@@ -64,7 +64,9 @@ bool MedianForward::IsApplicable(const ExecutionContext& /*context*/,
     if(!problem.IsValidNumDims())
         return false;
 
-    if(!problem.IsValidFloat())
+    if(!(problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
         return false;
 
     if(!IsImprovementOverROCm(problem))

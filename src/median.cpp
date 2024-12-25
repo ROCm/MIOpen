@@ -42,11 +42,9 @@ miopenStatus_t MedianForward(Handle& handle,
                              Data_t output,
                              const TensorDescriptor& indicesDesc,
                              size_t* indices,
-                             const uint64_t dim,
-                             const bool keepdim)
+                             const uint64_t dim)
 {
-    const auto problem =
-        median::FwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim, keepdim};
+    const auto problem = median::FwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim};
 
     const auto invoke_params = [&]() {
         auto tmp = median::FwdInvokeParams{};
@@ -58,7 +56,6 @@ miopenStatus_t MedianForward(Handle& handle,
         tmp.output      = output;
         tmp.indices     = indices;
         tmp.dim         = dim;
-        tmp.keepdim     = keepdim;
         return tmp;
     }();
 
@@ -76,11 +73,10 @@ miopenStatus_t MedianBackward(Handle& handle,
                               const size_t* indices,
                               const TensorDescriptor& inputGradDesc,
                               Data_t inputGrad,
-                              const uint64_t dim,
-                              const bool keepdim)
+                              const uint64_t dim)
 {
     const auto problem =
-        median::BwdProblemDescription{outputGradDesc, indicesDesc, inputGradDesc, dim, keepdim};
+        median::BwdProblemDescription{outputGradDesc, indicesDesc, inputGradDesc, dim};
 
     const auto invoke_params = [&]() {
         auto tmp           = median::BwdInvokeParams{};
@@ -91,7 +87,6 @@ miopenStatus_t MedianBackward(Handle& handle,
         tmp.indices        = indices;
         tmp.inputGrad      = inputGrad;
         tmp.dim            = dim;
-        tmp.keepdim        = keepdim;
         return tmp;
     }();
 

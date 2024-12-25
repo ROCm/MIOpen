@@ -147,7 +147,6 @@ private:
 
     bool is_contiguous;
     uint64_t dim;
-    bool keepdim;
 };
 
 // Equivalent tensor.transpose(0, -1).contiguous().transpose(0, -1)
@@ -181,11 +180,6 @@ int MedianDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "is-contiguous", 'C', "1", "Tensor is contiguous or not (Default=1)", "int");
     inflags.AddInputFlag("dim", 'd', "0", "the dimension to reduce (Default=0)", "int");
-    inflags.AddInputFlag("keepdim",
-                         'K',
-                         "0",
-                         "Whether the output tensor has dim retained or not (Default=0)",
-                         "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "1", "Time (Default=1)", "int");
@@ -202,7 +196,6 @@ int MedianDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 
     is_contiguous = inflags.GetValueInt("is-contiguous") == 1;
     dim           = inflags.GetValueInt("dim");
-    keepdim       = inflags.GetValueInt("keepdim") == 1;
     forw          = inflags.GetValueInt("forw");
 
     if(inflags.GetValueInt("time") == 1)
@@ -220,16 +213,10 @@ int MedianDriver<Tgpu, Tref>::GetandSetData()
     auto input_strides = ComputeStrides(input_dims);
 
     auto output_dims = input_dims;
-    if(!keepdim)
-    {
-        output_dims.erase(output_dims.begin() + dim);
-        if(output_dims.empty())
-            output_dims.push_back(1);
-    }
-    else
-    {
-        output_dims[dim] = 1;
-    }
+
+    output_dims.erase(output_dims.begin() + dim);
+    if(output_dims.empty())
+        output_dims.push_back(1);
 
     if(SetTensorNd(inputDesc, input_dims, input_strides, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input-dims") + ".");
@@ -338,8 +325,7 @@ int MedianDriver<Tgpu, Tref>::RunForwardGPU()
                                           output_dev->GetMem(),
                                           indicesDesc,
                                           (size_t*)indices_dev->GetMem(),
-                                          dim,
-                                          keepdim);
+                                          dim);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMedianForward");
 
@@ -414,8 +400,7 @@ int MedianDriver<Tgpu, Tref>::RunBackwardGPU()
                                            (size_t*)indices_dev->GetMem(),
                                            inputGradDesc,
                                            input_grad_dev->GetMem(),
-                                           dim,
-                                           keepdim);
+                                           dim);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMedianBackward");
 

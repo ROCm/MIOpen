@@ -8021,8 +8021,6 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * @param indicesDesc              Tensor descriptor for indices tensor (input)
  * @param indices                  Data tensor indices (output)
  * @param dim                      The dimension to reduce (input)
- * @param keepdim                  Whether the output tensor has dim
-                                   retained or not (Default=False) (input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenMedianForward(miopenHandle_t handle,
@@ -8032,8 +8030,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMedianForward(miopenHandle_t handle,
                                                  void* output,
                                                  const miopenTensorDescriptor_t indicesDesc,
                                                  size_t* indices,
-                                                 const uint64_t dim,
-                                                 const bool keepdim = false);
+                                                 const uint64_t dim);
 
 /*! @brief Execute a Median backward layer
  *
@@ -8045,8 +8042,6 @@ MIOPEN_EXPORT miopenStatus_t miopenMedianForward(miopenHandle_t handle,
  * @param inputGradDesc            Tensor descriptor for input gradient tensor (input)
  * @param inputGrad                Input gradient tensor (output)
  * @param dim                      The dimension to reduce (input)
- * @param keepdim                  Whether the output tensor has dim
-                                   retained or not (Default=False) (input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenMedianBackward(miopenHandle_t handle,
@@ -8056,8 +8051,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMedianBackward(miopenHandle_t handle,
                                                   const size_t* indices,
                                                   const miopenTensorDescriptor_t inputGradDesc,
                                                   void* inputGrad,
-                                                  const uint64_t dim,
-                                                  const bool keepdim = false);
+                                                  const uint64_t dim);
 
 /** @} */
 // CLOSEOUT MEDIAN DOXYGEN GROUP

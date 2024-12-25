@@ -41,8 +41,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t MedianForward(Handle& handle,
                                                      Data_t output,
                                                      const TensorDescriptor& indicesDesc,
                                                      size_t* indices,
-                                                     uint64_t dim,
-                                                     bool keepdim);
+                                                     uint64_t dim);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t MedianBackward(Handle& handle,
                                                       const TensorDescriptor& outputGradDesc,
@@ -51,8 +50,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t MedianBackward(Handle& handle,
                                                       const size_t* indices,
                                                       const TensorDescriptor& inputGradDesc,
                                                       Data_t inputGrad,
-                                                      uint64_t dim,
-                                                      bool keepdim);
+                                                      uint64_t dim);
 
 } // namespace median
 

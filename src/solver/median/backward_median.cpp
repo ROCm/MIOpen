@@ -64,7 +64,9 @@ bool MedianBackward::IsApplicable(const ExecutionContext& /*context*/,
     if(!problem.IsValidNumDims())
         return false;
 
-    if(!problem.IsValidFloat())
+    if(!(problem.GetInputGradDesc().GetType() == miopenFloat ||
+         problem.GetInputGradDesc().GetType() == miopenHalf ||
+         problem.GetInputGradDesc().GetType() == miopenBFloat16))
         return false;
 
     if(!IsImprovementOverROCm(problem))

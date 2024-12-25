@@ -47,8 +47,7 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 inline void LogCmdMedian(const miopenTensorDescriptor_t inputDesc,
                          const miopenTensorDescriptor_t outputDesc,
                          const uint64_t dim,
-                         const bool keepdim,
-                         bool is_fwd)
+                         const bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -70,13 +69,8 @@ inline void LogCmdMedian(const miopenTensorDescriptor_t inputDesc,
 
         ss << " -in_dims " << miopen::deref(inputDesc).GetLengths();
         ss << " -out_dims " << miopen::deref(outputDesc).GetLengths();
+        ss << " -dim " << dim;
         ss << " -F " << ((is_fwd) ? "1" : "2");
-
-        if(is_fwd)
-        {
-            ss << " -dim " << dim;
-            ss << " -keepdim " << keepdim;
-        }
 
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
@@ -89,13 +83,11 @@ extern "C" miopenStatus_t miopenMedianForward(miopenHandle_t handle,
                                               void* output,
                                               const miopenTensorDescriptor_t indicesDesc,
                                               size_t* indices,
-                                              const uint64_t dim,
-                                              const bool keepdim)
+                                              const uint64_t dim)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, inputDesc, input, outputDesc, output, indicesDesc, indices, dim, keepdim);
+    MIOPEN_LOG_FUNCTION(handle, inputDesc, input, outputDesc, output, indicesDesc, indices, dim);
 
-    LogCmdMedian(inputDesc, outputDesc, dim, keepdim, true);
+    LogCmdMedian(inputDesc, outputDesc, dim, true);
 
     return miopen::try_([&] {
         miopen::median::MedianForward(miopen::deref(handle),
@@ -105,8 +97,7 @@ extern "C" miopenStatus_t miopenMedianForward(miopenHandle_t handle,
                                       DataCast(output),
                                       miopen::deref(indicesDesc),
                                       indices,
-                                      dim,
-                                      keepdim);
+                                      dim);
     });
 };
 
@@ -117,20 +108,12 @@ extern "C" miopenStatus_t miopenMedianBackward(miopenHandle_t handle,
                                                const size_t* indices,
                                                const miopenTensorDescriptor_t inputGradDesc,
                                                void* inputGrad,
-                                               const uint64_t dim,
-                                               const bool keepdim)
+                                               const uint64_t dim)
 {
-    MIOPEN_LOG_FUNCTION(handle,
-                        outputGradDesc,
-                        outputGrad,
-                        indicesDesc,
-                        indices,
-                        inputGradDesc,
-                        inputGrad,
-                        dim,
-                        keepdim);
+    MIOPEN_LOG_FUNCTION(
+        handle, outputGradDesc, outputGrad, indicesDesc, indices, inputGradDesc, inputGrad, dim);
 
-    LogCmdMedian(inputGradDesc, outputGradDesc, dim, keepdim, false);
+    LogCmdMedian(inputGradDesc, outputGradDesc, dim, false);
 
     return miopen::try_([&] {
         miopen::median::MedianBackward(miopen::deref(handle),
@@ -140,7 +123,6 @@ extern "C" miopenStatus_t miopenMedianBackward(miopenHandle_t handle,
                                        indices,
                                        miopen::deref(inputGradDesc),
                                        DataCast(inputGrad),
-                                       dim,
-                                       keepdim);
+                                       dim);
     });
 }

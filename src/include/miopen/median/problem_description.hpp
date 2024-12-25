@@ -39,13 +39,8 @@ struct FwdProblemDescription : public ProblemDescriptionBase
     FwdProblemDescription(const TensorDescriptor& inputDesc_,
                           const TensorDescriptor& outputDesc_,
                           const TensorDescriptor& indicesDesc_,
-                          const uint64_t dim_,
-                          const bool keepdim_)
-        : inputDesc(inputDesc_),
-          outputDesc(outputDesc_),
-          indicesDesc(indicesDesc_),
-          dim(dim_),
-          keepdim(keepdim_)
+                          const uint64_t dim_)
+        : inputDesc(inputDesc_), outputDesc(outputDesc_), indicesDesc(indicesDesc_), dim(dim_)
     {
         IsValidDim();
         IsRightLength();
@@ -56,7 +51,6 @@ struct FwdProblemDescription : public ProblemDescriptionBase
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
     uint64_t GetDim() const { return dim; }
-    bool GetKeepDim() const { return keepdim; }
 
     bool IsValidNumDims() const { return inputDesc.GetNumDims() <= 5; }
 
@@ -81,16 +75,10 @@ struct FwdProblemDescription : public ProblemDescriptionBase
         auto indices_dims = indicesDesc.GetLengths();
 
         auto desired_dims = input_dims;
-        if(keepdim)
-        {
-            desired_dims[dim] = 1;
-        }
-        else
-        {
-            desired_dims.erase(desired_dims.begin() + dim);
-            if(desired_dims.size() == 0)
-                desired_dims.push_back(1);
-        }
+
+        desired_dims.erase(desired_dims.begin() + dim);
+        if(desired_dims.size() == 0)
+            desired_dims.push_back(1);
 
         if(output_dims != desired_dims || indices_dims != desired_dims)
         {
@@ -112,12 +100,6 @@ struct FwdProblemDescription : public ProblemDescriptionBase
         return true;
     }
 
-    bool IsValidFloat() const
-    {
-        return inputDesc.GetType() == miopenFloat || inputDesc.GetType() == miopenHalf ||
-               inputDesc.GetType() == miopenBFloat16;
-    }
-
     bool IsAllContiguous() const
     {
         return inputDesc.IsContiguous() && outputDesc.IsContiguous() && indicesDesc.IsContiguous();
@@ -130,7 +112,6 @@ private:
     const TensorDescriptor& outputDesc;
     const TensorDescriptor& indicesDesc;
     uint64_t dim;
-    bool keepdim;
 };
 
 struct BwdProblemDescription : ProblemDescriptionBase
@@ -138,13 +119,11 @@ struct BwdProblemDescription : ProblemDescriptionBase
     BwdProblemDescription(const TensorDescriptor& outputGradDesc_,
                           const TensorDescriptor& indicesDesc_,
                           const TensorDescriptor& inputGradDesc_,
-                          const uint64_t dim_,
-                          const bool keepdim_)
+                          const uint64_t dim_)
         : outputGradDesc(outputGradDesc_),
           indicesDesc(indicesDesc_),
           inputGradDesc(inputGradDesc_),
-          dim(dim_),
-          keepdim(keepdim_)
+          dim(dim_)
     {
         IsValidDim();
         IsRightLength();
@@ -155,7 +134,6 @@ struct BwdProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
     uint64_t GetDim() const { return dim; }
-    bool GetKeepDim() const { return keepdim; }
 
     bool IsValidNumDims() const { return inputGradDesc.GetNumDims() <= 5; }
 
@@ -180,16 +158,10 @@ struct BwdProblemDescription : ProblemDescriptionBase
         auto indices_dims     = indicesDesc.GetLengths();
 
         auto desired_dims = input_grad_dims;
-        if(keepdim)
-        {
-            desired_dims[dim] = 1;
-        }
-        else
-        {
-            desired_dims.erase(desired_dims.begin() + dim);
-            if(desired_dims.size() == 0)
-                desired_dims.push_back(1);
-        }
+
+        desired_dims.erase(desired_dims.begin() + dim);
+        if(desired_dims.size() == 0)
+            desired_dims.push_back(1);
 
         if(output_grad_dims != desired_dims || indices_dims != desired_dims)
         {
@@ -212,12 +184,6 @@ struct BwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsValidFloat() const
-    {
-        return inputGradDesc.GetType() == miopenFloat || inputGradDesc.GetType() == miopenHalf ||
-               inputGradDesc.GetType() == miopenBFloat16;
-    }
-
     bool IsAllContiguous() const
     {
         return inputGradDesc.IsContiguous() && outputGradDesc.IsContiguous() &&
@@ -231,7 +197,6 @@ private:
     const TensorDescriptor& indicesDesc;
     const TensorDescriptor& inputGradDesc;
     uint64_t dim;
-    bool keepdim;
 };
 
 } // namespace median

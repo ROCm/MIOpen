@@ -41,7 +41,6 @@ struct MedianTestCase
     std::vector<size_t> dims;
     bool is_contiguous;
     uint64_t dim;
-    bool keepdim;
 
     friend std::ostream& operator<<(std::ostream& os, const MedianTestCase& tc)
     {
@@ -59,15 +58,11 @@ struct MedianTestCase
 
     std::vector<size_t> GetDims() const { return dims; }
     uint64_t GetSelectedDim() const { return dim; }
-    bool GetKeepDimValue() const { return keepdim; }
 
     MedianTestCase() {}
 
-    MedianTestCase(std::vector<size_t> dims_,
-                   bool is_contiguous_ = true,
-                   uint64_t dim_       = 0,
-                   bool keepdim_       = false)
-        : dims(dims_), is_contiguous(is_contiguous_), dim(dim_), keepdim(keepdim_)
+    MedianTestCase(std::vector<size_t> dims_, bool is_contiguous_ = true, uint64_t dim_ = 0)
+        : dims(dims_), is_contiguous(is_contiguous_), dim(dim_)
     {
     }
 
@@ -122,9 +117,9 @@ struct MedianTestCase
 inline std::vector<MedianTestCase> MedianTestConfigs()
 {
     return {
-        MedianTestCase({700, 800}, false, 0, true),
-        MedianTestCase({600, 20, 10}, false, 0, true),
-        MedianTestCase({500, 40, 30, 20}, false, 0, true),
+        MedianTestCase({700, 800}, false, 0),
+        MedianTestCase({600, 20, 10}, false, 0),
+        MedianTestCase({500, 40, 30, 20}, false, 0),
     };
 }
 
@@ -140,20 +135,13 @@ protected:
         auto input_dims                   = config.GetDims();
         std::vector<size_t> input_strides = config.ComputeStrides(input_dims);
 
-        dim     = config.GetSelectedDim();
-        keepdim = config.GetKeepDimValue();
+        dim = config.GetSelectedDim();
 
         auto output_dims = config.GetDims();
-        if(!keepdim)
-        {
-            output_dims.erase(output_dims.begin() + dim);
-            if(output_dims.empty())
-                output_dims.push_back(1);
-        }
-        else
-        {
-            output_dims[dim] = 1;
-        }
+
+        output_dims.erase(output_dims.begin() + dim);
+        if(output_dims.empty())
+            output_dims.push_back(1);
 
         auto in_gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         input             = tensor<T>{input_dims, input_strides}.generate(in_gen_value);
@@ -191,8 +179,7 @@ protected:
                                                output_dev.get(),
                                                indices.desc,
                                                (size_t*)indices_dev.get(),
-                                               dim,
-                                               keepdim);
+                                               dim);
 
         ASSERT_EQ(status, miopenStatusSuccess);
 
@@ -263,7 +250,6 @@ protected:
     miopen::Allocator::ManageDataPtr indices_dev;
 
     uint64_t dim;
-    bool keepdim;
 };
 
 template <typename T>
@@ -278,20 +264,13 @@ protected:
         auto input_grad_dims    = config.GetDims();
         auto input_grad_strides = config.ComputeStrides(input_grad_dims);
 
-        dim     = config.GetSelectedDim();
-        keepdim = config.GetKeepDimValue();
+        dim = config.GetSelectedDim();
 
         auto output_grad_dims = input_grad_dims;
-        if(!keepdim)
-        {
-            output_grad_dims.erase(output_grad_dims.begin() + dim);
-            if(output_grad_dims.empty())
-                output_grad_dims.push_back(1);
-        }
-        else
-        {
-            output_grad_dims[dim] = 1;
-        }
+
+        output_grad_dims.erase(output_grad_dims.begin() + dim);
+        if(output_grad_dims.empty())
+            output_grad_dims.push_back(1);
 
         std::vector<size_t> output_grad_strides = config.ComputeStrides(output_grad_dims);
 
@@ -342,8 +321,7 @@ protected:
                                                 (size_t*)indices_dev.get(),
                                                 input_grad.desc,
                                                 input_grad_dev.get(),
-                                                dim,
-                                                keepdim);
+                                                dim);
 
         ASSERT_EQ(status, miopenStatusSuccess);
 
@@ -378,5 +356,4 @@ protected:
     miopen::Allocator::ManageDataPtr input_grad_dev;
 
     uint64_t dim;
-    bool keepdim;
 };
