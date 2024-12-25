@@ -37,57 +37,9 @@
 #include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 
+#include "mloKthValueHost.hpp"
+
 #include <vector>
-
-template <typename TIO>
-void mloKthvalueFwdRunHost(TIO* input,
-                           miopenTensorDescriptor_t pInputDesc,
-                           TIO* outputHost,
-                           miopenTensorDescriptor_t outputDesc,
-                           size_t* indices,
-                           miopenTensorDescriptor_t indicesDesc,
-                           size_t k,
-                           int dim)
-{
-    auto inputDesc         = miopen::deref(pInputDesc);
-    size_t inputSize       = inputDesc.GetElementSize();
-    size_t dimSize         = inputDesc.GetLengths()[dim];
-    size_t dimStride       = inputDesc.GetStrides()[dim];
-    auto inputTv           = miopen::get_inner_expanded_tv<5>(miopen::deref(pInputDesc));
-    auto inputTvWithoutDim = miopen::get_tv_without_dim<5>(inputTv, dim);
-    auto outputTv          = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
-    auto indicesTv         = miopen::get_inner_expanded_tv<5>(miopen::deref(indicesDesc));
-
-    size_t numSlice = inputSize / dimSize;
-
-    std::vector<float> elements;
-    std::vector<size_t> ids(dimSize);
-    for(int i = 0; i < dimSize; ++i)
-    {
-        ids[i] = i;
-    }
-
-    for(int slideID = 0; slideID < numSlice; ++slideID)
-    {
-        elements.clear();
-        tensor_layout_t<4> layout(inputTvWithoutDim, slideID);
-        auto idx = inputTvWithoutDim.get_tensor_view_idx(layout);
-
-        for(int j = 0; j < dimSize; ++j)
-        {
-            elements.push_back(static_cast<float>(input[idx + j * dimStride]));
-        }
-
-        std::sort(ids.begin(), ids.end(), [=](size_t x, size_t y) -> bool {
-            return elements[x] < elements[y];
-        });
-        auto output_layout  = tensor_layout_t<5>(outputTv, slideID);
-        auto indices_layout = tensor_layout_t<5>(indicesTv, slideID);
-        outputHost[outputTv.get_tensor_view_idx(output_layout)] =
-            static_cast<TIO>(elements[ids[k - 1]]);
-        indices[indicesTv.get_tensor_view_idx(indices_layout)] = ids[k - 1];
-    }
-}
 
 template <typename TIO>
 class KthvalueDriver : public Driver
@@ -333,14 +285,14 @@ int KthvalueDriver<TIO>::RunForwardGPU()
 template <typename TIO>
 int KthvalueDriver<TIO>::RunForwardCPU()
 {
-    mloKthvalueFwdRunHost<TIO>(input.data(),
-                               inputDesc,
-                               outputHost.data(),
-                               outputDesc,
-                               indicesHost.data(),
-                               indicesDesc,
-                               k,
-                               dim);
+    mloKthvalueFwdRunHost(inputDesc,
+                          outputDesc,
+                          indicesDesc,
+                          input.data(),
+                          outputHost.data(),
+                          indicesHost.data(),
+                          k,
+                          dim);
 
     return miopenStatusSuccess;
 }
