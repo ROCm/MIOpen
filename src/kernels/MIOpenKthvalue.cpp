@@ -42,7 +42,7 @@
 #define LOCAL_SIZE 256
 #endif
 
-template <typename DTYPE>
+template <typename DTYPE, uint32_t NDIMS>
 __device__ void kthvalueFwd(const DTYPE* input,
                             DTYPE* output,
                             size_t* indices,
@@ -50,9 +50,9 @@ __device__ void kthvalueFwd(const DTYPE* input,
                             size_t dim_size,
                             size_t dim_stride,
                             size_t output_size,
-                            tensor_view_t<4> input_tv,
-                            tensor_view_t<5> output_tv,
-                            tensor_view_t<5> indices_tv)
+                            tensor_view_t<NDIMS - 1> input_tv,
+                            tensor_view_t<NDIMS> output_tv,
+                            tensor_view_t<NDIMS> indices_tv)
 {
     /*
      * Input : {N, C, D, H, W}. Select dim: 2(D)
@@ -81,7 +81,7 @@ __device__ void kthvalueFwd(const DTYPE* input,
     RADIX_TYPE desired_mask = 0;
     RADIX_TYPE desired      = 0;
 
-    tensor_layout_t<4> layout(input_tv, gid);
+    tensor_layout_t<NDIMS - 1> layout(input_tv, gid);
     auto idx = input_tv.get_tensor_view_idx(layout);
 
     for(int pos = sizeof(RADIX_TYPE) * 8 - RADIX_BITS; pos >= 0; pos -= RADIX_BITS)
@@ -166,9 +166,9 @@ __device__ void kthvalueFwd(const DTYPE* input,
     __syncthreads();
     if(lid == 0)
     {
-        auto output_layout                                   = tensor_layout_t<5>(output_tv, gid);
-        auto indices_layout                                  = tensor_layout_t<5>(indices_tv, gid);
-        output[output_tv.get_tensor_view_idx(output_layout)] = lval;
+        auto output_layout  = tensor_layout_t<NDIMS>(output_tv, gid);
+        auto indices_layout = tensor_layout_t<NDIMS>(indices_tv, gid);
+        output[output_tv.get_tensor_view_idx(output_layout)]    = lval;
         indices[indices_tv.get_tensor_view_idx(indices_layout)] = lidx;
     }
 }
@@ -180,31 +180,31 @@ extern "C" __global__ void KthvalueFwd(const IN_OUT_TYPE* input,
                                        size_t dim_size,
                                        size_t dim_stride,
                                        size_t output_size,
-                                       tensor_view_t<4> input_tv,
-                                       tensor_view_t<5> output_tv,
-                                       tensor_view_t<5> indices_tv)
+                                       tensor_view_t<VIEW_DIMS - 1> input_tv,
+                                       tensor_view_t<VIEW_DIMS> output_tv,
+                                       tensor_view_t<VIEW_DIMS> indices_tv)
 {
-    kthvalueFwd<IN_OUT_TYPE>(input,
-                             output,
-                             indices,
-                             k,
-                             dim_size,
-                             dim_stride,
-                             output_size,
-                             input_tv,
-                             output_tv,
-                             indices_tv);
+    kthvalueFwd<IN_OUT_TYPE, VIEW_DIMS>(input,
+                                        output,
+                                        indices,
+                                        k,
+                                        dim_size,
+                                        dim_stride,
+                                        output_size,
+                                        input_tv,
+                                        output_tv,
+                                        indices_tv);
 }
 
-template <typename DTYPE>
+template <typename DTYPE, uint32_t NDIMS>
 __device__ void kthvalue_bwd(DTYPE* input_grad,
                              const DTYPE* output_grad,
                              const uint64_t* indices,
                              uint64_t dim_size,
                              uint64_t dim_stride,
-                             tensor_view_t<4> input_grad_tv,
-                             tensor_view_t<5> output_grad_tv,
-                             tensor_view_t<5> indices_tv)
+                             tensor_view_t<NDIMS - 1> input_grad_tv,
+                             tensor_view_t<NDIMS> output_grad_tv,
+                             tensor_view_t<NDIMS> indices_tv)
 {
     /*
      * input_grad : {N, C, D, H, W}. Select dim: 2(D)
@@ -216,15 +216,15 @@ __device__ void kthvalue_bwd(DTYPE* input_grad,
     size_t lid = threadIdx.x;
     size_t gid = blockIdx.x;
 
-    auto og_tl = tensor_layout_t<5>(output_grad_tv, gid);
+    auto og_tl = tensor_layout_t<NDIMS>(output_grad_tv, gid);
     DTYPE val  = output_grad[output_grad_tv.get_tensor_view_idx(og_tl)];
 
     // indices
-    auto ids_tl = tensor_layout_t<5>(indices_tv, gid);
+    auto ids_tl = tensor_layout_t<NDIMS>(indices_tv, gid);
     auto idx    = indices[indices_tv.get_tensor_view_idx(ids_tl)];
 
     // input_grad_tensor_layout
-    tensor_layout_t<4> ig_gid_tl(input_grad_tv, gid);
+    tensor_layout_t<NDIMS - 1> ig_gid_tl(input_grad_tv, gid);
     auto ig_idx = input_grad_tv.get_tensor_view_idx(ig_gid_tl);
 
     for(uint64_t i = lid; i < dim_size; i += LOCAL_SIZE)
@@ -239,16 +239,16 @@ extern "C" __global__ void KthvalueBwd(IN_OUT_TYPE* input_grad,
                                        const uint64_t* indices,
                                        uint64_t dim_size,
                                        uint64_t dim_stride,
-                                       tensor_view_t<4> input_grad_tv,
-                                       tensor_view_t<5> output_grad_tv,
-                                       tensor_view_t<5> indices_tv)
+                                       tensor_view_t<VIEW_DIMS - 1> input_grad_tv,
+                                       tensor_view_t<VIEW_DIMS> output_grad_tv,
+                                       tensor_view_t<VIEW_DIMS> indices_tv)
 {
-    kthvalue_bwd<IN_OUT_TYPE>(input_grad,
-                              output_grad,
-                              indices,
-                              dim_size,
-                              dim_stride,
-                              input_grad_tv,
-                              output_grad_tv,
-                              indices_tv);
+    kthvalue_bwd<IN_OUT_TYPE, VIEW_DIMS>(input_grad,
+                                         output_grad,
+                                         indices,
+                                         dim_size,
+                                         dim_stride,
+                                         input_grad_tv,
+                                         output_grad_tv,
+                                         indices_tv);
 }

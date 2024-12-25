@@ -199,6 +199,7 @@ protected:
         // Verify output_tensor
         double threshold = GetTolerance();
         auto error       = miopen::rms_range(ref_output, output);
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
         EXPECT_LT(error, threshold) << "Error output beyond tolerance Error: " << error
                                     << ", Threshold: " << threshold << std::endl;
 
@@ -339,6 +340,7 @@ protected:
     {
         double threshold = GetTolerance();
         auto error       = miopen::rms_range(ref_input_grad, input_grad);
+        ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));
         EXPECT_LT(error, threshold) << "Error output beyond tolerance Error: " << error
                                     << ", Threshold: " << threshold << std::endl;
     }

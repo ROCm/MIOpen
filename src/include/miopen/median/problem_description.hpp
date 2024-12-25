@@ -52,8 +52,6 @@ struct FwdProblemDescription : public ProblemDescriptionBase
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
     uint64_t GetDim() const { return dim; }
 
-    bool IsValidNumDims() const { return inputDesc.GetNumDims() <= 5; }
-
     bool IsValidDim() const
     {
 
@@ -134,8 +132,6 @@ struct BwdProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
     uint64_t GetDim() const { return dim; }
-
-    bool IsValidNumDims() const { return inputGradDesc.GetNumDims() <= 5; }
 
     bool IsValidDim() const
     {

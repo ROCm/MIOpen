@@ -39,6 +39,7 @@
 #include <miopen/tensor_view_utils.hpp>
 #include <miopen/target_properties.hpp>
 
+#define VIEW_DIMS 5
 #define LOCAL_SIZE 256
 
 namespace miopen {
@@ -61,7 +62,7 @@ bool IsImprovementOverROCm(const miopen::median::BwdProblemDescription& problem)
 bool MedianBackward::IsApplicable(const ExecutionContext& /*context*/,
                                   const miopen::median::BwdProblemDescription& problem) const
 {
-    if(!problem.IsValidNumDims())
+    if(problem.GetInputGradDesc().GetVectorLength() > VIEW_DIMS)
         return false;
 
     if(!(problem.GetInputGradDesc().GetType() == miopenFloat ||
@@ -108,6 +109,7 @@ ConvSolution MedianBackward::GetSolution(const ExecutionContext& context,
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"IN_OUT_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
+        {"VIEW_DIMS", VIEW_DIMS},
         {"LOCAL_SIZE", xlocalsize},
     };
 

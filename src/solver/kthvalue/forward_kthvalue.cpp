@@ -33,6 +33,8 @@
 #include <miopen/kthvalue/solvers.hpp>
 #include <miopen/kthvalue.hpp>
 
+#define VIEW_DIMS 5
+
 namespace miopen {
 
 namespace solver {
@@ -52,9 +54,15 @@ bool IsImprovementOverROCm(const miopen::kthvalue::FwdProblemDescription& proble
 bool KthvalueFwd::IsApplicable(const ExecutionContext& /*context*/,
                                const miopen::kthvalue::FwdProblemDescription& problem) const
 {
-    if(!IsImprovementOverROCm(problem))
+    if(problem.GetInputDesc().GetVectorLength() > VIEW_DIMS)
         return false;
-    if(problem.GetInputDesc().GetNumDims() > 5)
+
+    if(!(problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
+        return false;
+
+    if(!IsImprovementOverROCm(problem))
         return false;
     return true;
 }
@@ -93,6 +101,7 @@ ConvSolution KthvalueFwd::GetSolution(const ExecutionContext& context,
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"IN_OUT_TYPE", in_dtype == "bfloat16" ? "ushort" : in_dtype},
+        {"VIEW_DIMS", VIEW_DIMS},
         {"LOCAL_SIZE", xlocalsize},
     };
 
@@ -114,11 +123,12 @@ ConvSolution KthvalueFwd::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::kthvalue::FwdInvokeParams>();
             size_t dim_stride     = params.inputDesc->GetStrides()[params.dim];
 
-            auto input_tv                      = get_inner_expanded_tv<5>(deref(params.inputDesc));
-            auto input_tv_without_selected_dim = get_tv_without_dim<5>(input_tv, params.dim);
+            auto input_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
+            auto input_tv_without_selected_dim =
+                get_tv_without_dim<VIEW_DIMS>(input_tv, params.dim);
 
-            auto output_tv  = get_inner_expanded_tv<5>(deref(params.outputDesc));
-            auto indices_tv = get_inner_expanded_tv<5>(deref(params.indicesDesc));
+            auto output_tv  = get_inner_expanded_tv<VIEW_DIMS>(deref(params.outputDesc));
+            auto indices_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.indicesDesc));
 
             kernel(params.input,
                    params.output,

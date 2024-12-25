@@ -39,6 +39,7 @@
 #include <miopen/tensor_view_utils.hpp>
 #include <miopen/target_properties.hpp>
 
+#define VIEW_DIMS 5
 #define LOCAL_SIZE 256
 
 namespace miopen {
@@ -61,7 +62,7 @@ bool IsImprovementOverROCm(const miopen::median::FwdProblemDescription& problem)
 bool MedianForward::IsApplicable(const ExecutionContext& /*context*/,
                                  const miopen::median::FwdProblemDescription& problem) const
 {
-    if(!problem.IsValidNumDims())
+    if(problem.GetInputDesc().GetVectorLength() > VIEW_DIMS)
         return false;
 
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
@@ -109,6 +110,7 @@ ConvSolution MedianForward::GetSolution(const ExecutionContext& context,
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"IN_OUT_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
+        {"VIEW_DIMS", VIEW_DIMS},
         {"LOCAL_SIZE", xlocalsize},
     };
 
@@ -131,11 +133,12 @@ ConvSolution MedianForward::GetSolution(const ExecutionContext& context,
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::median::FwdInvokeParams>();
 
-            auto input_tv                      = get_inner_expanded_tv<5>(deref(params.inputDesc));
-            auto input_tv_without_selected_dim = get_tv_without_dim<5>(input_tv, params.dim);
+            auto input_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputDesc));
+            auto input_tv_without_selected_dim =
+                get_tv_without_dim<VIEW_DIMS>(input_tv, params.dim);
 
-            auto output_tv  = get_inner_expanded_tv<5>(deref(params.outputDesc));
-            auto indices_tv = get_inner_expanded_tv<5>(deref(params.indicesDesc));
+            auto output_tv  = get_inner_expanded_tv<VIEW_DIMS>(deref(params.outputDesc));
+            auto indices_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.indicesDesc));
 
             auto dim = params.dim;
             auto k   = (input_lengths[dim] + 1) / 2;
