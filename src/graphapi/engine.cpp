@@ -34,10 +34,7 @@ namespace graphapi {
 
 GraphPatternExecutor::~GraphPatternExecutor() = default;
 
-size_t GraphExecutorFind20::getWorkspaceSize() const
-{
-    return miopen::deref(mSolution).GetWorkspaceSize();
-}
+size_t GraphExecutorFind20::getWorkspaceSize() const { return mSolution.GetWorkspaceSize(); }
 
 void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
 {
@@ -79,7 +76,7 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
     }
 
     auto s = miopenRunSolution(handle,
-                               mSolution,
+                               &mSolution,
                                tens_args.size(),
                                tens_args.data(),
                                vpk.getWorkspace(),
