@@ -72,6 +72,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
+ * @defgroup allclose
  *
  */
 
@@ -8004,58 +8005,52 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// SparseSoftmaxCrossEntropyWithLogits APIs
-/** @addtogroup LossFunction
+// AllClose APIs
+/** @addtogroup allclose
  *
  *  @{
  */
 
-/*! @brief Execute a sparse_softmax_cross_entropy_with_logits forward layer
+/*! @brief Helper function to query the minimum workspace size required by the
+AllCloseForward call
  *
- * @param handle                MIOpen handle (input)
- * @param inputDesc             Tensor descriptor for input  tensor (input)
- * @param input                 Data tensor input  (input)
- * @param targetDesc            Tensor descriptor for target tensor (input)
- * @param target                Data tensor target (input)
- * @param outputDesc            Tensor descriptor for output tensor (input)
- * @param output                Data tensor output (output)
- * @param backpropDesc          Tensor descriptor for backprop tensor (input)
- * @param backprop              Data tensor backprop (output)
- * @return                      miopenStatus_t
+ * @param handle              MIOpen Handle (input)
+ * @param input1Desc          Tensor descriptor for input 1 tensor (input)
+ * @param input2Desc          Tensor descriptor for input 2 tensor (input)
+ * @param sizeInBytes         Pointer to data to return the minimum workspace size (output)
+ * @return                    miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenSparseSoftmaxCrossEntropyWithLogitsForward(miopenHandle_t handle,
-                                                 const miopenTensorDescriptor_t inputDesc,
-                                                 const void* input,
-                                                 const miopenTensorDescriptor_t targetDesc,
-                                                 const void* target,
-                                                 const miopenTensorDescriptor_t outputDesc,
-                                                 void* output,
-                                                 const miopenTensorDescriptor_t backpropDesc,
-                                                 void* backprop);
+miopenGetAllCloseForwardWorkspaceSize(miopenHandle_t handle,
+                                      const miopenTensorDescriptor_t input1Desc,
+                                      const miopenTensorDescriptor_t input2Desc,
+                                      size_t* sizeInBytes);
 
-/*! @brief Execute a sparse_softmax_cross_entropy_with_logits backward layer
+/*! @brief Execute a allclose forward layer
  *
  * @param handle                MIOpen handle (input)
- * @param outputGradDesc        Tensor descriptor for output grad tensor (input)
- * @param output_grad           Data tensor output grad (input)
- * @param backpropDesc          Tensor descriptor for backprop tensor (input)
- * @param backprop              Data tensor backprop (input)
- * @param inputGradDesc         Tensor descriptor for input grad tensor (input)
- * @param input_grad            Data tensor input grad (output)
+ * @param input1Desc            Tensor descriptor for input1  tensor (input)
+ * @param input1                Data tensor input1 (input)
+ * @param input2Desc            Tensor descriptor for input2  tensor (input)
+ * @param input2                Data tensor input2 (input)
+ * @param atol                  Absolute tolerance (input)
+ * @param rtol                  Relative tolerance (input)
+ * @param equal_nan             Flag indicating whether to compare NaNs as equal (input)
+ * @param output                Data tensor output (output)
  * @return                      miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t
-miopenSparseSoftmaxCrossEntropyWithLogitsBackward(miopenHandle_t handle,
-                                                  const miopenTensorDescriptor_t outputGradDesc,
-                                                  const void* output_grad,
-                                                  const miopenTensorDescriptor_t backpropDesc,
-                                                  const void* backprop,
-                                                  const miopenTensorDescriptor_t inputGradDesc,
-                                                  void* input_grad);
+MIOPEN_EXPORT miopenStatus_t miopenAllCloseForward(miopenHandle_t handle,
+                                                   const miopenTensorDescriptor_t input1Desc,
+                                                   const void* input1,
+                                                   const miopenTensorDescriptor_t input2Desc,
+                                                   const void* input2,
+                                                   const float atol,
+                                                   const float rtol,
+                                                   const bool equal_nan,
+                                                   bool* output);
 
 /** @} */
-// CLOSEOUT LossFunction DOXYGEN GROUP
+// CLOSEOUT allclose DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

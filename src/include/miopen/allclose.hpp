@@ -23,52 +23,29 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
-
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
+#include <miopen/common.hpp>
 
 namespace miopen {
 
-namespace sparse_softmax_cross_entropy_with_logits {
+struct Handle;
+struct TensorDescriptor;
 
-struct FwdInvokeParams : public miopen::InvokeParams
-{
+namespace allclose {
 
-    FwdInvokeParams() = default;
+MIOPEN_INTERNALS_EXPORT std::size_t GetAllCloseForwardWorkspaceSize(
+    Handle& handle, const TensorDescriptor& input1Desc, const TensorDescriptor& input2Desc);
 
-    const TensorDescriptor* inputDesc    = nullptr;
-    const TensorDescriptor* targetDesc   = nullptr;
-    const TensorDescriptor* outputDesc   = nullptr;
-    const TensorDescriptor* backpropDesc = nullptr;
+MIOPEN_INTERNALS_EXPORT miopenStatus_t AllCloseForward(Handle& handle,
+                                                       const TensorDescriptor& input1Desc,
+                                                       ConstData_t input1,
+                                                       const TensorDescriptor& input2Desc,
+                                                       ConstData_t input2,
+                                                       float atol,
+                                                       float rtol,
+                                                       bool equal_nan,
+                                                       Data_t output);
 
-    ConstData_t input  = nullptr;
-    ConstData_t target = nullptr;
-    Data_t output      = nullptr;
-    Data_t backprop    = nullptr;
-
-    std::uint64_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
-};
-
-struct BwdInvokeParams : public miopen::InvokeParams
-{
-
-    BwdInvokeParams() = default;
-
-    const TensorDescriptor* outputGradDesc = nullptr;
-    const TensorDescriptor* backpropDesc   = nullptr;
-    const TensorDescriptor* inputGradDesc  = nullptr;
-
-    ConstData_t output_grad = nullptr;
-    ConstData_t backprop    = nullptr;
-    Data_t input_grad       = nullptr;
-
-    std::uint64_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
-};
-
-} // namespace sparse_softmax_cross_entropy_with_logits
+} // namespace allclose
 
 } // namespace miopen

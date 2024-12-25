@@ -24,14 +24,14 @@
  *
  *******************************************************************************/
 
-#include <miopen/sparse_softmax_cross_entropy_with_logits/problem_description.hpp>
+#include <miopen/allclose/problem_description.hpp>
 #include <miopen/names.hpp>
 
 #include <sstream>
 
 namespace miopen {
 
-namespace sparse_softmax_cross_entropy_with_logits {
+namespace allclose {
 
 inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v)
 {
@@ -46,32 +46,19 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v
     return os;
 }
 
-NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype = outputDesc.GetType();
+    auto dtype = input1Desc.GetType();
     std::ostringstream ss;
 
-    ss << "sparse_softmax_cross_entropy_with_logits_fwd";
+    ss << "allclose_fwd";
     ss << "-dtype" << dtype;
-    ss << "-Is" << inputDesc.GetLengths();
+    ss << "-Is" << input1Desc.GetLengths();
     ss << "-IsContiguous" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }
 
-NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
-{
-    auto dtype = outputGradDesc.GetType();
-    std::ostringstream ss;
-
-    ss << "sparse_softmax_cross_entropy_with_logits_bwd";
-    ss << "-dtype" << dtype;
-    ss << "-dIs" << inputGradDesc.GetLengths();
-    ss << "-IsContiguous" << IsAllContiguous();
-
-    return NetworkConfig{ss.str()};
-}
-
-} // namespace sparse_softmax_cross_entropy_with_logits
+} // namespace allclose
 
 } // namespace miopen

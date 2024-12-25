@@ -88,6 +88,8 @@ set( MIOpen_Source
     adam/problem_description.cpp
     adam_api.cpp
     addlayernorm_api.cpp
+    allclose_api.cpp
+    allclose/problem_description.cpp
     api/find2_0_commons.cpp
     batch_norm.cpp
     batch_norm_api.cpp
@@ -207,6 +209,7 @@ set( MIOpen_Source
     solver/activ/fwd_1.cpp
     solver/adam/adam.cpp
     solver/adam/transformers_adam_w.cpp
+    solver/allclose/forward_allclose.cpp
     solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
@@ -334,10 +337,6 @@ set( MIOpen_Source
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
-    solver/sparse_softmax_cross_entropy_with_logits/backward_sparse_softmax_cross_entropy_with_logits.cpp
-    solver/sparse_softmax_cross_entropy_with_logits/forward_sparse_softmax_cross_entropy_with_logits.cpp
-    sparse_softmax_cross_entropy_with_logits_api.cpp
-    sparse_softmax_cross_entropy_with_logits/problem_description.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
@@ -517,6 +516,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${GPU_BATCHED_TRANSPOSE_KERNEL_HIP}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_SOURCE}
         kernels/MIOpenAdam.cpp
+        kernels/MIOpenAllClose.cpp
         kernels/MIOpenCat.cpp
         kernels/MIOpenCheckNumerics.cpp
         kernels/MIOpenBatchNormActivBwdPerAct.cl
@@ -554,7 +554,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenReduceSum.cpp
         kernels/MIOpenRoPE.cpp
-        kernels/MIOpenSparseSoftmaxCrossEntropyWithLogits.cpp
         kernels/MIOpenSoftMarginLoss.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
@@ -670,6 +669,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         activ.cpp
         adam.cpp
         addlayernorm.cpp
+        allclose.cpp
         cat.cpp
         exec_utils.cpp
         groupnorm.cpp
@@ -706,7 +706,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reduceextreme.cpp
         rope.cpp
         softmarginloss.cpp
-        sparse_softmax_cross_entropy_with_logits.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )

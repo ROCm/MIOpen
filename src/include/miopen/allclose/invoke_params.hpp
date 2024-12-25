@@ -23,50 +23,39 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_WARP_REDUCE_HPP
-#define GUARD_WARP_REDUCE_HPP
 
-#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-#include <hip/hip_fp16.h>
-#include <hip/hip_runtime.h>
-#endif
+#pragma once
 
-#include "float_types.h"
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
-enum class BinaryOp_t
+namespace miopen {
+
+namespace allclose {
+
+struct InvokeParams : public miopen::InvokeParams
 {
-    Add,
-    Max,
-    Prod,
+
+    InvokeParams() = default;
+
+    const TensorDescriptor* input1Desc = nullptr;
+    const TensorDescriptor* input2Desc = nullptr;
+
+    ConstData_t input1 = nullptr;
+    ConstData_t input2 = nullptr;
+    Data_t output      = nullptr;
+
+    float atol;
+    float rtol;
+    bool equal_nan;
+
+    size_t workspace_size = 0;
+    Data_t workspace      = nullptr;
+
+    size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
 };
 
-template <BinaryOp_t Op, typename T>
-struct BinaryFunc;
+} // namespace allclose
 
-template <typename T>
-struct BinaryFunc<BinaryOp_t::Add, T>
-{
-    constexpr void exec(T& a, const T& b) { a += b; }
-};
-
-template <typename T>
-struct BinaryFunc<BinaryOp_t::Max, T>
-{
-    constexpr void exec(T& a, const T& b) { a = max(a, b); }
-};
-
-template <typename T>
-struct BinaryFunc<BinaryOp_t::Prod, T>
-{
-    constexpr void exec(T& a, const T& b) { a *= b; }
-};
-
-template <BinaryOp_t Op, uint32_t ws = warpSize>
-__device__ FLOAT_ACCUM warp_reduce(FLOAT_ACCUM val)
-{
-    for(auto d = ws / 2; d >= 1; d >>= 1)
-        BinaryFunc<Op, FLOAT_ACCUM>{}.exec(val, __shfl_xor(val, d));
-    return val;
-}
-
-#endif // GUARD_WARP_REDUCE_HPP
+} // namespace miopen
