@@ -60,7 +60,7 @@ public:
         }
     }
 
-    scope_exit(const scope_exit&)            = delete;
+    scope_exit(const scope_exit&) = delete;
     scope_exit& operator=(const scope_exit&) = delete;
     void release() { mActive = false; };
 };
