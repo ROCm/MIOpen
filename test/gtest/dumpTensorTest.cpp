@@ -142,29 +142,27 @@ void testDumpWithNan(const std::string& test_file_name)
     fs::remove(test_file_name);
 }
 
-TEST(DUMP_TENSOR_TEST, testDump_float) { testDump<float>(test_file_name_prefix + "float.bin"); }
-
-TEST(DUMP_TENSOR_TEST, testDump_NAN_float)
+namespace {
+std::string GetFullFileName(const std::string& filename)
 {
-    testDumpWithNan<float>(test_file_name_prefix + "nan_float.bin");
+    return fs::temp_directory_path().append(test_file_name_prefix + filename).string();
+}
+} // namespace
+
+TEST(CPU_Dump_FP32, testDump) { testDump<float>(GetFullFileName("float.bin")); }
+
+TEST(CPU_Dump_NAN_FP32, testDump) { testDumpWithNan<float>(GetFullFileName("nan_float.bin")); }
+
+TEST(CPU_Dump_FP16, testDump) { testDump<half_float::half>(GetFullFileName("half_float.bin")); }
+
+TEST(CPU_Dump_NAN_FP16, testDump)
+{
+    testDumpWithNan<half_float::half>(GetFullFileName("nan_half_float.bin"));
 }
 
-TEST(DUMP_TENSOR_TEST, testDump_half_float)
-{
-    testDump<half_float::half>(test_file_name_prefix + "half_float.bin");
-}
+TEST(CPU_Dump_BFP16, testDump) { testDump<bfloat16>(GetFullFileName("bfloat16.bin")); }
 
-TEST(DUMP_TENSOR_TEST, testDump_NAN_half_float)
+TEST(CPU_Dump_NAN_BFP16, testDump)
 {
-    testDumpWithNan<half_float::half>(test_file_name_prefix + "nan_half_float.bin");
-}
-
-TEST(DUMP_TENSOR_TEST, testDump_bfloat16)
-{
-    testDump<bfloat16>(test_file_name_prefix + "bfloat16.bin");
-}
-
-TEST(DUMP_TENSOR_TEST, testDump_NAN_bfloat16)
-{
-    testDumpWithNan<bfloat16>(test_file_name_prefix + "nan_bfloat16.bin");
+    testDumpWithNan<bfloat16>(GetFullFileName("nan_bfloat16.bin"));
 }

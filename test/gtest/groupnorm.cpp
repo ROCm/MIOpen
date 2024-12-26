@@ -23,47 +23,21 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
 #include "groupnorm.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace env = miopen::env;
 
 namespace groupnorm {
 
-std::string GetFloatArg()
-{
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct GroupNormTestFloat : GroupNormTest<float>
+struct GPU_GroupNorm_FP32 : GroupNormTest<float>
 {
 };
 
 } // namespace groupnorm
 using namespace groupnorm;
 
-TEST_P(GroupNormTestFloat, GroupNormTestFw)
+TEST_P(GPU_GroupNorm_FP32, GroupNormTestFw)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(GroupNormTestSet,
-                         GroupNormTestFloat,
-                         testing::ValuesIn(GroupNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GroupNorm_FP32, testing::ValuesIn(GroupNormTestConfigs()));

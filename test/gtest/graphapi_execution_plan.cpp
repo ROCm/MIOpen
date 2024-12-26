@@ -37,7 +37,7 @@ using miopen::graphapi::ExecutionPlanBuilder;
 
 } // namespace
 
-TEST(GraphApi, ExecutionPlanBuilder)
+TEST(CPU_GraphApi_NONE, ExecutionPlanBuilder)
 {
     miopenHandle_t handle;
     auto status = miopenCreate(&handle);
@@ -77,7 +77,7 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 } // namespace
 
-TEST(GraphApi, ExecutionPlan)
+TEST(CPU_GraphApi_NONE, ExecutionPlan)
 {
     miopenHandle_t handle;
     auto status = miopenCreate(&handle);

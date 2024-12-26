@@ -264,7 +264,8 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
             // Run invoker max 6 times, with ~5 sec time limit.
             using elapsed_t                 = decltype(handle.GetKernelTime());
             constexpr elapsed_t TIME_MS_MAX = 5000.0;
-            constexpr int N_RUNS_MAX        = 6;
+            constexpr int N_RUNS_MAX        = 8;
+            constexpr int N_RUNS_DISCARD    = 3;
             auto elapsed                    = static_cast<elapsed_t>(0);
             auto first_elapsed              = static_cast<elapsed_t>(0);
             int i                           = 0;
@@ -272,14 +273,22 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
             {
                 invoker(handle, invoke_ctx);
                 elapsed += handle.GetKernelTime();
-                if(i == 0)
+                if(i == (N_RUNS_DISCARD - 1))
                     first_elapsed = elapsed;
                 ++i;
             }
             // If the execution time was not too long,
             // then the 1st run is not counted (assume it's warm-up):
-            if(i > 1)
-                elapsed = (elapsed - first_elapsed) / static_cast<elapsed_t>(i - 1);
+            if(i > N_RUNS_DISCARD)
+            {
+                elapsed = (elapsed - first_elapsed) / static_cast<elapsed_t>(i - N_RUNS_DISCARD);
+            }
+            else if(i > 0)
+            {
+                elapsed /= i;
+            }
+
+            MIOPEN_THROW_IF(elapsed <= 0, "Invalid elapsed time detected in EvaluateInvokers");
 
             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
             if(elapsed < best)

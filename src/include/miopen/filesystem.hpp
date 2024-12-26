@@ -27,35 +27,49 @@
 #ifndef GUARD_MIOPEN_FILESYSTEM_HPP_
 #define GUARD_MIOPEN_FILESYSTEM_HPP_
 
+// See CMakeLists.txt in addkernels
+#if !defined(MIOPEN_HACK_DO_NOT_INCLUDE_CONFIG_H)
+#include <miopen/config.h>
+#endif
+
 #include <string>
 #include <string_view>
 
+// clang-format off
 #if defined(CPPCHECK)
-#define MIOPEN_HAS_FILESYSTEM 1
-#define MIOPEN_HAS_FILESYSTEM_TS 1
+  #define MIOPEN_HAS_FILESYSTEM 1
+  #define MIOPEN_HAS_FILESYSTEM_TS 1
 #elif defined(_WIN32)
-#if _MSC_VER >= 1920
-#define MIOPEN_HAS_FILESYSTEM 1
-#define MIOPEN_HAS_FILESYSTEM_TS 0
-#elif _MSC_VER >= 1900
-#define MIOPEN_HAS_FILESYSTEM 0
-#define MIOPEN_HAS_FILESYSTEM_TS 1
-#else
-#define MIOPEN_HAS_FILESYSTEM 0
-#define MIOPEN_HAS_FILESYSTEM_TS 0
-#endif
+  #if _MSC_VER >= 1920
+    #define MIOPEN_HAS_FILESYSTEM 1
+    #define MIOPEN_HAS_FILESYSTEM_TS 0
+  #elif _MSC_VER >= 1900
+    #define MIOPEN_HAS_FILESYSTEM 0
+    #define MIOPEN_HAS_FILESYSTEM_TS 1
+  #else
+    #define MIOPEN_HAS_FILESYSTEM 0
+    #define MIOPEN_HAS_FILESYSTEM_TS 0
+  #endif
 #elif defined(__has_include)
-#if __has_include(<filesystem>) && __cplusplus >= 201703L
-#define MIOPEN_HAS_FILESYSTEM 1
+  #if __has_include(<filesystem>) && __cplusplus >= 201703L
+    #define MIOPEN_HAS_FILESYSTEM 1
+  #else
+    #define MIOPEN_HAS_FILESYSTEM 0
+  #endif
+  #if __has_include(<experimental/filesystem>) && __cplusplus >= 201103L
+    #define MIOPEN_HAS_FILESYSTEM_TS 1
+  #else
+    #define MIOPEN_HAS_FILESYSTEM_TS 0
+  #endif
 #else
-#define MIOPEN_HAS_FILESYSTEM 0
+  #define MIOPEN_HAS_FILESYSTEM 0
+  #define MIOPEN_HAS_FILESYSTEM_TS 0
 #endif
-#if __has_include(<experimental/filesystem>) && __cplusplus >= 201103L
-#define MIOPEN_HAS_FILESYSTEM_TS 1
-#else
-#define MIOPEN_HAS_FILESYSTEM_TS 0
-#endif
-#else
+// clang-format on
+
+#if MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+#undef MIOPEN_HAS_FILESYSTEM
+#undef MIOPEN_HAS_FILESYSTEM_TS
 #define MIOPEN_HAS_FILESYSTEM 0
 #define MIOPEN_HAS_FILESYSTEM_TS 0
 #endif
@@ -64,6 +78,28 @@
 #include <filesystem>
 #elif MIOPEN_HAS_FILESYSTEM_TS
 #include <experimental/filesystem>
+#elif MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+/// Explicit inclusion of <boost/container_hash/hash.hpp> is a workaround for the Boost 1.83 issue.
+///
+/// Boost doc is saying:
+///   When writing template classes, you might not want to include the main hash.hpp header as it's
+///   quite an expensive include that brings in a lot of other headers, so instead you can include
+///   the <boost/container_hash/hash_fwd.hpp> header which forward declares boost::hash,
+///   boost::hash_combine, boost::hash_range, and boost::hash_unordered_range. You'll need to
+///   include the main header before instantiating boost::hash.
+///
+/// \ref https://www.boost.org/doc/libs/1_83_0/libs/container_hash/doc/html/hash.html#combine
+///
+/// It seems like boost::filesystem uses boost::hash_range but misses to include hash.hpp, so we
+/// have to include it explicitly. Otherwise an error like this happens at runtime (!):
+///
+/// \code
+/// ...symbol lookup error: .../libMIOpen.so.1: undefined symbol:
+/// _ZN5boost10hash_rangeIN9__gnu_cxx17__normal_iteratorIPKcNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEEEEEmT_SC_
+/// \endcode
+#include <boost/container_hash/hash.hpp>
+#define BOOST_FILESYSTEM_NO_DEPRECATED 1
+#include <boost/filesystem.hpp>
 #else
 #error "No filesystem include available"
 #endif
@@ -74,19 +110,36 @@ namespace miopen {
 namespace fs = ::std::filesystem;
 #elif MIOPEN_HAS_FILESYSTEM_TS
 namespace fs = ::std::experimental::filesystem;
+#elif MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+namespace fs = ::boost::filesystem;
 #endif
 
 } // namespace miopen
 
 inline std::string operator+(const std::string_view s, const miopen::fs::path& path)
 {
+#if MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+    return std::string(path.native()).insert(0, s);
+#else
     return path.string().insert(0, s);
+#endif
 }
 
 inline std::string operator+(const miopen::fs::path& path, const std::string_view s)
 {
+#if MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+    return std::string(path.native()).append(s);
+#else
     return path.string().append(s);
+#endif
 }
+
+// Hack to minimize changes for boost fs.
+#if MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+#define FS_ENUM_PERMS_ALL fs::perms::all_all
+#else
+#define FS_ENUM_PERMS_ALL fs::perms::all
+#endif
 
 #if MIOPEN_HAS_FILESYSTEM_TS
 #ifdef __linux__

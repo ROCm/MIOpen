@@ -28,14 +28,9 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include "get_handle.hpp"
-#include "test_env.hpp"
 
 #include "../conv2d.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_COMPOSABLEKERNEL)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace conv_hip_igemm_xdlops {
 
@@ -151,9 +146,9 @@ TEST_P(GPU_ConvHipIgemmXdlops_I8, Int8Test)
     GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
 
 #else // MIOPEN_BACKEND_HIP, OCL_DISABLED
+#if MIOPEN_USE_COMPOSABLEKERNEL
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && env::enabled(MIOPEN_TEST_COMPOSABLEKERNEL) &&
-       env::enabled(MIOPEN_TEST_ALL) && IsTestRunWith("--int8"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenInt8);
     }
@@ -161,6 +156,9 @@ TEST_P(GPU_ConvHipIgemmXdlops_I8, Int8Test)
     {
         GTEST_SKIP();
     }
+#else
+    GTEST_SKIP();
+#endif
 #endif
 };
 

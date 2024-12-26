@@ -25,17 +25,12 @@
  *******************************************************************************/
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "../rnn_vanilla.hpp"
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace env = miopen::env;
 
 namespace deepbench_rnn {
-static bool SkipTest(void) { return !env::enabled(MIOPEN_TEST_DEEPBENCH); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -46,14 +41,13 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class DeepBenchRNNConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class GPU_DeepBenchRNN_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
 void Run2dDriverFloat(void)
 {
-
-    std::vector<std::string> params = DeepBenchRNNConfigWithFloat::GetParam();
+    std::vector<std::string> params = GPU_DeepBenchRNN_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -103,18 +97,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace deepbench_rnn;
 
-TEST_P(DeepBenchRNNConfigWithFloat, FloatTest_deepbench_rnn)
-{
-    if(SkipTest())
-    {
-        GTEST_SKIP();
-    }
-    else
-    {
-        Run2dDriverFloat();
-    }
-};
+TEST_P(GPU_DeepBenchRNN_FP32, FloatTest_deepbench_rnn) { Run2dDriverFloat(); };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans,
-                         DeepBenchRNNConfigWithFloat,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_DeepBenchRNN_FP32, testing::Values(GetTestCases("--float")));

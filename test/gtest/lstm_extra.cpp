@@ -26,13 +26,9 @@
 
 #include "lstm.hpp"
 #include "get_handle.hpp"
-#include <miopen/env.hpp>
 #include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace env = miopen::env;
 
@@ -90,7 +86,7 @@ auto GetTestCases(std::string precision)
 
 using TestCase = decltype(GetTestCases({}))::value_type;
 
-class ConfigWithFloat_lstm_extra : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_lstm_extra_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -104,14 +100,11 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(miopenDataType_t prec)
 {
-    if(!(IsTestSupportedForDevice()            //
-         && (!MIOPEN_TEST_ALL                  // standalone run
-             || (env::enabled(MIOPEN_TEST_ALL) // or --float full tests enabled
-                 && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))))
+    if(!IsTestSupportedForDevice())
     {
         GTEST_SKIP();
     }
-    std::vector<std::string> params = ConfigWithFloat_lstm_extra::GetParam();
+    std::vector<std::string> params = GPU_lstm_extra_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -132,8 +125,6 @@ void Run2dDriver(miopenDataType_t prec)
 } // namespace lstm_extra
 using namespace lstm_extra;
 
-TEST_P(ConfigWithFloat_lstm_extra, FloatTest_lstm_extra) { Run2dDriver(miopenFloat); };
+TEST_P(GPU_lstm_extra_FP32, FloatTest_lstm_extra) { Run2dDriver(miopenFloat); };
 
-INSTANTIATE_TEST_SUITE_P(LstmExtra,
-                         ConfigWithFloat_lstm_extra,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_lstm_extra_FP32, testing::Values(GetTestCases("--float")));

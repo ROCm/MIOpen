@@ -106,15 +106,15 @@ protected:
     std::string device_architecture;
 };
 
-struct TunaNetTestFloat : TunaNetTest<float>
+struct GPU_TunaNetTest_FP32 : TunaNetTest<float>
 {
 };
 
-struct TunaNetTestHalf : TunaNetTest<half_float::half>
+struct GPU_TunaNetTest_FP16 : TunaNetTest<half_float::half>
 {
 };
 
-struct TunaNetTestBF16 : TunaNetTest<bfloat16>
+struct GPU_TunaNetTest_BFP16 : TunaNetTest<bfloat16>
 {
 };
 
@@ -143,41 +143,41 @@ void TestSolverPredictionModel(miopen::conv::ProblemDescription& problem,
 #endif
 }
 
-TEST_P(TunaNetTestFloat, TestSolverPredictionModelFloat)
+TEST_P(GPU_TunaNetTest_FP32, TestSolverPredictionModelFloat)
 {
     TestSolverPredictionModel(problem, expected_solver, device_architecture);
 }
 
-TEST_P(TunaNetTestHalf, TestSolverPredictionModelHalf)
+TEST_P(GPU_TunaNetTest_FP16, TestSolverPredictionModelHalf)
 {
     TestSolverPredictionModel(problem, expected_solver, device_architecture);
 }
 
-TEST_P(TunaNetTestBF16, TestSolverPredictionModelBF16)
+TEST_P(GPU_TunaNetTest_BFP16, TestSolverPredictionModelBF16)
 {
     TestSolverPredictionModel(problem, expected_solver, device_architecture);
 }
 
-INSTANTIATE_TEST_SUITE_P(Gfx908TestSolverPredictionModelFloat,
-                         TunaNetTestFloat,
+INSTANTIATE_TEST_SUITE_P(SmokeGfx908,
+                         GPU_TunaNetTest_FP32,
                          testing::ValuesIn(GetGfx908FloatTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(Gfx908TestSolverPredictionModelHalfTest,
-                         TunaNetTestHalf,
+INSTANTIATE_TEST_SUITE_P(SmokeGfx908,
+                         GPU_TunaNetTest_FP16,
                          testing::ValuesIn(GetGfx908HalfTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(Gfx908TestSolverPredictionModelBF16Test,
-                         TunaNetTestBF16,
+INSTANTIATE_TEST_SUITE_P(SmokeGfx908,
+                         GPU_TunaNetTest_BFP16,
                          testing::ValuesIn(GetGfx908BF16TestCases()));
 
-INSTANTIATE_TEST_SUITE_P(Gfx90aTestSolverPredictionModelFloat,
-                         TunaNetTestFloat,
+INSTANTIATE_TEST_SUITE_P(SmokeGfx90a,
+                         GPU_TunaNetTest_FP32,
                          testing::ValuesIn(GetGfx90aFloatTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(Gfx90aTestSolverPredictionModelHalfTest,
-                         TunaNetTestHalf,
+INSTANTIATE_TEST_SUITE_P(SmokeGfx90a,
+                         GPU_TunaNetTest_FP16,
                          testing::ValuesIn(GetGfx90aHalfTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(Gfx90aTestSolverPredictionModelBF16Test,
-                         TunaNetTestBF16,
+INSTANTIATE_TEST_SUITE_P(SmokeGfx90a,
+                         GPU_TunaNetTest_BFP16,
                          testing::ValuesIn(GetGfx90aBF16TestCases()));

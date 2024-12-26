@@ -38,6 +38,7 @@
 #include <algorithm>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNFWD_EXP)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNWRW_EXP)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNNFWD_MS_DISPATCH)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNN_MS_STREAM_CNT)
 
@@ -2801,6 +2802,33 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                             reserveSpaceSize,
                             miopenRNNFWDMode_t::miopenRNNTraining);
     }
+    else if(dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM && !use_dropout &&
+            algoMode == miopenRNNdefault)
+    {
+        SeqTensorDescriptor x_seq =
+            makeSeqTensorDescriptor(xDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        SeqTensorDescriptor y_seq =
+            makeSeqTensorDescriptor(yDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        return ModularForward(handle,
+                              miopenRNNFWDMode_t::miopenRNNTraining,
+                              w,
+                              x_seq,
+                              x,
+                              hxDesc,
+                              hx,
+                              hy,
+                              cxDesc,
+                              cx,
+                              cy,
+                              y_seq,
+                              y,
+                              nullptr,
+                              0,
+                              reserveSpace,
+                              reserveSpaceSize);
+    }
 
     int in_stride  = xDesc[0].GetLengths()[1];
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
@@ -2987,17 +3015,18 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                          (li - 1) * drop_rsv_size;
 
                 miopen::deref(dropoutDesc)
-                    .DropoutForward(handle,
-                                    drop_in_desc,
-                                    drop_in_desc,
-                                    reserveSpace,
-                                    drop_out_desc,
-                                    reserveSpace,
-                                    reserveSpace,
-                                    drop_rsv_size,
-                                    drop_in_offset,
-                                    drop_out_offset,
-                                    drop_rsv_offset);
+                    .Dropout(handle,
+                             drop_in_desc,
+                             drop_in_desc,
+                             reserveSpace,
+                             drop_out_desc,
+                             reserveSpace,
+                             reserveSpace,
+                             drop_rsv_size,
+                             drop_in_offset,
+                             drop_out_offset,
+                             drop_rsv_offset,
+                             false /* is_backward */);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
                 prelayer_shift = drop_out_offset;
@@ -4486,17 +4515,18 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                          li * drop_rsv_size;
 
                 miopen::deref(dropoutDesc)
-                    .DropoutBackward(handle,
-                                     drop_in_desc,
-                                     drop_in_desc,
-                                     workSpace,
-                                     drop_in_desc,
-                                     workSpace,
-                                     reserveSpace,
-                                     drop_rsv_size,
-                                     hid_shift + dhd_off,
-                                     hid_shift + dhd_off,
-                                     drop_rsv_offset);
+                    .Dropout(handle,
+                             drop_in_desc,
+                             drop_in_desc,
+                             workSpace,
+                             drop_in_desc,
+                             workSpace,
+                             reserveSpace,
+                             drop_rsv_size,
+                             hid_shift + dhd_off,
+                             hid_shift + dhd_off,
+                             drop_rsv_offset,
+                             true /* is_backward */);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
             }
@@ -5896,6 +5926,8 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
 
     miopenDataType_t rnn_data_t = hxDesc.GetType();
 
+    bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
+
     if(in_h <= 0 || hy_h <= 0 || hy_n <= 0 || hy_d <= 0 || out_h <= 0 || seqLen <= 0)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -5952,6 +5984,28 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                          "state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
+    }
+
+    if(dirMode == 0 && rnnMode == miopenLSTM && !use_dropout && algoMode == miopenRNNdefault &&
+       !env::disabled(MIOPEN_RNNWRW_EXP))
+    {
+        SeqTensorDescriptor x_seq =
+            makeSeqTensorDescriptor(xDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        SeqTensorDescriptor y_seq =
+            makeSeqTensorDescriptor(dyDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        return this->ModularBackwardWeights(handle,
+                                            x_seq,
+                                            x,
+                                            hxDesc,
+                                            hx,
+                                            y_seq,
+                                            dw,
+                                            workSpace,
+                                            workSpaceSize,
+                                            reserveSpace,
+                                            reserveSpaceSize);
     }
 
     size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (nLayers - 1)) * wei_stride;
@@ -6041,7 +6095,6 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
         }
         else
         {
-            bool use_dropout    = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
             auto prelayer_shift = static_cast<int>(
                 use_dropout ? (algoMode == miopenRNNdefault && rnnMode == miopenLSTM
                                    ? nLayers * batch_n * hy_stride + nLayers * batch_n * hy_h * bi

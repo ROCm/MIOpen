@@ -38,14 +38,7 @@ void ComputeCPUBNInference(DLModule& dl_module)
                                   dl_module.estVariance);
 }
 
-template <typename XDataType,
-          typename DxDataType,
-          typename DyDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename DscaleDbiasDataType,
-          typename MeanVarDataType,
-          typename DLModule>
+template <typename DLModule>
 void ComputeCPUBNBwd(DLModule& dl_module)
 {
     batchNormSpatialHostBwdTrain(dl_module.input,

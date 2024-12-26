@@ -27,7 +27,7 @@
 #include <vector>
 #include <cstdint>
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
@@ -590,7 +590,9 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
-    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
+    case miopenBFloat16:
+        return StartsWith(ctx.GetStream().GetDeviceName(), "gfx94") &&
+               CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
     case miopenFloat8:

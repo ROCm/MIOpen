@@ -23,84 +23,50 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
-#include "transformers_adam_w.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+#include "transformers_adam_w.hpp"
 
 namespace transformers_adam_w {
 
-bool CheckFloatArg(std::string arg)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && (env::value(MIOPEN_TEST_FLOAT_ARG) == arg)))
-    {
-        return true;
-    }
-    return false;
-}
-
-struct TransformersAdamWTestFloat : TransformersAdamWTest<float, float>
+struct GPU_TransformersAdamWTest_FP32 : TransformersAdamWTest<float, float>
 {
 };
 
-struct TransformersAdamWTestFloat16 : TransformersAdamWTest<half_float::half, half_float::half>
+struct GPU_TransformersAdamWTest_FP16 : TransformersAdamWTest<half_float::half, half_float::half>
 {
 };
 
-struct TransformersAmpAdamWTestFloat : TransformersAdamWTest<float, half_float::half, true>
+struct GPU_TransformersAmpAdamWTest_FP32 : TransformersAdamWTest<float, half_float::half, true>
 {
 };
 
 } // namespace transformers_adam_w
 using namespace transformers_adam_w;
 
-TEST_P(TransformersAdamWTestFloat, TransformersAdamWFloatTest)
+TEST_P(GPU_TransformersAdamWTest_FP32, TransformersAdamWFloatTest)
 {
-    if(CheckFloatArg("--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(TransformersAdamWTestFloat16, TransformersAdamWFloat16Test)
+TEST_P(GPU_TransformersAdamWTest_FP16, TransformersAdamWFloat16Test)
 {
-    if(CheckFloatArg("--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(TransformersAmpAdamWTestFloat, TransformersAmpAdamWTest)
+TEST_P(GPU_TransformersAmpAdamWTest_FP32, TransformersAmpAdamWTest)
 {
-    if(CheckFloatArg("--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(TransformersAdamWTestSet,
-                         TransformersAdamWTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_TransformersAdamWTest_FP32,
                          testing::ValuesIn(TransformersAdamWTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(TransformersAdamWTestSet,
-                         TransformersAdamWTestFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_TransformersAdamWTest_FP16,
                          testing::ValuesIn(TransformersAdamWTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(TransformersAdamWTestSet,
-                         TransformersAmpAdamWTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_TransformersAmpAdamWTest_FP32,
                          testing::ValuesIn(TransformersAdamWTestConfigs()));

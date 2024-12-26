@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include "graphapi_opgraph_common.hpp"
 
-TEST(GraphMatchingAPI, DiamondGraphMatch)
+TEST(CPU_GraphMatchingAPI_NONE, DiamondGraphMatch)
 {
     using namespace graphapi_opgraph_tests;
 

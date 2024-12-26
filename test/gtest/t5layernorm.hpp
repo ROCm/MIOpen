@@ -256,7 +256,7 @@ std::vector<T5LayerNormTestCase> T5LayerNormTestConfigs()
 }
 
 template <typename T = float>
-struct T5LayerNormTest : public ::testing::TestWithParam<T5LayerNormTestCase>
+struct T5LayerNormFwdTest : public ::testing::TestWithParam<T5LayerNormTestCase>
 {
 protected:
     void SetUp() override

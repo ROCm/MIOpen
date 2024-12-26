@@ -30,6 +30,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/pooling.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
 
 namespace miopen {
@@ -174,8 +175,9 @@ bool PoolingBackward2d::IsApplicable(const ExecutionContext&,
            (problem.GetPooling().GetMode() == miopenPoolingMax ||
             problem.GetPooling().GetMode() == miopenPoolingAverage ||
             problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) &&
-           problem.GetXDesc().GetNumDims() == 4 && problem.GetXDesc().GetLayout("NCHW") == "NCHW" &&
-           problem.GetYDesc().GetLayout("NCHW") == "NCHW" &&
+           problem.GetXDesc().GetNumDims() == 4 &&
+           problem.GetXDesc().IsPossibleLayout4D5D("NCHW") &&
+           problem.GetYDesc().IsPossibleLayout4D5D("NCHW") &&
            sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize();
 }
 

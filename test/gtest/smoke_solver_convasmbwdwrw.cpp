@@ -61,23 +61,23 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuning_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dTuningHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuning_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dTuningBf16 : public Bf16TestCase<std::vector<TestCase>>
+class GPU_Conv2dTuning_BFP16 : public Bf16TestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningFloat, FloatTest_smoke_solver_convasmbwdwrw)
+TEST_P(GPU_Conv2dTuning_FP32, FloatTest_smoke_solver_convasmbwdwrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuning_FP32>(tuning_check);
     }
     else
     {
@@ -85,11 +85,11 @@ TEST_P(Conv2dTuningFloat, FloatTest_smoke_solver_convasmbwdwrw)
     }
 };
 
-TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_convasmbwdwrw)
+TEST_P(GPU_Conv2dTuning_FP16, HalfTest_smoke_solver_convasmbwdwrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuning_FP16>(tuning_check);
     }
     else
     {
@@ -97,11 +97,11 @@ TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_convasmbwdwrw)
     }
 };
 
-TEST_P(Conv2dTuningBf16, Bf16Test_smoke_solver_convasmbwdwrw)
+TEST_P(GPU_Conv2dTuning_BFP16, Bf16Test_smoke_solver_convasmbwdwrw)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningBf16>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuning_BFP16>(tuning_check);
     }
     else
     {
@@ -109,6 +109,6 @@ TEST_P(Conv2dTuningBf16, Bf16Test_smoke_solver_convasmbwdwrw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dTuningFloat, testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dTuningHalf, testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwd, Conv2dTuningBf16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_BFP16, testing::Values(GetTestCases()));

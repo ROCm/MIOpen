@@ -52,7 +52,7 @@ using DescriptorTuple = std::tuple<bool,
 
 } // namespace
 
-class GraphApiOperationMatmulBuilder : public testing::TestWithParam<DescriptorTuple>
+class CPU_GraphApiOperationMatmulBuilder_NONE : public testing::TestWithParam<DescriptorTuple>
 {
 protected:
     bool mAttrsValid;
@@ -93,7 +93,7 @@ protected:
     }
 };
 
-TEST_P(GraphApiOperationMatmulBuilder, ValidateAttributes)
+TEST_P(CPU_GraphApiOperationMatmulBuilder_NONE, ValidateAttributes)
 {
     if(mAttrsValid)
     {
@@ -154,7 +154,7 @@ TEST_P(GraphApiOperationMatmulBuilder, ValidateAttributes)
     }
 }
 
-TEST_P(GraphApiOperationMatmulBuilder, MissingSetter)
+TEST_P(CPU_GraphApiOperationMatmulBuilder_NONE, MissingSetter)
 {
     EXPECT_ANY_THROW({
         OperationMatmulBuilder().setA(mA.value).setB(mB.value).setC(mC.value).build();
@@ -213,7 +213,7 @@ public:
 
 } // namespace
 
-class GraphApiOperationMatmul : public ::testing::TestWithParam<DescriptorTuple>
+class CPU_GraphApiOperationMatmul_NONE : public ::testing::TestWithParam<DescriptorTuple>
 {
 private:
     // Pointers to these are stored in the objects below
@@ -320,7 +320,7 @@ protected:
     }
 };
 
-TEST_P(GraphApiOperationMatmul, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiOperationMatmul_NONE, CFunctions) { mExecute(); }
 
 static Matmul matmul(miopenFloat);
 static std::array<ValidatedValue<Matmul*>, 2> anyMatmuls{ValidatedValue<Matmul*>{true, &matmul},
@@ -450,24 +450,16 @@ static auto invalidAtLeastCtensors = testing::Combine(testing::Values(false),
                                                       testing::ValuesIn(validNOverridetensors),
                                                       testing::ValuesIn(validKOverridetensors));
 
-INSTANTIATE_TEST_SUITE_P(ValidAttributes, GraphApiOperationMatmulBuilder, validAttributes);
+INSTANTIATE_TEST_SUITE_P(UnitVA, CPU_GraphApiOperationMatmulBuilder_NONE, validAttributes);
 
-INSTANTIATE_TEST_SUITE_P(invalidBroadcasts, GraphApiOperationMatmulBuilder, invalidBroadcasts);
+INSTANTIATE_TEST_SUITE_P(UnitIBr, CPU_GraphApiOperationMatmulBuilder_NONE, invalidBroadcasts);
 
-INSTANTIATE_TEST_SUITE_P(invalidAtLeastMatmuls,
-                         GraphApiOperationMatmulBuilder,
-                         invalidAtLeastMatmuls);
-INSTANTIATE_TEST_SUITE_P(invalidAtLeastAtensors,
-                         GraphApiOperationMatmulBuilder,
-                         invalidAtLeastAtensors);
-INSTANTIATE_TEST_SUITE_P(invalidAtLeastBtensors,
-                         GraphApiOperationMatmulBuilder,
-                         invalidAtLeastBtensors);
-INSTANTIATE_TEST_SUITE_P(invalidAtLeastCtensors,
-                         GraphApiOperationMatmulBuilder,
-                         invalidAtLeastCtensors);
+INSTANTIATE_TEST_SUITE_P(UnitIM, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastMatmuls);
+INSTANTIATE_TEST_SUITE_P(UnitIA, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastAtensors);
+INSTANTIATE_TEST_SUITE_P(UnitIB, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastBtensors);
+INSTANTIATE_TEST_SUITE_P(UnitIC, CPU_GraphApiOperationMatmulBuilder_NONE, invalidAtLeastCtensors);
 
-INSTANTIATE_TEST_SUITE_P(ValidAttributes, GraphApiOperationMatmul, validAttributes);
-INSTANTIATE_TEST_SUITE_P(invalidAtLeastMatmuls, GraphApiOperationMatmul, invalidAtLeastMatmuls);
-INSTANTIATE_TEST_SUITE_P(invalidAtLeastAtensors, GraphApiOperationMatmul, invalidAtLeastAtensors);
-INSTANTIATE_TEST_SUITE_P(invalidAtLeastBtensors, GraphApiOperationMatmul, invalidAtLeastBtensors);
+INSTANTIATE_TEST_SUITE_P(UnitVA, CPU_GraphApiOperationMatmul_NONE, validAttributes);
+INSTANTIATE_TEST_SUITE_P(UnitIM, CPU_GraphApiOperationMatmul_NONE, invalidAtLeastMatmuls);
+INSTANTIATE_TEST_SUITE_P(UnitIA, CPU_GraphApiOperationMatmul_NONE, invalidAtLeastAtensors);
+INSTANTIATE_TEST_SUITE_P(UnitIB, CPU_GraphApiOperationMatmul_NONE, invalidAtLeastBtensors);

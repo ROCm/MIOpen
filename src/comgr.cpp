@@ -701,6 +701,7 @@ void BuildAsm(const std::string& name,
 
 #define WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H 1 // See SWDEV-307838, issue #1648.
 #define WORKAROUND_ISSUE_1674 (HIP_PACKAGE_VERSION_FLAT >= 5003022305ULL)
+#define WORKAROUND_ISSUE_3188 (HIP_PACKAGE_VERSION_FLAT >= 6002041133ULL)
 
 // See WORKAROUND_SWDEV_413293 in ./CmakeLists.txt
 #define WORKAROUND_SWDEV_413293 MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK
@@ -975,6 +976,9 @@ void BuildHip(const std::string& name,
 #endif
 #if WORKAROUND_ISSUE_1674
         opts.push_back("-Wno-gnu-line-marker");
+#endif
+#if WORKAROUND_ISSUE_3188
+        opts.push_back("-Wno-pass-failed");
 #endif
         opts.push_back("-Wno-cuda-compat");
         opts.push_back("-fno-gpu-rdc");

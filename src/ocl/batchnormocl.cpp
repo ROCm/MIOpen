@@ -55,6 +55,8 @@ miopen::PerformanceDb GetDb(const miopen::ExecutionContext& ctx,
 }
 } // namespace batchnorm
 
+//============ BEGIN FORWARD TRAINING ===============
+
 void BatchNormForwardTraining(Handle& handle,
                               miopenBatchNormMode_t bn_mode,
                               const void* alpha,
@@ -63,7 +65,10 @@ void BatchNormForwardTraining(Handle& handle,
                               ConstData_t x,
                               const TensorDescriptor& yDesc,
                               Data_t y,
-                              const TensorDescriptor& bnScaleBiasMeanVarDesc,
+                              const TensorDescriptor& scaleDesc,
+                              const TensorDescriptor& biasDesc,
+                              const TensorDescriptor& savedMeanDesc,
+                              const TensorDescriptor& savedVarianceDesc,
                               ConstData_t bnScale,
                               ConstData_t bnBias,
                               double expAvgFactor,
@@ -73,13 +78,14 @@ void BatchNormForwardTraining(Handle& handle,
                               Data_t resultSaveMean,
                               Data_t resultSaveInvVariance)
 {
-
     if(x == nullptr || y == nullptr || bnScale == nullptr || bnBias == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetNumDims() != yDesc.GetNumDims() ||
-       xDesc.GetNumDims() != bnScaleBiasMeanVarDesc.GetNumDims())
+    if(xDesc.GetNumDims() != yDesc.GetNumDims() || xDesc.GetNumDims() != scaleDesc.GetNumDims() ||
+       xDesc.GetNumDims() != biasDesc.GetNumDims() ||
+       xDesc.GetNumDims() != savedMeanDesc.GetNumDims() ||
+       xDesc.GetNumDims() != savedVarianceDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -105,9 +111,9 @@ void BatchNormForwardTraining(Handle& handle,
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         if(bnScale != nullptr)
-            miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
+            miopen::checkNumericsInput(handle, scaleDesc, bnScale);
         if(bnBias != nullptr)
-            miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
+            miopen::checkNumericsInput(handle, biasDesc, bnBias);
     }
 
     const auto resultsave    = resultSaveMean != nullptr && resultSaveInvVariance != nullptr;
@@ -116,7 +122,10 @@ void BatchNormForwardTraining(Handle& handle,
     const auto problem = batchnorm::ProblemDescription{bn_mode,
                                                        xDesc,
                                                        yDesc,
-                                                       bnScaleBiasMeanVarDesc,
+                                                       scaleDesc,
+                                                       biasDesc,
+                                                       savedMeanDesc,
+                                                       savedVarianceDesc,
                                                        expAvgFactor,
                                                        epsilon,
                                                        resultsave,
@@ -127,7 +136,7 @@ void BatchNormForwardTraining(Handle& handle,
                           : AlgorithmName{"miopenBatchNormForwardTrainingPerActivation"};
 
     const auto invoke_params = [&]() {
-        auto tmp                  = batchnorm::InvokeParams{};
+        auto tmp                  = miopen::batchnorm::FwdTrainInvokeParams{};
         tmp.type                  = InvokeType::Run;
         tmp.x                     = x;
         tmp.y                     = y;
@@ -142,8 +151,8 @@ void BatchNormForwardTraining(Handle& handle,
         return tmp;
     }();
 
-    const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKFwdTraining,
-                                                 solver::batchnorm::BnFwdTrainingSpatialSingle,
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
+                                                 //  solver::batchnorm::BnCKFwdTraining,
                                                  solver::batchnorm::BnFwdTrainingSpatialMultiple,
                                                  solver::batchnorm::BnFwdTrainingPerActivation>{};
 
@@ -153,15 +162,16 @@ void BatchNormForwardTraining(Handle& handle,
     {
         miopen::checkNumericsOutput(handle, yDesc, y);
         if(resultRunningMean != nullptr)
-            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningMean);
+            miopen::checkNumericsOutput(handle, savedMeanDesc, resultRunningMean);
         if(resultRunningVariance != nullptr)
-            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultRunningVariance);
+            miopen::checkNumericsOutput(handle, savedVarianceDesc, resultRunningVariance);
         if(resultSaveMean != nullptr)
-            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveMean);
+            miopen::checkNumericsOutput(handle, savedMeanDesc, resultSaveMean);
         if(resultSaveInvVariance != nullptr)
-            miopen::checkNumericsOutput(handle, bnScaleBiasMeanVarDesc, resultSaveInvVariance);
+            miopen::checkNumericsOutput(handle, savedVarianceDesc, resultSaveInvVariance);
     }
 }
+
 //================== END FWD TRAIN ===================
 
 //============ BEGIN FORWARD INFERENCE ===============
@@ -173,31 +183,37 @@ void BatchNormForwardInference(Handle& handle,
                                ConstData_t x,
                                const TensorDescriptor& yDesc,
                                Data_t y,
-                               const TensorDescriptor& bnScaleBiasMeanVarDesc,
+                               const TensorDescriptor& scaleDesc,
+                               const TensorDescriptor& biasDesc,
+                               const TensorDescriptor& estMeanDesc,
+                               const TensorDescriptor& estVarianceDesc,
                                ConstData_t bnScale,
                                ConstData_t bnBias,
                                ConstData_t estimatedMean,
                                ConstData_t estimatedVariance,
                                double epsilon)
 {
+
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsInput(handle, xDesc, x);
-        miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnScale);
-        miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, bnBias);
-        miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, estimatedMean);
-        miopen::checkNumericsInput(handle, bnScaleBiasMeanVarDesc, estimatedVariance);
+        miopen::checkNumericsInput(handle, scaleDesc, bnScale);
+        miopen::checkNumericsInput(handle, biasDesc, bnBias);
+        miopen::checkNumericsInput(handle, estMeanDesc, estimatedMean);
+        miopen::checkNumericsInput(handle, estVarianceDesc, estimatedVariance);
     }
 
     if(estimatedMean != nullptr && estimatedVariance != nullptr)
     {
-
         if(x == nullptr || y == nullptr || bnScale == nullptr || bnBias == nullptr)
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
         if(xDesc.GetNumDims() != yDesc.GetNumDims() ||
-           xDesc.GetNumDims() != bnScaleBiasMeanVarDesc.GetNumDims())
+           xDesc.GetNumDims() != scaleDesc.GetNumDims() ||
+           xDesc.GetNumDims() != biasDesc.GetNumDims() ||
+           xDesc.GetNumDims() != estMeanDesc.GetNumDims() ||
+           xDesc.GetNumDims() != estVarianceDesc.GetNumDims())
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
@@ -216,8 +232,8 @@ void BatchNormForwardInference(Handle& handle,
             MIOPEN_THROW(miopenStatusBadParm);
         }
 
-        const auto problem =
-            batchnorm::ProblemDescription{bn_mode, xDesc, yDesc, bnScaleBiasMeanVarDesc, epsilon};
+        const auto problem = batchnorm::ProblemDescription{
+            bn_mode, xDesc, yDesc, scaleDesc, biasDesc, estMeanDesc, estVarianceDesc, epsilon};
 
         const auto invoke_params = [&]() {
             auto tmp              = batchnorm::InfInvokeParams{};
@@ -234,8 +250,9 @@ void BatchNormForwardInference(Handle& handle,
         }();
 
         const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
-        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference,
-                                                     solver::batchnorm::BnCKFwdInference>{};
+        const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference
+                                                     //  solver::batchnorm::BnCKFwdInference
+                                                     >{};
 
         solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     }
@@ -250,7 +267,10 @@ void BatchNormForwardInference(Handle& handle,
                                  x,
                                  yDesc,
                                  y,
-                                 bnScaleBiasMeanVarDesc,
+                                 scaleDesc,
+                                 biasDesc,
+                                 estMeanDesc,
+                                 estVarianceDesc,
                                  bnScale,
                                  bnBias,
                                  0,
@@ -265,9 +285,11 @@ void BatchNormForwardInference(Handle& handle,
         miopen::checkNumericsOutput(handle, yDesc, y);
     }
 }
+
 //================= END FORWARD INFERENCE ====================
 
 //=============== BEGIN BACKWARDS PROPAGATION ================
+
 void BatchNormBackward(Handle& handle,
                        miopenBatchNormMode_t bn_mode,
                        const void* alphaDataDiff,
@@ -280,7 +302,10 @@ void BatchNormBackward(Handle& handle,
                        ConstData_t dy,
                        const TensorDescriptor& dxDesc,
                        Data_t dx,
-                       const TensorDescriptor& bnScaleBiasDiffDesc,
+                       const TensorDescriptor& scaleDesc,
+                       const TensorDescriptor& biasDesc,
+                       const TensorDescriptor& savedMeanDesc,
+                       const TensorDescriptor& savedVarianceDesc,
                        ConstData_t bnScale,
                        Data_t resultBnScaleDiff,
                        Data_t resultBnBiasDiff,
@@ -296,20 +321,23 @@ void BatchNormBackward(Handle& handle,
     {
         miopen::checkNumericsInput(handle, xDesc, x);
         miopen::checkNumericsInput(handle, dyDesc, dy);
-        miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, bnScale);
+        miopen::checkNumericsInput(handle, scaleDesc, bnScale);
+        miopen::checkNumericsInput(handle, biasDesc, bnScale);
 
         if(savedMean != nullptr)
-            miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, savedMean);
+            miopen::checkNumericsInput(handle, savedMeanDesc, savedMean);
         if(savedInvVariance != nullptr)
-            miopen::checkNumericsInput(handle, bnScaleBiasDiffDesc, savedInvVariance);
+            miopen::checkNumericsInput(handle, savedVarianceDesc, savedInvVariance);
     }
 
     if(x == nullptr || dy == nullptr || bnScale == nullptr || dx == nullptr)
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(xDesc.GetNumDims() != dyDesc.GetNumDims() ||
-       xDesc.GetNumDims() != bnScaleBiasDiffDesc.GetNumDims())
+    if(xDesc.GetNumDims() != dyDesc.GetNumDims() || xDesc.GetNumDims() != scaleDesc.GetNumDims() ||
+       xDesc.GetNumDims() != biasDesc.GetNumDims() ||
+       xDesc.GetNumDims() != savedMeanDesc.GetNumDims() ||
+       xDesc.GetNumDims() != savedVarianceDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -336,8 +364,16 @@ void BatchNormBackward(Handle& handle,
 
     const auto useSaved = savedMean != nullptr && savedInvVariance != nullptr;
 
-    const auto problem = batchnorm::ProblemDescription{
-        bn_mode, xDesc, dyDesc, dxDesc, bnScaleBiasDiffDesc, epsilon, useSaved};
+    const auto problem = batchnorm::ProblemDescription{bn_mode,
+                                                       xDesc,
+                                                       dyDesc,
+                                                       dxDesc,
+                                                       scaleDesc,
+                                                       biasDesc,
+                                                       savedMeanDesc,
+                                                       savedVarianceDesc,
+                                                       epsilon,
+                                                       useSaved};
 
     const auto algo = bn_mode == miopenBNSpatial
                           ? AlgorithmName{"miopenBatchNormBackwardPropSpatial"}
@@ -358,8 +394,8 @@ void BatchNormBackward(Handle& handle,
         return tmp;
     }();
 
-    const auto solvers = solver::SolverContainer<solver::batchnorm::BnCKBwdBackward,
-                                                 solver::batchnorm::BnBwdTrainingSpatialSingle,
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle,
+                                                 //  solver::batchnorm::BnCKBwdBackward,
                                                  solver::batchnorm::BnBwdTrainingSpatialMultiple,
                                                  solver::batchnorm::BnBwdTrainingPerActivation>{};
 
@@ -368,8 +404,8 @@ void BatchNormBackward(Handle& handle,
     if(miopen::CheckNumericsEnabled())
     {
         miopen::checkNumericsOutput(handle, dxDesc, dx);
-        miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnScaleDiff);
-        miopen::checkNumericsOutput(handle, bnScaleBiasDiffDesc, resultBnBiasDiff);
+        miopen::checkNumericsOutput(handle, scaleDesc, resultBnScaleDiff);
+        miopen::checkNumericsOutput(handle, biasDesc, resultBnBiasDiff);
     }
 }
 } // namespace miopen

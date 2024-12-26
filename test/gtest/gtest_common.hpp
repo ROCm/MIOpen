@@ -55,29 +55,74 @@ inline void db_check(const std::string& err)
 
 enum class Gpu : int
 {
-    Default = 0,
+    Default = 0, // \todo remove
+    None    = 0,
     gfx900  = 1 << 0,
     gfx906  = 1 << 1,
     gfx908  = 1 << 2,
     gfx90A  = 1 << 3,
     gfx94X  = 1 << 4,
     gfx103X = 1 << 5,
-    gfx110X = 1 << 6
+    gfx110X = 1 << 6,
+    gfx120X = 1 << 7,
+    gfxLast = Gpu::gfx120X, // \note Change the value when adding a new device
+    All     = -1
 };
+
+inline Gpu operator|(Gpu lhs, Gpu rhs)
+{
+    using T = std::underlying_type_t<Gpu>;
+    return static_cast<Gpu>(static_cast<T>(lhs) | static_cast<T>(rhs));
+}
+
+inline Gpu operator&(Gpu lhs, Gpu rhs)
+{
+    using T = std::underlying_type_t<Gpu>;
+    return static_cast<Gpu>(static_cast<T>(lhs) & static_cast<T>(rhs));
+}
 
 template <Gpu... bits>
 struct enabled
 {
-    static constexpr int val       = (static_cast<int>(bits) | ...);
+    using T                        = std::underlying_type_t<Gpu>;
+    static constexpr T val         = (static_cast<T>(bits) | ...);
     static constexpr bool enabling = true;
 };
 
 template <Gpu... bits>
 struct disabled
 {
-    static constexpr int val       = ~((static_cast<int>(bits) | ...));
+    using T                        = std::underlying_type_t<Gpu>;
+    static constexpr T val         = ~((static_cast<T>(bits) | ...));
     static constexpr bool enabling = false;
 };
+
+struct DevDescription
+{
+    std::string_view name;
+    unsigned cu_cnt; // CU for gfx9, WGP for gfx10, 11, ...
+
+    friend std::ostream& operator<<(std::ostream& os, const DevDescription& dd);
+};
+
+class MockHandle final : public miopen::Handle
+{
+public:
+    MockHandle(const DevDescription& dev_description);
+
+    // Add additional methods here if needed
+    std::string GetDeviceName() const override;
+    std::size_t GetMaxComputeUnits() const override;
+    std::size_t GetMaxMemoryAllocSize() override;
+    bool CooperativeLaunchSupported() const override;
+
+private:
+    DevDescription dev_descr;
+};
+
+Gpu GetDevGpuType();
+const std::multimap<Gpu, DevDescription>& GetAllKnownDevices();
+bool IsTestSupportedByDevice(Gpu supported_devs);
 
 template <typename disabled_mask, typename enabled_mask>
 bool IsTestSupportedForDevMask()
@@ -89,29 +134,10 @@ bool IsTestSupportedForDevMask()
     static_assert(enabled_mask::enabling == true,
                   "Wrong enabled mask, probably it has to be switched with disabled_mask");
 
-    static const auto dev = get_handle().GetDeviceName();
-
     constexpr int def_val = enabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A>::val;
     constexpr int mask    = (def_val & disabled_mask::val) | enabled_mask::val;
-    constexpr auto test   = [](Gpu bit) { return (mask & static_cast<int>(bit)) != 0; };
 
-    bool res = false;
-    if constexpr(test(Gpu::gfx900))
-        res = res || (dev == "gfx900");
-    if constexpr(test(Gpu::gfx906))
-        res = res || (dev == "gfx906");
-    if constexpr(test(Gpu::gfx908))
-        res = res || (dev == "gfx908");
-    if constexpr(test(Gpu::gfx90A))
-        res = res || (dev == "gfx90a");
-    if constexpr(test(Gpu::gfx94X))
-        res = res || (miopen::StartsWith(dev, "gfx94"));
-    if constexpr(test(Gpu::gfx103X))
-        res = res || (miopen::StartsWith(dev, "gfx103"));
-    if constexpr(test(Gpu::gfx110X))
-        res = res || (miopen::StartsWith(dev, "gfx110"));
-
-    return res;
+    return IsTestSupportedByDevice(static_cast<Gpu>(mask));
 }
 
 template <typename Parameters>
@@ -171,6 +197,13 @@ void invoke_with_params(Check&& check)
     }
 }
 
+/// repalcement of gtest's FAIL() because FAIL() returns void and messes up the
+/// return type deduction
+#define MIOPEN_FRIENDLY_FAIL(MSG)   \
+    do                              \
+    {                               \
+        [&]() { FAIL() << MSG; }(); \
+    } while(false);
 /// The types for env variables must be redefined, but
 /// do not mess up with the types - those variables are decalred in the library
 /// and if wrong type (STR|BOOl|UINT64) have been specified they won't be updated. Silently.
