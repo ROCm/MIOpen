@@ -37,10 +37,11 @@ namespace allclose {
 
 std::size_t GetAllCloseForwardWorkspaceSize(Handle& handle,
                                             const TensorDescriptor& input1Desc,
-                                            const TensorDescriptor& input2Desc)
+                                            const TensorDescriptor& input2Desc,
+                                            const TensorDescriptor& outputDesc)
 {
     auto ctx           = ExecutionContext{&handle};
-    const auto problem = allclose::ProblemDescription{input1Desc, input2Desc};
+    const auto problem = allclose::ProblemDescription{input1Desc, input2Desc, outputDesc};
 
     const auto solvers = solver::SolverContainer<solver::allclose::AllCloseForward>{};
 
@@ -53,22 +54,28 @@ miopenStatus_t AllCloseForward(Handle& handle,
                                ConstData_t input1,
                                const TensorDescriptor& input2Desc,
                                ConstData_t input2,
-                               const float atol,
-                               const float rtol,
-                               const bool equal_nan,
-                               Data_t output)
+                               const TensorDescriptor& outputDesc,
+                               Data_t output,
+                               float atol,
+                               float rtol,
+                               bool equal_nan,
+                               Data_t workspace,
+                               size_t workspaceSizeInBytes)
 {
-    const auto problem       = allclose::ProblemDescription{input1Desc, input2Desc};
+    const auto problem       = allclose::ProblemDescription{input1Desc, input2Desc, outputDesc};
     const auto invoke_params = [&]() {
-        auto tmp       = allclose::InvokeParams{};
-        tmp.input1Desc = &input1Desc;
-        tmp.input1     = input1;
-        tmp.input2Desc = &input2Desc;
-        tmp.input2     = input2;
-        tmp.atol       = atol;
-        tmp.rtol       = rtol;
-        tmp.equal_nan  = equal_nan;
-        tmp.output     = output;
+        auto tmp           = allclose::InvokeParams{};
+        tmp.input1Desc     = &input1Desc;
+        tmp.input1         = input1;
+        tmp.input2Desc     = &input2Desc;
+        tmp.input2         = input2;
+        tmp.outputDesc     = &outputDesc;
+        tmp.output         = output;
+        tmp.atol           = atol;
+        tmp.rtol           = rtol;
+        tmp.equal_nan      = equal_nan;
+        tmp.workspace      = workspace;
+        tmp.workspace_size = workspaceSizeInBytes;
 
         return tmp;
     }();

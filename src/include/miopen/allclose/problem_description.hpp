@@ -38,20 +38,31 @@ namespace allclose {
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& input1Desc_, const TensorDescriptor& input2Desc_)
-        : input1Desc(input1Desc_), input2Desc(input2Desc_)
+    ProblemDescription(const TensorDescriptor& input1Desc_,
+                       const TensorDescriptor& input2Desc_,
+                       const TensorDescriptor& outputDesc_)
+        : input1Desc(input1Desc_), input2Desc(input2Desc_), outputDesc(outputDesc_)
     {
         IsSameType();
+        IsValidType();
         IsValidDims();
     }
 
     const TensorDescriptor& GetInput1Desc() const { return input1Desc; }
     const TensorDescriptor& GetInput2Desc() const { return input2Desc; }
+    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
 
     bool IsSameType() const
     {
         if(input1Desc.GetType() != input2Desc.GetType())
             MIOPEN_THROW(miopenStatusBadParm, "AllCloseForward: Data types do not match.");
+        return true;
+    }
+
+    bool IsValidType() const
+    {
+        if(outputDesc.GetType() != miopenInt32)
+            MIOPEN_THROW(miopenStatusBadParm, "AllCloseForward: Output type must be miopenInt32.");
         return true;
     }
 
@@ -71,6 +82,7 @@ struct ProblemDescription : ProblemDescriptionBase
 private:
     TensorDescriptor input1Desc;
     TensorDescriptor input2Desc;
+    TensorDescriptor outputDesc;
 };
 
 } // namespace allclose

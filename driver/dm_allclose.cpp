@@ -24,16 +24,16 @@
  *
  *******************************************************************************/
 #include "registry_driver_maker.hpp"
-#include "sparse_softmax_cross_entropy_with_logits_driver.hpp"
+#include "allclose_driver.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    if(base_arg == "sparse_softmax_cross_entropy_with_logits")
-        return new SparseSoftmaxCrossEntropyWithLogitsDriver<float, float>();
-    if(base_arg == "sparse_softmax_cross_entropy_with_logitsfp16")
-        return new SparseSoftmaxCrossEntropyWithLogitsDriver<float16, float>();
-    if(base_arg == "sparse_softmax_cross_entropy_with_logitsbfp16")
-        return new SparseSoftmaxCrossEntropyWithLogitsDriver<bfloat16, float>();
+    if(base_arg == "allclose")
+        return new AllCloseDriver<float, int32_t>();
+    if(base_arg == "allclosefp16")
+        return new AllCloseDriver<float16, int32_t>();
+    if(base_arg == "allclosebfp16")
+        return new AllCloseDriver<bfloat16, int32_t>();
     return nullptr;
 }
 

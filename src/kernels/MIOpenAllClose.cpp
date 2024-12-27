@@ -33,12 +33,12 @@
 #include "block_reduce.hpp"
 
 template <typename T>
-__device__ void allCloseForward(const T* input1,
-                                const T* input2,
+__device__ void allCloseForward(const T* __restrict__ input1,
+                                const T* __restrict__ input2,
+                                int32_t* __restrict__ workspace,
                                 const float atol,
                                 const float rtol,
                                 const bool equal_nan,
-                                bool* workspace,
                                 uint64_t numel,
                                 tensor_view_t<5> input1_tv,
                                 tensor_view_t<5> input2_tv)
@@ -48,69 +48,71 @@ __device__ void allCloseForward(const T* input1,
     if(gid >= numel)
         return;
 
-    FLOAT_ACCUM input1_fvalue = CVT_FLOAT2ACCUM(input1[input1_tv.get_tensor_view_idx({gid})]);
-    FLOAT_ACCUM input2_fvalue = CVT_FLOAT2ACCUM(input2[input2_tv.get_tensor_view_idx({gid})]);
+    tensor_layout_t<5> layout(input1_tv, gid);
 
-    bool out;
-    bool input1_isnan = std::isnan(input1_fvalue);
-    bool input2_isnan = std::isnan(input2_fvalue);
+    FLOAT_ACCUM input1_fvalue = CVT_FLOAT2ACCUM(input1[input1_tv.get_tensor_view_idx(layout)]);
+    FLOAT_ACCUM input2_fvalue = CVT_FLOAT2ACCUM(input2[input2_tv.get_tensor_view_idx(layout)]);
+
+    int32_t out;
+    bool input1_isnan = isnan(input1_fvalue);
+    bool input2_isnan = isnan(input2_fvalue);
 
     if(input1_isnan || input2_isnan)
     {
         if(equal_nan == 1 && input1_isnan == true && input2_isnan == true)
         {
-            out = true;
+            out = 1;
         }
         else
         {
-            out = false;
+            out = 0;
         }
     }
     else
     {
-        if(std::fabs(input1_fvalue - input2_fvalue) <= (atol + rtol * std::fabs(input2_fvalue)))
+        if(fabs(input1_fvalue - input2_fvalue) <= (atol + rtol * fabs(input2_fvalue)))
         {
-            out = true;
+            out = 1;
         }
         else
         {
-            out = false;
+            out = 0;
         }
     }
 
     workspace[gid] = out;
 }
 
-extern "C" __global__ void AllCloseForward(const D_TYPE* input1,
-                                           const D_TYPE* input2,
+extern "C" __global__ void AllCloseForward(const D_TYPE* __restrict__ input1,
+                                           const D_TYPE* __restrict__ input2,
+                                           int32_t* __restrict__ workspace,
                                            const float atol,
                                            const float rtol,
                                            const bool equal_nan,
-                                           bool* workspace,
                                            uint64_t numel,
                                            tensor_view_t<5> input1_tv,
                                            tensor_view_t<5> input2_tv)
 {
     allCloseForward<D_TYPE>(
-        input1, input2, atol, rtol, equal_nan, workspace, numel, input1_tv, input2_tv);
+        input1, input2, workspace, atol, rtol, equal_nan, numel, input1_tv, input2_tv);
 }
 
-__device__ void allCloseReduce(const bool* workspace, bool* output, uint64_t numel)
+template <typename T>
+__device__ void reduceProd(const T* input, T* output, uint64_t numel)
 {
-    uint64_t gid = blockIdx.x;
-    uint64_t lid = threadIdx.x;
+    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    int32_t val = (gid < numel) ? static_cast<int32_t>(workspace[gid]) : 1;
+    FLOAT_ACCUM val = gid < numel ? static_cast<FLOAT_ACCUM>(input[gid]) : 1.0f;
+    val             = block_reduce<BinaryOp_t::Prod, REDUCE_SIZE, ReduceThreadDim::X>(val);
 
-    block_reduce<BinaryOp_t::Prod, LOCAL_SIZE, ReduceThreadDim::X>(val);
-
-    if(lid == 0)
+    if(threadIdx.x == 0)
     {
-        output[0] = static_cast<bool>(val);
+        output[blockIdx.x] = static_cast<T>(val);
     }
 }
 
-extern "C" __global__ void AllCloseReduce(const bool* workspace, bool* output, uint64_t numel)
+extern "C" __global__ void
+ReduceProd(const REDUCE_DTYPE* input, REDUCE_DTYPE* output, uint64_t numel)
 {
-    allCloseReduce(workspace, output, numel);
+    reduceProd<REDUCE_DTYPE>(input, output, numel);
 }

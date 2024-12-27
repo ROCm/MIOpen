@@ -32,6 +32,7 @@ add_executable(MIOpenDriver
     dm_activ.cpp
     dm_adam.cpp
     dm_addlayernorm.cpp
+    dm_allclose.cpp
     dm_bnorm.cpp
     dm_cat.cpp
     dm_conv.cpp
@@ -59,7 +60,6 @@ add_executable(MIOpenDriver
     dm_rope.cpp
     dm_softmarginloss.cpp
     dm_softmax.cpp
-    dm_sparse_softmax_cross_entropy_with_logits.cpp
     dm_t5layernorm.cpp
     dm_tensorop.cpp
     dm_transformers_adam_w.cpp

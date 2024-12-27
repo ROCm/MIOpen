@@ -72,12 +72,16 @@ extern "C" miopenStatus_t
 miopenGetAllCloseForwardWorkspaceSize(miopenHandle_t handle,
                                       const miopenTensorDescriptor_t input1Desc,
                                       const miopenTensorDescriptor_t input2Desc,
+                                      const miopenTensorDescriptor_t outputDesc,
                                       size_t* sizeInBytes)
 {
     MIOPEN_LOG_FUNCTION(handle, input1Desc, input2Desc);
     return miopen::try_([&] {
-        miopen::deref(sizeInBytes) = miopen::allclose::GetAllCloseForwardWorkspaceSize(
-            miopen::deref(handle), miopen::deref(input1Desc), miopen::deref(input2Desc));
+        miopen::deref(sizeInBytes) =
+            miopen::allclose::GetAllCloseForwardWorkspaceSize(miopen::deref(handle),
+                                                              miopen::deref(input1Desc),
+                                                              miopen::deref(input2Desc),
+                                                              miopen::deref(outputDesc));
     });
 }
 
@@ -86,13 +90,26 @@ extern "C" miopenStatus_t miopenAllCloseForward(miopenHandle_t handle,
                                                 const void* input1,
                                                 const miopenTensorDescriptor_t input2Desc,
                                                 const void* input2,
+                                                const miopenTensorDescriptor_t outputDesc,
+                                                void* output,
                                                 const float atol,
                                                 const float rtol,
                                                 const bool equal_nan,
-                                                bool* output)
+                                                void* workspace,
+                                                size_t workspaceSizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, input1Desc, input1, input2Desc, input2, atol, rtol, equal_nan, output);
+    MIOPEN_LOG_FUNCTION(handle,
+                        input1Desc,
+                        input1,
+                        input2Desc,
+                        input2,
+                        outputDesc,
+                        output,
+                        atol,
+                        rtol,
+                        equal_nan,
+                        workspace,
+                        workspaceSizeInBytes);
     LogCmdAllClose(input1Desc, true);
 
     return miopen::try_([&] {
@@ -101,9 +118,12 @@ extern "C" miopenStatus_t miopenAllCloseForward(miopenHandle_t handle,
                                           DataCast(input1),
                                           miopen::deref(input2Desc),
                                           DataCast(input2),
+                                          miopen::deref(outputDesc),
+                                          DataCast(output),
                                           atol,
                                           rtol,
                                           equal_nan,
-                                          DataCast(output));
+                                          DataCast(workspace),
+                                          workspaceSizeInBytes);
     });
 }

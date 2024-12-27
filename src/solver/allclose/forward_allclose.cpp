@@ -64,38 +64,31 @@ ConvSolution AllCloseForward::GetSolution(const ExecutionContext& context,
     auto dtype        = problem.GetInput1Desc().GetType();
     auto numel        = problem.GetInput1Desc().GetElementSize();
 
-    {
-        /* Phase 1: Calc AllClose for each element. */
-        auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"D_TYPE", input1_dtype == "bfloat16" ? "ushort" : input1_dtype},
-            {"LOCAL_SIZE", LOCAL_SIZE_FWD},
-        };
+    /* Phase 1: Calc AllClose for each element. */
+    auto build_params = KernelBuildParameters{
+        {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+        {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+        {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+        {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+        {"D_TYPE", input1_dtype == "bfloat16" ? "ushort" : input1_dtype},
+        {"REDUCE_DTYPE", miopen::GetDataType(problem.GetOutputDesc().GetType())},
+        {"LOCAL_SIZE", LOCAL_SIZE_FWD},
+        {"REDUCE_SIZE", LOCAL_SIZE_REDUCE},
+    };
 
+    result.construction_params.push_back(make_hip_kernel(
+        {LOCAL_SIZE_FWD}, {numel}, "MIOpenAllClose.cpp", "AllCloseForward", build_params));
+
+    /* Phase 2: Reduce the results. */
+    auto _size = numel;
+    while(_size > LOCAL_SIZE_REDUCE)
+    {
         result.construction_params.push_back(make_hip_kernel(
-            {LOCAL_SIZE_FWD}, {numel}, "MIOpenAllClose.cpp", "AllCloseForward", build_params));
+            {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenAllClose.cpp", "ReduceProd", build_params));
+        _size = (_size + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE;
     }
-
-    {
-        /* Phase 2: Reduce the results. */
-        auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"D_TYPE", input1_dtype == "bfloat16" ? "ushort" : input1_dtype},
-            {"LOCAL_SIZE", LOCAL_SIZE_REDUCE},
-        };
-
-        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDUCE},
-                                                             {numel},
-                                                             "MIOpenReduceCalculation.cpp",
-                                                             "CalculationParallelFwdContiguous",
-                                                             build_params));
-    }
+    result.construction_params.push_back(make_hip_kernel(
+        {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenAllClose.cpp", "ReduceProd", build_params));
 
     result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
@@ -122,10 +115,10 @@ ConvSolution AllCloseForward::GetSolution(const ExecutionContext& context,
 
                 kernel(params.input1,
                        params.input2,
+                       params.workspace,
                        params.atol,
                        params.rtol,
                        params.equal_nan,
-                       params.workspace,
                        numel,
                        input1_tv,
                        input2_tv);
@@ -134,13 +127,24 @@ ConvSolution AllCloseForward::GetSolution(const ExecutionContext& context,
             /* Phase 2: Reduce */
             {
                 auto size      = numel;
-                auto data_size = get_data_size(miopenInt32);
+                auto data_size = get_data_size(deref(params.outputDesc).GetType());
                 auto wt        = MultiBufferWorkspaceTraits{size * data_size,
                                                      (size + LOCAL_SIZE_REDUCE - 1) /
                                                          LOCAL_SIZE_REDUCE * data_size};
                 auto reduce_in = params.workspace;
+                auto reduce_out =
+                    static_cast<void*>(static_cast<std::byte*>(params.workspace) + wt.GetOffset(1));
 
-                decltype(auto) kernel = handle_.Run(kernels[1]);
+                int kernelCnt = 1;
+                while(size > LOCAL_SIZE_REDUCE)
+                {
+                    auto kernel = handle_.Run(kernels[kernelCnt++]);
+                    kernel(reduce_in, reduce_out, size);
+                    size = (size + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE;
+                    std::swap(reduce_in, reduce_out);
+                }
+
+                decltype(auto) kernel = handle_.Run(kernels[kernelCnt]);
                 kernel(reduce_in, params.output, size);
             }
 
@@ -168,7 +172,7 @@ AllCloseForward::GetWorkspaceSize(const ExecutionContext& /*context*/,
                                   const miopen::allclose::ProblemDescription& problem) const
 {
     auto size      = problem.GetInput1Desc().GetElementSize();
-    auto data_size = get_data_size(miopenInt32);
+    auto data_size = get_data_size(problem.GetOutputDesc().GetType());
     return MultiBufferWorkspaceTraits{
         size * data_size, (size + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE * data_size}
         .GetSize();

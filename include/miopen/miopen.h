@@ -8017,6 +8017,7 @@ AllCloseForward call
  * @param handle              MIOpen Handle (input)
  * @param input1Desc          Tensor descriptor for input 1 tensor (input)
  * @param input2Desc          Tensor descriptor for input 2 tensor (input)
+ * @param outputDesc          Tensor descriptor for output tensor (input)
  * @param sizeInBytes         Pointer to data to return the minimum workspace size (output)
  * @return                    miopenStatus_t
  */
@@ -8024,6 +8025,7 @@ MIOPEN_EXPORT miopenStatus_t
 miopenGetAllCloseForwardWorkspaceSize(miopenHandle_t handle,
                                       const miopenTensorDescriptor_t input1Desc,
                                       const miopenTensorDescriptor_t input2Desc,
+                                      const miopenTensorDescriptor_t outputDesc,
                                       size_t* sizeInBytes);
 
 /*! @brief Execute a allclose forward layer
@@ -8033,10 +8035,13 @@ miopenGetAllCloseForwardWorkspaceSize(miopenHandle_t handle,
  * @param input1                Data tensor input1 (input)
  * @param input2Desc            Tensor descriptor for input2  tensor (input)
  * @param input2                Data tensor input2 (input)
+ * @param outputDesc            Tensor descriptor for output tensor (input)
+ * @param output                Data tensor output (output)
  * @param atol                  Absolute tolerance (input)
  * @param rtol                  Relative tolerance (input)
  * @param equal_nan             Flag indicating whether to compare NaNs as equal (input)
- * @param output                Data tensor output (output)
+ * @param workspace             Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes  Size in bytes of the allocated workspace data (input)
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenAllCloseForward(miopenHandle_t handle,
@@ -8044,10 +8049,13 @@ MIOPEN_EXPORT miopenStatus_t miopenAllCloseForward(miopenHandle_t handle,
                                                    const void* input1,
                                                    const miopenTensorDescriptor_t input2Desc,
                                                    const void* input2,
+                                                   const miopenTensorDescriptor_t outputDesc,
+                                                   void* output,
                                                    const float atol,
                                                    const float rtol,
                                                    const bool equal_nan,
-                                                   bool* output);
+                                                   void* workspace,
+                                                   size_t workspaceSizeInBytes);
 
 /** @} */
 // CLOSEOUT allclose DOXYGEN GROUP

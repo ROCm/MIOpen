@@ -33,18 +33,24 @@ struct TensorDescriptor;
 
 namespace allclose {
 
-MIOPEN_INTERNALS_EXPORT std::size_t GetAllCloseForwardWorkspaceSize(
-    Handle& handle, const TensorDescriptor& input1Desc, const TensorDescriptor& input2Desc);
+MIOPEN_INTERNALS_EXPORT std::size_t
+GetAllCloseForwardWorkspaceSize(Handle& handle,
+                                const TensorDescriptor& input1Desc,
+                                const TensorDescriptor& input2Desc,
+                                const TensorDescriptor& outputDesc);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t AllCloseForward(Handle& handle,
                                                        const TensorDescriptor& input1Desc,
                                                        ConstData_t input1,
                                                        const TensorDescriptor& input2Desc,
                                                        ConstData_t input2,
+                                                       const TensorDescriptor& outputDesc,
+                                                       Data_t output,
                                                        float atol,
                                                        float rtol,
                                                        bool equal_nan,
-                                                       Data_t output);
+                                                       Data_t workspace,
+                                                       size_t workspaceSizeInBytes);
 
 } // namespace allclose
 

@@ -23,40 +23,31 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "allclose.hpp"
+using float16 = half_float::half;
 
-#pragma once
+using GPU_AllClose_fwd_FP32  = AllCloseTestFwd<float>;
+using GPU_AllClose_fwd_FP16  = AllCloseTestFwd<float16>;
+using GPU_AllClose_fwd_BFP16 = AllCloseTestFwd<bfloat16>;
 
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
-
-namespace miopen {
-
-namespace allclose {
-
-struct InvokeParams : public miopen::InvokeParams
+TEST_P(GPU_AllClose_fwd_FP32, Test)
 {
-
-    InvokeParams() = default;
-
-    const TensorDescriptor* input1Desc = nullptr;
-    const TensorDescriptor* input2Desc = nullptr;
-    const TensorDescriptor* outputDesc = nullptr;
-
-    ConstData_t input1 = nullptr;
-    ConstData_t input2 = nullptr;
-    Data_t output      = nullptr;
-
-    float atol;
-    float rtol;
-    bool equal_nan;
-
-    size_t workspace_size = 0;
-    Data_t workspace      = nullptr;
-
-    size_t GetWorkspaceSize() const { return workspace_size; }
-    Data_t GetWorkspace() const { return workspace; }
+    RunTest();
+    Verify();
 };
 
-} // namespace allclose
+TEST_P(GPU_AllClose_fwd_FP16, Test)
+{
+    RunTest();
+    Verify();
+};
 
-} // namespace miopen
+TEST_P(GPU_AllClose_fwd_BFP16, Test)
+{
+    RunTest();
+    Verify();
+};
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_AllClose_fwd_FP32, testing::ValuesIn(AllCloseTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_AllClose_fwd_FP16, testing::ValuesIn(AllCloseTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_AllClose_fwd_BFP16, testing::ValuesIn(AllCloseTestConfigs()));
