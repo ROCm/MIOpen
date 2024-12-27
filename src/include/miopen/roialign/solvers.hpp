@@ -23,37 +23,45 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
-#include "miopen/execution_context.hpp"
-#include "miopen/roialign/problem_description.hpp"
-#include "miopen/solver.hpp"
+// #include "miopen/execution_context.hpp"
+// #include "miopen/roialign/problem_description.hpp"
+// #include "miopen/solver.hpp"
+#include <miopen/solver.hpp>
+#include <miopen/roialign/problem_description.hpp>
 
 namespace miopen {
+
 namespace solver {
+
 namespace roialign {
 
-using RoIAlignSolver = NonTunableSolverBase<ExecutionContext, miopen::roialign::ProblemDescription>;
+using RoIAlignForwardSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::roialign::FwdProblemDescription>;
+using RoIAlignBackwardSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::roialign::BwdProblemDescription>;
 
-struct RoIAlignForward final : RoIAlignSolver
+struct RoIAlignForward final : RoIAlignForwardSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<RoIAlignForward>(); }
-
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::roialign::ProblemDescription& problem) const override;
-
+                      const miopen::roialign::FwdProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::roialign::ProblemDescription& problem) const override;
-
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::roialign::ProblemDescription& problem) const override
-    {
-        return 0;
-    }
-
-    bool MayNeedWorkspace() const override { return false; }
+                             const miopen::roialign::FwdProblemDescription& problem) const override;
 };
+
+struct RoIAlignBackward final : RoIAlignBackwardSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<RoIAlignBackward>(); }
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::roialign::BwdProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::roialign::BwdProblemDescription& problem) const override;
+};
+
 } // namespace roialign
+
 } // namespace solver
+
 } // namespace miopen

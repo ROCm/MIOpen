@@ -23,12 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #include <miopen/common.hpp>
-#include <miopen/errors.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/roialign.hpp>
 #include <miopen/miopen.h>
+#include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/roialign.hpp>
 
 extern "C" miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
                                                 const miopenTensorDescriptor_t inputDesc,
@@ -37,26 +38,83 @@ extern "C" miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
                                                 const void* rois,
                                                 const miopenTensorDescriptor_t outputDesc,
                                                 void* output,
-                                                int32_t alignedHeight,
-                                                int32_t alignedWidth,
-                                                float spatialScale,
-                                                int32_t samplingRatio,
-                                                bool aligned,
-                                                int roi_batch_index)
+                                                const int32_t alignedHeight,
+                                                const int32_t alignedWidth,
+                                                const float spatialScale,
+                                                const int32_t samplingRatio,
+                                                const bool aligned,
+                                                const int32_t roi_batch_base_idx)
 {
+    MIOPEN_LOG_FUNCTION(inputDesc,
+                        input,
+                        roisDesc,
+                        rois,
+                        outputDesc,
+                        output,
+                        alignedHeight,
+                        alignedWidth,
+                        spatialScale,
+                        samplingRatio,
+                        aligned,
+                        roi_batch_base_idx);
+
     return miopen::try_([&] {
-        miopen::RoIAlignForward(miopen::deref(handle),
-                                miopen::deref(inputDesc),
-                                DataCast(input),
-                                miopen::deref(roisDesc),
-                                DataCast(rois),
-                                miopen::deref(outputDesc),
-                                DataCast(output),
-                                alignedHeight,
-                                alignedWidth,
-                                spatialScale,
-                                samplingRatio,
-                                aligned,
-                                roi_batch_index);
+        miopen::roialign::RoIAlignForward(miopen::deref(handle),
+                                          miopen::deref(inputDesc),
+                                          DataCast(input),
+                                          miopen::deref(roisDesc),
+                                          DataCast(rois),
+                                          miopen::deref(outputDesc),
+                                          DataCast(output),
+                                          alignedHeight,
+                                          alignedWidth,
+                                          spatialScale,
+                                          samplingRatio,
+                                          aligned,
+                                          roi_batch_base_idx);
     });
-}
+};
+
+extern "C" miopenStatus_t miopenRoIAlignBackward(miopenHandle_t handle,
+                                                 const miopenTensorDescriptor_t outputGradDesc,
+                                                 const void* outputGrad,
+                                                 const miopenTensorDescriptor_t roisDesc,
+                                                 const void* rois,
+                                                 const miopenTensorDescriptor_t inputGradDesc,
+                                                 void* inputGrad,
+                                                 const int32_t alignedHeight,
+                                                 const int32_t alignedWidth,
+                                                 const float spatialScale,
+                                                 const int32_t samplingRatio,
+                                                 const bool aligned,
+                                                 const int32_t roi_batch_base_idx)
+{
+    MIOPEN_LOG_FUNCTION(outputGradDesc,
+                        outputGrad,
+                        roisDesc,
+                        rois,
+                        inputGradDesc,
+                        inputGrad,
+                        alignedHeight,
+                        alignedWidth,
+                        spatialScale,
+                        samplingRatio,
+                        aligned,
+                        roi_batch_base_idx);
+
+    return miopen::try_([&] {
+        miopen::roialign::RoIAlignBackward(miopen::deref(handle),
+                                           miopen::deref(outputGradDesc),
+                                           DataCast(outputGrad),
+                                           miopen::deref(roisDesc),
+                                           DataCast(rois),
+                                           miopen::deref(inputGradDesc),
+                                           DataCast(inputGrad),
+                                           alignedHeight,
+                                           alignedWidth,
+                                           spatialScale,
+                                           samplingRatio,
+                                           aligned,
+                                           roi_batch_base_idx);
+    });
+};

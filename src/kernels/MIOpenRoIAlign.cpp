@@ -346,23 +346,23 @@ __device__ void RoIAlignBackward(DTYPE* output_grad,
 }
 
 template <typename DTYPE>
-__global__ void RoIAlignBackwardAtomic(DTYPE* output_grad,
-                                       DTYPE* rois,
-                                       DTYPE* input_grad,
-                                       long N,
-                                       long C,
-                                       long H,
-                                       long W,
-                                       long K,
-                                       int OH,
-                                       int OW,
-                                       DTYPE spatial_scale,
-                                       int sampling_ratio,
-                                       char aligned,
-                                       int roi_batch_base_idx,
-                                       tensor_view_t<4> output_grad_tv,
-                                       tensor_view_t<2> rois_tv,
-                                       tensor_view_t<4> input_grad_tv)
+__device__ void roialign_backward_atomic(DTYPE* output_grad,
+                                         DTYPE* rois,
+                                         DTYPE* input_grad,
+                                         long N,
+                                         long C,
+                                         long H,
+                                         long W,
+                                         long K,
+                                         int OH,
+                                         int OW,
+                                         DTYPE spatial_scale,
+                                         int sampling_ratio,
+                                         char aligned,
+                                         int roi_batch_base_idx,
+                                         tensor_view_t<4> output_grad_tv,
+                                         tensor_view_t<2> rois_tv,
+                                         tensor_view_t<4> input_grad_tv)
 {
     /*
      * output_grad : input, (K, C, OH, OW)
@@ -507,7 +507,7 @@ extern "C" __global__ void RoIAlignForward(const FLOAT* __restrict__ input,
                                            tensor_view_t<2> rois_tv,
                                            tensor_view_t<4> output_tv)
 {
-    printf("Global kernel called\n");
+    // printf("Global kernel called\n");
     DeviceRoIAlignForward<FLOAT>(input,
                                  rois,
                                  output,
@@ -520,4 +520,41 @@ extern "C" __global__ void RoIAlignForward(const FLOAT* __restrict__ input,
                                  input_tv,
                                  rois_tv,
                                  output_tv);
+}
+
+extern "C" __global__ void RoIAlignBackwardAtomic(const FLOAT* output_grad,
+                                                  const FLOAT* rois,
+                                                  FLOAT* input_grad,
+                                                  const long N,
+                                                  const long C,
+                                                  const long H,
+                                                  const long W,
+                                                  const const long K,
+                                                  const int32_t OH,
+                                                  const int32_t OW,
+                                                  FLOAT spatial_scale,
+                                                  int32_t sampling_ratio,
+                                                  char aligned,
+                                                  int32_t roi_batch_base_idx,
+                                                  tensor_view_t<4> output_grad_tv,
+                                                  tensor_view_t<2> rois_tv,
+                                                  tensor_view_t<4> input_grad_tv)
+{
+    roialign_backward_atomic<FLOAT>(output_grad,
+                                    rois,
+                                    input_grad,
+                                    N,
+                                    C,
+                                    H,
+                                    W,
+                                    K,
+                                    OH,
+                                    OW,
+                                    spatial_scale,
+                                    sampling_ratio,
+                                    aligned,
+                                    roi_batch_base_idx,
+                                    output_grad_tv,
+                                    rois_tv,
+                                    input_grad_tv);
 }

@@ -28,19 +28,20 @@
 
 #include "miopen/problem_description_base.hpp"
 #include "miopen/tensor.hpp"
-#include <cstdint>
+
 namespace miopen {
 
 struct NetworkConfig;
 
 namespace roialign {
-struct ProblemDescription : ProblemDescriptionBase
+
+struct FwdProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& inputDesc_,
-                       const TensorDescriptor& roisDesc_,
-                       const TensorDescriptor& outputDesc_,
-                       const int alignedHeight_,
-                       const int alignedWidth_)
+    FwdProblemDescription(const TensorDescriptor& inputDesc_,
+                          const TensorDescriptor& roisDesc_,
+                          const TensorDescriptor& outputDesc_,
+                          const int alignedHeight_,
+                          const int alignedWidth_)
         : inputDesc(inputDesc_),
           roisDesc(roisDesc_),
           outputDesc(outputDesc_),
@@ -56,6 +57,59 @@ struct ProblemDescription : ProblemDescriptionBase
     int32_t GetAlignedHeight() const { return alignedHeight; }
     int32_t GetAlignedWidth() const { return alignedWidth; }
 
+    bool IsRightDim() const
+    {
+        if(inputDesc.GetNumDims() != 4)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoIAlignForward: input tensor should be 4-dimensions");
+        }
+
+        if(roisDesc.GetNumDims() != 2)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoIAlignForward: rois tensor should be 2-dimensions");
+        }
+
+        if(roisDesc.GetLengths()[1] != 5)
+        {
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "RoIAlignForward: rois tensor should have 5 elements in the second dimension");
+        }
+
+        return true;
+    }
+
+    bool IsRightLength() const
+    {
+        const auto input_grad_lengths = inputDesc.GetLengths();
+        const auto rois_lengths       = roisDesc.GetLengths();
+
+        const auto C = input_grad_lengths[1];
+        const auto K = rois_lengths[0];
+
+        if(outputDesc.GetLengths() != std::vector<std::size_t>{K, C, alignedHeight, alignedWidth})
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoIAlignBackward: Invalid output grad tensor dimensions");
+        }
+
+        return true;
+    }
+
+    bool IsSameType() const
+    {
+        if(inputDesc.GetType() != roisDesc.GetType() || inputDesc.GetType() != outputDesc.GetType())
+        {
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "RoIAlignBackward: input, output and rois tensors should have the same type");
+        }
+
+        return true;
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
@@ -66,5 +120,101 @@ private:
     const int32_t alignedHeight;
     const int32_t alignedWidth;
 };
+
+struct BwdProblemDescription : ProblemDescriptionBase
+{
+    BwdProblemDescription(const TensorDescriptor& outputGradDesc_,
+                          const TensorDescriptor& roisDesc_,
+                          const TensorDescriptor& inputGradDesc_,
+                          const int alignedHeight_,
+                          const int alignedWidth_)
+        : outputGradDesc(outputGradDesc_),
+          roisDesc(roisDesc_),
+          inputGradDesc(inputGradDesc_),
+          alignedHeight(alignedHeight_),
+          alignedWidth(alignedWidth_)
+    {
+        IsRightDim();
+        IsRightLength();
+        IsSameType();
+    }
+
+    const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
+    const TensorDescriptor& GetRoisDesc() const { return roisDesc; }
+    const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
+
+    int32_t GetAlignedHeight() const { return alignedHeight; }
+    int32_t GetAlignedWidth() const { return alignedWidth; }
+
+    bool IsRightDim() const
+    {
+        if(inputGradDesc.GetNumDims() != 4)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoIAlignBackward: input grad tensor should be 4-dimensions");
+        }
+
+        if(roisDesc.GetNumDims() != 2)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoIAlignBackward: rois tensor should be 2-dimensions");
+        }
+
+        if(roisDesc.GetLengths()[1] != 5)
+        {
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "RoIAlignBackward: rois tensor should have 5 elements in the second dimension");
+        }
+
+        return true;
+    }
+
+    bool IsRightLength() const
+    {
+        const auto input_grad_lengths = inputGradDesc.GetLengths();
+        const auto rois_lengths       = roisDesc.GetLengths();
+
+        // const auto N = input_grad_lengths[0];
+        const auto C = input_grad_lengths[1];
+        // const auto H = input_grad_lengths[2];
+        // const auto W = input_grad_lengths[3];
+
+        const auto K = rois_lengths[0];
+
+        if(outputGradDesc.GetLengths() !=
+           std::vector<std::size_t>{K, C, alignedHeight, alignedWidth})
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoIAlignBackward: Invalid output grad tensor dimensions");
+        }
+
+        return true;
+    }
+
+    bool IsSameType() const
+    {
+        if(outputGradDesc.GetType() != roisDesc.GetType() ||
+           outputGradDesc.GetType() != inputGradDesc.GetType())
+        {
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "RoIAlignBackward: input, output and rois tensors should have the same type");
+        }
+
+        return true;
+    }
+
+    NetworkConfig MakeNetworkConfig() const override;
+
+private:
+    const TensorDescriptor& outputGradDesc;
+    const TensorDescriptor& roisDesc;
+    const TensorDescriptor& inputGradDesc;
+
+    const int32_t alignedHeight;
+    const int32_t alignedWidth;
+};
+
 } // namespace roialign
 } // namespace miopen

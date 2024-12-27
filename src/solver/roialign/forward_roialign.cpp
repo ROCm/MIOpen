@@ -33,26 +33,35 @@
 #include "miopen/roialign/solvers.hpp"
 #include "miopen/tensor_view_utils.hpp"
 
+#define VIEW_DIMS 5
 #define ROIALIGN_LOCAL_SIZE 256
 
 namespace miopen {
 namespace solver {
 namespace roialign {
 
-bool IsImprovementOverROCm(const ExecutionContext context,
-                           const miopen::roialign::ProblemDescription& problem)
-{
-    return true;
-}
+bool IsImprovementOverROCm(const miopen::roialign::FwdProblemDescription& problem) { return true; }
 
 bool RoIAlignForward::IsApplicable(const ExecutionContext& context,
-                                   const miopen::roialign::ProblemDescription& problem) const
+                                   const miopen::roialign::FwdProblemDescription& problem) const
 {
+    if(problem.GetInputDesc().GetVectorLength() > VIEW_DIMS)
+        return false;
+
+    if(!(problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
+        return false;
+
+    if(!IsImprovementOverROCm(problem))
+        return false;
+
     return true;
 }
 
-ConvSolution RoIAlignForward::GetSolution(const ExecutionContext& context,
-                                          const miopen::roialign::ProblemDescription& problem) const
+ConvSolution
+RoIAlignForward::GetSolution(const ExecutionContext& context,
+                             const miopen::roialign::FwdProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -99,7 +108,7 @@ ConvSolution RoIAlignForward::GetSolution(const ExecutionContext& context,
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) params = raw_params.CastTo<miopen::roialign::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::roialign::FwdInvokeParams>();
             decltype(auto) kernel = handle_.Run(kernels[0]);
 
             auto input_tv  = get_inner_expanded_tv<4>(*params.inputDesc);
@@ -114,7 +123,7 @@ ConvSolution RoIAlignForward::GetSolution(const ExecutionContext& context,
                    params.spatialScale,
                    params.samplingRatio,
                    params.aligned,
-                   params.roi_batch_index,
+                   params.roi_batch_base_idx,
                    input_tv,
                    rois_tv,
                    output_tv);

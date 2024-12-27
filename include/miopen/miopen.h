@@ -8184,7 +8184,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  */
 
 /**
- * @brief Performs Region-of-Interest (RoI) Align
+ * @brief Execute a Region-of-Interest (RoI) Align forward layer
  *
  * @param [in]  handle          MIOpen handle
  * @param [in]  inputDesc       Input tensor descriptor
@@ -8196,21 +8196,55 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * @param [in]  alignedHeight   Height of the aligned output
  * @param [in]  alignedWidth    Width of the aligned output
  * @param [in]  spatialScale    RoI spatial scale
-
+ * @param [in]  samplingRatio   Number of sampling points in the interpolation grid
+ * @param [in]  aligned         Flag to indicate whether to use aligned or unaligned RoI Align
+ * @param [in]  roi_batch_base_idx Index of the batch to which the RoI belongs
+ * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
-                                                   miopenTensorDescriptor_t inputDesc,
+                                                   const miopenTensorDescriptor_t inputDesc,
                                                    const void* input,
-                                                   miopenTensorDescriptor_t roisDesc,
+                                                   const miopenTensorDescriptor_t roisDesc,
                                                    const void* rois,
-                                                   miopenTensorDescriptor_t outputDesc,
+                                                   const miopenTensorDescriptor_t outputDesc,
                                                    void* output,
-                                                   int32_t alignedHeight,
-                                                   int32_t alignedWidth,
-                                                   float spatialScale,
-                                                   int32_t samplingRatio,
-                                                   bool aligned,
-                                                   int roi_batch_index);
+                                                   const int32_t alignedHeight,
+                                                   const int32_t alignedWidth,
+                                                   const float spatialScale,
+                                                   const int32_t samplingRatio,
+                                                   const bool aligned,
+                                                   const int32_t roi_batch_base_idx);
+
+/*! @brief Execute a Region-of-Interest (RoI) Align backward layer
+ *
+ * @param [in]  handle          MIOpen handle
+ * @param [in]  outputGradDesc  Output gradient tensor descriptor
+ * @param [in]  outputGrad      Output gradient tensor
+ * @param [in]  roisDesc        RoI tensor descriptor
+ * @param [in]  rois            RoI tensor
+ * @param [in]  inputGradDesc   Input gradient tensor descriptor
+ * @param [out] inputGrad       Input gradient tensor
+ * @param [in]  alignedHeight   Height of the aligned output
+ * @param [in]  alignedWidth    Width of the aligned output
+ * @param [in]  spatialScale    RoI spatial scale
+ * @param [in]  samplingRatio   Number of sampling points in the interpolation grid
+ * @param [in]  aligned         Flag to indicate whether to use aligned or unaligned RoI Align
+ * @param [in]  roi_batch_base_idx Index of the batch to which the RoI belongs
+ * @return                      miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenRoIAlignBackward(miopenHandle_t handle,
+                                                    const miopenTensorDescriptor_t outputGradDesc,
+                                                    const void* outputGrad,
+                                                    const miopenTensorDescriptor_t roisDesc,
+                                                    const void* rois,
+                                                    const miopenTensorDescriptor_t inputGradDesc,
+                                                    void* inputGrad,
+                                                    const int32_t alignedHeight,
+                                                    const int32_t alignedWidth,
+                                                    const float spatialScale,
+                                                    const int32_t samplingRatio,
+                                                    const bool aligned,
+                                                    const int32_t roi_batch_base_idx);
 
 /** @}*/
 // CLOSEOUT RoIAlign DOXYGEN GROUP

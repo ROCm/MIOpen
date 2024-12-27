@@ -717,6 +717,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
     Register(registry, ++id, Primitive::RoIAlign, roialign::RoIAlignForward{}.SolverDbId());
+    Register(registry, ++id, Primitive::RoIAlign, roialign::RoIAlignBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }

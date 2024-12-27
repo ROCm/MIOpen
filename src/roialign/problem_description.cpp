@@ -23,24 +23,56 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #include "miopen/names.hpp"
-#include <miopen/roialign/problem_description.hpp>
 #include <sstream>
 
+#include <miopen/roialign/problem_description.hpp>
+// #include <miopen/names.hpp>
+
 namespace miopen {
+
 namespace roialign {
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+
+NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
+    auto dtype         = inputDesc.GetType();
+    auto input_lengths = inputDesc.GetLengths();
+
     std::ostringstream oss;
 
-    oss << "fwd";
-    oss << "dtype" << GetInputDesc().GetType();
-    oss << "xdesc" << GetInputDesc();
-    oss << "ydesc" << GetOutputDesc();
-    oss << "rois" << GetRoisDesc();
+    oss << "RoIAlign_fwd";
+    oss << "dtype" << dtype;
+    oss << "input_lengths";
+    for(auto length : input_lengths)
+        oss << length << ',';
+    // Add more information to the network config here
+    // oss << "xdesc" << GetInputDesc();
+    // oss << "ydesc" << GetOutputDesc();
+    // oss << "rois" << GetRoisDesc();
 
     return NetworkConfig{oss.str()};
 }
+
+NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
+{
+    auto dtype              = outputGradDesc.GetType();
+    auto input_grad_lengths = inputGradDesc.GetLengths();
+
+    std::ostringstream oss;
+
+    oss << "RoIAlign_bwd";
+    oss << "dtype" << dtype;
+    oss << "input_grad_lengths";
+    for(auto length : input_grad_lengths)
+        oss << length << ',';
+    // Add more information to the network config here
+    // oss << "xdesc" << GetOutputGradDesc();
+    // oss << "ydesc" << GetInputGradDesc();
+    // oss << "rois" << GetRoisDesc();
+
+    return NetworkConfig{oss.str()};
+}
+
 } // namespace roialign
+
 } // namespace miopen

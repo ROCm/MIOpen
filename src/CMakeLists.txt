@@ -192,7 +192,6 @@ set( MIOpen_Source
     rnn/Solutions/fwd_s_stream.cpp
     rnn/Solutions/bwd_s_stream.cpp
     rnn/Solutions/bwd_multi_stream.cpp
-    roialign.cpp
     roialign_api.cpp
     roialign/problem_description.cpp
     rnn/Solutions/bww_s_steam.cpp
@@ -332,7 +331,8 @@ set( MIOpen_Source
     solver/reduce/forward_min.cpp
     solver/reduce/forward_prod.cpp
     solver/reduce/forward_sum.cpp
-    solver/roialign/roialign.cpp
+    solver/roialign/backward_roialign.cpp
+    solver/roialign/forward_roialign.cpp
     solver/rope/backward_rope.cpp
     solver/rope/forward_rope.cpp
     solver/softmarginloss/backward_softmarginloss.cpp
@@ -705,6 +705,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         prelu.cpp
         reducecalculation.cpp
         reduceextreme.cpp
+        roialign.cpp
         rope.cpp
         softmarginloss.cpp
         transformers_adam_w.cpp

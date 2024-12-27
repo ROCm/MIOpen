@@ -23,29 +23,47 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#ifndef MIOPEN_ROI_ALIGN_HPP_
-#define MIOPEN_ROI_ALIGN_HPP_
-
-#include <miopen/handle.hpp>
-#include <miopen/tensor.hpp>
+// #include <miopen/handle.hpp>
+// #include <miopen/tensor.hpp>
 #include <miopen/common.hpp>
 
 namespace miopen {
 
-miopenStatus_t RoIAlignForward(Handle& handle,
-                               const TensorDescriptor& inputDesc,
-                               ConstData_t input,
-                               const TensorDescriptor& roisDesc,
-                               ConstData_t rois,
-                               const TensorDescriptor& outputDesc,
-                               Data_t output,
-                               const int alignedHeight,
-                               const int alignedWidth,
-                               const float spatialScale,
-                               const int samplingRatio,
-                               const bool aligned,
-                               const int roi_batch_index);
+struct Handle;
+struct TensorDescriptor;
+
+namespace roialign {
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t RoIAlignForward(Handle& handle,
+                                                       const TensorDescriptor& inputDesc,
+                                                       ConstData_t input,
+                                                       const TensorDescriptor& roisDesc,
+                                                       ConstData_t rois,
+                                                       const TensorDescriptor& outputDesc,
+                                                       Data_t output,
+                                                       int32_t alignedHeight,
+                                                       int32_t alignedWidth,
+                                                       float spatialScale,
+                                                       int32_t samplingRatio,
+                                                       bool aligned,
+                                                       int32_t roi_batch_base_idx);
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t RoIAlignBackward(Handle& handle,
+                                                        const TensorDescriptor& outputGradDesc,
+                                                        ConstData_t outputGrad,
+                                                        const TensorDescriptor& roisDesc,
+                                                        ConstData_t rois,
+                                                        const TensorDescriptor& inputGradDesc,
+                                                        Data_t inputGrad,
+                                                        int32_t alignedHeight,
+                                                        int32_t alignedWidth,
+                                                        float spatialScale,
+                                                        int32_t samplingRatio,
+                                                        bool aligned,
+                                                        int32_t roi_batch_base_idx);
+
+} // namespace roialign
 
 } // namespace miopen
-#endif // MIOPEN_ROI_ALIGN_HPP_
