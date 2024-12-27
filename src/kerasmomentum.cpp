@@ -23,10 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/kerasmomentum.hpp>
-#include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/kerasmomentum.hpp>
 #include <miopen/kerasmomentum/invoke_params.hpp>
 #include <miopen/kerasmomentum/solvers.hpp>
 #include <miopen/find_solution.hpp>

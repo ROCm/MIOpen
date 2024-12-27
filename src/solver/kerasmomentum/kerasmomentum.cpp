@@ -25,14 +25,14 @@
  *******************************************************************************/
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
+#include <miopen/kerasmomentum/solvers.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor_view_utils.hpp>
-#include <miopen/kerasmomentum/solvers.hpp>
 
-#include <miopen/kerasmomentum/invoke_params.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/kerasmomentum.hpp>
+#include <miopen/kerasmomentum/invoke_params.hpp>
 #include <miopen/target_properties.hpp>
 
 #define LOCAL_SIZE 256

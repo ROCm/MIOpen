@@ -25,22 +25,21 @@
  *******************************************************************************/
 #pragma once
 
-#include <miopen/tensor.hpp>
-#include <miopen/tensor_view_utils.hpp>
-#include <../test/ford.hpp>
-
 #include "InputFlags.hpp"
 #include "driver.hpp"
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 
+#include <../test/ford.hpp>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <vector>
 
 template <typename Tgpu, typename Tcheck>
