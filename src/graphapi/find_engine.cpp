@@ -184,17 +184,18 @@ public:
         float alpha1 = conv->getAlpha() * add.virtualAlpha;
         float alpha2 = add.concreteAlpha;
 
-        std::shared_ptr<GraphPatternExecutor> exec = ConvBiasResAddActivForwardExecutor::make(
-            conv->getX(),
-            conv->getW(),
-            conv->getConvolution(),
-            groupCount,
-            add.concreteTensor,
-            bias.concreteTensor,
-            activ->getY(),
-            alpha1,
-            alpha2,
-            std::visit([](auto&& arg) { return static_cast<float>(arg); }, activ->getAlpha1()));
+        std::shared_ptr<GraphPatternExecutor> exec =
+            std::make_shared<ConvBiasResAddActivForwardExecutor>(
+                conv->getX(),
+                conv->getW(),
+                conv->getConvolution(),
+                groupCount,
+                add.concreteTensor,
+                bias.concreteTensor,
+                activ->getY(),
+                alpha1,
+                alpha2,
+                std::visit([](auto&& arg) { return static_cast<float>(arg); }, activ->getAlpha1()));
         return {EngineBuilder().setGraph(graph_ptr).setExecutor(exec).setGlobalIndex(0).build()};
     }
 };

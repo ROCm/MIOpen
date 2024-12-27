@@ -26,6 +26,7 @@
 
 #include <miopen/graphapi/engine.hpp>
 #include <miopen/graphapi/opgraph.hpp>
+#include <nlohmann/json.hpp>
 
 #include <gtest/gtest.h>
 
@@ -46,6 +47,7 @@ public:
     {
     }
     size_t getWorkspaceSize() const override { return 0; }
+    nlohmann::json getJson() override { return {}; };
 };
 
 } // namespace
