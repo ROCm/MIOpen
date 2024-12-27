@@ -74,9 +74,9 @@ extern "C" __global__ void ExtremeFwdContiguous(const INPUT_TYPE* __restrict__ x
 
 template <typename TI, typename TO>
 __device__ void aminmaxBwd(const TI* __restrict__ input,
-                           TO* input_grad,
-                           const TI* output,
-                           const TI* output_grad,
+                           TO* __restrict__ input_grad,
+                           const TI* __restrict__ output,
+                           const TI* __restrict__ output_grad,
                            const int32_t* count,
                            const uint64_t N,
                            const int32_t* dims,
@@ -112,9 +112,9 @@ __device__ void aminmaxBwd(const TI* __restrict__ input,
 }
 
 extern "C" __global__ void AminmaxBwd(const INPUT_TYPE* __restrict__ input,
-                                      OUTPUT_TYPE* input_grad,
-                                      const INPUT_TYPE* output,
-                                      const INPUT_TYPE* output_grad,
+                                      OUTPUT_TYPE* __restrict__ input_grad,
+                                      const INPUT_TYPE* __restrict__ output,
+                                      const INPUT_TYPE* __restrict__ output_grad,
                                       const int32_t* count,
                                       const uint64_t N,
                                       const int32_t* dims,

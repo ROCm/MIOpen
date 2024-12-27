@@ -65,19 +65,15 @@ ConvSolution AMinMaxBackward::GetSolution(
     auto input_numel  = problem.GetXDesc().GetElementSize();
 
     {
-        size_t xlocalsize;
-        size_t xgridsize;
-        size_t ylocalsize = 1;
-        size_t ygridsize  = 1;
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
-
-        auto kernel = KernelInfo{};
-
+        size_t xlocalsize  = LOCAL_SIZE;
+        size_t xgridsize   = AlignUp(input_numel, LOCAL_SIZE);
+        size_t ylocalsize  = 1;
+        size_t ygridsize   = 1;
+        size_t zlocalsize  = 1;
+        size_t zgridsize   = 1;
+        auto kernel        = KernelInfo{};
         kernel.kernel_file = "MIOpenReduceExtreme.cpp";
         kernel.kernel_name = "AminmaxBwd";
-        xlocalsize         = LOCAL_SIZE;
-        xgridsize          = AlignUp(input_numel, LOCAL_SIZE);
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},

@@ -25,7 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/miopen.h"
 #include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
@@ -228,9 +227,8 @@ struct ProblemDescriptionExtremeAminmaxBackward : ProblemDescriptionBase
 
     bool IsValidInputNumel() const
     {
-        auto xdims = xDesc.GetLengths();
-        auto input_numel =
-            std::accumulate(xdims.begin(), xdims.end(), 1ULL, std::multiplies<size_t>());
+        auto xdims       = xDesc.GetLengths();
+        auto input_numel = xDesc.GetElementSize();
         if(input_numel > INT32_MAX)
             MIOPEN_THROW(miopenStatusBadParm, "Reduce: input numel is bigger than INT_MAX.");
 

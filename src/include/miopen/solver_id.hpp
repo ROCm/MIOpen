@@ -63,7 +63,7 @@ enum class Primitive
     ReLU,
     Kthvalue,
     SoftMarginLoss,
-    MultiMarginLoss,
+    MultiMarginLoss
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id

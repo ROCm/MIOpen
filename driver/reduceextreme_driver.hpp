@@ -310,7 +310,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::GetandSetData()
     if(reduceExtremeOp != MIOPEN_REDUCE_EXTREME_AMIN &&
        reduceExtremeOp != MIOPEN_REDUCE_EXTREME_AMAX)
     {
-        for(int i = 0; i < in_len.size(); ++i)
+        for(size_t i = 0; i < in_len.size(); ++i)
         {
             if(i != dim)
             {
@@ -320,7 +320,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::GetandSetData()
     }
     else
     {
-        for(int i = 0; i < in_len.size(); ++i)
+        for(size_t i = 0; i < in_len.size(); ++i)
         {
             if(dims[i] == 0)
             {
@@ -368,7 +368,8 @@ template <typename Tgpu, typename Tref>
 int ReduceExtremeDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward ReduceExtreme (Default=1)", "int");
-    inflags.AddTensorFlag("input", 'X', "21x500x375", "input tensor descriptor");
+    inflags.AddTensorFlag(
+        "input", 'X', "21x500x375", "input tensor descriptor (Default=21x500x375)");
     inflags.AddInputFlag("DimToReduce",
                          'R',
                          "0",
@@ -454,7 +455,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         x_gradhost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
         count      = std::vector<int32_t>(out_sz, static_cast<int32_t>(0));
 
-        for(int32_t i = 0; i < out_sz; ++i)
+        for(size_t i = 0; i < out_sz; ++i)
         {
             y[i]      = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
             y_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));

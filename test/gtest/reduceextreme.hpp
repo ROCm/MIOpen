@@ -27,7 +27,7 @@
 #include "../driver/tensor_driver.hpp"
 #include "../src/kernels/MIOpenReduceExtreme.hpp"
 #include "get_handle.hpp"
-#include "miopen/tensor_view_utils.hpp"
+#include <miopen/tensor_view_utils.hpp>
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
@@ -85,10 +85,10 @@ void cpu_extreme_forward(tensor<T> input,
 }
 
 template <typename T>
-void cpu_aminmax_backward(tensor<T> input,
+void cpu_aminmax_backward(const tensor<T> input,
                           tensor<T>& input_grad,
-                          tensor<T> output,
-                          tensor<T> output_grad,
+                          const tensor<T> output,
+                          const tensor<T> output_grad,
                           tensor<int32_t> count,
                           tensor<int32_t> dims)
 {
@@ -298,7 +298,7 @@ protected:
 
         std::vector<size_t> out_dims;
 
-        for(int32_t i = 0; i < in_dims.size(); ++i)
+        for(size_t i = 0; i < in_dims.size(); ++i)
         {
             if(i != dim)
             {
@@ -453,7 +453,7 @@ protected:
 
         std::vector<size_t> out_dims;
 
-        for(int32_t i = 0; i < in_dims.size(); ++i)
+        for(size_t i = 0; i < in_dims.size(); ++i)
         {
             if(dim[i] == 0)
             {
@@ -466,7 +466,7 @@ protected:
         }
 
         size_t num_reduce = 1;
-        for(int32_t i = 0; i < in_dims.size(); ++i)
+        for(size_t i = 0; i < in_dims.size(); ++i)
         {
             if(dim[i] == 1)
             {
