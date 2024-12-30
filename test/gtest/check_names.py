@@ -114,7 +114,7 @@ def check_naming_schema(args):
 # If such a situation is detected we should force a developer to make proper unique naming for the tests in PR.
 
 # This script should be located in gtest folder
-def check_names_uniqness() :
+def check_names_uniqueness() :
     dir_path = os.path.dirname(os.path.realpath(__file__))
     files = os.listdir(dir_path)
 
@@ -150,7 +150,7 @@ def check_names_uniqness() :
 
     for key in occurences.keys():
         if len(occurences[key]) > 1:
-            print ("ERROR: test class name " + key + " is used in multiple files: " + str(occurences[key]))
+            print ("ERROR: test name " + key + " is used in multiple files: " + str(occurences[key]))
             error_count += 1
             cases_count += len(occurences[key])
 
@@ -168,7 +168,7 @@ def main():
     if naming_check_result < 0:
         return naming_check_result
 
-    return check_names_uniqness()
+    return check_names_uniqueness()
 
 if __name__ == "__main__":
     sys.exit(main())
