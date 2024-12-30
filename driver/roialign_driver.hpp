@@ -192,7 +192,7 @@ template <typename Tgpu, typename Tref>
 int RoIAlignDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Only run forward pass (Default=1)", "int");
-    inflags.AddTensorFlag("input", 'I', "1x3x244x244");
+    inflags.AddTensorFlag("input", 'I', "1x1x8x8", "Input tensor dimensions (Default=1x1x8x8)");
     inflags.AddInputFlag(
         "is-contiguous", 'C', "1", "Tensor is contiguous or not (Default=1)", "int");
     inflags.AddInputFlag("num-rois", 'K', "2", "Number of RoIs (Default=2)", "int");
@@ -201,12 +201,13 @@ int RoIAlignDriver<Tgpu, Tref>::AddCmdLineArgs()
     //                      "1-0-0-3-3,2-1-1-4-3",
     //                      "RoIs (format: elem_idx-x1-y1-x2-y2,elem_idx-x1-y1-x2-y2)",
     //                      "string");
-    inflags.AddInputFlag("output-height", 'H', "244", "Output Height (Default=244)", "int");
-    inflags.AddInputFlag("output-weight", 'W', "244", "Output Width (Default=244)", "int");
-    inflags.AddInputFlag("spatial-scale", 's', "0.0625", "Spatial Scale (Default=0.0625)", "float");
-    inflags.AddInputFlag("sampling-ratio", 'S', "1", "Sampling Ratio (Default=1)", "int");
+    inflags.AddTensorFlag("output-hw", 'O', "2x2", "Output Height and Width (Default=2x2)");
+    // inflags.AddInputFlag("output-height", 'H', "2", "Output Height (Default=2)", "int");
+    // inflags.AddInputFlag("output-weight", 'W', "244", "Output Width (Default=244)", "int");
+    inflags.AddInputFlag("spatial-scale", 's', "1.0", "Spatial Scale (Default=1.0)", "float");
+    inflags.AddInputFlag("sampling-ratio", 'r', "-1", "Sampling Ratio (Default=-1)", "int");
     inflags.AddInputFlag("aligned", 'a', "0", "Aligned (Default=0)", "int");
-    inflags.AddInputFlag("roi-batch-base-idx", 'B', "0", "RoI Batch Index (Default=0)", "int");
+    // inflags.AddInputFlag("roi-batch-base-idx", 'B', "0", "RoI Batch Index (Default=0)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
@@ -222,8 +223,9 @@ int RoIAlignDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     inflags.Parse(argc, argv);
 
     is_contiguous  = inflags.GetValueInt("is-contiguous") == 1;
-    output_h       = inflags.GetValueInt("output-height");
-    output_w       = inflags.GetValueInt("output-weight");
+    auto output_hw = inflags.GetValueTensor("output-hw").lengths;
+    output_h       = output_hw[0];
+    output_w       = output_hw[1];
     spatial_scale  = inflags.GetValueDouble("spatial-scale");
     sampling_ratio = inflags.GetValueInt("sampling-ratio");
     aligned        = inflags.GetValueInt("aligned") == 1;
@@ -272,13 +274,13 @@ int RoIAlignDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(inputDesc, input_dims, input_strides, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
     if(SetTensorNd(inputGradDesc, input_dims, input_strides, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
+        MIOPEN_THROW("Error parsing input grad tensor: " + inflags.GetValueStr("input") + ".");
     if(SetTensorNd(roisDesc, rois_dims, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing RoIs tensor.");
     if(SetTensorNd(outputDesc, output_dims, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output tensor.");
     if(SetTensorNd(outputGradDesc, output_dims, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing output tensor.");
+        MIOPEN_THROW("Error parsing output grad tensor.");
     // std::vector<int> in_len = inflags.GetValueTensor("input").lengths;
     // SetTensorNd(inputDesc, in_len, data_type);
 
@@ -317,9 +319,9 @@ int RoIAlignDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     auto input_dims = miopen::deref(inputDesc).GetLengths();
     auto N          = input_dims[0];
-    auto C          = input_dims[1];
-    auto H          = input_dims[2];
-    auto W          = input_dims[3];
+    // auto C          = input_dims[1];
+    auto H = input_dims[2];
+    auto W = input_dims[3];
 
     auto K = miopen::deref(roisDesc).GetLengths()[0];
 
@@ -335,9 +337,9 @@ int RoIAlignDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     // out_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, GetTensorSize(outputDesc), sizeof(Tgpu)));
 
     // GPU host allocation
-    input      = std::vector<Tgpu>(input_size);
-    input_grad = std::vector<Tgpu>(input_size);
-    // rois       = std::vector<Tgpu>(rois_size);
+    input       = std::vector<Tgpu>(input_size);
+    input_grad  = std::vector<Tgpu>(input_size);
+    rois        = std::vector<Tgpu>(rois_size);
     output      = std::vector<Tgpu>(output_size);
     output_grad = std::vector<Tgpu>(output_size);
 
@@ -363,13 +365,29 @@ int RoIAlignDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     // if(rois_dev->ToGPU(GetStream(), rois_host.data()) != 0)
     //     std::cerr << "Error copying (rois) to GPU, size: " << rois_dev->GetSize() << std::endl;
 
-    for(size_t i = 0; i < rois_size; i += 5)
+    // for(size_t i = 0; i < rois_size; i += 5)
+    // {
+    //     rois[i]     = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(N));
+    //     rois[i + 1] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(W));
+    //     rois[i + 2] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(H));
+    //     rois[i + 3] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(W));
+    //     rois[i + 4] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(H));
+    // }
+
+    for(auto i = 0; i < K; i++)
     {
-        rois[i]     = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(N));
-        rois[i + 1] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(W));
-        rois[i + 2] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(H));
-        rois[i + 3] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(W));
-        rois[i + 4] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(H));
+        rois[i * 5] = static_cast<Tgpu>(prng::gen_0_to_B<int>(N));
+
+        auto x1 = prng::gen_0_to_B<Tgpu>(static_cast<Tgpu>(W));
+        auto y1 = prng::gen_0_to_B<Tgpu>(static_cast<Tgpu>(H));
+        auto x2 = prng::gen_0_to_B<Tgpu>(static_cast<Tgpu>(W));
+        auto y2 = prng::gen_0_to_B<Tgpu>(static_cast<Tgpu>(H));
+
+        // Condition: 0 <= x1 < x2 and 0 <= y1 < y2
+        rois[i * 5 + 1] = x1 < x2 ? x1 : x2;
+        rois[i * 5 + 2] = y1 < y2 ? y1 : y2;
+        rois[i * 5 + 3] = x1 < x2 ? x2 : x1;
+        rois[i * 5 + 4] = y1 < y2 ? y2 : y1;
     }
 
     if(rois_dev->ToGPU(GetStream(), rois.data()) != 0)
@@ -391,6 +409,22 @@ int RoIAlignDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                       << std::endl;
             return miopenStatusInternalError;
         }
+
+        // print input
+        // std::cout << "input tensor: " << std::endl;
+        // for(auto i : input)
+        // {
+        //     std::cout << i << ", ";
+        // }
+        // std::cout << std::endl;
+
+        // // print rois
+        // std::cout << "rois tensor: " << std::endl;
+        // for(auto i : rois)
+        // {
+        //     std::cout << i << ", ";
+        // }
+        // std::cout << std::endl;
     }
 
     if(forw == 0 || forw == 2)
@@ -459,7 +493,7 @@ int RoIAlignDriver<Tgpu, Tref>::RunForwardGPU()
         std::cout << "GPU Kernel Time Forward RoIAlign Elapsed: " << kernel_average_time << " ms\n";
     }
 
-    if(output_dev->FromGPU(GetStream(), output_host.data()) != 0)
+    if(output_dev->FromGPU(GetStream(), output.data()) != 0)
         std::cerr << "Error copying (out_dev) from GPU, size: " << output_dev->GetSize()
                   << std::endl;
 
@@ -575,6 +609,21 @@ template <typename Tgpu, typename Tref>
 int RoIAlignDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
+
+    // print output_host
+    // std::cout << "output_host tensor: " << std::endl;
+    // for(auto i : output_host)
+    // {
+    //     std::cout << i << ", ";
+    // }
+    // std::cout << std::endl;
+
+    // std::cout << "output tensor: " << std::endl;
+    // for(auto i : output)
+    // {
+    //     std::cout << i << ", ";
+    // }
+    // std::cout << std::endl;
 
     const Tref tolerance = GetTolerance();
     auto output_error    = miopen::rms_range(output_host, output);
