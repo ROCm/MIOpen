@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/mlo_internal.hpp"
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/multilabelsoftmarginloss/invoke_params.hpp>

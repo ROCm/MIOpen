@@ -55,7 +55,12 @@ struct GPU_SoftMarginLossBackward_BFP16 : SoftMarginLossBackwardTest<bfloat16>
 
 } // namespace softmarginloss
 
-using namespace softmarginloss;
+using softmarginloss::GPU_SoftMarginLossBackward_BFP16;
+using softmarginloss::GPU_SoftMarginLossBackward_FP16;
+using softmarginloss::GPU_SoftMarginLossBackward_FP32;
+using softmarginloss::GPU_SoftMarginLossForward_BFP16;
+using softmarginloss::GPU_SoftMarginLossForward_FP16;
+using softmarginloss::GPU_SoftMarginLossForward_FP32;
 
 TEST_P(GPU_SoftMarginLossForward_FP32, Test)
 {

@@ -27,20 +27,7 @@
 #include "multilabelsoftmarginloss.hpp"
 #include <miopen/env.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace multilabelsoftmarginloss {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
 
 struct MultilabelSoftMarginLossForwardTestFloat : MultilabelSoftMarginLossForwardTest<float>
 {
@@ -57,48 +44,28 @@ struct MultilabelSoftMarginLossForwardTestBFloat16 : MultilabelSoftMarginLossFor
 
 } // namespace multilabelsoftmarginloss
 
-using namespace multilabelsoftmarginloss;
+using multilabelsoftmarginloss::MultilabelSoftMarginLossForwardTestBFloat16;
+using multilabelsoftmarginloss::MultilabelSoftMarginLossForwardTestFloat;
+using multilabelsoftmarginloss::MultilabelSoftMarginLossForwardTestHalf;
 
 TEST_P(MultilabelSoftMarginLossForwardTestFloat, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+
+    RunTest();
+    Verify();
 };
 
 TEST_P(MultilabelSoftMarginLossForwardTestHalf, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(MultilabelSoftMarginLossForwardTestBFloat16, )
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+
+    RunTest();
+    Verify();
 };
 INSTANTIATE_TEST_SUITE_P(MultilabelSoftMarginLossTestSet,
                          MultilabelSoftMarginLossForwardTestFloat,

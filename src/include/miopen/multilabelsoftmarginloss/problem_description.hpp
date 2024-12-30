@@ -30,7 +30,6 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 #include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -53,7 +52,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "MultilabelSoftMarginLoss: Tensor types do not match.");
         }
-        if(iDesc.GetSize() != 2)
+        if(iDesc.GetNumDims() != 2)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "MultilabelSoftMarginLoss: Input tensor need to be 2D tensor");
@@ -64,7 +63,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
                          "MultilabelSoftMarginLoss: Tensor tensor need to be 2D tensor which is "
                          "the same shape as input tensor");
         }
-        if(wDesc.GetSize() != 1 || wDesc.GetLengths()[0] != iDesc.GetLengths()[1])
+        if(wDesc.GetNumDims() != 1 || wDesc.GetLengths()[0] != iDesc.GetLengths()[1])
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "MultilabelSoftMarginLoss: Weight tensor need to be 1D tensor. If input "
@@ -74,7 +73,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
         if(divisor == 0)
         {
             // non-reduction case
-            if(oDesc.GetSize() != 1 || oDesc.GetLengths()[0] != iDesc.GetLengths()[0])
+            if(oDesc.GetNumDims() != 1 || oDesc.GetLengths()[0] != iDesc.GetLengths()[0])
             {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "MultilabelSoftMarginLoss: Output tensor need to be "
@@ -85,7 +84,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
         else
         {
             // reduction case
-            if(oDesc.GetSize() != 1 || oDesc.GetLengths()[0] != 1)
+            if(oDesc.GetNumDims() != 1 || oDesc.GetLengths()[0] != 1)
             {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "MultilabelSoftMarginLoss: Output tensor need to be a scalar.");
