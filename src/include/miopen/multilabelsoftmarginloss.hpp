@@ -34,35 +34,27 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-std::size_t GetMultilabelSoftMarginLossForwardWorkspaceSize(Handle& handle,
-                                                            const TensorDescriptor& iDesc,
-                                                            const TensorDescriptor& tDesc,
-                                                            const TensorDescriptor& wDesc,
-                                                            const TensorDescriptor& oDesc,
-                                                            miopenLossReductionMode_t reduction);
+MIOPEN_INTERNALS_EXPORT std::size_t
+GetMultilabelSoftMarginLossForwardWorkspaceSize(Handle& handle,
+                                                const TensorDescriptor& iDesc,
+                                                const TensorDescriptor& tDesc,
+                                                const TensorDescriptor& wDesc,
+                                                const TensorDescriptor& oDesc,
+                                                miopenLossReductionMode_t reduction);
 
-miopenStatus_t MultilabelSoftMarginLossUnreducedForward(Handle& handle,
-                                                        const TensorDescriptor& iDesc,
-                                                        ConstData_t i,
-                                                        const TensorDescriptor& tDesc,
-                                                        ConstData_t t,
-                                                        const TensorDescriptor& wDesc,
-                                                        ConstData_t w,
-                                                        const TensorDescriptor& oDesc,
-                                                        Data_t o);
-
-miopenStatus_t MultilabelSoftMarginLossForward(Handle& handle,
-                                               Data_t workspace,
-                                               size_t workspaceSizeInBytes,
-                                               const TensorDescriptor& iDesc,
-                                               ConstData_t i,
-                                               const TensorDescriptor& tDesc,
-                                               ConstData_t t,
-                                               const TensorDescriptor& wDesc,
-                                               ConstData_t w,
-                                               const TensorDescriptor& oDesc,
-                                               Data_t o,
-                                               miopenLossReductionMode_t reduction);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+MultilabelSoftMarginLossForward(Handle& handle,
+                                Data_t workspace,
+                                size_t workspaceSizeInBytes,
+                                const TensorDescriptor& iDesc,
+                                ConstData_t i,
+                                const TensorDescriptor& tDesc,
+                                ConstData_t t,
+                                const TensorDescriptor& wDesc,
+                                ConstData_t w,
+                                const TensorDescriptor& oDesc,
+                                Data_t o,
+                                miopenLossReductionMode_t reduction);
 
 } // namespace miopen
 #endif // _MIOPEN_MULTILABELSOFTMARGINLOSS_HPP_

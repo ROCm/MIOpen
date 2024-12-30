@@ -317,8 +317,7 @@ set( MIOpen_Source
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
     solver/multimarginloss/forward_multimarginloss.cpp
-    solver/multilabelsoftmarginloss/forward_reduced_multilabelsoftmarginloss.cpp
-    solver/multilabelsoftmarginloss/forward_unreduced_multilabelsoftmarginloss.cpp
+    solver/multilabelsoftmarginloss/forward_multilabelsoftmarginloss.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -539,7 +538,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenGetitem.cpp
         kernels/MIOpenKthvalue.cpp
         kernels/MIOpenLayerNorm.cpp
-        kernels/MIOpenLossReduce.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenMultiMarginLoss.cpp

@@ -8196,8 +8196,7 @@ the input tensor
 weight given to each class. It has to be a Tensor of size C
  * @param [in]  outputDesc          Tensor descriptor for output tensor. If reduction is 'none,
 then it must have shape (N). Otherwise, it is a scalar.
-*  @param [in]  reduction           Reduction mode (sum, mean). For none reduction we don't need to
-use this function
+*  @param [in]  reduction           Reduction mode (sum, mean)
  * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size
  * @return                          miopenStatus_t
  */
@@ -8234,18 +8233,19 @@ reduction = 'none'
 reduction = 'none
  * @return                              miopenStatus_t
  */
-miopenStatus_t miopenMultilabelSoftMarginLossForward(miopenHandle_t handle,
-                                                     miopenTensorDescriptor_t inputDesc,
-                                                     const void* input,
-                                                     miopenTensorDescriptor_t targetDesc,
-                                                     const void* target,
-                                                     miopenTensorDescriptor_t weightDesc,
-                                                     const void* weight,
-                                                     miopenTensorDescriptor_t outputDesc,
-                                                     void* output,
-                                                     miopenLossReductionMode_t reduction,
-                                                     void* workspace,
-                                                     size_t workspaceSizeInBytes);
+MIOPEN_EXPORT miopenStatus_t
+miopenMultilabelSoftMarginLossForward(miopenHandle_t handle,
+                                      miopenTensorDescriptor_t inputDesc,
+                                      const void* input,
+                                      miopenTensorDescriptor_t targetDesc,
+                                      const void* target,
+                                      miopenTensorDescriptor_t weightDesc,
+                                      const void* weight,
+                                      miopenTensorDescriptor_t outputDesc,
+                                      void* output,
+                                      miopenLossReductionMode_t reduction,
+                                      void* workspace,
+                                      size_t workspaceSizeInBytes);
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP

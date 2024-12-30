@@ -35,55 +35,18 @@
 
 namespace miopen {
 
-miopenStatus_t MultilabelSoftMarginLossUnreducedForward(Handle& handle,
-                                                        const TensorDescriptor& iDesc,
-                                                        ConstData_t i,
-                                                        const TensorDescriptor& tDesc,
-                                                        ConstData_t t,
-                                                        const TensorDescriptor& wDesc,
-                                                        ConstData_t w,
-                                                        const TensorDescriptor& oDesc,
-                                                        Data_t o)
+std::size_t
+GetMultilabelSoftMarginLossForwardWorkspaceSize(Handle& handle,
+                                                const TensorDescriptor& iDesc,
+                                                const TensorDescriptor& tDesc,
+                                                const TensorDescriptor& wDesc,
+                                                const TensorDescriptor& oDesc,
+                                                const miopenLossReductionMode_t reduction)
 {
+    auto ctx = ExecutionContext{&handle};
     const auto problem =
-        multilabelsoftmarginloss::ForwardProblemDescription{iDesc, tDesc, wDesc, oDesc, 0};
+        multilabelsoftmarginloss::ForwardProblemDescription{iDesc, tDesc, wDesc, oDesc, reduction};
 
-    const auto invoke_params = [&]() {
-        auto tmp  = multilabelsoftmarginloss::InvokeParams{};
-        tmp.type  = InvokeType::Run;
-        tmp.iDesc = &iDesc;
-        tmp.i     = i;
-        tmp.tDesc = &tDesc;
-        tmp.t     = t;
-        tmp.wDesc = &wDesc;
-        tmp.w     = w;
-        tmp.oDesc = &oDesc;
-        tmp.o     = o;
-        return tmp;
-    }();
-
-    const auto algo    = AlgorithmName{"MultilabelSoftMarginLossUnreducedForward"};
-    const auto solvers = solver::SolverContainer<
-        solver::multilabelsoftmarginloss::MultilabelSoftMarginLossUnreducedForward>{};
-
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
-}
-
-std::size_t GetMultilabelSoftMarginLossForwardWorkspaceSize(Handle& handle,
-                                                            const TensorDescriptor& iDesc,
-                                                            const TensorDescriptor& tDesc,
-                                                            const TensorDescriptor& wDesc,
-                                                            const TensorDescriptor& oDesc,
-                                                            miopenLossReductionMode_t reduction)
-{
-    auto ctx            = ExecutionContext{&handle};
-    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? iDesc.GetLengths()[0] : 1;
-    const auto problem =
-        multilabelsoftmarginloss::ForwardProblemDescription{iDesc, tDesc, wDesc, oDesc, divisor};
-
-    const auto algo    = AlgorithmName{"MultilabelSoftMarginLossForward"};
     const auto solvers = solver::SolverContainer<
         solver::multilabelsoftmarginloss::MultilabelSoftMarginLossForward>{};
 
@@ -93,7 +56,7 @@ std::size_t GetMultilabelSoftMarginLossForwardWorkspaceSize(Handle& handle,
 
 miopenStatus_t MultilabelSoftMarginLossForward(Handle& handle,
                                                Data_t workspace,
-                                               size_t workspaceSizeInBytes,
+                                               const size_t workspaceSizeInBytes,
                                                const TensorDescriptor& iDesc,
                                                ConstData_t i,
                                                const TensorDescriptor& tDesc,
@@ -102,11 +65,10 @@ miopenStatus_t MultilabelSoftMarginLossForward(Handle& handle,
                                                ConstData_t w,
                                                const TensorDescriptor& oDesc,
                                                Data_t o,
-                                               miopenLossReductionMode_t reduction)
+                                               const miopenLossReductionMode_t reduction)
 {
-    const float divisor = (reduction == MIOPEN_LOSS_REDUCTION_MEAN) ? iDesc.GetLengths()[0] : 1;
     const auto problem =
-        multilabelsoftmarginloss::ForwardProblemDescription{iDesc, tDesc, wDesc, oDesc, divisor};
+        multilabelsoftmarginloss::ForwardProblemDescription{iDesc, tDesc, wDesc, oDesc, reduction};
 
     const auto invoke_params = [&]() {
         auto tmp           = multilabelsoftmarginloss::InvokeParams{};
@@ -121,7 +83,6 @@ miopenStatus_t MultilabelSoftMarginLossForward(Handle& handle,
         tmp.o              = o;
         tmp.workspace      = workspace;
         tmp.workspace_size = workspaceSizeInBytes;
-        tmp.divisor        = divisor;
         return tmp;
     }();
 

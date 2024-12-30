@@ -38,60 +38,15 @@ __device__ FLOAT_ACCUM calc_loss(FLOAT_ACCUM x, FLOAT_ACCUM y)
     return y * log(sig) + (1 - y) * log(1 - sig);
 }
 
-template <typename DTYPE>
-__device__ void multilabelsoftmarginlossunreducedforward2d(const DTYPE* __restrict__ I,
-                                                           const DTYPE* __restrict__ T,
-                                                           const DTYPE* __restrict__ W,
-                                                           DTYPE* __restrict__ O,
-                                                           tensor_view_t<2> I_tv,
-                                                           tensor_view_t<2> T_tv,
-                                                           tensor_view_t<1> W_tv,
-                                                           tensor_view_t<1> O_tv)
-{
-    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-
-    size_t N = I_tv.size[0], C = I_tv.size[1];
-    size_t n = gid;
-    if(n >= N)
-        return;
-
-    FLOAT_ACCUM loss = 0;
-
-    // TODO: maybe faster reduce sum here
-    for(size_t c = 0; c < C; c++)
-    {
-        FLOAT_ACCUM w = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({c})]);
-        FLOAT_ACCUM i = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, c})]);
-        FLOAT_ACCUM t = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx({n, c})]);
-
-        loss += -w * calc_loss(i, t);
-    }
-
-    O[O_tv.get_tensor_view_idx({n})] = CVT_ACCUM2FLOAT(loss / C);
-}
-
-extern "C" __global__ void MultilabelSoftMarginLossUnreducedForward2d(const FLOAT* __restrict__ I,
-                                                                      const FLOAT* __restrict__ T,
-                                                                      const FLOAT* __restrict__ W,
-                                                                      FLOAT* __restrict__ O,
-                                                                      tensor_view_t<2> I_tv,
-                                                                      tensor_view_t<2> T_tv,
-                                                                      tensor_view_t<1> W_tv,
-                                                                      tensor_view_t<1> O_tv)
-{
-    // instantiate the kernel
-    multilabelsoftmarginlossunreducedforward2d<FLOAT>(I, T, W, O, I_tv, T_tv, W_tv, O_tv);
-}
-
-template <typename DTYPE>
+template <typename DTYPE, int REDUCTION_T>
 __device__ void multilabelsoftmarginlossforward2d(const DTYPE* __restrict__ I,
                                                   const DTYPE* __restrict__ T,
                                                   const DTYPE* __restrict__ W,
-                                                  DTYPE* __restrict__ lsum,
-                                                  const float divisor,
+                                                  void* __restrict__ O,
                                                   tensor_view_t<2> I_tv,
                                                   tensor_view_t<2> T_tv,
-                                                  tensor_view_t<1> W_tv)
+                                                  tensor_view_t<1> W_tv,
+                                                  tensor_view_t<1> O_tv)
 {
     const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -108,22 +63,27 @@ __device__ void multilabelsoftmarginlossforward2d(const DTYPE* __restrict__ I,
         FLOAT_ACCUM w = CVT_FLOAT2ACCUM(W[W_tv.get_tensor_view_idx({c})]);
         FLOAT_ACCUM i = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx({n, c})]);
         FLOAT_ACCUM t = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx({n, c})]);
-
         loss += -w * calc_loss(i, t);
     }
-
-    lsum[n] = CVT_ACCUM2FLOAT(loss / C / divisor);
+    loss /= C;
+    switch(REDUCTION_T)
+    {
+    case 0: static_cast<DTYPE*>(O)[O_tv.get_tensor_view_idx({n})] = CVT_ACCUM2FLOAT(loss); break;
+    case 1: static_cast<FLOAT_ACCUM*>(O)[n] = loss; break;
+    case 2: static_cast<FLOAT_ACCUM*>(O)[n] = loss / N; break;
+    default: break;
+    }
 }
 
 extern "C" __global__ void MultilabelSoftMarginLossForward2d(const FLOAT* __restrict__ I,
                                                              const FLOAT* __restrict__ T,
                                                              const FLOAT* __restrict__ W,
-                                                             FLOAT* __restrict__ lsum,
-                                                             const float divisor,
+                                                             void* __restrict__ O,
                                                              tensor_view_t<2> I_tv,
                                                              tensor_view_t<2> T_tv,
-                                                             tensor_view_t<1> W_tv)
+                                                             tensor_view_t<1> W_tv,
+                                                             tensor_view_t<1> O_tv)
 {
     // instantiate the kernel
-    multilabelsoftmarginlossforward2d<FLOAT>(I, T, W, lsum, divisor, I_tv, T_tv, W_tv);
+    multilabelsoftmarginlossforward2d<FLOAT, REDUCTION_TYPE>(I, T, W, O, I_tv, T_tv, W_tv, O_tv);
 }

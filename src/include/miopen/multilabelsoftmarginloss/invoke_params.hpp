@@ -46,8 +46,6 @@ struct InvokeParams : public miopen::InvokeParams
     ConstData_t w = nullptr;
     Data_t o      = nullptr;
 
-    float divisor = 0;
-
     Data_t workspace           = nullptr;
     std::size_t workspace_size = 0;
     std::size_t GetWorkspaceSize() const { return workspace_size; }

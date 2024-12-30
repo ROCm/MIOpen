@@ -27,7 +27,6 @@
 
 #include <miopen/multilabelsoftmarginloss/problem_description.hpp>
 #include <miopen/solver.hpp>
-#include <utility>
 
 namespace miopen {
 
@@ -38,20 +37,6 @@ namespace multilabelsoftmarginloss {
 using ForwardMultilabelSoftMarginLossSolver =
     NonTunableSolverBase<ExecutionContext,
                          miopen::multilabelsoftmarginloss::ForwardProblemDescription>;
-
-struct MultilabelSoftMarginLossUnreducedForward final : ForwardMultilabelSoftMarginLossSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<MultilabelSoftMarginLossUnreducedForward>();
-    }
-    bool IsApplicable(
-        const ExecutionContext& context,
-        const miopen::multilabelsoftmarginloss::ForwardProblemDescription& problem) const override;
-    ConvSolution GetSolution(
-        const ExecutionContext& context,
-        const miopen::multilabelsoftmarginloss::ForwardProblemDescription& problem) const override;
-};
 
 struct MultilabelSoftMarginLossForward final : ForwardMultilabelSoftMarginLossSolver
 {

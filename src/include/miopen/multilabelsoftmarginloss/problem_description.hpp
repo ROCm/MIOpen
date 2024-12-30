@@ -43,8 +43,8 @@ struct ForwardProblemDescription : ProblemDescriptionBase
                               const TensorDescriptor& tDesc_,
                               const TensorDescriptor& wDesc_,
                               const TensorDescriptor& oDesc_,
-                              const float divisor_)
-        : iDesc(iDesc_), tDesc(tDesc_), wDesc(wDesc_), oDesc(oDesc_), divisor(divisor_)
+                              const miopenLossReductionMode_t reduction_)
+        : iDesc(iDesc_), tDesc(tDesc_), wDesc(wDesc_), oDesc(oDesc_), reduction(reduction_)
     {
         if(iDesc.GetType() != tDesc.GetType() || iDesc.GetType() != oDesc.GetType() ||
            iDesc.GetType() != wDesc.GetType())
@@ -60,7 +60,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
         if(tDesc.GetLengths() != iDesc.GetLengths())
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "MultilabelSoftMarginLoss: Tensor tensor need to be 2D tensor which is "
+                         "MultilabelSoftMarginLoss: Target tensor need to be 2D tensor which is "
                          "the same shape as input tensor");
         }
         if(wDesc.GetNumDims() != 1 || wDesc.GetLengths()[0] != iDesc.GetLengths()[1])
@@ -70,13 +70,14 @@ struct ForwardProblemDescription : ProblemDescriptionBase
                          "tensor has shape (N, C) then weight tensor must have shape (C)");
         }
         // Check output tensor dimension
-        if(divisor == 0)
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
         {
             // non-reduction case
             if(oDesc.GetNumDims() != 1 || oDesc.GetLengths()[0] != iDesc.GetLengths()[0])
             {
                 MIOPEN_THROW(miopenStatusBadParm,
-                             "MultilabelSoftMarginLoss: Output tensor need to be "
+                             "MultilabelSoftMarginLoss: When doing forward with no reduction, "
+                             "output tensor need to be "
                              "1D tensor. If input "
                              "tensor has shape (N, C) then output tensor must have shape (N)");
             }
@@ -87,7 +88,8 @@ struct ForwardProblemDescription : ProblemDescriptionBase
             if(oDesc.GetNumDims() != 1 || oDesc.GetLengths()[0] != 1)
             {
                 MIOPEN_THROW(miopenStatusBadParm,
-                             "MultilabelSoftMarginLoss: Output tensor need to be a scalar.");
+                             "MultilabelSoftMarginLoss: When doing forward reduction, output "
+                             "tensor need to be a scalar.");
             }
         }
     }
@@ -96,7 +98,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GettDesc() const { return tDesc; }
     const TensorDescriptor& GetwDesc() const { return wDesc; }
     const TensorDescriptor& GetoDesc() const { return oDesc; }
-    float Getdivisor() const { return divisor; }
+    miopenLossReductionMode_t Getreduction() const { return reduction; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -105,7 +107,7 @@ private:
     TensorDescriptor tDesc;
     TensorDescriptor wDesc;
     TensorDescriptor oDesc;
-    float divisor;
+    miopenLossReductionMode_t reduction;
 };
 
 } // namespace multilabelsoftmarginloss

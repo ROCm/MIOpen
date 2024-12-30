@@ -35,13 +35,12 @@ namespace multilabelsoftmarginloss {
 NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 {
     std::ostringstream ss;
-    ss << "multilabelsoftmarginloss_fwd";
     ss << "itype" << iDesc.GetType();
     ss << "ilen";
     auto ilen = iDesc.GetLengths();
-    for(int32_t i = 0; i < ilen.size(); i++)
-        ss << ilen[i] << "_";
-    ss << "divisor" << divisor;
+    for(auto i : ilen)
+        ss << i << "_";
+    ss << "reduction" << reduction;
     return NetworkConfig{ss.str()};
 }
 

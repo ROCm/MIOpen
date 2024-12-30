@@ -24,25 +24,25 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_CPU_MULTILABELSOFTMARGINLOSS_HPP
-#define GUARD_CPU_MULTILABELSOFTMARGINLOSS_HPP
+#pragma once
 
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view_utils.hpp>
 #include <math.h>
 
-float sigmoid(float x) { return 1 / (1 + exp(-x)); }
-float calc_loss(float x, float y)
+double sigmoid(double x) { return 1 / (1 + exp(-x)); }
+double calc_loss(double x, double y)
 {
-    float sig = sigmoid(x);
+    double sig = sigmoid(x);
     return y * log(sig) + (1 - y) * log(1 - sig);
 }
 
 template <class T>
-void cpu_multilabelsoftmarginloss_unreduced_forward(tensor<T> input,
-                                                    tensor<T> target,
-                                                    tensor<T> weight,
-                                                    tensor<T>& ref_output)
+void cpu_multilabelsoftmarginloss_forward(tensor<T> input,
+                                          tensor<T> target,
+                                          tensor<T> weight,
+                                          tensor<T>& ref_output,
+                                          miopenLossReductionMode_t reduction_mode)
 {
     auto N    = input.desc.GetLengths()[0];
     auto C    = input.desc.GetLengths()[1];
@@ -51,31 +51,7 @@ void cpu_multilabelsoftmarginloss_unreduced_forward(tensor<T> input,
     auto w_tv = miopen::get_inner_expanded_tv<1>(weight.desc);
     auto o_tv = miopen::get_inner_expanded_tv<1>(ref_output.desc);
 
-    par_ford(N)([&](size_t n) {
-        float loss = 0;
-        // Convert to float for better precision
-        for(size_t c = 0; c < C; c++)
-        {
-            float w = weight[w_tv.get_tensor_view_idx({c})];
-            float i = input[i_tv.get_tensor_view_idx({n, c})];
-            float t = target[t_tv.get_tensor_view_idx({n, c})];
-            loss += -w * calc_loss(i, t);
-        }
-        ref_output[o_tv.get_tensor_view_idx({n})] = loss / C;
-    });
-}
-
-template <class T>
-void cpu_multilabelsoftmarginloss_reduced_forward(
-    tensor<T> input, tensor<T> target, tensor<T> weight, tensor<T>& ref_output, const float divisor)
-{
-    auto N    = input.desc.GetLengths()[0];
-    auto C    = input.desc.GetLengths()[1];
-    auto i_tv = miopen::get_inner_expanded_tv<2>(input.desc);
-    auto t_tv = miopen::get_inner_expanded_tv<2>(target.desc);
-    auto w_tv = miopen::get_inner_expanded_tv<1>(weight.desc);
-
-    double sum = 0;
+    double sum_loss = 0;
     for(size_t n = 0; n < N; n++)
     {
         double loss = 0;
@@ -86,11 +62,14 @@ void cpu_multilabelsoftmarginloss_reduced_forward(
             double t = target[t_tv.get_tensor_view_idx({n, c})];
             loss += -w * calc_loss(i, t);
         }
-
-        sum += loss / C;
+        loss /= C;
+        if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
+            ref_output[o_tv.get_tensor_view_idx({n})] = loss;
+        else
+            sum_loss += loss;
     }
-    sum /= divisor;
-    ref_output[0] = static_cast<T>(sum);
+    if(reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)
+        ref_output[0] = sum_loss / N;
+    else if(reduction_mode == MIOPEN_LOSS_REDUCTION_SUM)
+        ref_output[0] = sum_loss;
 }
-
-#endif

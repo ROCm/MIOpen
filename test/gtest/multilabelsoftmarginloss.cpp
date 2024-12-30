@@ -50,7 +50,6 @@ using multilabelsoftmarginloss::MultilabelSoftMarginLossForwardTestHalf;
 
 TEST_P(MultilabelSoftMarginLossForwardTestFloat, )
 {
-
     RunTest();
     Verify();
 };
@@ -63,7 +62,6 @@ TEST_P(MultilabelSoftMarginLossForwardTestHalf, )
 
 TEST_P(MultilabelSoftMarginLossForwardTestBFloat16, )
 {
-
     RunTest();
     Verify();
 };

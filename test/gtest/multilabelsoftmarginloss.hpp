@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "../driver/tensor_driver.hpp"
 #include "cpu_multilabelsoftmarginloss.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
@@ -33,12 +32,21 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/multilabelsoftmarginloss.hpp>
-#include <numeric>
 
 struct MultilabelSoftMarginLossTestCase
 {
     std::vector<size_t> dims;
     miopenLossReductionMode_t reduction_mode;
+
+    friend std::ostream& operator<<(std::ostream& os, const MultilabelSoftMarginLossTestCase& tc)
+    {
+        os << "dims:";
+        os << tc.dims[0];
+        for(int i = 1; i < tc.dims.size(); i++)
+            os << "x" << tc.dims[i];
+        os << " reduction_mode:" << tc.reduction_mode;
+        return os;
+    }
 };
 
 std::vector<MultilabelSoftMarginLossTestCase> MultilabelSoftMarginLossTestConfigs()
@@ -172,58 +180,42 @@ protected:
         std::fill(ref_output.begin(), ref_output.end(), 0);
         output_dev = handle.Write(output.data);
 
-        if(reduction_mode != MIOPEN_LOSS_REDUCTION_NONE)
+        ws_sizeInBytes = miopen::GetMultilabelSoftMarginLossForwardWorkspaceSize(
+            handle, input.desc, target.desc, weight.desc, output.desc, reduction_mode);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
+            GTEST_FAIL() << "Call GetMultilabelSoftMarginLossForwardWorkspaceSize failed!";
+        if(ws_sizeInBytes > 0)
         {
-            ws_sizeInBytes = miopen::GetMultilabelSoftMarginLossForwardWorkspaceSize(
-                handle, input.desc, target.desc, weight.desc, output.desc, reduction_mode);
-            if(ws_sizeInBytes == static_cast<size_t>(-1))
-                GTEST_SKIP();
-            workspace = tensor<T>{std::vector<size_t>{ws_sizeInBytes / sizeof(T)}};
+            workspace = tensor<float>{std::vector<size_t>{ws_sizeInBytes / sizeof(float)}};
             std::fill(workspace.begin(), workspace.end(), 0);
             workspace_dev = handle.Write(workspace.data);
+        }
+        else
+        {
+            workspace_dev = nullptr;
         }
     }
     void RunTest()
     {
         auto&& handle = get_handle();
+
+        cpu_multilabelsoftmarginloss_forward<T>(input, target, weight, ref_output, reduction_mode);
+
         miopenStatus_t status;
-        if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
-        {
-            cpu_multilabelsoftmarginloss_unreduced_forward<T>(input, target, weight, ref_output);
+        status = miopen::MultilabelSoftMarginLossForward(handle,
+                                                         workspace_dev.get(),
+                                                         ws_sizeInBytes,
+                                                         input.desc,
+                                                         input_dev.get(),
+                                                         target.desc,
+                                                         target_dev.get(),
+                                                         weight.desc,
+                                                         weight_dev.get(),
+                                                         output.desc,
+                                                         output_dev.get(),
+                                                         reduction_mode);
 
-            status = miopen::MultilabelSoftMarginLossUnreducedForward(handle,
-                                                                      input.desc,
-                                                                      input_dev.get(),
-                                                                      target.desc,
-                                                                      target_dev.get(),
-                                                                      weight.desc,
-                                                                      weight_dev.get(),
-                                                                      output.desc,
-                                                                      output_dev.get());
-        }
-        else
-        {
-            cpu_multilabelsoftmarginloss_reduced_forward<T>(
-                input,
-                target,
-                weight,
-                ref_output,
-                (reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN) ? input.desc.GetLengths()[0] : 1);
-
-            status = miopen::MultilabelSoftMarginLossForward(handle,
-                                                             workspace_dev.get(),
-                                                             ws_sizeInBytes,
-                                                             input.desc,
-                                                             input_dev.get(),
-                                                             target.desc,
-                                                             target_dev.get(),
-                                                             weight.desc,
-                                                             weight_dev.get(),
-                                                             output.desc,
-                                                             output_dev.get(),
-                                                             reduction_mode);
-        }
-        EXPECT_EQ(status, miopenStatusSuccess);
+        ASSERT_EQ(status, miopenStatusSuccess);
 
         // Write from GPU to CPU
         output.data = handle.Read<T>(output_dev, output.data.size());
@@ -231,19 +223,11 @@ protected:
 
     void Verify()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        auto threshold = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
-
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            threshold *= 8.0;
+        auto tolerance = std::numeric_limits<T>::epsilon() * 10;
 
         auto error = miopen::rms_range(ref_output, output);
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance "
-                                               "Error:"
-                                            << error << ",  Threshold x 10: " << threshold * 10;
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, tolerance);
     }
     MultilabelSoftMarginLossTestCase config;
 
@@ -251,7 +235,7 @@ protected:
     tensor<T> target;
     tensor<T> weight;
     tensor<T> output;
-    tensor<T> workspace;
+    tensor<float> workspace;
 
     tensor<T> ref_output;
 
