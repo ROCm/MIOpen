@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_MULTILABELSOFTMARGINLOSS_DRIVER_HPP
-#define GUARD_MIOPEN_MULTILABELSOFTMARGINLOSS_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -37,7 +36,6 @@
 #include <memory>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
-#include <numeric>
 #include <vector>
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
@@ -64,14 +62,15 @@ inline T calc_loss_grad(T x, T y)
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloMultilabelSoftMarginLossUnreducedForwardRunHost(miopenTensorDescriptor_t iDesc,
-                                                           miopenTensorDescriptor_t tDesc,
-                                                           miopenTensorDescriptor_t wDesc,
-                                                           miopenTensorDescriptor_t oDesc,
-                                                           Tgpu* I,
-                                                           Tgpu* T,
-                                                           Tgpu* W,
-                                                           Tcheck* O)
+int32_t mloMultilabelSoftMarginLossForwardRunHost(miopenTensorDescriptor_t iDesc,
+                                                  miopenTensorDescriptor_t tDesc,
+                                                  miopenTensorDescriptor_t wDesc,
+                                                  miopenTensorDescriptor_t oDesc,
+                                                  Tgpu* I,
+                                                  Tgpu* T,
+                                                  Tgpu* W,
+                                                  Tcheck* O,
+                                                  miopenLossReductionMode_t reduction_mode)
 {
     auto I_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(iDesc));
     auto T_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(tDesc));
@@ -81,6 +80,7 @@ int32_t mloMultilabelSoftMarginLossUnreducedForwardRunHost(miopenTensorDescripto
 
     int32_t ret = 0;
 
+    double sum_loss = 0;
     for(size_t n = 0; n < N; n++)
     {
         Tcheck loss = 0;
@@ -92,44 +92,17 @@ int32_t mloMultilabelSoftMarginLossUnreducedForwardRunHost(miopenTensorDescripto
 
             loss += -w * calc_loss(i, t);
         }
+        loss /= C;
 
-        O[O_tv.get_tensor_view_idx({n})] = loss / C;
+        if(reduction_mode != MIOPEN_LOSS_REDUCTION_NONE)
+            sum_loss += loss;
+        else
+            O[O_tv.get_tensor_view_idx({n})] = static_cast<Tcheck>(loss);
     }
-    return ret;
-}
-
-template <typename Tgpu, typename Tcheck>
-int32_t mloMultilabelSoftMarginLossReducedForwardRunHost(miopenTensorDescriptor_t iDesc,
-                                                         miopenTensorDescriptor_t tDesc,
-                                                         miopenTensorDescriptor_t wDesc,
-                                                         const float divisor,
-                                                         Tgpu* I,
-                                                         Tgpu* T,
-                                                         Tgpu* W,
-                                                         Tcheck* O)
-{
-    auto I_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(iDesc));
-    auto T_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(tDesc));
-    auto W_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(wDesc));
-    auto N = I_tv.size[0], C = I_tv.size[1];
-
-    int32_t ret = 0;
-
-    for(size_t n = 0; n < N; n++)
-    {
-        Tcheck loss = 0;
-        for(size_t c = 0; c < C; c++)
-        {
-            Tcheck w = W[W_tv.get_tensor_view_idx({c})];
-            Tcheck i = I[I_tv.get_tensor_view_idx({n, c})];
-            Tcheck t = T[T_tv.get_tensor_view_idx({n, c})];
-
-            loss += -w * calc_loss(i, t);
-        }
-
-        O[0] += loss / C;
-    }
-    O[0] /= divisor;
+    if(reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)
+        O[0] = static_cast<Tcheck>(sum_loss / N);
+    else if(reduction_mode == MIOPEN_LOSS_REDUCTION_SUM)
+        O[0] = static_cast<Tcheck>(sum_loss);
 
     return ret;
 };
@@ -153,7 +126,6 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> ParseInputList(std::string input_str);
 
     int AllocateBuffersAndCopy() override;
 
@@ -195,7 +167,6 @@ private:
     std::vector<Tgpu> W;
     std::vector<Tgpu> O;
     std::vector<Tref> Ohost;
-    std::vector<Tgpu> workspace;
 
     miopenLossReductionMode_t reduction_mode;
     size_t ws_sizeInBytes;
@@ -205,7 +176,7 @@ template <typename Tgpu, typename Tref>
 int MultilabelSoftMarginLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Take (Default=1)", "int");
-    inflags.AddInputFlag("dim", 'D', "41,4", "Dim of input tensor (Default=41,4)", "string");
+    inflags.AddInputFlag("dim", 'D', "41x4", "Dim of input tensor (Default=41x4)", "tensor");
     inflags.AddInputFlag("contiguous", 'C', "1", "Tensor is contiguous or not", "int");
     inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -242,8 +213,7 @@ template <typename Tgpu, typename Tref>
 int MultilabelSoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
 {
     // Set input tensor description
-    // Only input tensor is supported for uncontigiuous or unpacked tensor
-    std::vector<int> in_len = ParseInputList(inflags.GetValueStr("dim"));
+    std::vector<int> in_len = inflags.GetValueTensor("dim").lengths;
     int N = in_len[0], C = in_len[1];
 
     if(inflags.GetValueInt("contiguous") == 1)
@@ -257,6 +227,7 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
     }
     else
     {
+        // Only input tensor and weight tensor is supported for uncontigiuous or unpacked tensor
         std::vector<int> in_strides(in_len.size());
         in_strides.back() = 1;
         for(int i = in_len.size() - 2; i >= 0; --i)
@@ -296,34 +267,6 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
     }
 
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> MultilabelSoftMarginLossDriver<Tgpu, Tref>::ParseInputList(std::string input_str)
-{
-    std::vector<int> lengths;
-    std::size_t pos = 0;
-    std::size_t new_pos;
-
-    new_pos = input_str.find(',', pos);
-    while(new_pos != std::string::npos)
-    {
-        std::string slice_str = input_str.substr(pos, new_pos - pos);
-
-        int len = std::stoi(slice_str);
-
-        lengths.push_back(len);
-
-        pos     = new_pos + 1;
-        new_pos = input_str.find(',', pos);
-    };
-
-    std::string slice_str = input_str.substr(pos);
-    int len               = std::stoi(slice_str);
-
-    lengths.push_back(len);
-
-    return (lengths);
 }
 
 template <typename Tgpu, typename Tref>
@@ -367,17 +310,13 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(forw == 0 || forw == 1)
     {
         size_t o_sz = GetTensorSpace(oDesc);
-        if(reduction_mode != MIOPEN_LOSS_REDUCTION_NONE)
+
+        miopenGetMultilabelSoftMarginLossForwardWorkspaceSize(
+            GetHandle(), iDesc, tDesc, wDesc, oDesc, reduction_mode, &ws_sizeInBytes);
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
         {
-            miopenGetMultilabelSoftMarginLossForwardWorkspaceSize(
-                GetHandle(), iDesc, tDesc, wDesc, oDesc, reduction_mode, &ws_sizeInBytes);
-            if(ws_sizeInBytes == static_cast<size_t>(-1))
-            {
-                return miopenStatusAllocFailed;
-            }
+            return miopenStatusAllocFailed;
         }
-        else
-            ws_sizeInBytes = 0;
 
         o_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, o_sz, sizeof(Tgpu)));
         O     = std::vector<Tgpu>(o_sz);
@@ -387,14 +326,7 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         if(o_dev->ToGPU(GetStream(), O.data()) != 0)
             std::cerr << "Error copying (out) to GPU, size: " << o_dev->GetSize() << std::endl;
 
-        size_t ws_sz  = ws_sizeInBytes / sizeof(Tgpu);
-        workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, ws_sz, sizeof(Tgpu)));
-        workspace     = std::vector<Tgpu>(ws_sz);
-        std::fill(workspace.begin(), workspace.end(), 0);
-
-        if(workspace_dev->ToGPU(GetStream(), workspace.data()) != 0)
-            std::cerr << "Error copying (workspace) to GPU, size: " << workspace_dev->GetSize()
-                      << std::endl;
+        workspace_dev = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
     }
 
     return miopenStatusSuccess;
@@ -411,7 +343,7 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenMultilabelSoftMarginLossForward(
+        miopenStatus_t status = miopenMultilabelSoftMarginLossForward(
             GetHandle(),
             iDesc,
             i_dev->GetMem(),
@@ -424,6 +356,9 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
             reduction_mode,
             (reduction_mode == MIOPEN_LOSS_REDUCTION_NONE) ? nullptr : workspace_dev->GetMem(),
             ws_sizeInBytes);
+
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in miopenMultilabelSoftMarginLossForward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -448,9 +383,6 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     if(o_dev->FromGPU(GetStream(), O.data()) != 0)
         std::cerr << "Error copying (o_dev) from GPU, size: " << o_dev->GetSize() << std::endl;
-    if(workspace_dev->FromGPU(GetStream(), workspace.data()) != 0)
-        std::cerr << "Error copying (workspace_dev) from GPU, size: " << workspace_dev->GetSize()
-                  << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -458,19 +390,8 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
-    {
-        mloMultilabelSoftMarginLossUnreducedForwardRunHost(
-            iDesc, tDesc, wDesc, oDesc, I.data(), T.data(), W.data(), Ohost.data());
-    }
-    else
-    {
-        float divisor = (reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)
-                            ? miopen::deref(iDesc).GetLengths()[0]
-                            : 1;
-        mloMultilabelSoftMarginLossReducedForwardRunHost(
-            iDesc, tDesc, wDesc, divisor, I.data(), T.data(), W.data(), Ohost.data());
-    }
+    mloMultilabelSoftMarginLossForwardRunHost(
+        iDesc, tDesc, wDesc, oDesc, I.data(), T.data(), W.data(), Ohost.data(), reduction_mode);
     return miopenStatusSuccess;
 }
 
@@ -483,13 +404,7 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 Tref MultilabelSoftMarginLossDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
@@ -519,5 +434,3 @@ int MultilabelSoftMarginLossDriver<Tgpu, Tref>::VerifyBackward()
 {
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_MULTILABELSOFTMARGINLOSS_DRIVER_HPP
