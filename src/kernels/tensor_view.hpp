@@ -27,28 +27,25 @@
 #ifndef GUARD_TENSOR_VIEW_HPP
 #define GUARD_TENSOR_VIEW_HPP
 
+#include <initializer_list>
+
 template <int N>
 struct tensor_layout_t;
 
 template <int N>
 struct tensor_view_t
 {
-    constexpr uint64_t get_tensor_view_idx(const uint64_t (&layout)[N])
+    // Get index in tensor view at tensor layout
+    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
     {
         static_assert(N > 0);
         uint64_t idx = 0;
         for(auto i = 0; i < N; ++i)
         {
-            idx += stride[i] * layout[i];
+            idx += stride[i] * tensor_layout.layout[i];
         }
         return idx;
     }
-
-    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
-    {
-        return get_tensor_view_idx(tensor_layout.layout);
-    }
-
     uint64_t stride[N];
     uint64_t size[N];
 };
@@ -74,6 +71,15 @@ struct tensor_layout_t
             }
             layout[1] = temp % tensor_view.size[1];
             layout[0] = temp / tensor_view.size[1];
+        }
+    }
+
+    constexpr tensor_layout_t(std::initializer_list<uint64_t> layout_)
+    {
+        static_assert(N > 0);
+        for(auto i = 0; i < N; ++i)
+        {
+            layout[i] = layout_.begin()[i];
         }
     }
 

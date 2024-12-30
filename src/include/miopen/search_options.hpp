@@ -52,6 +52,7 @@ struct FindOptions : miopenFindOptions
     std::unordered_map<miopenTensorArgumentId_t, Data_t> preallocated_tensors;
     std::optional<Workspace> preallocated_workspace;
     std::optional<FindEnforce> find_enforce;
+    bool attach_binaries = false;
 };
 
 } // namespace miopen

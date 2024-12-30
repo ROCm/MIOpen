@@ -40,13 +40,7 @@ enum GemmBackend_t
 {
     nogemmbackend = 0,
     rocblas       = 1,
-};
-
-enum CallGemmType_t
-{
-    callGemm                         = 0,
-    callGemmStridedBatched           = 1,
-    callGemmStridedBatchedSequential = 2,
+    hipblaslt     = 2,
 };
 
 // GEMM operation: C = alpha * op(A) * op(B) + beta * C.
@@ -121,18 +115,6 @@ struct GemmDescriptor
 
     friend std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc);
 };
-
-miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
-                                   GemmDescriptor gemm_desc,
-                                   ConstData_t A,
-                                   std::size_t a_offset,
-                                   ConstData_t B,
-                                   std::size_t b_offset,
-                                   Data_t C,
-                                   std::size_t c_offset,
-                                   bool time_precision,
-                                   CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend = GemmBackend_t::rocblas);
 
 MIOPEN_EXPORT
 miopenStatus_t CallGemm(const Handle& handle,

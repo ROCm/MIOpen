@@ -31,16 +31,12 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace {
 
 auto GetTestCases()
 {
-    const auto fwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvMlirIgemmFwdXdlops")}};
+    const auto fwd = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvMlirIgemmFwdXdlops"}};
 
     const std::string flags_fwd = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string layout    = " --in_layout NHWC --fil_layout NHWC --out_layout NHWC";
@@ -63,11 +59,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest()
-{
-    return !(miopen::IsEnabled(ENV(MIOPEN_TEST_MLIR))) || miopen::IsDisabled(ENV(MIOPEN_TEST_ALL));
-}
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
@@ -77,19 +68,19 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultHalf : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultMLIRTest_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dDefaultInt8 : public Int8TestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultMLIRTest_I8 : public Int8TestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_mlir_xdlops_fwd)
+TEST_P(GPU_Conv2dDefaultMLIRTest_FP32, FloatTest_conv_igemm_mlir_xdlops_fwd)
 {
-    if(IsTestSupportedForDevice() && !SkipTest())
+    if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultMLIRTest_FP32>(db_check);
     }
     else
     {
@@ -97,11 +88,11 @@ TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_mlir_xdlops_fwd)
     }
 };
 
-TEST_P(Conv2dDefaultInt8, Int8Test_conv_igemm_mlir_xdlops_fwd)
+TEST_P(GPU_Conv2dDefaultMLIRTest_I8, Int8Test_conv_igemm_mlir_xdlops_fwd)
 {
-    if(IsTestSupportedForDevice() && !SkipTest())
+    if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultInt8>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultMLIRTest_I8>(db_check);
     }
     else
     {
@@ -110,6 +101,6 @@ TEST_P(Conv2dDefaultInt8, Int8Test_conv_igemm_mlir_xdlops_fwd)
 };
 
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops, Conv2dDefaultHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefaultMLIRTest_FP32, testing::Values(GetTestCases()));
 // Int8 for FWD
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlirXdlops, Conv2dDefaultInt8, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefaultMLIRTest_I8, testing::Values(GetTestCases()));

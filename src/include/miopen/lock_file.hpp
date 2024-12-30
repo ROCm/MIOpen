@@ -46,12 +46,12 @@
 
 namespace miopen {
 
-std::string LockFilePath(const fs::path& filename_);
+MIOPEN_INTERNALS_EXPORT fs::path LockFilePath(const fs::path& filename_);
 // LockFile class is a wrapper around boost::interprocess::file_lock providing MT-safety.
 // One process should never have more than one instance of this class with same path at the same
 // time. It may lead to undefined behaviour on Windows.
 // Also on windows mutex can be removed because file locks are MT-safe there.
-class LockFile
+class MIOPEN_INTERNALS_EXPORT LockFile
 {
 private:
     class PassKey
@@ -59,7 +59,7 @@ private:
     };
 
 public:
-    LockFile(const char* path_, PassKey);
+    LockFile(const fs::path&, PassKey);
     LockFile(const LockFile&) = delete;
     LockFile operator=(const LockFile&) = delete;
 
@@ -122,7 +122,7 @@ public:
         access_mutex.unlock_shared();
     }
 
-    static LockFile& Get(const char* path);
+    static LockFile& Get(const fs::path& file);
 
     template <class TDuration>
     bool try_lock_for(TDuration duration)
@@ -165,14 +165,14 @@ public:
     }
 
 private:
-    const char* path; // For logging purposes
+    fs::path path; // For logging purposes
     std::shared_timed_mutex access_mutex;
     boost::interprocess::file_lock flock;
 
-    static std::map<std::string, LockFile>& LockFiles()
+    static std::map<fs::path, LockFile>& LockFiles()
     {
         // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-        static std::map<std::string, LockFile> lock_files;
+        static std::map<fs::path, LockFile> lock_files;
         return lock_files;
     }
 

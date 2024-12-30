@@ -62,7 +62,7 @@ class SQLite::impl
         void operator()(sqlite3* ptr)
         {
             const auto c_filename = sqlite3_db_filename(ptr, "main");
-            std::string filename_((c_filename == nullptr) ? "" : c_filename);
+            fs::path filename_((c_filename == nullptr) ? "" : c_filename);
             SQLite::Retry([&]() { return sqlite3_close(ptr); }, filename_);
             // Future: Sync the file back to disk, unless disk I/O is disabled
             // Get the page_count: pragma page_count;
@@ -95,8 +95,7 @@ class SQLite::impl
         if(is_system)
         {
 
-            const auto& it_p =
-                miopen_data().find(make_object_file_name(filepath.filename()).string());
+            const auto& it_p = miopen_data().find(make_object_file_name(filepath.filename()));
             if(it_p == miopen_data().end())
             {
                 MIOPEN_LOG_I("Unknown database: " << filepath << " in internal file cache");
@@ -151,8 +150,8 @@ class SQLite::impl
         int rc           = 0;
         if(is_system)
         {
-            if(fs::file_size(filepath) <
-               512) // size of a very small database, Empty MIOpen DBs are 20 kb
+            // size of a very small database, Empty MIOpen DBs are 20 kb
+            if(fs::file_size(filepath) < 512)
             {
                 rc = -1;
                 return rc;
@@ -175,14 +174,13 @@ class SQLite::impl
     }
 
 public:
-    impl(const std::string& filename_, bool is_system)
+    impl(const fs::path& filename_, bool is_system)
     {
-        fs::path filepath(filename_);
         int rc = 0;
 #if MIOPEN_EMBED_DB
-        rc = CreateInMemDb(filepath, is_system);
+        rc = CreateInMemDb(filename_, is_system);
 #else
-        rc = CreateFileDb(filepath, is_system);
+        rc = CreateFileDb(filename_, is_system);
 #endif
         isValid = (rc == 0);
         if(isValid)
@@ -231,7 +229,7 @@ SQLite::result_type SQLite::Exec(const std::string& query) const
     return res;
 }
 
-int SQLite::Retry(std::function<int()> f, [[maybe_unused]] std::string filename)
+int SQLite::Retry(std::function<int()> f, [[maybe_unused]] fs::path filename)
 {
 #if !MIOPEN_ENABLE_SQLITE_BACKOFF
     int rc = f();
@@ -271,7 +269,7 @@ int SQLite::Retry(std::function<int()> f, [[maybe_unused]] std::string filename)
 
 int SQLite::Retry(std::function<int()> f) const
 {
-    std::string filename(sqlite3_db_filename(pImpl->ptrDb.get(), "main"));
+    fs::path filename(sqlite3_db_filename(pImpl->ptrDb.get(), "main"));
     return SQLite::Retry(f, filename);
 }
 
@@ -320,7 +318,7 @@ public:
     sqlite3_stmt_ptr ptrStmt = nullptr;
 };
 
-SQLite::SQLite(const std::string& filename_, bool is_system)
+SQLite::SQLite(const fs::path& filename_, bool is_system)
     : pImpl{std::make_unique<impl>(filename_, is_system)}
 {
 }
@@ -369,6 +367,11 @@ int SQLite::Statement::BindText(int idx, const std::string& txt)
     return 0;
 }
 
+int SQLite::Statement::BindPath(int idx, const fs::path& path)
+{
+    return BindText(idx, path.string());
+}
+
 int SQLite::Statement::BindBlob(int idx, const std::vector<char>& blob)
 {
     sqlite3_bind_blob(
@@ -382,7 +385,7 @@ int SQLite::Statement::BindInt64(int idx, const int64_t num)
     return 0;
 }
 
-SQLitePerfDb::SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool is_system_)
+SQLitePerfDb::SQLitePerfDb(DbKinds db_kind, const fs::path& filename_, bool is_system_)
     : SQLiteBase(db_kind, filename_, is_system_)
 {
     if(DisableUserDbFileIO && !is_system)
@@ -393,7 +396,7 @@ SQLitePerfDb::SQLitePerfDb(DbKinds db_kind, const std::string& filename_, bool i
         if(filename.empty())
             MIOPEN_LOG_I("database not present");
         else
-            MIOPEN_LOG_I(filename + " database invalid");
+            MIOPEN_LOG_I(filename << " database invalid");
         return;
     }
 

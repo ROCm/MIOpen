@@ -28,6 +28,7 @@
 
 #include <miopen/db_record.hpp>
 #include <miopen/rank.hpp>
+#include <miopen/filesystem.hpp>
 
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>
@@ -49,10 +50,10 @@ class LockFile;
 constexpr bool DisableUserDbFileIO = MIOPEN_DISABLE_USERDB;
 
 /// No instance of this class should be used from several threads at the same time.
-class PlainTextDb
+class MIOPEN_INTERNALS_EXPORT PlainTextDb
 {
 public:
-    PlainTextDb(DbKinds db_kind_, const std::string& filename_, bool is_system = false);
+    PlainTextDb(DbKinds db_kind_, const fs::path& filename_, bool is_system = false);
 
     /// Searches db for provided key and returns found record or none if key not found in database
     boost::optional<DbRecord> FindRecord(const std::string& key);
@@ -141,7 +142,7 @@ protected:
     const DbKinds db_kind;
 
     LockFile& GetLockFile() { return lock_file; }
-    const std::string& GetFileName() const { return filename; }
+    const fs::path& GetFileName() const { return filename; }
     bool IsWarningIfUnreadable() const { return warning_if_unreadable; }
     boost::optional<DbRecord> FindRecordUnsafe(const std::string& key, RecordPositions* pos);
     bool StoreRecordUnsafe(const DbRecord& record);
@@ -149,7 +150,7 @@ protected:
     bool RemoveRecordUnsafe(const std::string& key);
 
 private:
-    std::string filename;
+    fs::path filename;
     LockFile& lock_file;
     const bool warning_if_unreadable;
 
@@ -164,20 +165,20 @@ private:
 };
 
 template <class TDb>
-auto GetDbInstance(rank<1>, DbKinds db_kind, const std::string& path, bool is_system)
+auto GetDbInstance(rank<1>, DbKinds db_kind, const fs::path& path, bool is_system)
     -> decltype(TDb::GetCached({}, {}, {}))
 {
     return TDb::GetCached(db_kind, path, is_system);
 };
 
 template <class TDb>
-auto GetDbInstance(rank<0>, DbKinds db_kind, const std::string& path, bool is_system)
+auto GetDbInstance(rank<0>, DbKinds db_kind, const fs::path& path, bool is_system)
 {
     return TDb{db_kind, path, is_system};
 };
 
 template <class TDb>
-decltype(auto) GetDbInstance(DbKinds db_kind, const std::string& path, bool is_system = true)
+decltype(auto) GetDbInstance(DbKinds db_kind, const fs::path& path, bool is_system = true)
 {
     return GetDbInstance<TDb>(rank<1>{}, db_kind, path, is_system);
 }
@@ -186,7 +187,7 @@ template <class TInstalled, class TUser, bool merge_records>
 class MultiFileDb
 {
 public:
-    MultiFileDb(DbKinds db_kind, const std::string& installed_path, const std::string& user_path)
+    MultiFileDb(DbKinds db_kind, const fs::path& installed_path, const fs::path& user_path)
         : _installed(GetDbInstance<TInstalled>(db_kind, installed_path, true))
 #if !MIOPEN_DISABLE_USERDB
           ,
@@ -261,20 +262,20 @@ public:
 private:
     template <class TDb, class TRet = decltype(TDb::GetCached(DbKinds::FindDb, "", true))>
     static TRet
-    GetDbInstance(rank<1>, DbKinds db_kind, const std::string& path, bool warn_if_unreadable)
+    GetDbInstance(rank<1>, DbKinds db_kind, const fs::path& path, bool warn_if_unreadable)
     {
         return TDb::GetCached(db_kind, path, warn_if_unreadable);
     };
 
     template <class TDb>
     static TDb
-    GetDbInstance(rank<0>, DbKinds db_kind, const std::string& path, bool warn_if_unreadable)
+    GetDbInstance(rank<0>, DbKinds db_kind, const fs::path& path, bool warn_if_unreadable)
     {
         return {db_kind, path, warn_if_unreadable};
     };
 
     template <class TDb, class TRet = decltype(GetDbInstance<TDb>(rank<1>{}, {}, {}, {}))>
-    static TRet GetDbInstance(DbKinds db_kind, const std::string& path, bool warn_if_unreadable)
+    static TRet GetDbInstance(DbKinds db_kind, const fs::path& path, bool warn_if_unreadable)
     {
         return GetDbInstance<TDb>(rank<1>{}, db_kind, path, warn_if_unreadable);
     }

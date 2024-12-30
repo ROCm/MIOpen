@@ -26,17 +26,16 @@
 #ifndef GUARD_MIOPEN_KERNEL_HPP
 #define GUARD_MIOPEN_KERNEL_HPP
 
-#include <string>
+#include <string_view>
 #include <vector>
 
 #include <miopen/config.h>
+#include <miopen/filesystem.hpp>
 
 namespace miopen {
-std::string GetKernelSrc(std::string name);
-std::string GetKernelInc(std::string key);
-const std::string* GetKernelIncPtr(std::string key);
-std::vector<std::string> GetKernelIncList();
-std::vector<std::string> GetHipKernelIncList();
+std::string_view GetKernelSrc(const fs::path& name);
+std::string_view GetKernelInc(const fs::path& name);
+const std::vector<std::reference_wrapper<const fs::path>>& GetKernelIncList();
 } // namespace miopen
 
 #if MIOPEN_BACKEND_OPENCL

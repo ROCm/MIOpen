@@ -32,7 +32,7 @@
 #include <miopen/kernel.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/tensor_ops.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/magic_div.hpp>
 #include <vector>
 

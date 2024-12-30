@@ -34,16 +34,13 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env5x10f = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvAsm5x10u2v2f1")}};
-    const auto env5x10b = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER), std::string_view("ConvAsm5x10u2v2b1")}};
+    const auto env5x10f = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                     std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsm5x10u2v2f1"}};
+    const auto env5x10b = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                                     std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsm5x10u2v2b1"}};
     const auto env7x7 =
-        std::tuple{std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-                   std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                             std::string_view("ConvAsm7x7c3h224w224k64u2v2p3q3f1")}};
+        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsm7x7c3h224w224k64u2v2p3q3f1"}};
 
     const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";
@@ -71,15 +68,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefault_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvAsm_5x10_7x7)
+TEST_P(GPU_Conv2dDefault_FP32, FloatTest_smoke_solver_ConvAsm_5x10_7x7)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP32>(default_check);
     }
     else
     {
@@ -87,6 +84,4 @@ TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvAsm_5x10_7x7)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsm5x107x7,
-                         Conv2dDefaultFloat,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_FP32, testing::Values(GetTestCases()));
