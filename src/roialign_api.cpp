@@ -42,8 +42,7 @@ extern "C" miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
                                                 const int32_t alignedWidth,
                                                 const float spatialScale,
                                                 const int32_t samplingRatio,
-                                                const bool aligned,
-                                                const int32_t roi_batch_base_idx)
+                                                const bool aligned)
 {
     MIOPEN_LOG_FUNCTION(inputDesc,
                         input,
@@ -55,8 +54,7 @@ extern "C" miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
                         alignedWidth,
                         spatialScale,
                         samplingRatio,
-                        aligned,
-                        roi_batch_base_idx);
+                        aligned);
 
     return miopen::try_([&] {
         miopen::roialign::RoIAlignForward(miopen::deref(handle),
@@ -70,8 +68,7 @@ extern "C" miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
                                           alignedWidth,
                                           spatialScale,
                                           samplingRatio,
-                                          aligned,
-                                          roi_batch_base_idx);
+                                          aligned);
     });
 };
 
@@ -86,8 +83,7 @@ extern "C" miopenStatus_t miopenRoIAlignBackward(miopenHandle_t handle,
                                                  const int32_t alignedWidth,
                                                  const float spatialScale,
                                                  const int32_t samplingRatio,
-                                                 const bool aligned,
-                                                 const int32_t roi_batch_base_idx)
+                                                 const bool aligned)
 {
     MIOPEN_LOG_FUNCTION(outputGradDesc,
                         outputGrad,
@@ -99,8 +95,7 @@ extern "C" miopenStatus_t miopenRoIAlignBackward(miopenHandle_t handle,
                         alignedWidth,
                         spatialScale,
                         samplingRatio,
-                        aligned,
-                        roi_batch_base_idx);
+                        aligned);
 
     return miopen::try_([&] {
         miopen::roialign::RoIAlignBackward(miopen::deref(handle),
@@ -114,7 +109,6 @@ extern "C" miopenStatus_t miopenRoIAlignBackward(miopenHandle_t handle,
                                            alignedWidth,
                                            spatialScale,
                                            samplingRatio,
-                                           aligned,
-                                           roi_batch_base_idx);
+                                           aligned);
     });
 };

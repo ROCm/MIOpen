@@ -48,6 +48,8 @@ struct FwdProblemDescription : ProblemDescriptionBase
           alignedHeight(alignedHeight_),
           alignedWidth(alignedWidth_)
     {
+        IsSameType();
+        IsRightLength();
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
@@ -105,6 +107,16 @@ struct FwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(
                 miopenStatusBadParm,
                 "RoIAlignBackward: input, output and rois tensors should have the same type");
+        }
+
+        return true;
+    }
+
+    bool IsAllPacked() const
+    {
+        if(!inputDesc.IsPacked() || !roisDesc.IsPacked() || !outputDesc.IsPacked())
+        {
+            return false;
         }
 
         return true;

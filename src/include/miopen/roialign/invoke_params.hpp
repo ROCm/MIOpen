@@ -51,8 +51,7 @@ struct FwdInvokeParams : public miopen::InvokeParams
     float spatialScale    = 0.0f;
     int32_t samplingRatio = 0;
 
-    bool aligned               = false;
-    int32_t roi_batch_base_idx = 0;
+    bool aligned = false;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
@@ -76,8 +75,7 @@ struct BwdInvokeParams : public miopen::InvokeParams
     float spatialScale    = 0.0f;
     int32_t samplingRatio = 0;
 
-    bool aligned               = false;
-    int32_t roi_batch_base_idx = 0;
+    bool aligned = false;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

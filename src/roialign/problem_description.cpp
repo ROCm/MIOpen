@@ -42,9 +42,13 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 
     oss << "RoIAlign_fwd";
     oss << "dtype" << dtype;
-    oss << "input_lengths";
-    for(auto length : input_lengths)
-        oss << length << ',';
+    // oss << "input_lengths";
+    oss << "C" << input_lengths[1];
+    oss << "K" << roisDesc.GetLengths()[0];
+    oss << "OH" << alignedHeight;
+    oss << "OW" << alignedWidth;
+    // for(auto length : input_lengths)
+    //     oss << length << ',';
     // Add more information to the network config here
     // oss << "xdesc" << GetInputDesc();
     // oss << "ydesc" << GetOutputDesc();

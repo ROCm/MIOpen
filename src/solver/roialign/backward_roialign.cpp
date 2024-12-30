@@ -53,8 +53,8 @@ bool IsImprovementOverROCm(const miopen::roialign::BwdProblemDescription& proble
 bool RoIAlignBackward::IsApplicable(const ExecutionContext& context,
                                     const miopen::roialign::BwdProblemDescription& problem) const
 {
-    if(problem.GetOutputGradDesc().GetVectorLength() > VIEW_DIMS)
-        return false;
+    // if(problem.GetOutputGradDesc().GetVectorLength() > VIEW_DIMS)
+    //     return false;
 
     if(!(problem.GetOutputGradDesc().GetType() == miopenFloat ||
          problem.GetOutputGradDesc().GetType() == miopenHalf ||
@@ -146,7 +146,6 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
                    params.spatialScale,
                    params.samplingRatio,
                    params.aligned,
-                   params.roi_batch_base_idx,
                    output_grad_tv,
                    rois_tv,
                    input_grad_tv);

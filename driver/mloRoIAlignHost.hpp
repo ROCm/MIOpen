@@ -40,23 +40,22 @@ int32_t mloRoIAlignForwardRunHost(const miopenTensorDescriptor_t inputDesc,
                                   const miopenTensorDescriptor_t outputDesc,
                                   const Tgpu* input,
                                   const Tgpu* rois,
-                                  const Tcheck* output,
+                                  Tcheck* output,
                                   const int32_t output_h,
                                   const int32_t output_w,
                                   const float spatial_scale,
                                   const int32_t sampling_ratio,
-                                  const bool aligned,
-                                  const int32_t roi_batch_base_idx)
+                                  const bool aligned)
 {
     auto input_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
     auto rois_tv   = miopen::get_inner_expanded_tv<2>(miopen::deref(roisDesc));
     auto output_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
 
     const auto input_lengths = miopen::deref(inputDesc).GetLengths();
-    const auto N             = input_lengths[0];
-    const auto C             = input_lengths[1];
-    const auto H             = input_lengths[2];
-    const auto W             = input_lengths[3];
+    // const auto N             = input_lengths[0];
+    const auto C = input_lengths[1];
+    const auto H = input_lengths[2];
+    const auto W = input_lengths[3];
 
     const auto K = miopen::deref(roisDesc).GetLengths()[0];
 
@@ -173,17 +172,16 @@ int32_t mloRoIAlignForwardRunHost(const miopenTensorDescriptor_t inputDesc,
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloRoIAlignBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc,
-                                   const Tgpu* output_grad,
                                    const miopenTensorDescriptor_t roisDesc,
-                                   const Tgpu* rois,
                                    const miopenTensorDescriptor_t inputGradDesc,
-                                   Tgpu* input_grad,
+                                   const Tgpu* output_grad,
+                                   const Tgpu* rois,
+                                   Tcheck* input_grad,
                                    const int32_t OH,
                                    const int32_t OW,
                                    const float spatial_scale,
                                    const int32_t sampling_ratio,
-                                   const bool aligned,
-                                   const int32_t roi_batch_base_idx)
+                                   const bool aligned)
 {
     auto output_grad_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
     auto rois_tv        = miopen::get_inner_expanded_tv<2>(miopen::deref(roisDesc));

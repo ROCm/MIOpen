@@ -47,8 +47,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t RoIAlignForward(Handle& handle,
                                                        int32_t alignedWidth,
                                                        float spatialScale,
                                                        int32_t samplingRatio,
-                                                       bool aligned,
-                                                       int32_t roi_batch_base_idx);
+                                                       bool aligned);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t RoIAlignBackward(Handle& handle,
                                                         const TensorDescriptor& outputGradDesc,
@@ -61,8 +60,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t RoIAlignBackward(Handle& handle,
                                                         int32_t alignedWidth,
                                                         float spatialScale,
                                                         int32_t samplingRatio,
-                                                        bool aligned,
-                                                        int32_t roi_batch_base_idx);
+                                                        bool aligned);
 
 } // namespace roialign
 

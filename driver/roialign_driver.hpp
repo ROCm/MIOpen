@@ -166,7 +166,6 @@ private:
     float spatial_scale;
     int32_t sampling_ratio;
     bool aligned;
-    uint32_t roi_batch_base_idx;
 };
 
 // Equivalent tensor.transpose(0, -1).contiguous().transpose(0, -1)
@@ -222,13 +221,12 @@ int RoIAlignDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
-    is_contiguous      = inflags.GetValueInt("is-contiguous") == 1;
-    output_h           = inflags.GetValueInt("output-height");
-    output_w           = inflags.GetValueInt("output-weight");
-    spatial_scale      = inflags.GetValueDouble("spatial-scale");
-    sampling_ratio     = inflags.GetValueInt("sampling-ratio");
-    aligned            = inflags.GetValueInt("aligned") == 1;
-    roi_batch_base_idx = inflags.GetValueInt("roi-batch-idx");
+    is_contiguous  = inflags.GetValueInt("is-contiguous") == 1;
+    output_h       = inflags.GetValueInt("output-height");
+    output_w       = inflags.GetValueInt("output-weight");
+    spatial_scale  = inflags.GetValueDouble("spatial-scale");
+    sampling_ratio = inflags.GetValueInt("sampling-ratio");
+    aligned        = inflags.GetValueInt("aligned") == 1;
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -435,8 +433,7 @@ int RoIAlignDriver<Tgpu, Tref>::RunForwardGPU()
                                             output_w,
                                             spatial_scale,
                                             sampling_ratio,
-                                            aligned,
-                                            roi_batch_base_idx);
+                                            aligned);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenRoIAlignForward");
 
@@ -482,8 +479,7 @@ int RoIAlignDriver<Tgpu, Tref>::RunForwardCPU()
                                             output_w,
                                             spatial_scale,
                                             sampling_ratio,
-                                            aligned,
-                                            roi_batch_base_idx);
+                                            aligned);
 
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloRoIAlignForwardRunHost");
 
@@ -513,8 +509,7 @@ int RoIAlignDriver<Tgpu, Tref>::RunBackwardGPU()
                                              output_w,
                                              spatial_scale,
                                              sampling_ratio,
-                                             aligned,
-                                             roi_batch_base_idx);
+                                             aligned);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenRoIAlignBackward");
 
@@ -562,8 +557,7 @@ int RoIAlignDriver<Tgpu, Tref>::RunBackwardCPU()
                                              output_w,
                                              spatial_scale,
                                              sampling_ratio,
-                                             aligned,
-                                             roi_batch_base_idx);
+                                             aligned);
 
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloMedianBackwardRunHost");
 

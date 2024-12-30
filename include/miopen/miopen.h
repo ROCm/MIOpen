@@ -8198,7 +8198,6 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * @param [in]  spatialScale    RoI spatial scale
  * @param [in]  samplingRatio   Number of sampling points in the interpolation grid
  * @param [in]  aligned         Flag to indicate whether to use aligned or unaligned RoI Align
- * @param [in]  roi_batch_base_idx Index of the batch to which the RoI belongs
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
@@ -8212,8 +8211,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
                                                    const int32_t alignedWidth,
                                                    const float spatialScale,
                                                    const int32_t samplingRatio,
-                                                   const bool aligned,
-                                                   const int32_t roi_batch_base_idx);
+                                                   const bool aligned);
 
 /*! @brief Execute a Region-of-Interest (RoI) Align backward layer
  *
@@ -8229,7 +8227,6 @@ MIOPEN_EXPORT miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
  * @param [in]  spatialScale    RoI spatial scale
  * @param [in]  samplingRatio   Number of sampling points in the interpolation grid
  * @param [in]  aligned         Flag to indicate whether to use aligned or unaligned RoI Align
- * @param [in]  roi_batch_base_idx Index of the batch to which the RoI belongs
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenRoIAlignBackward(miopenHandle_t handle,
@@ -8243,8 +8240,7 @@ MIOPEN_EXPORT miopenStatus_t miopenRoIAlignBackward(miopenHandle_t handle,
                                                     const int32_t alignedWidth,
                                                     const float spatialScale,
                                                     const int32_t samplingRatio,
-                                                    const bool aligned,
-                                                    const int32_t roi_batch_base_idx);
+                                                    const bool aligned);
 
 /** @}*/
 // CLOSEOUT RoIAlign DOXYGEN GROUP

@@ -52,8 +52,7 @@ miopenStatus_t RoIAlignForward(Handle& handle,
                                const int alignedWidth,
                                const float spatialScale,
                                const int samplingRatio,
-                               const bool aligned,
-                               const int roi_batch_base_idx)
+                               const bool aligned)
 {
     const auto problem = roialign::FwdProblemDescription{
         inputDesc,
@@ -76,10 +75,9 @@ miopenStatus_t RoIAlignForward(Handle& handle,
         tmp.alignedHeight = alignedHeight;
         tmp.alignedWidth  = alignedWidth;
 
-        tmp.spatialScale       = spatialScale;
-        tmp.samplingRatio      = samplingRatio;
-        tmp.aligned            = aligned;
-        tmp.roi_batch_base_idx = roi_batch_base_idx;
+        tmp.spatialScale  = spatialScale;
+        tmp.samplingRatio = samplingRatio;
+        tmp.aligned       = aligned;
 
         return tmp;
     }();
@@ -103,8 +101,7 @@ miopenStatus_t RoIAlignBackward(Handle& handle,
                                 const int alignedWidth,
                                 const float spatialScale,
                                 const int samplingRatio,
-                                const bool aligned,
-                                const int roi_batch_base_idx)
+                                const bool aligned)
 {
     const auto problem = roialign::BwdProblemDescription{
         outputGradDesc,
@@ -127,10 +124,9 @@ miopenStatus_t RoIAlignBackward(Handle& handle,
         tmp.alignedHeight = alignedHeight;
         tmp.alignedWidth  = alignedWidth;
 
-        tmp.spatialScale       = spatialScale;
-        tmp.samplingRatio      = samplingRatio;
-        tmp.aligned            = aligned;
-        tmp.roi_batch_base_idx = roi_batch_base_idx;
+        tmp.spatialScale  = spatialScale;
+        tmp.samplingRatio = samplingRatio;
+        tmp.aligned       = aligned;
 
         return tmp;
     }();

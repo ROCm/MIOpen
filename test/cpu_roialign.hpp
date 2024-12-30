@@ -34,23 +34,22 @@
 template <class T>
 void cpu_roialign_forward(const tensor<T> input,
                           const tensor<T> rois,
-                          tensor<T> output,
-                          int output_h,
-                          int output_w,
-                          float spatial_scale,
-                          int sampling_ratio,
-                          bool aligned,
-                          int roi_batch_base_idx)
+                          tensor<T>& output,
+                          const int output_h,
+                          const int output_w,
+                          const float spatial_scale,
+                          const int sampling_ratio,
+                          const bool aligned)
 {
     auto input_tv  = miopen::get_inner_expanded_tv<4>(input.desc);
     auto rois_tv   = miopen::get_inner_expanded_tv<2>(rois.desc);
     auto output_tv = miopen::get_inner_expanded_tv<4>(output.desc);
 
     const auto input_lengths = input.desc.GetLengths();
-    const auto N             = input_lengths[0];
-    const auto C             = input_lengths[1];
-    const auto H             = input_lengths[2];
-    const auto W             = input_lengths[3];
+    // const auto N             = input_lengths[0];
+    const auto C = input_lengths[1];
+    const auto H = input_lengths[2];
+    const auto W = input_lengths[3];
 
     const auto K = rois.desc.GetLengths()[0];
 
@@ -62,17 +61,31 @@ void cpu_roialign_forward(const tensor<T> input,
         // tensor_layout_t<4> layout(rois_tv, slice_id);
         // const int roi_batch_idx = roi_cols == 4 ? 0 :
         // static_cast<int>(rois[static_cast<ptrdiff_t>(k * roi_cols)]);
-        const int roi_batch_idx = roi_cols == 4 ? 0 : rois[rois_tv.get_tensor_view_idx({k, 0})];
+        int roi_batch_idx =
+            roi_cols == 4 ? 0 : static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+        // roi_batch_idx -= roi_batch_base_idx;
         // const Tgpu* X_ptr = input + roi_batch_idx * C * H * W;
-        const T* R_ptr = rois + k * roi_cols + (roi_cols == 5);
+        // const T* R_ptr = rois + k * roi_cols + (roi_cols == 5);
         // Tcheck* Y_ptr = output + k * C * output_h * output_w;
 
-        const float roi_w1 = R_ptr[0] * spatial_scale - roi_offset;
-        const float roi_h1 = R_ptr[1] * spatial_scale - roi_offset;
-        const float roi_w2 = R_ptr[2] * spatial_scale - roi_offset;
-        const float roi_h2 = R_ptr[3] * spatial_scale - roi_offset;
-        float roi_w        = roi_w2 - roi_w1;
-        float roi_h        = roi_h2 - roi_h1;
+        // const float roi_w1 = R_ptr[0] * spatial_scale - roi_offset;
+        // const float roi_h1 = R_ptr[1] * spatial_scale - roi_offset;
+        // const float roi_w2 = R_ptr[2] * spatial_scale - roi_offset;
+        // const float roi_h2 = R_ptr[3] * spatial_scale - roi_offset;
+        const float roi_w1 =
+            static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 1})]) * spatial_scale -
+            roi_offset;
+        const float roi_h1 =
+            static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 2})]) * spatial_scale -
+            roi_offset;
+        const float roi_w2 =
+            static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 3})]) * spatial_scale -
+            roi_offset;
+        const float roi_h2 =
+            static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 4})]) * spatial_scale -
+            roi_offset;
+        float roi_w = roi_w2 - roi_w1;
+        float roi_h = roi_h2 - roi_h1;
 
         if(aligned) {}
         else
@@ -130,26 +143,25 @@ void cpu_roialign_forward(const tensor<T> input,
                             const float px = x - static_cast<float>(xl);
                             const float qy = 1.f - py;
                             const float qx = 1.f - px;
-                            int p1         = yl * W + xl;
-                            int p2         = yl * W + xh;
-                            int p3         = yh * W + xl;
-                            int p4         = yh * W + xh;
-                            float w1       = qy * qx;
-                            float w2       = qy * px;
-                            float w3       = py * qx;
-                            float w4       = py * px;
+                            // int p1         = yl * W + xl;
+                            // int p2         = yl * W + xh;
+                            // int p3         = yh * W + xl;
+                            // int p4         = yh * W + xh;
+                            float w1 = qy * qx;
+                            float w2 = qy * px;
+                            float w3 = py * qx;
+                            float w4 = py * px;
 
                             // sum += w1 * X_ptr[p1] + w2 * X_ptr[p2] + w3 * X_ptr[p3] +
                             //        w4 * X_ptr[p4];
-                            sum +=
-                                w1 * input[input_tv.get_tensor_view_idx(
-                                         {roi_batch_idx, c, yl, xl})] +
-                                w2 * input[input_tv.get_tensor_view_idx(
-                                         {roi_batch_idx, c, yl, xh})] +
-                                w3 * input[input_tv.get_tensor_view_idx(
-                                         {roi_batch_idx, c, yh, xl})] +
-                                w4 *
-                                    input[input_tv.get_tensor_view_idx({roi_batch_idx, c, yh, xh})];
+                            sum += w1 * static_cast<float>(input[input_tv.get_tensor_view_idx(
+                                            {roi_batch_idx, c, yl, xl})]) +
+                                   w2 * static_cast<float>(input[input_tv.get_tensor_view_idx(
+                                            {roi_batch_idx, c, yl, xh})]) +
+                                   w3 * static_cast<float>(input[input_tv.get_tensor_view_idx(
+                                            {roi_batch_idx, c, yh, xl})]) +
+                                   w4 * static_cast<float>(input[input_tv.get_tensor_view_idx(
+                                            {roi_batch_idx, c, yh, xh})]);
                         }
                     }
                     // Y_ptr[ph * output_w + pw] = sum * scale;
@@ -172,105 +184,107 @@ void cpu_roialign_backward(const tensor<T> output_grad,
                            int OW,
                            float spatial_scale,
                            int sampling_ratio,
-                           bool aligned,
-                           int roi_batch_base_idx)
+                           bool aligned)
 {
-    auto output_grad_tv = miopen::get_inner_expanded_tv<4>(output_grad.desc);
-    auto rois_tv        = miopen::get_inner_expanded_tv<2>(rois.desc);
-    auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(input_grad.desc);
+    // auto output_grad_tv = miopen::get_inner_expanded_tv<4>(output_grad.desc);
+    // auto rois_tv        = miopen::get_inner_expanded_tv<2>(rois.desc);
+    // auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(input_grad.desc);
 
-    const auto input_lengths = input_grad.desc.GetLengths();
-    const auto N             = input_lengths[0];
-    const auto C             = input_lengths[1];
-    const auto H             = input_lengths[2];
-    const auto W             = input_lengths[3];
+    // const auto input_lengths = input_grad.desc.GetLengths();
+    // const auto N             = input_lengths[0];
+    // const auto C             = input_lengths[1];
+    // const auto H             = input_lengths[2];
+    // const auto W             = input_lengths[3];
 
-    const auto K = rois.desc.GetLengths()[0];
+    // const auto K = rois.desc.GetLengths()[0];
 
-    for(int n = 0; n < N; ++n)
-    {
-        for(int c = 0; c < C; ++c)
-        {
-            for(int h = 0; h < H; ++h)
-            {
-                for(int w = 0; w < W; ++w)
-                {
-                    float p_input_grad = 0;
-                    for(int k = 0; k < K; ++k)
-                    {
-                        // if (rois[ARR2D_IDX(K, 5, k, 0)] != n) continue;
-                        // if(rois[k*5 + 0] != n) continue;
-                        if(rois[rois_tv.get_tensor_view_idx({k, 0})] != n)
-                            continue;
-                        float offset = aligned ? 0.5 : 0;
-                        // float x1 = rois[ARR2D_IDX(K, 5, k, 1)] * spatial_scale - offset;
-                        // float y1 = rois[ARR2D_IDX(K, 5, k, 2)] * spatial_scale - offset;
-                        // float x2 = rois[ARR2D_IDX(K, 5, k, 3)] * spatial_scale - offset;
-                        // float y2 = rois[ARR2D_IDX(K, 5, k, 4)] * spatial_scale - offset;
-                        // float x1 = rois[k*5 + 1] * spatial_scale - offset;
-                        // float y1 = rois[k*5 + 2] * spatial_scale - offset;
-                        // float x2 = rois[k*5 + 3] * spatial_scale - offset;
-                        // float y2 = rois[k*5 + 4] * spatial_scale - offset;
-                        float x1 =
-                            rois[rois_tv.get_tensor_view_idx({k, 1})] * spatial_scale - offset;
-                        float y1 =
-                            rois[rois_tv.get_tensor_view_idx({k, 2})] * spatial_scale - offset;
-                        float x2 =
-                            rois[rois_tv.get_tensor_view_idx({k, 3})] * spatial_scale - offset;
-                        float y2 =
-                            rois[rois_tv.get_tensor_view_idx({k, 4})] * spatial_scale - offset;
+    // for(int n = 0; n < N; ++n)
+    // {
+    //     for(int c = 0; c < C; ++c)
+    //     {
+    //         for(int h = 0; h < H; ++h)
+    //         {
+    //             for(int w = 0; w < W; ++w)
+    //             {
+    //                 float p_input_grad = 0;
+    //                 for(int k = 0; k < K; ++k)
+    //                 {
+    //                     // if (rois[ARR2D_IDX(K, 5, k, 0)] != n) continue;
+    //                     // if(rois[k*5 + 0] != n) continue;
+    //                     if(rois[rois_tv.get_tensor_view_idx({k, 0})] != n)
+    //                         continue;
+    //                     float offset = aligned ? 0.5 : 0;
+    //                     // float x1 = rois[ARR2D_IDX(K, 5, k, 1)] * spatial_scale - offset;
+    //                     // float y1 = rois[ARR2D_IDX(K, 5, k, 2)] * spatial_scale - offset;
+    //                     // float x2 = rois[ARR2D_IDX(K, 5, k, 3)] * spatial_scale - offset;
+    //                     // float y2 = rois[ARR2D_IDX(K, 5, k, 4)] * spatial_scale - offset;
+    //                     // float x1 = rois[k*5 + 1] * spatial_scale - offset;
+    //                     // float y1 = rois[k*5 + 2] * spatial_scale - offset;
+    //                     // float x2 = rois[k*5 + 3] * spatial_scale - offset;
+    //                     // float y2 = rois[k*5 + 4] * spatial_scale - offset;
+    //                     float x1 =
+    //                         rois[rois_tv.get_tensor_view_idx({k, 1})] * spatial_scale - offset;
+    //                     float y1 =
+    //                         rois[rois_tv.get_tensor_view_idx({k, 2})] * spatial_scale - offset;
+    //                     float x2 =
+    //                         rois[rois_tv.get_tensor_view_idx({k, 3})] * spatial_scale - offset;
+    //                     float y2 =
+    //                         rois[rois_tv.get_tensor_view_idx({k, 4})] * spatial_scale - offset;
 
-                        float roi_h = x2 - x1;
-                        float roi_w = y2 - y1;
-                        if(!aligned)
-                        {
-                            roi_h = fmax(roi_h, 1);
-                            roi_w = fmax(roi_w, 1);
-                        }
+    //                     float roi_h = x2 - x1;
+    //                     float roi_w = y2 - y1;
+    //                     if(!aligned)
+    //                     {
+    //                         roi_h = fmax(roi_h, 1);
+    //                         roi_w = fmax(roi_w, 1);
+    //                     }
 
-                        float bin_h = roi_h / OH;
-                        float bin_w = roi_w / OW;
+    //                     float bin_h = roi_h / OH;
+    //                     float bin_w = roi_w / OW;
 
-                        int sampling_ratio_h =
-                            sampling_ratio > 0 ? sampling_ratio : ceil(roi_h / OH);
-                        int sampling_ratio_w =
-                            sampling_ratio > 0 ? sampling_ratio : ceil(roi_w / OW);
+    //                     int sampling_ratio_h =
+    //                         sampling_ratio > 0 ? sampling_ratio : ceil(roi_h / OH);
+    //                     int sampling_ratio_w =
+    //                         sampling_ratio > 0 ? sampling_ratio : ceil(roi_w / OW);
 
-                        for(int oh = 0; oh < OH; ++oh)
-                        {
-                            for(int ow = 0; ow < OW; ++ow)
-                            {
-                                float weight = 0;
-                                for(int r = 0; r < sampling_ratio_h; ++r)
-                                {
-                                    float sx =
-                                        x1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5);
-                                    sx = fmin(fmax(sx, 0), H - 1);
-                                    for(int s = 0; s < sampling_ratio_w; ++s)
-                                    {
-                                        float sy =
-                                            y1 + bin_w * ow + bin_w / sampling_ratio_w * (s + 0.5);
-                                        sy = fmin(fmax(sy, 0), W - 1);
-                                        weight += fmax(1 - std::fabs(sx - h), 0) *
-                                                  fmax(1 - std::fabs(sy - w), 0);
-                                    }
-                                }
-                                if(weight != 0)
-                                {
-                                    // p_input_grad +=
-                                    //     output_grad[ARR4D_IDX(K, C, OH, OW, k, c, oh, ow)] *
-                                    //     weight / (sampling_ratio_h * sampling_ratio_w);
-                                    p_input_grad += output_grad[output_grad_tv.get_tensor_view_idx(
-                                                        {k, c, oh, ow})] *
-                                                    weight / (sampling_ratio_h * sampling_ratio_w);
-                                }
-                            }
-                        }
-                    }
-                    // input_grad[ARR4D_IDX(N, C, H, W, n, c, h, w)] = p_input_grad;
-                    input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = p_input_grad;
-                }
-            }
-        }
-    }
+    //                     for(int oh = 0; oh < OH; ++oh)
+    //                     {
+    //                         for(int ow = 0; ow < OW; ++ow)
+    //                         {
+    //                             float weight = 0;
+    //                             for(int r = 0; r < sampling_ratio_h; ++r)
+    //                             {
+    //                                 float sx =
+    //                                     x1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5);
+    //                                 sx = fmin(fmax(sx, 0), H - 1);
+    //                                 for(int s = 0; s < sampling_ratio_w; ++s)
+    //                                 {
+    //                                     float sy =
+    //                                         y1 + bin_w * ow + bin_w / sampling_ratio_w * (s +
+    //                                         0.5);
+    //                                     sy = fmin(fmax(sy, 0), W - 1);
+    //                                     weight += fmax(1 - std::fabs(sx - h), 0) *
+    //                                               fmax(1 - std::fabs(sy - w), 0);
+    //                                 }
+    //                             }
+    //                             if(weight != 0)
+    //                             {
+    //                                 // p_input_grad +=
+    //                                 //     output_grad[ARR4D_IDX(K, C, OH, OW, k, c, oh, ow)] *
+    //                                 //     weight / (sampling_ratio_h * sampling_ratio_w);
+    //                                 p_input_grad +=
+    //                                 output_grad[output_grad_tv.get_tensor_view_idx(
+    //                                                     {k, c, oh, ow})] *
+    //                                                 weight / (sampling_ratio_h *
+    //                                                 sampling_ratio_w);
+    //                             }
+    //                         }
+    //                     }
+    //                 }
+    //                 // input_grad[ARR4D_IDX(N, C, H, W, n, c, h, w)] = p_input_grad;
+    //                 input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = p_input_grad;
+    //             }
+    //         }
+    //     }
+    // }
 }
