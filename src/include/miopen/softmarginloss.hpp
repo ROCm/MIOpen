@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_SOFTMARGINLOSS_HPP_
-#define MIOPEN_SOFTMARGINLOSS_HPP_
+#pragma once
 
 #include "miopen/miopen.h"
 #include <miopen/common.hpp>
@@ -64,4 +63,3 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossBackward(Handle& handle,
                                                               miopenLossReductionMode_t reduction);
 
 } // namespace miopen
-#endif // _MIOPEN_SOFTMARGINLOSS_HPP_

@@ -100,7 +100,7 @@ ConvSolution SoftMarginLossForward::GetSolution(
 
     if(problem.Getreduction() != MIOPEN_LOSS_REDUCTION_NONE)
     {
-        // If Reduction = NONE, then we should run second kernel to calculate mean/sum of result
+        // If Reduction != NONE, then we should run second kernel to calculate mean/sum of result
         // from first kernel above
         /* Phase 2: Reduce FLOAT_ACCUM -> FLOAT_ACCUM */
         auto _size              = input_numel;

@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_MULTIMARGINLOSS_HPP_
-#define MIOPEN_MULTIMARGINLOSS_HPP_
+#pragma once
 
 #include "miopen/miopen.h"
 #include <miopen/common.hpp>
@@ -60,4 +59,3 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t MultiMarginLossForward(Handle& handle,
                                                               miopenLossReductionMode_t reduction);
 
 } // namespace miopen
-#endif // _MIOPEN_MULTIMARGINLOSS_HPP_

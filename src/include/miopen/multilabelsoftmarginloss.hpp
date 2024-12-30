@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_MULTILABELSOFTMARGINLOSS_HPP_
-#define MIOPEN_MULTILABELSOFTMARGINLOSS_HPP_
+#pragma once
 
 #include "miopen/miopen.h"
 #include <miopen/common.hpp>
@@ -57,4 +56,3 @@ MultilabelSoftMarginLossForward(Handle& handle,
                                 miopenLossReductionMode_t reduction);
 
 } // namespace miopen
-#endif // _MIOPEN_MULTILABELSOFTMARGINLOSS_HPP_
