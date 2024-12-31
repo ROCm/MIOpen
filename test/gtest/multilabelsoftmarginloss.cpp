@@ -29,48 +29,48 @@
 
 namespace multilabelsoftmarginloss {
 
-struct MultilabelSoftMarginLossForwardTestFloat : MultilabelSoftMarginLossForwardTest<float>
+struct GPU_MultilabelSoftMarginLossForward_FP32 : MultilabelSoftMarginLossForwardTest<float>
 {
 };
 
-struct MultilabelSoftMarginLossForwardTestHalf
+struct GPU_MultilabelSoftMarginLossForward_FP16
     : MultilabelSoftMarginLossForwardTest<half_float::half>
 {
 };
 
-struct MultilabelSoftMarginLossForwardTestBFloat16 : MultilabelSoftMarginLossForwardTest<bfloat16>
+struct GPU_MultilabelSoftMarginLossForward_BFP16 : MultilabelSoftMarginLossForwardTest<bfloat16>
 {
 };
 
 } // namespace multilabelsoftmarginloss
 
-using multilabelsoftmarginloss::MultilabelSoftMarginLossForwardTestBFloat16;
-using multilabelsoftmarginloss::MultilabelSoftMarginLossForwardTestFloat;
-using multilabelsoftmarginloss::MultilabelSoftMarginLossForwardTestHalf;
+using multilabelsoftmarginloss::GPU_MultilabelSoftMarginLossForward_BFP16;
+using multilabelsoftmarginloss::GPU_MultilabelSoftMarginLossForward_FP16;
+using multilabelsoftmarginloss::GPU_MultilabelSoftMarginLossForward_FP32;
 
-TEST_P(MultilabelSoftMarginLossForwardTestFloat, )
+TEST_P(GPU_MultilabelSoftMarginLossForward_FP32, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(MultilabelSoftMarginLossForwardTestHalf, )
+TEST_P(GPU_MultilabelSoftMarginLossForward_FP16, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(MultilabelSoftMarginLossForwardTestBFloat16, )
+TEST_P(GPU_MultilabelSoftMarginLossForward_BFP16, Test)
 {
     RunTest();
     Verify();
 };
-INSTANTIATE_TEST_SUITE_P(MultilabelSoftMarginLossTestSet,
-                         MultilabelSoftMarginLossForwardTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MultilabelSoftMarginLossForward_FP32,
                          testing::ValuesIn(MultilabelSoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(MultilabelSoftMarginLossTestSet,
-                         MultilabelSoftMarginLossForwardTestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MultilabelSoftMarginLossForward_FP16,
                          testing::ValuesIn(MultilabelSoftMarginLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(MultilabelSoftMarginLossTestSet,
-                         MultilabelSoftMarginLossForwardTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MultilabelSoftMarginLossForward_BFP16,
                          testing::ValuesIn(MultilabelSoftMarginLossTestConfigs()));
