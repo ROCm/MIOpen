@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <cstdint>
+#include <exception>
 #include <iostream>
 #include <miopen/roialign.hpp>
 #include <miopen/miopen.h>
@@ -56,7 +57,6 @@ struct RoIAlignTestCase
     float spatial_scale    = 1.0;
     int32_t sampling_ratio = -1;
     bool align             = false;
-    // uint64_t roi_batch_base_idx;
 
     friend std::ostream& operator<<(std::ostream& os, const RoIAlignTestCase& tc)
     {
@@ -67,7 +67,6 @@ struct RoIAlignTestCase
         os << " spatial_scale: " << tc.spatial_scale;
         os << " sampling_ratio: " << tc.sampling_ratio;
         os << " align: " << tc.align;
-        // os << " roi_batch_base_idx: " << tc.roi_batch_base_idx;
 
         return os;
     }
@@ -79,10 +78,6 @@ struct RoIAlignTestCase
     uint64_t GetSpatialScale() const { return spatial_scale; }
     uint64_t GetSamplingRatio() const { return sampling_ratio; }
     bool GetAlign() const { return align; }
-    // uint64_t GetRoiBatchBaseIdx() const { return roi_batch_base_idx; }
-
-    // RoIAlignTestCase() {}
-    // RoIAlignTestCase(uint64_t N_, uint64_t) {}
 
     std::vector<size_t> ComputeStrides(std::vector<size_t> inputDim) const
     {
@@ -106,19 +101,32 @@ struct RoIAlignTestCase
 inline std::vector<RoIAlignTestCase> RoIAlignTestConfigs()
 {
     return {
-        {1, 1, 8, 8, 2, 2, 2},                      // Using default args
-        {1, 1, 8, 8, 2, 2, 2, false},               // Non-contiguous tensor
-        {1, 1, 8, 8, 2, 2, 2, true, 2.0},           // Custom spatial scale
-        {1, 1, 8, 8, 2, 2, 2, true, 1.0, 2},        // Custom sampling ratio
-        {1, 1, 8, 8, 2, 2, 2, true, 1.0, -1, true}, // Custom aligned=True
+        {1, 1, 8, 8, 2, 2, 2},             // Using default args
+        {1, 1, 8, 8, 2, 2, 2, false},      // non-contiguous
+        {1, 1, 8, 8, 2, 2, 2, false, 0.5}, // custom spatial_scaling=0.5
+        {1, 1, 8, 8, 2, 2, 2, false, 2.0}, // custom spatial_scaling=2
+        {1, 1, 8, 8, 2, 2, 2, false, 2.0}, // custom sampling_ratio=2
+        {1, 1, 8, 8, 2, 2, 2, false, 2.0}, // custom Custom aligned=True
+
+        // Larger tensors
+        // Contiguous tensors
         {1, 3, 96, 96, 6, 7, 7, true, 0.3125, 2, false},
         {1, 3, 96, 96, 6, 7, 14, true, 0.3125, 2, false},
         {6, 1, 800, 1060, 6, 14, 14, true, 0.25, -1, false},
         {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, false},
         {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, true},
-        {6, 1, 800, 1060, 6, 14, 14, false, 0.25, 2, true},
         {6, 1, 800, 1060, 6, 32, 32, true, 0.25, 2, true},
         {6, 1, 800, 1060, 6, 32, 32, true, 0.25, -1, false},
+
+        // Non-contiguous tensors
+        {1, 3, 96, 96, 6, 7, 7, false, 0.3125, 2, false},
+        {1, 3, 96, 96, 6, 7, 14, false, 0.3125, 2, false},
+        {6, 1, 800, 1060, 6, 14, 14, false, 0.25, -1, false},
+        {6, 1, 800, 1060, 6, 14, 14, false, 0.25, 2, false},
+        {6, 1, 800, 1060, 6, 14, 14, false, 0.25, 2, true},
+        {6, 1, 800, 1060, 6, 14, 14, false, 0.25, 2, true},
+        {6, 1, 800, 1060, 6, 32, 32, false, 0.25, 2, true},
+        {6, 1, 800, 1060, 6, 32, 32, false, 0.25, -1, false},
 
     };
 };
@@ -137,11 +145,8 @@ protected:
         spatial_scale  = config.GetSpatialScale();
         sampling_ratio = config.GetSamplingRatio();
         aligned        = config.GetAlign();
-        // roi_batch_base_idx = config.GetRoiBatchBaseIdx();
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        // auto rois_gen_values = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1, 100);
-        // };
 
         auto input_dims    = config.GetInputDims();
         auto input_strides = config.ComputeStrides(input_dims);
@@ -175,21 +180,6 @@ protected:
             rois[i * 5 + 3] = x1 < x2 ? x2 : x1;
             rois[i * 5 + 4] = y1 < y2 ? y2 : y1;
         }
-
-        // print input and rois
-        // std::cout << "input tensor: " << std::endl;
-        // for(auto i : input.data)
-        // {
-        //     std::cout << i << ", ";
-        // }
-        // std::cout << std::endl;
-
-        // std::cout << "rois tensor: " << std::endl;
-        // for(auto i : rois)
-        // {
-        //     std::cout << i << ", ";
-        // }
-        // std::cout << std::endl;
 
         output = tensor<T>{output_dims};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
@@ -245,21 +235,6 @@ protected:
 
     void Verify()
     {
-        // print ref_output and output
-        // std::cout << "ref_output tensor: " << std::endl;
-        // for(auto i : ref_output.data)
-        // {
-        //     std::cout << i << ", ";
-        // }
-        // std::cout << std::endl;
-
-        // std::cout << "output tensor: " << std::endl;
-        // for(auto i : output.data)
-        // {
-        //     std::cout << i << ", ";
-        // }
-        // std::cout << std::endl;
-
         // Verify output_tensor
         double threshold = GetTolerance();
         auto error       = miopen::rms_range(ref_output, output);
@@ -286,7 +261,6 @@ protected:
     float spatial_scale;
     int32_t sampling_ratio;
     bool aligned;
-    // uint64_t roi_batch_base_idx;
 };
 
 template <typename T>
@@ -303,7 +277,6 @@ protected:
         spatial_scale  = config.GetSpatialScale();
         sampling_ratio = config.GetSamplingRatio();
         aligned        = config.GetAlign();
-        // roi_batch_base_idx = config.GetRoiBatchBaseIdx();
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
@@ -313,14 +286,33 @@ protected:
         auto rois_dims    = config.GetRoisDims();
         auto rois_strides = config.ComputeStrides(rois_dims);
 
+        auto N = input_grad_dims[0];
         auto C = input_grad_dims[1];
+        auto H = input_grad_dims[2];
+        auto W = input_grad_dims[3];
         auto K = rois_dims[0];
 
         std::vector<size_t> output_grad_dims = {K, C, output_h, output_w};
         auto output_grad_strides             = config.ComputeStrides(output_grad_dims);
 
-        rois        = tensor<T>{rois_dims}.generate(gen_value);
         output_grad = tensor<T>{output_grad_dims, output_grad_strides}.generate(gen_value);
+
+        rois = tensor<T>{rois_dims, rois_strides};
+
+        for(auto i = 0; i < K; i++)
+        {
+            rois[i * 5] = static_cast<T>(prng::gen_0_to_B<int>(N));
+
+            auto x1 = prng::gen_0_to_B<T>(static_cast<T>(W));
+            auto y1 = prng::gen_0_to_B<T>(static_cast<T>(H));
+            auto x2 = prng::gen_0_to_B<T>(static_cast<T>(W));
+            auto y2 = prng::gen_0_to_B<T>(static_cast<T>(H));
+
+            rois[i * 5 + 1] = x1 < x2 ? x1 : x2;
+            rois[i * 5 + 2] = y1 < y2 ? y1 : y2;
+            rois[i * 5 + 3] = x1 < x2 ? x2 : x1;
+            rois[i * 5 + 4] = y1 < y2 ? y2 : y1;
+        }
 
         input_grad = tensor<T>{input_grad_dims, input_grad_strides};
         std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());

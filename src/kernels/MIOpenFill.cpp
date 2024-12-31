@@ -23,52 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/names.hpp"
-#include <sstream>
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#endif
 
-#include <miopen/roialign/problem_description.hpp>
-// #include <miopen/names.hpp>
-
-namespace miopen {
-
-namespace roialign {
-
-NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
+template <typename TIO>
+__device__ void FillZeroKernel(TIO* output, long size)
 {
-    auto dtype         = inputDesc.GetType();
-    auto input_lengths = inputDesc.GetLengths();
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if(gid >= size)
+        return;
 
-    std::ostringstream oss;
-
-    oss << "RoIAlign_fwd";
-    oss << "dtype" << dtype;
-    oss << "C" << input_lengths[1];
-    oss << "K" << roisDesc.GetLengths()[0];
-    oss << "OH" << alignedHeight;
-    oss << "OW" << alignedWidth;
-
-    return NetworkConfig{oss.str()};
+    output[gid] = static_cast<TIO>(0);
 }
 
-NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
+extern "C" __global__ void FillZero(IO_TYPE* output, long size)
 {
-    auto dtype              = outputGradDesc.GetType();
-    auto input_grad_lengths = inputGradDesc.GetLengths();
-
-    std::ostringstream oss;
-
-    oss << "RoIAlign_bwd";
-    oss << "dtype" << dtype;
-    oss << "input_grad_lengths";
-    for(auto length : input_grad_lengths)
-        oss << length << ',';
-    oss << "K" << roisDesc.GetLengths()[0];
-    oss << "OH" << alignedHeight;
-    oss << "OW" << alignedWidth;
-
-    return NetworkConfig{oss.str()};
+    FillZeroKernel<IO_TYPE>(output, size);
 }
-
-} // namespace roialign
-
-} // namespace miopen

@@ -35,7 +35,7 @@
 
 // #include <miopen/buffer_info.hpp>
 #include <miopen/conv_solution.hpp>
-// #include <miopen/datatype.hpp>
+#include <miopen/datatype.hpp>
 #include <miopen/execution_context.hpp>
 // #include <miopen/invoke_params.hpp>
 #include <miopen/miopen.h>
@@ -83,8 +83,8 @@ RoIAlignForward::GetSolution(const ExecutionContext& context,
 
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype = problem.GetInputDesc().GetType();
-    // auto io_dtype = miopen::GetDataType(dtype);
+    auto dtype    = problem.GetInputDesc().GetType();
+    auto io_dtype = miopen::GetDataType(dtype);
 
     auto input_dims  = problem.GetInputDesc().GetLengths();
     auto rois_dims   = problem.GetRoisDesc().GetLengths();
@@ -112,7 +112,7 @@ RoIAlignForward::GetSolution(const ExecutionContext& context,
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        // {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
+        {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
     };
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
