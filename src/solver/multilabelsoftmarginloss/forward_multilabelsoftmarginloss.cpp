@@ -44,11 +44,22 @@ namespace solver {
 
 namespace multilabelsoftmarginloss {
 
-bool MultilabelSoftMarginLossForward::IsApplicable(
+bool MultilabelSoftMarginLossForward::IsImprovementOverROCm(
     const ExecutionContext& /*context*/,
     const miopen::multilabelsoftmarginloss::ForwardProblemDescription& problem) const
 {
-    if(problem.GetiDesc().GetLengths()[1] > 24)
+    return problem.GetiDesc().GetLengths()[1] <= 24;
+}
+
+bool MultilabelSoftMarginLossForward::IsApplicable(
+    const ExecutionContext& context,
+    const miopen::multilabelsoftmarginloss::ForwardProblemDescription& problem) const
+{
+    if(!(problem.GetiDesc().GetType() == miopenFloat ||
+         problem.GetiDesc().GetType() == miopenHalf ||
+         problem.GetiDesc().GetType() == miopenBFloat16))
+        return false;
+    if(!IsImprovementOverROCm(context, problem))
         return false;
     return true;
 }

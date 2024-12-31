@@ -44,6 +44,9 @@ struct MultilabelSoftMarginLossForward final : ForwardMultilabelSoftMarginLossSo
     {
         return GetSolverDbId<MultilabelSoftMarginLossForward>();
     }
+    bool IsImprovementOverROCm(
+        const ExecutionContext& context,
+        const miopen::multilabelsoftmarginloss::ForwardProblemDescription& problem) const;
     bool IsApplicable(
         const ExecutionContext& context,
         const miopen::multilabelsoftmarginloss::ForwardProblemDescription& problem) const override;
