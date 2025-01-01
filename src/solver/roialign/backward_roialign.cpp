@@ -88,23 +88,14 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
     const auto OH = problem.GetAlignedHeight();
     const auto OW = problem.GetAlignedWidth();
 
+    // Using atomic roialign enhance performance but lower precision accuracy
     const bool is_use_atomic_roialign_kernel = (io_dtype != "bfloat16");
-    // const bool is_use_atomic_roialign_kernel = false;
-    // bool is_use_atomic_roialign_kernel = (io_dtype != "bfloat16")
 
     // Start building result.construction_params
-    // auto build_params = KernelBuildParameters{
-    //     {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-    //     {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-    //     {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-    //     {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-    // };
-
     if(is_use_atomic_roialign_kernel)
     {
         /* Phrase 1: Fill input_grad with zeros */
         {
-            // std::cout << "Caught hereee";
             const size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
             size_t xgridsize        = AlignUp(input_grad_numel, xlocalsize);
             size_t ylocalsize       = 1;
@@ -115,14 +106,6 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
             auto kernel        = KernelInfo{};
             kernel.kernel_file = "MIOpenFill.cpp";
             kernel.kernel_name = "FillZero";
-
-            // auto build_params = KernelBuildParameters{
-            // {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-            // {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-            // {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-            // {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            // {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
-            // };
 
             auto build_params = KernelBuildParameters{
                 {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -156,13 +139,6 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
 
             auto kernel        = KernelInfo{};
             kernel.kernel_file = "MIOpenRoIAlign.cpp";
-            // kernel.kernel_name = "RoIAlignBackwardAtomic";
-            // kernel.kernel_name = "RoIAlignBackward";
-            // NOTE: RoIAlignBackwardAtomic has better performance but lower precision accuracy
-            // kernel.kernel_name = io_dtype == "bfloat16" ? "RoIAlignBackward" :
-            // "RoIAlignBackwardAtomic";
-            // kernel.kernel_name =
-            //     is_use_atomic_roialign_kernel ? "RoIAlignBackwardAtomic" : "RoIAlignBackward";
             kernel.kernel_name = "RoIAlignBackwardAtomic";
 
             auto build_params = KernelBuildParameters{
@@ -187,7 +163,6 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
     }
     else
     {
-        std::cout << "Using RoIAlignBackward\n";
         size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
         size_t xgridsize  = AlignUp(C * H * W, xlocalsize);
         size_t ylocalsize = 1;
@@ -229,9 +204,21 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
             auto output_grad_tv = miopen::get_inner_expanded_tv<4>(deref(params.outputGradDesc));
             auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(deref(params.inputGradDesc));
 
+            HipEventPtr start, stop;
+            bool profiling = handle_.IsProfilingEnabled();
+            if(profiling)
+            {
+                handle_.EnableProfiling(false);
+                hipStreamSynchronize(handle_.GetStream());
+                start = miopen::make_hip_event();
+                stop  = miopen::make_hip_event();
+                hipEventRecord(start.get(), handle_.GetStream());
+            }
+
             /* Phase 1: Fill input grad with zeros */
             if(is_use_atomic_roialign_kernel)
             {
+
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 kernel(params.inputGrad, input_grad_numel, input_grad_tv);
             }
@@ -256,6 +243,21 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
                        rois_tv,
                        input_grad_tv);
             }
+
+            if(profiling)
+            {
+                float elapsed = 0.0f;
+                hipEventRecord(stop.get(), handle_.GetStream());
+                handle_.EnableProfiling(true);
+                hipEventSynchronize(stop.get());
+                hipEventElapsedTime(&elapsed, start.get(), stop.get());
+
+                // Clean up
+                hipEventDestroy(start.get());
+                hipEventDestroy(stop.get());
+                handle_.ResetKernelTime();
+                handle_.AccumKernelTime(elapsed);
+            };
         };
     };
 

@@ -26,12 +26,9 @@
 
 #pragma once
 
-#include "miopen/tensor.hpp"
-#include "tensor_holder.hpp"
-#include "tensor_view.hpp"
-
-#include <algorithm>
 #include <miopen/tensor_view_utils.hpp>
+
+#include "tensor_holder.hpp"
 
 template <class T>
 void cpu_roialign_forward(const tensor<T> input,
@@ -48,10 +45,9 @@ void cpu_roialign_forward(const tensor<T> input,
     auto output_tv = miopen::get_inner_expanded_tv<4>(output.desc);
 
     const auto input_lengths = input.desc.GetLengths();
-    // const auto N             = input_lengths[0];
-    const auto C = input_lengths[1];
-    const auto H = input_lengths[2];
-    const auto W = input_lengths[3];
+    const auto C             = input_lengths[1];
+    const auto H             = input_lengths[2];
+    const auto W             = input_lengths[3];
 
     const auto K = rois.desc.GetLengths()[0];
 
@@ -60,19 +56,8 @@ void cpu_roialign_forward(const tensor<T> input,
 
     for(int k = 0; k < K; ++k)
     {
-        // tensor_layout_t<4> layout(rois_tv, slice_id);
-        // const int roi_batch_idx = roi_cols == 4 ? 0 :
-        // static_cast<int>(rois[static_cast<ptrdiff_t>(k * roi_cols)]);
         int roi_batch_idx = roi_cols == 4 ? 0 : rois[rois_tv.get_tensor_view_idx({k, 0})];
-        // roi_batch_idx -= roi_batch_base_idx;
-        // const Tgpu* X_ptr = input + roi_batch_idx * C * H * W;
-        // const T* R_ptr = rois + k * roi_cols + (roi_cols == 5);
-        // Tcheck* Y_ptr = output + k * C * output_h * output_w;
 
-        // const float roi_w1 = R_ptr[0] * spatial_scale - roi_offset;
-        // const float roi_h1 = R_ptr[1] * spatial_scale - roi_offset;
-        // const float roi_w2 = R_ptr[2] * spatial_scale - roi_offset;
-        // const float roi_h2 = R_ptr[3] * spatial_scale - roi_offset;
         const float roi_w1 =
             static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 1})]) * spatial_scale -
             roi_offset;
@@ -143,17 +128,12 @@ void cpu_roialign_forward(const tensor<T> input,
                             const float px = x - static_cast<float>(xl);
                             const float qy = 1.f - py;
                             const float qx = 1.f - px;
-                            // int p1         = yl * W + xl;
-                            // int p2         = yl * W + xh;
-                            // int p3         = yh * W + xl;
-                            // int p4         = yh * W + xh;
+
                             float w1 = qy * qx;
                             float w2 = qy * px;
                             float w3 = py * qx;
                             float w4 = py * px;
 
-                            // sum += w1 * X_ptr[p1] + w2 * X_ptr[p2] + w3 * X_ptr[p3] +
-                            //        w4 * X_ptr[p4];
                             sum += w1 * static_cast<float>(input[input_tv.get_tensor_view_idx(
                                             {roi_batch_idx, c, yl, xl})]) +
                                    w2 * static_cast<float>(input[input_tv.get_tensor_view_idx(
@@ -164,14 +144,10 @@ void cpu_roialign_forward(const tensor<T> input,
                                             {roi_batch_idx, c, yh, xh})]);
                         }
                     }
-                    // Y_ptr[ph * output_w + pw] = sum * scale;
-                    // Y_ptr[ph * output_w + pw] = static_cast<Tcheck>(sum * scale);
                     output[output_tv.get_tensor_view_idx({k, c, ph, pw})] =
                         static_cast<T>(sum * scale);
                 }
             }
-            // X_ptr += H * W;
-            // Y_ptr += output_h * output_w;
         }
     }
 }
@@ -187,9 +163,6 @@ void cpu_roialign_backward(const tensor<T> output_grad,
                            const bool aligned)
 {
     std::fill(input_grad.data.begin(), input_grad.data.end(), static_cast<T>(0));
-    // std::vector<float> float_input_grad(input_grad.data.size(), 0.0f);
-    // miopen::TensorDescriptor float_input_grad(input_grad.desc);
-    // tensor<float> float_input_grad(input_grad.desc);
 
     // Calculate input_grad on float and then convert to T
     // to preserve precision
@@ -215,14 +188,8 @@ void cpu_roialign_backward(const tensor<T> output_grad,
         uint64_t oh = (i / OW) % OH;
         uint64_t c  = (i / (OW * OH)) % C;
         uint64_t k  = (i / (C * OW * OH));
-        // if(k >= K)
-        // {
-        //     std::cout << "Need this condition 1st\n";
-        //     return;
-        // }
 
         // Check k-th roi box belongs to n-th image inside mini-batch
-        // long n = GET_2D_VAL_AT(rois, k, 0);
         int64_t n = rois[rois_tv.get_tensor_view_idx({k, 0})];
 
         // NOTE: should've checked this condition somewhere else
@@ -263,8 +230,6 @@ void cpu_roialign_backward(const tensor<T> output_grad,
 
         int64_t x_low, x_high, y_low, y_high;
 
-        // float ograd =
-        //     CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx({k, c, oh, ow})]);
         float ograd =
             static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx({k, c, oh, ow})]);
 
@@ -292,10 +257,8 @@ void cpu_roialign_backward(const tensor<T> output_grad,
                 x_low = (int64_t)x;
                 if(x_low >= W - 1)
                 {
-                    // x_high = x_low = W - 1;
-                    x_high = W - 1;
-                    x_low  = W - 1;
-                    x      = (float)x_low;
+                    x_high = x_low = W - 1;
+                    x              = (float)x_low;
                 }
                 else
                 {
@@ -331,14 +294,7 @@ void cpu_roialign_backward(const tensor<T> output_grad,
         }
     }
 
-    // std::cout << "input_grad.is_contiguous: " << input_grad.desc.IsContiguous() << ",
-    // input_grad.data.size(): " << input_grad.data.size() << std::endl;
-
     // Assign float_input_grad to input_grad
-    // for(auto i = 0; i < input_grad.data.size(); i++)
-    // {
-    //     input_grad[i] = static_cast<T>(float_input_grad[i]);
-    // }
     for(auto n = 0; n < N; n++)
     {
         for(auto c = 0; c < C; c++)
