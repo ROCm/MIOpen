@@ -199,10 +199,10 @@ int32_t mloRoIAlignBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc
                                    const Tgpu* output_grad,
                                    const Tgpu* rois,
                                    Tcheck* input_grad,
-                                   const int32_t OH,
-                                   const int32_t OW,
+                                   const uint64_t OH,
+                                   const uint64_t OW,
                                    const float spatial_scale,
-                                   const int32_t sampling_ratio,
+                                   const int64_t sampling_ratio,
                                    const bool aligned)
 {
     // auto output_grad_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));

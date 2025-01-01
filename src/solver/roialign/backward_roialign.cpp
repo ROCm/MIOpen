@@ -88,6 +88,10 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
     const auto OH = problem.GetAlignedHeight();
     const auto OW = problem.GetAlignedWidth();
 
+    const bool is_use_atomic_roialign_kernel = (io_dtype != "bfloat16");
+    // const bool is_use_atomic_roialign_kernel = false;
+    // bool is_use_atomic_roialign_kernel = (io_dtype != "bfloat16")
+
     // Start building result.construction_params
     // auto build_params = KernelBuildParameters{
     //     {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -96,67 +100,111 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
     //     {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
     // };
 
-    auto build_params = KernelBuildParameters{
-        {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-        {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-        {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-        {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
-    };
-
-    /* Phrase 1: Fill input_grad with zeros */
+    if(is_use_atomic_roialign_kernel)
     {
-        const size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
-        size_t xgridsize        = AlignUp(input_grad_numel, xlocalsize);
-        size_t ylocalsize       = 1;
-        size_t ygridsize        = 1;
-        size_t zlocalsize       = 1;
-        size_t zgridsize        = 1;
+        /* Phrase 1: Fill input_grad with zeros */
+        {
+            // std::cout << "Caught hereee";
+            const size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
+            size_t xgridsize        = AlignUp(input_grad_numel, xlocalsize);
+            size_t ylocalsize       = 1;
+            size_t ygridsize        = 1;
+            size_t zlocalsize       = 1;
+            size_t zgridsize        = 1;
 
-        auto kernel        = KernelInfo{};
-        kernel.kernel_file = "MIOpenFill.cpp";
-        kernel.kernel_name = "FillZero";
+            auto kernel        = KernelInfo{};
+            kernel.kernel_file = "MIOpenFill.cpp";
+            kernel.kernel_name = "FillZero";
 
-        // auto build_params = KernelBuildParameters{
-        // {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-        // {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-        // {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-        // {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        // {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
-        // };
+            // auto build_params = KernelBuildParameters{
+            // {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+            // {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+            // {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+            // {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+            // {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
+            // };
 
-        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+            auto build_params = KernelBuildParameters{
+                {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
+                {"VIEW_DIMS", 4}};
 
-        kernel.l_wk.push_back(xlocalsize);
-        kernel.l_wk.push_back(ylocalsize);
-        kernel.l_wk.push_back(zlocalsize);
+            kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
-        kernel.g_wk.push_back(xgridsize);
-        kernel.g_wk.push_back(ygridsize);
-        kernel.g_wk.push_back(zgridsize);
+            kernel.l_wk.push_back(xlocalsize);
+            kernel.l_wk.push_back(ylocalsize);
+            kernel.l_wk.push_back(zlocalsize);
 
-        result.construction_params.push_back(kernel);
+            kernel.g_wk.push_back(xgridsize);
+            kernel.g_wk.push_back(ygridsize);
+            kernel.g_wk.push_back(zgridsize);
+
+            result.construction_params.push_back(kernel);
+        }
+
+        /* Phrase 2: Run RoIAlign Backward Atomic */
+        {
+            size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
+            size_t xgridsize  = AlignUp(K * C * OH * OW, xlocalsize);
+            size_t ylocalsize = 1;
+            size_t ygridsize  = 1;
+            size_t zlocalsize = 1;
+            size_t zgridsize  = 1;
+
+            auto kernel        = KernelInfo{};
+            kernel.kernel_file = "MIOpenRoIAlign.cpp";
+            // kernel.kernel_name = "RoIAlignBackwardAtomic";
+            // kernel.kernel_name = "RoIAlignBackward";
+            // NOTE: RoIAlignBackwardAtomic has better performance but lower precision accuracy
+            // kernel.kernel_name = io_dtype == "bfloat16" ? "RoIAlignBackward" :
+            // "RoIAlignBackwardAtomic";
+            // kernel.kernel_name =
+            //     is_use_atomic_roialign_kernel ? "RoIAlignBackwardAtomic" : "RoIAlignBackward";
+            kernel.kernel_name = "RoIAlignBackwardAtomic";
+
+            auto build_params = KernelBuildParameters{
+                {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
+
+            kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+
+            kernel.l_wk.push_back(xlocalsize);
+            kernel.l_wk.push_back(ylocalsize);
+            kernel.l_wk.push_back(zlocalsize);
+
+            kernel.g_wk.push_back(xgridsize);
+            kernel.g_wk.push_back(ygridsize);
+            kernel.g_wk.push_back(zgridsize);
+
+            result.construction_params.push_back(kernel);
+        }
     }
-
-    /* Phrase 2: Run RoIAlign Backward Atomic */
+    else
     {
-        const size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
-        size_t xgridsize        = AlignUp(K * C * OH * OW, xlocalsize);
-        size_t ylocalsize       = 1;
-        size_t ygridsize        = 1;
-        size_t zlocalsize       = 1;
-        size_t zgridsize        = 1;
+        std::cout << "Using RoIAlignBackward\n";
+        size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
+        size_t xgridsize  = AlignUp(C * H * W, xlocalsize);
+        size_t ylocalsize = 1;
+        size_t ygridsize  = N;
+        size_t zlocalsize = 1;
+        size_t zgridsize  = 1;
 
         auto kernel        = KernelInfo{};
         kernel.kernel_file = "MIOpenRoIAlign.cpp";
-        kernel.kernel_name = "RoIAlignBackwardAtomic";
+        kernel.kernel_name = "RoIAlignBackward";
 
-        // auto build_params = KernelBuildParameters{
-        //     {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-        //     {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-        //     {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-        //     {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        // };
+        auto build_params =
+            KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                                  {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                                  {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                                  {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                                  {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -176,56 +224,21 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::roialign::BwdInvokeParams>();
-            // decltype(auto) kernel = handle_.Run(kernels[0]);
 
-            // auto rois_tv        = get_inner_expanded_tv<2>(*params.roisDesc);
-            // auto output_grad_tv = get_inner_expanded_tv<4>(*params.outputGradDesc);
-            // auto input_grad_tv  = get_inner_expanded_tv<4>(*params.inputGradDesc);
             auto rois_tv        = miopen::get_inner_expanded_tv<2>(deref(params.roisDesc));
             auto output_grad_tv = miopen::get_inner_expanded_tv<4>(deref(params.outputGradDesc));
             auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(deref(params.inputGradDesc));
 
-            // float elapsed = 0.0f;
-            // HipEventPtr start;
-            // HipEventPtr stop;
-
-            // bool reset_profiling_state = false;
-            // if(handle_.IsProfilingEnabled())
-            // {
-            //     reset_profiling_state = true;
-            //     handle_.EnableProfiling(false);
-            //     start = miopen::make_hip_event();
-            //     stop  = miopen::make_hip_event();
-            //     hipEventRecord(start.get(), handle_.GetStream());
-            // }
-
-            // std::cout << "[backward_roialign] OH: " << OH << std::endl;
-            // std::cout << "[backward_roialign] OW: " << OW << std::endl;
-            // std::cout << "[backward_roialign] spatial_scale: " << params.spatialScale <<
-            // std::endl; std::cout << "[backward_roialign] sampling_ratio: " <<
-            // params.samplingRatio << std::endl; std::cout << "[backward_roialign] aligned: " <<
-            // params.aligned << std::endl;
-
-            HipEventPtr start, stop;
-            bool profiling = handle_.IsProfilingEnabled();
-            if(profiling)
-            {
-                handle_.EnableProfiling(false);
-                hipStreamSynchronize(handle_.GetStream());
-                start = miopen::make_hip_event();
-                stop  = miopen::make_hip_event();
-                hipEventRecord(start.get(), handle_.GetStream());
-            }
-
             /* Phase 1: Fill input grad with zeros */
+            if(is_use_atomic_roialign_kernel)
             {
                 decltype(auto) kernel = handle_.Run(kernels.front());
-                kernel(params.inputGrad, input_grad_numel);
+                kernel(params.inputGrad, input_grad_numel, input_grad_tv);
             }
 
-            /* Phase 2: Run RoIAlign Backward Atomic */
+            /* Phase 2: Run RoIAlign Backward */
             {
-                decltype(auto) kernel = handle_.Run(kernels[1]);
+                decltype(auto) kernel = handle_.Run(kernels.back());
                 kernel(params.outputGrad,
                        params.rois,
                        params.inputGrad,
@@ -243,55 +256,6 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
                        rois_tv,
                        input_grad_tv);
             }
-
-            if(profiling)
-            {
-                float elapsed = 0.0f;
-                hipEventRecord(stop.get(), handle_.GetStream());
-                handle_.EnableProfiling(true);
-                hipEventSynchronize(stop.get());
-                hipEventElapsedTime(&elapsed, start.get(), stop.get());
-
-                // Clean up
-                hipEventDestroy(start.get());
-                hipEventDestroy(stop.get());
-                handle_.ResetKernelTime();
-                handle_.AccumKernelTime(elapsed);
-            };
-
-            // if(reset_profiling_state)
-            // {
-            //     handle_.EnableProfiling(true);
-            // }
-            // if(handle_.IsProfilingEnabled())
-            // {
-            //     hipEventRecord(stop.get(), handle_.GetStream());
-            //     hipEventSynchronize(stop.get());
-            //     hipEventElapsedTime(&elapsed, start.get(), stop.get());
-
-            //     // Clean up
-            //     hipEventDestroy(start.get());
-            //     hipEventDestroy(stop.get());
-            //     handle_.ResetKernelTime();
-            //     handle_.AccumKernelTime(elapsed);
-            // }
-
-            // kernel(params.outputGrad,
-            //        params.rois,
-            //        params.inputGrad,
-            //        N,
-            //        C,
-            //        H,
-            //        W,
-            //        K,
-            //        OH,
-            //        OW,
-            //        params.spatialScale,
-            //        params.samplingRatio,
-            //        params.aligned,
-            //        output_grad_tv,
-            //        rois_tv,
-            //        input_grad_tv);
         };
     };
 

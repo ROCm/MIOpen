@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include "miopen/tensor.hpp"
 #include "tensor_holder.hpp"
 #include "tensor_view.hpp"
 
@@ -62,8 +63,7 @@ void cpu_roialign_forward(const tensor<T> input,
         // tensor_layout_t<4> layout(rois_tv, slice_id);
         // const int roi_batch_idx = roi_cols == 4 ? 0 :
         // static_cast<int>(rois[static_cast<ptrdiff_t>(k * roi_cols)]);
-        int roi_batch_idx =
-            roi_cols == 4 ? 0 : static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+        int roi_batch_idx = roi_cols == 4 ? 0 : rois[rois_tv.get_tensor_view_idx({k, 0})];
         // roi_batch_idx -= roi_batch_base_idx;
         // const Tgpu* X_ptr = input + roi_batch_idx * C * H * W;
         // const T* R_ptr = rois + k * roi_cols + (roi_cols == 5);
@@ -88,8 +88,7 @@ void cpu_roialign_forward(const tensor<T> input,
         float roi_w = roi_w2 - roi_w1;
         float roi_h = roi_h2 - roi_h1;
 
-        if(aligned) {}
-        else
+        if(!aligned)
         {
             roi_w = std::max(roi_w, 1.0f);
             roi_h = std::max(roi_h, 1.0f);
@@ -181,13 +180,20 @@ template <class T>
 void cpu_roialign_backward(const tensor<T> output_grad,
                            const tensor<T> rois,
                            tensor<T>& input_grad,
-                           const int OH,
-                           const int OW,
-                           const float spatial_scale,
-                           const int sampling_ratio,
+                           const int64_t OH,
+                           const int64_t OW,
+                           const double spatial_scale,
+                           const int64_t sampling_ratio,
                            const bool aligned)
 {
-    std::fill(input_grad.data.begin(), input_grad.data.end(), 0);
+    std::fill(input_grad.data.begin(), input_grad.data.end(), static_cast<T>(0));
+    // std::vector<float> float_input_grad(input_grad.data.size(), 0.0f);
+    // miopen::TensorDescriptor float_input_grad(input_grad.desc);
+    // tensor<float> float_input_grad(input_grad.desc);
+
+    // Calculate input_grad on float and then convert to T
+    // to preserve precision
+    tensor<float> float_input_grad(input_grad.desc.GetLengths(), input_grad.desc.GetStrides());
 
     auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(input_grad.desc);
     auto rois_tv        = miopen::get_inner_expanded_tv<2>(rois.desc);
@@ -205,10 +211,10 @@ void cpu_roialign_backward(const tensor<T> output_grad,
 
     for(auto i = 0; i < output_grad_numel; i++)
     {
-        long ow = i % OW;
-        long oh = (i / OW) % OH;
-        long c  = (i / (OW * OH)) % C;
-        long k  = (i / (C * OW * OH));
+        uint64_t ow = i % OW;
+        uint64_t oh = (i / OW) % OH;
+        uint64_t c  = (i / (OW * OH)) % C;
+        uint64_t k  = (i / (C * OW * OH));
         // if(k >= K)
         // {
         //     std::cout << "Need this condition 1st\n";
@@ -217,7 +223,7 @@ void cpu_roialign_backward(const tensor<T> output_grad,
 
         // Check k-th roi box belongs to n-th image inside mini-batch
         // long n = GET_2D_VAL_AT(rois, k, 0);
-        long n = rois[rois_tv.get_tensor_view_idx({k, 0})];
+        int64_t n = rois[rois_tv.get_tensor_view_idx({k, 0})];
 
         // NOTE: should've checked this condition somewhere else
         if(n < 0 || n >= N)
@@ -240,10 +246,8 @@ void cpu_roialign_backward(const tensor<T> output_grad,
         if(!aligned)
         {
             // Force ROI to be at least 1x1
-            // heehoon: I don't know why PyTorch do this; it seems unnecessary. I'll
-            // just follow their behavior.
-            roi_h = std::fmax(roi_h, (float)1);
-            roi_w = std::fmax(roi_w, (float)1);
+            roi_h = std::fmax(roi_h, 1.0);
+            roi_w = std::fmax(roi_w, 1.0);
         }
 
         // bin is OH * OW cells inside ROI
@@ -252,24 +256,24 @@ void cpu_roialign_backward(const tensor<T> output_grad,
 
         // grid is sampling_ratio_h * sampling_ratio_w cells inside bin
         // Each center of grid is sampled and avgpooled into bin
-        long sampling_ratio_h = sampling_ratio > 0 ? sampling_ratio : std::ceil(roi_h / OH);
-        long sampling_ratio_w = sampling_ratio > 0 ? sampling_ratio : std::ceil(roi_w / OW);
+        uint64_t sampling_ratio_h = sampling_ratio > 0 ? sampling_ratio : std::ceil(roi_h / OH);
+        uint64_t sampling_ratio_w = sampling_ratio > 0 ? sampling_ratio : std::ceil(roi_w / OW);
 
-        long count = sampling_ratio_h * sampling_ratio_w;
+        const uint64_t count = sampling_ratio_h * sampling_ratio_w;
 
-        long x_low, x_high, y_low, y_high;
+        int64_t x_low, x_high, y_low, y_high;
 
         // float ograd =
         //     CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx({k, c, oh, ow})]);
         float ograd =
             static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx({k, c, oh, ow})]);
 
-        for(long r = 0; r < sampling_ratio_h; r++)
+        for(auto r = 0; r < sampling_ratio_h; r++)
         {
             float y = y1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5f);
             if(y < 0 || y > H)
                 continue;
-            y_low = (long)y;
+            y_low = (int64_t)y;
             if(y_low >= H - 1)
             {
                 y_high = y_low = H - 1;
@@ -279,17 +283,19 @@ void cpu_roialign_backward(const tensor<T> output_grad,
             {
                 y_high = y_low + 1;
             }
-            for(long s = 0; s < sampling_ratio_w; ++s)
+            for(auto s = 0; s < sampling_ratio_w; ++s)
             {
                 float x = x1 + bin_w * ow + bin_w / sampling_ratio_w * (s + 0.5f);
                 if(x < 0 || x > W)
                     continue;
 
-                x_low = (long)x;
+                x_low = (int64_t)x;
                 if(x_low >= W - 1)
                 {
-                    x_high = x_low = W - 1;
-                    x              = (float)x_low;
+                    // x_high = x_low = W - 1;
+                    x_high = W - 1;
+                    x_low  = W - 1;
+                    x      = (float)x_low;
                 }
                 else
                 {
@@ -313,34 +319,36 @@ void cpu_roialign_backward(const tensor<T> output_grad,
 
                 if(x_low >= 0 && x_high >= 0 && y_low >= 0 && y_high >= 0)
                 {
-                    // Use float for calculation to preserve precision
-                    float input_grad_val_0 =
-                        static_cast<float>(
-                            input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_low, x_low})]) +
-                        g1;
-                    input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_low, x_low})] =
-                        static_cast<T>(input_grad_val_0);
-
-                    float input_grad_val_1 =
-                        static_cast<float>(
-                            input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_low, x_high})]) +
+                    float_input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_low, x_low})] += g1;
+                    float_input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_low, x_high})] +=
                         g2;
-                    input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_low, x_high})] =
-                        static_cast<T>(input_grad_val_1);
-
-                    float input_grad_val_2 =
-                        static_cast<float>(
-                            input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_high, x_low})]) +
+                    float_input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_high, x_low})] +=
                         g3;
-                    input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_high, x_low})] =
-                        static_cast<T>(input_grad_val_2);
-
-                    float input_grad_val_3 =
-                        static_cast<float>(
-                            input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_high, x_high})]) +
+                    float_input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_high, x_high})] +=
                         g4;
-                    input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_high, x_high})] =
-                        static_cast<T>(input_grad_val_3);
+                }
+            }
+        }
+    }
+
+    // std::cout << "input_grad.is_contiguous: " << input_grad.desc.IsContiguous() << ",
+    // input_grad.data.size(): " << input_grad.data.size() << std::endl;
+
+    // Assign float_input_grad to input_grad
+    // for(auto i = 0; i < input_grad.data.size(); i++)
+    // {
+    //     input_grad[i] = static_cast<T>(float_input_grad[i]);
+    // }
+    for(auto n = 0; n < N; n++)
+    {
+        for(auto c = 0; c < C; c++)
+        {
+            for(auto h = 0; h < H; h++)
+            {
+                for(auto w = 0; w < W; w++)
+                {
+                    input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = static_cast<T>(
+                        float_input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})]);
                 }
             }
         }

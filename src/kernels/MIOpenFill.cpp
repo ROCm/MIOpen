@@ -23,13 +23,16 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #endif
 
+#include "tensor_view.hpp"
+
 template <typename TIO>
-__device__ void FillZeroKernel(TIO* output, long size)
+__device__ void fill_zero_contiguous(TIO* output, long size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= size)
@@ -38,7 +41,25 @@ __device__ void FillZeroKernel(TIO* output, long size)
     output[gid] = static_cast<TIO>(0);
 }
 
-extern "C" __global__ void FillZero(IO_TYPE* output, long size)
+extern "C" __global__ void FillZeroContiguous(IO_TYPE* output, long size)
 {
-    FillZeroKernel<IO_TYPE>(output, size);
+    fill_zero_contiguous<IO_TYPE>(output, size);
+}
+
+template <typename TIO, uint32_t NDIMS>
+__device__ void fill_zero(TIO* output, const long size, tensor_view_t<NDIMS> output_tv)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if(gid >= size)
+        return;
+
+    auto output_layout                                   = tensor_layout_t<NDIMS>(output_tv, gid);
+    output[output_tv.get_tensor_view_idx(output_layout)] = static_cast<TIO>(0);
+}
+
+extern "C" __global__ void
+FillZero(IO_TYPE* output, const long size, tensor_view_t<VIEW_DIMS> output_tv)
+{
+    fill_zero<IO_TYPE, VIEW_DIMS>(output, size, output_tv);
 }

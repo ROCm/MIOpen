@@ -155,8 +155,8 @@ struct BwdProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetRoisDesc() const { return roisDesc; }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
 
-    int32_t GetAlignedHeight() const { return alignedHeight; }
-    int32_t GetAlignedWidth() const { return alignedWidth; }
+    uint64_t GetAlignedHeight() const { return alignedHeight; }
+    uint64_t GetAlignedWidth() const { return alignedWidth; }
 
     bool IsRightDim() const
     {
@@ -224,8 +224,8 @@ private:
     const TensorDescriptor& roisDesc;
     const TensorDescriptor& inputGradDesc;
 
-    const int32_t alignedHeight;
-    const int32_t alignedWidth;
+    const uint64_t alignedHeight;
+    const uint64_t alignedWidth;
 };
 
 } // namespace roialign

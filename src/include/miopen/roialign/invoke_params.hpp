@@ -69,11 +69,11 @@ struct BwdInvokeParams : public miopen::InvokeParams
     ConstData_t rois       = nullptr;
     Data_t inputGrad       = nullptr;
 
-    int32_t alignedHeight = 0;
-    int32_t alignedWidth  = 0;
+    uint64_t alignedHeight = 0;
+    uint64_t alignedWidth  = 0;
 
-    float spatialScale    = 0.0f;
-    int32_t samplingRatio = 0;
+    float spatialScale    = 0;
+    int64_t samplingRatio = 0;
 
     bool aligned = false;
 

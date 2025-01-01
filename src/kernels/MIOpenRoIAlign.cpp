@@ -269,19 +269,212 @@ extern "C" __global__ void RoIAlignForward(const IO_TYPE* __restrict__ input,
 
 // RoIAlign Backward
 template <typename DTYPE>
+__device__ void roialign_backward(const DTYPE* output_grad,
+                                  const DTYPE* rois,
+                                  DTYPE* input_grad,
+                                  const uint64_t N,
+                                  const uint64_t C,
+                                  const uint64_t H,
+                                  const uint64_t W,
+                                  const uint64_t K,
+                                  const uint64_t OH,
+                                  const uint64_t OW,
+                                  const float spatial_scale,
+                                  const int64_t sampling_ratio,
+                                  const bool aligned,
+                                  tensor_view_t<4> output_grad_tv,
+                                  tensor_view_t<2> rois_tv,
+                                  tensor_view_t<4> input_grad_tv)
+{
+    /*
+     * output_grad : input, (K, C, OH, OW)
+     * rois : input, (K, 5)
+     * input_grad : output, (N, C, H, W)
+     * gws = {ceil(C * H * W, LOCAL_SIZE), N}
+     * lws = {LOCAL_SIZE, 1}
+     */
+    // long chw = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x,
+    //      n   = hipBlockIdx_y * hipBlockDim_y + hipThreadIdx_y;
+
+    uint64_t chw = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t n   = blockIdx.y * blockDim.y + threadIdx.y;
+
+    // if(n >= N)
+    //     return;
+
+    uint64_t ch = chw / W, w = chw % W;
+    uint64_t c = ch / H, h = ch % H;
+    // if(c >= C)
+    //     return;
+    if(n >= N || c >= C || h >= H || w >= W)
+        return;
+
+    // ATOMIC FREE!
+    FLOAT_ACCUM p_input_grad = 0;
+    for(auto k = 0; k < K; ++k)
+    {
+        // Check k-th roi box belongs to n-th image inside mini-batch
+        // if(GET_2D_VAL_AT(rois, k, 0) != n)
+        if(CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 0})]) != n)
+            continue;
+        // roi box
+        FLOAT_ACCUM offset = aligned ? 0.5f : 0;
+        // DTYPE y1     = GET_2D_VAL_AT(rois, k, 1) * spatial_scale - offset;
+        // DTYPE x1     = GET_2D_VAL_AT(rois, k, 2) * spatial_scale - offset;
+        // DTYPE y2     = GET_2D_VAL_AT(rois, k, 3) * spatial_scale - offset;
+        // DTYPE x2     = GET_2D_VAL_AT(rois, k, 4) * spatial_scale - offset;
+
+        // FLOAT_ACCUM y1 =
+        //     CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 1})]) * spatial_scale - offset;
+        // FLOAT_ACCUM x1 =
+        //     CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 2})]) * spatial_scale - offset;
+        // FLOAT_ACCUM y2 =
+        //     CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 3})]) * spatial_scale - offset;
+        // FLOAT_ACCUM x2 =
+        //     CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 4})]) * spatial_scale - offset;
+
+        FLOAT_ACCUM x1 =
+            CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 1})]) * spatial_scale - offset;
+        FLOAT_ACCUM y1 =
+            CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 2})]) * spatial_scale - offset;
+        FLOAT_ACCUM x2 =
+            CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 3})]) * spatial_scale - offset;
+        FLOAT_ACCUM y2 =
+            CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 4})]) * spatial_scale - offset;
+
+        // FLOAT_ACCUM roi_h = x2 - x1;
+        // FLOAT_ACCUM roi_w = y2 - y1;
+        FLOAT_ACCUM roi_h = y2 - y1;
+        FLOAT_ACCUM roi_w = x2 - x1;
+        // printf("roi_h: %f, roi_w: %f\n", roi_h, roi_w);
+        if(!aligned)
+        {
+            // Force ROI to be at least 1x1
+            roi_h = fmax(roi_h, (FLOAT_ACCUM)1);
+            roi_w = fmax(roi_w, (FLOAT_ACCUM)1);
+        }
+
+        // bin is OH * OW cells inside ROI
+        FLOAT_ACCUM bin_h = roi_h / OH;
+        FLOAT_ACCUM bin_w = roi_w / OW;
+
+        // grid is sampling_ratio_h * sampling_ratio_w cells inside bin
+        // Each center of grid is sampled and avgpooled into bin
+        int64_t sampling_ratio_h = sampling_ratio > 0 ? sampling_ratio : ceil(roi_h / OH);
+        int64_t sampling_ratio_w = sampling_ratio > 0 ? sampling_ratio : ceil(roi_w / OW);
+
+        // printf("roi_h: %f, roi_w: %f, sampling_ratio_h: %ld, sampling_ratio_w: %ld\n",
+        //        roi_h,
+        //        roi_w,
+        //        sampling_ratio_h,
+        //        sampling_ratio_w);
+
+        for(long oh = 0; oh < OH; ++oh)
+        {
+            for(long ow = 0; ow < OW; ++ow)
+            {
+                FLOAT_ACCUM weight = 0;
+                for(long r = 0; r < sampling_ratio_h; ++r)
+                {
+                    // FLOAT_ACCUM sx = x1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5f);
+                    // sx             = fmin(fmax(sx, (FLOAT_ACCUM)0), (FLOAT_ACCUM)(H - 1));
+                    FLOAT_ACCUM sy = y1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5f);
+                    if(sy < 0 || sy > H)
+                        continue;
+
+                    if(sy > H - 1)
+                    {
+                        sy = (FLOAT_ACCUM)(H - 1);
+                    }
+                    // sy = (FLOAT_ACCUM)
+                    // sy             = fmin(fmax(sy, (FLOAT_ACCUM)0), (FLOAT_ACCUM)(H - 1));
+
+                    for(long s = 0; s < sampling_ratio_w; ++s)
+                    {
+                        // FLOAT_ACCUM sy = y1 + bin_w * ow + bin_w / sampling_ratio_w * (s + 0.5f);
+                        // sy             = fmin(fmax(sy, (FLOAT_ACCUM)0), (FLOAT_ACCUM)(W - 1));
+                        FLOAT_ACCUM sx = x1 + bin_w * ow + bin_w / sampling_ratio_w * (s + 0.5f);
+                        if(sx < 0 || sx > W)
+                            continue;
+                        if(sx > W - 1)
+                        {
+                            sx = (FLOAT_ACCUM)(W - 1);
+                        }
+                        // sx             = fmin(fmax(sx, (FLOAT_ACCUM)0), (FLOAT_ACCUM)(W - 1));
+
+                        weight += fmax((FLOAT_ACCUM)(1 - fabs(sy - h)), (FLOAT_ACCUM)0) *
+                                  fmax((FLOAT_ACCUM)(1 - fabs(sx - w)), (FLOAT_ACCUM)0);
+                        // weight += fmax((FLOAT_ACCUM)(1 - fabs(sx - h)), (FLOAT_ACCUM)0) *
+                        //           fmax((FLOAT_ACCUM)(1 - fabs(sy - w)), (FLOAT_ACCUM)0);
+                    }
+                }
+                if(weight != 0)
+                {
+                    // p_input_grad += GET_4D_VAL_AT(output_grad, k, c, oh, ow) * weight /
+                    //                 (sampling_ratio_h * sampling_ratio_w);
+                    p_input_grad +=
+                        CVT_FLOAT2ACCUM(
+                            output_grad[output_grad_tv.get_tensor_view_idx({k, c, oh, ow})]) *
+                        weight / (sampling_ratio_h * sampling_ratio_w);
+                }
+            }
+        }
+    }
+
+    // SET_4D_VAL_AT(input_grad, n, c, h, w, p_input_grad);
+    // input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = CVT_ACCUM2FLOAT(p_input_grad);
+    input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = CVT_ACCUM2FLOAT(p_input_grad);
+}
+
+extern "C" __global__ void RoIAlignBackward(const IO_TYPE* output_grad,
+                                            const IO_TYPE* rois,
+                                            IO_TYPE* input_grad,
+                                            const uint64_t N,
+                                            const uint64_t C,
+                                            const uint64_t H,
+                                            const uint64_t W,
+                                            const uint64_t K,
+                                            const uint64_t OH,
+                                            const uint64_t OW,
+                                            const float spatial_scale,
+                                            const int64_t sampling_ratio,
+                                            const bool aligned,
+                                            tensor_view_t<4> output_grad_tv,
+                                            tensor_view_t<2> rois_tv,
+                                            tensor_view_t<4> input_grad_tv)
+{
+    roialign_backward<IO_TYPE>(output_grad,
+                               rois,
+                               input_grad,
+                               N,
+                               C,
+                               H,
+                               W,
+                               K,
+                               OH,
+                               OW,
+                               spatial_scale,
+                               sampling_ratio,
+                               aligned,
+                               output_grad_tv,
+                               rois_tv,
+                               input_grad_tv);
+}
+
+template <typename DTYPE>
 __device__ void roialign_backward_atomic(const DTYPE* output_grad,
                                          const DTYPE* rois,
                                          DTYPE* input_grad,
-                                         long N,
-                                         long C,
-                                         long H,
-                                         long W,
-                                         long K,
-                                         int OH,
-                                         int OW,
-                                         float spatial_scale,
-                                         int sampling_ratio,
-                                         char aligned,
+                                         const uint64_t N,
+                                         const uint64_t C,
+                                         const uint64_t H,
+                                         const uint64_t W,
+                                         const uint64_t K,
+                                         const uint64_t OH,
+                                         const uint64_t OW,
+                                         const float spatial_scale,
+                                         const int64_t sampling_ratio,
+                                         const bool aligned,
                                          tensor_view_t<4> output_grad_tv,
                                          tensor_view_t<2> rois_tv,
                                          tensor_view_t<4> input_grad_tv)
@@ -295,26 +488,28 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
      */
     // long kchw = hipBlockIdx_x * hipBlockDim_x + hipThreadIdx_x;
 
-    long kchw = blockIdx.x * blockDim.x + threadIdx.x;
+    int64_t kchw = blockIdx.x * blockDim.x + threadIdx.x;
 
-    long ow = kchw % OW;
-    long oh = (kchw / OW) % OH;
-    long c  = (kchw / (OW * OH)) % C;
-    long k  = (kchw / (C * OW * OH));
+    uint64_t ow = kchw % OW;
+    uint64_t oh = (kchw / OW) % OH;
+    uint64_t c  = (kchw / (OW * OH)) % C;
+    uint64_t k  = (kchw / (C * OW * OH));
     if(k >= K)
         return;
 
     // Check k-th roi box belongs to n-th image inside mini-batch
     // long n = GET_2D_VAL_AT(rois, k, 0);
-    long n = rois[rois_tv.get_tensor_view_idx({k, 0})];
+    int64_t n = CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+    // printf("kchw: %ld, n: %ld\n", kchw, n);
 
     if(n < 0 || n >= N)
-    {
         return;
-    }
 
     // roi box
     FLOAT_ACCUM offset = aligned ? 0.5f : 0;
+    // spatial_scale = CVT_FLOAT2ACCUM(spatial_scale);
+    // spatial_scale = static_cast<FLOAT_ACCUM>(spatial_scale);
+    // printf("spatial_scale: %f\n", spatial_scale);
 
     FLOAT_ACCUM x1 =
         CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 1})]) * spatial_scale - offset;
@@ -330,8 +525,6 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
     if(!aligned)
     {
         // Force ROI to be at least 1x1
-        // heehoon: I don't know why PyTorch do this; it seems unnecessary. I'll
-        // just follow their behavior.
         roi_h = fmax(roi_h, (FLOAT_ACCUM)1);
         roi_w = fmax(roi_w, (FLOAT_ACCUM)1);
     }
@@ -342,22 +535,27 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
 
     // grid is sampling_ratio_h * sampling_ratio_w cells inside bin
     // Each center of grid is sampled and avgpooled into bin
-    long sampling_ratio_h = sampling_ratio > 0 ? sampling_ratio : ceil(roi_h / OH);
-    long sampling_ratio_w = sampling_ratio > 0 ? sampling_ratio : ceil(roi_w / OW);
+    uint64_t sampling_ratio_h = sampling_ratio > 0 ? sampling_ratio : ceil(roi_h / OH);
+    uint64_t sampling_ratio_w = sampling_ratio > 0 ? sampling_ratio : ceil(roi_w / OW);
 
-    long count = sampling_ratio_h * sampling_ratio_w;
+    // printf("sampling_ratio: %d, sampling_ratio_h: %ld, sampling_ratio_w: %ld\n",
+    //        sampling_ratio,
+    //        sampling_ratio_h,
+    //        sampling_ratio_w);
 
-    long x_low, x_high, y_low, y_high;
+    const uint64_t count = sampling_ratio_h * sampling_ratio_w;
+
+    int64_t x_low, x_high, y_low, y_high;
 
     FLOAT_ACCUM ograd =
         CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx({k, c, oh, ow})]);
 
-    for(long r = 0; r < sampling_ratio_h; r++)
+    for(auto r = 0; r < sampling_ratio_h; r++)
     {
         FLOAT_ACCUM y = y1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5f);
         if(y < 0 || y > H)
             continue;
-        y_low = (long)y;
+        y_low = (int64_t)y;
         if(y_low >= H - 1)
         {
             y_high = y_low = H - 1;
@@ -367,7 +565,7 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
         {
             y_high = y_low + 1;
         }
-        for(long s = 0; s < sampling_ratio_w; ++s)
+        for(auto s = 0; s < sampling_ratio_w; ++s)
         {
             FLOAT_ACCUM x = x1 + bin_w * ow + bin_w / sampling_ratio_w * (s + 0.5f);
             if(x < 0 || x > W)
@@ -416,16 +614,16 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
 extern "C" __global__ void RoIAlignBackwardAtomic(const IO_TYPE* output_grad,
                                                   const IO_TYPE* rois,
                                                   IO_TYPE* input_grad,
-                                                  const long N,
-                                                  const long C,
-                                                  const long H,
-                                                  const long W,
-                                                  const long K,
-                                                  const int32_t OH,
-                                                  const int32_t OW,
-                                                  float spatial_scale,
-                                                  int32_t sampling_ratio,
-                                                  char aligned,
+                                                  const uint64_t N,
+                                                  const uint64_t C,
+                                                  const uint64_t H,
+                                                  const uint64_t W,
+                                                  const uint64_t K,
+                                                  const uint64_t OH,
+                                                  const uint64_t OW,
+                                                  const float spatial_scale,
+                                                  const int64_t sampling_ratio,
+                                                  const bool aligned,
                                                   tensor_view_t<4> output_grad_tv,
                                                   tensor_view_t<2> rois_tv,
                                                   tensor_view_t<4> input_grad_tv)

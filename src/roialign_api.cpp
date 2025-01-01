@@ -79,10 +79,10 @@ extern "C" miopenStatus_t miopenRoIAlignBackward(miopenHandle_t handle,
                                                  const void* rois,
                                                  const miopenTensorDescriptor_t inputGradDesc,
                                                  void* inputGrad,
-                                                 const int32_t alignedHeight,
-                                                 const int32_t alignedWidth,
+                                                 const uint64_t alignedHeight,
+                                                 const uint64_t alignedWidth,
                                                  const float spatialScale,
-                                                 const int32_t samplingRatio,
+                                                 const int64_t samplingRatio,
                                                  const bool aligned)
 {
     MIOPEN_LOG_FUNCTION(outputGradDesc,

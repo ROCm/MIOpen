@@ -97,10 +97,10 @@ miopenStatus_t RoIAlignBackward(Handle& handle,
                                 ConstData_t rois,
                                 const TensorDescriptor& inputGradDesc,
                                 Data_t inputGrad,
-                                const int alignedHeight,
-                                const int alignedWidth,
+                                const uint64_t alignedHeight,
+                                const uint64_t alignedWidth,
                                 const float spatialScale,
-                                const int samplingRatio,
+                                const int64_t samplingRatio,
                                 const bool aligned)
 {
     const auto problem = roialign::BwdProblemDescription{

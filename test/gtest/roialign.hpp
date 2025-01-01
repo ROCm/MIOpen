@@ -24,14 +24,12 @@
  *
  *******************************************************************************/
 
-#include <cstdint>
-#include <exception>
-#include <iostream>
 #include <miopen/roialign.hpp>
 #include <miopen/miopen.h>
 // #include <miopen/tensor_view_utils.hpp>
 #include <gtest/gtest.h>
 #include <sys/types.h>
+// #include <type_traits>
 
 #include "get_handle.hpp"
 #include "random.hpp"
@@ -55,8 +53,14 @@ struct RoIAlignTestCase
 
     bool is_contiguous     = true;
     float spatial_scale    = 1.0;
-    int32_t sampling_ratio = -1;
+    int64_t sampling_ratio = -1;
     bool align             = false;
+
+    //  This is used to tests non-contiguous tensors with modified strides that change tensor size.
+    // This differs from the standard non-contiguous case (e.g., using
+    // tensor.transpose(0, -1).contiguous().transpose(0, -1)) where the size
+    // remains unchanged but memory layout is modified
+    bool use_custom_stride = false;
 
     friend std::ostream& operator<<(std::ostream& os, const RoIAlignTestCase& tc)
     {
@@ -75,25 +79,36 @@ struct RoIAlignTestCase
     std::vector<size_t> GetRoisDims() const { return {K, 5}; }
     uint64_t GetOutputH() const { return output_h; }
     uint64_t GetOutputW() const { return output_w; }
-    uint64_t GetSpatialScale() const { return spatial_scale; }
-    uint64_t GetSamplingRatio() const { return sampling_ratio; }
+    float GetSpatialScale() const { return spatial_scale; }
+    int64_t GetSamplingRatio() const { return sampling_ratio; }
     bool GetAlign() const { return align; }
 
     std::vector<size_t> ComputeStrides(std::vector<size_t> inputDim) const
     {
         if(!is_contiguous)
         {
-            if(inputDim.size() == 1)
+            if(inputDim.size() == 1 && inputDim.front() > 2)
                 return std::vector<size_t>{2};
-
-            std::swap(inputDim.front(), inputDim.back());
+            if(!use_custom_stride)
+                std::swap(inputDim.front(), inputDim.back());
         }
         std::vector<size_t> strides(inputDim.size());
         strides.back() = 1;
         for(int i = inputDim.size() - 2; i >= 0; --i)
             strides[i] = strides[i + 1] * inputDim[i + 1];
         if(!is_contiguous)
-            std::swap(strides.front(), strides.back());
+        {
+            if(use_custom_stride)
+            {
+                // Non-contiguous tensor and origianl contiguous tensor have different sizes
+                strides[0] *= 2;
+            }
+            else
+            {
+                // Non-contiguous tensor and origianl contiguous tensor have same sizes
+                std::swap(strides.front(), strides.back());
+            }
+        }
         return strides;
     }
 };
@@ -101,12 +116,20 @@ struct RoIAlignTestCase
 inline std::vector<RoIAlignTestCase> RoIAlignTestConfigs()
 {
     return {
-        {1, 1, 8, 8, 2, 2, 2},             // Using default args
-        {1, 1, 8, 8, 2, 2, 2, false},      // non-contiguous
-        {1, 1, 8, 8, 2, 2, 2, false, 0.5}, // custom spatial_scaling=0.5
-        {1, 1, 8, 8, 2, 2, 2, false, 2.0}, // custom spatial_scaling=2
-        {1, 1, 8, 8, 2, 2, 2, false, 2.0}, // custom sampling_ratio=2
-        {1, 1, 8, 8, 2, 2, 2, false, 2.0}, // custom Custom aligned=True
+        // Small tensors
+        {1, 1, 8, 8, 2, 2, 2},                        // Using default args
+        {1, 1, 8, 8, 2, 2, 2, false},                 // non-contiguous
+        {1, 1, 8, 8, 2, 2, 2, false, 0.5},            // custom spatial_scaling=0.5
+        {1, 1, 8, 8, 2, 2, 2, true, 0.5},             // custom spatial_scaling=2
+        {1, 1, 8, 8, 2, 2, 2, true, 1.0},             // custom spatial_scaling=2
+        {1, 1, 8, 8, 2, 2, 2, true, 2.0},             // custom spatial_scaling=2
+        {1, 1, 8, 8, 2, 2, 2, true, 2.0},             // custom spatial_scaling=2
+        {1, 1, 8, 8, 2, 2, 2, true, 3.0},             // custom spatial_scaling=2
+        {1, 1, 8, 8, 2, 2, 2, true, 4.0},             // custom spatial_scaling=2
+        {1, 1, 8, 8, 2, 2, 2, false, 1.0, 1},         // custom sampling_ratio=2
+        {1, 1, 8, 8, 2, 2, 2, false, 1.0, 2},         // custom sampling_ratio=2
+        {1, 1, 8, 8, 2, 2, 2, false, 1.0, 3},         // custom sampling_ratio=2
+        {1, 1, 8, 8, 2, 2, 2, false, 1.0, 2.0, true}, // custom Custom aligned=True
 
         // Larger tensors
         // Contiguous tensors
@@ -119,6 +142,23 @@ inline std::vector<RoIAlignTestCase> RoIAlignTestConfigs()
         {6, 1, 800, 1060, 6, 32, 32, true, 0.25, -1, false},
 
         // Non-contiguous tensors
+        {1, 1, 8, 8, 10, 6, 6, true, 0.3125, -2, false},
+        {1, 1, 8, 8, 10, 6, 6, true, 0.3125, -1, false},
+        {1, 1, 8, 8, 10, 6, 6, true, 0.3125, 1, false},
+        {1, 1, 8, 8, 10, 6, 6, true, 0.3125, -1, false},
+        {1, 1, 8, 8, 10, 6, 6, false, 0.3125, -1, false},
+        {1, 1, 4, 4, 10, 4, 4, false, 0.3125, -1, false},
+        {1, 1, 8, 8, 10, 4, 4, false, 0.3125, -1, false},
+
+        {1, 1, 8, 8, 10, 6, 6, false, 0.3125, 0, false},
+        {1, 1, 8, 8, 10, 6, 6, false, 0.3125, 1, false},
+        {1, 1, 30, 30, 20, 16, 16, true, 0.3125, 3, false},
+        {1, 1, 30, 30, 20, 16, 16, false, 0.3125, 3, false},
+        {1, 1, 30, 30, 20, 16, 16, false, 2.0, -1, false},
+        {1, 1, 30, 30, 20, 16, 16, false, 3.0, -1, false},
+        {1, 1, 30, 30, 20, 16, 16, false, 4.0, -1, false},
+        {1, 1, 30, 30, 20, 16, 16, false, 0.3125, 3, false},
+        {1, 1, 8, 8, 10, 6, 6, false, 0.3125, 4, false},
         {1, 3, 96, 96, 6, 7, 7, false, 0.3125, 2, false},
         {1, 3, 96, 96, 6, 7, 14, false, 0.3125, 2, false},
         {6, 1, 800, 1060, 6, 14, 14, false, 0.25, -1, false},
@@ -163,28 +203,33 @@ protected:
         std::vector<size_t> output_dims = {K, C, output_h, output_w};
         auto output_strides             = config.ComputeStrides(output_dims);
 
-        input = tensor<T>{input_dims}.generate(gen_value);
-        rois  = tensor<T>{rois_dims};
+        // input = tensor<T>{input_dims}.generate(gen_value);
+        input = tensor<T>{input_dims, input_strides}.generate(gen_value);
+        rois  = tensor<T>{rois_dims, rois_strides};
+        std::fill(rois.begin(), rois.end(), static_cast<T>(0));
 
-        // auto rois_numel = K * 5;
+        auto rois_tv = miopen::get_inner_expanded_tv<2>(rois.desc);
         for(auto i = 0; i < K; i++)
         {
-            rois[i * 5] = static_cast<T>(prng::gen_0_to_B<int>(N));
-            auto x1     = prng::gen_0_to_B<T>(static_cast<T>(W));
-            auto y1     = prng::gen_0_to_B<T>(static_cast<T>(H));
-            auto x2     = prng::gen_0_to_B<T>(static_cast<T>(W));
-            auto y2     = prng::gen_0_to_B<T>(static_cast<T>(H));
+            rois[rois_tv.get_tensor_view_idx({i, 0})] = static_cast<T>(prng::gen_0_to_B<int>(N));
 
-            rois[i * 5 + 1] = x1 < x2 ? x1 : x2;
-            rois[i * 5 + 2] = y1 < y2 ? y1 : y2;
-            rois[i * 5 + 3] = x1 < x2 ? x2 : x1;
-            rois[i * 5 + 4] = y1 < y2 ? y2 : y1;
+            auto x1 = prng::gen_0_to_B<T>(static_cast<T>(W));
+            auto y1 = prng::gen_0_to_B<T>(static_cast<T>(H));
+            auto x2 = prng::gen_0_to_B<T>(static_cast<T>(W));
+            auto y2 = prng::gen_0_to_B<T>(static_cast<T>(H));
+
+            rois[rois_tv.get_tensor_view_idx({i, 1})] = x1 < x2 ? x1 : x2;
+            rois[rois_tv.get_tensor_view_idx({i, 2})] = y1 < y2 ? y1 : y2;
+            rois[rois_tv.get_tensor_view_idx({i, 3})] = x1 < x2 ? x2 : x1;
+            rois[rois_tv.get_tensor_view_idx({i, 4})] = y1 < y2 ? y2 : y1;
         }
 
-        output = tensor<T>{output_dims};
+        // output = tensor<T>{output_dims};
+        output = tensor<T>{output_dims, output_strides};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        ref_output = tensor<T>{output_dims};
+        // ref_output = tensor<T>{output_dims};
+        ref_output = tensor<T>{output_dims, output_strides};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
         input_dev  = handle.Write(input.data);
@@ -278,6 +323,7 @@ protected:
         sampling_ratio = config.GetSamplingRatio();
         aligned        = config.GetAlign();
 
+        // auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         auto input_grad_dims    = config.GetInputDims();
@@ -298,24 +344,55 @@ protected:
         output_grad = tensor<T>{output_grad_dims, output_grad_strides}.generate(gen_value);
 
         rois = tensor<T>{rois_dims, rois_strides};
+        std::fill(rois.begin(), rois.end(), static_cast<T>(0));
 
+        auto rois_tv = miopen::get_inner_expanded_tv<2>(rois.desc);
         for(auto i = 0; i < K; i++)
         {
-            rois[i * 5] = static_cast<T>(prng::gen_0_to_B<int>(N));
+            rois[rois_tv.get_tensor_view_idx({i, 0})] = static_cast<T>(prng::gen_0_to_B<int>(N));
 
-            auto x1 = prng::gen_0_to_B<T>(static_cast<T>(W));
-            auto y1 = prng::gen_0_to_B<T>(static_cast<T>(H));
-            auto x2 = prng::gen_0_to_B<T>(static_cast<T>(W));
-            auto y2 = prng::gen_0_to_B<T>(static_cast<T>(H));
+            T x1 = prng::gen_0_to_B<T>(static_cast<T>(W));
+            T y1 = prng::gen_0_to_B<T>(static_cast<T>(H));
+            T x2 = prng::gen_0_to_B<T>(static_cast<T>(W));
+            T y2 = prng::gen_0_to_B<T>(static_cast<T>(H));
 
-            rois[i * 5 + 1] = x1 < x2 ? x1 : x2;
-            rois[i * 5 + 2] = y1 < y2 ? y1 : y2;
-            rois[i * 5 + 3] = x1 < x2 ? x2 : x1;
-            rois[i * 5 + 4] = y1 < y2 ? y2 : y1;
+            rois[rois_tv.get_tensor_view_idx({i, 1})] = x1 < x2 ? x1 : x2;
+            rois[rois_tv.get_tensor_view_idx({i, 2})] = y1 < y2 ? y1 : y2;
+            rois[rois_tv.get_tensor_view_idx({i, 3})] = x1 < x2 ? x2 : x1;
+            rois[rois_tv.get_tensor_view_idx({i, 4})] = y1 < y2 ? y2 : y1;
         }
 
+        // print rois
+        // std::cout << "rois tensor: " << std::endl;
+        // for(auto i : rois)
+        //     std::cout << i << ", ";
+        // std::cout << std::endl;
+
+        // // print output_grad
+        // std::cout << "output_grad tensor: " << std::endl;
+        // for(auto i : output_grad)
+        //     std::cout << i << ", ";
+        // std::cout << std::endl;
+
+        // std::cout << "input_grad_dims: " << input_grad_dims[0] << ", " << input_grad_dims[1] <<
+        // ", "
+        //           << input_grad_dims[2] << ", " << input_grad_dims[3] << std::endl;
+        // std::cout << "input_grad_strides: " << input_grad_strides[0] << ", "
+        //           << input_grad_strides[1] << ", " << input_grad_strides[2] << ", "
+        //           << input_grad_strides[3] << std::endl;
+
         input_grad = tensor<T>{input_grad_dims, input_grad_strides};
-        std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
+        if(!input_grad.desc.IsContiguous() && config.use_custom_stride)
+        {
+            std::fill(input_grad.begin(), input_grad.end(), 0);
+        }
+        else
+        {
+            std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
+        }
+
+        // std::cout << "[test] input_grad.is_contiguous: " << input_grad.desc.IsContiguous()
+        //           << ", input_grad.data.size(): " << input_grad.data.size() << std::endl;
 
         ref_input_grad = tensor<T>{input_grad_dims, input_grad_strides};
         std::fill(
@@ -369,6 +446,18 @@ protected:
 
     void Verify()
     {
+        // print ref_input_grad
+        // std::cout << "ref_input_grad: " << std::endl;
+        // for(auto i : ref_input_grad)
+        //     std::cout << i << " ";
+        // std::cout << std::endl;
+
+        // // print input_grad
+        // std::cout << "input_grad: " << std::endl;
+        // for(auto i : input_grad)
+        //     std::cout << i << " ";
+        // std::cout << "\n";
+
         // Verify output_tensor
         double threshold = GetTolerance();
         auto error       = miopen::rms_range(ref_input_grad, input_grad);
