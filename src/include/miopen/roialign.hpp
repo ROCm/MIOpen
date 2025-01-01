@@ -25,8 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-// #include <miopen/handle.hpp>
-// #include <miopen/tensor.hpp>
 #include <miopen/common.hpp>
 
 namespace miopen {
@@ -43,10 +41,10 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t RoIAlignForward(Handle& handle,
                                                        ConstData_t rois,
                                                        const TensorDescriptor& outputDesc,
                                                        Data_t output,
-                                                       int32_t alignedHeight,
-                                                       int32_t alignedWidth,
+                                                       uint64_t alignedHeight,
+                                                       uint64_t alignedWidth,
                                                        float spatialScale,
-                                                       int32_t samplingRatio,
+                                                       int64_t samplingRatio,
                                                        bool aligned);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t RoIAlignBackward(Handle& handle,

@@ -36,17 +36,17 @@
 // RoIAlign Forward
 template <typename DTYPE>
 __device__ FLOAT_ACCUM bilinear_interpolate(const DTYPE* input,
-                                            const long roi_batch_index,
-                                            const long c,
-                                            long height,
-                                            long width,
+                                            const int64_t roi_batch_index,
+                                            const uint64_t c,
+                                            const uint64_t height,
+                                            const uint64_t width,
                                             FLOAT_ACCUM y,
                                             FLOAT_ACCUM x,
                                             tensor_view_t<4> input_tv)
 {
-    long y_low;
-    long x_low;
-    long y_high, x_high;
+    int64_t y_low;
+    int64_t x_low;
+    int64_t y_high, x_high;
     FLOAT_ACCUM ly, lx, hy, hx;
 
     FLOAT_ACCUM v1, v2, v3, v4;
@@ -67,8 +67,8 @@ __device__ FLOAT_ACCUM bilinear_interpolate(const DTYPE* input,
         x = 0;
     }
 
-    y_low = (long)y;
-    x_low = (long)x;
+    y_low = (int64_t)y;
+    x_low = (int64_t)x;
 
     if(y_low >= height - 1)
     {
@@ -120,11 +120,11 @@ template <typename DTYPE>
 __device__ void roialign_fwd(const DTYPE* input,
                              const DTYPE* rois,
                              DTYPE* output,
-                             int output_h,
-                             int output_w,
-                             float spatial_scale,
-                             int sampling_ratio,
-                             char aligned,
+                             const uint64_t output_h,
+                             const uint64_t output_w,
+                             const float spatial_scale,
+                             const int64_t sampling_ratio,
+                             const bool aligned,
                              tensor_view_t<4> input_tv,
                              tensor_view_t<2> rois_tv,
                              tensor_view_t<4> output_tv)
@@ -137,33 +137,32 @@ __device__ void roialign_fwd(const DTYPE* input,
      * lws = {LOCAL_SIZE}
      */
 
-    long gid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
     // TODO: Pass those as arguments to avoid recomputation
-    long N = input_tv.size[0];
-    long C = input_tv.size[1];
-    long H = input_tv.size[2];
-    long W = input_tv.size[3];
-    long K = rois_tv.size[0];
+    uint64_t N = input_tv.size[0];
+    uint64_t C = input_tv.size[1];
+    uint64_t H = input_tv.size[2];
+    uint64_t W = input_tv.size[3];
 
-    if(gid > K * C * output_h * output_w - 1)
-    {
+    uint64_t K = rois_tv.size[0];
+
+    uint64_t kch = gid / output_w;
+    uint64_t kc  = kch / output_h;
+
+    uint64_t pw = gid % output_w;
+    uint64_t ph = kch % output_h;
+    uint64_t c  = kc % C;
+    uint64_t k  = kc / C;
+
+    if(k >= K)
         return;
-    }
 
-    long kch = gid / output_w;
-    long kc  = kch / output_h;
-
-    long pw = gid % output_w;
-    long ph = kch % output_h;
-    long c  = kc % C;
-    long k  = kc / C;
-
-    long roi_batch_index = CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+    int64_t roi_batch_index = CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 0})]);
 
     if(roi_batch_index < 0 || roi_batch_index >= N)
     {
-        output[output_tv.get_tensor_view_idx({k, c, ph, pw})] = 0;
+        output[output_tv.get_tensor_view_idx({k, c, ph, pw})] = static_cast<DTYPE>(0);
 
         return;
     }
@@ -185,20 +184,21 @@ __device__ void roialign_fwd(const DTYPE* input,
     FLOAT_ACCUM bin_size_h;
     FLOAT_ACCUM bin_size_w;
 
-    long roi_bin_grid_h;
-    long roi_bin_grid_w;
+    int64_t roi_bin_grid_h;
+    int64_t roi_bin_grid_w;
 
     FLOAT_ACCUM count;
 
     FLOAT_ACCUM output_val = 0.0f;
 
-    long iy, ix;
+    int64_t iy, ix;
 
     if(!aligned)
     {
         roi_width  = fmax((FLOAT_ACCUM)roi_width, (FLOAT_ACCUM)1.0f);
         roi_height = fmax((FLOAT_ACCUM)roi_height, (FLOAT_ACCUM)1.0f);
     }
+
     bin_size_h = roi_height / output_h;
     bin_size_w = roi_width / output_w;
 
@@ -216,6 +216,7 @@ __device__ void roialign_fwd(const DTYPE* input,
     {
         const FLOAT_ACCUM y =
             roi_start_h + ph * bin_size_h + (iy + 0.5f) * bin_size_h / roi_bin_grid_h;
+
         for(ix = 0; ix < roi_bin_grid_w; ++ix)
         {
             const FLOAT_ACCUM x =
@@ -233,11 +234,11 @@ __device__ void roialign_fwd(const DTYPE* input,
 extern "C" __global__ void RoIAlignForward(const IO_TYPE* __restrict__ input,
                                            const IO_TYPE* __restrict__ rois,
                                            IO_TYPE* __restrict__ output,
-                                           int output_h,
-                                           int output_w,
-                                           float spatial_scale,
-                                           int sampling_ratio,
-                                           bool aligned,
+                                           const int64_t output_h,
+                                           const int64_t output_w,
+                                           const float spatial_scale,
+                                           const int64_t sampling_ratio,
+                                           const bool aligned,
                                            tensor_view_t<4> input_tv,
                                            tensor_view_t<2> rois_tv,
                                            tensor_view_t<4> output_tv)

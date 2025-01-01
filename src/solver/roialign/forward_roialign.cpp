@@ -24,15 +24,6 @@
  *
  *******************************************************************************/
 
-// #include "miopen/conv_solution.hpp"
-// #include "miopen/execution_context.hpp"
-// #include "miopen/kernel_build_params.hpp"
-// #include "miopen/miopen.h"
-// #include "miopen/roialign/invoke_params.hpp"
-// #include "miopen/roialign/problem_description.hpp"
-// #include "miopen/roialign/solvers.hpp"
-// #include "miopen/tensor_view_utils.hpp"
-
 // #include <miopen/buffer_info.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/datatype.hpp>
@@ -49,7 +40,6 @@
 #include <miopen/tensor_view_utils.hpp>
 // #include <miopen/target_properties.hpp>
 
-// #define VIEW_DIMS 5
 #define ROIALIGN_LOCAL_SIZE 256
 
 namespace miopen {
@@ -61,9 +51,6 @@ bool IsImprovementOverROCm(const miopen::roialign::FwdProblemDescription& proble
 bool RoIAlignForward::IsApplicable(const ExecutionContext& context,
                                    const miopen::roialign::FwdProblemDescription& problem) const
 {
-    // if(problem.GetInputDesc().GetVectorLength() > VIEW_DIMS)
-    //     return false;
-
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
          problem.GetInputDesc().GetType() == miopenHalf ||
          problem.GetInputDesc().GetType() == miopenBFloat16))
@@ -91,6 +78,7 @@ RoIAlignForward::GetSolution(const ExecutionContext& context,
     auto output_dims = problem.GetOutputDesc().GetLengths();
 
     const size_t C = problem.GetInputDesc().GetLengths()[1];
+
     const size_t K = problem.GetRoisDesc().GetLengths()[0];
     const size_t g =
         K * C * problem.GetAlignedHeight() * problem.GetAlignedWidth() / ROIALIGN_LOCAL_SIZE;
@@ -132,9 +120,6 @@ RoIAlignForward::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::roialign::FwdInvokeParams>();
             decltype(auto) kernel = handle_.Run(kernels[0]);
 
-            // auto input_tv  = get_inner_expanded_tv<4>(*params.inputDesc);
-            // auto rois_tv   = get_inner_expanded_tv<2>(*params.roisDesc);
-            // auto output_tv = get_inner_expanded_tv<4>(*params.outputDesc);
             auto input_tv  = get_inner_expanded_tv<4>(deref(params.inputDesc));
             auto rois_tv   = get_inner_expanded_tv<2>(deref(params.roisDesc));
             auto output_tv = get_inner_expanded_tv<4>(deref(params.outputDesc));

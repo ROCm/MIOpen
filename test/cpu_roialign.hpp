@@ -34,10 +34,10 @@ template <class T>
 void cpu_roialign_forward(const tensor<T> input,
                           const tensor<T> rois,
                           tensor<T>& output,
-                          const int output_h,
-                          const int output_w,
+                          const uint64_t output_h,
+                          const uint64_t output_w,
                           const float spatial_scale,
-                          const int sampling_ratio,
+                          const int64_t sampling_ratio,
                           const bool aligned)
 {
     auto input_tv  = miopen::get_inner_expanded_tv<4>(input.desc);
@@ -54,9 +54,10 @@ void cpu_roialign_forward(const tensor<T> input,
     int roi_cols           = 5;
     const float roi_offset = aligned ? 0.5f : 0.0f;
 
-    for(int k = 0; k < K; ++k)
+    for(auto k = 0; k < K; ++k)
     {
-        int roi_batch_idx = roi_cols == 4 ? 0 : rois[rois_tv.get_tensor_view_idx({k, 0})];
+        int64_t roi_batch_idx =
+            roi_cols == 4 ? 0 : static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
 
         const float roi_w1 =
             static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 1})]) * spatial_scale -
@@ -70,6 +71,7 @@ void cpu_roialign_forward(const tensor<T> input,
         const float roi_h2 =
             static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 4})]) * spatial_scale -
             roi_offset;
+
         float roi_w = roi_w2 - roi_w1;
         float roi_h = roi_h2 - roi_h1;
 
@@ -81,25 +83,25 @@ void cpu_roialign_forward(const tensor<T> input,
         const float bin_size_h = roi_h / static_cast<float>(output_h);
         const float bin_size_w = roi_w / static_cast<float>(output_w);
 
-        const int bin_grid_h =
+        const int64_t bin_grid_h =
             (sampling_ratio > 0)
                 ? sampling_ratio
-                : static_cast<int>(std::ceil(roi_h / static_cast<float>(output_h)));
-        const int bin_grid_w =
+                : static_cast<int64_t>(std::ceil(roi_h / static_cast<float>(output_h)));
+        const int64_t bin_grid_w =
             (sampling_ratio > 0)
                 ? sampling_ratio
-                : static_cast<int>(std::ceil(roi_w / static_cast<float>(output_w)));
+                : static_cast<int64_t>(std::ceil(roi_w / static_cast<float>(output_w)));
 
         const float scale = 1.0f / static_cast<float>(bin_grid_h * bin_grid_w);
 
-        for(int c = 0; c < C; ++c)
+        for(auto c = 0; c < C; ++c)
         {
-            for(int ph = 0; ph < output_h; ++ph)
+            for(auto ph = 0; ph < output_h; ++ph)
             {
-                for(int pw = 0; pw < output_w; ++pw)
+                for(auto pw = 0; pw < output_w; ++pw)
                 {
                     float sum = 0.0f;
-                    for(int iy = 0; iy < bin_grid_h; ++iy)
+                    for(auto iy = 0; iy < bin_grid_h; ++iy)
                     {
                         const float yy = roi_h1 + static_cast<float>(ph) * bin_size_h +
                                          (static_cast<float>(iy) + 0.5f) *
@@ -144,8 +146,9 @@ void cpu_roialign_forward(const tensor<T> input,
                                             {roi_batch_idx, c, yh, xh})]);
                         }
                     }
+                    float output_val = sum * scale;
                     output[output_tv.get_tensor_view_idx({k, c, ph, pw})] =
-                        static_cast<T>(sum * scale);
+                        static_cast<T>(output_val);
                 }
             }
         }
@@ -158,7 +161,7 @@ void cpu_roialign_backward(const tensor<T> output_grad,
                            tensor<T>& input_grad,
                            const int64_t OH,
                            const int64_t OW,
-                           const double spatial_scale,
+                           const float spatial_scale,
                            const int64_t sampling_ratio,
                            const bool aligned)
 {

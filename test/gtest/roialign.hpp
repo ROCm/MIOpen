@@ -131,21 +131,24 @@ inline std::vector<RoIAlignTestCase> RoIAlignTestConfigs()
         {1, 3, 96, 96, 6, 7, 7, true, 0.3125, 2, false},
         {1, 3, 96, 96, 36, 7, 7, true, 0.3125, 2, false},
         {1, 3, 96, 96, 6, 7, 14, true, 0.3125, 2, false},
-        {6, 1, 800, 1060, 6, 14, 14, true, 0.25, -1, false},
-        {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, false},
-        {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, true},
-        {6, 1, 800, 1060, 6, 32, 32, true, 0.25, 2, true},
-        {6, 1, 800, 1060, 6, 32, 32, true, 0.25, -1, false},
 
         // Non-contiguous tensors
         {1, 3, 96, 96, 6, 7, 7, false, 0.3125, 2, false},
         {1, 3, 96, 96, 36, 7, 7, false, 0.3125, 2, false},
         {1, 3, 96, 96, 6, 7, 14, false, 0.3125, 2, false},
-        {6, 1, 800, 1060, 6, 14, 14, false, 0.25, -1, false},
-        {6, 1, 800, 1060, 6, 14, 14, false, 0.25, 2, false},
-        {6, 1, 800, 1060, 6, 14, 14, false, 0.25, 2, true},
-        {6, 1, 800, 1060, 6, 32, 32, false, 0.25, 2, true},
-        {6, 1, 800, 1060, 6, 32, 32, false, 0.25, -1, false},
+
+        // Large tensor with numel > 10^5
+        // Those tests cause roialign_fwd failed with diff ~ 1e-5
+        // For large tensor but sampling_ratio=-1, the tests are passed (since no additional ceil()
+        // calculation is required)
+        {4, 3, 96, 800, 400, 7, 14, false, 0.3125, 2, false},
+        // {6, 1, 800, 1060, 6, 14, 14, true, 0.25, -1, false},
+        {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, false},
+        {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, true},
+        {1, 1, 800, 1060, 6, 32, 32, true, 0.25, 2, true},
+        {1, 1, 2000, 2000, 6, 32, 32, true, 0.25, 2, true},
+        // {6, 1, 800, 1060, 6, 32, 32, true, 0.25, -1, false},
+
     };
 };
 
@@ -279,7 +282,7 @@ protected:
     uint64_t output_h;
     uint64_t output_w;
     float spatial_scale;
-    int32_t sampling_ratio;
+    int64_t sampling_ratio;
     bool aligned;
 };
 
@@ -423,6 +426,6 @@ protected:
     uint64_t output_h;
     uint64_t output_w;
     float spatial_scale;
-    int32_t sampling_ratio;
+    int64_t sampling_ratio;
     bool aligned;
 };

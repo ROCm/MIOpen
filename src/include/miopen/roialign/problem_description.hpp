@@ -40,8 +40,8 @@ struct FwdProblemDescription : ProblemDescriptionBase
     FwdProblemDescription(const TensorDescriptor& inputDesc_,
                           const TensorDescriptor& roisDesc_,
                           const TensorDescriptor& outputDesc_,
-                          const int alignedHeight_,
-                          const int alignedWidth_)
+                          const uint64_t alignedHeight_,
+                          const uint64_t alignedWidth_)
         : inputDesc(inputDesc_),
           roisDesc(roisDesc_),
           outputDesc(outputDesc_),
@@ -56,8 +56,8 @@ struct FwdProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetRoisDesc() const { return roisDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
 
-    int32_t GetAlignedHeight() const { return alignedHeight; }
-    int32_t GetAlignedWidth() const { return alignedWidth; }
+    uint64_t GetAlignedHeight() const { return alignedHeight; }
+    uint64_t GetAlignedWidth() const { return alignedWidth; }
 
     bool IsRightDim() const
     {
@@ -93,8 +93,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
         if(outputDesc.GetLengths() != std::vector<std::size_t>{K, C, alignedHeight, alignedWidth})
         {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "RoIAlignBackward: Invalid output grad tensor dimensions");
+            MIOPEN_THROW(miopenStatusBadParm, "RoIAlignForward: Invalid output tensor dimensions");
         }
 
         return true;
@@ -106,7 +105,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
-                "RoIAlignBackward: input, output and rois tensors should have the same type");
+                "RoIAlignForward: input, output and rois tensors should have the same type");
         }
 
         return true;
@@ -129,8 +128,8 @@ private:
     const TensorDescriptor& roisDesc;
     const TensorDescriptor& outputDesc;
 
-    const int32_t alignedHeight;
-    const int32_t alignedWidth;
+    const uint64_t alignedHeight;
+    const uint64_t alignedWidth;
 };
 
 struct BwdProblemDescription : ProblemDescriptionBase
@@ -138,8 +137,8 @@ struct BwdProblemDescription : ProblemDescriptionBase
     BwdProblemDescription(const TensorDescriptor& outputGradDesc_,
                           const TensorDescriptor& roisDesc_,
                           const TensorDescriptor& inputGradDesc_,
-                          const int alignedHeight_,
-                          const int alignedWidth_)
+                          const uint64_t alignedHeight_,
+                          const uint64_t alignedWidth_)
         : outputGradDesc(outputGradDesc_),
           roisDesc(roisDesc_),
           inputGradDesc(inputGradDesc_),
@@ -187,10 +186,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
         const auto input_grad_lengths = inputGradDesc.GetLengths();
         const auto rois_lengths       = roisDesc.GetLengths();
 
-        // const auto N = input_grad_lengths[0];
         const auto C = input_grad_lengths[1];
-        // const auto H = input_grad_lengths[2];
-        // const auto W = input_grad_lengths[3];
 
         const auto K = rois_lengths[0];
 

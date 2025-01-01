@@ -25,9 +25,9 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/common.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/tensor.hpp"
+#include <miopen/common.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
@@ -45,11 +45,11 @@ struct FwdInvokeParams : public miopen::InvokeParams
     ConstData_t rois  = nullptr;
     Data_t output     = nullptr;
 
-    int32_t alignedHeight = 0;
-    int32_t alignedWidth  = 0;
+    uint64_t alignedHeight = 0;
+    uint64_t alignedWidth  = 0;
 
     float spatialScale    = 0.0f;
-    int32_t samplingRatio = 0;
+    int64_t samplingRatio = 0;
 
     bool aligned = false;
 
@@ -72,7 +72,7 @@ struct BwdInvokeParams : public miopen::InvokeParams
     uint64_t alignedHeight = 0;
     uint64_t alignedWidth  = 0;
 
-    float spatialScale    = 0;
+    float spatialScale    = 0.0f;
     int64_t samplingRatio = 0;
 
     bool aligned = false;
