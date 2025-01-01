@@ -27,7 +27,7 @@
 #pragma once
 
 #include <miopen/miopen.h>
-#include <cmath>
+// #include <cmath>
 // #include <cstddef>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
@@ -41,10 +41,10 @@ int32_t mloRoIAlignForwardRunHost(const miopenTensorDescriptor_t inputDesc,
                                   const Tgpu* input,
                                   const Tgpu* rois,
                                   Tcheck* output,
-                                  const int32_t output_h,
-                                  const int32_t output_w,
+                                  const uint64_t output_h,
+                                  const uint64_t output_w,
                                   const float spatial_scale,
-                                  const int32_t sampling_ratio,
+                                  const int64_t sampling_ratio,
                                   const bool aligned)
 {
     auto input_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
@@ -205,6 +205,158 @@ int32_t mloRoIAlignBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc
                                    const int64_t sampling_ratio,
                                    const bool aligned)
 {
+    std::fill(input_grad,
+              input_grad + miopen::deref(inputGradDesc).GetElementSpace(),
+              static_cast<Tcheck>(0));
+
+    // Calculate input_grad on float and then convert to T
+    // to preserve precision
+    // tensor<float> float_input_grad(input_grad.desc.GetLengths(), input_grad.desc.GetStrides());
+    std::vector<float> float_input_grad(miopen::deref(inputGradDesc).GetElementSpace(), 0);
+
+    auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
+    auto rois_tv        = miopen::get_inner_expanded_tv<2>(miopen::deref(roisDesc));
+    auto output_grad_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
+
+    const auto input_grad_lengths = miopen::deref(inputGradDesc).GetLengths();
+    const auto N                  = input_grad_lengths[0];
+    const auto C                  = input_grad_lengths[1];
+    const auto H                  = input_grad_lengths[2];
+    const auto W                  = input_grad_lengths[3];
+
+    // const auto K = rois.desc.GetLengths()[0];
+
+    const auto output_grad_numel = miopen::deref(outputGradDesc).GetElementSize();
+
+    for(auto i = 0; i < output_grad_numel; i++)
+    {
+        uint64_t ow = i % OW;
+        uint64_t oh = (i / OW) % OH;
+        uint64_t c  = (i / (OW * OH)) % C;
+        uint64_t k  = (i / (C * OW * OH));
+
+        // Check k-th roi box belongs to n-th image inside mini-batch
+        int64_t n = rois[rois_tv.get_tensor_view_idx({k, 0})];
+
+        // NOTE: should've checked this condition somewhere else
+        if(n < 0 || n >= N)
+            break;
+
+        // roi box
+        float offset = aligned ? 0.5f : 0;
+
+        float x1 =
+            static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 1})]) * spatial_scale - offset;
+        float y1 =
+            static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 2})]) * spatial_scale - offset;
+        float x2 =
+            static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 3})]) * spatial_scale - offset;
+        float y2 =
+            static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 4})]) * spatial_scale - offset;
+
+        float roi_h = y2 - y1;
+        float roi_w = x2 - x1;
+        if(!aligned)
+        {
+            // Force ROI to be at least 1x1
+            roi_h = std::fmax(roi_h, 1.0);
+            roi_w = std::fmax(roi_w, 1.0);
+        }
+
+        // bin is OH * OW cells inside ROI
+        float bin_h = roi_h / OH;
+        float bin_w = roi_w / OW;
+
+        // grid is sampling_ratio_h * sampling_ratio_w cells inside bin
+        // Each center of grid is sampled and avgpooled into bin
+        uint64_t sampling_ratio_h = sampling_ratio > 0 ? sampling_ratio : std::ceil(roi_h / OH);
+        uint64_t sampling_ratio_w = sampling_ratio > 0 ? sampling_ratio : std::ceil(roi_w / OW);
+
+        const uint64_t count = sampling_ratio_h * sampling_ratio_w;
+
+        int64_t x_low, x_high, y_low, y_high;
+
+        float ograd =
+            static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx({k, c, oh, ow})]);
+
+        for(auto r = 0; r < sampling_ratio_h; r++)
+        {
+            float y = y1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5f);
+            if(y < 0 || y > H)
+                continue;
+            y_low = (int64_t)y;
+            if(y_low >= H - 1)
+            {
+                y_high = y_low = H - 1;
+                y              = (float)y_low;
+            }
+            else
+            {
+                y_high = y_low + 1;
+            }
+            for(auto s = 0; s < sampling_ratio_w; ++s)
+            {
+                float x = x1 + bin_w * ow + bin_w / sampling_ratio_w * (s + 0.5f);
+                if(x < 0 || x > W)
+                    continue;
+
+                x_low = (int64_t)x;
+                if(x_low >= W - 1)
+                {
+                    x_high = x_low = W - 1;
+                    x              = (float)x_low;
+                }
+                else
+                {
+                    x_high = x_low + 1;
+                }
+
+                float ly = y - y_low;
+                float lx = x - x_low;
+                float hy = 1.0 - ly;
+                float hx = 1.0 - lx;
+
+                float w1 = hy * hx;
+                float w2 = hy * lx;
+                float w3 = ly * hx;
+                float w4 = ly * lx;
+
+                float g1 = ograd * w1 / count;
+                float g2 = ograd * w2 / count;
+                float g3 = ograd * w3 / count;
+                float g4 = ograd * w4 / count;
+
+                if(x_low >= 0 && x_high >= 0 && y_low >= 0 && y_high >= 0)
+                {
+                    float_input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_low, x_low})] += g1;
+                    float_input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_low, x_high})] +=
+                        g2;
+                    float_input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_high, x_low})] +=
+                        g3;
+                    float_input_grad[input_grad_tv.get_tensor_view_idx({n, c, y_high, x_high})] +=
+                        g4;
+                }
+            }
+        }
+    }
+
+    // Assign float_input_grad to input_grad
+    for(auto n = 0; n < N; n++)
+    {
+        for(auto c = 0; c < C; c++)
+        {
+            for(auto h = 0; h < H; h++)
+            {
+                for(auto w = 0; w < W; w++)
+                {
+                    input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] =
+                        static_cast<Tcheck>(
+                            float_input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})]);
+                }
+            }
+        }
+    }
+
     // auto output_grad_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
     // auto rois_tv        = miopen::get_inner_expanded_tv<2>(miopen::deref(roisDesc));
     // auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
