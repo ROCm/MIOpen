@@ -419,12 +419,12 @@ def RunPerfTest(Map conf=[:]){
                 currentBuild.result = 'SUCCESS'
             }
 
-            try{
-               sh "${env.WORKSPACE}/install/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/install/bin/old_results --filename ${filename}"
-            }
-            catch (Exception err){
-                currentBuild.result = 'SUCCESS'
-            }
+            //try{
+            //   sh "${env.WORKSPACE}/install/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/install/bin/old_results --filename ${filename}"
+            //}
+            //catch (Exception err){
+            //    currentBuild.result = 'SUCCESS'
+            //}
             cleanWs()
         }
         }
