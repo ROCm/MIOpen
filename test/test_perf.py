@@ -52,7 +52,7 @@ class Manager(mp.Process):
   """Queue manager"""
 
   def __init__(self, **kwargs):
-    allowed_keys: Set = set(['filename', 'install_path', 'overrride'])
+    allowed_keys = set(['filename', 'install_path', 'overrride'])
     self.filename = None
     self.install_path = None
     self.override = False
@@ -61,32 +61,37 @@ class Manager(mp.Process):
         (key, value) for key, value in kwargs.items() if key in allowed_keys)
 
     self.in_qs = {}
-    self.num_gpus = int(get_num_gpus())
+    self.num_gpus = int(self.get_num_gpus())
     self.resfile = f"{self.results_path}/{self.filename}"
     print(self.resfile)
     print('install_path: %s', self.install_path)
     self.model_path = f"{self.install_path}/share/miopen/perf_models/{self.filename}"
-    print(self.resfile)
-    self.model_path
     self.driver_cmds = []
-    self.set_driver_cmds(self.filename)
+    self.set_driver_cmds()
+    self.writer = None
 
   def get_num_gpus(self):
     """Get num_gpus"""
     cmd = "/opt/rocm/bin/rocminfo | grep ${arch}:sramecc+:xnack | wc -l"
-    ps = subprocess.Popen(cmd,
+    proc = subprocess.Popen(cmd,
                           shell=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
-    output = ps.communicate()[0]
+    output = proc.communicate()[0]
     return output.decode('utf-8').strip()
 
-  def set_driver_cmds(self, filename):
+  def set_driver_cmds(self):
+    if self.override:
+      var_list = self.override.split(',')
+      var_str = ""
+      for var in var_list:
+        var_str += var + " &&"
+
     with open(os.path.expanduser(self.model_path), "r",
               encoding='utf-8') as infile:
       for line in infile:
         try:
-          if (line.find('MIOpenDriver') == -1):
+          if line.find('MIOpenDriver') == -1:
             print(f"Skipping line '{line}'")
             continue
           idx = line.index('MIOpenDriver')
@@ -111,9 +116,24 @@ class Manager(mp.Process):
     print('#driver commands: %s', len(self.driver_cmds))
 
   def run(self):
+    """Main function to launch worker pool"""
     for gpu_id in range(self.num_gpus):
       queue.put(gpu_id)
     self.launch_pool()
+
+  def write_to_file(self, results):
+    """Write results to csv file"""
+    field_names = [
+        'Driver', 'k_time', 'wall_time', 'solver_id', 'solver_name', 'fdb_key'
+    ]
+    with open(os.path.expanduser(self.resfile), 'w+', encoding='utf-8') as outfile:
+      self.writer = csv.DictWriter(outfile, fieldnames=field_names)
+      self.writer.writeheader()
+      try:
+        self.writer.writerows(results)
+        print(f"Perf results written to: {self.resfile}")
+      except Exception as exp:
+        print(exp)
 
   def launch_pool(self):
     """Launch pool of driver cmds"""
@@ -123,19 +143,22 @@ class Manager(mp.Process):
     pool.close()
     pool.join()
     print(f"Size of results Q: {results_queue.qsize()}")
+    results = []
     while not results_queue.empty():
-      print(results_queue.get())
+      results.append(results_queue.get())
+    self.write_to_file(results)
 
   def parse_result(self, result):
+    """Potential to use result as it becomes available"""
     print(result)
 
   def run_driver_cmd(self, driver_cmd):
-    while (queue.empty()):
+    """Launch each driver cmd in subproc"""
+    while queue.empty():
       time.sleep(2)
       print('GPUs busy, sleeping')
     gpu_id = queue.get()
     cmd = driver_cmd.replace('GPU_ID', str(gpu_id))
-    ret = None
     try:
       print(f"Starting process on GPU {gpu_id}")
       print(cmd)
@@ -145,7 +168,6 @@ class Manager(mp.Process):
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT)
       p_out = proc.stdout.readlines()
-      k_time = -1
       res = None
       e = Entry()
       for line in p_out:
@@ -157,7 +179,7 @@ class Manager(mp.Process):
           e.cmd = line
           print(e.cmd)
           continue
-        if (line.find('Wall-clock Time') != -1):
+        if line.find('Wall-clock Time') != -1:
           res = re_Elapsed.findall(line)
           print("")
           print(res)
@@ -165,16 +187,16 @@ class Manager(mp.Process):
           e.wall_aux = res[1]
           e.wall_gwss = res[2]
           continue
-        if (re_Solver.match(line)):
+        if re_Solver.match(line):
           res = re_Solver.findall(line)[0]
           print(res)
           e.algo = res[0]
           e.sol_id = res[1]
           e.sol_name = res[2]
           continue
-        if (re_Key.match(line)):
+        if re_Key.match(line):
           e.fdb_key = re_Key.findall(line)[0]
-        if (re_GPU.match(line)):
+        if re_GPU.match(line):
           res = re_GPU.findall(line)
           print(res)
           e.sol_time = res[0]
@@ -197,10 +219,11 @@ class Manager(mp.Process):
       print(f"driver: {e.cmd}")
     finally:
       queue.put(gpu_id)
-    return res
+    return ret
 
 
 class Entry:
+  """Module to hold runtime values"""
 
   def __init__(self):
     self.cmd = ''
@@ -219,17 +242,6 @@ class Entry:
         self.sol_id, self.sol_name, self.sol_time, self.fdb_key
     ]
     return ",".join(atrs)
-
-
-def get_num_gpus():
-  """Get num_gpus"""
-  cmd = "/opt/rocm/bin/rocminfo | grep ${arch}:sramecc+:xnack | wc -l"
-  ps = subprocess.Popen(cmd,
-                        shell=True,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT)
-  output = ps.communicate()[0]
-  return output.decode('utf-8').strip()
 
 
 def parse_args():
@@ -312,7 +324,6 @@ def compare_file(new_results, old_results):
 def main():
   """Main function"""
   args = parse_args()
-  get_num_gpus()
 
   if args.compare_results:
     try:
