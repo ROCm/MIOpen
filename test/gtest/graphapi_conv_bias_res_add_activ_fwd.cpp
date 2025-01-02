@@ -487,20 +487,39 @@ public:
 } // end namespace conv_graph_api_test
 using namespace conv_graph_api_test;
 
-#define DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(type, datatype, dir)                  \
-    struct GPU_ConvBiasResAddActivation_##dir##_##type                              \
-        : GPU_ConvBiasResAddActivation_##dir<datatype>                              \
-    {                                                                               \
-    };                                                                              \
-    TEST_P(GPU_ConvBiasResAddActivation_##dir##_##type, Test) { Run(); }            \
-    INSTANTIATE_TEST_SUITE_P(Smoke,                                                 \
-                             GPU_ConvBiasResAddActivation_##dir##_##type,           \
-                             testing::Combine(testing::ValuesIn(ConvTestConfigs()), \
-                                              testing::ValuesIn({1.0f, 2.5f}),      \
-                                              testing::ValuesIn({1.0f, 2.0f}),      \
-                                              testing::Values(miopenTensorNDHWC))); \
-    TEST_F(GPU_ConvBiasResAddActivation_##dir##_##type, TestExceptions) { RunExceptionCheck(); }
+struct GPU_ConvBiasResAddActivation_fwd_FP16
+    : GPU_ConvBiasResAddActivation_fwd<half_float::half>
+{
+};
+TEST_P(GPU_ConvBiasResAddActivation_fwd_FP16, Test) { Run(); }
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                            GPU_ConvBiasResAddActivation_fwd_FP16,
+                            testing::Combine(testing::ValuesIn(ConvTestConfigs()),
+                                            testing::ValuesIn({1.0f, 2.5f}),
+                                            testing::ValuesIn({1.0f, 2.0f}),
+                                            testing::Values(miopenTensorNDHWC)));
+TEST_F(GPU_ConvBiasResAddActivation_fwd_FP16, TestExceptions) { RunExceptionCheck(); }
 
-DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP16, half_float::half, fwd);
-DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(FP32, float, fwd);
-DEFINE_GRAPH_API_CONV_BIAS_ACTIV_TEST(BFP16, bfloat16, fwd);
+struct GPU_ConvBiasResAddActivation_fwd_FP32 : GPU_ConvBiasResAddActivation_fwd<float>
+{
+};
+TEST_P(GPU_ConvBiasResAddActivation_fwd_FP32, Test) { Run(); }
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                            GPU_ConvBiasResAddActivation_fwd_FP32,
+                            testing::Combine(testing::ValuesIn(ConvTestConfigs()),
+                                            testing::ValuesIn({1.0f, 2.5f}),
+                                            testing::ValuesIn({1.0f, 2.0f}),
+                                            testing::Values(miopenTensorNDHWC)));
+TEST_F(GPU_ConvBiasResAddActivation_fwd_FP32, TestExceptions) { RunExceptionCheck(); }
+
+struct GPU_ConvBiasResAddActivation_fwd_BFP16 : GPU_ConvBiasResAddActivation_fwd<bfloat16>
+{
+};
+TEST_P(GPU_ConvBiasResAddActivation_fwd_BFP16, Test) { Run(); }
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                            GPU_ConvBiasResAddActivation_fwd_BFP16,
+                            testing::Combine(testing::ValuesIn(ConvTestConfigs()),
+                                            testing::ValuesIn({1.0f, 2.5f}),
+                                            testing::ValuesIn({1.0f, 2.0f}),
+                                            testing::Values(miopenTensorNDHWC)));
+TEST_F(GPU_ConvBiasResAddActivation_fwd_BFP16, TestExceptions) { RunExceptionCheck(); }
