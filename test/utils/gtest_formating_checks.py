@@ -9,7 +9,6 @@ FOLDER_PATH = "../../test/gtest"
 # Ignore list: Add test names or file paths you want to exclude
 IGNORE_LIST = {
     "CPU_MIOpenDriverRegressionBigTensorTest_FP32",
-    "../../test/gtest/reduce_custom_fp32.cpp",
     "../../test/gtest/binary_tensor_ops.cpp",
     "../../test/gtest/graphapi_conv_bias_res_add_activ_fwd.cpp",
     "../../test/gtest/unary_tensor_ops.cpp",
