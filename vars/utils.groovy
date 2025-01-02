@@ -413,7 +413,7 @@ def RunPerfTest(Map conf=[:]){
             jenkins_url = "${env.artifact_path}/${env.BRANCH_NAME}/lastSuccessfulBuild/artifact"
             try {
                 sh "rm -rf ${env.WORKSPACE}/install/bin/old_results/"
-                sh "wget -P ${env.WORKSPACE}/install/bin/old_results/ ${jenkins_url}/build/${filename}"
+                sh "wget -P ${env.WORKSPACE}/install/bin/old_results/ ${jenkins_url}/install/bin/perf_results/${filename}"
             }
             catch (Exception err){
                 currentBuild.result = 'SUCCESS'
