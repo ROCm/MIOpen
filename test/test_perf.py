@@ -35,8 +35,8 @@ import time
 from decimal import Decimal
 import multiprocessing as mp
 
-results_path = f"{os.path.dirname(__file__)}/perf_results"
-print(results_path)
+curr_path = os.path.abspath(os.path.dirname(__file__))
+results_path = curr_path + "/perf_results"
 TOLERANCE = -5  #tolerance 5%
 
 re_Elapsed = re.compile(r"(\d*\.*\d+)")
