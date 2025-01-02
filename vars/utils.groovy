@@ -408,7 +408,7 @@ def RunPerfTest(Map conf=[:]){
             {
                 sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/install/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/install/"
             }
-            archiveArtifacts artifacts: "${env.WORKSPACE}/install/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
+            archiveArtifacts artifacts: "install/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
             //sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/install/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/install/"
             jenkins_url = "${env.artifact_path}/${env.BRANCH_NAME}/lastSuccessfulBuild/artifact"
             try {
