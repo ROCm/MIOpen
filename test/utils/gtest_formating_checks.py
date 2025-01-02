@@ -10,9 +10,7 @@ FOLDER_PATH = "../../test/gtest"
 IGNORE_LIST = {
     "CPU_MIOpenDriverRegressionBigTensorTest_FP32",
     "../../test/gtest/binary_tensor_ops.cpp",
-    "../../test/gtest/graphapi_conv_bias_res_add_activ_fwd.cpp",
     "../../test/gtest/unary_tensor_ops.cpp",
-    "../../test/gtest/graphapi_operation_rng.cpp"
 }
 
 # Valid enums and Regex for validation
@@ -21,9 +19,9 @@ VALID_DATATYPES = {"FP8", "FP16", "FP32", "FP64", "BFP16", "BFP8", "I64", "I32",
 TESTSUITE_REGEX = re.compile(
     r"^(CPU|GPU)_[A-Za-z0-9]+(?:_[A-Za-z0-9]+)*_(" + "|".join(VALID_DATATYPES) + r")$"
 )
-TEST_P_REGEX = re.compile(r"TEST_P\(([^,]+),\s*([^)]+)\)")
-INSTANTIATE_TEST_REGEX = re.compile(r"INSTANTIATE_TEST_SUITE_P\(\s*([^\n,]+),\s*([^\n,]+),")
-ALLOW_UNINSTANTIATED_REGEX = re.compile(r"GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST\(\s*([^\)]+)\)")
+TEST_P_REGEX = re.compile(r"\bTEST_P\(([^,]+),\s*([^)]+)\)")
+INSTANTIATE_TEST_REGEX = re.compile(r"\bINSTANTIATE_TEST_SUITE_P\(\s*([^\n,]+),\s*([^\n,]+),")
+ALLOW_UNINSTANTIATED_REGEX = re.compile(r"\bGTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST\(\s*([^\)]+)\)")
 TEST_TYPE_REGEX = re.compile(r"^(Smoke|Full|Perf|Unit)([A-Za-z0-9]*)?$")
 
 

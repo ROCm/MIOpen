@@ -524,5 +524,5 @@ INSTANTIATE_TEST_SUITE_P(UnitIOff, CPU_GraphApiOperationRng_NONE, invalidAtLeast
 /* This one won't work as intended because seed is an optional attribute with a default value
  * and Graph API allows to finalize() if other attributes are valid.
 
-INSTANTIATE_TEST_SUITE_P(InvalidAtLeastSeeds, GraphApiOperationRng, invalidAtLeastSeeds);
+DISABLED_INSTANTIATE_TEST_SUITE_P(InvalidAtLeastSeeds, GraphApiOperationRng, invalidAtLeastSeeds);
 */
