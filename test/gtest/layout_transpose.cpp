@@ -222,7 +222,7 @@ auto gen_value =
 } // namespace
 
 template <typename T, class TRANSPOSE_SOL>
-struct LayoutTransposeTest_2D : public ::testing::TestWithParam<std::tuple<uint32_t, uint32_t>>
+struct LayoutTranspose_2D : public ::testing::TestWithParam<std::tuple<uint32_t, uint32_t>>
 {
 protected:
     miopen::ExecutionContext ctx;
@@ -304,7 +304,7 @@ protected:
 };
 
 template <typename T, class TRANSPOSE_SOL>
-struct LayoutTransposeTest_3D : public ::testing::TestWithParam<std::tuple<uint32_t, uint32_t>>
+struct LayoutTranspose_3D : public ::testing::TestWithParam<std::tuple<uint32_t, uint32_t>>
 {
 protected:
     miopen::ExecutionContext ctx;
@@ -406,54 +406,202 @@ protected:
     virtual void TearDown() override {}
 };
 
-#define DEFINE_LayoutTransposeTest_2D(type, naming_type, sol)                 \
-    struct GPU_LayoutTransposeTest_2D_##sol##_##naming_type                   \
-        : public LayoutTransposeTest_2D<type, miopen::sol>                    \
-    {                                                                         \
-    };                                                                        \
-    TEST_P(GPU_LayoutTransposeTest_2D_##sol##_##naming_type,                  \
-           LayoutTransposeTest_2D_##sol##_##type##_P)                         \
-    {                                                                         \
-        RunTest();                                                            \
-    }                                                                         \
-    INSTANTIATE_TEST_SUITE_P(                                                 \
-        Full,                                                                 \
-        GPU_LayoutTransposeTest_2D_##sol##_##naming_type,                     \
-        testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), \
-                         testing::ValuesIn(transpose_dims::get_channel_size())));
+struct GPU_2D_Default2Nhwc_FP32 : public LayoutTranspose_2D<float, miopen::TransposeSolutionDefault2Nhwc> { };
 
-#define DEFINE_2D_TYPED_TESTS(sol)                       \
-    DEFINE_LayoutTransposeTest_2D(float, FP32, sol);     \
-    DEFINE_LayoutTransposeTest_2D(float16, FP16, sol);   \
-    DEFINE_LayoutTransposeTest_2D(bfloat16, BFP16, sol); \
-    DEFINE_LayoutTransposeTest_2D(uint16_t, I16, sol);   \
-    DEFINE_LayoutTransposeTest_2D(uint8_t, I8, sol);
+TEST_P(GPU_2D_Default2Nhwc_FP32,
+        LayoutTranspose_2D_Default2Nhwc_float_P) { RunTest(); }
 
-DEFINE_2D_TYPED_TESTS(TransposeSolutionDefault2Nhwc);
-DEFINE_2D_TYPED_TESTS(TransposeSolutionNhwc2Default);
+INSTANTIATE_TEST_SUITE_P(Full, GPU_2D_Default2Nhwc_FP32, testing::Combine(
+    testing::ValuesIn(transpose_dims::get_batch_size()),
+    testing::ValuesIn(transpose_dims::get_channel_size())));
 
-#define DEFINE_LayoutTransposeTest_3D(type, naming_type, sol)                 \
-    struct GPU_LayoutTransposeTest_3D_##sol##_##naming_type                   \
-        : public LayoutTransposeTest_3D<type, miopen::sol>                    \
-    {                                                                         \
-    };                                                                        \
-    TEST_P(GPU_LayoutTransposeTest_3D_##sol##_##naming_type,                  \
-           LayoutTransposeTest_3D_##sol##_##type##_P)                         \
-    {                                                                         \
-        RunTest();                                                            \
-    }                                                                         \
-    INSTANTIATE_TEST_SUITE_P(                                                 \
-        Full,                                                                 \
-        GPU_LayoutTransposeTest_3D_##sol##_##naming_type,                     \
-        testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), \
-                         testing::ValuesIn(transpose_dims::get_channel_size())));
+struct GPU_2D_Default2Nhwc_FP16 : public LayoutTranspose_2D<float16, miopen::TransposeSolutionDefault2Nhwc> { };
 
-#define DEFINE_3D_TYPED_TESTS(sol)                       \
-    DEFINE_LayoutTransposeTest_3D(float, FP32, sol);     \
-    DEFINE_LayoutTransposeTest_3D(float16, FP16, sol);   \
-    DEFINE_LayoutTransposeTest_3D(bfloat16, BFP16, sol); \
-    DEFINE_LayoutTransposeTest_3D(uint16_t, I16, sol);   \
-    DEFINE_LayoutTransposeTest_3D(uint8_t, I8, sol);
+TEST_P(GPU_2D_Default2Nhwc_FP16,
+        LayoutTranspose_2D_Default2Nhwc_float16_P) { RunTest(); }
 
-DEFINE_3D_TYPED_TESTS(TransposeSolutionDefault2Ndhwc);
-DEFINE_3D_TYPED_TESTS(TransposeSolutionNdhwc2Default);
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_2D_Default2Nhwc_FP16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_2D_Default2Nhwc_BFP16 : public LayoutTranspose_2D<bfloat16, miopen::TransposeSolutionDefault2Nhwc> { };
+
+TEST_P(GPU_2D_Default2Nhwc_BFP16,
+        LayoutTranspose_2D_Default2Nhwc_bfloat16_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_2D_Default2Nhwc_BFP16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_2D_Default2Nhwc_I16 : public LayoutTranspose_2D<uint16_t, miopen::TransposeSolutionDefault2Nhwc> { };
+
+TEST_P(GPU_2D_Default2Nhwc_I16,
+        LayoutTranspose_2D_Default2Nhwc_uint16_t_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_2D_Default2Nhwc_I16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_2D_Default2Nhwc_I8 : public LayoutTranspose_2D<uint8_t, miopen::TransposeSolutionDefault2Nhwc> { };
+
+TEST_P(GPU_2D_Default2Nhwc_I8,
+        LayoutTranspose_2D_Default2Nhwc_uint8_t_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_2D_Default2Nhwc_I8,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_2D_Nhwc2Default_FP32 : public LayoutTranspose_2D<float, miopen::TransposeSolutionNhwc2Default> { };
+
+TEST_P(GPU_2D_Nhwc2Default_FP32,
+        LayoutTranspose_2D_Nhwc2Default_float_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_2D_Nhwc2Default_FP32,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_2D_Nhwc2Default_FP16 : public LayoutTranspose_2D<float16, miopen::TransposeSolutionNhwc2Default> { };
+
+TEST_P(GPU_2D_Nhwc2Default_FP16,
+        LayoutTranspose_2D_Nhwc2Default_float16_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_2D_Nhwc2Default_FP16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_2D_Nhwc2Default_BFP16 : public LayoutTranspose_2D<bfloat16, miopen::TransposeSolutionNhwc2Default> { };
+
+TEST_P(GPU_2D_Nhwc2Default_BFP16,
+        LayoutTranspose_2D_Nhwc2Default_bfloat16_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_2D_Nhwc2Default_BFP16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_2D_Nhwc2Default_I16 : public LayoutTranspose_2D<uint16_t, miopen::TransposeSolutionNhwc2Default> { };
+
+TEST_P(GPU_2D_Nhwc2Default_I16,
+        LayoutTranspose_2D_Nhwc2Default_uint16_t_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_2D_Nhwc2Default_I16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_2D_Nhwc2Default_I8 : public LayoutTranspose_2D<uint8_t, miopen::TransposeSolutionNhwc2Default> { };
+
+TEST_P(GPU_2D_Nhwc2Default_I8,
+        LayoutTranspose_2D_Nhwc2Default_uint8_t_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_2D_Nhwc2Default_I8,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+
+struct GPU_3D_Default2Nhwc_FP32 : public LayoutTranspose_2D<float, miopen::TransposeSolutionDefault2Nhwc> { };
+
+TEST_P(GPU_3D_Default2Nhwc_FP32,
+        LayoutTranspose_3D_Default2Nhwc_float_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_3D_Default2Nhwc_FP32,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_3D_Default2Nhwc_FP16 : public LayoutTranspose_2D<float16, miopen::TransposeSolutionDefault2Nhwc> { };
+
+TEST_P(GPU_3D_Default2Nhwc_FP16,
+        LayoutTranspose_3D_Default2Nhwc_float16_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_3D_Default2Nhwc_FP16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_3D_Default2Nhwc_BFP16 : public LayoutTranspose_2D<bfloat16, miopen::TransposeSolutionDefault2Nhwc> { };
+
+TEST_P(GPU_3D_Default2Nhwc_BFP16,
+        LayoutTranspose_3D_Default2Nhwc_bfloat16_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_3D_Default2Nhwc_BFP16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_3D_Default2Nhwc_I16 : public LayoutTranspose_2D<uint16_t, miopen::TransposeSolutionDefault2Nhwc> { };
+
+TEST_P(GPU_3D_Default2Nhwc_I16,
+        LayoutTranspose_3D_Default2Nhwc_uint16_t_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_3D_Default2Nhwc_I16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_3D_Default2Nhwc_I8 : public LayoutTranspose_2D<uint8_t, miopen::TransposeSolutionDefault2Nhwc> { };
+
+TEST_P(GPU_3D_Default2Nhwc_I8,
+        LayoutTranspose_3D_Default2Nhwc_uint8_t_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_3D_Default2Nhwc_I8,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_3D_Nhwc2Default_FP32 : public LayoutTranspose_2D<float, miopen::TransposeSolutionNhwc2Default> { };
+
+TEST_P(GPU_3D_Nhwc2Default_FP32,
+        LayoutTranspose_3D_Nhwc2Default_float_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_3D_Nhwc2Default_FP32,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_3D_Nhwc2Default_FP16 : public LayoutTranspose_2D<float16, miopen::TransposeSolutionNhwc2Default> { };
+
+TEST_P(GPU_3D_Nhwc2Default_FP16,
+        LayoutTranspose_3D_Nhwc2Default_float16_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_3D_Nhwc2Default_FP16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_3D_Nhwc2Default_BFP16 : public LayoutTranspose_2D<bfloat16, miopen::TransposeSolutionNhwc2Default> { };
+
+TEST_P(GPU_3D_Nhwc2Default_BFP16,
+        LayoutTranspose_3D_Nhwc2Default_bfloat16_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_3D_Nhwc2Default_BFP16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_3D_Nhwc2Default_I16 : public LayoutTranspose_2D<uint16_t, miopen::TransposeSolutionNhwc2Default> { };
+
+TEST_P(GPU_3D_Nhwc2Default_I16,
+        LayoutTranspose_3D_Nhwc2Default_uint16_t_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_3D_Nhwc2Default_I16,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));
+
+struct GPU_3D_Nhwc2Default_I8 : public LayoutTranspose_2D<uint8_t, miopen::TransposeSolutionNhwc2Default> { };
+
+TEST_P(GPU_3D_Nhwc2Default_I8,
+        LayoutTranspose_3D_Nhwc2Default_uint8_t_P) { RunTest(); }
+
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_3D_Nhwc2Default_I8,
+    testing::Combine(testing::ValuesIn(transpose_dims::get_batch_size()), testing::ValuesIn(transpose_dims::get_channel_size())));

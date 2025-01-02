@@ -11,7 +11,6 @@ IGNORE_LIST = {
     "CPU_MIOpenDriverRegressionBigTensorTest_FP32",
     "../../test/gtest/reduce_custom_fp32.cpp",
     "../../test/gtest/binary_tensor_ops.cpp",
-    "../../test/gtest/layout_transpose.cpp",
     "../../test/gtest/graphapi_conv_bias_res_add_activ_fwd.cpp",
     "../../test/gtest/unary_tensor_ops.cpp",
     "../../test/gtest/graphapi_operation_rng.cpp"
