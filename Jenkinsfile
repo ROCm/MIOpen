@@ -7,8 +7,8 @@ echo "${util_lib}"
 
 library "${util_lib}"
 
-library "jenkins-shared@$branch_name"
-def utils = load "vars/utils.groovy"
+//library "jenkins-shared@$branch_name"
+//def utils = load "vars/utils.groovy"
 
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
