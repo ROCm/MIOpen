@@ -866,6 +866,7 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script {
+                        utils.buildHipClangJobAndReboot( setup_flags: Full_test)
                         }
                     }
                 }
