@@ -342,3 +342,84 @@ extern "C" __global__ void Op4dTensorGeneric(MIOPEN_TYPE* a,
 }
 
 #endif
+
+#ifdef USE_4D_TENSOR_GENERIC_NEW
+// NCHW
+extern "C" __global__ void Op4dTensorGenericNew(const MIOPEN_TYPE* a,
+                                                const MIOPEN_TYPE* b,
+                                                MIOPEN_TYPE* c,
+                                                const uint64_t Aoffset,
+                                                const uint64_t Boffset,
+                                                const uint64_t Coffset,
+                                                const uint32_t b_c,
+                                                const uint32_t b_h,
+                                                const uint32_t b_w,
+                                                const uint32_t c_c,
+                                                const uint32_t c_h,
+                                                const uint32_t c_w,
+                                                const uint32_t a_nstride,
+                                                const uint32_t a_cstride,
+                                                const uint32_t a_hstride,
+                                                const uint32_t a_wstride,
+                                                const uint32_t b_nstride,
+                                                const uint32_t b_cstride,
+                                                const uint32_t b_hstride,
+                                                const uint32_t b_wstride,
+                                                const uint32_t c_nstride,
+                                                const uint32_t c_cstride,
+                                                const uint32_t c_hstride,
+                                                const uint32_t c_wstride,
+                                                const MIOPEN_TYPE alpha0,
+                                                const MIOPEN_TYPE alpha1,
+                                                const MIOPEN_TYPE beta,
+                                                const uint32_t total_work,
+                                                const bool use_beta)
+{
+    const MIOPEN_TYPE* a_off = a + Aoffset;
+    const MIOPEN_TYPE* b_off = b + Boffset;
+    MIOPEN_TYPE* c_off       = c + Coffset;
+
+    auto gid          = blockIdx.x * blockDim.x + threadIdx.x;
+    const auto* a_ptr = a_off + (gid / (c_c * c_h * c_w)) * a_nstride +
+                        ((gid % (c_c * c_h * c_w)) / (c_h * c_w)) * a_cstride +
+                        ((gid % (c_h * c_w)) / c_w) * a_hstride + (gid % c_w) * a_wstride;
+    auto* c_ptr = c_off + (gid / (c_c * c_h * c_w)) * c_nstride +
+                  ((gid % (c_c * c_h * c_w)) / (c_h * c_w)) * c_cstride +
+                  ((gid % (c_h * c_w)) / c_w) * c_hstride + (gid % c_w) * c_wstride;
+
+    const auto step   = gridDim.x * blockDim.x;
+    const auto a_step = (step / (c_c * c_h * c_w)) * a_nstride +
+                        ((step % (c_c * c_h * c_w)) / (c_h * c_w)) * a_cstride +
+                        ((step % (c_h * c_w)) / c_w) * a_hstride + (step % c_w) * a_wstride;
+    const auto c_step = (step / (c_c * c_h * c_w)) * c_nstride +
+                        ((step % (c_c * c_h * c_w)) / (c_h * c_w)) * c_cstride +
+                        ((step % (c_h * c_w)) / c_w) * c_hstride + (step % c_w) * c_wstride;
+
+    const auto c_end = c_off + total_work * c_nstride;
+    while(c_ptr < c_end)
+    {
+        const auto* b_ptr = b_off;
+        if(b_nstride != 0)
+            b_ptr += (gid / (b_c * b_h * b_w)) * b_nstride;
+
+        if(b_cstride != 0)
+            b_ptr += ((gid % (b_c * b_h * b_w)) / (b_h * b_w)) * b_cstride;
+
+        if(b_hstride != 0)
+            b_ptr += ((gid % (b_h * b_w)) / b_w) * b_hstride;
+
+        if(b_wstride != 0)
+            b_ptr += (gid % b_w) * b_wstride;
+
+        auto a_val = *a_ptr;
+        auto b_val = *b_ptr;
+        auto c_val = use_beta ? *c_ptr : static_cast<MIOPEN_TYPE>(0);
+        *c_ptr     = MIOPEN_TENSOR_OP(a_val * alpha0, b_val * alpha1) + c_val * beta;
+
+        a_ptr += a_step;
+        c_ptr += c_step;
+        gid += step;
+    }
+}
+
+#endif
