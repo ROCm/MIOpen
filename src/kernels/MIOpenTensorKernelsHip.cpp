@@ -119,7 +119,7 @@ extern "C" __global__ void Op2dTensorGeneric(const MIOPEN_TYPE* a,
                                              const MIOPEN_TYPE alpha1,
                                              const MIOPEN_TYPE beta,
                                              const DIM_TYPE total_work,
-                                             const bool use_betaa)
+                                             const bool use_beta)
 {
     const MIOPEN_TYPE* a_off = a + Aoffset;
     const MIOPEN_TYPE* b_off = b + Boffset;
