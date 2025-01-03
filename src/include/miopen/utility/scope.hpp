@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,28 +23,52 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/config.h>
 
-#if MIOPEN_BACKEND_HIP
-#include "log.hpp"
+#pragma once
 
-TEST(CPU_LOG_TEST_NEG_NONE, AssertLogCmdOutput_Neg)
+#include <type_traits>
+#include <utility>
+
+namespace miopen {
+
+/* The implementation of scope_exit https://en.cppreference.com/w/cpp/experimental/scope_exit
+ * Once it is in STL we can remove this implementation
+ */
+
+template <typename ExitHandler>
+class scope_exit
 {
-    TestLogFun(miopen::debug::LogCmdConvolution, logConv, false);
-}
+    ExitHandler mHandler;
+    bool mActive = true;
 
-TEST(CPU_LOG_TEST_NEG_NONE, AssertLogFindCmdOutput_Neg)
-{
-    TestLogFun(miopen::debug::LogCmdFindConvolution, logFindConv, false);
-}
+public:
+    explicit scope_exit(const ExitHandler& eh) noexcept : mHandler(eh)
+    {
+        static_assert(noexcept(ExitHandler(eh)), "A Handler with throwing ctor is useless");
+    }
+    explicit scope_exit(ExitHandler&& eh) noexcept : mHandler(std::move(eh))
+    {
+        static_assert(noexcept(ExitHandler(std::move(eh))),
+                      "A Handler with throwing ctor is useless");
+    }
 
-TEST(CPU_LOG_TEST_NEG_NONE, AssertTestLogCmdCBAFusionOutput_Neg)
-{
-    TestLogCmdCBAFusion(miopen::debug::LogCmdFusion, logFusionConvBiasActiv, false);
-}
+    ~scope_exit()
+    {
+        if(mActive)
+        {
+            mHandler();
+        }
+    }
 
-TEST(CPU_LOG_TEST_NEG_NONE, AssertTestLogCmdBNormFusionOutput_Neg)
-{
-    TestLogCmdBNormFusion(miopen::debug::LogCmdFusion, logBnormActiv, false);
-}
-#endif
+    scope_exit(const scope_exit&) = delete;
+    scope_exit& operator=(const scope_exit&) = delete;
+    void release() { mActive = false; };
+};
+
+template <typename ExitHandler>
+scope_exit(const ExitHandler&) -> scope_exit<std::decay_t<ExitHandler>>;
+
+template <typename ExitHandler>
+scope_exit(ExitHandler&&) -> scope_exit<std::decay_t<ExitHandler>>;
+
+} // namespace miopen
