@@ -75,9 +75,8 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
         if(roisDesc.GetLengths()[1] != 5)
         {
-            MIOPEN_THROW(
-                miopenStatusBadParm,
-                "RoIAlignForward: rois tensor should have 5 elements in the second dimension");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "RoIAlignForward: rois tensor should have shape in format [K, 5]");
         }
 
         return true;
@@ -111,14 +110,9 @@ struct FwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllPacked() const
+    bool IsAllContiguous() const
     {
-        if(!inputDesc.IsPacked() || !roisDesc.IsPacked() || !outputDesc.IsPacked())
-        {
-            return false;
-        }
-
-        return true;
+        return inputDesc.IsContiguous() && roisDesc.IsContiguous() && outputDesc.IsContiguous();
     }
 
     NetworkConfig MakeNetworkConfig() const override;
@@ -211,6 +205,12 @@ struct BwdProblemDescription : ProblemDescriptionBase
         }
 
         return true;
+    }
+
+    bool IsAllContiguous() const
+    {
+        return inputGradDesc.IsContiguous() && roisDesc.IsContiguous() &&
+               outputGradDesc.IsContiguous();
     }
 
     NetworkConfig MakeNetworkConfig() const override;

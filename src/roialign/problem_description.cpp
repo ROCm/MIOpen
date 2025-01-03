@@ -23,11 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/names.hpp"
-#include <sstream>
 
 #include <miopen/roialign/problem_description.hpp>
-// #include <miopen/names.hpp>
+
+#include <sstream>
 
 namespace miopen {
 
@@ -35,17 +34,19 @@ namespace roialign {
 
 NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype         = inputDesc.GetType();
-    auto input_lengths = inputDesc.GetLengths();
+    auto dtype          = inputDesc.GetType();
+    auto output_lengths = outputDesc.GetLengths();
 
     std::ostringstream oss;
 
     oss << "RoIAlign_fwd";
     oss << "dtype" << dtype;
-    oss << "C" << input_lengths[1];
-    oss << "K" << roisDesc.GetLengths()[0];
-    oss << "OH" << alignedHeight;
-    oss << "OW" << alignedWidth;
+
+    // output shape is {K, C, OH, OW}
+    for(auto length : output_lengths)
+        oss << length << ',';
+
+    oss << "is_all_contiguous" << IsAllContiguous();
 
     return NetworkConfig{oss.str()};
 }
@@ -65,6 +66,8 @@ NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
     oss << "K" << roisDesc.GetLengths()[0];
     oss << "OH" << alignedHeight;
     oss << "OW" << alignedWidth;
+
+    oss << "is_all_contiguous" << IsAllContiguous();
 
     return NetworkConfig{oss.str()};
 }

@@ -47,14 +47,26 @@ namespace miopen {
 namespace solver {
 namespace roialign {
 
-bool IsImprovementOverROCm(const miopen::roialign::BwdProblemDescription& problem) { return true; }
+bool IsImprovementOverROCm(const miopen::roialign::BwdProblemDescription& problem)
+{
+    auto input_grad_dtype = problem.GetInputGradDesc().GetType();
+    auto input_numel      = problem.GetInputGradDesc().GetElementSize();
+
+    // input.shape = [N, C, H, W]
+    // input_numel smaller than 16^4 gives better performance
+    auto is_small_size   = input_numel < (16ULL * 16 * 16 * 16);
+    bool is_fp16_improve = (problem.IsAllContiguous() || is_small_size);
+
+    return (input_grad_dtype == miopenBFloat16) ||
+           (input_grad_dtype == miopenHalf && is_fp16_improve);
+}
 
 bool RoIAlignBackward::IsApplicable(const ExecutionContext& context,
                                     const miopen::roialign::BwdProblemDescription& problem) const
 {
-    if(!(problem.GetOutputGradDesc().GetType() == miopenFloat ||
-         problem.GetOutputGradDesc().GetType() == miopenHalf ||
-         problem.GetOutputGradDesc().GetType() == miopenBFloat16))
+    if(!(problem.GetInputGradDesc().GetType() == miopenFloat ||
+         problem.GetInputGradDesc().GetType() == miopenHalf ||
+         problem.GetInputGradDesc().GetType() == miopenBFloat16))
         return false;
 
     if(!IsImprovementOverROCm(problem))

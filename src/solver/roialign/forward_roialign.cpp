@@ -46,8 +46,6 @@ namespace miopen {
 namespace solver {
 namespace roialign {
 
-bool IsImprovementOverROCm(const miopen::roialign::FwdProblemDescription& problem) { return true; }
-
 bool RoIAlignForward::IsApplicable(const ExecutionContext& context,
                                    const miopen::roialign::FwdProblemDescription& problem) const
 {
@@ -56,8 +54,10 @@ bool RoIAlignForward::IsApplicable(const ExecutionContext& context,
          problem.GetInputDesc().GetType() == miopenBFloat16))
         return false;
 
-    if(!IsImprovementOverROCm(problem))
+    if(!problem.IsAllContiguous())
+    {
         return false;
+    }
 
     return true;
 }

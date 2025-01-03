@@ -154,12 +154,20 @@ template <typename Tgpu, typename Tref>
 int RoIAlignDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Only run forward pass (Default=1)", "int");
-    inflags.AddTensorFlag("input", 'I', "1x1x8x8", "Input tensor dimensions (Default=1x1x8x8)");
+    inflags.AddInputFlag(
+        "input",
+        'I',
+        "1x1x8x8",
+        "Input tensor dimensions (Default=1x1x8x8)\nFormat: NxCxHxW[,LayoutOrStrides]",
+        "tensor descriptor");
     inflags.AddInputFlag(
         "is-contiguous", 'C', "1", "Tensor is contiguous or not (Default=1)", "int");
     inflags.AddInputFlag("num-rois", 'K', "2", "Number of RoIs (Default=2)", "int");
-
-    inflags.AddTensorFlag("output-hw", 'O', "2x2", "Output Height and Width (Default=2x2)");
+    inflags.AddInputFlag("output-hw",
+                         'O',
+                         "2x2",
+                         "Output height and width (Default=2x2)\nFormat: OHxOW",
+                         "tensor descriptor");
     inflags.AddInputFlag("spatial-scale", 's', "1.0", "Spatial Scale (Default=1.0)", "float");
     inflags.AddInputFlag("sampling-ratio", 'r', "-1", "Sampling Ratio (Default=-1)", "int");
     inflags.AddInputFlag("aligned", 'a', "0", "Aligned (Default=0)", "int");
@@ -200,6 +208,7 @@ int RoIAlignDriver<Tgpu, Tref>::GetandSetData()
 
     auto K                     = inflags.GetValueInt("num-rois");
     std::vector<int> rois_dims = {K, 5};
+    auto rois_strides          = ComputeStrides(rois_dims);
 
     auto C = input_dims[1];
 
@@ -209,7 +218,7 @@ int RoIAlignDriver<Tgpu, Tref>::GetandSetData()
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
     if(SetTensorNd(inputGradDesc, input_dims, input_strides, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input grad tensor: " + inflags.GetValueStr("input") + ".");
-    if(SetTensorNd(roisDesc, rois_dims, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(roisDesc, rois_dims, rois_strides, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing RoIs tensor.");
     if(SetTensorNd(outputDesc, output_dims, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output tensor.");
@@ -265,10 +274,11 @@ int RoIAlignDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         Tgpu x2 = prng::gen_0_to_B<Tgpu>(static_cast<Tgpu>(W));
         Tgpu y2 = prng::gen_0_to_B<Tgpu>(static_cast<Tgpu>(H));
 
-        rois[rois_tv.get_tensor_view_idx({i, 1})] = x1 < x2 ? x1 : x2;
-        rois[rois_tv.get_tensor_view_idx({i, 2})] = y1 < y2 ? y1 : y2;
-        rois[rois_tv.get_tensor_view_idx({i, 3})] = x1 < x2 ? x2 : x1;
-        rois[rois_tv.get_tensor_view_idx({i, 4})] = y1 < y2 ? y2 : y1;
+        // Make sure x1 < x2 and y1 < y2
+        rois[rois_tv.get_tensor_view_idx({i, 1})] = std::min(x1, x2);
+        rois[rois_tv.get_tensor_view_idx({i, 2})] = std::min(y1, y2);
+        rois[rois_tv.get_tensor_view_idx({i, 3})] = std::max(x1, x2);
+        rois[rois_tv.get_tensor_view_idx({i, 4})] = std::max(y1, y2);
     }
 
     if(rois_dev->ToGPU(GetStream(), rois.data()) != 0)
@@ -294,10 +304,8 @@ int RoIAlignDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(forw == 0 || forw == 2)
     {
-        for(size_t i = 0; i < output_size; i++)
-        {
-            output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        }
+        // Fill output_grad tensor with 1 for performance benchmark purposes
+        std::fill(output_grad.begin(), output_grad.end(), static_cast<Tgpu>(1));
 
         if(output_grad_dev->ToGPU(GetStream(), output_grad.data()) != 0)
         {
@@ -484,8 +492,8 @@ int RoIAlignDriver<Tgpu, Tref>::VerifyForward()
         return EC_VerifyFwd;
     }
 
-    std::cout << "Forward MedRoIAlignian Verifies on CPU and GPU (output_error: " << output_error
-              << ")" << std::endl;
+    std::cout << "Forward RoIAlign Verifies on CPU and GPU (output_error: " << output_error << ")"
+              << std::endl;
 
     return miopenStatusSuccess;
 }
