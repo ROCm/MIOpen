@@ -411,22 +411,24 @@ def RunPerfTest(Map conf=[:]){
             archiveArtifacts artifacts: "install/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
             //sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/install/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/install/"
             jenkins_url = "${env.artifact_path}/${env.BRANCH_NAME}/lastSuccessfulBuild/artifact"
-            //try {
-            //    sh "rm -rf ${env.WORKSPACE}/install/bin/old_results/"
-            //    sh "wget -P ${env.WORKSPACE}/install/bin/old_results/ ${jenkins_url}/build/perf_results/${filename}"
-            //}
-            //catch (Exception err){
-            //    currentBuild.result = 'SUCCESS'
-            //}
+            if(params.COMPARE_TO_BASE)
+            {
+              try {
+                  sh "rm -rf ${env.WORKSPACE}/install/bin/old_results/"
+                  sh "wget -P ${env.WORKSPACE}/install/bin/old_results/ ${jenkins_url}/install/bin/perf_results/${filename}"
+              }
+              catch (Exception err){
+                  currentBuild.result = 'SUCCESS'
+              }
 
-            //try{
-            //   sh "${env.WORKSPACE}/install/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/install/bin/old_results --filename ${filename}"
-            //}
-            //catch (Exception err){
-            //    currentBuild.result = 'SUCCESS'
-            //}
-            //cleanWs()
-            currentBuild.result = 'SUCCESS'
+              try{
+                 sh "${env.WORKSPACE}/install/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/install/bin/old_results --filename ${filename}"
+              }
+              catch (Exception err){
+                  currentBuild.result = 'SUCCESS'
+              }
+              //cleanWs()
+            }
         }
         }
     }

@@ -21,10 +21,11 @@ pipeline {
       NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
   }
   parameters {
-    string(name: 'PERF_TEST_OVERRIDE', defaultValue: '',  description: 'Add extra env vars for the MIOpenDriver cmd, comma separated')
+    booleanParam(name: 'COMPARE_TO_BASE', defaultValue : true, description: 'Compare test results to base results')
     booleanParam(name: 'PERF_TEST_FP32', defaultValue : true, description: 'Run FP16 tests')
     booleanParam(name: 'PERF_TEST_FP16', defaultValue : true, description: 'Run FP16 tests')
     booleanParam(name: 'PERF_TEST_ARCHIVE', defaultValue : true, description: 'Archive results from this run')
+    string(name: 'PERF_TEST_OVERRIDE', defaultValue: '',  description: 'Add extra env vars for the MIOpenDriver cmd, comma separated')
   }
   stages {
         stage('Build Docker'){
