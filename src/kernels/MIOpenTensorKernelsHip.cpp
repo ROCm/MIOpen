@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -61,13 +62,13 @@ extern "C" __global__ void Op1dTensorGeneric(const MIOPEN_TYPE* a,
                                              const uint64_t Aoffset,
                                              const uint64_t Boffset,
                                              const uint64_t Coffset,
-                                             const DIM_TYPE a_nstride,
-                                             const DIM_TYPE b_nstride,
-                                             const DIM_TYPE c_nstride,
+                                             const uint32_t a_nstride,
+                                             const uint32_t b_nstride,
+                                             const uint32_t c_nstride,
                                              const MIOPEN_TYPE alpha0,
                                              const MIOPEN_TYPE alpha1,
                                              const MIOPEN_TYPE beta,
-                                             const DIM_TYPE total_work,
+                                             const uint32_t total_work,
                                              const bool use_beta)
 {
     const MIOPEN_TYPE* a_off = a + Aoffset;
@@ -118,7 +119,7 @@ extern "C" __global__ void Op2dTensorGeneric(const MIOPEN_TYPE* a,
                                              const MIOPEN_TYPE alpha1,
                                              const MIOPEN_TYPE beta,
                                              const DIM_TYPE total_work,
-                                             const bool use_beta)
+                                             const bool use_betaa)
 {
     const MIOPEN_TYPE* a_off = a + Aoffset;
     const MIOPEN_TYPE* b_off = b + Boffset;
@@ -343,37 +344,37 @@ extern "C" __global__ void Op4dTensorGeneric(MIOPEN_TYPE* a,
 
 #endif
 
-#ifdef USE_4D_TENSOR_GENERIC_NEW
+#ifdef USE_4D_TENSOR_GENERIC_2
 // NCHW
-extern "C" __global__ void Op4dTensorGenericNew(const MIOPEN_TYPE* a,
-                                                const MIOPEN_TYPE* b,
-                                                MIOPEN_TYPE* c,
-                                                const uint64_t Aoffset,
-                                                const uint64_t Boffset,
-                                                const uint64_t Coffset,
-                                                const uint32_t b_c,
-                                                const uint32_t b_h,
-                                                const uint32_t b_w,
-                                                const uint32_t c_c,
-                                                const uint32_t c_h,
-                                                const uint32_t c_w,
-                                                const uint32_t a_nstride,
-                                                const uint32_t a_cstride,
-                                                const uint32_t a_hstride,
-                                                const uint32_t a_wstride,
-                                                const uint32_t b_nstride,
-                                                const uint32_t b_cstride,
-                                                const uint32_t b_hstride,
-                                                const uint32_t b_wstride,
-                                                const uint32_t c_nstride,
-                                                const uint32_t c_cstride,
-                                                const uint32_t c_hstride,
-                                                const uint32_t c_wstride,
-                                                const MIOPEN_TYPE alpha0,
-                                                const MIOPEN_TYPE alpha1,
-                                                const MIOPEN_TYPE beta,
-                                                const uint32_t total_work,
-                                                const bool use_beta)
+extern "C" __global__ void Op4dTensorGeneric2(const MIOPEN_TYPE* a,
+                                              const MIOPEN_TYPE* b,
+                                              MIOPEN_TYPE* c,
+                                              const uint64_t Aoffset,
+                                              const uint64_t Boffset,
+                                              const uint64_t Coffset,
+                                              const uint32_t b_c,
+                                              const uint32_t b_h,
+                                              const uint32_t b_w,
+                                              const uint32_t c_c,
+                                              const uint32_t c_h,
+                                              const uint32_t c_w,
+                                              const uint32_t a_nstride,
+                                              const uint32_t a_cstride,
+                                              const uint32_t a_hstride,
+                                              const uint32_t a_wstride,
+                                              const uint32_t b_nstride,
+                                              const uint32_t b_cstride,
+                                              const uint32_t b_hstride,
+                                              const uint32_t b_wstride,
+                                              const uint32_t c_nstride,
+                                              const uint32_t c_cstride,
+                                              const uint32_t c_hstride,
+                                              const uint32_t c_wstride,
+                                              const MIOPEN_TYPE alpha0,
+                                              const MIOPEN_TYPE alpha1,
+                                              const MIOPEN_TYPE beta,
+                                              const uint32_t total_work,
+                                              const bool use_beta)
 {
     const MIOPEN_TYPE* a_off = a + Aoffset;
     const MIOPEN_TYPE* b_off = b + Boffset;

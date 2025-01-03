@@ -265,11 +265,10 @@ option( WORKAROUND_ISSUE_1148 "" ${WORKAROUND_ISSUE_1148_DEFAULT})
 
 if(MIOPEN_TEST_INT8)
     set(SKIP_ALL_EXCEPT_TESTS
-              test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set
-              test_tensor_transform test_conv2d test_conv2d_find2)
+              test_tensor_vec test_tensor_trans test_tensor_transform test_conv2d test_conv2d_find2)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS
-              test_conv2d test_conv2d_find2 test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
+              test_conv2d test_conv2d_find2 test_tensor_vec test_immed_conv2d
               test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv
               test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16
