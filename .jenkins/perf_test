@@ -8,9 +8,17 @@
 //library "${util_lib}"
 
 pipeline {
-  agent { node { label 'alex' } }
+  agent { node { label 'austin' } }
     environment {
       docker_args="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v=/var/jenkins/:/var/jenkins"
+      extra_log_env   = " MIOPEN_LOG_LEVEL=5 "
+      Fp16_flags      = " -DMIOPEN_TEST_HALF=Off"
+      Bf16_flags      = " -DMIOPEN_TEST_BFLOAT16=Off"
+      Int8_flags      = " -DMIOPEN_TEST_INT8=Off"
+      Full_test       = " -DMIOPEN_TEST_ALL=Off"
+      Smoke_targets   = " check MIOpenDriver"
+      NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
+      NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
   }
   parameters {
     string(name: 'PERF_TEST_OVERRIDE', defaultValue: '',  description: 'Add extra env vars for the MIOpenDriver cmd, comma separated')
@@ -19,31 +27,53 @@ pipeline {
     booleanParam(name: 'PERF_TEST_ARCHIVE', defaultValue : true, description: 'Archive results from this run')
   }
   stages {
+        stage('Build Docker'){
+            steps{
+                script {
+                 echo "Build Docker Stage"
+                def utils = load "vars/utils.groovy"
+                utils.getDockerImage()
+                }
+            }
+        }
+        /*stage("Packages") {
+            parallel {
+                stage("HIP Package") {
+                    agent{ node { label 'nogpu'} }
+                    steps{
+                        script {
+                        echo "Packages Stage"
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot( package_build: "true", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false)
+                        }
+                    }
+                }
+            }
+        }*/
         stage("Performance Tests - gfx90a") {
             //when {
             //    expression {params.PERF_TEST && params.TARGET_GFX90A}
             //}
             parallel{
-                stage('Fp32 BS128 Hip Performance Resnet50_v1.5 gfx1201'){
+                stage('Fp32 BS128 Hip Performance Resnet50_v1.5 gfx90A'){
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
                     steps{
-                        echo "TEST"
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt" )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt", package_build: "true", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false )
                         }
                     }
-                }
-                /*
-                stage('Fp32 BS256 Hip Performance Resnet50_v1.5 gfx1201'){
+                }/*
+                stage('Fp32 BS256 Hip Performance Resnet50_v1.5 gfx90A'){
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS256.txt" )
+                        def utils = load "vars/utils.groovy"
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS256.txt", package_build: "true", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false  )
                         }
                     }
                 }

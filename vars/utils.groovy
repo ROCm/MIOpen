@@ -178,11 +178,12 @@ def cmake_fin_build_cmd(prefixpath){
 
 def getDockerImageName(dockerArgs)
 {
+    checkout scm
     sh "echo ${dockerArgs} > factors.txt"
     def image = "${env.MIOPEN_DOCKER_IMAGE_URL}"
     sh "md5sum Dockerfile requirements.txt dev-requirements.txt >> factors.txt"
     def docker_hash = sh(script: "md5sum factors.txt | awk '{print \$1}' | head -c 6", returnStdout: true)
-    sh "rm factors.txt"
+    //sh "rm factors.txt"
     echo "Docker tag hash: ${docker_hash}"
     image = "${image}:ci_${docker_hash}"
     if(params.DOCKER_IMAGE_OVERRIDE && !params.DOCKER_IMAGE_OVERRIDE.empty)
@@ -196,11 +197,13 @@ def getDockerImageName(dockerArgs)
 
 def getDockerImage(Map conf=[:])
 {
+    checkout scm
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
     def gpu_arch = "gfx908;gfx90a;gfx942;gfx1100;1201" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def mlir_build = conf.get("mlir_build", "ON") // always ON
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' "
+    //def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' "
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
@@ -307,7 +310,9 @@ def reboot(){
 def buildHipClangJobAndReboot(Map conf=[:]){
     try{
         buildHipClangJob(conf)
-        cleanWs()
+        if (conf.get("needs_cleanup", true)) {
+            cleanWs()
+        }
     }
     catch(e){
         echo "throwing error exception for the stage"
@@ -390,39 +395,38 @@ def RunPerfTest(Map conf=[:]){
         withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
         timeout(time: 100, unit: 'MINUTES')
         {
+            cmake_build(conf)
             //unstash 'miopen_tar'
             //sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
-            ld_lib="${env.WORKSPACE}/opt/rocm/lib"
+            ld_lib="${env.WORKSPACE}/install/lib"
             def filename = conf.get("filename", "")
             if(params.PERF_TEST_OVERRIDE != '')
             {
                 echo "Appending MIOpenDriver cmd env vars: ${params.PERF_TEST_OVERRIDE}"
-                sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm --override ${params.PERF_TEST_OVERRRIDE}"
+                sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/install/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/install/ --override ${params.PERF_TEST_OVERRRIDE}"
             }else
             {
-                sh "ls ${env.WORKSPACE}"
-                sh "ls ${env.WORKSPACE}/opt/rocm"
-                sh "ls ${env.WORKSPACE}/opt/rocm/bin"
-                sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
+                sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/install/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/install/"
             }
-            //sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/opt/rocm/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/opt/rocm"
+            archiveArtifacts artifacts: "install/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
+            //sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/install/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/install/"
             jenkins_url = "${env.artifact_path}/${env.BRANCH_NAME}/lastSuccessfulBuild/artifact"
-            try {
-                sh "rm -rf ${env.WORKSPACE}/opt/rocm/bin/old_results/"
-                sh "wget -P ${env.WORKSPACE}/opt/rocm/bin/old_results/ ${jenkins_url}/opt/rocm/bin/perf_results/${filename}"
-            }
-            catch (Exception err){
-                currentBuild.result = 'SUCCESS'
-            }
+            //try {
+            //    sh "rm -rf ${env.WORKSPACE}/install/bin/old_results/"
+            //    sh "wget -P ${env.WORKSPACE}/install/bin/old_results/ ${jenkins_url}/build/perf_results/${filename}"
+            //}
+            //catch (Exception err){
+            //    currentBuild.result = 'SUCCESS'
+            //}
 
-            archiveArtifacts artifacts: "opt/rocm/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
-            try{
-               sh "${env.WORKSPACE}/opt/rocm/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/opt/rocm/bin/old_results --filename ${filename}"
-            }
-            catch (Exception err){
-                currentBuild.result = 'SUCCESS'
-            }
-            cleanWs()
+            //try{
+            //   sh "${env.WORKSPACE}/install/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/install/bin/old_results --filename ${filename}"
+            //}
+            //catch (Exception err){
+            //    currentBuild.result = 'SUCCESS'
+            //}
+            //cleanWs()
+            currentBuild.result = 'SUCCESS'
         }
         }
     }

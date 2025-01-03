@@ -1,14 +1,18 @@
-def shared_library_branch = scm.branches[0].name
-if (shared_library_branch .contains("*/")) {
-    shared_library_branch  = shared_library_branch.split("\\*/")[1]
-   }
-def util_lib="jenkins-shared@${shared_library_branch}"
-echo "${util_lib}"
+def rocmnode(name) {
+    return '(rocmtest || miopen) && (' + name + ')'
+}
 
-library "${util_lib}"
+//def shared_library_branch = scm.branches[0].name
+//if (shared_library_branch .contains("*/")) {
+//    shared_library_branch  = shared_library_branch.split("\\*/")[1]
+//   }
+//def util_lib="jenkins-shared@${shared_library_branch}"
+//echo "${util_lib}"
 
-library "jenkins-shared@$branch_name"
-def utils = load "vars/utils.groovy"
+//library "${util_lib}"
+
+//library "jenkins-shared@$branch_name"
+//def utils = load "vars/utils.groovy"
 
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
@@ -151,9 +155,10 @@ pipeline {
             when {
                 expression { params.BUILD_DOCKER && params.TARGET_NOGPU && params.DATATYPE_NA }
             }
-            agent{ label utils.rocmnode("gfx90a") }
+            agent{ label rocmnode("gfx90a") }
             steps{
                 script {
+                def utils = load "vars/utils.groovy"
                 utils.getDockerImage()
                 }
             }
@@ -164,10 +169,11 @@ pipeline {
             }
             parallel {
                 stage("HIP Package") {
-                    agent{ label utils.rocmnode("nogpu") }
+                    agent{ label rocmnode("nogpu") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( package_build: "true", needs_gpu:false, needs_reboot:false)
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot( package_build: "true", needs_gpu:false, needs_reboot:false, needs_cleanup:true)
                         }
                     }
                 }
@@ -179,19 +185,20 @@ pipeline {
             }
             parallel{
                 stage('Hip Tidy') {
-                    agent{ label utils.rocmnode("nogpu") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
                         build_cmd = "make -j\$(nproc) -k analyze"
                     }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false)
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false, needs_cleanup:true)
                         }
                     }
                 }
                 stage('Clang Format') {
-                    agent{ label utils.rocmnode("nogpu") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         execute_cmd = "find .. -iname \'*.h\' \
                                 -o -iname \'*.hpp\' \
@@ -205,7 +212,8 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false)
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, needs_cleanup:true)
                         }
                     }
                 }
@@ -214,25 +222,27 @@ pipeline {
                         beforeAgent true
                         expression { params.TARGET_NOGPU }
                     }
-                    agent{ label utils.rocmnode("nogpu") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                         HipNoGPU_flags = "-DMIOPEN_BACKEND=HIPNOGPU -DMIOPEN_INSTALL_CXX_HEADERS=On"
                         build_cmd = "make -j\$(nproc)"
                     }
                     steps{
                         script {
-                        utils.buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false)
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false, needs_cleanup:true)
                         }
                     }
                 }
                 stage('Tuna Fin Build Test') {
-                    agent{ label utils.rocmnode("nogpu") }
+                    agent{ label rocmnode("nogpu") }
                     environment{
                       fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU"
                     }
                     steps{
                         script {
-		      utils.buildHipClangJobAndReboot(setup_flags: fin_flags, make_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true")
+                        def utils = load "vars/utils.groovy"
+		                    utils.buildHipClangJobAndReboot(setup_flags: fin_flags, make_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -251,10 +261,11 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(make_targets: Smoke_targets, build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot(make_targets: Smoke_targets, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -266,10 +277,11 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -281,10 +293,11 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx908") }
+                    agent{ label rocmnode("gfx908") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -296,10 +309,11 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -318,14 +332,15 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     environment{
                         // Can be removed altogether with when WORKAROUND_SWDEV_290754.
                         NOCOMGR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
                     }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCOMGR_flags, build_cmd: NOCOMGR_build_cmd, test_flags: ' --verbose ', build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCOMGR_flags, build_cmd: NOCOMGR_build_cmd, test_flags: ' --verbose ', build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -337,14 +352,15 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     environment{
                         // Can be removed altogether with when WORKAROUND_SWDEV_290754.
                         NOMLIR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
                     }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ', build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ', build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -356,10 +372,11 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", make_targets: "", build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", make_targets: "", build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -371,13 +388,14 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("vega20") }
+                    agent{ label rocmnode("vega20") }
                     environment{
                         Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60'"
                     }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ', build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ', build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -389,10 +407,11 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF', build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF', build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -404,14 +423,15 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     environment{
                         make_targets = "test_conv2d"
                         execute_cmd = "bin/test_conv2d --disable-verification-cache"
                     }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(make_targets: make_targets, execute_cmd: execute_cmd, find_mode: "Normal", build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot(make_targets: make_targets, execute_cmd: execute_cmd, find_mode: "Normal", build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -423,14 +443,15 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     environment{
                         make_targets =   "test_conv2d"
                         execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4 bin/test_conv2d --disable-verification-cache"
                     }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( make_targets: make_targets, execute_cmd: execute_cmd, build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot( make_targets: make_targets, execute_cmd: execute_cmd, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -442,10 +463,11 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot()
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot(needs_cleanup:true)
                         }
                     }
                 }
@@ -457,10 +479,11 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On", build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On", build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -479,10 +502,11 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("vega20") }
+                    agent{ label rocmnode("vega20") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
+                        def utils = load "vars/utils.groovy"
+                        utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -494,10 +518,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("vega20") }
+                    agent{ label rocmnode("vega20") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
+                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -509,10 +533,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx908") }
+                    agent{ label rocmnode("gfx908") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
+                        utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -524,10 +548,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx908") }
+                    agent{ label rocmnode("gfx908") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
+                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -539,10 +563,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
+                        utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -554,10 +578,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
+                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -569,10 +593,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, needs_reboot:false, build_install: "true")
+                        utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, needs_reboot:false, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -584,10 +608,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, needs_reboot:false, build_install: "true")
+                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, needs_reboot:false, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -611,7 +635,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx908") }
+                    agent{ label rocmnode("gfx908") }
                     steps{
                         script {
                         utils.buildHipClangJobAndReboot(lfs_pull: true,
@@ -620,7 +644,8 @@ pipeline {
                                                   execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
-                                                  build_install: "true")
+                                                  build_install: "true",
+                                                  needs_cleanup:true)
                         }
                     }
                 }
@@ -632,7 +657,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.buildHipClangJobAndReboot(lfs_pull: true,
@@ -641,7 +666,8 @@ pipeline {
                                                   execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
-                                                  build_install: "true")
+                                                  build_install: "true",
+                                                  needs_cleanup:true)
                         }
                     }
                 }
@@ -653,7 +679,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx942") }
+                    agent{ label rocmnode("gfx942") }
                     steps{
                         script {
                         utils.buildHipClangJobAndReboot(lfs_pull: true,
@@ -662,7 +688,8 @@ pipeline {
                                                   execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
-                                                  build_install: "true")
+                                                  build_install: "true",
+                                                  needs_cleanup:true)
                         }
                     }
                 }
@@ -674,10 +701,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("vega20") }
+                    agent{ label rocmnode("vega20") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test)
+                        utils.buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test, needs_cleanup:true)
                         }
                     }
                 }
@@ -689,10 +716,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx908") }
+                    agent{ label rocmnode("gfx908") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
+                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -704,10 +731,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true")
+                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -719,10 +746,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", needs_reboot:false)
+                        utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: "true", needs_reboot:false, needs_cleanup:true)
                         }
                     }
                 }
@@ -734,10 +761,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("navi21") }
+                    agent{ label rocmnode("navi21") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_cmd: Navi21_build_cmd)
+                        utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_cmd: Navi21_build_cmd, needs_cleanup:true)
                         }
                     }
                 }
@@ -749,10 +776,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("navi32") }
+                    agent{ label rocmnode("navi32") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags)
+                        utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, needs_cleanup:true)
                         }
                     }
                 }
@@ -764,10 +791,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx908") }
+                    agent{ label rocmnode("gfx908") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Full_test)
+                        utils.buildHipClangJobAndReboot(setup_flags: Full_test, needs_cleanup:true)
                         }
                     }
                 }
@@ -779,10 +806,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Full_test)
+                        utils.buildHipClangJobAndReboot(setup_flags: Full_test, needs_cleanup:true)
                         }
                     }
                 }
@@ -791,10 +818,10 @@ pipeline {
                 //         beforeAgent true
                 //         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
                 //     }
-                //     agent{ label utils.rocmnode("gfx90a") }
+                //     agent{ label rocmnode("gfx90a") }
                 //     steps{
                 //        script {
-                //         utils.buildHipClangJobAndReboot(setup_flags: Full_test, enforce_xnack_on: true)
+                //         utils.buildHipClangJobAndReboot(setup_flags: Full_test, enforce_xnack_on: true, needs_cleanup:true)
                 //        }
                 //     }
                 // }
@@ -806,10 +833,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Full_test, needs_reboot:false)
+                        utils.buildHipClangJobAndReboot(setup_flags: Full_test, needs_reboot:false, needs_cleanup:true)
                         }
                     }
                 }
@@ -821,10 +848,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("vega20") }
+                    agent{ label rocmnode("vega20") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_install: "true")
+                        utils.buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -836,7 +863,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("vega20") }
+                    agent{ label rocmnode("vega20") }
                     steps{
                         script {
                         utils.buildHipClangJobAndReboot( setup_flags: Full_test)
@@ -851,10 +878,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("navi21") }
+                    agent{ label rocmnode("navi21") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Full_test, build_cmd: Navi21_build_cmd, build_install: "true")
+                        utils.buildHipClangJobAndReboot(setup_flags: Full_test, build_cmd: Navi21_build_cmd, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -866,10 +893,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("navi32") }
+                    agent{ label rocmnode("navi32") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Full_test, build_install: "true")
+                        utils.buildHipClangJobAndReboot(setup_flags: Full_test, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -881,10 +908,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx908") }
+                    agent{ label rocmnode("gfx908") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
+                        utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -896,10 +923,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true")
+                        utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", needs_cleanup:true)
                         }
                     }
                 }
@@ -911,10 +938,10 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label utils.rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx94X") }
                     steps{
                         script {
-                        utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", needs_reboot:false)
+                        utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: "true", needs_reboot:false, needs_cleanup:true)
                         }
                     }
                 }
