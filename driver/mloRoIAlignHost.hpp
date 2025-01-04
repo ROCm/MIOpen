@@ -180,7 +180,6 @@ int32_t mloRoIAlignBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc
 
     // Calculate input_grad on float and then convert to T
     // to preserve precision
-    // tensor<float> float_input_grad(input_grad.desc.GetLengths(), input_grad.desc.GetStrides());
     std::vector<float> float_input_grad(miopen::deref(inputGradDesc).GetElementSpace(), 0);
 
     auto input_grad_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
@@ -192,8 +191,6 @@ int32_t mloRoIAlignBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc
     const auto C                  = input_grad_lengths[1];
     const auto H                  = input_grad_lengths[2];
     const auto W                  = input_grad_lengths[3];
-
-    // const auto K = rois.desc.GetLengths()[0];
 
     const auto output_grad_numel = miopen::deref(outputGradDesc).GetElementSize();
 
@@ -283,13 +280,11 @@ int32_t mloRoIAlignBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc
                 float lx = x - x_low;
                 float hy = 1.0 - ly;
                 float hx = 1.0 - lx;
-                psrc / kernels /
-                    MIOpenRoIAlign.cpp
 
-                    float w1 = hy * hx;
-                float w2     = hy * lx;
-                float w3     = ly * hx;
-                float w4     = ly * lx;
+                float w1 = hy * hx;
+                float w2 = hy * lx;
+                float w3 = ly * hx;
+                float w4 = ly * lx;
 
                 float g1 = ograd * w1 / count;
                 float g2 = ograd * w2 / count;
