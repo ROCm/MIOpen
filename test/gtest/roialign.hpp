@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#include <miopen/miopen.h>
 #include <gtest/gtest.h>
+#include <miopen/miopen.h>
 #include <miopen/roialign.hpp>
 
 #include "get_handle.hpp"
@@ -96,12 +96,12 @@ struct RoIAlignTestCase
         {
             if(use_custom_stride)
             {
-                // Non-contiguous tensor and origianl contiguous tensor have different sizes
+                // Non-contiguous tensor and original contiguous tensor have different sizes
                 strides[0] *= 2;
             }
             else
             {
-                // Non-contiguous tensor and origianl contiguous tensor have same sizes
+                // Non-contiguous tensor and original contiguous tensor have same sizes
                 std::swap(strides.front(), strides.back());
             }
         }
@@ -142,12 +142,13 @@ inline std::vector<RoIAlignTestCase> RoIAlignTestConfigs()
         // For large tensor but sampling_ratio=-1, the tests are passed (since no additional ceil()
         // calculation is required)
         {4, 3, 96, 800, 400, 7, 14, false, 0.3125, 2, false},
-        // {6, 1, 800, 1060, 6, 14, 14, true, 0.25, -1, false},
         {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, false},
         {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, true},
         {1, 1, 800, 1060, 6, 32, 32, true, 0.25, 2, true},
         {1, 1, 2000, 2000, 6, 32, 32, true, 0.25, 2, true},
-        // {6, 1, 800, 1060, 6, 32, 32, true, 0.25, -1, false},
+        // But if sampling_ratio = -1, the tests would pass
+        {6, 1, 800, 1060, 6, 14, 14, true, 0.25, -1, false},
+        {6, 1, 800, 1060, 6, 32, 32, true, 0.25, -1, false},
 
     };
 };

@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/common.hpp>
 #include <miopen/miopen.h>
 #include <miopen/errors.hpp>

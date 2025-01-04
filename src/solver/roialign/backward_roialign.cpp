@@ -24,22 +24,17 @@
  *
  *******************************************************************************/
 
-// #include <miopen/buffer_info.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/execution_context.hpp>
-// #include <miopen/invoke_params.hpp>
 #include <miopen/miopen.h>
 #include <miopen/kernel_build_params.hpp>
-// #include <miopen/kernel_info.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/roialign.hpp>
 #include <miopen/roialign/solvers.hpp>
 #include <miopen/roialign/invoke_params.hpp>
 #include <miopen/roialign/problem_description.hpp>
 #include <miopen/tensor_view_utils.hpp>
-// #include <miopen/target_properties.hpp>
-// #include <miopen/reduce/utils.hpp>
 
 #define ROIALIGN_LOCAL_SIZE 256
 

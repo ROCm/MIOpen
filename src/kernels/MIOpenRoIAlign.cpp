@@ -300,7 +300,6 @@ __device__ void roialign_backward(const DTYPE* output_grad,
     for(auto k = 0; k < K; ++k)
     {
         // Check k-th roi box belongs to n-th image inside mini-batch
-        // if(GET_2D_VAL_AT(rois, k, 0) != n)
         if(CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 0})]) != n)
             continue;
 

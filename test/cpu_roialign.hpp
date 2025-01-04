@@ -181,8 +181,6 @@ void cpu_roialign_backward(const tensor<T> output_grad,
     const auto H                  = input_grad_lengths[2];
     const auto W                  = input_grad_lengths[3];
 
-    // const auto K = rois.desc.GetLengths()[0];
-
     const auto output_grad_numel = output_grad.desc.GetElementSize();
 
     for(auto i = 0; i < output_grad_numel; i++)
@@ -195,7 +193,6 @@ void cpu_roialign_backward(const tensor<T> output_grad,
         // Check k-th roi box belongs to n-th image inside mini-batch
         int64_t n = rois[rois_tv.get_tensor_view_idx({k, 0})];
 
-        // NOTE: should've checked this condition somewhere else
         if(n < 0 || n >= N)
             return;
 

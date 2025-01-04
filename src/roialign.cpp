@@ -23,11 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-// #include <miopen/find_solution.hpp>
-// #include <miopen/roialign.hpp>
-// #include <miopen/roialign/invoke_params.hpp>
-// #include <miopen/roialign/problem_description.hpp>
-// #include <miopen/roialign/solvers.hpp>
 
 #include <miopen/find_solution.hpp>
 #include <miopen/kernel_cache.hpp>

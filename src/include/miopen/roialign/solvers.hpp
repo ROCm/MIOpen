@@ -23,11 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
-// #include "miopen/execution_context.hpp"
-// #include "miopen/roialign/problem_description.hpp"
-// #include "miopen/solver.hpp"
 #include <miopen/solver.hpp>
 #include <miopen/roialign/problem_description.hpp>
 
