@@ -82,8 +82,9 @@ ConvSolution MedianBackward::GetSolution(const ExecutionContext& context,
     std::ignore = context;
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype    = problem.GetInputGradDesc().GetType();
-    auto io_dtype = miopen::GetDataType(dtype);
+    auto dtype       = problem.GetInputGradDesc().GetType();
+    auto io_dtype    = miopen::GetDataType(dtype);
+    auto index_dtype = miopen::GetDataType(problem.GetIndicesDesc().GetType());
 
     auto input_grad_lengths = problem.GetInputGradDesc().GetLengths();
 
@@ -109,6 +110,7 @@ ConvSolution MedianBackward::GetSolution(const ExecutionContext& context,
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"IN_OUT_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
+        {"INDEX_TYPE", index_dtype == "int64" ? "size_t" : index_dtype},
         {"VIEW_DIMS", VIEW_DIMS},
         {"LOCAL_SIZE", xlocalsize},
     };
@@ -133,12 +135,12 @@ ConvSolution MedianBackward::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::median::BwdInvokeParams>();
             size_t dim_stride     = params.inputGradDesc->GetStrides()[params.dim];
 
-            auto input_grad_tv = get_inner_expanded_tv<5>(deref(params.inputGradDesc));
+            auto input_grad_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputGradDesc));
             auto input_grad_tv_without_selected_dim =
                 get_tv_without_dim<5>(input_grad_tv, params.dim);
 
-            auto output_grad_tv = get_inner_expanded_tv<5>(deref(params.outputGradDesc));
-            auto indices_tv     = get_inner_expanded_tv<5>(deref(params.indicesDesc));
+            auto output_grad_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.outputGradDesc));
+            auto indices_tv     = get_inner_expanded_tv<VIEW_DIMS>(deref(params.indicesDesc));
 
             kernel(params.inputGrad,
                    params.outputGrad,

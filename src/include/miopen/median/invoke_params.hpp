@@ -42,9 +42,9 @@ struct FwdInvokeParams : public miopen::InvokeParams
 
     ConstData_t input = nullptr;
     Data_t output     = nullptr;
-    uint64_t* indices = nullptr;
+    void* indices     = nullptr;
 
-    uint64_t dim = 0;
+    int32_t dim = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
@@ -58,11 +58,11 @@ struct BwdInvokeParams : public miopen::InvokeParams
     const TensorDescriptor* indicesDesc    = nullptr;
     const TensorDescriptor* inputGradDesc  = nullptr;
 
-    ConstData_t outputGrad  = nullptr;
-    const uint64_t* indices = nullptr;
-    Data_t inputGrad        = nullptr;
+    ConstData_t outputGrad = nullptr;
+    const void* indices    = nullptr;
+    Data_t inputGrad       = nullptr;
 
-    uint64_t dim = 0;
+    int32_t dim = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

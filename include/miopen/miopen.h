@@ -8029,8 +8029,8 @@ MIOPEN_EXPORT miopenStatus_t miopenMedianForward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t outputDesc,
                                                  void* output,
                                                  const miopenTensorDescriptor_t indicesDesc,
-                                                 size_t* indices,
-                                                 const uint64_t dim);
+                                                 void* indices,
+                                                 int32_t dim);
 
 /*! @brief Execute a Median backward layer
  *
@@ -8048,10 +8048,10 @@ MIOPEN_EXPORT miopenStatus_t miopenMedianBackward(miopenHandle_t handle,
                                                   const miopenTensorDescriptor_t outputGradDesc,
                                                   const void* outputGrad,
                                                   const miopenTensorDescriptor_t indicesDesc,
-                                                  const size_t* indices,
+                                                  const void* indices,
                                                   const miopenTensorDescriptor_t inputGradDesc,
                                                   void* inputGrad,
-                                                  const uint64_t dim);
+                                                  int32_t dim);
 
 /** @} */
 // CLOSEOUT MEDIAN DOXYGEN GROUP

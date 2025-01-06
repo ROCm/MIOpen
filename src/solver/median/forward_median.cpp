@@ -85,6 +85,8 @@ ConvSolution MedianForward::GetSolution(const ExecutionContext& context,
     auto dtype    = problem.GetInputDesc().GetType();
     auto io_dtype = miopen::GetDataType(dtype);
 
+    auto index_dtype = miopen::GetDataType(problem.GetIndicesDesc().GetType());
+
     auto input_lengths = problem.GetInputDesc().GetLengths();
 
     auto dim_size   = input_lengths[problem.GetDim()]; // reduce_size
@@ -112,6 +114,7 @@ ConvSolution MedianForward::GetSolution(const ExecutionContext& context,
         {"IN_OUT_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
         {"VIEW_DIMS", VIEW_DIMS},
         {"LOCAL_SIZE", xlocalsize},
+        {"INDEX_TYPE", index_dtype == "int64" ? "size_t" : index_dtype},
     };
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});

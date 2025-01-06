@@ -39,23 +39,26 @@ struct FwdProblemDescription : public ProblemDescriptionBase
     FwdProblemDescription(const TensorDescriptor& inputDesc_,
                           const TensorDescriptor& outputDesc_,
                           const TensorDescriptor& indicesDesc_,
-                          const uint64_t dim_)
+                          int32_t dim_)
         : inputDesc(inputDesc_), outputDesc(outputDesc_), indicesDesc(indicesDesc_), dim(dim_)
     {
-        IsValidDim();
+        if(IsValidDim())
+            dim = dim < 0 ? inputDesc.GetNumDims() + dim : dim;
+
         IsRightLength();
         IsSameType();
+        IsValidIndexTypes();
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
-    uint64_t GetDim() const { return dim; }
+    int32_t GetDim() const { return dim; }
 
     bool IsValidDim() const
     {
-
-        if(dim >= inputDesc.GetNumDims())
+        int32_t ndims = inputDesc.GetNumDims();
+        if(dim < -ndims || dim > ndims - 1)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "MedianForward: Invalid dim " + std::to_string(dim) +
@@ -98,6 +101,17 @@ struct FwdProblemDescription : public ProblemDescriptionBase
         return true;
     }
 
+    bool IsValidIndexTypes() const
+    {
+        if(!(indicesDesc.GetType() == miopenInt32 || indicesDesc.GetType() == miopenInt64))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MedianForward: Indices tensor data type must be int32 or int64.");
+        }
+
+        return true;
+    }
+
     bool IsAllContiguous() const
     {
         return inputDesc.IsContiguous() && outputDesc.IsContiguous() && indicesDesc.IsContiguous();
@@ -109,7 +123,7 @@ private:
     const TensorDescriptor& inputDesc;
     const TensorDescriptor& outputDesc;
     const TensorDescriptor& indicesDesc;
-    uint64_t dim;
+    int32_t dim;
 };
 
 struct BwdProblemDescription : ProblemDescriptionBase
@@ -117,29 +131,32 @@ struct BwdProblemDescription : ProblemDescriptionBase
     BwdProblemDescription(const TensorDescriptor& outputGradDesc_,
                           const TensorDescriptor& indicesDesc_,
                           const TensorDescriptor& inputGradDesc_,
-                          const uint64_t dim_)
+                          int32_t dim_)
         : outputGradDesc(outputGradDesc_),
           indicesDesc(indicesDesc_),
           inputGradDesc(inputGradDesc_),
           dim(dim_)
     {
-        IsValidDim();
+        if(IsValidDim())
+            dim = dim < 0 ? inputGradDesc.GetNumDims() + dim : dim;
+
         IsRightLength();
         IsSameType();
+        IsValidIndexTypes();
     }
 
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
     const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
-    uint64_t GetDim() const { return dim; }
+    int32_t GetDim() const { return dim; }
 
     bool IsValidDim() const
     {
-
-        if(dim >= inputGradDesc.GetNumDims())
+        int32_t ndims = inputGradDesc.GetNumDims();
+        if(dim < -ndims || dim > (ndims - 1))
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "MedianForward: Invalid dim " + std::to_string(dim) +
+                         "MedianBackward: Invalid dim " + std::to_string(dim) +
                              " for input tensor with " +
                              std::to_string(inputGradDesc.GetNumDims()) + " dimensions");
         }
@@ -162,7 +179,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
         if(output_grad_dims != desired_dims || indices_dims != desired_dims)
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "MedianForward: Input and output/indices tensor dimension lengths do "
+                         "MedianBackward: Input and output/indices tensor dimension lengths do "
                          "not match.");
         }
 
@@ -175,8 +192,19 @@ struct BwdProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
-                "MedianForward: Input, input grad, output grad tensor data types do not match.");
+                "MedianBackward: Input, input grad, output grad tensor data types do not match.");
         }
+        return true;
+    }
+
+    bool IsValidIndexTypes() const
+    {
+        if(!(indicesDesc.GetType() == miopenInt32 || indicesDesc.GetType() == miopenInt64))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MedianBackward: Indices tensor data type must be int32 or int64.");
+        }
+
         return true;
     }
 
@@ -192,7 +220,7 @@ private:
     const TensorDescriptor& outputGradDesc;
     const TensorDescriptor& indicesDesc;
     const TensorDescriptor& inputGradDesc;
-    uint64_t dim;
+    int32_t dim;
 };
 
 } // namespace median

@@ -31,13 +31,13 @@
 
 #include <../test/ford.hpp>
 
-template <typename Tgpu, typename Tcheck>
+template <typename Tgpu, typename Tcheck, typename T_index = size_t>
 int32_t mloKthvalueFwdRunHost(const miopenTensorDescriptor_t inputDesc,
                               const miopenTensorDescriptor_t outputDesc,
                               const miopenTensorDescriptor_t indicesDesc,
                               const Tgpu* input,
                               Tcheck* output,
-                              size_t* indices,
+                              T_index* indices,
                               const size_t k,
                               const uint64_t dim)
 {
@@ -71,18 +71,18 @@ int32_t mloKthvalueFwdRunHost(const miopenTensorDescriptor_t inputDesc,
         auto indices_layout = tensor_layout_t<5>(indices_tv, slice_id);
         output[output_tv.get_tensor_view_idx(output_layout)] =
             static_cast<Tcheck>(elements[ids[k - 1]]);
-        indices[indices_tv.get_tensor_view_idx(indices_layout)] = ids[k - 1];
+        indices[indices_tv.get_tensor_view_idx(indices_layout)] = static_cast<T_index>(ids[k - 1]);
     });
 
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tcheck>
+template <typename Tgpu, typename Tcheck, typename T_index = size_t>
 int32_t mloKthvalueBwdRunHost(const miopenTensorDescriptor_t outputGradDesc,
                               const miopenTensorDescriptor_t indicesDesc,
                               const miopenTensorDescriptor_t inputGradDesc,
                               const Tgpu* output_grad,
-                              const size_t* indices,
+                              const T_index* indices,
                               Tcheck* input_grad,
                               const uint64_t dim)
 {

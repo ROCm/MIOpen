@@ -46,7 +46,7 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 
 inline void LogCmdMedian(const miopenTensorDescriptor_t inputDesc,
                          const miopenTensorDescriptor_t outputDesc,
-                         const uint64_t dim,
+                         int32_t dim,
                          const bool is_fwd)
 {
     if(miopen::IsLoggingCmd())
@@ -82,8 +82,8 @@ extern "C" miopenStatus_t miopenMedianForward(miopenHandle_t handle,
                                               const miopenTensorDescriptor_t outputDesc,
                                               void* output,
                                               const miopenTensorDescriptor_t indicesDesc,
-                                              size_t* indices,
-                                              const uint64_t dim)
+                                              void* indices,
+                                              int32_t dim)
 {
     MIOPEN_LOG_FUNCTION(handle, inputDesc, input, outputDesc, output, indicesDesc, indices, dim);
 
@@ -96,7 +96,7 @@ extern "C" miopenStatus_t miopenMedianForward(miopenHandle_t handle,
                                       miopen::deref(outputDesc),
                                       DataCast(output),
                                       miopen::deref(indicesDesc),
-                                      indices,
+                                      DataCast(indices),
                                       dim);
     });
 };
@@ -105,10 +105,10 @@ extern "C" miopenStatus_t miopenMedianBackward(miopenHandle_t handle,
                                                const miopenTensorDescriptor_t outputGradDesc,
                                                const void* outputGrad,
                                                const miopenTensorDescriptor_t indicesDesc,
-                                               const size_t* indices,
+                                               const void* indices,
                                                const miopenTensorDescriptor_t inputGradDesc,
                                                void* inputGrad,
-                                               const uint64_t dim)
+                                               int32_t dim)
 {
     MIOPEN_LOG_FUNCTION(
         handle, outputGradDesc, outputGrad, indicesDesc, indices, inputGradDesc, inputGrad, dim);
@@ -120,7 +120,7 @@ extern "C" miopenStatus_t miopenMedianBackward(miopenHandle_t handle,
                                        miopen::deref(outputGradDesc),
                                        DataCast(outputGrad),
                                        miopen::deref(indicesDesc),
-                                       indices,
+                                       DataCast(indices),
                                        miopen::deref(inputGradDesc),
                                        DataCast(inputGrad),
                                        dim);

@@ -31,8 +31,10 @@ template <class T>
 void cpu_median_fwd(tensor<T> input,
                     tensor<T>& ref_output,
                     tensor<size_t>& ref_indices,
-                    uint64_t dim)
+                    int32_t dim)
 {
+    dim = dim < 0 ? dim + input.desc.GetNumDims() : dim;
+
     auto input_lengths = input.desc.GetLengths();
     size_t k           = (input_lengths[dim] + 1) / 2;
 
@@ -43,7 +45,9 @@ template <class T>
 void cpu_median_bwd(const tensor<T> output_grad,
                     const tensor<size_t> indices,
                     tensor<T>& input_grad,
-                    const uint64_t dim)
+                    int32_t dim)
 {
+    dim = dim < 0 ? dim + input_grad.desc.GetNumDims() : dim;
+
     cpu_kth_value_backward<T>(output_grad, indices, input_grad, dim);
 }

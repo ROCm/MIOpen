@@ -43,36 +43,40 @@
 
 #include "mloKthValueHost.hpp"
 
-template <typename Tgpu, typename Tcheck>
+template <typename Tgpu, typename Tcheck, typename T_index = size_t>
 int mloMedianForwardRunHost(const miopenTensorDescriptor_t inputDesc,
                             const miopenTensorDescriptor_t outputDesc,
                             const miopenTensorDescriptor_t indicesDesc,
                             const Tgpu* input,
                             Tcheck* output,
-                            size_t* indices,
-                            const uint64_t dim)
+                            T_index* indices,
+                            int32_t dim)
 {
+    dim = dim < 0 ? dim + miopen::deref(inputDesc).GetNumDims() : dim;
+
     auto input_lengths = miopen::deref(inputDesc).GetLengths();
     size_t k           = (input_lengths[dim] + 1) / 2;
 
-    return mloKthvalueFwdRunHost<Tgpu, Tcheck>(
+    return mloKthvalueFwdRunHost<Tgpu, Tcheck, T_index>(
         inputDesc, outputDesc, indicesDesc, input, output, indices, k, dim);
 }
 
-template <typename Tgpu, typename Tcheck>
+template <typename Tgpu, typename Tcheck, typename T_index = size_t>
 int mloMedianBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc,
                              const miopenTensorDescriptor_t indicesDesc,
                              const miopenTensorDescriptor_t inputGradDesc,
                              const Tgpu* output_grad,
-                             const size_t* indices,
+                             const T_index* indices,
                              Tcheck* input_grad,
-                             const uint64_t dim)
+                             int32_t dim)
 {
-    return mloKthvalueBwdRunHost<Tgpu, Tcheck>(
+    dim = dim < 0 ? dim + miopen::deref(inputGradDesc).GetNumDims() : dim;
+
+    return mloKthvalueBwdRunHost<Tgpu, Tcheck, T_index>(
         outputGradDesc, indicesDesc, inputGradDesc, output_grad, indices, input_grad, dim);
 }
 
-template <typename Tgpu, typename Tref>
+template <typename Tgpu, typename Tref, typename T_index = size_t>
 class MedianDriver : public Driver
 {
 public:
@@ -84,7 +88,8 @@ public:
         miopenCreateTensorDescriptor(&outputGradDesc);
         miopenCreateTensorDescriptor(&indicesDesc);
 
-        data_type = miopen_type<Tgpu>{};
+        data_type  = miopen_type<Tgpu>{};
+        index_type = miopen_type<T_index>{};
     }
 
     std::vector<int> ComputeStrides(std::vector<int> inputDim);
@@ -119,6 +124,7 @@ public:
 private:
     InputFlags inflags;
     int forw;
+    miopenDataType_t index_type;
 
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t inputGradDesc;
@@ -136,22 +142,22 @@ private:
     std::vector<Tgpu> input_grad;
     std::vector<Tgpu> output;
     std::vector<Tgpu> output_grad;
-    std::vector<size_t> indices;
+    std::vector<T_index> indices;
 
     // Forward host
     std::vector<Tref> output_host;
-    std::vector<size_t> indices_host;
+    std::vector<T_index> indices_host;
 
     // Backward host
     std::vector<Tref> input_grad_host;
 
     bool is_contiguous;
-    uint64_t dim;
+    int32_t dim;
 };
 
 // Equivalent tensor.transpose(0, -1).contiguous().transpose(0, -1)
-template <typename Tgpu, typename Tref>
-std::vector<int> MedianDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+template <typename Tgpu, typename Tref, typename T_index>
+std::vector<int> MedianDriver<Tgpu, Tref, T_index>::ComputeStrides(std::vector<int> inputDim)
 {
     if(!is_contiguous)
     {
@@ -169,8 +175,8 @@ std::vector<int> MedianDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> input
     return strides;
 }
 
-template <typename Tgpu, typename Tref>
-int MedianDriver<Tgpu, Tref>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref, typename T_index>
+int MedianDriver<Tgpu, Tref, T_index>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Median (Default=1)", "int");
     inflags.AddTensorFlag("input-dims",
@@ -189,8 +195,8 @@ int MedianDriver<Tgpu, Tref>::AddCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MedianDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref, typename T_index>
+int MedianDriver<Tgpu, Tref, T_index>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -206,8 +212,8 @@ int MedianDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MedianDriver<Tgpu, Tref>::GetandSetData()
+template <typename Tgpu, typename Tref, typename T_index>
+int MedianDriver<Tgpu, Tref, T_index>::GetandSetData()
 {
     auto input_dims    = inflags.GetValueTensor("input-dims").lengths;
     auto input_strides = ComputeStrides(input_dims);
@@ -226,14 +232,14 @@ int MedianDriver<Tgpu, Tref>::GetandSetData()
         MIOPEN_THROW("Error parsing output tensor.");
     if(SetTensorNd(outputGradDesc, output_dims, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output grad tensor.");
-    if(SetTensorNd(indicesDesc, output_dims, miopenInt64) != miopenStatusSuccess)
+    if(SetTensorNd(indicesDesc, output_dims, index_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing indices tensor.");
 
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MedianDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref, typename T_index>
+int MedianDriver<Tgpu, Tref, T_index>::AllocateBuffersAndCopy()
 {
     size_t input_size   = GetTensorSpace(inputDesc);
     size_t output_size  = GetTensorSpace(outputDesc);
@@ -248,19 +254,19 @@ int MedianDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     input_grad_dev  = std::make_unique<GPUMem>(ctx, input_size, sizeof(Tgpu));
     output_dev      = std::make_unique<GPUMem>(ctx, output_size, sizeof(Tgpu));
     output_grad_dev = std::make_unique<GPUMem>(ctx, output_size, sizeof(Tgpu));
-    indices_dev     = std::make_unique<GPUMem>(ctx, indices_size, sizeof(size_t));
+    indices_dev     = std::make_unique<GPUMem>(ctx, indices_size, sizeof(T_index));
 
     // GPU host allocation
     input       = std::vector<Tgpu>(input_size);
     input_grad  = std::vector<Tgpu>(input_size);
     output      = std::vector<Tgpu>(output_size);
     output_grad = std::vector<Tgpu>(output_size);
-    indices     = std::vector<size_t>(indices_size);
+    indices     = std::vector<T_index>(indices_size);
 
     // CPU allocation
     input_grad_host = std::vector<Tref>(input_size);
     output_host     = std::vector<Tref>(output_size);
-    indices_host    = std::vector<size_t>(indices_size);
+    indices_host    = std::vector<T_index>(indices_size);
 
     if(forw == 0 || forw == 1)
     {
@@ -286,7 +292,7 @@ int MedianDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         for(size_t i = 0; i < indices_size; i++)
         {
-            indices[i] = prng::gen_A_to_B<size_t>(0, dim_size);
+            indices[i] = prng::gen_A_to_B<T_index>(0, dim_size);
         }
 
         if(output_grad_dev->ToGPU(GetStream(), output_grad.data()) != 0)
@@ -307,8 +313,8 @@ int MedianDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MedianDriver<Tgpu, Tref>::RunForwardGPU()
+template <typename Tgpu, typename Tref, typename T_index>
+int MedianDriver<Tgpu, Tref, T_index>::RunForwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
@@ -324,7 +330,7 @@ int MedianDriver<Tgpu, Tref>::RunForwardGPU()
                                           outputDesc,
                                           output_dev->GetMem(),
                                           indicesDesc,
-                                          (size_t*)indices_dev->GetMem(),
+                                          indices_dev->GetMem(),
                                           dim);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMedianForward");
@@ -366,8 +372,8 @@ int MedianDriver<Tgpu, Tref>::RunForwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MedianDriver<Tgpu, Tref>::RunForwardCPU()
+template <typename Tgpu, typename Tref, typename T_index>
+int MedianDriver<Tgpu, Tref, T_index>::RunForwardCPU()
 {
     auto status = mloMedianForwardRunHost(inputDesc,
                                           outputDesc,
@@ -382,8 +388,8 @@ int MedianDriver<Tgpu, Tref>::RunForwardCPU()
     return status;
 }
 
-template <typename Tgpu, typename Tref>
-int MedianDriver<Tgpu, Tref>::RunBackwardGPU()
+template <typename Tgpu, typename Tref, typename T_index>
+int MedianDriver<Tgpu, Tref, T_index>::RunBackwardGPU()
 {
     float kernel_total_time = 0;
     float kernel_first_time = 0;
@@ -397,7 +403,7 @@ int MedianDriver<Tgpu, Tref>::RunBackwardGPU()
                                            outputGradDesc,
                                            output_grad_dev->GetMem(),
                                            indicesDesc,
-                                           (size_t*)indices_dev->GetMem(),
+                                           indices_dev->GetMem(),
                                            inputGradDesc,
                                            input_grad_dev->GetMem(),
                                            dim);
@@ -435,8 +441,8 @@ int MedianDriver<Tgpu, Tref>::RunBackwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MedianDriver<Tgpu, Tref>::RunBackwardCPU()
+template <typename Tgpu, typename Tref, typename T_index>
+int MedianDriver<Tgpu, Tref, T_index>::RunBackwardCPU()
 {
     auto status = mloMedianBackwardRunHost<Tgpu, Tref>(outputGradDesc,
                                                        indicesDesc,
@@ -451,15 +457,15 @@ int MedianDriver<Tgpu, Tref>::RunBackwardCPU()
     return status;
 }
 
-template <typename Tgpu, typename Tref>
-Tref MedianDriver<Tgpu, Tref>::GetTolerance()
+template <typename Tgpu, typename Tref, typename T_index>
+Tref MedianDriver<Tgpu, Tref, T_index>::GetTolerance()
 {
     Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
-template <typename Tgpu, typename Tref>
-int MedianDriver<Tgpu, Tref>::VerifyForward()
+template <typename Tgpu, typename Tref, typename T_index>
+int MedianDriver<Tgpu, Tref, T_index>::VerifyForward()
 {
     RunForwardCPU();
 
@@ -487,8 +493,8 @@ int MedianDriver<Tgpu, Tref>::VerifyForward()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MedianDriver<Tgpu, Tref>::VerifyBackward()
+template <typename Tgpu, typename Tref, typename T_index>
+int MedianDriver<Tgpu, Tref, T_index>::VerifyBackward()
 {
     RunBackwardCPU();
 

@@ -96,14 +96,14 @@ ConvSolution KthvalueFwd::GetSolution(const ExecutionContext& context,
     kernel.kernel_file = "MIOpenKthvalue.cpp";
     kernel.kernel_name = "KthvalueFwd";
 
-    const auto build_params = KernelBuildParameters{
-        {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-        {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-        {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        {"IN_OUT_TYPE", in_dtype == "bfloat16" ? "ushort" : in_dtype},
-        {"VIEW_DIMS", VIEW_DIMS},
-        {"LOCAL_SIZE", xlocalsize},
-    };
+    const auto build_params =
+        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                              {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                              {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                              {"IN_OUT_TYPE", in_dtype == "bfloat16" ? "ushort" : in_dtype},
+                              {"VIEW_DIMS", VIEW_DIMS},
+                              {"LOCAL_SIZE", xlocalsize},
+                              {"INDEX_TYPE", "size_t"}};
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
