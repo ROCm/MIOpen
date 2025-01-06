@@ -41,7 +41,7 @@ miopenStatus_t MedianForward(Handle& handle,
                              const TensorDescriptor& outputDesc,
                              Data_t output,
                              const TensorDescriptor& indicesDesc,
-                             void* indices,
+                             Data_t indices,
                              int32_t dim)
 {
     const auto problem = median::FwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim};
@@ -70,7 +70,7 @@ miopenStatus_t MedianBackward(Handle& handle,
                               const TensorDescriptor& outputGradDesc,
                               ConstData_t outputGrad,
                               const TensorDescriptor& indicesDesc,
-                              const void* indices,
+                              ConstData_t indices,
                               const TensorDescriptor& inputGradDesc,
                               Data_t inputGrad,
                               int32_t dim)

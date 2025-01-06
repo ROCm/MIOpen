@@ -137,7 +137,7 @@ ConvSolution MedianBackward::GetSolution(const ExecutionContext& context,
 
             auto input_grad_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.inputGradDesc));
             auto input_grad_tv_without_selected_dim =
-                get_tv_without_dim<5>(input_grad_tv, params.dim);
+                get_tv_without_dim<VIEW_DIMS>(input_grad_tv, params.dim);
 
             auto output_grad_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.outputGradDesc));
             auto indices_tv     = get_inner_expanded_tv<VIEW_DIMS>(deref(params.indicesDesc));

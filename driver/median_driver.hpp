@@ -227,7 +227,7 @@ int MedianDriver<Tgpu, Tref, T_index>::GetandSetData()
     if(SetTensorNd(inputDesc, input_dims, input_strides, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input-dims") + ".");
     if(SetTensorNd(inputGradDesc, input_dims, input_strides, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input-dims") + ".");
+        MIOPEN_THROW("Error parsing input grad tensor: " + inflags.GetValueStr("input-dims") + ".");
     if(SetTensorNd(outputDesc, output_dims, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output tensor.");
     if(SetTensorNd(outputGradDesc, output_dims, data_type) != miopenStatusSuccess)

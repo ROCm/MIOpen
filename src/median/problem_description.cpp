@@ -34,11 +34,13 @@ namespace median {
 NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
     auto dtype         = inputDesc.GetType();
+    auto index_dtype   = indicesDesc.GetType();
     auto input_lengths = inputDesc.GetLengths();
 
     std::ostringstream ss;
     ss << "median_fwd";
-    ss << "dtype" << dtype;
+    ss << "input_dtype" << dtype;
+    ss << "index_dtype" << index_dtype;
     ss << "input_lengths";
     for(auto length : input_lengths)
         ss << length << ',';
@@ -52,11 +54,13 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 {
     auto dtype              = inputGradDesc.GetType();
+    auto index_dtype        = indicesDesc.GetType();
     auto input_grad_lengths = inputGradDesc.GetLengths();
 
     std::ostringstream ss;
     ss << "median_bwd";
     ss << "dtype" << dtype;
+    ss << "index_dtype" << index_dtype;
     ss << "input_grad_lengths";
     for(auto length : input_grad_lengths)
         ss << length << ',';

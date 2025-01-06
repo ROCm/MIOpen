@@ -25,7 +25,8 @@
  *******************************************************************************/
 #include <miopen/median.hpp>
 #include <miopen/miopen.h>
-#include "miopen/tensor_view_utils.hpp"
+#include <miopen/tensor_view_utils.hpp>
+
 #include <gtest/gtest.h>
 
 #include "get_handle.hpp"
