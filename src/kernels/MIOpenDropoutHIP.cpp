@@ -80,50 +80,50 @@ InitKernelStateHIP(rocrand_state_xorwow* state, ulong prng_seed, ulong states_nu
 
 #if !RUN_INIT_PRNG
 
-template <typename F, typename T, typename B, bool MASK = false, bool RSVSP = false>
+template <typename F, typename T, typename B, typename D, bool MASK = false, bool RSVSP = false>
 __forceinline__ __device__ void dropout_kernel(const rocrand_state_xorwow* state,
                                                float dropout,
                                                float scale,
-                                               int dim1,
-                                               int dim2,
-                                               int dim3,
-                                               int dim4,
+                                               D dim1,
+                                               D dim2,
+                                               D dim3,
+                                               D dim4,
                                                F* y,
-                                               int out_str0,
-                                               int out_str1,
-                                               int out_str2,
-                                               int out_str3,
+                                               D out_str0,
+                                               D out_str1,
+                                               D out_str2,
+                                               D out_str3,
                                                const F* x,
-                                               int in_str0,
-                                               int in_str1,
-                                               int in_str2,
-                                               int in_str3,
+                                               D in_str0,
+                                               D in_str1,
+                                               D in_str2,
+                                               D in_str3,
                                                uchar* reserveSpace,
-                                               unsigned int total_work,
-                                               unsigned int in_offset,
-                                               unsigned int out_offset,
-                                               unsigned int rsvsp_offset)
+                                               D total_work,
+                                               uint64_t in_offset,
+                                               uint64_t out_offset,
+                                               uint64_t rsvsp_offset)
 {
     F dat_blk[RD_BLCK];     // Register space to read the input data
     uchar is_kept[RD_BLCK]; // Register space to store the mask for the dropout
 
-    uint sid = threadIdx.x + blockIdx.x * blockDim.x;
+    auto sid = threadIdx.x + blockIdx.x * blockDim.x;
     rocrand_state_xorwow cur_state; // Read the state of the current thread
     cur_state = state[sid];
 
-    for(uint gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work;
+    for(auto gid = threadIdx.x + blockIdx.x * blockDim.x; gid < total_work;
         gid += blockDim.x * gridDim.x)
     {
-        uint i0    = gid / (dim1 * dim2 * dim3 * dim4);
-        uint i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
-        uint i2    = (gid / (dim3 * dim4)) % dim2;
-        uint i3    = (gid / dim4) % dim3;
-        uint i4    = gid % dim4;
-        uint i4_rd = i4 / RD_BLCK;
+        auto i0    = gid / (dim1 * dim2 * dim3 * dim4);
+        auto i1    = (gid / (dim2 * dim3 * dim4)) % dim1;
+        auto i2    = (gid / (dim3 * dim4)) % dim2;
+        auto i3    = (gid / dim4) % dim3;
+        auto i4    = gid % dim4;
+        auto i4_rd = i4 / RD_BLCK;
 
-        uint x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 +
+        auto x_idx = i0 * in_str0 + i1 * in_str1 + i2 * in_str2 + i3 * in_str3 +
                      i4_rd * RD_BLCK; // Calculate the index of the input tensor
-        uint y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 +
+        auto y_idx = i0 * out_str0 + i1 * out_str1 + i2 * out_str2 + i3 * out_str3 +
                      i4_rd * RD_BLCK; // Calculate the index of the output tensor
 
         *(reinterpret_cast<T*>(dat_blk)) = *(reinterpret_cast<const T*>(
@@ -132,7 +132,7 @@ __forceinline__ __device__ void dropout_kernel(const rocrand_state_xorwow* state
         if constexpr(!MASK) // If MASK is not enabled then generate the mask for dropout
         {
 #pragma unroll
-            for(uint i = 0; i < RD_BLCK; ++i)
+            for(auto i = 0; i < RD_BLCK; ++i)
             {
                 is_kept[i] =
                     static_cast<uchar>(prng::xorwow_uniform(&cur_state) >
@@ -154,7 +154,7 @@ __forceinline__ __device__ void dropout_kernel(const rocrand_state_xorwow* state
         }
 // Apply the mask to the data and scale it with the scale factor.
 #pragma unroll
-        for(uint i = 0; i < RD_BLCK; ++i)
+        for(auto i = 0; i < RD_BLCK; ++i)
         {
             dat_blk[i] = static_cast<bool>(is_kept[i]) ? dat_blk[i] * static_cast<F>(scale)
                                                        : static_cast<F>(0);
@@ -167,48 +167,49 @@ __forceinline__ __device__ void dropout_kernel(const rocrand_state_xorwow* state
 extern "C" __global__ void DropoutKernel(const rocrand_state_xorwow* state,
                                          float dropout,
                                          float scale,
-                                         int dim1,
-                                         int dim2,
-                                         int dim3,
-                                         int dim4,
+                                         DIM_TYPE dim1,
+                                         DIM_TYPE dim2,
+                                         DIM_TYPE dim3,
+                                         DIM_TYPE dim4,
                                          FP_TYPE* y,
-                                         int out_str0,
-                                         int out_str1,
-                                         int out_str2,
-                                         int out_str3,
+                                         DIM_TYPE out_str0,
+                                         DIM_TYPE out_str1,
+                                         DIM_TYPE out_str2,
+                                         DIM_TYPE out_str3,
                                          const FP_TYPE* x,
-                                         int in_str0,
-                                         int in_str1,
-                                         int in_str2,
-                                         int in_str3,
+                                         DIM_TYPE in_str0,
+                                         DIM_TYPE in_str1,
+                                         DIM_TYPE in_str2,
+                                         DIM_TYPE in_str3,
                                          uchar* reserveSpace,
-                                         unsigned int total_work,
-                                         unsigned int in_offset,
-                                         unsigned int out_offset,
-                                         unsigned int rsvsp_offset)
+                                         DIM_TYPE total_work,
+                                         uint64_t in_offset,
+                                         uint64_t out_offset,
+                                         uint64_t rsvsp_offset)
 {
-    dropout_kernel<FP_TYPE, READ_DAT_TYPE, READ_BOOL_TYPE, USE_MASK, USE_RSVSP>(state,
-                                                                                dropout,
-                                                                                scale,
-                                                                                dim1,
-                                                                                dim2,
-                                                                                dim3,
-                                                                                dim4,
-                                                                                y,
-                                                                                out_str0,
-                                                                                out_str1,
-                                                                                out_str2,
-                                                                                out_str3,
-                                                                                x,
-                                                                                in_str0,
-                                                                                in_str1,
-                                                                                in_str2,
-                                                                                in_str3,
-                                                                                reserveSpace,
-                                                                                total_work,
-                                                                                in_offset,
-                                                                                out_offset,
-                                                                                rsvsp_offset);
+    dropout_kernel<FP_TYPE, READ_DAT_TYPE, READ_BOOL_TYPE, DIM_TYPE, USE_MASK, USE_RSVSP>(
+        state,
+        dropout,
+        scale,
+        dim1,
+        dim2,
+        dim3,
+        dim4,
+        y,
+        out_str0,
+        out_str1,
+        out_str2,
+        out_str3,
+        x,
+        in_str0,
+        in_str1,
+        in_str2,
+        in_str3,
+        reserveSpace,
+        total_work,
+        in_offset,
+        out_offset,
+        rsvsp_offset);
 }
 
 #endif

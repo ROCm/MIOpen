@@ -35,13 +35,20 @@
 #include <miopen/performance_config.hpp>
 #include <miopen/type_name.hpp>
 
-#include <boost/any.hpp>
-
 #include <string>
 #include <type_traits>
 #include <algorithm>
 
 namespace miopen {
+
+namespace debug {
+
+/// Enables deprecated solvers.
+/// This variable is intended for use in unit tests.
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+MIOPEN_INTERNALS_EXPORT extern bool enable_deprecated_solvers;
+
+} // namespace debug
 
 struct AnyInvokeParams;
 
@@ -72,20 +79,68 @@ struct SolverBase
         return null_id;
     }
 
-    /// Returns true if solution can work on given SW/HW platform (runtime/device)
-    /// and provides correct result for the problem config.
-    ///
-    /// Every SolverBase which IsApplicable() for some problem config must be able to
-    /// GetDefaultPerformanceConfig() so that GetSolution() would return valid
-    /// solution for a problem (i.e. convolution). In other words, if a Solution
-    /// says "I'm suitable" for a problem, it agrees to solve that problem correctly.
-    virtual bool IsApplicable(const ExecutionContext& ctx, const boost::any& problem) const = 0;
+    /// Returns true for tunable solvers
+    virtual bool IsTunable() const = 0;
 
     /// [Informative as of Sep 2020] The minimum requirement for Dynamic Solvers:
     /// Batch size and input picture size (N, W, H) must NOT be compiled into the
     /// kernel(s) that consist a Solution. These must go into the kernel as a
     /// run-time parameters.
     virtual bool IsDynamic() const { return false; }
+
+    /// Must return true if a Solver has its own implementation of GetWorkspaceSize().
+    virtual bool MayNeedWorkspace() const { return false; }
+
+protected:
+    template <class Solver>
+    static const std::string& GetSolverDbId()
+    {
+#if BUILD_SHARED_LIBS && MIOPEN_ENABLE_FIN_INTERFACE
+        /// When using this function outside of the shared library, the static local variable is
+        /// duplicated, both the library and the program using it have their own copy, but only one
+        /// of them is initialized, depending on which entity calls the function first—the library
+        /// or the program.
+        /// \todo This needs to be removed when the interface matures, and internal class/function
+        /// templates are no longer used by the fin.
+        static std::string result;
+        if(result.empty())
+        {
+            // The "new" operator is used here to avoid segmentation fault (since the variable is
+            // not initialized).
+            new(&result) std::string(ComputeSolverDbId(type_name_bare<Solver>()));
+        }
+#else  // !BUILD_SHARED_LIBS || !MIOPEN_ENABLE_FIN_INTERFACE
+        static const auto result = ComputeSolverDbId(type_name_bare<Solver>());
+#endif // !BUILD_SHARED_LIBS || !MIOPEN_ENABLE_FIN_INTERFACE
+        return result;
+    }
+    SolverBase()                  = default;
+    SolverBase(const SolverBase&) = default;
+
+private:
+    static std::string ComputeSolverDbId(std::string_view type_name)
+    {
+        auto name = std::string(type_name);
+        if(name.back() == '>')
+        {
+            std::replace(name.begin(), name.end(), ',', '-');
+            name.erase(std::remove(name.begin(), name.end(), ' '), name.end());
+        }
+
+        return name;
+    }
+};
+
+/// Common interface for tunable and non-tunable solvers
+template <class Context, class Problem>
+struct SolverInterface : SolverBase
+{
+    static_assert(std::is_base_of<ExecutionContext, Context>{},
+                  "Context must be derived of ExecutionContext");
+
+    /// Returns true if a Solver can work on given SW/HW platform (runtime/device)
+    /// and provides correct result for the problem config.
+    virtual bool IsApplicable(const Context& ctx, const Problem& problem) const = 0;
 
     static constexpr float wti_approximate_worst = -2;
 
@@ -95,76 +150,42 @@ struct SolverBase
     ///   if Direct computational algorithm is used.
     /// * [Notice] WTI may exceed 1.0 for highly optimized algorithms like Winograd.
     /// * @see https://github.com/ROCm/MIOpen/issues/410
-    virtual float GetWti(const ExecutionContext& ctx, const boost::any& problem) const = 0;
-
-    /// Returns the workspace size required by the solver for a given ExecutionContext
-    virtual size_t GetWorkspaceSize(const ExecutionContext& ctx,
-                                    const boost::any& problem) const = 0;
-
-    /// Must return true if a Solver has its own implementation of GetWorkspaceSize().
-    virtual bool MayNeedWorkspace() const { return false; }
-
-protected:
-    template <class Solver>
-    static const std::string& GetSolverDbId()
-    {
-        static const auto result = ComputeSolverDbId(get_type_name<Solver>());
-        return result;
-    }
-    SolverBase()                  = default;
-    SolverBase(const SolverBase&) = default;
-
-private:
-    static std::string ComputeSolverDbId(const std::string& type_name)
-    {
-        auto idx  = type_name.find_last_of(':');
-        auto name = type_name.substr(idx + 1);
-        std::replace(name.begin(), name.end(), ',', '-');
-        name.erase(std::remove(name.begin(), name.end(), ' '), name.end());
-
-        return name;
-    }
-};
-
-template <class Context, class Problem>
-struct SolverMixin : SolverBase
-{
-    static_assert(std::is_base_of<ExecutionContext, Context>{},
-                  "Context must be derived of ExecutionContext");
-
-    virtual bool IsApplicable(const Context&, const Problem&) const = 0;
     virtual float GetWti(const Context&, const Problem&) const { return wti_approximate_worst; };
+
+    /// Returns the workspace size required by the solver for the given Problem
     virtual size_t GetWorkspaceSize(const Context&, const Problem&) const { return 0; };
-
-    bool IsApplicable(const ExecutionContext& ctx, const boost::any& problem) const final
-    {
-        return IsApplicable(dynamic_cast<const Context&>(ctx),
-                            boost::any_cast<const Problem&>(problem));
-    }
-
-    float GetWti(const ExecutionContext& ctx, const boost::any& problem) const final
-    {
-        return GetWti(dynamic_cast<const Context&>(ctx), boost::any_cast<const Problem&>(problem));
-    }
-
-    size_t GetWorkspaceSize(const ExecutionContext& ctx, const boost::any& problem) const final
-    {
-        return GetWorkspaceSize(dynamic_cast<const Context&>(ctx),
-                                boost::any_cast<const Problem&>(problem));
-    }
 };
 
-/// Base class for non tunable solvers
+/// Common interface for non-tunable solvers
 template <class Context, class Problem>
-struct NonTunableSolverBase : SolverMixin<Context, Problem>
+struct SolverInterfaceNonTunable : SolverInterface<Context, Problem>
 {
     /// Takes problem config, optimization parameters and other info
     /// and computes information required to build and run the kernel(s).
-    virtual ConvSolution GetSolution(const Context&, const Problem&) const = 0;
+    virtual ConvSolution GetSolution(const Context& ctx, const Problem& problem) const = 0;
+};
 
-    virtual InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem) const
+/// Common interface for tunable solvers
+template <class Context, class Problem>
+struct SolverInterfaceTunable : SolverInterface<Context, Problem>
+{
+    /// This function is a simplified version of FindSolution(), it does not obey search parameters
+    /// from the Context and does not use the database. Intended to be used in unit tests.
+    virtual ConvSolution FindSolutionSimple(const Context& ctx,
+                                            const Problem& problem,
+                                            const AnyInvokeParams& invoke_ctx) const = 0;
+};
+
+/// Base class for non-tunable solvers
+template <class Context, class Problem>
+struct SolverBaseNonTunable : SolverInterfaceNonTunable<Context, Problem>
+{
+    bool IsTunable() const final { return false; };
+
+    InvokerFactory GetInvokerFactory(const Context& ctx, const Problem& problem) const
     {
-        return *GetSolution(ctx, problem).invoker_factory;
+        const auto solution = this->GetSolution(ctx, problem);
+        return *solution.invoker_factory;
     }
 };
 
@@ -173,90 +194,57 @@ struct TunableSolverTrait
 };
 
 /// Base class for tunable solvers
-template <class Context, class Problem>
-struct TunableSolverBase : SolverMixin<Context, Problem>, TunableSolverTrait
+template <class Context, class Problem, class PerformanceConfig>
+struct SolverBaseTunable : SolverInterfaceTunable<Context, Problem>, TunableSolverTrait
 {
+    bool IsTunable() const final { return true; };
+
     /// Initializes performance config to the default values.
     /// The function may involve some heuristic to guess the best solution
     /// configuration. It is assumed that the function takes constant time
     /// to finish and does not run kernels to measure performance etc.
     /// The function shall always return valid config.
-    ///
-    /// The int parameter is needed only to not change the name of the
-    /// function in the derived class. Function declarations that differ
-    /// only by its return type cannot be overloaded.
-    virtual boost::any
-    GetDefaultPerformanceConfig(const Context& ctx, const Problem& problem, int) const = 0;
+    virtual PerformanceConfig GetDefaultPerformanceConfig(const Context& ctx,
+                                                          const Problem& problem) const = 0;
 
     /// Should return false if performance config is wrong for a problem.
     /// Main use is validation of values read from the perf db.
     virtual bool IsValidPerformanceConfig(const Context& ctx,
                                           const Problem& problem,
-                                          const PerfConfig& config) const = 0;
+                                          const PerformanceConfig& config) const = 0;
 
     /// Search
-    ///
-    /// The int parameter is needed only to not change the name of the
-    /// function in the derived class. Function declarations that differ
-    /// only by its return type cannot be overloaded.
-    virtual boost::any Search(const Context& ctx,
-                              const Problem& problem,
-                              const AnyInvokeParams& invoke_ctx,
-                              int) const = 0;
+    virtual PerformanceConfig
+    Search(const Context& ctx, const Problem& problem, const AnyInvokeParams& invoke_ctx) const = 0;
 
     /// Tunable solvers provide a GetSolution that takes a Context and PerformanceConfig
-    virtual ConvSolution
-    GetSolution(const Context& ctx, const Problem& problem, const PerfConfig& config) const = 0;
+    virtual ConvSolution GetSolution(const Context& ctx,
+                                     const Problem& problem,
+                                     const PerformanceConfig& config) const = 0;
 
-    virtual InvokerFactory
-    GetInvokerFactory(const Context& ctx, const Problem& problem, const PerfConfig& config) const
+    ConvSolution FindSolutionSimple(const Context& ctx,
+                                    const Problem& problem,
+                                    const AnyInvokeParams& invoke_ctx) const final
+    {
+        const PerformanceConfig config = Search(ctx, problem, invoke_ctx);
+        return GetSolution(ctx, problem, config);
+    }
+
+    InvokerFactory GetInvokerFactory(const Context& ctx,
+                                     const Problem& problem,
+                                     const PerformanceConfig& config) const
     {
         return *GetSolution(ctx, problem, config).invoker_factory;
     }
 };
 
+// \todo Should be removed
+template <class Context, class Problem>
+using NonTunableSolverBase = SolverBaseNonTunable<Context, Problem>;
+
+// \todo Should be removed
 template <class Context, class Problem, class PerformanceConfig>
-struct TunableSolverMixin : TunableSolverBase<Context, Problem>
-{
-    static_assert(std::is_base_of<PerfConfig, PerformanceConfig>{},
-                  "PerformanceConfig must be derived of PerfConfig");
-
-    virtual PerformanceConfig GetDefaultPerformanceConfig(const Context&, const Problem&) const = 0;
-    virtual bool
-    IsValidPerformanceConfig(const Context&, const Problem&, const PerformanceConfig&) const = 0;
-    virtual PerformanceConfig
-    Search(const Context&, const Problem&, const AnyInvokeParams&) const = 0;
-    virtual ConvSolution
-    GetSolution(const Context&, const Problem&, const PerformanceConfig&) const = 0;
-
-    boost::any
-    GetDefaultPerformanceConfig(const Context& ctx, const Problem& problem, int) const final
-    {
-        return GetDefaultPerformanceConfig(ctx, problem);
-    }
-
-    bool IsValidPerformanceConfig(const Context& ctx,
-                                  const Problem& problem,
-                                  const PerfConfig& config) const final
-    {
-        return IsValidPerformanceConfig(
-            ctx, problem, dynamic_cast<const PerformanceConfig&>(config));
-    }
-
-    boost::any Search(const Context& ctx,
-                      const Problem& problem,
-                      const AnyInvokeParams& invoke_ctx,
-                      int) const final
-    {
-        return Search(ctx, problem, invoke_ctx);
-    }
-
-    ConvSolution
-    GetSolution(const Context& ctx, const Problem& problem, const PerfConfig& config) const final
-    {
-        return GetSolution(ctx, problem, dynamic_cast<const PerformanceConfig&>(config));
-    }
-};
+using TunableSolverMixin = SolverBaseTunable<Context, Problem, PerformanceConfig>;
 
 template <class Solver>
 struct IsTunable : std::is_base_of<TunableSolverTrait, Solver>

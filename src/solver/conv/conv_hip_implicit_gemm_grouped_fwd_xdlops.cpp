@@ -337,7 +337,6 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel
         index     = heuristic_indexes[0];
         kernel_id = valid_kernels[index];
         MIOPEN_LOG_I("Params set by AI: " << ToString());
-        std::cout << "Params set by AI: " << ToString() << std::endl;
         return true;
     }
     return false;

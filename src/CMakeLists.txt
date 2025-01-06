@@ -89,6 +89,7 @@ set( MIOpen_Source
     adam_api.cpp
     addlayernorm_api.cpp
     api/find2_0_commons.cpp
+    base64.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -120,6 +121,7 @@ set( MIOpen_Source
     env.cpp
     execution_context.cpp
     expanduser.cpp
+    fin/fin_interface.cpp
     find_controls.cpp
     find_db.cpp
     fused_api.cpp
@@ -187,8 +189,10 @@ set( MIOpen_Source
     rnn/rnn_util.cpp
     rnn/selector.cpp
     rnn/Solutions/rnn_transformer.cpp
+    rnn/Solutions/Base/fw_data_modular.cpp
     rnn/Solutions/Base/bw_weights_modular.cpp
     rnn/Solutions/Base/bw_data_modular.cpp
+    rnn/Solutions/fwd_s_stream.cpp
     rnn/Solutions/bwd_s_stream.cpp
     rnn/Solutions/bwd_multi_stream.cpp
     rnn/Solutions/bww_s_steam.cpp
@@ -266,9 +270,6 @@ set( MIOpen_Source
     solver/conv/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
     solver/conv/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
     solver/conv/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
-    solver/conv/conv_hip_implicit_gemm_f16f8f16_fwd_xdlops.cpp
-    solver/conv/conv_hip_implicit_gemm_f16f8f16_bwd_xdlops.cpp
-    solver/conv/conv_hip_implicit_gemm_f16f8f16_wrw_xdlops.cpp
     solver/conv/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
@@ -315,6 +316,7 @@ set( MIOpen_Source
     solver/layernorm/forward_t5layernorm.cpp
     solver/median/backward_median.cpp
     solver/median/forward_median.cpp
+    solver/mha/mha_ck_fa_v2_solver_forward.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
     solver/multimarginloss/forward_multimarginloss.cpp
@@ -850,7 +852,7 @@ target_include_directories(MIOpen PUBLIC
 )
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_reduction_operations hip::host)
+set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_reduction_operations composable_kernel::device_mha_operations hip::host)
 endif()
 
 if(WIN32)

@@ -44,6 +44,11 @@ namespace batchnorm {
 using BatchnormSolver =
     NonTunableSolverBase<ExecutionContext, miopen::batchnorm::ProblemDescription>;
 
+template <class PerformanceConfig>
+using BatchNormTunableSolver =
+    TunableSolverMixin<ExecutionContext, miopen::batchnorm::ProblemDescription, PerformanceConfig>;
+;
+
 struct BnFwdTrainingSpatialSingle final : BatchnormSolver
 {
     const std::string& SolverDbId() const override
@@ -128,38 +133,212 @@ struct BnFwdInference final : BatchnormSolver
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
-struct BnCKFwdInference final : BatchnormSolver
+struct PerformanceConfigBnCKFwdInference : PerfConfigBaseCK<PerformanceConfigBnCKFwdInference>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKFwdInference(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigBnCKFwdInference() : PerformanceConfigBnCKFwdInference(0, "") {}
+    PerformanceConfigBnCKFwdInference(bool) : PerformanceConfigBnCKFwdInference(0, "") {}
+    MIOPEN_INTERNALS_EXPORT void
+    HeuristicInit(const miopen::batchnorm::ProblemDescription& problem);
+    MIOPEN_INTERNALS_EXPORT bool SetNextValue(const miopen::batchnorm::ProblemDescription& problem);
+    MIOPEN_INTERNALS_EXPORT bool IsValidValue() const;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsValid(const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const;
+
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    MIOPEN_INTERNALS_EXPORT bool operator==(const PerformanceConfigBnCKFwdInference& other) const;
+
+private:
+    template <typename XDataType,
+              typename YDataType,
+              typename AccDataType,
+              typename ScaleDataType,
+              typename BiasDataType,
+              typename MeanVarDataType>
+    void Init(const miopen::batchnorm::ProblemDescription&);
+    template <typename XDataType,
+              typename YDataType,
+              typename AccDataType,
+              typename ScaleDataType,
+              typename BiasDataType,
+              typename MeanVarDataType>
+    bool CheckIsSupportCKArgs(const miopen::batchnorm::ProblemDescription&) const;
+};
+
+struct BnCKFwdInference final : BatchNormTunableSolver<PerformanceConfigBnCKFwdInference>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<BnCKFwdInference>(); }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext& ctx,
+                 const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKFwdInference GetDefaultPerformanceConfig(
+        const ExecutionContext& ctx,
+        const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsValidPerformanceConfig(const ExecutionContext& ctx,
+                             const miopen::batchnorm::ProblemDescription& problem,
+                             const PerformanceConfigBnCKFwdInference& config) const override;
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKFwdInference
+    Search(const ExecutionContext& ctx,
+           const miopen::batchnorm::ProblemDescription& problem,
+           const AnyInvokeParams& invoke_ctx) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext& ctx,
+                const miopen::batchnorm::ProblemDescription& problem,
+                const PerformanceConfigBnCKFwdInference& config) const override;
 };
 
-struct BnCKBwdBackward final : BatchnormSolver
+struct PerformanceConfigBnCKBwdBackward : PerfConfigBaseCK<PerformanceConfigBnCKBwdBackward>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKBwdBackward(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigBnCKBwdBackward() : PerformanceConfigBnCKBwdBackward(0, "") {}
+    PerformanceConfigBnCKBwdBackward(bool) : PerformanceConfigBnCKBwdBackward(0, "") {}
+    MIOPEN_INTERNALS_EXPORT void
+    HeuristicInit(const miopen::batchnorm::ProblemDescription& problem);
+    MIOPEN_INTERNALS_EXPORT bool SetNextValue(const miopen::batchnorm::ProblemDescription& problem);
+    MIOPEN_INTERNALS_EXPORT bool IsValidValue() const;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsValid(const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const;
+
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    MIOPEN_INTERNALS_EXPORT bool operator==(const PerformanceConfigBnCKBwdBackward& other) const;
+
+private:
+    template <typename XDataType,
+              typename DxDataType,
+              typename DyDataType,
+              typename AccDataType,
+              typename ScaleDataType,
+              typename DscaleDbiasDataType,
+              typename MeanVarDataType>
+    void Init(const miopen::batchnorm::ProblemDescription&);
+    template <typename XDataType,
+              typename DxDataType,
+              typename DyDataType,
+              typename AccDataType,
+              typename ScaleDataType,
+              typename DscaleDbiasDataType,
+              typename MeanVarDataType>
+    bool CheckIsSupportCKArgs(const miopen::batchnorm::ProblemDescription&) const;
+};
+
+struct BnCKBwdBackward final : BatchNormTunableSolver<PerformanceConfigBnCKBwdBackward>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<BnCKBwdBackward>(); }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext& ctx,
+                 const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKBwdBackward GetDefaultPerformanceConfig(
+        const ExecutionContext& ctx,
+        const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsValidPerformanceConfig(const ExecutionContext& ctx,
+                             const miopen::batchnorm::ProblemDescription& problem,
+                             const PerformanceConfigBnCKBwdBackward& config) const override;
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKBwdBackward
+    Search(const ExecutionContext& ctx,
+           const miopen::batchnorm::ProblemDescription& problem,
+           const AnyInvokeParams& invoke_ctx) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext& ctx,
+                const miopen::batchnorm::ProblemDescription& problem,
+                const PerformanceConfigBnCKBwdBackward& config) const override;
 };
 
-struct BnCKFwdTraining final : BatchnormSolver
+struct PerformanceConfigBnCKFwdTraining : PerfConfigBaseCK<PerformanceConfigBnCKFwdTraining>
+{
+    int index;
+    std::string kernel_id;
+    std::vector<std::string> valid_kernels;
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKFwdTraining(int idx, std::string kernl_id)
+        : index(idx), kernel_id(kernl_id)
+    {
+    }
+    PerformanceConfigBnCKFwdTraining() : PerformanceConfigBnCKFwdTraining(0, "") {}
+    PerformanceConfigBnCKFwdTraining(bool) : PerformanceConfigBnCKFwdTraining(0, "") {}
+    MIOPEN_INTERNALS_EXPORT void
+    HeuristicInit(const miopen::batchnorm::ProblemDescription& problem);
+    MIOPEN_INTERNALS_EXPORT bool SetNextValue(const miopen::batchnorm::ProblemDescription& problem);
+    MIOPEN_INTERNALS_EXPORT bool IsValidValue() const;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsValid(const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const;
+
+    template <typename Self, typename F>
+    static void Visit(Self&& s, F f)
+    {
+        f(s.kernel_id, "kernel_id");
+    }
+    MIOPEN_INTERNALS_EXPORT bool operator==(const PerformanceConfigBnCKFwdTraining& other) const;
+
+private:
+    template <typename XDataType,
+              typename YDataType,
+              typename AccDataType,
+              typename ScaleDataType,
+              typename BiasDataType,
+              typename MeanVarDataType>
+    void Init(const miopen::batchnorm::ProblemDescription&);
+    template <typename XDataType,
+              typename YDataType,
+              typename AccDataType,
+              typename ScaleDataType,
+              typename BiasDataType,
+              typename MeanVarDataType>
+    bool CheckIsSupportCKArgs(const miopen::batchnorm::ProblemDescription&) const;
+};
+
+struct BnCKFwdTraining final : BatchNormTunableSolver<PerformanceConfigBnCKFwdTraining>
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<BnCKFwdTraining>(); }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext& ctx,
+                 const miopen::batchnorm::ProblemDescription& problem) const override;
+    bool IsDynamic() const override { return true; }
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKFwdTraining GetDefaultPerformanceConfig(
+        const ExecutionContext& ctx,
+        const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsValidPerformanceConfig(const ExecutionContext& ctx,
+                             const miopen::batchnorm::ProblemDescription& problem,
+                             const PerformanceConfigBnCKFwdTraining& config) const override;
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigBnCKFwdTraining
+    Search(const ExecutionContext& ctx,
+           const miopen::batchnorm::ProblemDescription& problem,
+           const AnyInvokeParams& invoke_ctx) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext& ctx,
+                const miopen::batchnorm::ProblemDescription& problem,
+                const PerformanceConfigBnCKFwdTraining& config) const override;
 };
 
 } // namespace batchnorm
