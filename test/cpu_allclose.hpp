@@ -30,8 +30,8 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T>
-void cpu_allclose_forward(const tensor<T> input1,
-                          const tensor<T> input2,
+void cpu_allclose_forward(const tensor<T>& input1,
+                          const tensor<T>& input2,
                           tensor<int32_t>& output,
                           const float atol,
                           const float rtol,

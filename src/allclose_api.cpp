@@ -96,7 +96,7 @@ extern "C" miopenStatus_t miopenAllCloseForward(miopenHandle_t handle,
                                                 const float rtol,
                                                 const bool equal_nan,
                                                 void* workspace,
-                                                size_t workspaceSizeInBytes)
+                                                const size_t workspaceSizeInBytes)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         input1Desc,

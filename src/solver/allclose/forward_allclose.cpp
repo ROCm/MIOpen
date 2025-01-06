@@ -24,11 +24,11 @@
  *
  *******************************************************************************/
 
-#include <miopen/buffer_info.hpp>
-#include <miopen/datatype.hpp>
 #include <miopen/allclose.hpp>
 #include <miopen/allclose/invoke_params.hpp>
 #include <miopen/allclose/solvers.hpp>
+#include <miopen/buffer_info.hpp>
+#include <miopen/datatype.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view_utils.hpp>

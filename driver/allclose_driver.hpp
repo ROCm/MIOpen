@@ -307,13 +307,13 @@ int AllCloseDriver<Tgpu, Tout>::RunForwardCPU()
 template <typename Tgpu, typename Tout>
 int AllCloseDriver<Tgpu, Tout>::RunBackwardGPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tout>
 int AllCloseDriver<Tgpu, Tout>::RunBackwardCPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tout>

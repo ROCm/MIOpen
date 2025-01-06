@@ -24,12 +24,12 @@
  *
  *******************************************************************************/
 #include <miopen/allclose.hpp>
-#include <miopen/kernel_cache.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/tensor.hpp>
 #include <miopen/allclose/invoke_params.hpp>
 #include <miopen/allclose/solvers.hpp>
 #include <miopen/find_solution.hpp>
+#include <miopen/float_equal.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
@@ -56,11 +56,11 @@ miopenStatus_t AllCloseForward(Handle& handle,
                                ConstData_t input2,
                                const TensorDescriptor& outputDesc,
                                Data_t output,
-                               float atol,
-                               float rtol,
-                               bool equal_nan,
+                               const float atol,
+                               const float rtol,
+                               const bool equal_nan,
                                Data_t workspace,
-                               size_t workspaceSizeInBytes)
+                               const size_t workspaceSizeInBytes)
 {
     const auto problem       = allclose::ProblemDescription{input1Desc, input2Desc, outputDesc};
     const auto invoke_params = [&]() {

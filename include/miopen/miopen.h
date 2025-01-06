@@ -8055,7 +8055,7 @@ MIOPEN_EXPORT miopenStatus_t miopenAllCloseForward(miopenHandle_t handle,
                                                    const float rtol,
                                                    const bool equal_nan,
                                                    void* workspace,
-                                                   size_t workspaceSizeInBytes);
+                                                   const size_t workspaceSizeInBytes);
 
 /** @} */
 // CLOSEOUT allclose DOXYGEN GROUP

@@ -25,9 +25,9 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/activ.hpp>
 #include <miopen/miopen.h>
 #include <miopen/problem_description_base.hpp>
-#include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
@@ -74,8 +74,6 @@ struct ProblemDescription : ProblemDescriptionBase
         }
         return true;
     }
-
-    bool IsAllContiguous() const { return input1Desc.IsContiguous() && input2Desc.IsContiguous(); }
 
     NetworkConfig MakeNetworkConfig() const override;
 
