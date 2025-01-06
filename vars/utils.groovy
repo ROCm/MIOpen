@@ -2,16 +2,16 @@ def rocmnode(name) {
     return '(rocmtest || miopen) && (' + name + ')'
 }
 
-//def miopenCheckout()
-//{
-//    checkout([
-//        $class: 'GitSCM',
-//        branches: scm.branches,
-//        doGenerateSubmoduleConfigurations: true,
-//        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
- //       userRemoteConfigs: scm.userRemoteConfigs
- //   ])
-//}
+def miopenCheckout()
+{
+    checkout([
+        $class: 'GitSCM',
+        branches: scm.branches,
+        doGenerateSubmoduleConfigurations: true,
+        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
+       userRemoteConfigs: scm.userRemoteConfigs
+   ])
+}
 
 def show_node_info() {
     sh """
@@ -245,7 +245,7 @@ def getDockerImage(Map conf=[:])
 
 def buildHipClangJob(Map conf=[:]){
         show_node_info()
-        //miopenCheckout()
+        miopenCheckout()
         checkout scm
         env.HSA_ENABLE_SDMA=0
         env.DOCKER_BUILDKIT=1
