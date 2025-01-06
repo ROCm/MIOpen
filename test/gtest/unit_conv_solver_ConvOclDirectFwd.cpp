@@ -52,80 +52,92 @@ const auto& GetTestParams()
 
 } // namespace
 
-TEST_P(GPU_UnitTestConvSolverFwd_FP16, ConvOclDirectFwd)
+using GPU_UnitTestConvSolverOclDirectFwdFwd_FP16 = GPU_UnitTestConvSolverFwd_FP16;
+using GPU_UnitTestConvSolverOclDirectFwdBwd_FP16 = GPU_UnitTestConvSolverBwd_FP16;
+
+using GPU_UnitTestConvSolverOclDirectFwdFwd_BFP16 = GPU_UnitTestConvSolverFwd_BFP16;
+using GPU_UnitTestConvSolverOclDirectFwdBwd_BFP16 = GPU_UnitTestConvSolverBwd_BFP16;
+
+using GPU_UnitTestConvSolverOclDirectFwdFwd_FP32 = GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverOclDirectFwdBwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
+
+using CPU_UnitTestConvSolverDevApplicabilityFwdFwd_NONE =
+    CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
+
+TEST_P(GPU_UnitTestConvSolverOclDirectFwdFwd_FP16, ConvOclDirectFwd)
 {
     this->RunTest(miopen::solver::conv::ConvOclDirectFwd{});
 };
 
-TEST_P(GPU_UnitTestConvSolverBwd_FP16, ConvOclDirectFwd)
+TEST_P(GPU_UnitTestConvSolverOclDirectFwdBwd_FP16, ConvOclDirectFwd)
 {
     this->RunTest(miopen::solver::conv::ConvOclDirectFwd{});
 };
 
-TEST_P(GPU_UnitTestConvSolverFwd_BFP16, ConvOclDirectFwd)
+TEST_P(GPU_UnitTestConvSolverOclDirectFwdFwd_BFP16, ConvOclDirectFwd)
 {
     this->RunTest(miopen::solver::conv::ConvOclDirectFwd{});
 };
 
-TEST_P(GPU_UnitTestConvSolverBwd_BFP16, ConvOclDirectFwd)
+TEST_P(GPU_UnitTestConvSolverOclDirectFwdBwd_BFP16, ConvOclDirectFwd)
 {
     this->RunTest(miopen::solver::conv::ConvOclDirectFwd{});
 };
 
-TEST_P(GPU_UnitTestConvSolverFwd_FP32, ConvOclDirectFwd)
+TEST_P(GPU_UnitTestConvSolverOclDirectFwdFwd_FP32, ConvOclDirectFwd)
 {
     this->RunTest(miopen::solver::conv::ConvOclDirectFwd{});
 };
 
-TEST_P(GPU_UnitTestConvSolverBwd_FP32, ConvOclDirectFwd)
+TEST_P(GPU_UnitTestConvSolverOclDirectFwdBwd_FP32, ConvOclDirectFwd)
 {
     this->RunTest(miopen::solver::conv::ConvOclDirectFwd{});
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwd_NONE, ConvOclDirectFwd)
+TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwdFwd_NONE, ConvOclDirectFwd)
 {
     this->RunTest(miopen::solver::conv::ConvOclDirectFwd{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverFwd_FP16,
+                         GPU_UnitTestConvSolverOclDirectFwdFwd_FP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverBwd_FP16,
+                         GPU_UnitTestConvSolverOclDirectFwdBwd_FP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverFwd_BFP16,
+                         GPU_UnitTestConvSolverOclDirectFwdFwd_BFP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverBwd_BFP16,
+                         GPU_UnitTestConvSolverOclDirectFwdBwd_BFP16,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverFwd_FP32,
+                         GPU_UnitTestConvSolverOclDirectFwdFwd_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverBwd_FP32,
+                         GPU_UnitTestConvSolverOclDirectFwdBwd_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverDevApplicabilityFwd_NONE,
+                         CPU_UnitTestConvSolverDevApplicabilityFwdFwd_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));

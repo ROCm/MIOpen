@@ -26,6 +26,7 @@
 #################################################################################
 
 """gtest name linter"""
+import os
 import re
 import sys
 import argparse
@@ -59,7 +60,7 @@ def parse_args():
     return args
 
 
-def parse_tests(args):
+def check_naming_schema(args):
 
     mismatches = defaultdict(str)
 
@@ -107,12 +108,67 @@ def parse_tests(args):
             return -1  # uncomment when all the tests will be renamed
     return 0
 
+# This function makes sure that we don't have explicit name conflicts in gtest folder
+# For example if you have GPU_SomeTestName_FP32 in file1.cpp and same GPU_SomeTestName_FP32 in file2.cpp 
+# in gtest folder, there will be a naming conflict when both files are combined into one single test binary miopen_gtest
+# If such a situation is detected we should force a developer to make proper unique naming for the tests in PR.
+
+# This script should be located in gtest folder
+def check_names_uniqueness() :
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    files = os.listdir(dir_path)
+
+    test_regexp = re.compile(r"^\s*(TEST)|(TEST_P)|(TEST_F)|(TYPED_TEST)\(.*,.*")
+
+    occurences = {}
+
+    error_count = 0
+    files_count = 0
+    cases_count = 0
+
+    for file_name_raw in files:
+        file_name = os.path.join(dir_path, file_name_raw)
+        if not os.path.isfile(file_name):
+            continue
+
+        if not file_name.endswith(".cpp"):
+            continue
+
+        files_count += 1
+        with open(file_name) as f:
+            for line in f:
+                if re.match(test_regexp, line):               
+                    m = re.search('\((.*),', line)
+                    if (m is None):
+                        continue
+
+                    test_class_name = m.group(1).strip(" \t")
+
+                    if not test_class_name in occurences:
+                        occurences[test_class_name] = set()
+                    occurences[test_class_name].add(file_name_raw)
+
+    for key in occurences.keys():
+        if len(occurences[key]) > 1:
+            print ("ERROR: test name " + key + " is used in multiple files: " + str(occurences[key]))
+            error_count += 1
+            cases_count += len(occurences[key])
+
+    print ("Gtest folder test class names uniqness check, total files checked: " + str(files_count) + ", total errors = " + str(error_count) + ". Total files with duplicates = " + str(cases_count))
+
+    if error_count > 0:
+        return -1
+    
+    return 0
 
 def main():
     """Main function"""
     args = parse_args()
-    return parse_tests(args)
+    naming_check_result = check_naming_schema(args)
+    if naming_check_result < 0:
+        return naming_check_result
 
+    return check_names_uniqueness()
 
 if __name__ == "__main__":
     sys.exit(main())

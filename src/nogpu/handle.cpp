@@ -170,8 +170,8 @@ void Handle::ClearProgram(const fs::path& program_name, const std::string& param
     this->impl->cache.ClearProgram(program_name, params);
 }
 
-const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
-                                                  const std::string& network_config) const
+std::vector<Kernel> Handle::GetKernelsImpl(const std::string& algorithm,
+                                           const std::string& network_config) const
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
