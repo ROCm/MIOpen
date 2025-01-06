@@ -67,21 +67,21 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class GPU_Conv2dDefaultMLIRTest_FP32 : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dMLIRTestIGemmFwd_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
-class GPU_Conv2dDefaultMLIRTest_FP16 : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dMLIRTestIGemmFwd_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
-class GPU_Conv2dDefaultMLIRTest_I8 : public Int8TestCase<std::vector<TestCase>>
+class GPU_Conv2dMLIRTestIGemmFwd_I8 : public Int8TestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(GPU_Conv2dDefaultMLIRTest_FP32, FloatTest_conv_igemm_mlir_fwd)
+TEST_P(GPU_Conv2dMLIRTestIGemmFwd_FP32, FloatTest_conv_igemm_mlir_fwd)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultMLIRTest_FP32>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dMLIRTestIGemmFwd_FP32>(db_check);
     }
     else
     {
@@ -89,11 +89,11 @@ TEST_P(GPU_Conv2dDefaultMLIRTest_FP32, FloatTest_conv_igemm_mlir_fwd)
     }
 };
 
-TEST_P(GPU_Conv2dDefaultMLIRTest_FP16, HalfTest_conv_igemm_mlir_fwd)
+TEST_P(GPU_Conv2dMLIRTestIGemmFwd_FP16, HalfTest_conv_igemm_mlir_fwd)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultMLIRTest_FP16>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dMLIRTestIGemmFwd_FP16>(db_check);
     }
     else
     {
@@ -101,11 +101,11 @@ TEST_P(GPU_Conv2dDefaultMLIRTest_FP16, HalfTest_conv_igemm_mlir_fwd)
     }
 };
 
-TEST_P(GPU_Conv2dDefaultMLIRTest_I8, Int8Test_conv_igemm_mlir_fwd)
+TEST_P(GPU_Conv2dMLIRTestIGemmFwd_I8, Int8Test_conv_igemm_mlir_fwd)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultMLIRTest_I8>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dMLIRTestIGemmFwd_I8>(db_check);
     }
     else
     {
@@ -114,8 +114,8 @@ TEST_P(GPU_Conv2dDefaultMLIRTest_I8, Int8Test_conv_igemm_mlir_fwd)
 };
 
 // Float for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefaultMLIRTest_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dMLIRTestIGemmFwd_FP32, testing::Values(GetTestCases()));
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefaultMLIRTest_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dMLIRTestIGemmFwd_FP16, testing::Values(GetTestCases()));
 // Int8 for FWD
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDefaultMLIRTest_I8, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dMLIRTestIGemmFwd_I8, testing::Values(GetTestCases()));

@@ -36,7 +36,7 @@ namespace env = miopen::env;
 
 namespace pooling2d_asymmetric {
 
-class GPU_Pooling2d_FP32 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_AsymPooling2d_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -59,7 +59,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = GPU_Pooling2d_FP32::GetParam(); break;
+    case miopenFloat: params = GPU_AsymPooling2d_FP32::GetParam(); break;
     case miopenHalf: params = GPU_AsymPooling2d_FP16::GetParam(); break;
     case miopenBFloat16:
     case miopenInt8:
@@ -73,7 +73,7 @@ void Run2dDriver(miopenDataType_t prec)
                "data type not supported by "
                "pooling2d_asymmetric test";
 
-    default: params = GPU_Pooling2d_FP32::GetParam();
+    default: params = GPU_AsymPooling2d_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -112,7 +112,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 using namespace pooling2d_asymmetric;
 
 /*
-TEST_P(GPU_Pooling2d_FP32, FloatTest_pooling2d_asymmetric)
+TEST_P(GPU_AsymPooling2d_FP32, FloatTest_pooling2d_asymmetric)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
@@ -139,6 +139,6 @@ TEST_P(GPU_AsymPooling2d_FP16, HalfTest_pooling2d_asymmetric)
     }
 };
 
-// INSTANTIATE_TEST_SUITE_P(Full, GPU_Pooling2d_FP32, testing::Values(GetTestCases("--float")));
+// INSTANTIATE_TEST_SUITE_P(Full, GPU_AsymPooling2d_FP32, testing::Values(GetTestCases("--float")));
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_AsymPooling2d_FP16, testing::Values(GetTestCases("--half")));
