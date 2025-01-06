@@ -51,7 +51,7 @@ pipeline {
                 }
             }
         }
-        stage("Performance Tests - gfx90a") {
+        //stage("Performance Tests - gfx90a") {
             //parallel{
                 stage('Fp32 BS128 Hip Performance Resnet50_v1.5 gfx90A'){
                     when {
@@ -788,6 +788,6 @@ pipeline {
                     }
                 }*/
             //}
-        }
+        //}
   }
 }
