@@ -131,10 +131,6 @@ protected:
             std::fill(workspace.begin(), workspace.end(), 0);
             workspace_dev = handle.Write(workspace.data);
         }
-        else
-        {
-            workspace_dev = nullptr;
-        }
 
         input1_dev = handle.Write(input1.data);
         input2_dev = handle.Write(input2.data);
