@@ -35,14 +35,11 @@ namespace KerasMomentum {
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype         = varInDesc.GetType();
-    auto input_lengths = varInDesc.GetLengths();
+    auto dtype = varInDesc.GetType();
 
     std::ostringstream ss;
     ss << "dtype" << dtype;
-    ss << "input_lengths";
-    for(auto length : input_lengths)
-        ss << length << ',';
+    ss << "input_lengths" << varInDesc.GetElementSize();
     ss << "is_allpacked_samestride" << IsAllPackedSameStride();
 
     return NetworkConfig{ss.str()};
