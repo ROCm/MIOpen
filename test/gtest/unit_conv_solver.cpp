@@ -73,26 +73,6 @@ bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
     return false;
 }
 
-miopen::conv::ProblemDescription GetProblemDescription(miopen::conv::Direction direction,
-                                                       const ConvTestCase& conv_config)
-{
-    const auto x_desc    = conv_config.GetXTensorDescriptor();
-    const auto w_desc    = conv_config.GetWTensorDescriptor();
-    const auto conv_desc = conv_config.GetConv();
-    const auto y_desc =
-        conv_desc.GetForwardOutputTensor(x_desc, w_desc, conv_config.GetYDataType());
-
-    switch(direction)
-    {
-    case miopen::conv::Direction::Forward:
-    case miopen::conv::Direction::BackwardData:
-        return miopen::conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, direction);
-    case miopen::conv::Direction::BackwardWeights:
-        return miopen::conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, direction);
-    default: throw std::runtime_error("unknown direction");
-    }
-}
-
 } // namespace
 
 //************************************************************************************
@@ -169,6 +149,25 @@ miopenDataType_t ConvTestCase::GetYDataType() const { return type_y; }
 miopen::ConvolutionDescriptor ConvTestCase::GetConv() const
 {
     return conv.GetConvolutionDescriptor();
+}
+
+miopen::conv::ProblemDescription
+ConvTestCase::GetProblemDescription(miopen::conv::Direction direction) const
+{
+    const auto x_desc    = GetXTensorDescriptor();
+    const auto w_desc    = GetWTensorDescriptor();
+    const auto conv_desc = GetConv();
+    const auto y_desc    = conv_desc.GetForwardOutputTensor(x_desc, w_desc, GetYDataType());
+
+    switch(direction)
+    {
+    case miopen::conv::Direction::Forward:
+    case miopen::conv::Direction::BackwardData:
+        return miopen::conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, direction);
+    case miopen::conv::Direction::BackwardWeights:
+        return miopen::conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, direction);
+    default: throw std::runtime_error("unknown direction");
+    }
 }
 
 std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
@@ -732,7 +731,7 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
         deprecated_solv_enabler.Enable();
     }
 
-    const auto problem = GetProblemDescription(direction, conv_config);
+    const auto problem = conv_config.GetProblemDescription(direction);
 
     const auto all_known_devs = GetAllKnownDevices();
     for(const auto& [dev, dev_descr] : all_known_devs)

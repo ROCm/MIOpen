@@ -35,7 +35,7 @@ struct conv2d_bias_driver : public conv_bias_driver<T>
                    tensor_elem_gen_checkboard_sign{}(is...);
         };
 
-        this->add(this->output, "output", this->get_tensor(get_inputs, gen_value));
+        this->add(this->output, "output", this->get_tensor(get_inputs<int>, gen_value));
     }
 };
 
