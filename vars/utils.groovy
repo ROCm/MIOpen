@@ -427,7 +427,7 @@ def RunPerfTest(Map conf=[:]){
               catch (Exception err){
                   currentBuild.result = 'SUCCESS'
               }
-              //cleanWs()
+              cleanWs()
             }
         }
         }
