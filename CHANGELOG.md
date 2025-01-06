@@ -2,8 +2,24 @@
 # Change Log for MIOpen
 
 Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/)
+## MIOpen 3.3.0 for ROCm 6.3.0
+### Added
 
-## MIOpen-3.2.0 for ROCm 6.2.0
+* [RNN] LSTM fwd
+* [Mha] Mask is added for Forward pass 
+* [GLU] Gated Linear Unit (this is an experimental feature)
+* [PReLU] Implemented PReLU bwd (this is an experimental feature)
+### Optimized
+
+- MI300 TunaNet Update: CK FWD and WRW Solvers Updated 
+### Resolved issues
+
+- Fixed unset stream when calling `hipMemsetAsync`
+- Fixed a memory leak issue caused by an incorrect transpose in find 2.0 (see PR #3285 on GitHub)
+- Fixed a `memcopy` data race by replacing `hipMemcpy` with `hipMemcpyWithStream`
+
+
+## MIOpen 3.2.0 for ROCm 6.2.0
 ### Added
 - [Conv] bilinear (alpha beta) solvers
 - [Conv] enable bf16 for ck-based solvers
@@ -12,7 +28,6 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 - [RNN] multi-stream as default solution.
 - TunaNetv2.0 for MI300
 - Added adam and amp adam optimizer
-
 ### Fixed
 - Memory access fault caused by GemmBwdRest
 - Context configuration in GetWorkSpaceSize
@@ -21,7 +36,7 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 ### Performance
 - Find: Improve precision of benchmarking
 
-## MIOpen-3.1.0 for ROCm 6.1.0
+## MIOpen 3.1.0 for ROCm 6.1.0
 ### Added
 - CK-based 2d/3d convolution solvers to support nchw/ncdhw layout
 - Fused solver for Fwd Convolution with Residual, Bias and activation
@@ -40,7 +55,7 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 ### Removed
 - clamping to MAX from CastTensor used in Bwd and WrW convolution
 
-## MIOpen-3.0.0 for ROCm 6.0.0
+## MIOpen 3.0.0 for ROCm 6.0.0
 - This release adds 3D convolution, enablement of fp8 convolution, NHWC batch norm, RNN padding support. It also removes
 INI8x4 support and fix minor issues and bugs.
 ### Notes
@@ -63,7 +78,7 @@ INI8x4 support and fix minor issues and bugs.
 - Remove INT8x4 support
 - Remove target ids from kdb args
 
-## MIOpen-2.21.0 for ROCm 5.7.0
+## MIOpen 2.21.0 for ROCm 5.7.0
 ### Added
 - AI Heuristic for Immediate Mode Fallback
 - CK group forward convolution integration
@@ -73,7 +88,7 @@ INI8x4 support and fix minor issues and bugs.
 ### Changed
 - Update fdb data to use solver keys [MI100][MI200]
 
-## MIOpen-2.20.0 for ROCm 5.6.0
+## MIOpen 2.20.0 for ROCm 5.6.0
 ### Added
 - AI Based Heuristic for Kernel Parameter Prediction
 - LSTM multi-stream solver
@@ -83,7 +98,7 @@ INI8x4 support and fix minor issues and bugs.
 - Winograd kernel failure
 - Perf DB updates for gfx908 and gfx90a
 
-## MIOpen-2.19.0 for ROCm 5.5.0
+## MIOpen 2.19.0 for ROCm 5.5.0
 ### Added
 - ROCm 5.5 support for gfx1101 (Navi32)
 ### Changed

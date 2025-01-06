@@ -289,8 +289,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(
             idx += 2;
         if(((idx == 15 && (heuristic_kernels[heuristic_indexes[0]].size() == 15)) || idx == 18))
         {
-            kernel_id =
-                valid_kernels[heuristic_indexes[0]] + "+" + value + "+" + std::to_string(split_k);
+            kernel_id          = valid_kernels[heuristic_indexes[0]] + "+" + value;
             index              = heuristic_indexes[0];
             bool valid_split_k = false;
             switch(problem.GetInDataType())
