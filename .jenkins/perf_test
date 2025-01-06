@@ -52,7 +52,7 @@ pipeline {
             }
         }
         stage("Performance Tests - gfx90a") {
-            parallel{
+            //parallel{
                 stage('Fp32 BS128 Hip Performance Resnet50_v1.5 gfx90A'){
                     when {
                         expression {params.PERF_TEST_FP32}
@@ -74,7 +74,7 @@ pipeline {
                         utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false  )
                         }
                     }
-                }
+                }/*
                 stage('Fp32 BS512 Hip Performance Resnet50_v1.5 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
@@ -786,8 +786,8 @@ pipeline {
                         utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false  )
                         }
                     }
-                }
-            }
+                }*/
+            //}
         }
   }
 }
