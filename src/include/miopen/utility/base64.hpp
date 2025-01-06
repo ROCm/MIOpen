@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,28 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/config.h>
 
-#if MIOPEN_BACKEND_HIP
-#include "log.hpp"
+#pragma once
 
-TEST(CPU_LOG_TEST_NEG_NONE, AssertLogCmdOutput_Neg)
+#include <vector>
+#include <string>
+#include <string_view>
+
+namespace miopen {
+
+std::string base64Encode(const uint8_t* data, std::size_t length);
+
+inline std::string base64Encode(const std::vector<uint8_t>& data)
 {
-    TestLogFun(miopen::debug::LogCmdConvolution, logConv, false);
+    return base64Encode(data.data(), data.size());
 }
 
-TEST(CPU_LOG_TEST_NEG_NONE, AssertLogFindCmdOutput_Neg)
-{
-    TestLogFun(miopen::debug::LogCmdFindConvolution, logFindConv, false);
-}
+std::vector<uint8_t> base64Decode(const std::string_view& encodedString);
 
-TEST(CPU_LOG_TEST_NEG_NONE, AssertTestLogCmdCBAFusionOutput_Neg)
-{
-    TestLogCmdCBAFusion(miopen::debug::LogCmdFusion, logFusionConvBiasActiv, false);
-}
-
-TEST(CPU_LOG_TEST_NEG_NONE, AssertTestLogCmdBNormFusionOutput_Neg)
-{
-    TestLogCmdBNormFusion(miopen::debug::LogCmdFusion, logBnormActiv, false);
-}
-#endif
+} // namespace miopen
