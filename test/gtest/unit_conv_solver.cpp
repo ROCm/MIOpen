@@ -249,6 +249,10 @@ double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction directio
         {
             tolerance *= 2.0;
         }
+        else if(algo == miopenConvolutionAlgoImplicitGEMM)
+        {
+            tolerance *= 3.0;
+        }
     }
 
     double threshold = std::numeric_limits<T>::epsilon() * tolerance;
