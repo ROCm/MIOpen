@@ -387,11 +387,12 @@ def RunPerfTest(Map conf=[:]){
     checkout scm
     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
     try {
-        (retimage, image) = getDockerImage(conf)
+        //(retimage, image) = getDockerImage(conf)
+        image = conf.get("docker_image").pull()
         withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
         timeout(time: 100, unit: 'MINUTES')
         {
-            cmake_build(conf)
+            //cmake_build(conf)
             //unstash 'miopen_tar'
             //sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
             ld_lib="${env.WORKSPACE}/install/lib"
