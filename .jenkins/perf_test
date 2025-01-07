@@ -35,7 +35,7 @@ pipeline {
                     //def utils = load "vars/utils.groovy"
                     //utils.getDockerImage()
                     def utils = load "vars/utils.groovy"
-                    docker_image = utils.buildHipClangJob(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false, needs_cleanup:true)
+                    docker_image = utils.buildHipClangJob(needs_gpu:false, needs_reboot:false, needs_cleanup:true, build_install: true, make_targets: "install")
                     withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
                         docker_image.push()
                     }
