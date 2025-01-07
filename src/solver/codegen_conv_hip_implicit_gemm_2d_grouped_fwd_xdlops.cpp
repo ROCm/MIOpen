@@ -247,13 +247,9 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
     auto src = ck::host::InterpolateString(
         conv_compile_check,
         {{"include", x.prob.GetIncludeHeader()}, {"template", solution[0].ToTemplateString()}});
-    auto srcs = get_headers_for_test();
-    srcs.push_back({"main.cpp", src});
     auto name = solution[0].GetTemplateParameter<std::string>("name");
 
     auto kernel_info = KernelInfo{};
-    auto path        = std::strcat(std::getenv("HOME"), "/workspace/MIOpen/src/kernels/main.cpp");
-    kernel_info.kernel_file = path;
     kernel_info.kernel_name = "run_" + name;
 
     // Grid size calculation
