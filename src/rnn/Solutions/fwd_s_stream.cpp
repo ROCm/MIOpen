@@ -83,7 +83,7 @@ void RNNDynamicModularSingleStreamFWD::ComputeFWD(Handle& handle,
     auto seq_iterations      = rnnAlgoModules.getTimeSeqSize();
     auto real_seq_iterations = rnnAlgoModules.getRealTimeSeqSize();
 
-    if(rnnDesc.nLayers == 0 || seq_iterations == 0)
+    if(rnnDesc.nLayers == 0 || real_seq_iterations == 0)
         return;
 
     auto sequence_directions =
@@ -119,9 +119,9 @@ void RNNDynamicModularSingleStreamFWD::ComputeFWD(Handle& handle,
             if(layer_i != 0)
                 rnnAlgoModules.PropHiddenY(handle, runtimeArgs, layer_i, seq_dir);
 
-            for(int ti = 0; ti < seq_iterations; ti++)
+            for(int ti = 0; ti < real_seq_iterations; ti++)
             {
-                const rnn_base::SequenceIterator cur_seq(ti, seq_dir, seq_iterations, true);
+                const rnn_base::SequenceIterator cur_seq(ti, seq_dir, real_seq_iterations, true);
 
                 if(ti == 0)
                     rnnAlgoModules.PropHxCx(handle, runtimeArgs, layer_i, cur_seq, seq_dir);
@@ -131,13 +131,7 @@ void RNNDynamicModularSingleStreamFWD::ComputeFWD(Handle& handle,
                 rnnAlgoModules.UpdateHStatePerTimeSeq(
                     handle, runtimeArgs, layer_i, cur_seq, seq_dir);
 
-                if(ti < real_seq_iterations)
-                {
-                    const rnn_base::SequenceIterator real_cur_seq(
-                        ti, seq_dir, real_seq_iterations, true);
-
-                    rnnAlgoModules.PropHyCy(handle, runtimeArgsExt, layer_i, real_cur_seq, seq_dir);
-                }
+                rnnAlgoModules.PropHyCy(handle, runtimeArgsExt, layer_i, cur_seq, seq_dir);
             }
         }
     }
