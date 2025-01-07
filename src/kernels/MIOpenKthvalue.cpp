@@ -43,20 +43,21 @@
 #endif
 
 template <typename DTYPE, uint32_t NDIMS, typename INDEX_DTYPE>
-__device__ void kthvalueFwd(const DTYPE* input,
+__device__ void kthvalueFwd(const DTYPE* input, // input without selected dim
                             DTYPE* output,
                             INDEX_DTYPE* indices,
                             size_t k,
                             size_t dim_size,
                             size_t dim_stride,
                             size_t output_size,
-                            tensor_view_t<NDIMS - 1> input_tv,
+                            tensor_view_t<NDIMS - 1> input_tv, // input_tv without selected dim
                             tensor_view_t<NDIMS> output_tv,
                             tensor_view_t<NDIMS> indices_tv)
 {
     /*
      * Input : {N, C, D, H, W}. Select dim: 2(D)
-     * Output/indices : {N, C, H, W}
+     * input_without_dim : {N, C, H, W}
+     * Output/indices : {N, C, 1, H, W}
      * Each lws handle dim_size elements to find the kth value.
      * Lws = {256 or 512, 1, 1}
      * Gws = {A * B * D * E * lws.x, 1, 1},
@@ -197,17 +198,19 @@ extern "C" __global__ void KthvalueFwd(const IN_OUT_TYPE* input,
 }
 
 template <typename DTYPE, uint32_t NDIMS, typename INDEX_DTYPE>
-__device__ void kthvalue_bwd(DTYPE* input_grad,
-                             const DTYPE* output_grad,
-                             const INDEX_DTYPE* indices,
-                             uint64_t dim_size,
-                             uint64_t dim_stride,
-                             tensor_view_t<NDIMS - 1> input_grad_tv,
-                             tensor_view_t<NDIMS> output_grad_tv,
-                             tensor_view_t<NDIMS> indices_tv)
+__device__ void
+kthvalue_bwd(DTYPE* input_grad, // input_grad without selected dim
+             const DTYPE* output_grad,
+             const INDEX_DTYPE* indices,
+             uint64_t dim_size,
+             uint64_t dim_stride,
+             tensor_view_t<NDIMS - 1> input_grad_tv, // input_grad_tv without selected dim
+             tensor_view_t<NDIMS> output_grad_tv,
+             tensor_view_t<NDIMS> indices_tv)
 {
     /*
      * input_grad : {N, C, D, H, W}. Select dim: 2(D)
+     * input_grad without selected dim : {N, C, H, W}
      * output_grad/indices : {N, C, H, W}
      * lws = {256 or 512, 1, 1}
      * gws = {A * B * D * E * lws.x, 1, 1},

@@ -47,15 +47,14 @@ miopenStatus_t MedianForward(Handle& handle,
     const auto problem = median::FwdProblemDescription{inputDesc, outputDesc, indicesDesc, dim};
 
     const auto invoke_params = [&]() {
-        auto tmp = median::FwdInvokeParams{};
-        // tmp.type           = InvokeType::Run;
+        auto tmp        = median::FwdInvokeParams{};
         tmp.inputDesc   = &inputDesc;
         tmp.outputDesc  = &outputDesc;
         tmp.indicesDesc = &indicesDesc;
         tmp.input       = input;
         tmp.output      = output;
         tmp.indices     = indices;
-        tmp.dim         = dim;
+        tmp.dim         = dim < 0 ? inputDesc.GetNumDims() + dim : dim;
         return tmp;
     }();
 
@@ -86,7 +85,7 @@ miopenStatus_t MedianBackward(Handle& handle,
         tmp.outputGrad     = outputGrad;
         tmp.indices        = indices;
         tmp.inputGrad      = inputGrad;
-        tmp.dim            = dim;
+        tmp.dim            = dim < 0 ? inputGradDesc.GetNumDims() + dim : dim;
         return tmp;
     }();
 
