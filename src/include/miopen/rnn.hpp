@@ -155,6 +155,13 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                                miopenRNNFWDMode_t fwdMode) const;
     size_t GetMaxReserveSize(Handle& handle, const SeqTensorDescriptor& xDesc) const;
 
+    std::tuple<size_t, size_t> GetTmpSpaceSizeDynamicAlgo(Handle& handle,
+                                                          const SeqTensorDescriptor& xDesc,
+                                                          miopenRNNFWDMode_t fwdMode) const;
+    bool CheckDynamicAlgoSelection(Handle& handle,
+                                   const SeqTensorDescriptor& xDesc,
+                                   miopenRNNFWDMode_t fwdMode) const;
+
     size_t
     GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype) const;
     size_t GetParamsSize(size_t inputVector) const;
@@ -534,6 +541,8 @@ private:
                                          Data_t hy,
                                          const TensorDescriptor& cyDesc,
                                          Data_t cy,
+                                         Data_t workSpace,
+                                         size_t workSpaceSize,
                                          Data_t reserveSpace,
                                          size_t reserveSpaceSize) const;
 
