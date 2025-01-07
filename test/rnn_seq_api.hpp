@@ -1002,6 +1002,9 @@ struct verify_train_rnn : verify_rnn_api_base<T>
     bool nodhy{};
     bool nodcy{};
 
+    bool skip_backward_data{};
+    bool skip_backward_weights{};
+
     using verify_rnn_api_base<T>::is_padded_verification;
 
     using verify_rnn_api_base<T>::padding_symbol;
@@ -1044,12 +1047,16 @@ struct verify_train_rnn : verify_rnn_api_base<T>
                      tensor<T>& dhy,
                      tensor<T>& dcy,
                      std::vector<T>& w,
-                     const bool pnohx = false,
-                     const bool pnocx = false,
-                     const bool pnohy = false,
-                     const bool pnocy = false,
-                     T* paddingSymbol = nullptr)
+                     const bool pnohx        = false,
+                     const bool pnocx        = false,
+                     const bool pnohy        = false,
+                     const bool pnocy        = false,
+                     const bool skip_bw_data = false,
+                     const bool skip_bw_wei  = false,
+                     T* paddingSymbol        = nullptr)
         : verify_rnn_api_base<T>(pRD, x, y, hx, cx, w, pnohx, pnocx, pnohy, pnocy, paddingSymbol),
+          skip_backward_data(skip_bw_data),
+          skip_backward_weights(skip_bw_wei),
           dyHiddenState(dhy),
           dyCellState(dcy),
           dOutput(dy)
@@ -1080,6 +1087,11 @@ struct verify_train_rnn : verify_rnn_api_base<T>
                                                      nocx,
                                                      nohy,
                                                      nocy);
+        if(skip_backward_data)
+        {
+            return result_tuple(
+                std::move(fwd_y), std::move(fwd_hy), std::move(fwd_cy), {}, {}, {}, {});
+        }
 
         auto [bwd_din, bwd_dhx, bwd_dcx] = refMethod.bwd(input.desc,
                                                          output.desc,
@@ -1097,6 +1109,17 @@ struct verify_train_rnn : verify_rnn_api_base<T>
                                                          nodcy,
                                                          nohx,
                                                          nocx);
+
+        if(skip_backward_weights)
+        {
+            return result_tuple(std::move(fwd_y),
+                                std::move(fwd_hy),
+                                std::move(fwd_cy),
+                                std::move(bwd_din),
+                                std::move(bwd_dhx),
+                                std::move(bwd_dcx),
+                                {});
+        }
 
         auto wrw_res = refMethod.wrw(input.desc,
                                      output.desc,
@@ -1176,6 +1199,9 @@ struct verify_train_rnn : verify_rnn_api_base<T>
         const auto fwd_hy = readTFromGPUOrEmpty(handle, hy_dev, xHiddenState, nohy);
         const auto fwd_cy = readTFromGPUOrEmpty(handle, cy_dev, xCellState, nocy);
 
+        if(skip_backward_data)
+            return result_tuple(fwd_y, fwd_hy, fwd_cy, {}, {}, {}, {});
+
         const auto dy_dev  = transferTensorToGPUOrNullptr(handle, dOutput, false);
         const auto dhy_dev = transferTensorToGPUOrNullptr(handle, dyHiddenState, nodhy);
         const auto dcy_dev = transferTensorToGPUOrNullptr(handle, dyCellState, nodcy);
@@ -1210,6 +1236,9 @@ struct verify_train_rnn : verify_rnn_api_base<T>
         const auto bwd_din = handle.Read<T>(din_dev, input.GetSize());
         const auto bwd_dhx = readTFromGPUOrEmpty(handle, dhx_dev, xHiddenState, nodhx);
         const auto bwd_dcx = readTFromGPUOrEmpty(handle, dcx_dev, xCellState, nodcx);
+
+        if(skip_backward_weights)
+            return result_tuple(fwd_y, fwd_hy, fwd_cy, bwd_din, bwd_dhx, bwd_dcx, {});
 
         std::vector<T> workSpace_bwd_out(workSpace_TCnt);
         handle.ReadTo(workSpace_bwd_out.data(), workSpace_dev, workSpaceByteSize);
@@ -1401,6 +1430,9 @@ struct rnn_seq_api_test_driver : test_driver
     bool nocy{};
 
     bool pytorchTensorDescriptorFormat{};
+
+    bool skip_backward_data{false};
+    bool skip_backward_weights{false};
 
     rnn_seq_api_test_driver() {}
 
@@ -1658,7 +1690,20 @@ struct rnn_seq_api_test_driver : test_driver
             tolerance = 80;
         }
 
-        auto fwdTrain = verify(verify_train_rnn<T>{
-            rnnDesc, input, output, dy, hx, cx, dhy, dcy, weights, nohx, nocx, nohy, nocy});
+        auto fwdTrain = verify(verify_train_rnn<T>{rnnDesc,
+                                                   input,
+                                                   output,
+                                                   dy,
+                                                   hx,
+                                                   cx,
+                                                   dhy,
+                                                   dcy,
+                                                   weights,
+                                                   nohx,
+                                                   nocx,
+                                                   nohy,
+                                                   nocy,
+                                                   skip_backward_data,
+                                                   skip_backward_weights});
     }
 };

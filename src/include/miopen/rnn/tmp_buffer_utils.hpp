@@ -64,6 +64,16 @@ OutputIt exclusive_scan_wa(InputIt first, InputIt last, OutputIt d_first, T init
 
 } // namespace WA_RHEL
 
+inline Data_t moveDataPtrByte(Data_t ptr, size_t byteOffset)
+{
+    return static_cast<char*>(ptr) + byteOffset;
+}
+
+inline Data_t moveDataPtr(Data_t ptr, size_t elementOffset, miopenDataType_t elementType)
+{
+    return moveDataPtrByte(ptr, elementOffset * GetTypeSize(elementType));
+}
+
 namespace rnn_base {
 
 enum class SequenceDirection
@@ -178,12 +188,13 @@ public:
  */
 //////
 
-class GeneralRNNTempBuffer : public BaseRnnWsBufferPacked<GeneralRNNTempBuffer>
+template <typename Derived>
+class GeneralRNNTempBufferTemplate : public BaseRnnWsBufferPacked<Derived>
 {
 protected:
-    GeneralRNNTempBuffer(const std::array<size_t, 4>& hstate_strides,
-                         const std::array<size_t, 4>& hstate_sizes,
-                         size_t total_element_cnt)
+    GeneralRNNTempBufferTemplate(const std::array<size_t, 4>& hstate_strides,
+                                 const std::array<size_t, 4>& hstate_sizes,
+                                 size_t total_element_cnt)
         : hStateStrides{hstate_strides},
           hStateSizes{hstate_sizes},
           totalElementCnt{total_element_cnt}
@@ -191,7 +202,7 @@ protected:
     }
 
 public:
-    static GeneralRNNTempBuffer
+    static GeneralRNNTempBufferTemplate
     build(size_t layers_cnt, size_t vectors_per_layer, size_t directions, size_t hidden_vec_sz)
     {
         const std::array<size_t, 4> h_state_sizes{
@@ -203,7 +214,7 @@ public:
                          std::multiplies<size_t>{});
 
         auto total_element_cnt = h_state_strides[0] * h_state_sizes[0];
-        return GeneralRNNTempBuffer{h_state_strides, h_state_sizes, total_element_cnt};
+        return {h_state_strides, h_state_sizes, total_element_cnt};
     }
 
     size_t getHiddenStateOffsetImpl(const size_t layer_id,
@@ -250,18 +261,21 @@ public:
  *}
  */
 
-class GeneralLstmTempBuffer : public GeneralRNNTempBuffer,
-                              public GeneralLstmWsExt<GeneralLstmTempBuffer>,
-                              public LstmWsGateBlockExt<GeneralLstmTempBuffer>
+template <typename Derived>
+class GeneralLstmInternalBuffTemplate : public GeneralRNNTempBufferTemplate<Derived>,
+                                        public GeneralLstmWsExt<Derived>,
+                                        public LstmWsGateBlockExt<Derived>
 {
+    using RNNBufferTemplate = GeneralRNNTempBufferTemplate<Derived>;
+
 protected:
-    GeneralLstmTempBuffer(const std::array<size_t, 4>& h_state_strides,
-                          const std::array<size_t, 4>& h_state_sizes,
-                          const std::array<size_t, 4>& lstm_gate_sizes,
-                          const std::array<size_t, 4>& lstm_gate_strides,
-                          const std::array<size_t, 4>& lstm_gates_block_sizes,
-                          size_t total_element_cnt)
-        : GeneralRNNTempBuffer{h_state_strides, h_state_sizes, total_element_cnt},
+    GeneralLstmInternalBuffTemplate(const std::array<size_t, 4>& h_state_strides,
+                                    const std::array<size_t, 4>& h_state_sizes,
+                                    const std::array<size_t, 4>& lstm_gate_sizes,
+                                    const std::array<size_t, 4>& lstm_gate_strides,
+                                    const std::array<size_t, 4>& lstm_gates_block_sizes,
+                                    size_t total_element_cnt)
+        : RNNBufferTemplate{h_state_strides, h_state_sizes, total_element_cnt},
           gateSizes{lstm_gate_sizes},
           gateStride{lstm_gate_strides},
           gateBlockSizes{lstm_gates_block_sizes}
@@ -269,7 +283,7 @@ protected:
     }
 
 public:
-    static GeneralLstmTempBuffer
+    static GeneralLstmInternalBuffTemplate
     build(size_t layers_cnt, size_t comp_dim_per_layer, size_t directions, size_t hidden_vec_sz)
     {
 
@@ -345,7 +359,8 @@ public:
                                 const size_t vector_id,
                                 const SequenceDirection direction) const
     {
-        return getGasOffset(layer_id, vector_id, direction, LstmGateAndState::Ht);
+        return GeneralLstmWsExt<Derived>::getGasOffset(
+            layer_id, vector_id, direction, LstmGateAndState::Ht);
     }
 
     size_t getGasOffsetImpl(const size_t layer_id,
@@ -357,20 +372,21 @@ public:
 
         if(gas == LstmGateAndState::Ht || gas == LstmGateAndState::St)
             return start_ident +
-                   GeneralRNNTempBuffer::getHiddenStateOffset(layer_id, vector_id, direction);
+                   RNNBufferTemplate::getHiddenStateOffset(layer_id, vector_id, direction);
 
         const std::array<size_t, 3> pos{layer_id, vector_id, static_cast<size_t>(direction)};
 
-        return start_ident +
-               std::inner_product(
-                   pos.cbegin(), pos.cend(), hStateStrides.cbegin(), static_cast<size_t>(0));
+        return start_ident + std::inner_product(pos.cbegin(),
+                                                pos.cend(),
+                                                RNNBufferTemplate::hStateStrides.cbegin(),
+                                                static_cast<size_t>(0));
     }
 
     // layer, minor dim(seq or sample), directions, element
     const std::array<size_t, 4>& getGateAndStateStrideImpl(LstmGateAndState gas) const
     {
         if(gas == LstmGateAndState::Ht || gas == LstmGateAndState::St)
-            return getHiddenStateStride();
+            return RNNBufferTemplate::getHiddenStateStride();
         return gateStride;
     }
 
@@ -392,9 +408,19 @@ private:
         case LstmGateAndState::O: return static_cast<size_t>(gas) * gateStride[3] * gateSizes[3];
         case LstmGateAndState::St: return gateStride[2] * gateSizes[2]; // direction DIM
         case LstmGateAndState::Ht:
-            return (gateStride[2] + getHiddenStateStride()[2]) * gateSizes[2];
+            return (gateStride[2] + RNNBufferTemplate::getHiddenStateStride()[2]) * gateSizes[2];
         }
         return 0;
+    }
+};
+
+// final
+class GeneralLstmTempBuffer : public GeneralLstmInternalBuffTemplate<GeneralLstmTempBuffer>
+{
+public:
+    GeneralLstmTempBuffer(const GeneralLstmInternalBuffTemplate<GeneralLstmTempBuffer> base)
+        : GeneralLstmInternalBuffTemplate<GeneralLstmTempBuffer>{base}
+    {
     }
 };
 
@@ -426,16 +452,16 @@ private:
  *}
  */
 
-class GeneralLstmRedBuffer : public GeneralLstmTempBuffer,
+class GeneralLstmRedBuffer : public GeneralLstmInternalBuffTemplate<GeneralLstmRedBuffer>,
                              public LstmActiveCellExt<GeneralLstmRedBuffer>
 {
 protected:
-    GeneralLstmRedBuffer(const GeneralLstmTempBuffer& base,
+    GeneralLstmRedBuffer(const GeneralLstmInternalBuffTemplate<GeneralLstmRedBuffer>& base,
                          const std::array<size_t, 4>& active_cells_sizes,
                          const std::array<size_t, 4>& active_cells_strides,
                          size_t active_cells_ident,
                          size_t active_cell_elements)
-        : GeneralLstmTempBuffer{base},
+        : GeneralLstmInternalBuffTemplate<GeneralLstmRedBuffer>{base},
           activeCellSize{active_cells_sizes},
           activeCellStride{active_cells_strides},
           activeCellsIdent{active_cells_ident},
@@ -448,8 +474,8 @@ public:
     build(size_t layers_cnt, size_t comp_dim_per_layer, size_t directions, size_t hidden_vec_sz)
     {
 
-        auto base =
-            GeneralLstmTempBuffer::build(layers_cnt, comp_dim_per_layer, directions, hidden_vec_sz);
+        auto base = GeneralLstmInternalBuffTemplate<GeneralLstmRedBuffer>::build(
+            layers_cnt, comp_dim_per_layer, directions, hidden_vec_sz);
 
         auto active_cells_ident = base.gateStride[0] * base.gateSizes[0];
 
@@ -534,6 +560,8 @@ public:
     {
         return batchPrefSumAtTime[time_id];
     }
+
+    size_t size() const { return batchAtTime.size(); }
 
 private:
     template <class T, std::enable_if_t<std::is_same<T, std::vector<size_t>>::value, bool> = true>
