@@ -90,23 +90,6 @@ struct Epilogue
 )";
 std::string prologue = "";
 
-// TODO: temporarily have these two here due to build issues with ck_rtc, remove once resolved
-struct src_file
-{
-    std::filesystem::path path;
-    std::string_view content;
-};
-std::vector<src_file> get_headers_for_test()
-{
-    std::vector<src_file> result;
-    auto hs = ck::host::GetHeaders();
-    std::transform(
-        hs.begin(), hs.end(), std::back_inserter(result), [&](const auto& p) -> src_file {
-            return {p.first, p.second};
-        });
-    return result;
-}
-
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -256,9 +239,7 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
     // FIXME: for some reason, the launch params that work in CK, don't work here.
     // Launch params are hardcoded for now
     // auto block_size = solution[0].GetTemplateParameter<ck::index_t>("BlockSize");
-
     // auto tmp = get_launch_params(solution[0], x.out_lengths, x.out_strides);
-
     // auto grid_size = tmp * x.in_lengths[1];
 
     kernel_info.l_wk = {256, 1, 1};
