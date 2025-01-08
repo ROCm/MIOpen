@@ -35,10 +35,11 @@ pipeline {
                     //def utils = load "vars/utils.groovy"
                     //utils.getDockerImage()
                     def utils = load "vars/utils.groovy"
-                    docker_image = utils.buildHipClangJob(needs_gpu:false, needs_reboot:false, needs_cleanup:true, build_install: true, make_targets: "install")
-                    withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
-                        docker_image.push()
-                    }
+                    //docker_image = utils.buildHipClangJob(needs_gpu:false, needs_reboot:false, needs_cleanup:true, build_install: true, make_targets: "install")
+                    //withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
+                    //    docker_image.push()
+                    //}
+                    docker_image = "rocm/miopen:ci_0401d0"
                 }
             }
         }
@@ -65,7 +66,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install", docker_image: ${docker_image})
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install", docker_image: docker_image)
                         }
                     }
                 }/*
