@@ -33,6 +33,9 @@
 #include <numeric>
 #include <ostream>
 
+#include "miopen/env.hpp"
+#include "miopen/rnn/solvers.hpp"
+
 // Disable specific warnings
 #define MIO_RNN_DEBUG 0
 
@@ -473,8 +476,24 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
         transformer_tmp_space = RNNTransformerWorkspaceSize(xDesc, fwdMode);
     }
 
-    const std::size_t total_sequence_len = xDesc.GetTotalSequenceLen();
+    std::size_t total_sequence_len = 0;
 
+    size_t solution_ws = 0;
+
+    if(CheckDynamicAlgoSelection(handle, xDesc, fwdMode))
+    {
+        auto [ws, rs] = GetTmpSpaceSizeDynamicAlgo(handle, xDesc, miopenRNNTraining);
+        solution_ws   = ws;
+        auto lens     = rnn_base::roundedDynamicLengths(xDesc);
+
+        total_sequence_len = lens[0] * lens[1];
+    }
+    else
+    {
+        total_sequence_len = xDesc.GetTotalSequenceLen();
+        solution_ws =
+            GetMainSolWorkspaceSize(total_sequence_len, fwdMode, miopenRNNDataSeqMajorNotPadded);
+    }
     size_t reduction_ws = ReductionWorkspaceSize(handle,
                                                  total_sequence_len,
                                                  nHiddenTensorsPerLayer,
@@ -483,8 +502,7 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
                                                  dirMode == miopenRNNbidirection,
                                                  dataType);
 
-    return transformer_tmp_space + reduction_ws +
-           GetMainSolWorkspaceSize(total_sequence_len, fwdMode, miopenRNNDataSeqMajorNotPadded);
+    return transformer_tmp_space + reduction_ws + solution_ws;
 }
 
 size_t RNNDescriptor::GetMaxWorkspaceSize(Handle& handle,
@@ -522,23 +540,49 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
         padding_converter_tmp_space = packedXInSpace + packedYOutSpace;
     }
 
+    SeqTensorDescriptor xSeqTDesc =
+        makeSeqTensorDescriptor(xDesc, seqLength, miopenRNNDataSeqMajorNotPadded);
+
     std::size_t total_sequence_len = 0;
-    total_sequence_len             = std::accumulate(
-        xDesc.data, xDesc.data + seqLength, 0ULL, [](size_t x, miopenTensorDescriptor_t y) {
-            return x + deref(y).GetLengths()[0];
-        });
 
-    size_t reduction_ws = ReductionWorkspaceSize(handle,
-                                                 total_sequence_len,
-                                                 nHiddenTensorsPerLayer,
-                                                 workspaceScale,
-                                                 hsize,
-                                                 dirMode == miopenRNNbidirection,
-                                                 dataType);
+    if(CheckDynamicAlgoSelection(handle, xSeqTDesc, miopenRNNTraining))
+    {
+        auto [ws, rs] = GetTmpSpaceSizeDynamicAlgo(handle, xSeqTDesc, miopenRNNTraining);
 
-    return padding_converter_tmp_space + reduction_ws +
-           GetMainSolWorkspaceSize(
-               total_sequence_len, miopenRNNInference, miopenRNNDataSeqMajorNotPadded);
+        auto lens = rnn_base::roundedDynamicLengths(xSeqTDesc);
+
+        total_sequence_len = lens[0] * lens[1];
+
+        return ws + padding_converter_tmp_space +
+               ReductionWorkspaceSize(handle,
+                                      total_sequence_len,
+                                      nHiddenTensorsPerLayer,
+                                      workspaceScale,
+                                      hsize,
+                                      dirMode == miopenRNNbidirection,
+                                      dataType);
+        ;
+    }
+    else
+    {
+
+        total_sequence_len = std::accumulate(
+            xDesc.data, xDesc.data + seqLength, 0ULL, [](size_t x, miopenTensorDescriptor_t y) {
+                return x + deref(y).GetLengths()[0];
+            });
+
+        size_t reduction_ws = ReductionWorkspaceSize(handle,
+                                                     total_sequence_len,
+                                                     nHiddenTensorsPerLayer,
+                                                     workspaceScale,
+                                                     hsize,
+                                                     dirMode == miopenRNNbidirection,
+                                                     dataType);
+
+        return padding_converter_tmp_space + reduction_ws +
+               GetMainSolWorkspaceSize(
+                   total_sequence_len, miopenRNNInference, miopenRNNDataSeqMajorNotPadded);
+    }
 }
 
 /////////////////////////////////
@@ -546,7 +590,8 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
 size_t RNNDescriptor::GetReserveSize(size_t batchLenSum) const
 {
     auto x = 2 * workspaceScale * nLayers * batchLenSum * hsize * typeSize;
-    if(algoMode == miopenRNNdefault && rnnMode == miopenLSTM)
+    if((algoMode == miopenRNNdefault || algoMode == miopenRNNroundedDynamic) &&
+       rnnMode == miopenLSTM)
     {
         x /= 2;
         x += nLayers * batchLenSum * hsize * typeSize;
@@ -564,18 +609,24 @@ size_t RNNDescriptor::GetReserveSize(size_t batchLenSum) const
 //  with tensor with maximum sequence length and maximum count of non empty sequences.
 // The previous version of this function returned a size sufficient only for the current tensor
 // size.
-size_t RNNDescriptor::GetMaxReserveSize(Handle& /* handle */,
-                                        const SeqTensorDescriptor& xDesc) const
+size_t RNNDescriptor::GetMaxReserveSize(Handle& handle, const SeqTensorDescriptor& xDesc) const
 {
     if(xDesc.GetType() != dataType)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
+
+    if(CheckDynamicAlgoSelection(handle, xDesc, miopenRNNTraining))
+    {
+        auto [ws, rs] = GetTmpSpaceSizeDynamicAlgo(handle, xDesc, miopenRNNTraining);
+        return rs;
+    }
+
     return GetReserveSize(xDesc.GetMaxSequenceLength() * xDesc.GetMaxCountOfSequences());
 }
 
 // Legacy.
-size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
+size_t RNNDescriptor::GetReserveSize(Handle& handle,
                                      const int seqLength,
                                      c_array_view<const miopenTensorDescriptor_t> xDesc) const
 {
@@ -584,12 +635,23 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-    std::size_t inputBatchLenSum = 0;
-    inputBatchLenSum             = std::accumulate(
-        xDesc.data, xDesc.data + seqLength, 0ULL, [](size_t x, miopenTensorDescriptor_t y) {
-            return x + deref(y).GetLengths()[0];
-        });
-    return GetReserveSize(inputBatchLenSum);
+    SeqTensorDescriptor xSeqTDesc =
+        makeSeqTensorDescriptor(xDesc, seqLength, miopenRNNDataSeqMajorNotPadded);
+
+    if(CheckDynamicAlgoSelection(handle, xSeqTDesc, miopenRNNTraining))
+    {
+        auto [ws, rs] = GetTmpSpaceSizeDynamicAlgo(handle, xSeqTDesc, miopenRNNTraining);
+        return rs;
+    }
+    else
+    {
+        std::size_t inputBatchLenSum = 0;
+        inputBatchLenSum             = std::accumulate(
+            xDesc.data, xDesc.data + seqLength, 0ULL, [](size_t x, miopenTensorDescriptor_t y) {
+                return x + deref(y).GetLengths()[0];
+            });
+        return GetReserveSize(inputBatchLenSum);
+    }
 }
 
 size_t RNNDescriptor::GetParamsSize(size_t inputVector) const
@@ -1211,6 +1273,8 @@ void RNNDescriptor::RNNVanillaForward(Handle& handle,
                                                hy,
                                                cDesc,
                                                cy,
+                                               workSpace,
+                                               workSpaceSize,
                                                reserveSpace,
                                                reserveSpaceSize);
     }
