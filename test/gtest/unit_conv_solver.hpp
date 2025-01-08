@@ -26,6 +26,7 @@
 #pragma once
 
 #include <miopen/conv/solvers.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 #include "gtest_common.hpp"
 #include "unit_conv_ConvolutionDescriptor.hpp"
@@ -71,6 +72,7 @@ struct ConvTestCase
     miopenDataType_t GetYDataType() const;
 
     miopen::ConvolutionDescriptor GetConv() const;
+    miopen::conv::ProblemDescription GetProblemDescription(miopen::conv::Direction direction) const;
 
     friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc);
 
