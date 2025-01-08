@@ -27,19 +27,21 @@
 
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view_utils.hpp>
+#include <sys/types.h>
 
 template <class T, class Tn>
 void cpu_matrixbandpart(const tensor<T> input,
-                        tensor<T> output,
+                        tensor<T>& output,
                         const tensor<Tn> num_lower,
                         const tensor<Tn> num_upper)
 {
-    auto input_tv  = miopen::get_inner_expanded_tv<5>(input.desc);
-    auto output_tv = miopen::get_inner_expanded_tv<5>(output.desc);
+    auto input_tv    = miopen::get_inner_expanded_tv<5>(input.desc);
+    auto output_tv   = miopen::get_inner_expanded_tv<5>(output.desc);
+    uint64_t num_dim = input.desc.GetNumDims();
 
     par_ford(input.desc.GetElementSize())([&](auto gid) {
-        int64_t w = gid % input_tv.size[4];
-        int64_t h = (gid / input_tv.size[4]) % input_tv.size[3];
+        int64_t w = gid % input_tv.size[num_dim - 1];
+        int64_t h = (gid / input_tv.size[num_dim - 1]) % input_tv.size[num_dim - 2];
 
         int64_t num_lower_val = static_cast<int64_t>(num_lower[0]);
         int64_t num_upper_val = static_cast<int64_t>(num_upper[0]);
@@ -49,9 +51,6 @@ void cpu_matrixbandpart(const tensor<T> input,
                        (num_upper_val < 0 || (-diff) <= num_upper_val);
 
         tensor_layout_t<5> layout(input_tv, gid);
-
-        std::cout << "CPU: gid: " << gid << " in_band: " << in_band
-                  << " input: " << input[input_tv.get_tensor_view_idx(layout)] << std::endl;
 
         output[output_tv.get_tensor_view_idx(layout)] =
             in_band ? input[input_tv.get_tensor_view_idx(layout)] : static_cast<T>(0);

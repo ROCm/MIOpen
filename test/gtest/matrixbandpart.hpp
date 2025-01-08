@@ -72,13 +72,14 @@ struct MatrixBandPartTestCase
 inline std::vector<MatrixBandPartTestCase> MatrixBandPartTestConfigs()
 {
     return {
-        {{10, 10}, true}, {{10, 10}, false},
-        // {{10, 10, 10}, true},
-        // {{10, 10, 10}, false},
-        // {{10, 10, 10, 10}, true},
-        // {{10, 10, 10, 10}, false},
-        // {{10, 10, 10, 10, 10}, true},
-        // {{10, 10, 10, 10, 10}, false},
+        {{10, 10}, true},
+        {{10, 10}, false},
+        {{10, 10, 10}, true},
+        {{10, 10, 10}, false},
+        {{10, 10, 10, 10}, true},
+        {{10, 10, 10, 10}, false},
+        {{10, 10, 10, 10, 10}, true},
+        {{10, 10, 10, 10, 10}, false},
     };
 }
 
@@ -143,13 +144,6 @@ protected:
         double threshold = std::numeric_limits<T>::epsilon();
 
         auto error = miopen::rms_range(ref_output, output);
-
-        // for(int i = 0; i < 10; ++i)
-        // {
-        //     std::cout << "CPU: ref_output[" << i << "] = " << ref_output[i] << " GPU: output[" <<
-        //     i
-        //               << "] = " << output[i] << std::endl;
-        // }
 
         ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
         EXPECT_LT(error, threshold * 10) << "Error forward Output beyond 10xthreshold : " << error
@@ -229,12 +223,6 @@ protected:
         double threshold = std::numeric_limits<T>::epsilon();
 
         auto error = miopen::rms_range(ref_input_grad, input_grad);
-
-        for(int i = 0; i < 10; ++i)
-        {
-            std::cout << "CPU: ref_input_grad[" << i << "] = " << ref_input_grad[i]
-                      << " GPU: input_grad[" << i << "] = " << input_grad[i] << std::endl;
-        }
 
         ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));
         EXPECT_LT(error, threshold * 10)

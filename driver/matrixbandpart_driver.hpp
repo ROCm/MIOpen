@@ -41,7 +41,7 @@
 #include <miopen/tensor.hpp>
 #include <vector>
 
-template <typename Tgpu, typename Tref>
+template <typename Tgpu, typename Tref, typename Tnum>
 class MatrixBandPartDriver : public Driver
 {
 public:
@@ -49,10 +49,10 @@ public:
     {
         miopenCreateTensorDescriptor(&inputDesc);
         miopenCreateTensorDescriptor(&inputGradDesc);
-        miopenCreateTensorDescriptor(&targetDesc);
-        miopenCreateTensorDescriptor(&backpropDesc);
         miopenCreateTensorDescriptor(&outputDesc);
         miopenCreateTensorDescriptor(&outputGradDesc);
+        miopenCreateTensorDescriptor(&numLowerDesc);
+        miopenCreateTensorDescriptor(&numUpperDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
@@ -79,10 +79,10 @@ public:
     {
         miopenDestroyTensorDescriptor(inputDesc);
         miopenDestroyTensorDescriptor(inputGradDesc);
-        miopenDestroyTensorDescriptor(targetDesc);
-        miopenDestroyTensorDescriptor(backpropDesc);
         miopenDestroyTensorDescriptor(outputDesc);
         miopenDestroyTensorDescriptor(outputGradDesc);
+        miopenDestroyTensorDescriptor(numLowerDesc);
+        miopenDestroyTensorDescriptor(numUpperDesc);
     }
 
 private:
@@ -91,17 +91,17 @@ private:
 
     miopenTensorDescriptor_t inputDesc;
     miopenTensorDescriptor_t inputGradDesc;
-    miopenTensorDescriptor_t targetDesc;
-    miopenTensorDescriptor_t backpropDesc;
     miopenTensorDescriptor_t outputDesc;
     miopenTensorDescriptor_t outputGradDesc;
+    miopenTensorDescriptor_t numLowerDesc;
+    miopenTensorDescriptor_t numUpperDesc;
 
     std::unique_ptr<GPUMem> input_dev;
     std::unique_ptr<GPUMem> input_grad_dev;
-    std::unique_ptr<GPUMem> target_dev;
-    std::unique_ptr<GPUMem> backprop_dev;
     std::unique_ptr<GPUMem> output_dev;
     std::unique_ptr<GPUMem> output_grad_dev;
+    std::unique_ptr<GPUMem> num_lower_dev;
+    std::unique_ptr<GPUMem> num_upper_dev;
 
     std::vector<Tgpu> input;
     std::vector<Tgpu> input_grad;
@@ -109,21 +109,24 @@ private:
     std::vector<Tgpu> output;
     std::vector<Tgpu> output_grad;
     std::vector<Tref> output_host;
-    std::vector<Tgpu> backprop;
-    std::vector<Tref> backprop_host;
-    std::vector<int> target;
+    std::vector<Tnum> num_lower;
+    std::vector<Tnum> num_upper;
 
     std::vector<int> in_len;
+    int num_lower_input = 0;
+    int num_upper_input = 0;
 
     bool isContiguous;
 };
 
-template <typename Tgpu, typename Tref>
-int MatrixBandPartDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
+template <typename Tgpu, typename Tref, typename Tnum>
+int MatrixBandPartDriver<Tgpu, Tref, Tnum>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
-    isContiguous = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
-    forw         = inflags.GetValueInt("forw");
+    isContiguous    = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
+    forw            = inflags.GetValueInt("forw");
+    num_lower_input = inflags.GetValueInt("num_lower");
+    num_upper_input = inflags.GetValueInt("num_upper");
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -133,32 +136,32 @@ int MatrixBandPartDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MatrixBandPartDriver<Tgpu, Tref>::GetandSetData()
+template <typename Tgpu, typename Tref, typename Tnum>
+int MatrixBandPartDriver<Tgpu, Tref, Tnum>::GetandSetData()
 {
     in_len                     = inflags.GetValueTensor("input_dim").lengths;
-    std::vector<int> out_dim   = std::vector<int>{in_len[0]};
+    std::vector<int> num_dim   = std::vector<int>{1};
     std::vector<int> in_stride = ComputeStrides(in_len);
 
     if(SetTensorNd(inputDesc, in_len, in_stride, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input_dim") + ".");
     if(SetTensorNd(inputGradDesc, in_len, in_stride, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input grad tensor: " + inflags.GetValueStr("input_dim") + ".");
-    if(SetTensorNd(targetDesc, out_dim, miopen_type<int>{}) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing target tensor.");
-    if(SetTensorNd(backpropDesc, in_len, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing backprop tensor: " + inflags.GetValueStr("input_dim") + ".");
-    if(SetTensorNd(outputDesc, out_dim, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(outputDesc, in_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output tensor.");
-    if(SetTensorNd(outputGradDesc, out_dim, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(outputGradDesc, in_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output grad tensor.");
+    if(SetTensorNd(numLowerDesc, num_dim, miopen_type<Tnum>{}) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing num_lower tensor.");
+    if(SetTensorNd(numUpperDesc, num_dim, miopen_type<Tnum>{}) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing num_upper tensor.");
 
     return miopenStatusSuccess;
 }
 
 // Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
-template <typename Tgpu, typename Tref>
-std::vector<int> MatrixBandPartDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+template <typename Tgpu, typename Tref, typename Tnum>
+std::vector<int> MatrixBandPartDriver<Tgpu, Tref, Tnum>::ComputeStrides(std::vector<int> inputDim)
 {
     if(!isContiguous)
         std::swap(inputDim.front(), inputDim.back());
@@ -171,14 +174,16 @@ std::vector<int> MatrixBandPartDriver<Tgpu, Tref>::ComputeStrides(std::vector<in
     return strides;
 }
 
-template <typename Tgpu, typename Tref>
-int MatrixBandPartDriver<Tgpu, Tref>::AddCmdLineArgs()
+template <typename Tgpu, typename Tref, typename Tnum>
+int MatrixBandPartDriver<Tgpu, Tref, Tnum>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward MatrixBandPart (Default=1)", "int");
     inflags.AddTensorFlag("input_dim",
                           'd',
                           "7x9",
                           "The dimensional lengths of the input tensors: NxC. Example: 7x9.");
+    inflags.AddInputFlag("num_lower", 'l', "0", "Number of Lower Diagonals (Default=0)", "int");
+    inflags.AddInputFlag("num_upper", 'u', "0", "Number of Upper Diagonals (Default=0)", "int");
 
     inflags.AddInputFlag("is-contiguous", 'C', "1", "is-contiguous (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -190,30 +195,28 @@ int MatrixBandPartDriver<Tgpu, Tref>::AddCmdLineArgs()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MatrixBandPartDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
+template <typename Tgpu, typename Tref, typename Tnum>
+int MatrixBandPartDriver<Tgpu, Tref, Tnum>::AllocateBuffersAndCopy()
 {
-    size_t input_sz  = GetTensorSize(inputDesc);
-    size_t output_sz = GetTensorSize(outputDesc);
+    size_t input_sz = GetTensorSize(inputDesc);
 
     uint32_t ctx = 0;
 
     input_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
     input_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
-    target_dev      = std::make_unique<GPUMem>(ctx, output_sz, sizeof(int));
-    backprop_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
-    output_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
-    output_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, output_sz, sizeof(Tgpu)));
+    output_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
+    output_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
+    num_lower_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, 1, sizeof(Tnum)));
+    num_upper_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, 1, sizeof(Tnum)));
 
     input           = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
     input_grad      = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
-    target          = std::vector<int>(output_sz, 0);
-    backprop        = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
-    output          = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0));
-    output_grad     = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0));
-    output_host     = std::vector<Tref>(output_sz, static_cast<Tref>(0));
-    backprop_host   = std::vector<Tref>(input_sz, static_cast<Tref>(0));
+    output          = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
+    output_grad     = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
+    output_host     = std::vector<Tref>(input_sz, static_cast<Tref>(0));
     input_grad_host = std::vector<Tref>(input_sz, static_cast<Tref>(0));
+    num_lower       = std::vector<Tnum>(1, static_cast<Tnum>(0));
+    num_upper       = std::vector<Tnum>(1, static_cast<Tnum>(0));
 
     if(forw == 0 || forw == 1)
     {
@@ -222,19 +225,9 @@ int MatrixBandPartDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
 
-        for(size_t i = 0; i < output_sz; i++)
-        {
-            target[i] = prng::gen_A_to_B<int>(0, in_len[1] - 1);
-        }
         if(input_dev->ToGPU(GetStream(), input.data()) != 0)
         {
             std::cerr << "Error copying (input) to GPU, size: " << input_dev->GetSize()
-                      << std::endl;
-            return miopenStatusInternalError;
-        }
-        if(target_dev->ToGPU(GetStream(), target.data()) != 0)
-        {
-            std::cerr << "Error copying (target) to GPU, size: " << target_dev->GetSize()
                       << std::endl;
             return miopenStatusInternalError;
         }
@@ -248,10 +241,9 @@ int MatrixBandPartDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(forw == 0 || forw == 2)
     {
-        for(size_t i = 0; i < output_sz; i++)
+        for(size_t i = 0; i < input_sz; i++)
         {
             output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-            backprop[i]    = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
         if(input_grad_dev->ToGPU(GetStream(), input_grad.data()) != 0)
         {
@@ -267,9 +259,19 @@ int MatrixBandPartDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
     }
 
-    if(backprop_dev->ToGPU(GetStream(), backprop.data()) != 0)
+    num_lower[0] = static_cast<Tnum>(num_lower_input);
+    num_upper[0] = static_cast<Tnum>(num_upper_input);
+
+    if(num_lower_dev->ToGPU(GetStream(), num_lower.data()) != 0)
     {
-        std::cerr << "Error copying (backprop) to GPU, size: " << backprop_dev->GetSize()
+        std::cerr << "Error copying (num_lower) to GPU, size: " << num_lower_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
+
+    if(num_upper_dev->ToGPU(GetStream(), num_upper.data()) != 0)
+    {
+        std::cerr << "Error copying (num_upper) to GPU, size: " << num_upper_dev->GetSize()
                   << std::endl;
         return miopenStatusInternalError;
     }
@@ -277,8 +279,8 @@ int MatrixBandPartDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MatrixBandPartDriver<Tgpu, Tref>::RunForwardGPU()
+template <typename Tgpu, typename Tref, typename Tnum>
+int MatrixBandPartDriver<Tgpu, Tref, Tnum>::RunForwardGPU()
 {
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
@@ -291,12 +293,12 @@ int MatrixBandPartDriver<Tgpu, Tref>::RunForwardGPU()
         auto status = miopenMatrixBandPartForward(GetHandle(),
                                                   inputDesc,
                                                   input_dev->GetMem(),
-                                                  targetDesc,
-                                                  target_dev->GetMem(),
                                                   outputDesc,
                                                   output_dev->GetMem(),
-                                                  backpropDesc,
-                                                  backprop_dev->GetMem());
+                                                  numLowerDesc,
+                                                  num_lower_dev->GetMem(),
+                                                  numUpperDesc,
+                                                  num_upper_dev->GetMem());
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMatrixBandPartForward");
 
         float time = 0.0;
@@ -327,37 +329,27 @@ int MatrixBandPartDriver<Tgpu, Tref>::RunForwardGPU()
         return miopenStatusInternalError;
     }
 
-    if(backprop_dev->FromGPU(GetStream(), backprop.data()) != 0)
-    {
-        std::cerr << "Error copying (backprop_dev) from GPU, size: " << backprop_dev->GetSize()
-                  << std::endl;
-        return miopenStatusInternalError;
-    }
-
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MatrixBandPartDriver<Tgpu, Tref>::RunForwardCPU()
+template <typename Tgpu, typename Tref, typename Tnum>
+int MatrixBandPartDriver<Tgpu, Tref, Tnum>::RunForwardCPU()
 {
     int status = miopenStatusSuccess;
 
-    status = mloMatrixBandPartForwardRunHost<Tgpu, Tref>(inputDesc,
-                                                         input.data(),
-                                                         targetDesc,
-                                                         target.data(),
-                                                         outputDesc,
-                                                         output_host.data(),
-                                                         backpropDesc,
-                                                         backprop_host.data(),
-                                                         in_len[1]);
+    status = mloMatrixBandPartRunHost<Tgpu, Tref, Tnum>(inputDesc,
+                                                        input.data(),
+                                                        outputDesc,
+                                                        output_host.data(),
+                                                        num_lower.data(),
+                                                        num_upper.data());
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloMatrixBandPartForwardRunHost");
 
     return status;
 }
 
-template <typename Tgpu, typename Tref>
-int MatrixBandPartDriver<Tgpu, Tref>::RunBackwardGPU()
+template <typename Tgpu, typename Tref, typename Tnum>
+int MatrixBandPartDriver<Tgpu, Tref, Tnum>::RunBackwardGPU()
 {
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
@@ -370,10 +362,12 @@ int MatrixBandPartDriver<Tgpu, Tref>::RunBackwardGPU()
         auto status = miopenMatrixBandPartBackward(GetHandle(),
                                                    outputGradDesc,
                                                    output_grad_dev->GetMem(),
-                                                   backpropDesc,
-                                                   backprop_dev->GetMem(),
                                                    inputGradDesc,
-                                                   input_grad_dev->GetMem());
+                                                   input_grad_dev->GetMem(),
+                                                   numLowerDesc,
+                                                   num_lower_dev->GetMem(),
+                                                   numUpperDesc,
+                                                   num_upper_dev->GetMem());
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMatrixBandPartBackward");
 
         float time = 0.0;
@@ -407,31 +401,30 @@ int MatrixBandPartDriver<Tgpu, Tref>::RunBackwardGPU()
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MatrixBandPartDriver<Tgpu, Tref>::RunBackwardCPU()
+template <typename Tgpu, typename Tref, typename Tnum>
+int MatrixBandPartDriver<Tgpu, Tref, Tnum>::RunBackwardCPU()
 {
     int status = miopenStatusSuccess;
 
-    status = mloMatrixBandPartBackwardRunHost<Tgpu, Tref>(outputGradDesc,
-                                                          output_grad.data(),
-                                                          backpropDesc,
-                                                          backprop.data(),
-                                                          inputGradDesc,
-                                                          input_grad_host.data(),
-                                                          in_len[1]);
+    status = mloMatrixBandPartRunHost<Tgpu, Tref, Tnum>(outputGradDesc,
+                                                        output_grad.data(),
+                                                        inputGradDesc,
+                                                        input_grad_host.data(),
+                                                        num_lower.data(),
+                                                        num_upper.data());
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloMatrixBandPartBackwardRunHost");
     return status;
 }
 
-template <typename Tgpu, typename Tref>
-Tref MatrixBandPartDriver<Tgpu, Tref>::GetTolerance()
+template <typename Tgpu, typename Tref, typename Tnum>
+Tref MatrixBandPartDriver<Tgpu, Tref, Tnum>::GetTolerance()
 {
     Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
-template <typename Tgpu, typename Tref>
-int MatrixBandPartDriver<Tgpu, Tref>::VerifyForward()
+template <typename Tgpu, typename Tref, typename Tnum>
+int MatrixBandPartDriver<Tgpu, Tref, Tnum>::VerifyForward()
 {
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
@@ -447,25 +440,11 @@ int MatrixBandPartDriver<Tgpu, Tref>::VerifyForward()
         std::cout << "Forward MatrixBandPart Output Verifies on CPU and GPU (err=" << error << ")"
                   << std::endl;
     }
-
-    auto error_backprop = miopen::rms_range(backprop_host, backprop);
-    if(!std::isfinite(error_backprop) || error_backprop > tolerance)
-    {
-        std::cout << "Forward MatrixBandPart Backprop FAILED: " << error_backprop << std::endl;
-        return EC_VerifyFwd;
-    }
-    else
-    {
-        std::cout << "Forward MatrixBandPart Backprop Verifies on CPU and GPU "
-                     "(err="
-                  << error_backprop << ")" << std::endl;
-    }
-
     return miopenStatusSuccess;
 }
 
-template <typename Tgpu, typename Tref>
-int MatrixBandPartDriver<Tgpu, Tref>::VerifyBackward()
+template <typename Tgpu, typename Tref, typename Tnum>
+int MatrixBandPartDriver<Tgpu, Tref, Tnum>::VerifyBackward()
 {
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();

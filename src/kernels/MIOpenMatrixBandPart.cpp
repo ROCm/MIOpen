@@ -42,6 +42,7 @@ __device__ void matrixBandPart(const T* __restrict__ input,
                                const Tn* __restrict__ num_lower,
                                const Tn* __restrict__ num_upper,
                                uint64_t numel,
+                               uint64_t num_dim,
                                tensor_view_t<5> input_tv,
                                tensor_view_t<5> output_tv)
 {
@@ -51,8 +52,8 @@ __device__ void matrixBandPart(const T* __restrict__ input,
         return;
     }
 
-    int64_t w = gid % input_tv.size[4];
-    int64_t h = (gid / input_tv.size[4]) % input_tv.size[3];
+    int64_t w = gid % input_tv.size[num_dim - 1];
+    int64_t h = (gid / input_tv.size[num_dim - 1]) % input_tv.size[num_dim - 2];
 
     int64_t num_lower_val = static_cast<int64_t>(num_lower[0]);
     int64_t num_upper_val = static_cast<int64_t>(num_upper[0]);
@@ -60,11 +61,6 @@ __device__ void matrixBandPart(const T* __restrict__ input,
 
     bool in_band = (num_lower_val < 0 || diff <= num_lower_val) &&
                    (num_upper_val < 0 || (-diff) <= num_upper_val);
-
-    printf("GPU: gid: %d in_band: %d, input: %f\n",
-           gid,
-           in_band,
-           input[input_tv.get_tensor_view_idx(tensor_layout_t<5>(input_tv, gid))]);
 
     tensor_layout_t<5> layout(input_tv, gid);
 
@@ -77,8 +73,10 @@ extern "C" __global__ void MatrixBandPart(const D_TYPE* __restrict__ input,
                                           const N_TYPE* __restrict__ num_lower,
                                           const N_TYPE* __restrict__ num_upper,
                                           uint64_t numel,
+                                          uint64_t num_dim,
                                           tensor_view_t<5> input_tv,
                                           tensor_view_t<5> output_tv)
 {
-    matrixBandPart<D_TYPE, N_TYPE>(input, output, num_lower, num_upper, numel, input_tv, output_tv);
+    matrixBandPart<D_TYPE, N_TYPE>(
+        input, output, num_lower, num_upper, numel, num_dim, input_tv, output_tv);
 }

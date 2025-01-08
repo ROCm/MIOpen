@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/errors.hpp"
 #include <miopen/datatype.hpp>
 #include <miopen/matrixbandpart.hpp>
 #include <miopen/matrixbandpart/invoke_params.hpp>
@@ -82,12 +83,14 @@ MatrixBandPartForward::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::matrixbandpart::FwdInvokeParams>();
             auto input_tv         = get_inner_expanded_tv<5>(deref(params.inputDesc));
             auto output_tv        = get_inner_expanded_tv<5>(deref(params.outputDesc));
+            uint64_t num_dim      = deref(params.inputDesc).GetNumDims();
 
             kernel(params.input,
                    params.output,
                    params.num_lower,
                    params.num_upper,
                    numel,
+                   num_dim,
                    input_tv,
                    output_tv);
         };

@@ -26,81 +26,40 @@
 #pragma once
 
 #include <cmath>
+#include <cstdint>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
 #include <../test/ford.hpp>
 
-template <typename Tgpu, typename Tcheck, typename Ta>
-int32_t mloMatrixBandPartForwardRunHost(const miopenTensorDescriptor_t inputDesc,
-                                        const Tgpu* input,
-                                        const miopenTensorDescriptor_t targetDesc,
-                                        const Ta* target,
-                                        const miopenTensorDescriptor_t outputDesc,
-                                        Tcheck* output,
-                                        const miopenTensorDescriptor_t backpropDesc,
-                                        Tcheck* backprop,
-                                        const uint64_t num_class)
+template <typename Tgpu, typename Tcheck, typename Tn>
+int32_t mloMatrixBandPartRunHost(const miopenTensorDescriptor_t inputDesc,
+                                 const Tgpu* input,
+                                 const miopenTensorDescriptor_t outputDesc,
+                                 Tcheck* output,
+                                 const Tn* num_lower,
+                                 const Tn* num_upper)
 {
-    auto input_tv    = miopen::get_inner_expanded_tv<2>(miopen::deref(inputDesc));
-    auto target_tv   = miopen::get_inner_expanded_tv<1>(miopen::deref(targetDesc));
-    auto output_tv   = miopen::get_inner_expanded_tv<1>(miopen::deref(outputDesc));
-    auto backprop_tv = miopen::get_inner_expanded_tv<2>(miopen::deref(backpropDesc));
+    auto input_tv    = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto output_tv   = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    uint64_t num_dim = miopen::deref(inputDesc).GetNumDims();
 
-    par_ford(miopen::deref(inputDesc).GetLengths()[0])([&](auto gid) {
-        double lmax    = std::numeric_limits<double>::lowest();
-        double lsum    = 0.0f;
-        uint64_t label = static_cast<uint64_t>(target[target_tv.get_tensor_view_idx({gid})]);
+    par_ford(miopen::deref(inputDesc).GetElementSize())([&](uint64_t gid) {
+        int64_t w = gid % input_tv.size[num_dim - 1];
+        int64_t h = (gid / input_tv.size[num_dim - 1]) % input_tv.size[num_dim - 2];
 
-        ford(num_class)([&](uint64_t j) {
-            double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, j})]);
-            lmax       = std::max(lmax, val);
-        });
+        int64_t num_lower_val = static_cast<int64_t>(num_lower[0]);
+        int64_t num_upper_val = static_cast<int64_t>(num_upper[0]);
+        int64_t diff          = h - w;
 
-        ford(num_class)([&](uint64_t j) {
-            double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, j})]);
-            lsum += std::exp(val - lmax);
-        });
+        bool in_band = (num_lower_val < 0 || diff <= num_lower_val) &&
+                       (num_upper_val < 0 || (-diff) <= num_upper_val);
 
-        double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, label})]);
-        output[output_tv.get_tensor_view_idx({gid})] =
-            static_cast<Tcheck>(std::log(lsum) - val + lmax);
+        tensor_layout_t<5> layout(input_tv, gid);
 
-        par_ford(num_class)([&](uint64_t j) {
-            double val = static_cast<double>(input[input_tv.get_tensor_view_idx({gid, j})]);
-            double backprop_val =
-                (j == label) ? std::exp(val - lmax) / lsum - 1.0f : std::exp(val - lmax) / lsum;
-
-            backprop[backprop_tv.get_tensor_view_idx({gid, j})] = static_cast<Tcheck>(backprop_val);
-        });
+        output[output_tv.get_tensor_view_idx(layout)] =
+            in_band ? static_cast<Tcheck>(input[input_tv.get_tensor_view_idx(layout)])
+                    : static_cast<Tcheck>(0);
     });
 
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tcheck>
-int32_t mloMatrixBandPartBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc,
-                                         const Tgpu* output_grad,
-                                         const miopenTensorDescriptor_t backpropDesc,
-                                         const Tgpu* backprop,
-                                         const miopenTensorDescriptor_t inputGradDesc,
-                                         Tcheck* input_grad,
-                                         const uint64_t num_class)
-{
-    auto output_grad_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(outputGradDesc));
-    auto backprop_tv    = miopen::get_inner_expanded_tv<2>(miopen::deref(backpropDesc));
-    auto input_grad_tv  = miopen::get_inner_expanded_tv<2>(miopen::deref(inputGradDesc));
-
-    par_ford(miopen::deref(outputGradDesc).GetLengths()[0])([&](auto gid) {
-        double output_grad_val =
-            static_cast<double>(output_grad[output_grad_tv.get_tensor_view_idx({gid})]);
-
-        par_ford(num_class)([&](uint64_t j) {
-            double backprop_val =
-                static_cast<double>(backprop[backprop_tv.get_tensor_view_idx({gid, j})]);
-
-            input_grad[input_grad_tv.get_tensor_view_idx({gid, j})] =
-                static_cast<Tcheck>(output_grad_val * backprop_val);
-        });
-    });
     return miopenStatusSuccess;
 }

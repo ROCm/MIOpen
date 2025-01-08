@@ -82,12 +82,14 @@ MatrixBandPartBackward::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::matrixbandpart::BwdInvokeParams>();
             auto output_grad_tv   = get_inner_expanded_tv<5>(deref(params.outputGradDesc));
             auto input_grad_tv    = get_inner_expanded_tv<5>(deref(params.inputGradDesc));
+            uint64_t num_dim      = deref(params.inputGradDesc).GetNumDims();
 
             kernel(params.output_grad,
                    params.input_grad,
                    params.num_lower,
                    params.num_upper,
                    numel,
+                   num_dim,
                    output_grad_tv,
                    input_grad_tv);
         };

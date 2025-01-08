@@ -29,11 +29,11 @@
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "matrixbandpart")
-        return new MatrixBandPartDriver<float, float>();
+        return new MatrixBandPartDriver<float, float, int32_t>();
     if(base_arg == "matrixbandpartfp16")
-        return new MatrixBandPartDriver<float16, float>();
+        return new MatrixBandPartDriver<float16, float, int32_t>();
     if(base_arg == "matrixbandpartbfp16")
-        return new MatrixBandPartDriver<bfloat16, float>();
+        return new MatrixBandPartDriver<bfloat16, float, int32_t>();
     return nullptr;
 }
 
