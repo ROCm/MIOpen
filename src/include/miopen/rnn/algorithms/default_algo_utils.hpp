@@ -131,8 +131,6 @@ public:
 
         assert(static_cast<size_t>(layers_cnt) * (is_seq_bidir ? 2 : 1) <= max_layers_hid);
 
-        auto gates_cnt = static_cast<int>(rnnDesc.nHiddenTensorsPerLayer);
-
         // class update req
         assert(!is_seq_bidir);
 

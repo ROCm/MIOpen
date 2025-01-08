@@ -80,7 +80,6 @@ void RNNModularSingleStreamFWD::ComputeFWD(Handle& handle, const runtimeArgsFwd&
 void RNNDynamicModularSingleStreamFWD::ComputeFWD(Handle& handle,
                                                   const runtimeArgsFwd& realRuntimeArgs) const
 {
-    auto seq_iterations      = rnnAlgoModules.getTimeSeqSize();
     auto real_seq_iterations = rnnAlgoModules.getRealTimeSeqSize();
 
     if(rnnDesc.nLayers == 0 || real_seq_iterations == 0)
