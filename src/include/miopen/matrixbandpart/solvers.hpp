@@ -29,7 +29,7 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/sparse_softmax_cross_entropy_with_logits/problem_description.hpp>
+#include <miopen/matrixbandpart/problem_description.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -38,7 +38,7 @@ namespace miopen {
 
 namespace solver {
 
-namespace sparse_softmax_cross_entropy_with_logits {
+namespace matrixbandpart {
 
 const auto make_hip_kernel = [](std::vector<size_t> localsize,
                                 std::vector<size_t> gridsize,
@@ -55,53 +55,42 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
         build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
 };
 
-using SparseSoftmaxCrossEntropyWithLogitsForwardSolver =
-    NonTunableSolverBase<ExecutionContext,
-                         miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription>;
-
-using SparseSoftmaxCrossEntropyWithLogitsBackwardSolver =
-    NonTunableSolverBase<ExecutionContext,
-                         miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription>;
+using MatrixBandPartSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::matrixbandpart::ProblemDescription>;
 
 // FORWARD
-struct SparseSoftmaxCrossEntropyWithLogitsForward final
-    : SparseSoftmaxCrossEntropyWithLogitsForwardSolver
+struct MatrixBandPartForward final : MatrixBandPartSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<SparseSoftmaxCrossEntropyWithLogitsForward>();
+        return GetSolverDbId<MatrixBandPartForward>();
     }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription&
-                          problem) const override;
+                      const miopen::matrixbandpart::ProblemDescription& problem) const override;
 
     ConvSolution
     GetSolution(const ExecutionContext& context,
-                const miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription&
-                    problem) const override;
+                const miopen::matrixbandpart::ProblemDescription& problem) const override;
 };
 
 // BACKWARD
-struct SparseSoftmaxCrossEntropyWithLogitsBackward final
-    : SparseSoftmaxCrossEntropyWithLogitsBackwardSolver
+struct MatrixBandPartBackward final : MatrixBandPartSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<SparseSoftmaxCrossEntropyWithLogitsBackward>();
+        return GetSolverDbId<MatrixBandPartBackward>();
     }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription&
-                          problem) const override;
+                      const miopen::matrixbandpart::ProblemDescription& problem) const override;
 
     ConvSolution
     GetSolution(const ExecutionContext& context,
-                const miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription&
-                    problem) const override;
+                const miopen::matrixbandpart::ProblemDescription& problem) const override;
 };
 
-} // namespace sparse_softmax_cross_entropy_with_logits
+} // namespace matrixbandpart
 
 } // namespace solver
 

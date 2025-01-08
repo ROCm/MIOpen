@@ -42,7 +42,7 @@
 #include <miopen/mha/solvers.hpp>
 #include <miopen/softmarginloss/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
-#include <miopen/sparse_softmax_cross_entropy_with_logits/solvers.hpp>
+#include <miopen/matrixbandpart/solvers.hpp>
 #include <miopen/multimarginloss/solvers.hpp>
 
 #include <miopen/conv_algo_name.hpp>
@@ -703,14 +703,12 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry,
              ++id,
-             Primitive::SparseSoftmaxCrossEntropyWithLogits,
-             sparse_softmax_cross_entropy_with_logits::SparseSoftmaxCrossEntropyWithLogitsForward{}
-                 .SolverDbId());
+             Primitive::MatrixBandPart,
+             matrixbandpart::MatrixBandPartForward{}.SolverDbId());
     Register(registry,
              ++id,
-             Primitive::SparseSoftmaxCrossEntropyWithLogits,
-             sparse_softmax_cross_entropy_with_logits::SparseSoftmaxCrossEntropyWithLogitsBackward{}
-                 .SolverDbId());
+             Primitive::MatrixBandPart,
+             matrixbandpart::MatrixBandPartBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function!
 }
 

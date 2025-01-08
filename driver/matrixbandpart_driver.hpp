@@ -27,7 +27,7 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "mloSparseSoftmaxCrossEntropyWithLogitsHost.hpp"
+#include "mloMatrixBandPartHost.hpp"
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
@@ -42,10 +42,10 @@
 #include <vector>
 
 template <typename Tgpu, typename Tref>
-class SparseSoftmaxCrossEntropyWithLogitsDriver : public Driver
+class MatrixBandPartDriver : public Driver
 {
 public:
-    SparseSoftmaxCrossEntropyWithLogitsDriver() : Driver()
+    MatrixBandPartDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputDesc);
         miopenCreateTensorDescriptor(&inputGradDesc);
@@ -75,7 +75,7 @@ public:
     Tref GetTolerance();
     int VerifyBackward() override;
     int VerifyForward() override;
-    ~SparseSoftmaxCrossEntropyWithLogitsDriver() override
+    ~MatrixBandPartDriver() override
     {
         miopenDestroyTensorDescriptor(inputDesc);
         miopenDestroyTensorDescriptor(inputGradDesc);
@@ -119,7 +119,7 @@ private:
 };
 
 template <typename Tgpu, typename Tref>
-int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
+int MatrixBandPartDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
     isContiguous = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
@@ -134,7 +134,7 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::ParseCmdLineArgs(int 
 }
 
 template <typename Tgpu, typename Tref>
-int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::GetandSetData()
+int MatrixBandPartDriver<Tgpu, Tref>::GetandSetData()
 {
     in_len                     = inflags.GetValueTensor("input_dim").lengths;
     std::vector<int> out_dim   = std::vector<int>{in_len[0]};
@@ -158,8 +158,7 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::GetandSetData()
 
 // Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
 template <typename Tgpu, typename Tref>
-std::vector<int>
-SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+std::vector<int> MatrixBandPartDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
 {
     if(!isContiguous)
         std::swap(inputDim.front(), inputDim.back());
@@ -173,13 +172,9 @@ SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::ComputeStrides(std::vecto
 }
 
 template <typename Tgpu, typename Tref>
-int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::AddCmdLineArgs()
+int MatrixBandPartDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw",
-                         'F',
-                         "1",
-                         "Run only Forward SparseSoftmaxCrossEntropyWithLogits (Default=1)",
-                         "int");
+    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward MatrixBandPart (Default=1)", "int");
     inflags.AddTensorFlag("input_dim",
                           'd',
                           "7x9",
@@ -196,7 +191,7 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
+int MatrixBandPartDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t input_sz  = GetTensorSize(inputDesc);
     size_t output_sz = GetTensorSize(outputDesc);
@@ -283,7 +278,7 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::AllocateBuffersAndCop
 }
 
 template <typename Tgpu, typename Tref>
-int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::RunForwardGPU()
+int MatrixBandPartDriver<Tgpu, Tref>::RunForwardGPU()
 {
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
@@ -293,17 +288,16 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        auto status = miopenSparseSoftmaxCrossEntropyWithLogitsForward(GetHandle(),
-                                                                       inputDesc,
-                                                                       input_dev->GetMem(),
-                                                                       targetDesc,
-                                                                       target_dev->GetMem(),
-                                                                       outputDesc,
-                                                                       output_dev->GetMem(),
-                                                                       backpropDesc,
-                                                                       backprop_dev->GetMem());
-        MIOPEN_THROW_IF(status != miopenStatusSuccess,
-                        "Error in miopenSparseSoftmaxCrossEntropyWithLogitsForward");
+        auto status = miopenMatrixBandPartForward(GetHandle(),
+                                                  inputDesc,
+                                                  input_dev->GetMem(),
+                                                  targetDesc,
+                                                  target_dev->GetMem(),
+                                                  outputDesc,
+                                                  output_dev->GetMem(),
+                                                  backpropDesc,
+                                                  backprop_dev->GetMem());
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMatrixBandPartForward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -317,13 +311,13 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Forward SparseSoftmaxCrossEntropyWithLogits Elapsed: "
-                      << t.gettime_ms() / iter << " ms" << std::endl;
+            std::cout << "Wall-clock Time Forward MatrixBandPart Elapsed: " << t.gettime_ms() / iter
+                      << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Forward SparseSoftmaxCrossEntropyWithLogits Elapsed: "
-                  << kernel_average_time << " ms" << std::endl;
+        std::cout << "GPU Kernel Time Forward MatrixBandPart Elapsed: " << kernel_average_time
+                  << " ms" << std::endl;
     }
 
     if(output_dev->FromGPU(GetStream(), output.data()) != 0)
@@ -344,27 +338,26 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::RunForwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
-int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::RunForwardCPU()
+int MatrixBandPartDriver<Tgpu, Tref>::RunForwardCPU()
 {
     int status = miopenStatusSuccess;
 
-    status = mloSparseSoftmaxCrossEntropyWithLogitsForwardRunHost<Tgpu, Tref>(inputDesc,
-                                                                              input.data(),
-                                                                              targetDesc,
-                                                                              target.data(),
-                                                                              outputDesc,
-                                                                              output_host.data(),
-                                                                              backpropDesc,
-                                                                              backprop_host.data(),
-                                                                              in_len[1]);
-    MIOPEN_THROW_IF(status != miopenStatusSuccess,
-                    "Error in mloSparseSoftmaxCrossEntropyWithLogitsForwardRunHost");
+    status = mloMatrixBandPartForwardRunHost<Tgpu, Tref>(inputDesc,
+                                                         input.data(),
+                                                         targetDesc,
+                                                         target.data(),
+                                                         outputDesc,
+                                                         output_host.data(),
+                                                         backpropDesc,
+                                                         backprop_host.data(),
+                                                         in_len[1]);
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloMatrixBandPartForwardRunHost");
 
     return status;
 }
 
 template <typename Tgpu, typename Tref>
-int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::RunBackwardGPU()
+int MatrixBandPartDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
@@ -374,15 +367,14 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        auto status = miopenSparseSoftmaxCrossEntropyWithLogitsBackward(GetHandle(),
-                                                                        outputGradDesc,
-                                                                        output_grad_dev->GetMem(),
-                                                                        backpropDesc,
-                                                                        backprop_dev->GetMem(),
-                                                                        inputGradDesc,
-                                                                        input_grad_dev->GetMem());
-        MIOPEN_THROW_IF(status != miopenStatusSuccess,
-                        "Error in miopenSparseSoftmaxCrossEntropyWithLogitsBackward");
+        auto status = miopenMatrixBandPartBackward(GetHandle(),
+                                                   outputGradDesc,
+                                                   output_grad_dev->GetMem(),
+                                                   backpropDesc,
+                                                   backprop_dev->GetMem(),
+                                                   inputGradDesc,
+                                                   input_grad_dev->GetMem());
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenMatrixBandPartBackward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -396,13 +388,13 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Backward SparseSoftmaxCrossEntropyWithLogits Elapsed: "
+            std::cout << "Wall-clock Time Backward MatrixBandPart Elapsed: "
                       << t.gettime_ms() / iter << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Backward SparseSoftmaxCrossEntropyWithLogits Elapsed: "
-                  << kernel_average_time << " ms" << std::endl;
+        std::cout << "GPU Kernel Time Backward MatrixBandPart Elapsed: " << kernel_average_time
+                  << " ms" << std::endl;
     }
 
     if(input_grad_dev->FromGPU(GetStream(), input_grad.data()) != 0)
@@ -416,32 +408,30 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::RunBackwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
-int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::RunBackwardCPU()
+int MatrixBandPartDriver<Tgpu, Tref>::RunBackwardCPU()
 {
     int status = miopenStatusSuccess;
 
-    status =
-        mloSparseSoftmaxCrossEntropyWithLogitsBackwardRunHost<Tgpu, Tref>(outputGradDesc,
-                                                                          output_grad.data(),
-                                                                          backpropDesc,
-                                                                          backprop.data(),
-                                                                          inputGradDesc,
-                                                                          input_grad_host.data(),
-                                                                          in_len[1]);
-    MIOPEN_THROW_IF(status != miopenStatusSuccess,
-                    "Error in mloSparseSoftmaxCrossEntropyWithLogitsBackwardRunHost");
+    status = mloMatrixBandPartBackwardRunHost<Tgpu, Tref>(outputGradDesc,
+                                                          output_grad.data(),
+                                                          backpropDesc,
+                                                          backprop.data(),
+                                                          inputGradDesc,
+                                                          input_grad_host.data(),
+                                                          in_len[1]);
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloMatrixBandPartBackwardRunHost");
     return status;
 }
 
 template <typename Tgpu, typename Tref>
-Tref SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::GetTolerance()
+Tref MatrixBandPartDriver<Tgpu, Tref>::GetTolerance()
 {
     Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
 template <typename Tgpu, typename Tref>
-int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::VerifyForward()
+int MatrixBandPartDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
@@ -449,27 +439,24 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::VerifyForward()
     auto error = miopen::rms_range(output_host, output);
     if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward SparseSoftmaxCrossEntropyWithLogits Output FAILED: " << error
-                  << std::endl;
+        std::cout << "Forward MatrixBandPart Output FAILED: " << error << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout
-            << "Forward SparseSoftmaxCrossEntropyWithLogits Output Verifies on CPU and GPU (err="
-            << error << ")" << std::endl;
+        std::cout << "Forward MatrixBandPart Output Verifies on CPU and GPU (err=" << error << ")"
+                  << std::endl;
     }
 
     auto error_backprop = miopen::rms_range(backprop_host, backprop);
     if(!std::isfinite(error_backprop) || error_backprop > tolerance)
     {
-        std::cout << "Forward SparseSoftmaxCrossEntropyWithLogits Backprop FAILED: "
-                  << error_backprop << std::endl;
+        std::cout << "Forward MatrixBandPart Backprop FAILED: " << error_backprop << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Forward SparseSoftmaxCrossEntropyWithLogits Backprop Verifies on CPU and GPU "
+        std::cout << "Forward MatrixBandPart Backprop Verifies on CPU and GPU "
                      "(err="
                   << error_backprop << ")" << std::endl;
     }
@@ -478,7 +465,7 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::VerifyForward()
 }
 
 template <typename Tgpu, typename Tref>
-int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::VerifyBackward()
+int MatrixBandPartDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
@@ -486,13 +473,13 @@ int SparseSoftmaxCrossEntropyWithLogitsDriver<Tgpu, Tref>::VerifyBackward()
 
     if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Backward SparseSoftmaxCrossEntropyWithLogits FAILED: " << error << std::endl;
+        std::cout << "Backward MatrixBandPart FAILED: " << error << std::endl;
         return EC_VerifyBwd;
     }
     else
     {
-        std::cout << "Backward SparseSoftmaxCrossEntropyWithLogits Verifies on CPU and GPU (err="
-                  << error << ")" << std::endl;
+        std::cout << "Backward MatrixBandPart Verifies on CPU and GPU (err=" << error << ")"
+                  << std::endl;
     }
     return miopenStatusSuccess;
 }

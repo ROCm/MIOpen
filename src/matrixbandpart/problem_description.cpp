@@ -24,51 +24,41 @@
  *
  *******************************************************************************/
 
-#pragma once
+#include <miopen/matrixbandpart/problem_description.hpp>
+#include <miopen/names.hpp>
 
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
+#include <sstream>
 
 namespace miopen {
 
-namespace sparse_softmax_cross_entropy_with_logits {
+namespace matrixbandpart {
 
-struct FwdInvokeParams : public miopen::InvokeParams
+inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v)
 {
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
 
-    FwdInvokeParams() = default;
-
-    const TensorDescriptor* inputDesc    = nullptr;
-    const TensorDescriptor* targetDesc   = nullptr;
-    const TensorDescriptor* outputDesc   = nullptr;
-    const TensorDescriptor* backpropDesc = nullptr;
-
-    ConstData_t input  = nullptr;
-    ConstData_t target = nullptr;
-    Data_t output      = nullptr;
-    Data_t backprop    = nullptr;
-
-    std::uint64_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
-};
-
-struct BwdInvokeParams : public miopen::InvokeParams
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
+    auto dtype = xDesc.GetType();
+    std::ostringstream ss;
 
-    BwdInvokeParams() = default;
+    ss << "matrixbandpart";
+    ss << "-dtype" << dtype;
+    ss << "-X" << xDesc.GetLengths();
+    ss << "-IsFwd" << is_fwd;
 
-    const TensorDescriptor* outputGradDesc = nullptr;
-    const TensorDescriptor* backpropDesc   = nullptr;
-    const TensorDescriptor* inputGradDesc  = nullptr;
+    return NetworkConfig{ss.str()};
+}
 
-    ConstData_t output_grad = nullptr;
-    ConstData_t backprop    = nullptr;
-    Data_t input_grad       = nullptr;
-
-    std::uint64_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
-};
-
-} // namespace sparse_softmax_cross_entropy_with_logits
+} // namespace matrixbandpart
 
 } // namespace miopen

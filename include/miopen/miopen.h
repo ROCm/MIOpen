@@ -72,6 +72,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
+ * @defgroup matrixbandpart
  *
  */
 
@@ -8004,58 +8005,66 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// SparseSoftmaxCrossEntropyWithLogits APIs
-/** @addtogroup LossFunction
+// MatrixBandPart APIs
+/** @addtogroup matrixbandpart
  *
  *  @{
  */
 
-/*! @brief Execute a sparse_softmax_cross_entropy_with_logits forward layer
+/*! @brief Execute a matrixbandpart forward layer
  *
  * @param handle                MIOpen handle (input)
  * @param inputDesc             Tensor descriptor for input  tensor (input)
  * @param input                 Data tensor input  (input)
- * @param targetDesc            Tensor descriptor for target tensor (input)
- * @param target                Data tensor target (input)
+ * @param numLowerDesc          Tensor descriptor for number of subdiagonals to keep (input)
+ * @param num_lower             Number of subdiagonals to keep. If negative, keep entire lower
+ * triangle.
+ * @param numUpperDesc          Tensor descriptor for number of superdiagonals to keep (input)
+ * @param num_upper             Number of superdiagonals to keep. If negative, keep entire upper
+ * triangle.
  * @param outputDesc            Tensor descriptor for output tensor (input)
  * @param output                Data tensor output (output)
- * @param backpropDesc          Tensor descriptor for backprop tensor (input)
- * @param backprop              Data tensor backprop (output)
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenSparseSoftmaxCrossEntropyWithLogitsForward(miopenHandle_t handle,
-                                                 const miopenTensorDescriptor_t inputDesc,
-                                                 const void* input,
-                                                 const miopenTensorDescriptor_t targetDesc,
-                                                 const void* target,
-                                                 const miopenTensorDescriptor_t outputDesc,
-                                                 void* output,
-                                                 const miopenTensorDescriptor_t backpropDesc,
-                                                 void* backprop);
+miopenMatrixBandPartForward(miopenHandle_t handle,
+                            const miopenTensorDescriptor_t inputDesc,
+                            const void* input,
+                            const miopenTensorDescriptor_t outputDesc,
+                            void* output,
+                            const miopenTensorDescriptor_t numLowerDesc,
+                            const void* num_lower,
+                            const miopenTensorDescriptor_t numUpperDesc,
+                            const void* num_upper);
 
-/*! @brief Execute a sparse_softmax_cross_entropy_with_logits backward layer
+/*! @brief Execute a matrixbandpart backward layer
  *
  * @param handle                MIOpen handle (input)
  * @param outputGradDesc        Tensor descriptor for output grad tensor (input)
  * @param output_grad           Data tensor output grad (input)
- * @param backpropDesc          Tensor descriptor for backprop tensor (input)
- * @param backprop              Data tensor backprop (input)
+ * @param numLowerDesc          Tensor descriptor for number of subdiagonals to keep (input)
+ * @param num_lower             Number of subdiagonals to keep. If negative, keep entire lower
+ * triangle.
+ * @param numUpperDesc          Tensor descriptor for number of superdiagonals to keep (input)
+ * @param num_upper             Number of superdiagonals to keep. If negative, keep entire upper
+ * triangle.
  * @param inputGradDesc         Tensor descriptor for input grad tensor (input)
  * @param input_grad            Data tensor input grad (output)
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenSparseSoftmaxCrossEntropyWithLogitsBackward(miopenHandle_t handle,
-                                                  const miopenTensorDescriptor_t outputGradDesc,
-                                                  const void* output_grad,
-                                                  const miopenTensorDescriptor_t backpropDesc,
-                                                  const void* backprop,
-                                                  const miopenTensorDescriptor_t inputGradDesc,
-                                                  void* input_grad);
+miopenMatrixBandPartBackward(miopenHandle_t handle,
+                             const miopenTensorDescriptor_t outputGradDesc,
+                             const void* output_grad,
+                             const miopenTensorDescriptor_t inputGradDesc,
+                             void* input_grad,
+                             const miopenTensorDescriptor_t numLowerDesc,
+                             const void* num_lower,
+                             const miopenTensorDescriptor_t numUpperDesc,
+                             const void* num_upper);
 
 /** @} */
-// CLOSEOUT LossFunction DOXYGEN GROUP
+// CLOSEOUT matrixbandpart DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

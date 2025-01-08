@@ -23,18 +23,50 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "registry_driver_maker.hpp"
-#include "sparse_softmax_cross_entropy_with_logits_driver.hpp"
 
-static Driver* makeDriver(const std::string& base_arg)
+#pragma once
+
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
+
+namespace miopen {
+
+namespace matrixbandpart {
+
+struct FwdInvokeParams : public miopen::InvokeParams
 {
-    if(base_arg == "sparse_softmax_cross_entropy_with_logits")
-        return new SparseSoftmaxCrossEntropyWithLogitsDriver<float, float>();
-    if(base_arg == "sparse_softmax_cross_entropy_with_logitsfp16")
-        return new SparseSoftmaxCrossEntropyWithLogitsDriver<float16, float>();
-    if(base_arg == "sparse_softmax_cross_entropy_with_logitsbfp16")
-        return new SparseSoftmaxCrossEntropyWithLogitsDriver<bfloat16, float>();
-    return nullptr;
-}
 
-REGISTER_DRIVER_MAKER(makeDriver);
+    FwdInvokeParams() = default;
+
+    const TensorDescriptor* inputDesc  = nullptr;
+    const TensorDescriptor* outputDesc = nullptr;
+
+    ConstData_t input     = nullptr;
+    Data_t output         = nullptr;
+    ConstData_t num_lower = nullptr;
+    ConstData_t num_upper = nullptr;
+
+    std::uint64_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct BwdInvokeParams : public miopen::InvokeParams
+{
+
+    BwdInvokeParams() = default;
+
+    const TensorDescriptor* outputGradDesc = nullptr;
+    const TensorDescriptor* inputGradDesc  = nullptr;
+
+    ConstData_t output_grad = nullptr;
+    Data_t input_grad       = nullptr;
+    ConstData_t num_lower   = nullptr;
+    ConstData_t num_upper   = nullptr;
+
+    std::uint64_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace matrixbandpart
+
+} // namespace miopen

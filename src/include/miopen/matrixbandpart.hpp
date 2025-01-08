@@ -31,28 +31,29 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-namespace sparse_softmax_cross_entropy_with_logits {
+namespace matrixbandpart {
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t MatrixBandPartForward(Handle& handle,
+                                                             const TensorDescriptor& inputDesc,
+                                                             ConstData_t input,
+                                                             const TensorDescriptor& outputDesc,
+                                                             Data_t output,
+                                                             const TensorDescriptor& numLowerDesc,
+                                                             ConstData_t num_lower,
+                                                             const TensorDescriptor& numUpperDesc,
+                                                             ConstData_t num_upper);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
-SparseSoftmaxCrossEntropyWithLogitsForward(Handle& handle,
-                                           const TensorDescriptor& inputDesc,
-                                           ConstData_t input,
-                                           const TensorDescriptor& targetDesc,
-                                           ConstData_t target,
-                                           const TensorDescriptor& outputDesc,
-                                           Data_t output,
-                                           const TensorDescriptor& backpropDesc,
-                                           Data_t backprop);
+MatrixBandPartBackward(Handle& handle,
+                       const TensorDescriptor& outputGradDesc,
+                       ConstData_t output_grad,
+                       const TensorDescriptor& inputGradDesc,
+                       Data_t input_grad,
+                       const TensorDescriptor& numLowerDesc,
+                       ConstData_t num_lower,
+                       const TensorDescriptor& numUpperDesc,
+                       ConstData_t num_upper);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t
-SparseSoftmaxCrossEntropyWithLogitsBackward(Handle& handle,
-                                            const TensorDescriptor& outputGradDesc,
-                                            ConstData_t output_grad,
-                                            const TensorDescriptor& backpropDesc,
-                                            ConstData_t backprop,
-                                            const TensorDescriptor& inputGradDesc,
-                                            Data_t input_grad);
-
-} // namespace sparse_softmax_cross_entropy_with_logits
+} // namespace matrixbandpart
 
 } // namespace miopen

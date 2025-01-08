@@ -160,6 +160,8 @@ set( MIOpen_Source
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
+    matrixbandpart_api.cpp
+    matrixbandpart/problem_description.cpp
     mha/mha_descriptor.cpp
     mha/problem_description.cpp
     multimarginloss/problem_description.cpp
@@ -311,6 +313,8 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/layernorm/forward_t5layernorm.cpp
+    solver/matrixbandpart/backward_matrixbandpart.cpp
+    solver/matrixbandpart/forward_matrixbandpart.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
     solver/multimarginloss/forward_multimarginloss.cpp
@@ -334,10 +338,6 @@ set( MIOpen_Source
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
-    solver/sparse_softmax_cross_entropy_with_logits/backward_sparse_softmax_cross_entropy_with_logits.cpp
-    solver/sparse_softmax_cross_entropy_with_logits/forward_sparse_softmax_cross_entropy_with_logits.cpp
-    sparse_softmax_cross_entropy_with_logits_api.cpp
-    sparse_softmax_cross_entropy_with_logits/problem_description.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
@@ -539,6 +539,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
+        kernels/MIOpenMatrixBandPart.cpp
         kernels/MIOpenMultiMarginLoss.cpp
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPReLU.cpp
@@ -554,7 +555,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenReduceSum.cpp
         kernels/MIOpenRoPE.cpp
-        kernels/MIOpenSparseSoftmaxCrossEntropyWithLogits.cpp
         kernels/MIOpenSoftMarginLoss.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
@@ -664,7 +664,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
     if(${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES_COUNT})
         add_kernels("kernel_includes.cpp" "MIOPEN_KERNEL_" "_INCLUDE" "${MIOPEN_DEVELOPMENT_KERNEL_INCLUDES}")
     endif()
-
+    
     configure_file(db_path.cpp.in ${PROJECT_BINARY_DIR}/db_path.cpp)
     list(APPEND MIOpen_Source
         activ.cpp
@@ -679,6 +679,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kthvalue.cpp
         layernorm.cpp
         lrn.cpp
+        matrixbandpart.cpp
         mlo_dir_conv.cpp
         multimarginloss.cpp
         ocl/activ_ocl.cpp
@@ -706,7 +707,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reduceextreme.cpp
         rope.cpp
         softmarginloss.cpp
-        sparse_softmax_cross_entropy_with_logits.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )

@@ -49,6 +49,7 @@ add_executable(MIOpenDriver
     dm_kthvalue.cpp
     dm_layernorm.cpp
     dm_lrn.cpp
+    dm_matrixbandpart.cpp
     dm_multimarginloss.cpp
     dm_pool.cpp
     dm_prelu.cpp
@@ -59,7 +60,6 @@ add_executable(MIOpenDriver
     dm_rope.cpp
     dm_softmarginloss.cpp
     dm_softmax.cpp
-    dm_sparse_softmax_cross_entropy_with_logits.cpp
     dm_t5layernorm.cpp
     dm_tensorop.cpp
     dm_transformers_adam_w.cpp

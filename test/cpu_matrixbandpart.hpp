@@ -23,55 +23,37 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#include <miopen/sparse_softmax_cross_entropy_with_logits/problem_description.hpp>
-#include <miopen/names.hpp>
+#include "tensor_holder.hpp"
+#include <miopen/tensor_view_utils.hpp>
 
-#include <sstream>
-
-namespace miopen {
-
-namespace sparse_softmax_cross_entropy_with_logits {
-
-inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v)
+template <class T, class Tn>
+void cpu_matrixbandpart(const tensor<T> input,
+                        tensor<T> output,
+                        const tensor<Tn> num_lower,
+                        const tensor<Tn> num_upper)
 {
-    os << '{';
-    for(int i = 0; i < v.size(); ++i)
-    {
-        if(i != 0)
-            os << ',';
-        os << v[i];
-    }
-    os << '}';
-    return os;
+    auto input_tv  = miopen::get_inner_expanded_tv<5>(input.desc);
+    auto output_tv = miopen::get_inner_expanded_tv<5>(output.desc);
+
+    par_ford(input.desc.GetElementSize())([&](auto gid) {
+        int64_t w = gid % input_tv.size[4];
+        int64_t h = (gid / input_tv.size[4]) % input_tv.size[3];
+
+        int64_t num_lower_val = static_cast<int64_t>(num_lower[0]);
+        int64_t num_upper_val = static_cast<int64_t>(num_upper[0]);
+        int64_t diff          = h - w;
+
+        bool in_band = (num_lower_val < 0 || diff <= num_lower_val) &&
+                       (num_upper_val < 0 || (-diff) <= num_upper_val);
+
+        tensor_layout_t<5> layout(input_tv, gid);
+
+        std::cout << "CPU: gid: " << gid << " in_band: " << in_band
+                  << " input: " << input[input_tv.get_tensor_view_idx(layout)] << std::endl;
+
+        output[output_tv.get_tensor_view_idx(layout)] =
+            in_band ? input[input_tv.get_tensor_view_idx(layout)] : static_cast<T>(0);
+    });
 }
-
-NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
-{
-    auto dtype = outputDesc.GetType();
-    std::ostringstream ss;
-
-    ss << "sparse_softmax_cross_entropy_with_logits_fwd";
-    ss << "-dtype" << dtype;
-    ss << "-Is" << inputDesc.GetLengths();
-    ss << "-IsContiguous" << IsAllContiguous();
-
-    return NetworkConfig{ss.str()};
-}
-
-NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
-{
-    auto dtype = outputGradDesc.GetType();
-    std::ostringstream ss;
-
-    ss << "sparse_softmax_cross_entropy_with_logits_bwd";
-    ss << "-dtype" << dtype;
-    ss << "-dIs" << inputGradDesc.GetLengths();
-    ss << "-IsContiguous" << IsAllContiguous();
-
-    return NetworkConfig{ss.str()};
-}
-
-} // namespace sparse_softmax_cross_entropy_with_logits
-
-} // namespace miopen
