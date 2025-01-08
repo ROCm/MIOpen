@@ -333,9 +333,9 @@ void DropoutDescriptor::Dropout(const Handle& handle,
                             static_cast<uint32_t>(in_str[3]),
                             reserveSpace,
                             static_cast<uint32_t>(total_work),
-                            static_cast<uint32_t>(in_offset),
-                            static_cast<uint32_t>(out_offset),
-                            static_cast<uint32_t>(rsvsp_offset));
+                            static_cast<uint64_t>(in_offset),
+                            static_cast<uint64_t>(out_offset),
+                            static_cast<uint64_t>(rsvsp_offset));
         }
         else
         {
@@ -430,9 +430,9 @@ void DropoutDescriptor::Dropout(const Handle& handle,
                 static_cast<uint32_t>(in_str[3]),
                 reserveSpace,
                 static_cast<uint32_t>(total_work),
-                static_cast<uint32_t>(in_offset),
-                static_cast<uint32_t>(out_offset),
-                static_cast<uint32_t>(rsvsp_offset));
+                static_cast<uint64_t>(in_offset),
+                static_cast<uint64_t>(out_offset),
+                static_cast<uint64_t>(rsvsp_offset));
         }
         else
         {

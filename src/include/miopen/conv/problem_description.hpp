@@ -278,7 +278,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
     bool IsInt8() const
     {
         return GetInDataType() == miopenInt8 && GetWeightsDataType() == miopenInt8 &&
-               (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenFloat);
+               (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenInt8 ||
+                GetOutDataType() == miopenFloat);
     }
     bool IsFp8() const
     {

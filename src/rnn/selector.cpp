@@ -43,6 +43,8 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNBWDMS_EXP)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNBWMS_EXP)
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNN_DYNAMIC_FORCE)
+
 namespace miopen {
 
 bool RNNBwdMSIsFast(const int seqLen)
@@ -65,6 +67,33 @@ bool RNNBwWeightMSIsFast(const int seqLen)
     return false;
 }
 
+std::tuple<size_t, size_t> RNNDescriptor::GetTmpSpaceSizeDynamicAlgo(
+    Handle& /*handle*/, const SeqTensorDescriptor& xDesc, miopenRNNFWDMode_t /*fwdMode*/) const
+{
+    return rnn_base::RNNDynamicModularSingleStreamFWD::getTempBuffersSize(*this, xDesc);
+}
+
+bool RNNDescriptor::CheckDynamicAlgoSelection(Handle& /*handle*/,
+                                              const SeqTensorDescriptor& /*xDesc*/,
+                                              miopenRNNFWDMode_t fwdMode) const
+{
+    if(fwdMode == miopenRNNInference)
+        return false;
+
+    bool algo_mode_match = algoMode == miopenRNNroundedDynamic ||
+                           (algoMode == miopenRNNdefault && env::enabled(MIOPEN_RNN_DYNAMIC_FORCE));
+
+    bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
+    bool rnn_config_match =
+        (dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM && !use_dropout);
+
+    if(rnn_config_match && algo_mode_match)
+    {
+        return true;
+    }
+    return false;
+}
+
 void RNNDescriptor::ModularForward(Handle& handle,
                                    miopenRNNFWDMode_t fwdMode,
                                    ConstData_t w,
@@ -83,9 +112,19 @@ void RNNDescriptor::ModularForward(Handle& handle,
                                    Data_t reserveSpace,
                                    size_t /*reserveSpaceSize*/) const
 {
-    rnn_base::RNNModularSingleStreamFWD single_stream{*this, xDesc, yDesc, hDesc, fwdMode};
-    single_stream.ComputeFWD(
-        handle, rnn_base::runtimeArgsFwd{x, hx, cx, y, hy, cy, w, workSpace, reserveSpace});
+    if(CheckDynamicAlgoSelection(handle, xDesc, fwdMode))
+    {
+        rnn_base::RNNDynamicModularSingleStreamFWD single_stream{
+            *this, xDesc, yDesc, hDesc, fwdMode};
+        single_stream.ComputeFWD(
+            handle, rnn_base::runtimeArgsFwd{x, hx, cx, y, hy, cy, w, workSpace, reserveSpace});
+    }
+    else
+    {
+        rnn_base::RNNModularSingleStreamFWD single_stream{*this, xDesc, yDesc, hDesc, fwdMode};
+        single_stream.ComputeFWD(
+            handle, rnn_base::runtimeArgsFwd{x, hx, cx, y, hy, cy, w, workSpace, reserveSpace});
+    }
 }
 
 void RNNDescriptor::ModularBackward(Handle& handle,
@@ -107,18 +146,32 @@ void RNNDescriptor::ModularBackward(Handle& handle,
                                     Data_t reserveSpace,
                                     size_t /*reserveSpaceSize*/) const
 {
-    if(RNNBwdMSIsFast(xDesc.GetMaxSequenceLength()))
+
+    if(CheckDynamicAlgoSelection(handle, xDesc, miopenRNNFWDMode_t::miopenRNNTraining))
     {
-        rnn_base::RNNModularMultiStreamBWD multi_stream{
+        rnn_base::RNNDynamicModularSingleStreamBWD single_stream{
             *this, xDesc, yDesc, hDesc, miopenRNNFWDMode_t::miopenRNNTraining};
-        multi_stream.ComputeBWD(handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace);
+        single_stream.ComputeBWD(
+            handle,
+            rnn_base::runtimeArgsBwd{
+                &handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace});
     }
     else
     {
-        rnn_base::RNNModularSingleStreamBWD single_stream{
-            *this, xDesc, yDesc, hDesc, miopenRNNFWDMode_t::miopenRNNTraining};
-        single_stream.ComputeBWD(
-            handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace);
+        if(RNNBwdMSIsFast(xDesc.GetMaxSequenceLength()))
+        {
+            rnn_base::RNNModularMultiStreamBWD multi_stream{
+                *this, xDesc, yDesc, hDesc, miopenRNNFWDMode_t::miopenRNNTraining};
+            multi_stream.ComputeBWD(
+                handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace);
+        }
+        else
+        {
+            rnn_base::RNNModularSingleStreamBWD single_stream{
+                *this, xDesc, yDesc, hDesc, miopenRNNFWDMode_t::miopenRNNTraining};
+            single_stream.ComputeBWD(
+                handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace);
+        }
     }
 }
 
@@ -134,17 +187,27 @@ void RNNDescriptor::ModularBackwardWeights(Handle& handle,
                                            ConstData_t reserveSpace,
                                            size_t reserveSpaceSize) const
 {
-    if(RNNBwWeightMSIsFast(xDesc.GetMaxSequenceLength()))
+    if(CheckDynamicAlgoSelection(handle, xDesc, miopenRNNFWDMode_t::miopenRNNTraining))
     {
-        rnn_base::RNNModularMultiStreamBWWeights multi_stream{*this, xDesc, yDesc, hDesc};
-        multi_stream.Compute(
+        rnn_base::RNNDynamicModularSingleStreamBWWeights single_stream{
+            *this, xDesc, yDesc, hDesc, miopenRNNFWDMode_t::miopenRNNTraining};
+        single_stream.Compute(
             handle, x, hx, dw, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
     }
     else
     {
-        rnn_base::RNNModularSingleStreamBWWeights single_stream{*this, xDesc, yDesc, hDesc};
-        single_stream.Compute(
-            handle, x, hx, dw, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
+        if(RNNBwWeightMSIsFast(xDesc.GetMaxSequenceLength()))
+        {
+            rnn_base::RNNModularMultiStreamBWWeights multi_stream{*this, xDesc, yDesc, hDesc};
+            multi_stream.Compute(
+                handle, x, hx, dw, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
+        }
+        else
+        {
+            rnn_base::RNNModularSingleStreamBWWeights single_stream{*this, xDesc, yDesc, hDesc};
+            single_stream.Compute(
+                handle, x, hx, dw, workSpace, workSpaceSize, reserveSpace, reserveSpaceSize);
+        }
     }
 }
 

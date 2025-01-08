@@ -100,9 +100,9 @@ __forceinline__ __device__ void dropout_kernel(const rocrand_state_xorwow* state
                                                D in_str3,
                                                uchar* reserveSpace,
                                                D total_work,
-                                               D in_offset,
-                                               D out_offset,
-                                               D rsvsp_offset)
+                                               uint64_t in_offset,
+                                               uint64_t out_offset,
+                                               uint64_t rsvsp_offset)
 {
     F dat_blk[RD_BLCK];     // Register space to read the input data
     uchar is_kept[RD_BLCK]; // Register space to store the mask for the dropout
@@ -183,9 +183,9 @@ extern "C" __global__ void DropoutKernel(const rocrand_state_xorwow* state,
                                          DIM_TYPE in_str3,
                                          uchar* reserveSpace,
                                          DIM_TYPE total_work,
-                                         DIM_TYPE in_offset,
-                                         DIM_TYPE out_offset,
-                                         DIM_TYPE rsvsp_offset)
+                                         uint64_t in_offset,
+                                         uint64_t out_offset,
+                                         uint64_t rsvsp_offset)
 {
     dropout_kernel<FP_TYPE, READ_DAT_TYPE, READ_BOOL_TYPE, DIM_TYPE, USE_MASK, USE_RSVSP>(
         state,
