@@ -134,5 +134,94 @@ void RNNModularSingleStreamBWD::ComputeBWD(Handle& handle,
 #endif
 }
 
+void RNNDynamicModularSingleStreamBWD::ComputeBWD(Handle& handle,
+                                                  const runtimeArgsBwd& realRuntimeArgs) const
+{
+    auto layer_i = rnnDesc.nLayers;
+
+    auto seq_iterations      = rnnAlgoModules.getTimeSeqSize();
+    auto real_seq_iterations = rnnAlgoModules.getRealTimeSeqSize();
+
+    if(layer_i == 0 || seq_iterations == 0 || real_seq_iterations == 0)
+        return;
+
+    auto sequence_directions =
+        rnnDesc.dirMode == miopenRNNDirectionMode_t::miopenRNNbidirection ? 2 : 1;
+
+    const auto runtimeArgsExt  = rnnAlgoModules.createRuntimeArgsExt(realRuntimeArgs);
+    const auto& [real_dy,
+                 temp_dy,
+                 dhy,
+                 dhx,
+                 cx,
+                 dcy,
+                 dcx,
+                 real_dx,
+                 temp_dx,
+                 w,
+                 workSpace,
+                 reserveSpace] = runtimeArgsExt;
+
+    rnnAlgoModules.PrepareWriteBuffers(handle, runtimeArgsExt);
+
+    rnnAlgoModules.realDyProp(handle, runtimeArgsExt);
+
+    rnnAlgoModules.PropDy(handle, temp_dy, workSpace);
+
+    do
+    {
+        layer_i--;
+
+        for(int dir = 0; dir < sequence_directions; dir++)
+        {
+            const auto seq_dir = dir == 0 ? rnn_base::SequenceDirection::Forward
+                                          : rnn_base::SequenceDirection::Reverse;
+
+            auto ti = seq_iterations;
+            do
+            {
+                const rnn_base::SequenceIterator cur_seq(--ti, seq_dir, seq_iterations, false);
+
+                if(ti < real_seq_iterations)
+                {
+                    const rnn_base::SequenceIterator real_cur_seq(
+                        ti, seq_dir, real_seq_iterations, false);
+
+                    rnnAlgoModules.realPropDhy(
+                        handle, dhy, workSpace, layer_i, real_cur_seq, seq_dir);
+
+                    // rnnAlgoModules.HtHiddenDataZeroing();
+
+                    rnnAlgoModules.realUpdateHStatePerTimeSeq(handle,
+                                                              dcy,
+                                                              cx,
+                                                              dcx,
+                                                              workSpace,
+                                                              reserveSpace,
+                                                              layer_i,
+                                                              real_cur_seq,
+                                                              seq_dir);
+                }
+
+                // GEMM
+                if(ti != 0)
+                    rnnAlgoModules.PropHiddenDht(handle, w, workSpace, layer_i, cur_seq, seq_dir);
+                else
+                    rnnAlgoModules.PropDhxDcx(
+                        handle, w, dhx, dcx, workSpace, reserveSpace, layer_i, cur_seq, seq_dir);
+
+            } while(ti != 0);
+
+            if(layer_i != 0)
+                rnnAlgoModules.PropHiddenDy(handle, w, workSpace, reserveSpace, layer_i, seq_dir);
+            else
+                rnnAlgoModules.PropDx(handle, w, workSpace, temp_dx, seq_dir);
+        }
+
+    } while(layer_i != 0);
+
+    rnnAlgoModules.realDxProp(handle, runtimeArgsExt);
+}
+
 } // namespace rnn_base
 } // namespace miopen
