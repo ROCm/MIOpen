@@ -134,7 +134,7 @@ void RNNModularSingleStreamBWD::ComputeBWD(const Handle& handle,
 #endif
 }
 
-void RNNDynamicModularSingleStreamBWD::ComputeBWD(Handle& handle,
+void RNNDynamicModularSingleStreamBWD::ComputeBWD(const Handle& handle,
                                                   const runtimeArgsBwd& realRuntimeArgs) const
 {
     auto layer_i = rnnDesc.nLayers;

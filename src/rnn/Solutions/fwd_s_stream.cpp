@@ -78,7 +78,7 @@ void RNNModularSingleStreamFWD::ComputeFWD(const Handle& handle,
     rnnAlgoModules.PropY(handle, runtimeArgs);
 }
 
-void RNNDynamicModularSingleStreamFWD::ComputeFWD(Handle& handle,
+void RNNDynamicModularSingleStreamFWD::ComputeFWD(const Handle& handle,
                                                   const runtimeArgsFwd& realRuntimeArgs) const
 {
     auto seq_iterations      = rnnAlgoModules.getTimeSeqSize();
