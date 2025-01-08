@@ -58,19 +58,19 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class GPU_Conv2dDefault_FP16 : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultOclBwdWrW1x1_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-class GPU_Conv2dDefault_BFP16 : public Bf16TestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultOclBwdWrW1x1_BFP16 : public Bf16TestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(GPU_Conv2dDefault_FP16, HalfTest_smoke_solver_ConvOclBwdWrW1x1)
+TEST_P(GPU_Conv2dDefaultOclBwdWrW1x1_FP16, HalfTest_smoke_solver_ConvOclBwdWrW1x1)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP16>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultOclBwdWrW1x1_FP16>(default_check);
     }
     else
     {
@@ -78,11 +78,11 @@ TEST_P(GPU_Conv2dDefault_FP16, HalfTest_smoke_solver_ConvOclBwdWrW1x1)
     }
 };
 
-TEST_P(GPU_Conv2dDefault_BFP16, Bf16Test_smoke_solver_ConvOclBwdWrW1x1)
+TEST_P(GPU_Conv2dDefaultOclBwdWrW1x1_BFP16, Bf16Test_smoke_solver_ConvOclBwdWrW1x1)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_BFP16>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultOclBwdWrW1x1_BFP16>(default_check);
     }
     else
     {
@@ -90,5 +90,9 @@ TEST_P(GPU_Conv2dDefault_BFP16, Bf16Test_smoke_solver_ConvOclBwdWrW1x1)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_FP16, testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_BFP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dDefaultOclBwdWrW1x1_FP16,
+                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dDefaultOclBwdWrW1x1_BFP16,
+                         testing::Values(GetTestCases()));

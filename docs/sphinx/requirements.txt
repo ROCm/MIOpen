@@ -59,7 +59,7 @@ idna==3.7
     # via requests
 imagesize==1.4.1
     # via sphinx
-jinja2==3.1.4
+jinja2==3.1.5
     # via
     #   myst-parser
     #   sphinx
@@ -132,7 +132,7 @@ requests==2.32.2
     # via
     #   pygithub
     #   sphinx
-rocm-docs-core[api-reference]==1.11.0
+rocm-docs-core[api-reference]==1.12.0
     # via -r requirements.in
 six==1.16.0
     # via python-dateutil
