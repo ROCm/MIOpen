@@ -145,6 +145,7 @@ struct miopen_type<uint64_t> : std::integral_constant<miopenDataType_t, miopenIn
 template <class T>
 struct tensor
 {
+    using value_type = T;
     miopen::TensorDescriptor desc;
     std::vector<T> data;
 

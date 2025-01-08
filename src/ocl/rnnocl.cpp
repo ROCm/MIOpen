@@ -2617,6 +2617,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                    hy,
                                                    cyDesc,
                                                    cy,
+                                                   workSpace,
+                                                   workSpaceSize,
                                                    reserveSpace,
                                                    reserveSpaceSize);
         }
@@ -2673,6 +2675,8 @@ void RNNDescriptor::RNNForwardTraining(Handle& handle,
                                                           hy,
                                                           cyDesc,
                                                           cy,
+                                                          workSpace,
+                                                          workSpaceSize,
                                                           reserveSpace,
                                                           reserveSpaceSize);
 
@@ -2708,6 +2712,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     Data_t hy,
     const TensorDescriptor& cyDesc,
     Data_t cy,
+    Data_t workSpace,
+    size_t workSpaceSize,
     Data_t reserveSpace,
     size_t reserveSpaceSize) const
 {
@@ -2783,7 +2789,9 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     // input check end
     bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
 
-    if(RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
+    // high priority for DynamicAlgo
+    if(!CheckDynamicAlgoSelection(handle, {}, miopenRNNTraining) &&
+       RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,
@@ -2803,7 +2811,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                             miopenRNNFWDMode_t::miopenRNNTraining);
     }
     else if(dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM && !use_dropout &&
-            algoMode == miopenRNNdefault)
+            (algoMode == miopenRNNdefault || algoMode == miopenRNNroundedDynamic))
     {
         SeqTensorDescriptor x_seq =
             makeSeqTensorDescriptor(xDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
@@ -2824,10 +2832,17 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                               cy,
                               y_seq,
                               y,
-                              nullptr,
-                              0,
+                              workSpace,
+                              workSpaceSize,
                               reserveSpace,
                               reserveSpaceSize);
+    }
+
+    if(algoMode == miopenRNNroundedDynamic)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "This configuration is not supported with algoMode=miopenRNNroundedDynamic, "
+                     "use miopenRNNdefault ");
     }
 
     int in_stride  = xDesc[0].GetLengths()[1];
@@ -4295,7 +4310,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
 
     if(dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM && !use_dropout &&
-       algoMode == miopenRNNdefault)
+       (algoMode == miopenRNNdefault || algoMode == miopenRNNroundedDynamic))
     {
         SeqTensorDescriptor dx_seq =
             makeSeqTensorDescriptor(dxDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
@@ -4321,6 +4336,13 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                      workSpaceSize,
                                      reserveSpace,
                                      reserveSpaceSize);
+    }
+
+    if(algoMode == miopenRNNroundedDynamic)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "This configuration is not supported with algoMode=miopenRNNroundedDynamic, "
+                     "use miopenRNNdefault ");
     }
 
     int in_stride  = in_h;
@@ -5986,8 +6008,8 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
         in_h = 0;
     }
 
-    if(dirMode == 0 && rnnMode == miopenLSTM && !use_dropout && algoMode == miopenRNNdefault &&
-       !env::disabled(MIOPEN_RNNWRW_EXP))
+    if(dirMode == 0 && rnnMode == miopenLSTM && !use_dropout && inputMode == miopenRNNlinear &&
+       (algoMode == miopenRNNdefault || algoMode == miopenRNNroundedDynamic))
     {
         SeqTensorDescriptor x_seq =
             makeSeqTensorDescriptor(xDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
@@ -6006,6 +6028,13 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                                             workSpaceSize,
                                             reserveSpace,
                                             reserveSpaceSize);
+    }
+
+    if(algoMode == miopenRNNroundedDynamic)
+    {
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "This configuration is not supported with algoMode=miopenRNNroundedDynamic, "
+                     "use miopenRNNdefault ");
     }
 
     size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (nLayers - 1)) * wei_stride;
