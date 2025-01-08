@@ -35,7 +35,7 @@ pipeline {
                     //def utils = load "vars/utils.groovy"
                     //utils.getDockerImage()
                     def utils = load "vars/utils.groovy"
-                    docker_image, image = utils.getDockerImage()
+                    def (docker_image, image) = utils.getDockerImage()
                     docker_image.inside {
                       utils.cmake_build(gpu_arch: "gfx90a", build_install: true, needs_cleanup:false, make_targets: "install")
                     }
