@@ -388,9 +388,7 @@ def RunPerfTest(Map conf=[:]){
     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
     try {
         //(retimage, image) = getDockerImage(conf)
-        docker_image = conf.get("docker_image")
-        image = ${docker_image}.pull()
-        echo "doc image: ${docker_image}" 
+        image = conf.get("docker_image").pull()
         echo "docker image: ${image}"
         withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
         timeout(time: 100, unit: 'MINUTES')

@@ -35,11 +35,10 @@ pipeline {
                     //def utils = load "vars/utils.groovy"
                     //utils.getDockerImage()
                     def utils = load "vars/utils.groovy"
-                    //docker_image = utils.buildHipClangJob(needs_gpu:false, needs_reboot:false, needs_cleanup:true, build_install: true, make_targets: "install")
-                    //withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
-                    //    docker_image.push()
-                    //}
-                    docker_image = "rocm/miopen:ci_0401d0"
+                    docker_image = utils.buildHipClangJob(needs_gpu:false, needs_reboot:false, needs_cleanup:true, build_install: true, make_targets: "install")
+                    withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
+                        docker_image.push()
+                    }
                 }
             }
         }
