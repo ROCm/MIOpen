@@ -389,6 +389,7 @@ def RunPerfTest(Map conf=[:]){
     try {
         //(retimage, image) = getDockerImage(conf)
         image = conf.get("docker_image").pull()
+        echo "docker image: ${image}"
         withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
         timeout(time: 100, unit: 'MINUTES')
         {
