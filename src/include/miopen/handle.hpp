@@ -122,9 +122,18 @@ struct MIOPEN_EXPORT Handle : miopenHandle
 
     auto GetKernels(const std::string& algorithm, const std::string& network_config) const
     {
-        return this->GetKernelsImpl(algorithm, network_config) |
-               boost::adaptors::transformed([this](Kernel k) { return this->Run(k); });
+        auto kernels = this->GetKernelsImpl(algorithm, network_config);
+
+        std::vector<KernelInvoke> kernelInvokers;
+        kernelInvokers.resize(kernels.size());
+        std::transform(kernels.begin(),
+                       kernels.end(),
+                       kernelInvokers.begin(),
+                       [this](const Kernel& k) { return this->Run(k); });
+
+        return kernelInvokers;
     }
+
     KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config) const
     {
         auto ks = this->GetKernelsImpl(algorithm, network_config);
@@ -137,8 +146,8 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     }
 
     KernelInvoke Run(Kernel k, bool coop_launch = false) const;
-    const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
-                                              const std::string& network_config) const;
+    std::vector<Kernel> GetKernelsImpl(const std::string& algorithm,
+                                       const std::string& network_config) const;
 
     Program LoadProgram(const fs::path& program_name,
                         std::string params,

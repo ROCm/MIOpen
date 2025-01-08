@@ -138,39 +138,43 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                                    miopenRNNFWDMode_t fwdMode,
                                    miopenRNNBaseLayout_t ioLayout) const;
 
-    size_t GetWorkspaceSize(const Handle& handle,
+    size_t GetWorkspaceSize(Handle& handle,
                             int seqLength,
                             c_array_view<const miopenTensorDescriptor_t> xDesc) const;
-    size_t GetWorkspaceSize(const Handle& handle,
+    size_t GetWorkspaceSize(Handle& handle,
                             const SeqTensorDescriptor& xDesc,
                             miopenRNNFWDMode_t fwdMode) const;
 
     size_t GetReserveSize(size_t batchLenSum) const;
-    size_t GetReserveSize(const Handle& handle,
+    size_t GetReserveSize(Handle& handle,
                           int seqLength,
                           c_array_view<const miopenTensorDescriptor_t> xDesc) const;
 
-    size_t GetMaxWorkspaceSize(const Handle& handle,
+    size_t GetMaxWorkspaceSize(Handle& handle,
                                const SeqTensorDescriptor& xDesc,
                                miopenRNNFWDMode_t fwdMode) const;
-    size_t GetMaxReserveSize(const Handle& handle, const SeqTensorDescriptor& xDesc) const;
+    size_t GetMaxReserveSize(Handle& handle, const SeqTensorDescriptor& xDesc) const;
 
-    size_t GetParamsSize(const Handle& handle,
-                         const TensorDescriptor& xDesc,
-                         miopenDataType_t dtype) const;
+    std::tuple<size_t, size_t> GetTmpSpaceSizeDynamicAlgo(Handle& handle,
+                                                          const SeqTensorDescriptor& xDesc,
+                                                          miopenRNNFWDMode_t fwdMode) const;
+    bool CheckDynamicAlgoSelection(Handle& handle,
+                                   const SeqTensorDescriptor& xDesc,
+                                   miopenRNNFWDMode_t fwdMode) const;
+
+    size_t
+    GetParamsSize(Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype) const;
     size_t GetParamsSize(size_t inputVector) const;
 
-    void GetParamsDescriptor(const Handle& handle,
+    void GetParamsDescriptor(Handle& handle,
                              const TensorDescriptor& xDesc,
                              TensorDescriptor& wDesc,
                              miopenDataType_t dtype) const;
 
-    std::size_t GetLayerParamSize(const Handle& handle,
-                                  int layer,
-                                  const TensorDescriptor& xDesc,
-                                  int paramID) const;
+    std::size_t
+    GetLayerParamSize(Handle& handle, int layer, const TensorDescriptor& xDesc, int paramID) const;
 
-    std::size_t GetLayerBiasSize(const Handle& handle, int layer, int biasID) const;
+    std::size_t GetLayerBiasSize(Handle& handle, int layer, int biasID) const;
 
     void GetLayerParam(const Handle& handle,
                        int layer,
@@ -222,14 +226,14 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                             TensorDescriptor& biasDesc,
                             size_t* biasOffset) const;
 
-    size_t GetRNNInputSuperTensorSize(const Handle& handle,
+    size_t GetRNNInputSuperTensorSize(Handle& handle,
                                       int seqLength,
                                       c_array_view<miopenTensorDescriptor_t> xDesc) const;
 
-    size_t GetRNNHiddenSuperTensorSize(const Handle& handle,
+    size_t GetRNNHiddenSuperTensorSize(Handle& handle,
                                        c_array_view<miopenTensorDescriptor_t> xDesc) const;
 
-    void RNNForward(const Handle& handle,
+    void RNNForward(Handle& handle,
                     miopenRNNFWDMode_t fwdMode,
                     const SeqTensorDescriptor& xDesc,
                     ConstData_t x,
@@ -248,7 +252,7 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                     Data_t reserveSpace,
                     size_t reserveSpaceSize) const;
 
-    void RNNForwardTraining(const Handle& handle,
+    void RNNForwardTraining(Handle& handle,
                             int seqLen,
                             c_array_view<const miopenTensorDescriptor_t> xDesc,
                             ConstData_t x,
@@ -269,7 +273,7 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                             Data_t reserveSpace,
                             size_t reserveSpaceSize) const;
 
-    void RNNForwardInference(const Handle& handle,
+    void RNNForwardInference(Handle& handle,
                              int seqLen,
                              c_array_view<const miopenTensorDescriptor_t> xDesc,
                              ConstData_t x,
@@ -288,7 +292,7 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                              Data_t workSpace,
                              size_t workSpaceSize) const;
 
-    void RNNBackwardData(const Handle& handle,
+    void RNNBackwardData(Handle& handle,
                          const SeqTensorDescriptor& yDesc,
                          ConstData_t y,
                          ConstData_t dy,
@@ -309,7 +313,7 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                          Data_t reserveSpace,
                          size_t reserveSpaceSize) const;
 
-    void RNNBackwardData(const Handle& handle,
+    void RNNBackwardData(Handle& handle,
                          int seqLen,
                          c_array_view<const miopenTensorDescriptor_t> yDesc,
                          ConstData_t y,
@@ -336,7 +340,7 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                          Data_t reserveSpace,
                          size_t reserveSpaceSize) const;
 
-    void RNNBackwardWeights(const Handle& handle,
+    void RNNBackwardWeights(Handle& handle,
                             const SeqTensorDescriptor& xDesc,
                             ConstData_t x,
                             const TensorDescriptor& hDesc,
@@ -350,7 +354,7 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                             ConstData_t reserveSpace,
                             size_t reserveSpaceSize) const;
 
-    void RNNBackwardWeights(const Handle& handle,
+    void RNNBackwardWeights(Handle& handle,
                             int seqLen,
                             c_array_view<const miopenTensorDescriptor_t> xDesc,
                             ConstData_t x,
@@ -374,7 +378,7 @@ private:
 
     // TODO rename
 
-    void ModularForward(const Handle& handle,
+    void ModularForward(Handle& handle,
                         miopenRNNFWDMode_t fwdMode,
                         ConstData_t w,
                         const SeqTensorDescriptor& xDesc,
@@ -392,7 +396,7 @@ private:
                         Data_t reserveSpace,
                         size_t reserveSpaceSize) const;
 
-    void ModularBackward(const Handle& handle,
+    void ModularBackward(Handle& handle,
                          const SeqTensorDescriptor& yDesc,
                          ConstData_t dy,
                          const TensorDescriptor& hDesc,
@@ -411,7 +415,7 @@ private:
                          Data_t reserveSpace,
                          size_t reserveSpaceSize) const;
 
-    void ModularBackwardWeights(const Handle& handle,
+    void ModularBackwardWeights(Handle& handle,
                                 const SeqTensorDescriptor& xDesc,
                                 ConstData_t x,
                                 const TensorDescriptor& hDesc,
@@ -423,7 +427,7 @@ private:
                                 ConstData_t reserveSpace,
                                 size_t /*reserveSpaceSize*/) const;
 
-    void RNNTransformerForward(const Handle& handle,
+    void RNNTransformerForward(Handle& handle,
                                miopenRNNFWDMode_t fwdMode,
                                ConstData_t w,
                                const SeqTensorDescriptor& xDesc,
@@ -441,7 +445,7 @@ private:
                                Data_t reserveSpace,
                                size_t reserveSpaceSize) const;
 
-    void RNNTransformerBackwardData(const Handle& handle,
+    void RNNTransformerBackwardData(Handle& handle,
                                     const SeqTensorDescriptor& yDesc,
                                     ConstData_t dy,
                                     const TensorDescriptor& hDesc,
@@ -460,7 +464,7 @@ private:
                                     Data_t reserveSpace,
                                     size_t reserveSpaceSize) const;
 
-    void RNNTransformerBackwardWeights(const Handle& handle,
+    void RNNTransformerBackwardWeights(Handle& handle,
                                        const SeqTensorDescriptor& xDesc,
                                        ConstData_t x,
                                        const TensorDescriptor& hDesc,
@@ -472,7 +476,7 @@ private:
                                        ConstData_t reserveSpace,
                                        size_t reserveSpaceSize) const;
 
-    void RNNVanillaForward(const Handle& handle,
+    void RNNVanillaForward(Handle& handle,
                            miopenRNNFWDMode_t fwdMode,
                            ConstData_t w,
                            const SeqTensorDescriptor& xDesc,
@@ -490,7 +494,7 @@ private:
                            Data_t reserveSpace,
                            size_t reserveSpaceSize) const;
 
-    void RNNVanillaBackwardData(const Handle& handle,
+    void RNNVanillaBackwardData(Handle& handle,
                                 const SeqTensorDescriptor& yDesc,
                                 ConstData_t dy,
                                 const TensorDescriptor& hDesc,
@@ -509,7 +513,7 @@ private:
                                 Data_t reserveSpace,
                                 size_t reserveSpaceSize) const;
 
-    void RNNVanillaBackwardWeights(const Handle& handle,
+    void RNNVanillaBackwardWeights(Handle& handle,
                                    const SeqTensorDescriptor& xDesc,
                                    ConstData_t x,
                                    const TensorDescriptor& hDesc,
@@ -521,7 +525,7 @@ private:
                                    ConstData_t reserveSpace,
                                    size_t reserveSpaceSize) const;
 
-    void RNNForwardTrainingPackedTensors(const Handle& handle,
+    void RNNForwardTrainingPackedTensors(Handle& handle,
                                          int seqLen,
                                          c_array_view<const miopenTensorDescriptor_t> xDesc,
                                          ConstData_t x,
@@ -537,10 +541,12 @@ private:
                                          Data_t hy,
                                          const TensorDescriptor& cyDesc,
                                          Data_t cy,
+                                         Data_t workSpace,
+                                         size_t workSpaceSize,
                                          Data_t reserveSpace,
                                          size_t reserveSpaceSize) const;
 
-    void RNNForwardMS(const Handle& handle,
+    void RNNForwardMS(Handle& handle,
                       std::vector<int>& seq_array,
                       const TensorDescriptor& xDesc,
                       ConstData_t x,
@@ -557,7 +563,7 @@ private:
                       size_t extra_space_size,
                       miopenRNNFWDMode_t fwd_mode) const;
 
-    void RNNForwardInferencePacked(const Handle& handle,
+    void RNNForwardInferencePacked(Handle& handle,
                                    int seqLen,
                                    c_array_view<const miopenTensorDescriptor_t> xDesc,
                                    ConstData_t x,
@@ -576,7 +582,7 @@ private:
                                    Data_t workSpace,
                                    size_t workSpaceSize) const;
 
-    void RNNBackwardDataPackedTensors(const Handle& handle,
+    void RNNBackwardDataPackedTensors(Handle& handle,
                                       int seqLen,
                                       c_array_view<const miopenTensorDescriptor_t> dyDesc,
                                       ConstData_t dy,
@@ -596,7 +602,7 @@ private:
                                       Data_t reserveSpace,
                                       size_t reserveSpaceSize) const;
 
-    void RNNBackwardWeightsPackedTensors(const Handle& handle,
+    void RNNBackwardWeightsPackedTensors(Handle& handle,
                                          int seqLen,
                                          c_array_view<const miopenTensorDescriptor_t> xDesc,
                                          ConstData_t x,
