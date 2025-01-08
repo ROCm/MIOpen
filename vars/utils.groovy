@@ -46,7 +46,7 @@ def cmake_build(Map conf=[:]){
     //cmake_env can overwrite default CXX variables.
     def cmake_envs = "CXX=${compiler} CXXFLAGS='-Werror' " + conf.get("cmake_ex_env","")
 
-    def package_build = (conf.get("package_build","") == "true")
+    def package_build = (conf.get("package_build",false) == true)
 
     if (package_build == true) {
         make_targets = "miopen_gtest package miopen_gtest_check"
@@ -54,7 +54,7 @@ def cmake_build(Map conf=[:]){
     }
 
     def miopen_install_path = "${env.WORKSPACE}/install"
-    if(conf.get("build_install","") == "true")
+    if(conf.get("build_install",false) == true)
     {
         make_targets = 'install ' + make_targets
         setup_args = " -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=${miopen_install_path}" + setup_args

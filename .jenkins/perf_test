@@ -50,7 +50,7 @@ pipeline {
                         script {
                         echo "Packages Stage"
                         def utils = load "vars/utils.groovy"
-                        utils.buildHipClangJobAndReboot( package_build: "true", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false)
+                        utils.buildHipClangJobAndReboot( package_build: true, needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false)
                         }
                     }
                 }
@@ -65,7 +65,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install", docker: docker_image)
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install", docker: docker_image)
                         }
                     }
                 }/*
@@ -76,7 +76,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install")
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install")
                         }
                     }
                 }
@@ -87,7 +87,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -98,7 +98,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -109,7 +109,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -120,7 +120,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -131,7 +131,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -142,7 +142,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -153,7 +153,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS4.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS4.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -164,7 +164,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS64.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS64.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -175,7 +175,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -186,7 +186,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Alexnet_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -197,7 +197,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet201_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet201_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -208,7 +208,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet201_v1_FP32_BS256.txt",  needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet201_v1_FP32_BS256.txt",  needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -219,7 +219,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -230,7 +230,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet_v1_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Densenet_v1_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -241,7 +241,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -252,7 +252,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -263,7 +263,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -274,7 +274,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Googlenet_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -285,7 +285,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -296,7 +296,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -307,7 +307,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception3_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -318,7 +318,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -329,7 +329,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -340,7 +340,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -351,7 +351,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Inception4_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -362,7 +362,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Mobilenet_v1_FP32_BS4.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Mobilenet_v1_FP32_BS4.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -373,7 +373,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Mobilenet_v1_FP32_BS64.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Mobilenet_v1_FP32_BS64.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -384,7 +384,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS32.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS32.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -395,7 +395,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -406,7 +406,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -417,7 +417,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -428,7 +428,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -439,7 +439,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -450,7 +450,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet101_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -461,7 +461,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -472,7 +472,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v1_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v1_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -483,7 +483,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -494,7 +494,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -505,7 +505,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -516,7 +516,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet152_v2_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -528,7 +528,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS32.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS32.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -540,7 +540,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS64.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS64.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -552,7 +552,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -564,7 +564,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -576,7 +576,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -588,7 +588,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -600,7 +600,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP32_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -612,7 +612,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -623,7 +623,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Shufflenet_v2_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Shufflenet_v2_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -634,7 +634,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "SSD_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "SSD_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -645,7 +645,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "SSD_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "SSD_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -656,7 +656,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -667,7 +667,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS256.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -678,7 +678,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -689,7 +689,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG11_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -700,7 +700,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -711,7 +711,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS4.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS4.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -722,7 +722,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS64.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS64.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -733,7 +733,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -744,7 +744,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG16_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -755,7 +755,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP16_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -766,7 +766,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP16_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -777,7 +777,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }
@@ -788,7 +788,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: "true", needs_cleanup:false, make_targets: "install"  )
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "VGG19_v1_FP32_BS512.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install"  )
                         }
                     }
                 }*/
