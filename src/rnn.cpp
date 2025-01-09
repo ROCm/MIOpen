@@ -609,7 +609,8 @@ size_t RNNDescriptor::GetReserveSize(size_t batchLenSum) const
 //  with tensor with maximum sequence length and maximum count of non empty sequences.
 // The previous version of this function returned a size sufficient only for the current tensor
 // size.
-size_t RNNDescriptor::GetMaxReserveSize(const Handle& handle, const SeqTensorDescriptor& xDesc) const
+size_t RNNDescriptor::GetMaxReserveSize(const Handle& handle,
+                                        const SeqTensorDescriptor& xDesc) const
 {
     if(xDesc.GetType() != dataType)
     {

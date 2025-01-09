@@ -162,8 +162,9 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                                    const SeqTensorDescriptor& xDesc,
                                    miopenRNNFWDMode_t fwdMode) const;
 
-    size_t
-    GetParamsSize(const Handle& handle, const TensorDescriptor& xDesc, miopenDataType_t dtype) const;
+    size_t GetParamsSize(const Handle& handle,
+                         const TensorDescriptor& xDesc,
+                         miopenDataType_t dtype) const;
     size_t GetParamsSize(size_t inputVector) const;
 
     void GetParamsDescriptor(const Handle& handle,
@@ -171,8 +172,10 @@ struct MIOPEN_INTERNALS_EXPORT RNNDescriptor : miopenRNNDescriptor
                              TensorDescriptor& wDesc,
                              miopenDataType_t dtype) const;
 
-    std::size_t
-    GetLayerParamSize(const Handle& handle, int layer, const TensorDescriptor& xDesc, int paramID) const;
+    std::size_t GetLayerParamSize(const Handle& handle,
+                                  int layer,
+                                  const TensorDescriptor& xDesc,
+                                  int paramID) const;
 
     std::size_t GetLayerBiasSize(const Handle& handle, int layer, int biasID) const;
 
