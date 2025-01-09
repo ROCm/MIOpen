@@ -292,11 +292,11 @@ GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::st
         return features;
     }
 
-    const bool isFwd      = problem.GetDirection() == miopen::conv::Direction::Forward;
-    float precision = 2.0; // miopenHalf
-    if (problem.GetInDataType() == miopenFloat)
+    const bool isFwd = problem.GetDirection() == miopen::conv::Direction::Forward;
+    float precision  = 2.0; // miopenHalf
+    if(problem.GetInDataType() == miopenFloat)
         precision = 3.0;
-    else if (problem.GetInDataType() == miopenBFloat16)
+    else if(problem.GetInDataType() == miopenBFloat16)
         precision = 1.0;
 
     std::size_t n = 17;
@@ -357,7 +357,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsModelApplicable(
 {
     if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942")
         return false;
-    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf && problem.GetInDataType() != miopenBFloat16)
+    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf &&
+       problem.GetInDataType() != miopenBFloat16)
         return false;
     if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR))
         return false;

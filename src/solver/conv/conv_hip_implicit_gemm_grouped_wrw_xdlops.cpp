@@ -289,14 +289,13 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(
             idx += 2;
         if(((idx == 15 && (heuristic_kernels[heuristic_indexes[0]].size() == 15)) || idx == 18))
         {
-            if (!std::all_of(value.begin(), value.end(), ::isdigit))
+            if(!std::all_of(value.begin(), value.end(), ::isdigit))
                 return false;
-            kernel_id =
-                valid_kernels[heuristic_indexes[0]] + "+" + value;
+            kernel_id          = valid_kernels[heuristic_indexes[0]] + "+" + value;
             index              = heuristic_indexes[0];
             bool valid_split_k = false;
             // if `value` is not a valid split_k value, the following warning is raised
-            //   Warning: Workspace for DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle::Argument 
+            //   Warning: Workspace for DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle::Argument
             //   is not allocated, use SetWorkSpacePointer.
             switch(problem.GetInDataType())
             {
@@ -361,11 +360,11 @@ static std::vector<float> GetFeatures(const ProblemDescription& problem, const s
         return features;
     }
 
-    const bool isFwd      = problem.GetDirection() == miopen::conv::Direction::Forward;
-    float precision = 2.0; // miopenHalf
-    if (problem.GetInDataType() == miopenFloat)
+    const bool isFwd = problem.GetDirection() == miopen::conv::Direction::Forward;
+    float precision  = 2.0; // miopenHalf
+    if(problem.GetInDataType() == miopenFloat)
         precision = 3.0;
-    else if (problem.GetInDataType() == miopenBFloat16)
+    else if(problem.GetInDataType() == miopenBFloat16)
         precision = 1.0;
 
     std::size_t n = 17; // takes 17 convolution parameters as inputs
@@ -425,7 +424,8 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::IsModelApplicable(
 {
     if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942")
         return false;
-    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf && problem.GetInDataType() != miopenBFloat16)
+    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf &&
+       problem.GetInDataType() != miopenBFloat16)
         return false;
     if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
         return false;

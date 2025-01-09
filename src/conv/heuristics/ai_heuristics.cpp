@@ -707,10 +707,10 @@ bool ModelSetParams(const std::string& arch,
 {
     auto model = GetModel(arch, solver);
 
-    std::cout << "\nFeatures: ";
-    for (int i = 0; i < 17; ++i)
-        std::cout << features[i * 17 + i] << ", ";
-    std::cout << "\n";
+    std::stringstream ss;
+    for(int i = 0; i < 17; ++i)
+        ss << features[i * 17 + i] << ", ";
+    MIOPEN_LOG_I2("Features: " << ss.str());
 
     // get context
     int dim = 0;
@@ -732,7 +732,7 @@ bool ModelSetParams(const std::string& arch,
     default: return false;
     }
 
-    std::cout << "\n PREDICT TYPE: " << model->metadata.predict_type << "\n";
+    MIOPEN_LOG_I2("PREDICT TYPE: " << model->metadata.predict_type);
 
     // run decoder to set kernel parameters
     for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params; ++i)
@@ -745,7 +745,8 @@ bool ModelSetParams(const std::string& arch,
                                                                        // score of the k-th token
         // order tokens according to their scores
         std::priority_queue<std::pair<float, int>> pq;
-        for(int j = 0; j < token_scores.size(); j++) {
+        for(int j = 0; j < token_scores.size(); j++)
+        {
             pq.push(std::make_pair(token_scores[j], j)); // sort by value at index
         }
 
@@ -758,14 +759,7 @@ bool ModelSetParams(const std::string& arch,
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
 
-            std::cout << "\n";
-            std::cout << i;
-            std::cout << " " + std::to_string(token) + " " + value;
-            //std::cout << "\nTOKEN SCORES";
-            //for(int j = 0; j < token_scores.size(); j++) {
-            //    std::cout << token_scores[j] << " ";
-            //}
-            //std::cout << std::endl;
+            MIOPEN_LOG_I2(std::to_string((int)i) + ": " + std::to_string(token) + " " + value);
             if(value == "-1") // if token-value is "-1", then decoding has finished
             {
                 auto stop     = std::chrono::high_resolution_clock::now();

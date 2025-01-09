@@ -261,12 +261,14 @@ void PerformanceConfigHipImplicitGemmGroupBwdXdlops::InitHeuristicKernelIDs()
 bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::ModelApplyToken(
     int idx, std::string value, const std::string& arch, const ProblemDescription& problem)
 {
-    if (arch == "gfx90a") {
+    if(arch == "gfx90a")
+    {
         if(idx == 13)
             idx += 1; // skip
     }
-    if(arch == "gfx942") {
-        if (idx < 3)
+    if(arch == "gfx942")
+    {
+        if(idx < 3)
             idx += 0;
         else if(idx <= 4)
             idx += 2;
@@ -275,14 +277,7 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::ModelApplyToken(
         else
             return true;
     }
-    std::cout << " NEW INDEX " << idx;
-
-    //std::cout << "\nBEFORE REMOVING\n";
-    //for (auto i: heuristic_indexes) {
-    //    for (auto x: heuristic_kernels[heuristic_indexes[i]])
-    //        std::cout << x << " ";
-    //    std::cout << "\n";
-    //}
+    MIOPEN_LOG_I2("NEW INDEX");
 
     auto eraseBegin = std::remove_if(
         heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
@@ -293,15 +288,18 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::ModelApplyToken(
     {
         heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
 
-        std::cout << "\nAFTER REMOVING\n";
-        for (auto i: heuristic_indexes) {
-            for (auto x: heuristic_kernels[heuristic_indexes[i]])
-                std::cout << x << " ";
-            std::cout << "\n";
-            std::cout << valid_kernels[heuristic_indexes[i]];
-            std::cout << "\n";
+        std::stringstream ss;
+        ss << "AFTER REMOVING\n";
+        for(auto i : heuristic_indexes)
+        {
+            for(auto x : heuristic_kernels[heuristic_indexes[i]])
+                ss << x << " ";
+            ss << "\n";
+            ss << valid_kernels[heuristic_indexes[i]];
+            ss << "\n";
         }
-        std::cout << "\n";
+        ss << "\n";
+        MIOPEN_LOG_I2(ss.str());
 
         return true;
     }
@@ -336,11 +334,11 @@ GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::st
         return features;
     }
 
-    const bool isFwd      = problem.GetDirection() == miopen::conv::Direction::Forward;
-    float precision = 2.0; // miopenHalf
-    if (problem.GetInDataType() == miopenFloat)
+    const bool isFwd = problem.GetDirection() == miopen::conv::Direction::Forward;
+    float precision  = 2.0; // miopenHalf
+    if(problem.GetInDataType() == miopenFloat)
         precision = 3.0;
-    else if (problem.GetInDataType() == miopenBFloat16)
+    else if(problem.GetInDataType() == miopenBFloat16)
         precision = 1.0;
 
     std::size_t n = 17;
@@ -372,9 +370,9 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::RunParameterPredictionModel
     valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<DataType>, CKArgs>(
         problem); // filter valid_kernel ID's
     InitHeuristicKernelIDs();
-    static const std::string& arch  = ctx.GetStream().GetDeviceName();
-    static std::string solver = "ConvHipIgemmGroupBwdXdlops";
-    if (arch == "gfx90a")
+    static const std::string& arch = ctx.GetStream().GetDeviceName();
+    static std::string solver      = "ConvHipIgemmGroupBwdXdlops";
+    if(arch == "gfx90a")
         solver = "ConvHipIgemmGroupXdlops";
     std::vector<float> features = GetFeatures(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
     if(ai::tuning::ModelSetParams(
@@ -397,7 +395,8 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsModelApplicable(
 {
     if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942")
         return false;
-    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf && problem.GetInDataType() != miopenBFloat16)
+    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf &&
+       problem.GetInDataType() != miopenBFloat16)
         return false;
     if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR))
         return false;
