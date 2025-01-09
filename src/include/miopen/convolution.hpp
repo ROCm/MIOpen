@@ -197,7 +197,7 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescript
     std::size_t GetWorkSpaceSize(ExecutionContext ctx,
                                  const conv::ProblemDescription& problem) const;
 
-    void FindConvFwdAlgorithm(Handle& handle,
+    void FindConvFwdAlgorithm(const Handle& handle,
                               const TensorDescriptor& xDesc,
                               ConstData_t x,
                               const TensorDescriptor& wDesc,
@@ -211,7 +211,7 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescript
                               std::size_t workSpaceSize,
                               bool exhaustiveSearch) const;
 
-    void ConvolutionForward(Handle& handle,
+    void ConvolutionForward(const Handle& handle,
                             const void* alpha,
                             const TensorDescriptor& xDesc,
                             ConstData_t x,
@@ -238,13 +238,13 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescript
                          const conv::ProblemDescription& problem,
                          solver::Id solver_id) const;
 
-    std::size_t GetForwardSolutionWorkspaceSize(Handle& handle,
+    std::size_t GetForwardSolutionWorkspaceSize(const Handle& handle,
                                                 const TensorDescriptor& wDesc,
                                                 const TensorDescriptor& xDesc,
                                                 const TensorDescriptor& yDesc,
                                                 solver::Id solver_id) const;
 
-    void ConvolutionForwardImmediate(Handle& handle,
+    void ConvolutionForwardImmediate(const Handle& handle,
                                      const TensorDescriptor& wDesc,
                                      ConstData_t w,
                                      const TensorDescriptor& xDesc,
@@ -255,7 +255,7 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescript
                                      std::size_t workSpaceSize,
                                      solver::Id solver_id) const;
 
-    void FindConvBwdDataAlgorithm(Handle& handle,
+    void FindConvBwdDataAlgorithm(const Handle& handle,
                                   const TensorDescriptor& dyDesc,
                                   ConstData_t dy,
                                   const TensorDescriptor& wDesc,
@@ -269,7 +269,7 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescript
                                   std::size_t workSpaceSize,
                                   bool exhaustiveSearch) const;
 
-    void ConvolutionBackwardData(Handle& handle,
+    void ConvolutionBackwardData(const Handle& handle,
                                  const void* alpha,
                                  const TensorDescriptor& dyDesc,
                                  ConstData_t dy,
@@ -282,13 +282,13 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescript
                                  Data_t workSpace,
                                  std::size_t workSpaceSize) const;
 
-    std::size_t GetBackwardSolutionWorkspaceSize(Handle& handle,
+    std::size_t GetBackwardSolutionWorkspaceSize(const Handle& handle,
                                                  const TensorDescriptor& dyDesc,
                                                  const TensorDescriptor& wDesc,
                                                  const TensorDescriptor& dxDesc,
                                                  solver::Id solver_id) const;
 
-    void ConvolutionBackwardImmediate(Handle& handle,
+    void ConvolutionBackwardImmediate(const Handle& handle,
                                       const TensorDescriptor& dyDesc,
                                       ConstData_t dy,
                                       const TensorDescriptor& wDesc,
@@ -299,13 +299,13 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescript
                                       std::size_t workSpaceSize,
                                       solver::Id solver_id) const;
 
-    std::size_t GetWrwSolutionWorkspaceSize(Handle& handle,
+    std::size_t GetWrwSolutionWorkspaceSize(const Handle& handle,
                                             const TensorDescriptor& dyDesc,
                                             const TensorDescriptor& xDesc,
                                             const TensorDescriptor& dwDesc,
                                             solver::Id solver_id) const;
 
-    void ConvolutionWrwImmediate(Handle& handle,
+    void ConvolutionWrwImmediate(const Handle& handle,
                                  const TensorDescriptor& dyDesc,
                                  ConstData_t dy,
                                  const TensorDescriptor& xDesc,
@@ -316,7 +316,7 @@ struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescript
                                  std::size_t workSpaceSize,
                                  solver::Id solver_id) const;
 
-    void FindConvBwdWeightsAlgorithm(Handle& handle,
+    void FindConvBwdWeightsAlgorithm(const Handle& handle,
                                      const TensorDescriptor& dyDesc,
                                      ConstData_t dy,
                                      const TensorDescriptor& xDesc,
