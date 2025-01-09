@@ -57,6 +57,7 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     rocm-developer-tools \
     rocm-llvm-dev \
     rpm \
+    sqlite3 \
     software-properties-common && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -146,6 +147,23 @@ RUN pip3 install -r /doc-requirements.txt
 
 # Composable Kernel requires this version cmake
 RUN pip3 install --upgrade cmake==3.27.5
+
+#install miopen
+ARG INSTALL_MIOPEN=ON
+ARG MIOPEN_BRANCH=alex_perf_test
+RUN if [ "$INSTALL_MIOPEN" = "ON" ]; then \
+
+    git clone https://github.com/ROCm/MIOpen.git miopen; \ 
+    cd miopen; \
+    git pull && git checkout $MIOPEN_BRANCH; \
+    mkdir build; \
+    mkdir install; \
+    rm -f src/kernels/*.ufdb.txt; \
+    rm -f src/kernels/miopen*.udb; \
+    cd build;\
+    CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=debug -DBUILD_DEV=On -DCMAKE_INSTALL_PREFIX=/opt/rocm -DMIOPEN_USE_MLIR=OFF -DMIOPEN_GPU_SYNC=Off  -DCMAKE_PREFIX_PATH=/opt/rocm    ..; \ 
+    LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \
+    fi
 
 # groupadd can add one group a time
 RUN groupadd -f render

@@ -26,6 +26,7 @@ pipeline {
     booleanParam(name: 'PERF_TEST_FP16', defaultValue : true, description: 'Run FP16 tests')
     booleanParam(name: 'PERF_TEST_ARCHIVE', defaultValue : true, description: 'Archive results from this run')
     string(name: 'PERF_TEST_OVERRIDE', defaultValue: '',  description: 'Add extra env vars for the MIOpenDriver cmd, comma separated')
+    choice(name: 'INSTALL_MIOPEN', choices: ['ON', 'OFF'], defaultValue: 'OFF', description: 'Build MIOpen with MLIR enabled')
   }
   stages {
         stage('Build Docker'){
@@ -33,12 +34,8 @@ pipeline {
                 script {
                     echo "Build Docker Stage"
                     //def utils = load "vars/utils.groovy"
-                    //utils.getDockerImage()
-                    def utils = load "vars/utils.groovy"
+                    utils.getDockerImage()
                     def (docker_image, image) = utils.getDockerImage()
-                    docker_image.inside {
-                      utils.cmake_build(gpu_arch: "gfx90a", build_install: true, needs_cleanup:false, make_targets: "install")
-                    }
                     withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
                         docker_image.push()
                     }
