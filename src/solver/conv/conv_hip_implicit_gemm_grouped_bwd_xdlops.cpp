@@ -259,7 +259,7 @@ void PerformanceConfigHipImplicitGemmGroupBwdXdlops::InitHeuristicKernelIDs()
 }
 
 bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::ModelApplyToken(
-    int idx, std::string value, const std::string& arch, const ProblemDescription& problem)
+    int idx, std::string value, const std::string& arch, const ProblemDescription& /*problem*/)
 {
     if(arch == "gfx90a")
     {
@@ -292,7 +292,7 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::ModelApplyToken(
         ss << "AFTER REMOVING\n";
         for(auto i : heuristic_indexes)
         {
-            for(auto x : heuristic_kernels[heuristic_indexes[i]])
+            for(const auto& x : heuristic_kernels[heuristic_indexes[i]])
                 ss << x << " ";
             ss << "\n";
             ss << valid_kernels[heuristic_indexes[i]];
@@ -307,7 +307,7 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::ModelApplyToken(
 }
 
 static std::vector<float>
-GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::string& arch)
+GetFeatures(const ProblemDescription& problem, std::size_t /*num_cu*/, const std::string& arch)
 {
     if(arch == "gfx90a")
     {
