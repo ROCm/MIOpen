@@ -68,7 +68,7 @@ struct MIOPEN_INTERNALS_EXPORT DropoutDescriptor : miopenDropoutDescriptor
 
     miopenDataType_t dataType_;
 
-    void InitPRNGState(Handle& handle,
+    void InitPRNGState(const Handle& handle,
                        Data_t prng_states,
                        size_t prng_stateSizeInBytes,
                        unsigned long long prng_seed) const;

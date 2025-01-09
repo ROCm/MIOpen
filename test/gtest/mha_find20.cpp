@@ -70,7 +70,7 @@ struct TensorStruct
 
     TensorStruct(const TensorVariant& var) { tensorVariant = var; }
 
-    void GpuRead(Handle& handle)
+    void GpuRead(const Handle& handle)
     {
         if(std::holds_alternative<tensor<float>>(tensorVariant))
         {
@@ -88,7 +88,7 @@ struct TensorStruct
         }
     }
 
-    void GpuWrite(Handle& handle)
+    void GpuWrite(const Handle& handle)
     {
         if(std::holds_alternative<tensor<float>>(tensorVariant))
         {
@@ -410,7 +410,7 @@ private:
         }
     }
 
-    void GetForwardResultsWithoutFind20(Handle& handle,
+    void GetForwardResultsWithoutFind20(const Handle& handle,
                                         TensorStructMap& outputResultsMap,
                                         Workspace& workspace,
                                         uint64_t solver_id)
@@ -505,7 +505,7 @@ private:
         ReadData(handle, outputResultsMap);
     }
 
-    void GetBackwardResultsWithoutFind20(Handle& handle,
+    void GetBackwardResultsWithoutFind20(const Handle& handle,
                                          TensorStructMap& outputResultsMap,
                                          Workspace& workspace,
                                          uint64_t solver_id)
@@ -630,7 +630,7 @@ private:
         ReadData(handle, outputResultsMap);
     }
 
-    void ReadData(Handle& handle, TensorStructMap& outputResultsMap)
+    void ReadData(const Handle& handle, TensorStructMap& outputResultsMap)
     {
         for(const auto& it : outputResultsMap)
         {
