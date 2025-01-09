@@ -80,3 +80,42 @@ extern "C" __global__ void MatrixBandPart(const D_TYPE* __restrict__ input,
     matrixBandPart<D_TYPE, N_TYPE>(
         input, output, num_lower, num_upper, numel, num_dim, input_tv, output_tv);
 }
+
+template <typename T, typename Tn>
+__device__ void matrixBandPartContiguous(const T* __restrict__ input,
+                                         T* __restrict__ output,
+                                         const Tn* __restrict__ num_lower,
+                                         const Tn* __restrict__ num_upper,
+                                         uint64_t numel,
+                                         int64_t W,
+                                         int64_t H)
+{
+    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if(gid >= numel)
+    {
+        return;
+    }
+
+    int64_t w = gid % W;
+    int64_t h = (gid / W) % H;
+
+    int64_t num_lower_val = static_cast<int64_t>(num_lower[0]);
+    int64_t num_upper_val = static_cast<int64_t>(num_upper[0]);
+    int64_t diff          = h - w;
+
+    bool in_band = (num_lower_val < 0 || diff <= num_lower_val) &&
+                   (num_upper_val < 0 || (-diff) <= num_upper_val);
+
+    output[gid] = in_band ? input[gid] : static_cast<T>(0);
+}
+
+extern "C" __global__ void MatrixBandPartContiguous(const D_TYPE* __restrict__ input,
+                                                    D_TYPE* __restrict__ output,
+                                                    const N_TYPE* __restrict__ num_lower,
+                                                    const N_TYPE* __restrict__ num_upper,
+                                                    uint64_t numel,
+                                                    int64_t W,
+                                                    int64_t H)
+{
+    matrixBandPartContiguous<D_TYPE, N_TYPE>(input, output, num_lower, num_upper, numel, W, H);
+}

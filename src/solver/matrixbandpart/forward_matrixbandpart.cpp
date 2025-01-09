@@ -74,27 +74,53 @@ MatrixBandPartForward::GetSolution(const ExecutionContext& context,
         {"N_TYPE", num_lower_dtype == "int64" ? "size_t" : num_lower_dtype},
     };
 
-    result.construction_params.push_back(make_hip_kernel(
-        {LOCAL_SIZE_FWD}, {numel}, "MIOpenMatrixBandPart.cpp", "MatrixBandPart", build_params));
+    if(!problem.IsAllContiguous())
+    {
+        result.construction_params.push_back(make_hip_kernel(
+            {LOCAL_SIZE_FWD}, {numel}, "MIOpenMatrixBandPart.cpp", "MatrixBandPart", build_params));
 
-    result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel = handle_.Run(kernels[0]);
-            decltype(auto) params = raw_params.CastTo<miopen::matrixbandpart::FwdInvokeParams>();
-            auto input_tv         = get_inner_expanded_tv<5>(deref(params.inputDesc));
-            auto output_tv        = get_inner_expanded_tv<5>(deref(params.outputDesc));
-            uint64_t num_dim      = deref(params.inputDesc).GetNumDims();
+        result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels[0]);
+                decltype(auto) params =
+                    raw_params.CastTo<miopen::matrixbandpart::FwdInvokeParams>();
+                auto input_tv    = get_inner_expanded_tv<5>(deref(params.inputDesc));
+                auto output_tv   = get_inner_expanded_tv<5>(deref(params.outputDesc));
+                uint64_t num_dim = deref(params.inputDesc).GetNumDims();
 
-            kernel(params.input,
-                   params.output,
-                   params.num_lower,
-                   params.num_upper,
-                   numel,
-                   num_dim,
-                   input_tv,
-                   output_tv);
+                kernel(params.input,
+                       params.output,
+                       params.num_lower,
+                       params.num_upper,
+                       numel,
+                       num_dim,
+                       input_tv,
+                       output_tv);
+            };
         };
-    };
+    }
+    else
+    {
+        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_FWD},
+                                                             {numel},
+                                                             "MIOpenMatrixBandPart.cpp",
+                                                             "MatrixBandPartContiguous",
+                                                             build_params));
+
+        result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels[0]);
+                decltype(auto) params =
+                    raw_params.CastTo<miopen::matrixbandpart::FwdInvokeParams>();
+                auto num_dim = deref(params.inputDesc).GetNumDims();
+                int64_t W    = deref(params.inputDesc).GetLengths()[num_dim - 1];
+                int64_t H    = deref(params.inputDesc).GetLengths()[num_dim - 2];
+
+                kernel(
+                    params.input, params.output, params.num_lower, params.num_upper, numel, W, H);
+            };
+        };
+    }
 
     return result;
 };

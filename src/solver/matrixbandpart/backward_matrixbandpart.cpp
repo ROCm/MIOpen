@@ -73,27 +73,58 @@ MatrixBandPartBackward::GetSolution(const ExecutionContext& context,
         {"N_TYPE", num_lower_dtype == "int64" ? "size_t" : num_lower_dtype},
     };
 
-    result.construction_params.push_back(make_hip_kernel(
-        {LOCAL_SIZE_BWD}, {numel}, "MIOpenMatrixBandPart.cpp", "MatrixBandPart", build_params));
+    if(!problem.IsAllContiguous())
+    {
+        result.construction_params.push_back(make_hip_kernel(
+            {LOCAL_SIZE_BWD}, {numel}, "MIOpenMatrixBandPart.cpp", "MatrixBandPart", build_params));
 
-    result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) kernel = handle_.Run(kernels[0]);
-            decltype(auto) params = raw_params.CastTo<miopen::matrixbandpart::BwdInvokeParams>();
-            auto output_grad_tv   = get_inner_expanded_tv<5>(deref(params.outputGradDesc));
-            auto input_grad_tv    = get_inner_expanded_tv<5>(deref(params.inputGradDesc));
-            uint64_t num_dim      = deref(params.inputGradDesc).GetNumDims();
+        result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels[0]);
+                decltype(auto) params =
+                    raw_params.CastTo<miopen::matrixbandpart::BwdInvokeParams>();
+                auto output_grad_tv = get_inner_expanded_tv<5>(deref(params.outputGradDesc));
+                auto input_grad_tv  = get_inner_expanded_tv<5>(deref(params.inputGradDesc));
+                uint64_t num_dim    = deref(params.inputGradDesc).GetNumDims();
 
-            kernel(params.output_grad,
-                   params.input_grad,
-                   params.num_lower,
-                   params.num_upper,
-                   numel,
-                   num_dim,
-                   output_grad_tv,
-                   input_grad_tv);
+                kernel(params.output_grad,
+                       params.input_grad,
+                       params.num_lower,
+                       params.num_upper,
+                       numel,
+                       num_dim,
+                       output_grad_tv,
+                       input_grad_tv);
+            };
         };
-    };
+    }
+    else
+    {
+        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD},
+                                                             {numel},
+                                                             "MIOpenMatrixBandPart.cpp",
+                                                             "MatrixBandPartContiguous",
+                                                             build_params));
+
+        result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels[0]);
+                decltype(auto) params =
+                    raw_params.CastTo<miopen::matrixbandpart::BwdInvokeParams>();
+                auto num_dim = deref(params.inputGradDesc).GetNumDims();
+                int64_t W    = deref(params.inputGradDesc).GetLengths()[num_dim - 1];
+                int64_t H    = deref(params.inputGradDesc).GetLengths()[num_dim - 2];
+
+                kernel(params.output_grad,
+                       params.input_grad,
+                       params.num_lower,
+                       params.num_upper,
+                       numel,
+                       W,
+                       H);
+            };
+        };
+    }
 
     return result;
 }

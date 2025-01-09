@@ -87,6 +87,8 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
+    bool IsAllContiguous() const { return xDesc.IsContiguous() && yDesc.IsContiguous(); }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:

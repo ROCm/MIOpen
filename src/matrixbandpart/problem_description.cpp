@@ -55,6 +55,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "-dtype" << dtype;
     ss << "-X" << xDesc.GetLengths();
     ss << "-IsFwd" << is_fwd;
+    ss << "-IsCon" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }
