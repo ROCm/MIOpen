@@ -93,7 +93,7 @@ ADD dev-requirements.txt /dev-requirements.txt
 ARG GPU_ARCHS=gfx908;gfx90a;gfx942;gfx1100
 # install to /opt/rocm will cause permission issue
 ARG PREFIX=/usr/local
-ARG USE_FIN="ON"
+ARG USE_FIN="OFF"
 ARG CCACHE_SECONDARY_STORAGE=""
 ARG CCACHE_DIR="/tmp"
 RUN env
@@ -134,11 +134,11 @@ RUN sed -i '/composable_kernel/d' /requirements.txt
 
 ARG COMPILER_LAUNCHER=""
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
-RUN if [ "$USE_FIN" = "ON" ]; then \
-        rbuild prepare -s fin -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
-    else \
-        rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
-    fi
+#RUN if [ "$USE_FIN" = "ON" ]; then \
+#        rbuild prepare -s fin -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+#    else \
+#        rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+#    fi
 
 RUN ccache -s 
 # Install doc requirements
