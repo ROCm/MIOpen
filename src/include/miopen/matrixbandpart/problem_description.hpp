@@ -25,9 +25,9 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/activ.hpp>
 #include <miopen/miopen.h>
 #include <miopen/problem_description_base.hpp>
-#include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {

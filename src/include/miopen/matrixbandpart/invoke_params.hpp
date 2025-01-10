@@ -35,7 +35,6 @@ namespace matrixbandpart {
 
 struct FwdInvokeParams : public miopen::InvokeParams
 {
-
     FwdInvokeParams() = default;
 
     const TensorDescriptor* inputDesc  = nullptr;
@@ -52,7 +51,6 @@ struct FwdInvokeParams : public miopen::InvokeParams
 
 struct BwdInvokeParams : public miopen::InvokeParams
 {
-
     BwdInvokeParams() = default;
 
     const TensorDescriptor* outputGradDesc = nullptr;

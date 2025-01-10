@@ -28,11 +28,11 @@
 
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
-#include <miopen/solver.hpp>
-#include <miopen/matrixbandpart/problem_description.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/kernel_info.hpp>
+#include <miopen/matrixbandpart/problem_description.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 

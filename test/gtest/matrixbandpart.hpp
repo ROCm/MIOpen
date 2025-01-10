@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include "cpu_matrixbandpart.hpp"
 #include "get_handle.hpp"
-#include "miopen/allocator.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>

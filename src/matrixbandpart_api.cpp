@@ -24,10 +24,10 @@
  *
  *******************************************************************************/
 
-#include <miopen/matrixbandpart.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/matrixbandpart.hpp>
 #include <miopen/tensor_ops.hpp>
 
 inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v)

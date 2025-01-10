@@ -27,7 +27,6 @@
 
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view_utils.hpp>
-#include <sys/types.h>
 
 template <class T, class Tn>
 void cpu_matrixbandpart(const tensor<T> input,

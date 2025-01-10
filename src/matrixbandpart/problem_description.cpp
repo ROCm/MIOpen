@@ -49,10 +49,12 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     auto dtype = xDesc.GetType();
+    auto ntype = numLowerDesc.GetType();
     std::ostringstream ss;
 
     ss << "matrixbandpart";
     ss << "-dtype" << dtype;
+    ss << "-ntype" << ntype;
     ss << "-X" << xDesc.GetLengths();
     ss << "-IsFwd" << is_fwd;
     ss << "-IsCon" << IsAllContiguous();

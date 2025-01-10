@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/errors.hpp"
+#include <miopen/errors.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/matrixbandpart.hpp>
 #include <miopen/matrixbandpart/invoke_params.hpp>
@@ -88,7 +88,6 @@ MatrixBandPartForward::GetSolution(const ExecutionContext& context,
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-        {"LOCAL_SIZE", LOCAL_SIZE_FWD},
         {"N_TYPE", num_lower_dtype == "int64" ? "size_t" : num_lower_dtype},
     };
 

@@ -8191,10 +8191,10 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * @param input                 Data tensor input  (input)
  * @param numLowerDesc          Tensor descriptor for number of subdiagonals to keep (input)
  * @param num_lower             Number of subdiagonals to keep. If negative, keep entire lower
- * triangle.
+ * triangle (input)
  * @param numUpperDesc          Tensor descriptor for number of superdiagonals to keep (input)
  * @param num_upper             Number of superdiagonals to keep. If negative, keep entire upper
- * triangle.
+ * triangle (input)
  * @param outputDesc            Tensor descriptor for output tensor (input)
  * @param output                Data tensor output (output)
  * @return                      miopenStatus_t
@@ -8217,10 +8217,10 @@ miopenMatrixBandPartForward(miopenHandle_t handle,
  * @param output_grad           Data tensor output grad (input)
  * @param numLowerDesc          Tensor descriptor for number of subdiagonals to keep (input)
  * @param num_lower             Number of subdiagonals to keep. If negative, keep entire lower
- * triangle.
+ * triangle (input)
  * @param numUpperDesc          Tensor descriptor for number of superdiagonals to keep (input)
  * @param num_upper             Number of superdiagonals to keep. If negative, keep entire upper
- * triangle.
+ * triangle (input)
  * @param inputGradDesc         Tensor descriptor for input grad tensor (input)
  * @param input_grad            Data tensor input grad (output)
  * @return                      miopenStatus_t
