@@ -126,7 +126,7 @@ RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK
     -D CMAKE_BUILD_TYPE=Release \
     -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j $(nproc) install 
+    make -j $(nproc) install
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 # this can minimize build time
@@ -155,6 +155,7 @@ RUN if [ "$INSTALL_MIOPEN" = "ON" ]; then \
 
     git clone https://github.com/ROCm/MIOpen.git miopen; \ 
     cd miopen; \
+    CXX=/opt/rocm/llvm/bin/clang++ cget install -f ./dev-requirements.txt; \
     git pull && git checkout $MIOPEN_BRANCH; \
     mkdir build; \
     mkdir install; \

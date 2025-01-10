@@ -203,8 +203,8 @@ def getDockerImage(Map conf=[:])
     if(params.INSTALL_MIOPEN == 'ON')
       install_miopen = 'ON'
     def miopen_branch = 'develop' 
-    if(params.miopen_branch != null)
-      miopen_branch = params.miopen_branch
+    if(params.branch_name != null)
+      miopen_branch = params.branch_name
 
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg MIOPEN_BRANCH=${miopen_branch}"
     //def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}'"
