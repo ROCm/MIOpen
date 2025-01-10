@@ -48,6 +48,7 @@ auto GetSmokeTestParams(miopenDataType_t datatype)
     }
     auto testParams = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
     testParams.Tunable(1);
+    testParams.DisableXnack();
 
     return testParams;
 }
@@ -58,6 +59,8 @@ auto GetConvFullTestCases(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
+        // TODO LWPMIOPEN-1314 convert / unify existing ASM solver tests
+        // Regression tests for SWDEV-502833
         TestCase{{16, 5, 225, 225}, {64, 5, 3, 3}, {0, 0}, {1, 1}, {1, 1}, datatype},
         TestCase{{16, 576, 1, 1}, {576, 576, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
         TestCase{{16, 2048, 8, 32}, {4096, 2048, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
@@ -78,6 +81,7 @@ auto GetFullTestParams(miopenDataType_t datatype)
     }
     auto testParams = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
     testParams.Tunable(1000);
+    testParams.DisableXnack();
 
     return testParams;
 }

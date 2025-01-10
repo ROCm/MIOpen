@@ -191,7 +191,8 @@ UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_)
     : supported_devs(supported_devs_),
       use_cpu_ref(false),
       enable_deprecated_solvers(false),
-      tunable(false)
+      tunable(false),
+      disable_xnack(false)
 {
 }
 
@@ -204,6 +205,8 @@ void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
     tunable               = true;
     tuning_iterations_max = iterations_max_;
 }
+
+void UnitTestConvSolverParams::DisableXnack() { disable_xnack = true; }
 
 namespace {
 
@@ -237,6 +240,10 @@ double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction directio
     if constexpr(std::is_same_v<T, half_float::half>)
     {
         if(algo == miopenConvolutionAlgoGEMM && direction != miopen::conv::Direction::Forward)
+        {
+            tolerance *= 2.0;
+        }
+        else if(algo == miopenConvolutionAlgoImplicitGEMM)
         {
             tolerance *= 2.0;
         }
@@ -699,6 +706,10 @@ void RunSolver(const miopen::solver::conv::ConvSolverInterface& solver,
 void UnitTestConvSolverBase::SetUpImpl(const UnitTestConvSolverParams& params)
 {
     if(!IsTestSupportedByDevice(params.supported_devs))
+    {
+        GTEST_SKIP();
+    }
+    else if(params.disable_xnack && get_handle_xnack())
     {
         GTEST_SKIP();
     }
