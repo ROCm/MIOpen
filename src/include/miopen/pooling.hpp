@@ -137,7 +137,7 @@ struct MIOPEN_EXPORT PoolingDescriptor : miopenPoolingDescriptor
 
     std::size_t GetWorkSpaceSize(const TensorDescriptor& yDesc) const;
 
-    miopenStatus_t Forward(Handle& handle,
+    miopenStatus_t Forward(const Handle& handle,
                            const void* alpha,
                            const TensorDescriptor& xDesc,
                            ConstData_t x,
@@ -148,7 +148,7 @@ struct MIOPEN_EXPORT PoolingDescriptor : miopenPoolingDescriptor
                            Data_t workSpace,
                            size_t workSpaceSize) const;
 
-    miopenStatus_t Backward(Handle& handle,
+    miopenStatus_t Backward(const Handle& handle,
                             const void* alpha,
                             const TensorDescriptor& yDesc,
                             ConstData_t y,

@@ -119,7 +119,7 @@ inline void SquashPairedTensor(const std::vector<T> x_len,
     }
 }
 
-void DropoutDescriptor::InitPRNGState(Handle& handle,
+void DropoutDescriptor::InitPRNGState(const Handle& handle,
                                       Data_t prng_states,
                                       size_t prng_stateSizeInBytes,
                                       unsigned long long prng_seed) const

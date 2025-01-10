@@ -55,7 +55,8 @@ boost::optional<fs::path>& testing_find_db_path_override()
 
 #if MIOPEN_EMBED_DB
 template <class TDb>
-fs::path FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix)
+fs::path FindDbRecord_t<TDb>::GetInstalledPathEmbed(const Handle& handle,
+                                                    const std::string& path_suffix)
 {
     static const auto embed_path = [&] {
         const std::string ext = ".fdb.txt";
@@ -121,7 +122,8 @@ fs::path FindDbRecord_t<TDb>::GetInstalledPathEmbed(Handle& handle, const std::s
 #else
 
 template <class TDb>
-fs::path FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle, const std::string& path_suffix)
+fs::path FindDbRecord_t<TDb>::GetInstalledPathFile(const Handle& handle,
+                                                   const std::string& path_suffix)
 {
     static const auto installed_path = [&] {
         const std::string ext = ".fdb.txt";
@@ -197,7 +199,7 @@ fs::path FindDbRecord_t<TDb>::GetInstalledPathFile(Handle& handle, const std::st
 }
 #endif
 template <class TDb>
-fs::path FindDbRecord_t<TDb>::GetInstalledPath(Handle& handle, const std::string& path_suffix)
+fs::path FindDbRecord_t<TDb>::GetInstalledPath(const Handle& handle, const std::string& path_suffix)
 {
 #if !MIOPEN_DISABLE_SYSDB
 #if MIOPEN_EMBED_DB
@@ -213,7 +215,7 @@ fs::path FindDbRecord_t<TDb>::GetInstalledPath(Handle& handle, const std::string
 }
 
 template <class TDb>
-fs::path FindDbRecord_t<TDb>::GetUserPath(Handle& handle, const std::string& path_suffix)
+fs::path FindDbRecord_t<TDb>::GetUserPath(const Handle& handle, const std::string& path_suffix)
 {
 #if !MIOPEN_DISABLE_USERDB
     return GetUserDbPath() / (handle.GetDbBasename() + '.' + GetUserDbSuffix() +
@@ -226,7 +228,7 @@ fs::path FindDbRecord_t<TDb>::GetUserPath(Handle& handle, const std::string& pat
 }
 
 template <class TDb>
-bool FindDbRecord_t<TDb>::Validate(Handle& handle, const NetworkConfig& config) const
+bool FindDbRecord_t<TDb>::Validate(const Handle& handle, const NetworkConfig& config) const
 {
     auto unbuilt = false;
     auto any     = false;
