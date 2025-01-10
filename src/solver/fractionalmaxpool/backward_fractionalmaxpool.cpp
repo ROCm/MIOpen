@@ -24,43 +24,41 @@
  *
  *******************************************************************************/
 
+#include <miopen/fractionalmaxpool.hpp>
+#include <miopen/fractionalmaxpool/invoke_params.hpp>
+#include <miopen/fractionalmaxpool/solvers.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/sparse_softmax_cross_entropy_with_logits.hpp>
-#include <miopen/sparse_softmax_cross_entropy_with_logits/invoke_params.hpp>
-#include <miopen/sparse_softmax_cross_entropy_with_logits/solvers.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
-#define LOCAL_SIZE_FWD 256
+#define LOCAL_SIZE_BWD 256
 
 namespace miopen {
 
 namespace solver {
 
-namespace sparse_softmax_cross_entropy_with_logits {
+namespace fractionalmaxpool {
 
-bool SparseSoftmaxCrossEntropyWithLogitsForward::IsApplicable(
-    const ExecutionContext&,
-    const miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription& problem) const
+bool FractionalMaxPoolBackward::IsApplicable(
+    const ExecutionContext&, const miopen::fractionalmaxpool::BwdProblemDescription& problem) const
 {
-    if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
-         problem.GetOutputDesc().GetType() == miopenFloat ||
-         problem.GetOutputDesc().GetType() == miopenBFloat16))
+    if(!(problem.GetOutputGradDesc().GetType() == miopenHalf ||
+         problem.GetOutputGradDesc().GetType() == miopenFloat ||
+         problem.GetOutputGradDesc().GetType() == miopenBFloat16))
     {
         return false;
     }
     return true;
 }
 
-ConvSolution SparseSoftmaxCrossEntropyWithLogitsForward::GetSolution(
+ConvSolution FractionalMaxPoolBackward::GetSolution(
     const ExecutionContext& context,
-    const miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription& problem) const
+    const miopen::fractionalmaxpool::BwdProblemDescription& problem) const
 {
     std::ignore       = context;
-    auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
-    auto target_dtype = miopen::GetDataType(problem.GetTargetDesc().GetType());
-    auto dtype        = problem.GetOutputDesc().GetType();
+    auto output_dtype = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
+    auto dtype        = problem.GetOutputGradDesc().GetType();
 
     auto result       = ConvSolution{miopenStatusSuccess};
     auto build_params = KernelBuildParameters{
@@ -68,68 +66,64 @@ ConvSolution SparseSoftmaxCrossEntropyWithLogitsForward::GetSolution(
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+        {"LOCAL_SIZE", LOCAL_SIZE_BWD},
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-        {"LOCAL_SIZE", LOCAL_SIZE_FWD},
-        {"T_TYPE", target_dtype == "int64" ? "size_t" : target_dtype},
     };
 
     if(!problem.IsAllContiguous())
     {
         result.construction_params.push_back(
-            make_hip_kernel({LOCAL_SIZE_FWD},
-                            {LOCAL_SIZE_FWD * problem.GetOutputDesc().GetLengths()[0]},
-                            "MIOpenSparseSoftmaxCrossEntropyWithLogits.cpp",
-                            "SparseSoftmaxCrossEntropyWithLogitsForward",
+            make_hip_kernel({LOCAL_SIZE_BWD},
+                            {LOCAL_SIZE_BWD * problem.GetOutputGradDesc().GetLengths()[0]},
+                            "MIOpenFractionalMaxPool.cpp",
+                            "FractionalMaxPoolBackward",
                             build_params));
 
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels[0]);
-                decltype(auto) params = raw_params.CastTo<
-                    miopen::sparse_softmax_cross_entropy_with_logits::FwdInvokeParams>();
-                auto input_tv    = get_inner_expanded_tv<2>(deref(params.inputDesc));
-                auto target_tv   = get_inner_expanded_tv<1>(deref(params.targetDesc));
-                auto output_tv   = get_inner_expanded_tv<1>(deref(params.outputDesc));
-                auto backprop_tv = get_inner_expanded_tv<2>(deref(params.backpropDesc));
-                auto num_class   = deref(params.inputDesc).GetLengths()[1];
+                decltype(auto) params =
+                    raw_params.CastTo<miopen::fractionalmaxpool::BwdInvokeParams>();
+                auto output_grad_tv = get_inner_expanded_tv<1>(deref(params.outputGradDesc));
+                auto backprop_tv    = get_inner_expanded_tv<2>(deref(params.backpropDesc));
+                auto input_grad_tv  = get_inner_expanded_tv<2>(deref(params.inputGradDesc));
+                auto num_class      = deref(params.inputGradDesc).GetLengths()[1];
 
-                kernel(params.input,
-                       params.target,
-                       params.output,
+                kernel(params.output_grad,
                        params.backprop,
+                       params.input_grad,
                        num_class,
-                       input_tv,
-                       target_tv,
-                       output_tv,
-                       backprop_tv);
+                       output_grad_tv,
+                       backprop_tv,
+                       input_grad_tv);
             };
         };
     }
     else
     {
         result.construction_params.push_back(
-            make_hip_kernel({LOCAL_SIZE_FWD},
-                            {LOCAL_SIZE_FWD * problem.GetOutputDesc().GetLengths()[0]},
-                            "MIOpenSparseSoftmaxCrossEntropyWithLogits.cpp",
-                            "SparseSoftmaxCrossEntropyWithLogitsForwardContiguous",
+            make_hip_kernel({LOCAL_SIZE_BWD},
+                            {LOCAL_SIZE_BWD * problem.GetOutputGradDesc().GetLengths()[0]},
+                            "MIOpenFractionalMaxPool.cpp",
+                            "FractionalMaxPoolBackwardContiguous",
                             build_params));
 
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels[0]);
-                decltype(auto) params = raw_params.CastTo<
-                    miopen::sparse_softmax_cross_entropy_with_logits::FwdInvokeParams>();
-                auto num_class = deref(params.inputDesc).GetLengths()[1];
+                decltype(auto) params =
+                    raw_params.CastTo<miopen::fractionalmaxpool::BwdInvokeParams>();
+                auto num_class = deref(params.inputGradDesc).GetLengths()[1];
 
-                kernel(params.input, params.target, params.output, params.backprop, num_class);
+                kernel(params.output_grad, params.backprop, params.input_grad, num_class);
             };
         };
     }
 
     return result;
-};
+}
 
-} // namespace sparse_softmax_cross_entropy_with_logits
+} // namespace fractionalmaxpool
 
 } // namespace solver
 

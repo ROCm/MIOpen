@@ -34,18 +34,22 @@ namespace miopen {
 
 struct NetworkConfig;
 
-namespace sparse_softmax_cross_entropy_with_logits {
+namespace fractionalmaxpool {
 
 struct FwdProblemDescription : ProblemDescriptionBase
 {
     FwdProblemDescription(const TensorDescriptor& inputDesc_,
-                          const TensorDescriptor& targetDesc_,
                           const TensorDescriptor& outputDesc_,
-                          const TensorDescriptor& backpropDesc_)
+                          const TensorDescriptor& indicesDesc_,
+                          const int64_t KD_,
+                          const int64_t KH_,
+                          const int64_t KW_)
         : inputDesc(inputDesc_),
-          targetDesc(targetDesc_),
           outputDesc(outputDesc_),
-          backpropDesc(backpropDesc_)
+          indicesDesc(indicesDesc_),
+          KD(KD_),
+          KH(KH_),
+          KW(KW_)
     {
         IsSameType();
         IsValidType();
@@ -53,64 +57,49 @@ struct FwdProblemDescription : ProblemDescriptionBase
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
-    const TensorDescriptor& GetTargetDesc() const { return targetDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    const TensorDescriptor& GetBackpropDesc() const { return backpropDesc; }
+    const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
 
     bool IsSameType() const
     {
-        if(inputDesc.GetType() != outputDesc.GetType() ||
-           inputDesc.GetType() != backpropDesc.GetType())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "SparseSoftmaxCrossEntropyWithLogitsForward: Data types do not match.");
+        if(inputDesc.GetType() != outputDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm, "FractionalMaxPoolForward: Data types do not match.");
         return true;
     }
 
     bool IsValidType() const
     {
-        if(targetDesc.GetType() != miopenInt32 && targetDesc.GetType() != miopenInt64)
+        if(indicesDesc.GetType() != miopenInt32 && indicesDesc.GetType() != miopenInt64)
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "SparseSoftmaxCrossEntropyWithLogitsForward: target tensor must be int32 "
+                         "FractionalMaxPoolForward: target tensor must be int32 "
                          "or int64.");
         }
         return true;
     }
 
-    bool IsValidDims() const
-    {
-        if(inputDesc.GetNumDims() != 2 || targetDesc.GetNumDims() != 1 ||
-           outputDesc.GetNumDims() != 1 || backpropDesc.GetNumDims() != 2)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "SparseSoftmaxCrossEntropyWithLogitsForward: Tensor sizes do not match.");
-        }
-        return true;
-    }
+    bool IsValidDims() const { return true; }
 
     bool IsAllContiguous() const
     {
-        return inputDesc.IsContiguous() && targetDesc.IsContiguous() && outputDesc.IsContiguous() &&
-               backpropDesc.IsContiguous();
+        return inputDesc.IsContiguous() && outputDesc.IsContiguous() && indicesDesc.IsContiguous();
     }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     TensorDescriptor inputDesc;
-    TensorDescriptor targetDesc;
     TensorDescriptor outputDesc;
-    TensorDescriptor backpropDesc;
+    TensorDescriptor indicesDesc;
+    int64_t KD, KH, KW;
 };
 
 struct BwdProblemDescription : ProblemDescriptionBase
 {
-    BwdProblemDescription(const TensorDescriptor& outputGradDesc_,
-                          const TensorDescriptor& backpropDesc_,
+    BwdProblemDescription(const TensorDescriptor& indicesDesc_,
+                          const TensorDescriptor& outputGradDesc_,
                           const TensorDescriptor& inputGradDesc_)
-        : outputGradDesc(outputGradDesc_),
-          backpropDesc(backpropDesc_),
-          inputGradDesc(inputGradDesc_)
+        : indicesDesc(indicesDesc_), outputGradDesc(outputGradDesc_), inputGradDesc(inputGradDesc_)
     {
         IsSameType();
         IsValidDims();
@@ -120,38 +109,28 @@ struct BwdProblemDescription : ProblemDescriptionBase
 
     bool IsSameType() const
     {
-        if(inputGradDesc.GetType() != outputGradDesc.GetType() ||
-           inputGradDesc.GetType() != backpropDesc.GetType())
+        if(inputGradDesc.GetType() != outputGradDesc.GetType())
             MIOPEN_THROW(miopenStatusBadParm,
-                         "SparseSoftmaxCrossEntropyWithLogitsBackward: Data types do not match.");
+                         "FractionalMaxPoolBackward: Data types do not match.");
         return true;
     }
 
-    bool IsValidDims() const
-    {
-        if(inputGradDesc.GetNumDims() != 2 || outputGradDesc.GetNumDims() != 1 ||
-           backpropDesc.GetNumDims() != 2)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "SparseSoftmaxCrossEntropyWithLogitsBackward: Tensor sizes do not match.");
-        }
-        return true;
-    }
+    bool IsValidDims() const { return true; }
 
     bool IsAllContiguous() const
     {
-        return outputGradDesc.IsContiguous() && backpropDesc.IsContiguous() &&
+        return indicesDesc.IsContiguous() && outputGradDesc.IsContiguous() &&
                inputGradDesc.IsContiguous();
     }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
+    TensorDescriptor indicesDesc;
     TensorDescriptor outputGradDesc;
-    TensorDescriptor backpropDesc;
     TensorDescriptor inputGradDesc;
 };
 
-} // namespace sparse_softmax_cross_entropy_with_logits
+} // namespace fractionalmaxpool
 
 } // namespace miopen

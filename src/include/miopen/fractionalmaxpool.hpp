@@ -31,28 +31,28 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-namespace sparse_softmax_cross_entropy_with_logits {
+namespace fractionalmaxpool {
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t FractionalMaxPoolForward(Handle& handle,
+                                                                const TensorDescriptor& inputDesc,
+                                                                ConstData_t input,
+                                                                const TensorDescriptor& outputDesc,
+                                                                Data_t output,
+                                                                const TensorDescriptor& indicesDesc,
+                                                                Data_t indices,
+                                                                int64_t KD,
+                                                                int64_t KH,
+                                                                int64_t KW);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
-SparseSoftmaxCrossEntropyWithLogitsForward(Handle& handle,
-                                           const TensorDescriptor& inputDesc,
-                                           ConstData_t input,
-                                           const TensorDescriptor& targetDesc,
-                                           ConstData_t target,
-                                           const TensorDescriptor& outputDesc,
-                                           Data_t output,
-                                           const TensorDescriptor& backpropDesc,
-                                           Data_t backprop);
+FractionalMaxPoolBackward(Handle& handle,
+                          const TensorDescriptor& indicesDesc,
+                          ConstData_t indices,
+                          const TensorDescriptor& outputGradDesc,
+                          ConstData_t output_grad,
+                          const TensorDescriptor& inputGradDesc,
+                          Data_t input_grad);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t
-SparseSoftmaxCrossEntropyWithLogitsBackward(Handle& handle,
-                                            const TensorDescriptor& outputGradDesc,
-                                            ConstData_t output_grad,
-                                            const TensorDescriptor& backpropDesc,
-                                            ConstData_t backprop,
-                                            const TensorDescriptor& inputGradDesc,
-                                            Data_t input_grad);
-
-} // namespace sparse_softmax_cross_entropy_with_logits
+} // namespace fractionalmaxpool
 
 } // namespace miopen

@@ -31,22 +31,24 @@
 
 namespace miopen {
 
-namespace sparse_softmax_cross_entropy_with_logits {
+namespace fractionalmaxpool {
 
 struct FwdInvokeParams : public miopen::InvokeParams
 {
 
     FwdInvokeParams() = default;
 
-    const TensorDescriptor* inputDesc    = nullptr;
-    const TensorDescriptor* targetDesc   = nullptr;
-    const TensorDescriptor* outputDesc   = nullptr;
-    const TensorDescriptor* backpropDesc = nullptr;
+    const TensorDescriptor* inputDesc   = nullptr;
+    const TensorDescriptor* outputDesc  = nullptr;
+    const TensorDescriptor* indicesDesc = nullptr;
 
-    ConstData_t input  = nullptr;
-    ConstData_t target = nullptr;
-    Data_t output      = nullptr;
-    Data_t backprop    = nullptr;
+    ConstData_t input = nullptr;
+    Data_t output     = nullptr;
+    Data_t indices    = nullptr;
+
+    int64_t KD = 0;
+    int64_t KH = 0;
+    int64_t KW = 0;
 
     std::uint64_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
@@ -57,18 +59,18 @@ struct BwdInvokeParams : public miopen::InvokeParams
 
     BwdInvokeParams() = default;
 
+    const TensorDescriptor* indicesDesc    = nullptr;
     const TensorDescriptor* outputGradDesc = nullptr;
-    const TensorDescriptor* backpropDesc   = nullptr;
     const TensorDescriptor* inputGradDesc  = nullptr;
 
+    ConstData_t indices     = nullptr;
     ConstData_t output_grad = nullptr;
-    ConstData_t backprop    = nullptr;
     Data_t input_grad       = nullptr;
 
     std::uint64_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-} // namespace sparse_softmax_cross_entropy_with_logits
+} // namespace fractionalmaxpool
 
 } // namespace miopen

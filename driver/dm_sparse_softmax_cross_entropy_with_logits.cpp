@@ -24,16 +24,16 @@
  *
  *******************************************************************************/
 #include "registry_driver_maker.hpp"
-#include "sparse_softmax_cross_entropy_with_logits_driver.hpp"
+#include "fractionalmaxpool_driver.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    if(base_arg == "sparse_softmax_cross_entropy_with_logits")
-        return new SparseSoftmaxCrossEntropyWithLogitsDriver<float, float>();
-    if(base_arg == "sparse_softmax_cross_entropy_with_logitsfp16")
-        return new SparseSoftmaxCrossEntropyWithLogitsDriver<float16, float>();
-    if(base_arg == "sparse_softmax_cross_entropy_with_logitsbfp16")
-        return new SparseSoftmaxCrossEntropyWithLogitsDriver<bfloat16, float>();
+    if(base_arg == "fractionalmaxpool")
+        return new FractionalMaxPoolDriver<float, float>();
+    if(base_arg == "fractionalmaxpoolfp16")
+        return new FractionalMaxPoolDriver<float16, float>();
+    if(base_arg == "fractionalmaxpoolbfp16")
+        return new FractionalMaxPoolDriver<bfloat16, float>();
     return nullptr;
 }
 

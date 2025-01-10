@@ -334,10 +334,10 @@ set( MIOpen_Source
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
-    solver/sparse_softmax_cross_entropy_with_logits/backward_sparse_softmax_cross_entropy_with_logits.cpp
-    solver/sparse_softmax_cross_entropy_with_logits/forward_sparse_softmax_cross_entropy_with_logits.cpp
-    sparse_softmax_cross_entropy_with_logits_api.cpp
-    sparse_softmax_cross_entropy_with_logits/problem_description.cpp
+    solver/fractionalmaxpool/backward_fractionalmaxpool.cpp
+    solver/fractionalmaxpool/forward_fractionalmaxpool.cpp
+    fractionalmaxpool_api.cpp
+    fractionalmaxpool/problem_description.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
@@ -554,7 +554,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenReduceSum.cpp
         kernels/MIOpenRoPE.cpp
-        kernels/MIOpenSparseSoftmaxCrossEntropyWithLogits.cpp
+        kernels/MIOpenFractionalMaxPool.cpp
         kernels/MIOpenSoftMarginLoss.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
@@ -706,7 +706,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reduceextreme.cpp
         rope.cpp
         softmarginloss.cpp
-        sparse_softmax_cross_entropy_with_logits.cpp
+        fractionalmaxpool.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )

@@ -59,7 +59,7 @@ add_executable(MIOpenDriver
     dm_rope.cpp
     dm_softmarginloss.cpp
     dm_softmax.cpp
-    dm_sparse_softmax_cross_entropy_with_logits.cpp
+    dm_fractionalmaxpool.cpp
     dm_t5layernorm.cpp
     dm_tensorop.cpp
     dm_transformers_adam_w.cpp

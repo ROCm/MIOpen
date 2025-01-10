@@ -31,16 +31,15 @@
 #include <../test/ford.hpp>
 
 template <typename Tgpu, typename Tcheck, typename Ta>
-int32_t
-mloSparseSoftmaxCrossEntropyWithLogitsForwardRunHost(const miopenTensorDescriptor_t inputDesc,
-                                                     const Tgpu* input,
-                                                     const miopenTensorDescriptor_t targetDesc,
-                                                     const Ta* target,
-                                                     const miopenTensorDescriptor_t outputDesc,
-                                                     Tcheck* output,
-                                                     const miopenTensorDescriptor_t backpropDesc,
-                                                     Tcheck* backprop,
-                                                     const uint64_t num_class)
+int32_t mloFractionalMaxPoolForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                           const Tgpu* input,
+                                           const miopenTensorDescriptor_t targetDesc,
+                                           const Ta* target,
+                                           const miopenTensorDescriptor_t outputDesc,
+                                           Tcheck* output,
+                                           const miopenTensorDescriptor_t backpropDesc,
+                                           Tcheck* backprop,
+                                           const uint64_t num_class)
 {
     auto input_tv    = miopen::get_inner_expanded_tv<2>(miopen::deref(inputDesc));
     auto target_tv   = miopen::get_inner_expanded_tv<1>(miopen::deref(targetDesc));
@@ -79,14 +78,13 @@ mloSparseSoftmaxCrossEntropyWithLogitsForwardRunHost(const miopenTensorDescripto
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t
-mloSparseSoftmaxCrossEntropyWithLogitsBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc,
-                                                      const Tgpu* output_grad,
-                                                      const miopenTensorDescriptor_t backpropDesc,
-                                                      const Tgpu* backprop,
-                                                      const miopenTensorDescriptor_t inputGradDesc,
-                                                      Tcheck* input_grad,
-                                                      const uint64_t num_class)
+int32_t mloFractionalMaxPoolBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc,
+                                            const Tgpu* output_grad,
+                                            const miopenTensorDescriptor_t backpropDesc,
+                                            const Tgpu* backprop,
+                                            const miopenTensorDescriptor_t inputGradDesc,
+                                            Tcheck* input_grad,
+                                            const uint64_t num_class)
 {
     auto output_grad_tv = miopen::get_inner_expanded_tv<1>(miopen::deref(outputGradDesc));
     auto backprop_tv    = miopen::get_inner_expanded_tv<2>(miopen::deref(backpropDesc));

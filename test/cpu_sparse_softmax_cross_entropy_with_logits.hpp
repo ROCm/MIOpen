@@ -29,11 +29,11 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T, class Ta>
-void cpu_sparse_softmax_cross_entropy_with_logits_forward(const tensor<T> input,
-                                                          const tensor<Ta> target,
-                                                          tensor<T>& output,
-                                                          tensor<T>& backprop,
-                                                          const uint64_t num_class)
+void cpu_fractionalmaxpool_forward(const tensor<T> input,
+                                   const tensor<Ta> target,
+                                   tensor<T>& output,
+                                   tensor<T>& backprop,
+                                   const uint64_t num_class)
 {
     auto input_tv    = miopen::get_inner_expanded_tv<2>(input.desc);
     auto target_tv   = miopen::get_inner_expanded_tv<1>(target.desc);
@@ -69,10 +69,10 @@ void cpu_sparse_softmax_cross_entropy_with_logits_forward(const tensor<T> input,
 }
 
 template <class T>
-void cpu_sparse_softmax_cross_entropy_with_logits_backward(tensor<T> output_grad,
-                                                           tensor<T> backprop,
-                                                           tensor<T>& input_grad,
-                                                           const uint64_t num_class)
+void cpu_fractionalmaxpool_backward(tensor<T> output_grad,
+                                    tensor<T> backprop,
+                                    tensor<T>& input_grad,
+                                    const uint64_t num_class)
 {
     auto output_grad_tv = miopen::get_inner_expanded_tv<1>(output_grad.desc);
     auto backprop_tv    = miopen::get_inner_expanded_tv<2>(backprop.desc);

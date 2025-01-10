@@ -8004,58 +8004,60 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// SparseSoftmaxCrossEntropyWithLogits APIs
-/** @addtogroup LossFunction
+// FractionalMaxPool APIs
+/** @addtogroup pooling
  *
  *  @{
  */
 
-/*! @brief Execute a sparse_softmax_cross_entropy_with_logits forward layer
+/*! @brief Execute a fractionalmaxpool forward layer
  *
  * @param handle                MIOpen handle (input)
  * @param inputDesc             Tensor descriptor for input  tensor (input)
  * @param input                 Data tensor input  (input)
- * @param targetDesc            Tensor descriptor for target tensor (input)
- * @param target                Data tensor target (input)
  * @param outputDesc            Tensor descriptor for output tensor (input)
  * @param output                Data tensor output (output)
- * @param backpropDesc          Tensor descriptor for backprop tensor (input)
- * @param backprop              Data tensor backprop (output)
+ * @param indicesDesc           Tensor descriptor for indices tensor (input)
+ * @param indices               Data tensor indices (output)
+ * @param KD                    Kernel depth (input)
+ * @param KH                    Kernel height (input)
+ * @param KW                    Kernel width (input)
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenSparseSoftmaxCrossEntropyWithLogitsForward(miopenHandle_t handle,
-                                                 const miopenTensorDescriptor_t inputDesc,
-                                                 const void* input,
-                                                 const miopenTensorDescriptor_t targetDesc,
-                                                 const void* target,
-                                                 const miopenTensorDescriptor_t outputDesc,
-                                                 void* output,
-                                                 const miopenTensorDescriptor_t backpropDesc,
-                                                 void* backprop);
+miopenFractionalMaxPoolForward(miopenHandle_t handle,
+                               const miopenTensorDescriptor_t inputDesc,
+                               const void* input,
+                               const miopenTensorDescriptor_t outputDesc,
+                               void* output,
+                               const miopenTensorDescriptor_t indicesDesc,
+                               void* indices,
+                               const int64_t KD,
+                               const int64_t KH,
+                               const int64_t KW);
 
-/*! @brief Execute a sparse_softmax_cross_entropy_with_logits backward layer
+/*! @brief Execute a fractionalmaxpool backward layer
  *
  * @param handle                MIOpen handle (input)
+ * @param indicesDesc           Tensor descriptor for indices tensor (input)
+ * @param indices               Data tensor indices (input)
  * @param outputGradDesc        Tensor descriptor for output grad tensor (input)
  * @param output_grad           Data tensor output grad (input)
- * @param backpropDesc          Tensor descriptor for backprop tensor (input)
- * @param backprop              Data tensor backprop (input)
  * @param inputGradDesc         Tensor descriptor for input grad tensor (input)
  * @param input_grad            Data tensor input grad (output)
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenSparseSoftmaxCrossEntropyWithLogitsBackward(miopenHandle_t handle,
-                                                  const miopenTensorDescriptor_t outputGradDesc,
-                                                  const void* output_grad,
-                                                  const miopenTensorDescriptor_t backpropDesc,
-                                                  const void* backprop,
-                                                  const miopenTensorDescriptor_t inputGradDesc,
-                                                  void* input_grad);
+miopenFractionalMaxPoolBackward(miopenHandle_t handle,
+                                const miopenTensorDescriptor_t indicesDesc,
+                                const void* indices,
+                                const miopenTensorDescriptor_t outputGradDesc,
+                                const void* output_grad,
+                                const miopenTensorDescriptor_t inputGradDesc,
+                                void* input_grad);
 
 /** @} */
-// CLOSEOUT LossFunction DOXYGEN GROUP
+// CLOSEOUT pooling DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

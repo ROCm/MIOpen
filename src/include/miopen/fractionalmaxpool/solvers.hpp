@@ -28,8 +28,8 @@
 
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
+#include <miopen/fractionalmaxpool/problem_description.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/sparse_softmax_cross_entropy_with_logits/problem_description.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/kernel_info.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -38,7 +38,7 @@ namespace miopen {
 
 namespace solver {
 
-namespace sparse_softmax_cross_entropy_with_logits {
+namespace fractionalmaxpool {
 
 const auto make_hip_kernel = [](std::vector<size_t> localsize,
                                 std::vector<size_t> gridsize,
@@ -55,53 +55,47 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
         build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
 };
 
-using SparseSoftmaxCrossEntropyWithLogitsForwardSolver =
-    NonTunableSolverBase<ExecutionContext,
-                         miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription>;
+using FractionalMaxPoolForwardSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::fractionalmaxpool::FwdProblemDescription>;
 
-using SparseSoftmaxCrossEntropyWithLogitsBackwardSolver =
-    NonTunableSolverBase<ExecutionContext,
-                         miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription>;
+using FractionalMaxPoolBackwardSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::fractionalmaxpool::BwdProblemDescription>;
 
 // FORWARD
-struct SparseSoftmaxCrossEntropyWithLogitsForward final
-    : SparseSoftmaxCrossEntropyWithLogitsForwardSolver
+struct FractionalMaxPoolForward final : FractionalMaxPoolForwardSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<SparseSoftmaxCrossEntropyWithLogitsForward>();
+        return GetSolverDbId<FractionalMaxPoolForward>();
     }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription&
-                          problem) const override;
+    bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::fractionalmaxpool::FwdProblemDescription& problem) const override;
 
     ConvSolution
     GetSolution(const ExecutionContext& context,
-                const miopen::sparse_softmax_cross_entropy_with_logits::FwdProblemDescription&
-                    problem) const override;
+                const miopen::fractionalmaxpool::FwdProblemDescription& problem) const override;
 };
 
 // BACKWARD
-struct SparseSoftmaxCrossEntropyWithLogitsBackward final
-    : SparseSoftmaxCrossEntropyWithLogitsBackwardSolver
+struct FractionalMaxPoolBackward final : FractionalMaxPoolBackwardSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<SparseSoftmaxCrossEntropyWithLogitsBackward>();
+        return GetSolverDbId<FractionalMaxPoolBackward>();
     }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription&
-                          problem) const override;
+    bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::fractionalmaxpool::BwdProblemDescription& problem) const override;
 
     ConvSolution
     GetSolution(const ExecutionContext& context,
-                const miopen::sparse_softmax_cross_entropy_with_logits::BwdProblemDescription&
-                    problem) const override;
+                const miopen::fractionalmaxpool::BwdProblemDescription& problem) const override;
 };
 
-} // namespace sparse_softmax_cross_entropy_with_logits
+} // namespace fractionalmaxpool
 
 } // namespace solver
 

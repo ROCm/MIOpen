@@ -23,77 +23,71 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "sparse_softmax_cross_entropy_with_logits.hpp"
+#include "fractionalmaxpool.hpp"
 using float16 = half_float::half;
 
 // FORWARD TEST
-using GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP32 =
-    SparseSoftmaxCrossEntropyWithLogitsTestFwd<float>;
-using GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP16 =
-    SparseSoftmaxCrossEntropyWithLogitsTestFwd<float16>;
-using GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_BFP16 =
-    SparseSoftmaxCrossEntropyWithLogitsTestFwd<bfloat16>;
+using GPU_FractionalMaxPool_fwd_FP32  = FractionalMaxPoolTestFwd<float>;
+using GPU_FractionalMaxPool_fwd_FP16  = FractionalMaxPoolTestFwd<float16>;
+using GPU_FractionalMaxPool_fwd_BFP16 = FractionalMaxPoolTestFwd<bfloat16>;
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP32, Test)
+TEST_P(GPU_FractionalMaxPool_fwd_FP32, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP16, Test)
+TEST_P(GPU_FractionalMaxPool_fwd_FP16, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_BFP16, Test)
+TEST_P(GPU_FractionalMaxPool_fwd_BFP16, Test)
 {
     RunTest();
     Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP32,
-                         testing::ValuesIn(SparseSoftmaxCrossEntropyWithLogitsTestConfigs()));
+                         GPU_FractionalMaxPool_fwd_FP32,
+                         testing::ValuesIn(FractionalMaxPoolTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_FP16,
-                         testing::ValuesIn(SparseSoftmaxCrossEntropyWithLogitsTestConfigs()));
+                         GPU_FractionalMaxPool_fwd_FP16,
+                         testing::ValuesIn(FractionalMaxPoolTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_SparseSoftmaxCrossEntropyWithLogits_fwd_BFP16,
-                         testing::ValuesIn(SparseSoftmaxCrossEntropyWithLogitsTestConfigs()));
+                         GPU_FractionalMaxPool_fwd_BFP16,
+                         testing::ValuesIn(FractionalMaxPoolTestConfigs()));
 
 // BACKWARD TEST
-using GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP32 =
-    SparseSoftmaxCrossEntropyWithLogitsTestBwd<float>;
-using GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP16 =
-    SparseSoftmaxCrossEntropyWithLogitsTestBwd<float16>;
-using GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_BFP16 =
-    SparseSoftmaxCrossEntropyWithLogitsTestBwd<bfloat16>;
+using GPU_FractionalMaxPool_bwd_FP32  = FractionalMaxPoolTestBwd<float>;
+using GPU_FractionalMaxPool_bwd_FP16  = FractionalMaxPoolTestBwd<float16>;
+using GPU_FractionalMaxPool_bwd_BFP16 = FractionalMaxPoolTestBwd<bfloat16>;
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP32, Test)
+TEST_P(GPU_FractionalMaxPool_bwd_FP32, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP16, Test)
+TEST_P(GPU_FractionalMaxPool_bwd_FP16, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_BFP16, Test)
+TEST_P(GPU_FractionalMaxPool_bwd_BFP16, Test)
 {
     RunTest();
     Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP32,
-                         testing::ValuesIn(SparseSoftmaxCrossEntropyWithLogitsTestConfigs()));
+                         GPU_FractionalMaxPool_bwd_FP32,
+                         testing::ValuesIn(FractionalMaxPoolTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_FP16,
-                         testing::ValuesIn(SparseSoftmaxCrossEntropyWithLogitsTestConfigs()));
+                         GPU_FractionalMaxPool_bwd_FP16,
+                         testing::ValuesIn(FractionalMaxPoolTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_SparseSoftmaxCrossEntropyWithLogits_bwd_BFP16,
-                         testing::ValuesIn(SparseSoftmaxCrossEntropyWithLogitsTestConfigs()));
+                         GPU_FractionalMaxPool_bwd_BFP16,
+                         testing::ValuesIn(FractionalMaxPoolTestConfigs()));
