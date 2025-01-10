@@ -202,7 +202,7 @@ def getDockerImage(Map conf=[:])
     def install_miopen = params.INSTALL_MIOPEN 
     def miopen_branch = params.branch_name 
 
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' "
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg MIOPEN_BRANCH=params.branch_name"
     //def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg MIOPEN_BRANCH=params.branch_name"
     if(env.CCACHE_HOST)
     {
