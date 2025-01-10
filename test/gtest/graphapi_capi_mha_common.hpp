@@ -184,14 +184,14 @@ struct TensorData
     miopen::Allocator::ManageDataPtr m_gpuBuffer;
 
     template <typename T>
-    void InitAndWriteToGPU(miopen::Handle& handle, tensor<T>&& tensor)
+    void InitAndWriteToGPU(const miopen::Handle& handle, tensor<T>&& tensor)
     {
         m_tensorVariant = std::move(tensor);
         m_gpuBuffer     = handle.Write(GetTensor<T>(m_tensorVariant).data);
     }
 
     template <typename T>
-    void InitAndWriteToGPU(miopen::Handle& handle, T val)
+    void InitAndWriteToGPU(const miopen::Handle& handle, T val)
     {
         GetTensor<T>(m_tensorVariant).generate([=](auto...) { return val; });
         m_gpuBuffer = handle.Write(GetTensor<T>(m_tensorVariant).data);
@@ -268,7 +268,7 @@ public:
     }
 
 protected:
-    virtual void MakeRealTensorsAndFillData(miopen::Handle& handle) = 0;
+    virtual void MakeRealTensorsAndFillData(const miopen::Handle& handle) = 0;
 
     virtual void MakeVirtualTensorsAndNodes() = 0;
 
@@ -388,7 +388,7 @@ protected:
     }
 
     template <typename ResultT>
-    tensor<ResultT>& GetResult(const int64_t& id, miopen::Handle& handle)
+    tensor<ResultT>& GetResult(const int64_t& id, const miopen::Handle& handle)
     {
         auto it = m_realTensorMap.find(id);
         assert(it != m_realTensorMap.cend());
@@ -400,7 +400,7 @@ protected:
         return ret;
     };
 
-    virtual void RunCPUverify(miopen::Handle& handle) = 0;
+    virtual void RunCPUverify(const miopen::Handle& handle) = 0;
 
     // just a simple id generator, might be redone if necessary
     int64_t GetNextId() { return m_nextTensorId++; }
