@@ -50,11 +50,6 @@ bool Op2dTensorSquash::IsApplicable([[maybe_unused]] const ExecutionContext& con
 
     auto asize = alens.size();
 
-    if(aTensorDesc.GetType() == miopenDouble)
-    {
-        return false;
-    }
-
     if(asize == 3)
     {
         bool is_lite = clens[0] == 1 && blens[0] == 1 && alens[0] == 1 &&

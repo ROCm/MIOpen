@@ -51,11 +51,6 @@ bool Op2dTensorLite::IsApplicable([[maybe_unused]] const ExecutionContext& conte
 
     auto asize = alens.size();
 
-    if(aTensorDesc.GetType() == miopenDouble)
-    {
-        return false;
-    }
-
     if(asize == 3)
     {
         size_t local_threads = 256;

@@ -50,11 +50,6 @@ bool Op4dTensorLite::IsApplicable([[maybe_unused]] const ExecutionContext& conte
 
     auto asize = alens.size();
 
-    if(aTensorDesc.GetType() == miopenDouble)
-    {
-        return false;
-    }
-
     if(asize == 4)
     {
         auto&& [num_wg, work_per_wg, bitmap] = GetBitmapAndWgInfo(blens, clens);

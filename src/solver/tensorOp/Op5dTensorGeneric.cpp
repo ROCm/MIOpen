@@ -45,11 +45,6 @@ bool Op5dTensorGeneric::IsApplicable([[maybe_unused]] const ExecutionContext& co
     const auto& alens       = aTensorDesc.GetLengths();
     auto asize              = alens.size();
 
-    if(aTensorDesc.GetType() == miopenDouble)
-    {
-        return false;
-    }
-
     if(asize == 5)
     {
         return true;

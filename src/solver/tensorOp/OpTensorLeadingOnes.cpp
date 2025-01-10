@@ -50,11 +50,6 @@ bool OpTensorLeadingOnes::IsApplicable([[maybe_unused]] const ExecutionContext& 
 
     auto asize = alens.size();
 
-    if(aTensorDesc.GetType() == miopenDouble)
-    {
-        return false;
-    }
-
     if(asize == 4)
     {
 
