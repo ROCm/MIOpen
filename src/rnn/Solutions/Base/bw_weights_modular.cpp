@@ -34,11 +34,11 @@ namespace miopen {
 namespace rnn_base {
 miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                             Data_t dw,
-                            const Data_t workSpace,
+                            const ConstData_t backDataSpace,
                             const miopen::TensorDescriptor& dw_desc,
                             const miopen::TensorDescriptor& ws_desc,
                             size_t dw_bias_offset,
-                            size_t ws_bias_offset,
+                            size_t back_bias_offset,
                             Data_t red_workSpace,
                             size_t red_workSpace_size_bytes)
 {
@@ -61,12 +61,12 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                      dw,
                      &alpha1,
                      ws_desc,
-                     workSpace,
+                     backDataSpace,
                      &beta_t,
                      dw_desc,
                      dw,
                      dw_bias_offset,
-                     ws_bias_offset,
+                     back_bias_offset,
                      dw_bias_offset,
                      true);
         }
@@ -82,8 +82,8 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                 miopenReduceTensorIndices_t::MIOPEN_REDUCE_TENSOR_NO_INDICES,
                 miopenIndicesType_t::MIOPEN_32BIT_INDICES};
 
-            Data_t srcA_with_offset =
-                static_cast<char*>(workSpace) + ws_bias_offset * GetTypeSize(dw_desc.GetType());
+            ConstData_t srcA_with_offset = static_cast<const char*>(backDataSpace) +
+                                           back_bias_offset * GetTypeSize(dw_desc.GetType());
 
             Data_t dstC_with_offset =
                 static_cast<char*>(dw) + dw_bias_offset * GetTypeSize(dw_desc.GetType());
@@ -120,7 +120,7 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
     {
         // nothing to reduce
         // just copy data from workspace to dw
-        CopyTensor(handle, ws_desc, workSpace, dw_desc, dw, ws_bias_offset, dw_bias_offset);
+        CopyTensor(handle, ws_desc, backDataSpace, dw_desc, dw, back_bias_offset, dw_bias_offset);
     }
 
     return miopenStatusSuccess;
@@ -143,7 +143,7 @@ void RNNBackwardWeightsModularAlgo::PrepareWriteBuffers(const Handle& handle, Da
 
 void RNNBackwardWeightsModularAlgo::PhisXInputWeights(const Handle& handle,
                                                       Data_t dw,
-                                                      Data_t workSpace,
+                                                      ConstData_t workSpace,
                                                       ConstData_t x) const
 {
     const size_t gemm_batch_size = xInfo.getFullSeqMajorSize()[0];
@@ -242,8 +242,12 @@ void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
                                  true);
 }
 
-void RNNBackwardWeightsModularAlgo::BiasUpdate(
-    const Handle& handle, Data_t dw, Data_t workSpace, size_t layer, size_t workSpaceSize) const
+void RNNBackwardWeightsModularAlgo::BiasUpdate(const Handle& handle,
+                                               Data_t dw,
+                                               ConstData_t backData,
+                                               Data_t workSpace,
+                                               size_t layer,
+                                               size_t workSpaceSize) const
 {
     if(rnnDesc.biasMode != 0u)
     {
@@ -253,23 +257,23 @@ void RNNBackwardWeightsModularAlgo::BiasUpdate(
 
         const miopen::TensorDescriptor dw_desc = BuildWeiBiasDesc2D();
 
-        size_t main_ws_size = workspaceInfo.getBufferSize() * GetTypeSize(rnnDesc.dataType);
+        // size_t main_ws_size = workspaceInfo.getBufferSize() * GetTypeSize(rnnDesc.dataType);
+        //
+        // size_t reduction_ws_size = workSpaceSize - main_ws_size;
 
-        size_t reduction_ws_size = workSpaceSize - main_ws_size;
-
-        Data_t reduction_workSpace = static_cast<char*>(workSpace) + main_ws_size;
+        // Data_t reduction_workSpace = static_cast<char*>(workSpace) + main_ws_size;
         size_t dw_bias_offset =
             weightsLayout.getBiasXinOff(layer, static_cast<int>(SequenceDirection::Forward), 0);
 
         ReducAddBias(handle,
                      dw,
-                     workSpace,
+                     backData,
                      dw_desc,
                      block_dsc,
                      dw_bias_offset,
                      workspaceInfo.getGateBlockOffset(layer, 0, SequenceDirection::Forward),
-                     reduction_workSpace,
-                     reduction_ws_size);
+                     workSpace,
+                     workSpaceSize);
 
         // second dw bias equal to the first, so just copy reduction result
         size_t dw_bias_2_offset =
@@ -323,7 +327,46 @@ void RNNBackwardWeightsModularAlgo::PhisHStateWeights(const Handle& handle,
                                                       size_t layer,
                                                       SequenceDirection direction) const
 {
-    const size_t gemm_batch_size = getHxBatchSizeReadAtTime(seq, direction);
+    const size_t gemm_batch_size = getHxBatchSizeReadAtTime(seq, batchController, direction);
+
+    if(gemm_batch_size == 0 || hx == nullptr)
+        return;
+
+    const size_t batch_shift = batchController.getBatchSum(seq.getPhisVal()) +
+                               (batchController.getBatchSize(seq.getPhisVal()) - gemm_batch_size);
+
+    const auto virt_layer = getVirtualLayer(layer, direction);
+
+    const size_t block_offset  = workspaceInfo.getGateBlockOffset(layer, batch_shift, direction);
+    const size_t hx_offset     = hiddenHxCxInfo.getOffset(virt_layer, batch_shift);
+    const size_t filter_offset = weightsLayout.getMatrixHidOff(layer, static_cast<int>(direction));
+
+    const TensorDescriptor block_dsc  = BuildLstmTmpBlockDesc2D(workspaceInfo, gemm_batch_size);
+    const TensorDescriptor hx_desc    = BuildHxCxDesc2D(gemm_batch_size);
+    const TensorDescriptor filter_dsc = BuildLstmFilterHidDesc2D();
+
+    RnnBaseFunctions::BWWei_GEMM(handle,
+                                 workSpace,
+                                 block_offset,
+                                 block_dsc,
+                                 hx,
+                                 hx_offset,
+                                 hx_desc,
+                                 dw,
+                                 filter_offset,
+                                 filter_dsc,
+                                 true);
+}
+
+void RNNBackwardWeiModuleAlgoDynamic::PhisHStateWeights(const Handle& handle,
+                                                        Data_t dw,
+                                                        ConstData_t workSpace,
+                                                        ConstData_t hx,
+                                                        const SequenceIterator& seq,
+                                                        size_t layer,
+                                                        SequenceDirection direction) const
+{
+    const size_t gemm_batch_size = getHxBatchSizeReadAtTime(seq, realBatchController, direction);
 
     if(gemm_batch_size == 0 || hx == nullptr)
         return;

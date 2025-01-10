@@ -823,6 +823,21 @@ pipeline {
                         buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On", build_install: "true")
                     }
                 }
+                stage('Fp32 Hip Fin Interface gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: "-DMIOPEN_ENABLE_FIN_INTERFACE=On",
+                                                  make_targets: "test_unit_FinInterface",
+                                                  execute_cmd: "bin/test_unit_FinInterface")
+                    }
+                }
             }
         }
         stage("Smoke Fp16/Bf16/Int8") {

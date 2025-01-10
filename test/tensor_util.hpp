@@ -27,6 +27,8 @@
 #ifndef GUARD_TENSOR_UTIL_HPP
 #define GUARD_TENSOR_UTIL_HPP
 
+#include <type_traits>
+
 #include <miopen/miopen.h>
 #include <miopen/filesystem.hpp>
 #include <miopen/tensor.hpp>
@@ -34,44 +36,133 @@
 
 namespace fs = miopen::fs;
 
-// loop over sub-tensor, and operate on each data
-template <typename T, template <typename> class data_operator_t>
-void operate_over_subtensor(const data_operator_t<T>& r_data_operator,
-                            tensor<T>& rSuperTensor,
-                            const miopen::TensorDescriptor& rSubDesc,
-                            const int offset)
+// unary operation
+template <class DataOp, typename Container>
+void operate_over_subtensor(DataOp&& dataOp,
+                            Container& srcSuperTensor,
+                            const miopen::TensorDescriptor& srcSubDesc,
+                            const int64_t srcOffset)
 {
-    operate_over_subtensor_impl(r_data_operator, rSuperTensor, rSubDesc, 0, offset);
+    const auto& srcStrides = srcSubDesc.GetStrides();
+    const auto& srcLens    = srcSubDesc.GetLengths();
+
+    auto operate_over_subtensor_impl =
+        [&, dataOp, max_dim = srcLens.size() - 1](
+            auto&& self, const size_t current_dim, const int64_t srcOff) -> void {
+        const auto current_stride = srcStrides[current_dim];
+
+        int64_t index = srcOff;
+
+        for(size_t i = 0; i < srcLens[current_dim]; ++i)
+        {
+            if(current_dim < max_dim)
+            {
+                self(self, current_dim + 1, index);
+            }
+            else
+            {
+                dataOp(srcSuperTensor[index]);
+            }
+            index += current_stride;
+        }
+    };
+    operate_over_subtensor_impl(operate_over_subtensor_impl, 0, srcOffset);
 }
 
-// loop over part of sub-tensor (dimensions lower than "current_dim"), and operate on
-// each data
-template <typename T, template <typename> class data_operator_t>
-void operate_over_subtensor_impl(const data_operator_t<T>& r_data_operator,
-                                 tensor<T>& rSuperTensor,
-                                 const miopen::TensorDescriptor& rSubDesc,
-                                 const unsigned current_dim,
-                                 const int offset)
+// binary operation, it implies cast operation
+template <class DataOp, typename DstContainer, typename SrcContainer>
+void operate_over_subtensor(DataOp&& dataOp,
+                            DstContainer& dstSuperTensor,
+                            SrcContainer& srcSuperTensor,
+                            const miopen::TensorDescriptor& dstSubDesc,
+                            const miopen::TensorDescriptor& srcSubDesc,
+                            const int64_t dstOffset,
+                            const int64_t srcOffset)
 {
-    auto max_dim        = static_cast<int>(rSubDesc.GetLengths().size() - 1);
-    auto current_stride = static_cast<int>(rSubDesc.GetStrides()[current_dim]);
+    const auto& dstStrides = dstSubDesc.GetStrides();
+    const auto& srcStrides = srcSubDesc.GetStrides();
 
-    int index = offset;
+    const auto& srcLens = srcSubDesc.GetLengths();
 
-    for(int i = 0; i < rSubDesc.GetLengths()[current_dim]; ++i)
-    {
-        if(current_dim == max_dim)
+    auto operate_over_subtensor_impl =
+        [&, dataOp, max_dim = srcLens.size() - 1](auto&& self,
+                                                  const size_t current_dim,
+                                                  const int64_t dstOff,
+                                                  const int64_t srcOff) -> void {
+        const auto dstStride = dstStrides[current_dim];
+        const auto srcStride = srcStrides[current_dim];
+
+        int64_t dstIdx = dstOff;
+        int64_t srcIdx = srcOff;
+
+        for(size_t i = 0; i < srcLens[current_dim]; ++i)
         {
-            r_data_operator(rSuperTensor[index]);
+            if(current_dim < max_dim)
+            {
+                self(self, current_dim + 1, dstIdx, srcIdx);
+            }
+            else
+            {
+                dataOp(dstSuperTensor[dstIdx], srcSuperTensor[srcIdx]);
+            }
+            dstIdx += dstStride;
+            srcIdx += srcStride;
         }
-        else
-        {
-            operate_over_subtensor_impl<T, data_operator_t>(
-                r_data_operator, rSuperTensor, rSubDesc, current_dim + 1, index);
-        }
+    };
+    operate_over_subtensor_impl(operate_over_subtensor_impl, 0, dstOffset, srcOffset);
+}
 
-        index += current_stride;
-    }
+// ternary operation, it implies broadcasting for src2
+template <typename DataOp, typename Container>
+void operate_over_subtensor(DataOp&& dataOp,
+                            Container& dstSuperTensor,
+                            const Container& src1SuperTensor,
+                            const Container& src2SuperTensor,
+                            const miopen::TensorDescriptor& dstSubDesc,
+                            const miopen::TensorDescriptor& src1SubDesc,
+                            const miopen::TensorDescriptor& src2SubDesc,
+                            const int64_t dstOffset,
+                            const int64_t src1Offset,
+                            const int64_t src2Offset)
+{
+    const auto& dstStrides  = dstSubDesc.GetStrides();
+    const auto& src1Strides = src1SubDesc.GetStrides();
+    const auto& src2Strides = src2SubDesc.GetStrides();
+
+    const auto& src1Lens = src1SubDesc.GetLengths();
+    const auto& src2Lens = src2SubDesc.GetLengths();
+
+    auto operate_over_subtensor_impl =
+        [&, dataOp, max_dim = src1Lens.size() - 1](auto&& self,
+                                                   const size_t current_dim,
+                                                   const int64_t dstOff,
+                                                   const int64_t src1Off,
+                                                   const int64_t src2Off) -> void {
+        const auto dstStride  = dstStrides[current_dim];
+        const auto src1Stride = src1Strides[current_dim];
+        const auto src2Stride = src2Strides[current_dim];
+        const bool squashed   = src1Lens[current_dim] != src2Lens[current_dim];
+
+        int64_t dstIdx  = dstOff;
+        int64_t src1Idx = src1Off;
+        int64_t src2Idx = src2Off;
+
+        for(size_t i = 0; i < src1Lens[current_dim]; ++i)
+        {
+            if(current_dim < max_dim)
+            {
+                self(self, current_dim + 1, dstIdx, src1Idx, src2Idx);
+            }
+            else
+            {
+                dataOp(dstSuperTensor[dstIdx], src1SuperTensor[src1Idx], src2SuperTensor[src2Idx]);
+            }
+            dstIdx += dstStride;
+            src1Idx += src1Stride;
+            src2Idx += squashed ? 0 : src2Stride;
+        }
+    };
+    operate_over_subtensor_impl(operate_over_subtensor_impl, 0, dstOffset, src1Offset, src2Offset);
 }
 
 template <typename T>

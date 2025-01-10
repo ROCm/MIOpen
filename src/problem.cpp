@@ -119,7 +119,7 @@ void VisitType(int id, Args... args)
     detail::VisitType<Visitor, Variant>{}(id, args...);
 }
 
-static Data_t AllocateTensor(Handle& handle,
+static Data_t AllocateTensor(const Handle& handle,
                              const FindOptions& options,
                              std::vector<Allocator::ManageDataPtr>& owned,
                              std::vector<std::uint64_t>& owned_scalars,
@@ -160,8 +160,9 @@ static void SortFindResults(const FindOptions& options, std::vector<Solution>& r
               }());
 }
 
-std::vector<Solution>
-Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const
+std::vector<Solution> Problem::FindSolutions(const Handle& handle,
+                                             const FindOptions& options,
+                                             std::size_t max_solutions) const
 {
     auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
     auto owned_scalars = std::vector<std::uint64_t>{};
@@ -181,9 +182,10 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
             [&](const ConvolutionDescriptor& op_desc) {
                 if(op_desc.mode == miopenTranspose)
                     return MakeTransposed().FindSolutionsImpl(
-                        handle, options, max_solutions, buffers, op_desc);
+                        handle, options, max_solutions, buffers, op_desc, *this);
                 else
-                    return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
+                    return FindSolutionsImpl(
+                        handle, options, max_solutions, buffers, op_desc, *this);
             },
             [&](const SoftmaxDescriptor& op_desc) {
                 return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
@@ -460,11 +462,12 @@ softmax::ProblemDescription Problem::AsSoftmax() const
     return problem_description;
 }
 
-std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
+std::vector<Solution> Problem::FindSolutionsImpl(const Handle& handle,
                                                  const FindOptions& options,
                                                  std::size_t max_solutions,
                                                  const Buffers& buffers,
-                                                 const ConvolutionDescriptor& conv_desc) const
+                                                 const ConvolutionDescriptor& conv_desc,
+                                                 const Problem& original) const
 {
     if(tensor_descriptors.size() != 3)
     {
@@ -518,7 +521,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     for(auto& result : results)
     {
-        result.SetProblem({*this});
+        result.SetProblem({original});
 
         if(result.GetKernels().empty())
         {
@@ -541,7 +544,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 }
 
 std::vector<Solution>
-Problem::FindSolutionsImpl(Handle& handle,
+Problem::FindSolutionsImpl(const Handle& handle,
                            [[maybe_unused]] const FindOptions& options,
                            std::size_t max_solutions,
                            [[maybe_unused]] const Buffers& buffers,
@@ -596,7 +599,7 @@ Problem::FindSolutionsImpl(Handle& handle,
 }
 
 std::vector<Solution>
-Problem::FindSolutionsImpl(Handle& handle,
+Problem::FindSolutionsImpl(const Handle& handle,
                            [[maybe_unused]] const FindOptions& options,
                            std::size_t max_solutions,
                            [[maybe_unused]] const Buffers& buffers,
@@ -958,7 +961,7 @@ void FusedProblem::PropagateDescriptors()
     }
 }
 
-std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
+std::vector<Solution> FusedProblem::FindSolutions(const Handle& handle,
                                                   const FindOptions& options,
                                                   std::size_t max_solutions) const
 {
