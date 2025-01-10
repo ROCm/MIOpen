@@ -289,8 +289,7 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(
             idx += 2;
         if(((idx == 15 && (heuristic_kernels[heuristic_indexes[0]].size() == 15)) || idx == 18))
         {
-            kernel_id =
-                valid_kernels[heuristic_indexes[0]] + "+" + value + "+" + std::to_string(split_k);
+            kernel_id          = valid_kernels[heuristic_indexes[0]] + "+" + value;
             index              = heuristic_indexes[0];
             bool valid_split_k = false;
             switch(problem.GetInDataType())
@@ -591,7 +590,9 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
-    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
+    case miopenBFloat16:
+        return StartsWith(ctx.GetStream().GetDeviceName(), "gfx94") &&
+               CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
     case miopenFloat8:

@@ -71,7 +71,6 @@ option( MIOPEN_TEST_DRIVER_ITER_MODE "" OFF)
 option( MIOPEN_TEST_COMPOSABLEKERNEL "Test with composable_kernel library" ${MIOPEN_USE_COMPOSABLEKERNEL} )
 option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON)
 option( MIOPEN_TEST_DBSYNC "" OFF)
-option( CODECOV_TEST "" OFF)
 
 set_var_to_condition(MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT MIOPEN_BUILD_DRIVER)
 option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT})
@@ -191,7 +190,6 @@ message(STATUS "MIOPEN_TEST_DRIVER_ITER_MODE ${MIOPEN_TEST_DRIVER_ITER_MODE}")
 message(STATUS "MIOPEN_TEST_COMPOSABLEKERNEL ${MIOPEN_TEST_COMPOSABLEKERNEL}")
 message(STATUS "MIOPEN_TEST_DISCRETE ${MIOPEN_TEST_DISCRETE}")
 message(STATUS "MIOPEN_TEST_DBSYNC ${MIOPEN_TEST_DBSYNC}")
-message(STATUS "CODECOV_TEST ${CODECOV_TEST}")
 
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
@@ -267,28 +265,20 @@ option( WORKAROUND_ISSUE_1148 "" ${WORKAROUND_ISSUE_1148_DEFAULT})
 
 if(MIOPEN_TEST_INT8)
     set(SKIP_ALL_EXCEPT_TESTS
-              test_tensor_vec test_tensor_cast test_tensor_trans test_tensor_copy test_tensor_set
-              test_tensor_transform test_conv2d test_conv2d_find2)
+              test_tensor_vec test_tensor_trans test_tensor_transform test_conv2d test_conv2d_find2)
 elseif(MIOPEN_TEST_BFLOAT16)
     set(SKIP_ALL_EXCEPT_TESTS
-              test_conv2d test_conv2d_find2 test_tensor_copy test_tensor_set test_tensor_vec test_immed_conv2d
+              test_conv2d test_conv2d_find2 test_tensor_vec test_immed_conv2d
               test_check_numerics_test test_conv_extra test_conv_for_implicit_gemm test_miopen_conv
               test_deepbench_conv test_conv_igemm_dynamic_xdlops_nhwc_wrw_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_fwd_bf16
               test_conv_igemm_dynamic_xdlops_nhwc_bwd_bf16)
 endif()
 
-if(${CODECOV_TEST})
-    list(APPEND SKIP_TESTS
-        test_conv3d test_conv3d_find2 test_immed_conv3d test_immed_conv2d test_pooling2d test_pooling2d_asymmetric
-        test_pooling2d_wide)
-    # replaced by smaller tests with suffix _codecov
-endif()
-
 if(MIOPEN_NO_GPU)
-    set(SKIP_ALL_EXCEPT_TESTS test_include_inliner test_kernel_build_params
-            test_test_errors test_type_name test_tensor_test test_sqlite_perfdb test_sequences
-            test_pooling3d test_perfdb)
+    set(SKIP_ALL_EXCEPT_TESTS
+            test_sqlite_perfdb
+            test_perfdb)
 endif()
 
 #TODO WORKAROUND_ISSUE_1424
@@ -433,6 +423,7 @@ set(LONG_TESTS
     test_conv3d_extra
     test_conv_3d
     test_pooling2d
+    test_pooling3d
     test_conv_ck_igemm_fwd_v6r1_dlops_nchw
     )
 
@@ -930,6 +921,31 @@ add_custom_test(smoke_solver_ConvMlirIgemm_W GFX900_DISABLED GFX908_DISABLED GFX
     ENVIRONMENT MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5 ${IMPLICITGEMM_MLIR_ENV_W}
     COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
 )
+
+add_custom_test(conv_transposed_fwd
+    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 1 16 24 24 --weights 16 16 7 7 --pads_strides_dilations 3 3 1 1 1 1 --cmode transpose ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(conv_transposed_bwd
+    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_B} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --cmode transpose ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(conv_transposed_wrw
+    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --cmode transpose ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(conv_transposed_fwd_find_2
+    COMMAND $<TARGET_FILE:test_conv2d_find2> ${TEST_CONV_VERBOSE_F} --input 1 16 24 24 --weights 16 16 7 7 --pads_strides_dilations 3 3 1 1 1 1 --cmode transpose ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(conv_transposed_bwd_find_2
+    COMMAND $<TARGET_FILE:test_conv2d_find2> ${TEST_CONV_VERBOSE_B} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --cmode transpose ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
+add_custom_test(conv_transposed_wrw_find_2
+    COMMAND $<TARGET_FILE:test_conv2d_find2> ${TEST_CONV_VERBOSE_W} --input 64 64  28 28 --weights 64  64  1 1 --pads_strides_dilations 0 0 1 1 1 1 --cmode transpose ${MIOPEN_TEST_FLAGS_ARGS}
+)
+
 #Dont install the tests if we are building each test separately
 #When the tests are built as a single unit, then we want to be
 #able to package them

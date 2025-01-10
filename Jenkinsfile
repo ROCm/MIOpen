@@ -34,11 +34,10 @@ def cmake_build(Map conf=[:]){
     def build_envs = "CTEST_PARALLEL_LEVEL=4 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/opt/rocm")
     def build_type_debug = (conf.get("build_type",'release') == 'debug')
-    def code_conv_enabled = conf.get("codecov", false)
 
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
     // WORKAROUND_ISSUE_3192 Disabling MLIR for debug builds since MLIR generates sanitizer errors.
-    if (build_type_debug || code_conv_enabled)
+    if (build_type_debug)
     {
         mlir_args = " -DMIOPEN_USE_MLIR=OFF"
     }
@@ -79,9 +78,7 @@ def cmake_build(Map conf=[:]){
         test_flags = " --disable-verification-cache " + test_flags
     }
 
-    if(code_conv_enabled){ //Need
-        setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags} -fprofile-arcs -ftest-coverage' -DCODECOV_TEST=On " + setup_args
-    }else if(build_type_debug){
+    if(build_type_debug){
         setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}'" + setup_args
     }else{
         setup_args = " -DCMAKE_BUILD_TYPE=release" + setup_args
@@ -247,7 +244,6 @@ def buildHipClangJob(Map conf=[:]){
         show_node_info()
         miopenCheckout()
         env.HSA_ENABLE_SDMA=0
-        env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
         def image
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
@@ -257,7 +253,6 @@ def buildHipClangJob(Map conf=[:]){
 
         def variant = env.STAGE_NAME
 
-        def codecov = conf.get("codecov", false)
         def needs_gpu = conf.get("needs_gpu", true)
         def lfs_pull = conf.get("lfs_pull", false)
 
@@ -298,17 +293,6 @@ def buildHipClangJob(Map conf=[:]){
                     }
 
                     cmake_build(conf)
-
-                    if (codecov) {
-                        sh '''
-                            cd build
-                            lcov --directory . --capture --output-file $(pwd)/coverage.info
-                            lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
-                            lcov --list $(pwd)/coverage.info
-                            curl -s https://codecov.io/bash | bash
-                            echo "Uploaded"
-                        '''
-                    }
                 }
             }
         }
@@ -417,10 +401,9 @@ def CheckPerfDbValid(Map conf=[:]){
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                            NOCK | NOMLIR | Tensile | Tensile-Latest | Package | ... }
-/// TestSet := { All | Smoke* | <Performance Dataset> | Build-only } [ Codecov ]
+/// TestSet := { All | Smoke* | <Performance Dataset> | Build-only }
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
-///   * "Codecov" is optional code coverage analysis.
 ///   * "Performance Dataset" is a performance test with a specified dataset.
 /// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
@@ -840,6 +823,21 @@ pipeline {
                         buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On", build_install: "true")
                     }
                 }
+                stage('Fp32 Hip Fin Interface gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: "-DMIOPEN_ENABLE_FIN_INTERFACE=On",
+                                                  make_targets: "test_unit_FinInterface",
+                                                  execute_cmd: "bin/test_unit_FinInterface")
+                    }
+                }
             }
         }
         stage("Smoke Fp16/Bf16/Int8") {
@@ -976,7 +974,7 @@ pipeline {
                         buildHipClangJobAndReboot(lfs_pull: true,
                                                   setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
                                                   make_targets: 'test_db_sync',
-                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
                                                   build_install: "true")
@@ -995,7 +993,7 @@ pipeline {
                         buildHipClangJobAndReboot(lfs_pull: true,
                                                   setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
                                                   make_targets: 'test_db_sync',
-                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
                                                   build_install: "true")
@@ -1014,7 +1012,7 @@ pipeline {
                         buildHipClangJobAndReboot(lfs_pull: true,
                                                   setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
                                                   make_targets: 'test_db_sync',
-                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
                                                   build_install: "true")

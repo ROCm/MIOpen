@@ -33,11 +33,9 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
 
 namespace miopen {
@@ -47,73 +45,6 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-
-using InLayout    = ck::tensor_layout::convolution::NDHWGC;
-using WeiLayout   = ck::tensor_layout::convolution::GKZYXC;
-using OutLayout   = ck::tensor_layout::convolution::NDHWGK;
-using PassThrough = ck::tensor_operation::element_wise::PassThrough;
-using Bilinear    = ck::tensor_operation::element_wise::Bilinear;
-using Scale       = ck::tensor_operation::element_wise::Scale;
-
-static constexpr ck::index_t NumDimSpatial = 3;
-
-template <typename DataType>
-using DeviceOpGBwdWeightBilinear =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
-                                                                      InLayout,
-                                                                      WeiLayout,
-                                                                      OutLayout,
-                                                                      ck::Tuple<WeiLayout>,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      ck::Tuple<DataType>,
-                                                                      PassThrough,
-                                                                      Bilinear,
-                                                                      PassThrough>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightScale =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<NumDimSpatial,
-                                                                      InLayout,
-                                                                      WeiLayout,
-                                                                      OutLayout,
-                                                                      ck::Tuple<>,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      DataType,
-                                                                      ck::Tuple<>,
-                                                                      PassThrough,
-                                                                      Scale,
-                                                                      PassThrough>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightDefault =
-    ck::tensor_operation::device::DeviceGroupedConvBwdWeight<NumDimSpatial,
-                                                             InLayout,
-                                                             WeiLayout,
-                                                             OutLayout,
-                                                             DataType,
-                                                             DataType,
-                                                             DataType,
-                                                             PassThrough,
-                                                             PassThrough,
-                                                             PassThrough>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightBilinearPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightBilinear<DataType>>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightScalePtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightScale<DataType>>;
-
-template <typename DataType>
-using DeviceOpGBwdWeightDefaultPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightDefault<DataType>>;
 
 namespace {
 
@@ -199,17 +130,18 @@ struct CKArgs
                     Data_t dw,
                     ConstData_t dy,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
         using DeviceP = std::remove_pointer_t<decltype(conv_ptr.get())>;
         if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightBilinear<DataType>>)
         {
-            return MakeBilinearArgPtr(conv_ptr, x, dw, dy, alpha, beta);
+            return MakeBilinearArgPtr(conv_ptr, x, dw, dy, alpha, beta, split_k);
         }
         else if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightScale<DataType>>)
         {
             (void)beta;
-            return MakeScaleArgPtr(conv_ptr, x, dw, dy, alpha);
+            return MakeScaleArgPtr(conv_ptr, x, dw, dy, alpha, split_k);
         }
         else
         {
@@ -217,7 +149,7 @@ struct CKArgs
             (void)beta;
             static_assert(std::is_same_v<DeviceP, DeviceOpGBwdWeightDefault<DataType>>,
                           "Default should be wrw pass through");
-            return MakeDefaultArgPtr(conv_ptr, x, dw, dy);
+            return MakeDefaultArgPtr(conv_ptr, x, dw, dy, split_k);
         }
     }
     template <typename ConvPtr>
@@ -226,7 +158,8 @@ struct CKArgs
                             Data_t dw,
                             ConstData_t dy,
                             float alpha,
-                            float beta) const
+                            float beta,
+                            int split_k) const
     {
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
@@ -251,8 +184,12 @@ struct CKArgs
     }
 
     template <typename ConvPtr>
-    auto MakeScaleArgPtr(
-        const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy, float alpha) const
+    auto MakeScaleArgPtr(const ConvPtr& conv_ptr,
+                         ConstData_t x,
+                         Data_t dw,
+                         ConstData_t dy,
+                         float alpha,
+                         int split_k) const
     {
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
@@ -277,7 +214,8 @@ struct CKArgs
     }
 
     template <typename ConvPtr>
-    auto MakeDefaultArgPtr(const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy) const
+    auto MakeDefaultArgPtr(
+        const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy, int split_k) const
     {
         return conv_ptr->MakeArgumentPointer(x,
                                              dw,
@@ -302,16 +240,30 @@ struct CKArgs
     auto MakeArgPtr(const ConvPtr& conv_ptr,
                     const ConvWrwTensors& tensors,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
-        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta);
+        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta, split_k);
     }
 
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
-        if(CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case))
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, 1);
+        // Creat dummy workspace to pass the ck IsSupportedArgument check.
+
+        int dummy_var = 1;
+        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
+
+        return conv_ptr->IsSupportedArgument(arg_ptr.get());
+    }
+
+    template <typename ConvPtr>
+    bool IsSupportedBySplitK(const ConvPtr& conv_ptr, int split_k) const
+    {
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
+
+        if(CKWrwRequireWorkspace(G, C1, K1, data_type, alpha_beta_case))
         {
             // Creat dummy workspace to pass the ck IsSupportedArgument check.
             int dummy_var = 1;
@@ -337,7 +289,6 @@ struct CKArgs
     int Z;
     miopenAlphaBetaCase_t alpha_beta_case;
     miopenDataType_t data_type;
-    ck::index_t split_k = 2;
     std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> out_lengths;
@@ -371,7 +322,8 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescrip
         break;
     }
     index     = 0;
-    kernel_id = valid_kernels[index];
+    split_k   = 1;
+    kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
 }
 
 template <typename DataType>
@@ -412,6 +364,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     [[maybe_unused]] const ProblemDescription& problem)
 {
     index     = 0;
+    split_k   = 1;
     kernel_id = "";
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -433,20 +386,34 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::SetNextValue(
     const ProblemDescription& problem)
 {
+#if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
     {
         HeuristicInit(problem);
-        assert(!valid_kernels.empty());
-        return true;
+        if(valid_kernels.empty())
+        {
+            return false;
+        }
     }
-    if((index + 1) < valid_kernels.size())
+    do
     {
-        ++index;
-        kernel_id = valid_kernels[index];
-        return true;
-    }
-    else
+        bool flag = NextTwoPower<1, 128>(split_k);
+        if(!flag)
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
+        }
+
+        if(!NextLinear(0, valid_kernels.size() - 1, index))
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
+        }
+        // All split_k and index values were iterated
         return false;
+    } while(false);
+#endif
+    return true;
 }
 
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::IsValidValue() const
@@ -541,7 +508,9 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
-    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
+    case miopenBFloat16:
+        return StartsWith(ctx.GetStream().GetDeviceName(), "gfx94") &&
+               CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
     case miopenFloat8:

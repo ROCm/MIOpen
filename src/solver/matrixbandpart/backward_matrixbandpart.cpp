@@ -40,12 +40,30 @@ namespace solver {
 
 namespace matrixbandpart {
 
+bool IsOverRocmBwd(const miopen::matrixbandpart::ProblemDescription& problem)
+{
+    uint64_t mul_dims = 1;
+    for(auto dim : problem.GetYDesc().GetLengths())
+    {
+        mul_dims *= dim;
+    }
+    if(mul_dims <= 524288)
+    {
+        return true;
+    }
+    return false;
+}
+
 bool MatrixBandPartBackward::IsApplicable(
     const ExecutionContext&, const miopen::matrixbandpart::ProblemDescription& problem) const
 {
     if(!(problem.GetYDesc().GetType() == miopenHalf ||
          problem.GetYDesc().GetType() == miopenFloat ||
          problem.GetYDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
+    if(!IsOverRocmBwd(problem))
     {
         return false;
     }
