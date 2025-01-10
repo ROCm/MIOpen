@@ -48,7 +48,7 @@ struct MIOPEN_INTERNALS_EXPORT CTCLossDescriptor : miopenCTCLossDescriptor
     bool apply_softmax_layer;
     int blank_label_id;
 
-    size_t GetCTCLossWorkspaceSize(Handle& handle,
+    size_t GetCTCLossWorkspaceSize(const Handle& handle,
                                    const TensorDescriptor& probsDesc,
                                    const TensorDescriptor& gradientsDesc,
                                    const int* labels,
@@ -56,7 +56,7 @@ struct MIOPEN_INTERNALS_EXPORT CTCLossDescriptor : miopenCTCLossDescriptor
                                    const int* inputLengths,
                                    miopenCTCLossAlgo_t algo) const;
 
-    void CTCLoss(Handle& handle,
+    void CTCLoss(const Handle& handle,
                  const TensorDescriptor& probsDesc,
                  ConstData_t probs,
                  const int* labels,
