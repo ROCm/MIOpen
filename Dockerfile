@@ -93,7 +93,7 @@ ADD dev-requirements.txt /dev-requirements.txt
 ARG GPU_ARCHS=gfx908;gfx90a;gfx942;gfx1100
 # install to /opt/rocm will cause permission issue
 ARG PREFIX=/usr/local
-ARG USE_FIN="OFF"
+ARG USE_FIN="ON"
 ARG CCACHE_SECONDARY_STORAGE=""
 ARG CCACHE_DIR="/tmp"
 RUN env
