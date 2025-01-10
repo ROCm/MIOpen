@@ -2019,7 +2019,7 @@ void TransformTensor(const Handle& handle,
     }
 }
 
-void OpTensor(Handle& handle,
+void OpTensor(const Handle& handle,
               miopenTensorOp_t tensorOp,
               const void* alpha0,
               const TensorDescriptor& aTensorDesc,

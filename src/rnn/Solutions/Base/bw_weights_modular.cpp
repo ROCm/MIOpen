@@ -32,7 +32,7 @@
 namespace miopen {
 
 namespace rnn_base {
-miopenStatus_t ReducAddBias(miopen::Handle& handle,
+miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                             Data_t dw,
                             const ConstData_t backDataSpace,
                             const miopen::TensorDescriptor& dw_desc,
@@ -242,7 +242,7 @@ void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
                                  true);
 }
 
-void RNNBackwardWeightsModularAlgo::BiasUpdate(Handle& handle,
+void RNNBackwardWeightsModularAlgo::BiasUpdate(const Handle& handle,
                                                Data_t dw,
                                                ConstData_t backData,
                                                Data_t workSpace,

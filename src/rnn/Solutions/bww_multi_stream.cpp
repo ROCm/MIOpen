@@ -38,7 +38,7 @@ void RNNModularMultiStreamBWWeights::PrologueDispatch(const runtimeArgsBWWeights
     rnnAlgoModules.PrepareWriteBuffers(*args.handle, args.dw);
 }
 
-void RNNModularMultiStreamBWWeights::Compute(Handle& handle,
+void RNNModularMultiStreamBWWeights::Compute(const Handle& handle,
                                              ConstData_t x,
                                              ConstData_t hx,
                                              Data_t dw,

@@ -272,7 +272,7 @@ public:
     // TODO
     static size_t GetWsSize() { return 0; };
 
-    void Compute(Handle& handle,
+    void Compute(const Handle& handle,
                  ConstData_t x,
                  ConstData_t hx,
                  Data_t dw,

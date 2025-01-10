@@ -59,13 +59,13 @@ void RNNForwardDataModularAlgo::PrepareWriteBuffers(const Handle& handle,
     }
 }
 
-void RNNForwardDataModularAlgo::PropX(Handle& handle, const runtimeArgsFwd& runtimeArgs) const
+void RNNForwardDataModularAlgo::PropX(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const
 {
     const size_t gemm_batch_size = workspaceInfo.getGateBlockSize()[1];
     return PropX(handle, runtimeArgs, 0, gemm_batch_size);
 }
 
-void RNNForwardDataModularAlgo::PropX(Handle& handle,
+void RNNForwardDataModularAlgo::PropX(const Handle& handle,
                                       const runtimeArgsFwd& runtimeArgs,
                                       size_t gemm_batch_offset,
                                       size_t gemm_batch_size) const
@@ -188,7 +188,8 @@ void RNNForwardDataModularAlgo::PropHxCx(const Handle& handle,
     }
 }
 
-void RNNForwardDataModularAlgo::AddBias(Handle& handle, const runtimeArgsFwd& runtimeArgs) const
+void RNNForwardDataModularAlgo::AddBias(const Handle& handle,
+                                        const runtimeArgsFwd& runtimeArgs) const
 {
     if(rnnDesc.biasMode == miopenRNNNoBias)
         return;

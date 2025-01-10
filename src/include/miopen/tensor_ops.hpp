@@ -173,7 +173,7 @@ MIOPEN_INTERNALS_EXPORT void SetTensor(const Handle& handle,
                                        const void* alpha,
                                        int offset = 0);
 
-MIOPEN_INTERNALS_EXPORT void OpTensor(Handle& handle,
+MIOPEN_INTERNALS_EXPORT void OpTensor(const Handle& handle,
                                       miopenTensorOp_t tensorOp,
                                       const void* alpha0,
                                       const TensorDescriptor& aTensorDesc,
