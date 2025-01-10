@@ -48,7 +48,7 @@ auto GetSmokeTestParams(miopenDataType_t datatype)
     }
     auto testParams = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
     testParams.Tunable(1);
-    testParams.DisableXnack();
+    testParams.CheckXnackDisabled();
 
     return testParams;
 }
@@ -81,7 +81,7 @@ auto GetFullTestParams(miopenDataType_t datatype)
     }
     auto testParams = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
     testParams.Tunable(1000);
-    testParams.DisableXnack();
+    testParams.CheckXnackDisabled();
 
     return testParams;
 }

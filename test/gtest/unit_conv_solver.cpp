@@ -206,7 +206,7 @@ void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
     tuning_iterations_max = iterations_max_;
 }
 
-void UnitTestConvSolverParams::DisableXnack() { disable_xnack = true; }
+void UnitTestConvSolverParams::CheckXnackDisabled() { disable_xnack = true; }
 
 namespace {
 
