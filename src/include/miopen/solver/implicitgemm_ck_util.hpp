@@ -485,7 +485,7 @@ public:
 
     void ZeroOutBuffer(const Handle& handle)
     {
-        WorkAroundHipEventProfiler pfr(handle);
+        HipEventProfiler pfr(handle);
 
         [[maybe_unused]] auto status =
             hipMemsetAsync(buf_handle.get(), 0, tensor_sz, handle.GetStream());
@@ -751,7 +751,7 @@ ZeroOutTensor(const Handle& handle, const TensorDescriptor& tensorDesc, Data_t t
     // Use faster clear if possible.
     if(tensorDesc.IsPacked())
     {
-        WorkAroundHipEventProfiler pfr(handle);
+        HipEventProfiler pfr(handle);
 
         auto status = hipMemsetAsync(tensorData, 0, tensorDesc.GetNumBytes(), handle.GetStream());
         if(status != hipSuccess)
