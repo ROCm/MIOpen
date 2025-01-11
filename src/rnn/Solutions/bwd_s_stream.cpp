@@ -29,7 +29,7 @@ namespace miopen {
 
 namespace rnn_base {
 
-void RNNModularSingleStreamBWD::ComputeBWD(Handle& handle,
+void RNNModularSingleStreamBWD::ComputeBWD(const Handle& handle,
                                            ConstData_t dy,
                                            ConstData_t dhy,
                                            Data_t dhx,
@@ -134,7 +134,7 @@ void RNNModularSingleStreamBWD::ComputeBWD(Handle& handle,
 #endif
 }
 
-void RNNDynamicModularSingleStreamBWD::ComputeBWD(Handle& handle,
+void RNNDynamicModularSingleStreamBWD::ComputeBWD(const Handle& handle,
                                                   const runtimeArgsBwd& realRuntimeArgs) const
 {
     auto layer_i = rnnDesc.nLayers;
