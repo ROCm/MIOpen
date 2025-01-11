@@ -274,7 +274,7 @@ struct mlo_construct_base
     /*
      * set library stream
      */
-    inline void setStream(miopen::Handle* stream) { _ctx.SetStream(stream); }
+    inline void setStream(const miopen::Handle* stream) { _ctx.SetStream(stream); }
 
 protected:
     miopen::ProblemDescriptionCompatTemporary _problem;

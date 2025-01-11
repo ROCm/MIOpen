@@ -29,7 +29,8 @@ namespace miopen {
 
 namespace rnn_base {
 
-void RNNModularSingleStreamFWD::ComputeFWD(Handle& handle, const runtimeArgsFwd& runtimeArgs) const
+void RNNModularSingleStreamFWD::ComputeFWD(const Handle& handle,
+                                           const runtimeArgsFwd& runtimeArgs) const
 {
 
     if(rnnDesc.nLayers == 0 || max_seq_len == 0)
@@ -77,7 +78,7 @@ void RNNModularSingleStreamFWD::ComputeFWD(Handle& handle, const runtimeArgsFwd&
     rnnAlgoModules.PropY(handle, runtimeArgs);
 }
 
-void RNNDynamicModularSingleStreamFWD::ComputeFWD(Handle& handle,
+void RNNDynamicModularSingleStreamFWD::ComputeFWD(const Handle& handle,
                                                   const runtimeArgsFwd& realRuntimeArgs) const
 {
     auto seq_iterations      = rnnAlgoModules.getTimeSeqSize();
