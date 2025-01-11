@@ -127,7 +127,7 @@ void AddActiv(miopen::FusionPlanDescriptor& fusePlanDesc,
               miopenStatusSuccess);
 }
 
-inline bool Skip(miopen::Handle& handle)
+inline bool Skip(const miopen::Handle& handle)
 {
     const std::string arch = handle.GetDeviceName();
     bool skip_test         = (arch != "gfx908" && arch != "gfx90a");

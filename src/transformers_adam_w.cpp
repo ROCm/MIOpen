@@ -35,7 +35,7 @@
 
 namespace miopen {
 
-miopenStatus_t TransformersAdamW(Handle& handle,
+miopenStatus_t TransformersAdamW(const Handle& handle,
                                  const TensorDescriptor& paramInDesc,
                                  ConstData_t paramIn,
                                  const TensorDescriptor& paramOutDesc,

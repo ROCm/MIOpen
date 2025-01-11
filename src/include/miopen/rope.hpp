@@ -33,7 +33,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t RoPEForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t RoPEForward(const Handle& handle,
                                                    const TensorDescriptor& xDesc,
                                                    ConstData_t x,
                                                    const TensorDescriptor& cosDesc,
@@ -43,7 +43,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t RoPEForward(Handle& handle,
                                                    const TensorDescriptor& yDesc,
                                                    Data_t y);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t RoPEBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t RoPEBackward(const Handle& handle,
                                                     const TensorDescriptor& dyDesc,
                                                     ConstData_t dy,
                                                     const TensorDescriptor& cosDesc,

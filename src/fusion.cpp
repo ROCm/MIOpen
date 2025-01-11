@@ -54,7 +54,7 @@
 
 namespace miopen {
 
-miopenStatus_t ConvBiasActivFusion(Handle& handle,
+miopenStatus_t ConvBiasActivFusion(const Handle& handle,
                                    const void* alpha1,
                                    const TensorDescriptor& xDesc,
                                    ConstData_t x,
@@ -137,7 +137,7 @@ miopenStatus_t ConvBiasActivFusion(Handle& handle,
 }
 
 static auto
-AllocateBuffersAndMakeFusionInvokeParams(Handle& handle,
+AllocateBuffersAndMakeFusionInvokeParams(const Handle& handle,
                                          const FusionDescription& problem,
                                          std::vector<Allocator::ManageDataPtr>& invoke_bufs,
                                          miopen::OperatorArgs& params,
@@ -490,7 +490,7 @@ TensorDescriptor FusionPlanDescriptor::FusionPlanDescriptor::DeriveOutputDescrip
     return o_desc;
 }
 
-miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(Handle& handle,
+miopenStatus_t FusionPlanDescriptor::GetWorkspaceSizeImmed(const Handle& handle,
                                                            size_t& workSpaceSize,
                                                            miopenConvFwdAlgorithm_t /*algo*/)
 {
@@ -969,7 +969,7 @@ std::vector<miopenConvSolution_t> GetSolutions(const FusionContext& ctx,
 
 } // namespace
 
-miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
+miopenStatus_t FusionPlanDescriptor::Compile(const Handle& handle)
 {
     std::vector<Allocator::ManageDataPtr> invoke_bufs;
     miopen::OperatorArgs params;
@@ -1097,7 +1097,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 }
 
 std::vector<Solution>
-FusionPlanDescriptor::Find(Handle& handle,
+FusionPlanDescriptor::Find(const Handle& handle,
                            const std::function<fusion::FusionInvokeParams()>& invoke_params,
                            const std::optional<FindOptions>& options) const
 {
