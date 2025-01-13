@@ -152,7 +152,6 @@ RUN pip3 install --upgrade cmake==3.27.5
 ARG INSTALL_MIOPEN=ON
 ARG MIOPEN_BRANCH=alex_perf_test
 RUN if [ "$INSTALL_MIOPEN" = "ON" ]; then \
-
     git clone https://github.com/ROCm/MIOpen.git miopen; \ 
     cd miopen; \
     CXX=/opt/rocm/llvm/bin/clang++ cget install -f ./dev-requirements.txt; \
@@ -161,7 +160,7 @@ RUN if [ "$INSTALL_MIOPEN" = "ON" ]; then \
     mkdir install; \
     rm -f src/kernels/*.ufdb.txt; \
     rm -f src/kernels/miopen*.udb; \
-    cd build;\
+    cd build ; \
     CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=debug -DBUILD_DEV=On -DCMAKE_INSTALL_PREFIX=/opt/rocm -DMIOPEN_USE_MLIR=OFF -DMIOPEN_GPU_SYNC=Off  -DCMAKE_PREFIX_PATH=/opt/rocm    ..; \ 
     LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \
     fi
