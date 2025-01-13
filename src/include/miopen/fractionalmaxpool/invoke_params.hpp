@@ -38,13 +38,15 @@ struct FwdInvokeParams : public miopen::InvokeParams
 
     FwdInvokeParams() = default;
 
-    const TensorDescriptor* inputDesc   = nullptr;
-    const TensorDescriptor* outputDesc  = nullptr;
-    const TensorDescriptor* indicesDesc = nullptr;
+    const TensorDescriptor* inputDesc        = nullptr;
+    const TensorDescriptor* outputDesc       = nullptr;
+    const TensorDescriptor* indicesDesc      = nullptr;
+    const TensorDescriptor* randomSampleDesc = nullptr;
 
-    ConstData_t input = nullptr;
-    Data_t output     = nullptr;
-    Data_t indices    = nullptr;
+    ConstData_t input         = nullptr;
+    Data_t output             = nullptr;
+    Data_t indices            = nullptr;
+    ConstData_t random_sample = nullptr;
 
     int64_t KD = 0;
     int64_t KH = 0;

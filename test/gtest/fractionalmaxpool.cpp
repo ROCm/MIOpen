@@ -27,9 +27,9 @@
 using float16 = half_float::half;
 
 // FORWARD TEST
-using GPU_FractionalMaxPool_fwd_FP32  = FractionalMaxPoolTestFwd<float>;
-using GPU_FractionalMaxPool_fwd_FP16  = FractionalMaxPoolTestFwd<float16>;
-using GPU_FractionalMaxPool_fwd_BFP16 = FractionalMaxPoolTestFwd<bfloat16>;
+using GPU_FractionalMaxPool_fwd_FP32  = FractionalMaxPoolTestFwd<float, int64_t>;
+using GPU_FractionalMaxPool_fwd_FP16  = FractionalMaxPoolTestFwd<float16, int64_t>;
+using GPU_FractionalMaxPool_fwd_BFP16 = FractionalMaxPoolTestFwd<bfloat16, int64_t>;
 
 TEST_P(GPU_FractionalMaxPool_fwd_FP32, Test)
 {
@@ -60,9 +60,9 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::ValuesIn(FractionalMaxPoolTestConfigs()));
 
 // BACKWARD TEST
-using GPU_FractionalMaxPool_bwd_FP32  = FractionalMaxPoolTestBwd<float>;
-using GPU_FractionalMaxPool_bwd_FP16  = FractionalMaxPoolTestBwd<float16>;
-using GPU_FractionalMaxPool_bwd_BFP16 = FractionalMaxPoolTestBwd<bfloat16>;
+using GPU_FractionalMaxPool_bwd_FP32  = FractionalMaxPoolTestBwd<float, int64_t>;
+using GPU_FractionalMaxPool_bwd_FP16  = FractionalMaxPoolTestBwd<float16, int64_t>;
+using GPU_FractionalMaxPool_bwd_BFP16 = FractionalMaxPoolTestBwd<bfloat16, int64_t>;
 
 TEST_P(GPU_FractionalMaxPool_bwd_FP32, Test)
 {

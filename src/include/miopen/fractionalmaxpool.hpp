@@ -33,16 +33,19 @@ struct TensorDescriptor;
 
 namespace fractionalmaxpool {
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t FractionalMaxPoolForward(Handle& handle,
-                                                                const TensorDescriptor& inputDesc,
-                                                                ConstData_t input,
-                                                                const TensorDescriptor& outputDesc,
-                                                                Data_t output,
-                                                                const TensorDescriptor& indicesDesc,
-                                                                Data_t indices,
-                                                                int64_t KD,
-                                                                int64_t KH,
-                                                                int64_t KW);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+FractionalMaxPoolForward(Handle& handle,
+                         const TensorDescriptor& inputDesc,
+                         ConstData_t input,
+                         const TensorDescriptor& outputDesc,
+                         Data_t output,
+                         const TensorDescriptor& indicesDesc,
+                         Data_t indices,
+                         const TensorDescriptor& randomSampleDesc,
+                         ConstData_t random_sample,
+                         int64_t KD,
+                         int64_t KH,
+                         int64_t KW);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 FractionalMaxPoolBackward(Handle& handle,

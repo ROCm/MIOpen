@@ -56,10 +56,10 @@ ConvSolution FractionalMaxPoolForward::GetSolution(
     const ExecutionContext& context,
     const miopen::fractionalmaxpool::FwdProblemDescription& problem) const
 {
-    std::ignore       = context;
-    auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
-    auto target_dtype = miopen::GetDataType(problem.GetTargetDesc().GetType());
-    auto dtype        = problem.GetOutputDesc().GetType();
+    std::ignore        = context;
+    auto output_dtype  = miopen::GetDataType(problem.GetOutputDesc().GetType());
+    auto indices_dtype = miopen::GetDataType(problem.GetIndicesDesc().GetType());
+    auto dtype         = problem.GetOutputDesc().GetType();
 
     auto result       = ConvSolution{miopenStatusSuccess};
     auto build_params = KernelBuildParameters{
@@ -68,17 +68,16 @@ ConvSolution FractionalMaxPoolForward::GetSolution(
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-        {"LOCAL_SIZE", LOCAL_SIZE_FWD},
-        {"T_TYPE", target_dtype == "int64" ? "size_t" : target_dtype},
+        {"I_TYPE", indices_dtype == "int64" ? "size_t" : indices_dtype},
     };
 
-    if(!problem.IsAllContiguous())
+    if(problem.GetOutputDesc().GetNumDims() == 4)
     {
         result.construction_params.push_back(
             make_hip_kernel({LOCAL_SIZE_FWD},
-                            {LOCAL_SIZE_FWD * problem.GetOutputDesc().GetLengths()[0]},
+                            {problem.GetOutputDesc().GetElementSize()},
                             "MIOpenFractionalMaxPool.cpp",
-                            "FractionalMaxPoolForward",
+                            "FractionalMaxPool2dForward",
                             build_params));
 
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
@@ -86,21 +85,21 @@ ConvSolution FractionalMaxPoolForward::GetSolution(
                 decltype(auto) kernel = handle_.Run(kernels[0]);
                 decltype(auto) params =
                     raw_params.CastTo<miopen::fractionalmaxpool::FwdInvokeParams>();
-                auto input_tv    = get_inner_expanded_tv<2>(deref(params.inputDesc));
-                auto target_tv   = get_inner_expanded_tv<1>(deref(params.targetDesc));
-                auto output_tv   = get_inner_expanded_tv<1>(deref(params.outputDesc));
-                auto backprop_tv = get_inner_expanded_tv<2>(deref(params.backpropDesc));
-                auto num_class   = deref(params.inputDesc).GetLengths()[1];
+                auto input_tv         = get_inner_expanded_tv<4>(deref(params.inputDesc));
+                auto output_tv        = get_inner_expanded_tv<4>(deref(params.outputDesc));
+                auto indices_tv       = get_inner_expanded_tv<4>(deref(params.indicesDesc));
+                auto random_sample_tv = get_inner_expanded_tv<3>(deref(params.randomSampleDesc));
 
                 kernel(params.input,
-                       params.target,
                        params.output,
-                       params.backprop,
-                       num_class,
+                       params.indices,
+                       params.random_sample,
+                       params.KD,
+                       params.KH,
                        input_tv,
-                       target_tv,
                        output_tv,
-                       backprop_tv);
+                       indices_tv,
+                       random_sample_tv);
             };
         };
     }
@@ -108,9 +107,9 @@ ConvSolution FractionalMaxPoolForward::GetSolution(
     {
         result.construction_params.push_back(
             make_hip_kernel({LOCAL_SIZE_FWD},
-                            {LOCAL_SIZE_FWD * problem.GetOutputDesc().GetLengths()[0]},
+                            {problem.GetOutputDesc().GetElementSize()},
                             "MIOpenFractionalMaxPool.cpp",
-                            "FractionalMaxPoolForwardContiguous",
+                            "FractionalMaxPool3dForward",
                             build_params));
 
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
@@ -118,9 +117,23 @@ ConvSolution FractionalMaxPoolForward::GetSolution(
                 decltype(auto) kernel = handle_.Run(kernels[0]);
                 decltype(auto) params =
                     raw_params.CastTo<miopen::fractionalmaxpool::FwdInvokeParams>();
-                auto num_class = deref(params.inputDesc).GetLengths()[1];
 
-                kernel(params.input, params.target, params.output, params.backprop, num_class);
+                auto input_tv         = get_inner_expanded_tv<5>(deref(params.inputDesc));
+                auto output_tv        = get_inner_expanded_tv<5>(deref(params.outputDesc));
+                auto indices_tv       = get_inner_expanded_tv<5>(deref(params.indicesDesc));
+                auto random_sample_tv = get_inner_expanded_tv<3>(deref(params.randomSampleDesc));
+
+                kernel(params.input,
+                       params.output,
+                       params.indices,
+                       params.random_sample,
+                       params.KD,
+                       params.KH,
+                       params.KW,
+                       input_tv,
+                       output_tv,
+                       indices_tv,
+                       random_sample_tv);
             };
         };
     }

@@ -42,6 +42,7 @@ add_executable(MIOpenDriver
     dm_convint8.cpp
     dm_dropout.cpp
     dm_fusion.cpp
+    dm_fractionalmaxpool.cpp
     dm_gemm.cpp
     dm_getitem.cpp
     dm_glu.cpp
@@ -59,7 +60,6 @@ add_executable(MIOpenDriver
     dm_rope.cpp
     dm_softmarginloss.cpp
     dm_softmax.cpp
-    dm_fractionalmaxpool.cpp
     dm_t5layernorm.cpp
     dm_tensorop.cpp
     dm_transformers_adam_w.cpp

@@ -8019,6 +8019,8 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * @param output                Data tensor output (output)
  * @param indicesDesc           Tensor descriptor for indices tensor (input)
  * @param indices               Data tensor indices (output)
+ * @param randomSampleDesc      Tensor descriptor for random sample tensor (input)
+ * @param random_sample         Data tensor random sample (input)
  * @param KD                    Kernel depth (input)
  * @param KH                    Kernel height (input)
  * @param KW                    Kernel width (input)
@@ -8032,6 +8034,8 @@ miopenFractionalMaxPoolForward(miopenHandle_t handle,
                                void* output,
                                const miopenTensorDescriptor_t indicesDesc,
                                void* indices,
+                               const miopenTensorDescriptor_t randomSampleDesc,
+                               const void* random_sample,
                                const int64_t KD,
                                const int64_t KH,
                                const int64_t KW);

@@ -41,12 +41,14 @@ struct FwdProblemDescription : ProblemDescriptionBase
     FwdProblemDescription(const TensorDescriptor& inputDesc_,
                           const TensorDescriptor& outputDesc_,
                           const TensorDescriptor& indicesDesc_,
+                          const TensorDescriptor& randomSampleDesc_,
                           const int64_t KD_,
                           const int64_t KH_,
                           const int64_t KW_)
         : inputDesc(inputDesc_),
           outputDesc(outputDesc_),
           indicesDesc(indicesDesc_),
+          randomSampleDesc(randomSampleDesc_),
           KD(KD_),
           KH(KH_),
           KW(KW_)
@@ -62,7 +64,8 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
     bool IsSameType() const
     {
-        if(inputDesc.GetType() != outputDesc.GetType())
+        if(inputDesc.GetType() != outputDesc.GetType() ||
+           inputDesc.GetType() != randomSampleDesc.GetType())
             MIOPEN_THROW(miopenStatusBadParm, "FractionalMaxPoolForward: Data types do not match.");
         return true;
     }
@@ -91,6 +94,7 @@ private:
     TensorDescriptor inputDesc;
     TensorDescriptor outputDesc;
     TensorDescriptor indicesDesc;
+    TensorDescriptor randomSampleDesc;
     int64_t KD, KH, KW;
 };
 
@@ -106,6 +110,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
     }
 
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
+    const TensorDescriptor& GetIndicesDesc() const { return indicesDesc; }
 
     bool IsSameType() const
     {

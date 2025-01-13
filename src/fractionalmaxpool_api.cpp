@@ -72,19 +72,32 @@ inline void LogCmdFractionalMaxPool(const miopenTensorDescriptor_t xDesc,
     }
 }
 
-extern "C" miopenStatus_t miopenFractionalMaxPoolForward(miopenHandle_t handle,
-                                                         const miopenTensorDescriptor_t inputDesc,
-                                                         const void* input,
-                                                         const miopenTensorDescriptor_t outputDesc,
-                                                         void* output,
-                                                         const miopenTensorDescriptor_t indicesDesc,
-                                                         void* indices,
-                                                         const int64_t KD,
-                                                         const int64_t KH,
-                                                         const int64_t KW)
+extern "C" miopenStatus_t
+miopenFractionalMaxPoolForward(miopenHandle_t handle,
+                               const miopenTensorDescriptor_t inputDesc,
+                               const void* input,
+                               const miopenTensorDescriptor_t outputDesc,
+                               void* output,
+                               const miopenTensorDescriptor_t indicesDesc,
+                               void* indices,
+                               const miopenTensorDescriptor_t randomSampleDesc,
+                               const void* random_sample,
+                               const int64_t KD,
+                               const int64_t KH,
+                               const int64_t KW)
 {
-    MIOPEN_LOG_FUNCTION(
-        handle, inputDesc, input, outputDesc, output, indicesDesc, indices, KD, KH, KW);
+    MIOPEN_LOG_FUNCTION(handle,
+                        inputDesc,
+                        input,
+                        outputDesc,
+                        output,
+                        indicesDesc,
+                        indices,
+                        randomSampleDesc,
+                        random_sample,
+                        KD,
+                        KH,
+                        KW);
 
     LogCmdFractionalMaxPool(inputDesc, outputDesc, true);
 
@@ -96,6 +109,8 @@ extern "C" miopenStatus_t miopenFractionalMaxPoolForward(miopenHandle_t handle,
                                                             DataCast(output),
                                                             miopen::deref(indicesDesc),
                                                             DataCast(indices),
+                                                            miopen::deref(randomSampleDesc),
+                                                            DataCast(random_sample),
                                                             KD,
                                                             KH,
                                                             KW);

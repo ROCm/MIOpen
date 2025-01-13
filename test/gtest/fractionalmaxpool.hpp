@@ -48,42 +48,29 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 struct FractionalMaxPoolTestCase
 {
     std::vector<size_t> input_dim;
-    bool is_contiguous = true;
+    std::vector<int64_t> kernel_size;
     friend std::ostream& operator<<(std::ostream& os, const FractionalMaxPoolTestCase& tc)
     {
-        return os << " input_dim:" << tc.input_dim << " is_contiguous:" << tc.is_contiguous;
-    }
-
-    std::vector<size_t> ComputeStrides(std::vector<size_t> inputDim) const
-    {
-        if(!is_contiguous)
-            std::swap(inputDim.front(), inputDim.back());
-        std::vector<size_t> strides(inputDim.size());
-        strides.back() = 1;
-        for(int i = inputDim.size() - 2; i >= 0; --i)
-            strides[i] = strides[i + 1] * inputDim[i + 1];
-        if(!is_contiguous)
-            std::swap(strides.front(), strides.back());
-        return strides;
+        return os << " input_dim:" << tc.input_dim << " kernel_size:" << tc.kernel_size;
     }
 };
 
 inline std::vector<FractionalMaxPoolTestCase> FractionalMaxPoolTestConfigs()
 {
     return {
-        {{100, 1000}, true},
-        {{100, 1000}, false},
-        {{1000, 100}, true},
-        {{1000, 100}, false},
-        {{10, 10000}, true},
-        {{10, 10000}, false},
-        {{10000, 10}, true},
-        {{10000, 10}, false},
+        {{10, 10, 10, 10}, {2, 2}},
+        {{10, 100, 10, 10}, {3, 4}},
+        {{10, 10, 100, 100}, {5, 6}},
+        {{1, 100, 100, 100}, {7, 8}},
+        {{10, 10, 10, 10, 10}, {2, 2, 2}},
+        {{10, 100, 10, 10, 10}, {3, 2, 2}},
+        {{10, 10, 100, 10, 10}, {4, 2, 2}},
+        {{10, 10, 10, 100, 100}, {5, 2, 2}},
     };
 }
 
 // FORWARD TEST
-template <typename T = float>
+template <typename T = float, typename Ti = int64_t>
 struct FractionalMaxPoolTestFwd : public ::testing::TestWithParam<FractionalMaxPoolTestCase>
 {
 protected:
@@ -92,32 +79,43 @@ protected:
         auto&& handle            = get_handle();
         fractionalmaxpool_config = GetParam();
         in_dim                   = fractionalmaxpool_config.input_dim;
+        ksize                    = fractionalmaxpool_config.kernel_size;
+
+        N                           = in_dim[0];
+        C                           = in_dim[1];
+        std::vector<size_t> out_dim = {N, C};
+        for(int i = 0; i < in_dim.size() - 2; i++)
+        {
+            out_dim.push_back(in_dim[i + 2] / ksize[i]);
+        }
 
         auto gen_input_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
         };
-        auto in_stride = fractionalmaxpool_config.ComputeStrides(in_dim);
-        input          = tensor<T>{in_dim, in_stride}.generate(gen_input_value);
+        input = tensor<T>{in_dim}.generate(gen_input_value);
 
-        auto gen_target_value = [this](auto...) { return prng::gen_A_to_B<int>(0, in_dim[1] - 1); };
-        target                = tensor<int>{in_dim[0]}.generate(gen_target_value);
+        auto gen_random_sample = [](auto...) {
+            return prng::gen_A_to_B<T>(static_cast<T>(0.0f), static_cast<T>(1.0f));
+        };
+        std::vector<size_t> random_dim = {N, C, ksize.size()};
+        random_sample                  = tensor<T>{random_dim}.generate(gen_random_sample);
 
-        output = tensor<T>{in_dim[0]};
+        output = tensor<T>{out_dim};
         std::fill(output.begin(), output.end(), 0.0f);
 
-        ref_output = tensor<T>{in_dim[0]};
+        ref_output = tensor<T>{out_dim};
         std::fill(ref_output.begin(), ref_output.end(), 0.0f);
 
-        backprop = tensor<T>{in_dim};
-        std::fill(backprop.begin(), backprop.end(), 0.0f);
+        indices = tensor<Ti>{out_dim};
+        std::fill(indices.begin(), indices.end(), 0);
 
-        ref_backprop = tensor<T>{in_dim};
-        std::fill(ref_backprop.begin(), ref_backprop.end(), 0.0f);
+        ref_indices = tensor<Ti>{out_dim};
+        std::fill(ref_indices.begin(), ref_indices.end(), 0);
 
-        input_dev    = handle.Write(input.data);
-        target_dev   = handle.Write(target.data);
-        output_dev   = handle.Write(output.data);
-        backprop_dev = handle.Write(backprop.data);
+        input_dev         = handle.Write(input.data);
+        output_dev        = handle.Write(output.data);
+        indices_dev       = handle.Write(indices.data);
+        random_sample_dev = handle.Write(random_sample.data);
     }
 
     void RunTest()
@@ -125,20 +123,32 @@ protected:
         auto&& handle = get_handle();
         miopenStatus_t status;
 
-        cpu_fractionalmaxpool_forward<T, int>(input, target, ref_output, ref_backprop, in_dim[1]);
-
-        status = miopen::fractionalmaxpool::FractionalMaxPoolForward(handle,
-                                                                     input.desc,
-                                                                     input_dev.get(),
-                                                                     target.desc,
-                                                                     target_dev.get(),
-                                                                     output.desc,
-                                                                     output_dev.get(),
-                                                                     backprop.desc,
-                                                                     backprop_dev.get());
+        if(ksize.size() == 2)
+        {
+            cpu_fractionalmaxpool2d_forward<T, int64_t>(
+                input, ref_output, ref_indices, random_sample, ksize[0], ksize[1]);
+        }
+        else if(ksize.size() == 3)
+        {
+            cpu_fractionalmaxpool3d_forward<T, int64_t>(
+                input, ref_output, ref_indices, random_sample, ksize[0], ksize[1], ksize[2]);
+        }
+        status =
+            miopen::fractionalmaxpool::FractionalMaxPoolForward(handle,
+                                                                input.desc,
+                                                                input_dev.get(),
+                                                                output.desc,
+                                                                output_dev.get(),
+                                                                indices.desc,
+                                                                indices_dev.get(),
+                                                                random_sample.desc,
+                                                                random_sample_dev.get(),
+                                                                ksize[0],
+                                                                ksize[1],
+                                                                ksize.size() == 3 ? ksize[2] : 1);
         ASSERT_EQ(status, miopenStatusSuccess);
-        output.data   = handle.Read<T>(output_dev, output.data.size());
-        backprop.data = handle.Read<T>(backprop_dev, backprop.data.size());
+        output.data  = handle.Read<T>(output_dev, output.data.size());
+        indices.data = handle.Read<Ti>(indices_dev, indices.data.size());
     }
 
     void Verify()
@@ -151,31 +161,36 @@ protected:
         EXPECT_LT(error, threshold * 10) << "Error forward Output beyond 10xthreshold : " << error
                                          << " Tolerance: " << threshold * 10;
 
-        auto backprop_error = miopen::rms_range(ref_backprop, backprop);
-        ASSERT_EQ(miopen::range_distance(ref_backprop), miopen::range_distance(backprop));
-        EXPECT_LT(backprop_error, threshold * 10)
-            << "Error forward Backprop beyond 10xthreshold : " << backprop_error
+        auto error_indices = miopen::rms_range(ref_indices, indices);
+
+        ASSERT_EQ(miopen::range_distance(ref_indices), miopen::range_distance(indices));
+        EXPECT_LT(error_indices, threshold * 10)
+            << "Error forward Indices beyond 10xthreshold : " << error_indices
             << " Tolerance: " << threshold * 10;
     }
     FractionalMaxPoolTestCase fractionalmaxpool_config;
 
     std::vector<size_t> in_dim;
+    std::vector<int64_t> ksize;
+    bool use_indices;
 
     tensor<T> input;
-    tensor<int> target;
     tensor<T> output;
-    tensor<T> backprop;
+    tensor<Ti> indices;
+    tensor<T> random_sample;
     tensor<T> ref_output;
-    tensor<T> ref_backprop;
+    tensor<Ti> ref_indices;
+
+    int64_t N = 1, C = 1, D = 1, H = 1, W = 1, OD = 1, OH = 1, OW = 1;
 
     miopen::Allocator::ManageDataPtr input_dev;
-    miopen::Allocator::ManageDataPtr target_dev;
     miopen::Allocator::ManageDataPtr output_dev;
-    miopen::Allocator::ManageDataPtr backprop_dev;
+    miopen::Allocator::ManageDataPtr indices_dev;
+    miopen::Allocator::ManageDataPtr random_sample_dev;
 };
 
 // BACKWARD TEST
-template <typename T = float>
+template <typename T = float, typename Ti = int64_t>
 struct FractionalMaxPoolTestBwd : public ::testing::TestWithParam<FractionalMaxPoolTestCase>
 {
 protected:
@@ -184,14 +199,22 @@ protected:
         auto&& handle            = get_handle();
         fractionalmaxpool_config = GetParam();
         in_dim                   = fractionalmaxpool_config.input_dim;
+        ksize                    = fractionalmaxpool_config.kernel_size;
+
+        N                           = in_dim[0];
+        C                           = in_dim[1];
+        std::vector<size_t> out_dim = {N, C};
+        for(int i = 0; i < in_dim.size() - 2; i++)
+        {
+            out_dim.push_back(in_dim[i + 2] / ksize[i]);
+        }
 
         auto gen_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
         };
-        output_grad = tensor<T>{in_dim[0]}.generate(gen_value);
-
-        auto backprop_stride = fractionalmaxpool_config.ComputeStrides({in_dim});
-        backprop             = tensor<T>{in_dim, backprop_stride}.generate(gen_value);
+        output_grad            = tensor<T>{out_dim}.generate(gen_value);
+        auto gen_indices_value = [](auto...) { return prng::gen_A_to_B<Ti>(0, 10); };
+        indices                = tensor<Ti>{out_dim}.generate(gen_indices_value);
 
         input_grad = tensor<T>{in_dim};
         std::fill(input_grad.begin(), input_grad.end(), 0.0f);
@@ -199,8 +222,8 @@ protected:
         ref_input_grad = tensor<T>{in_dim};
         std::fill(ref_input_grad.begin(), ref_input_grad.end(), 0.0f);
 
+        indices_dev     = handle.Write(indices.data);
         output_grad_dev = handle.Write(output_grad.data);
-        backprop_dev    = handle.Write(backprop.data);
         input_grad_dev  = handle.Write(input_grad.data);
     }
 
@@ -208,13 +231,20 @@ protected:
     {
         auto&& handle         = get_handle();
         miopenStatus_t status = miopenStatusSuccess;
-        cpu_fractionalmaxpool_backward<T>(output_grad, backprop, ref_input_grad, in_dim[1]);
+        if(ksize.size() == 2)
+        {
+            cpu_fractionalmaxpool2d_backward<T>(indices, output_grad, ref_input_grad);
+        }
+        else if(ksize.size() == 3)
+        {
+            cpu_fractionalmaxpool3d_backward<T>(indices, output_grad, ref_input_grad);
+        }
 
         status = miopen::fractionalmaxpool::FractionalMaxPoolBackward(handle,
+                                                                      indices.desc,
+                                                                      indices_dev.get(),
                                                                       output_grad.desc,
                                                                       output_grad_dev.get(),
-                                                                      backprop.desc,
-                                                                      backprop_dev.get(),
                                                                       input_grad.desc,
                                                                       input_grad_dev.get());
         ASSERT_EQ(status, miopenStatusSuccess);
@@ -234,13 +264,16 @@ protected:
     FractionalMaxPoolTestCase fractionalmaxpool_config;
 
     std::vector<size_t> in_dim;
+    std::vector<int64_t> ksize;
 
+    tensor<Ti> indices;
     tensor<T> output_grad;
-    tensor<T> backprop;
     tensor<T> input_grad;
     tensor<T> ref_input_grad;
 
+    int64_t N = 1, C = 1, D = 1, H = 1, W = 1, OD = 1, OH = 1, OW = 1;
+
+    miopen::Allocator::ManageDataPtr indices_dev;
     miopen::Allocator::ManageDataPtr output_grad_dev;
-    miopen::Allocator::ManageDataPtr backprop_dev;
     miopen::Allocator::ManageDataPtr input_grad_dev;
 };

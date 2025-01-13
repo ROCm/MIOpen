@@ -29,11 +29,11 @@
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "fractionalmaxpool")
-        return new FractionalMaxPoolDriver<float, float>();
+        return new FractionalMaxPoolDriver<float, float, int64_t>();
     if(base_arg == "fractionalmaxpoolfp16")
-        return new FractionalMaxPoolDriver<float16, float>();
+        return new FractionalMaxPoolDriver<float16, float, int64_t>();
     if(base_arg == "fractionalmaxpoolbfp16")
-        return new FractionalMaxPoolDriver<bfloat16, float>();
+        return new FractionalMaxPoolDriver<bfloat16, float, int64_t>();
     return nullptr;
 }
 
