@@ -470,6 +470,10 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     {
         algo = miopenRNNfundamental;
     }
+    else if((inflags.GetValueInt("rnnalgo")) == 2)
+    {
+        algo = miopenRNNroundedDynamic;
+    }
     else
     {
         printf("Incorrect RNN algorithm\n");
