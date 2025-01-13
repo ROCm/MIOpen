@@ -363,8 +363,8 @@ void Handle::ClearKernels(const std::string& algorithm, const std::string& netwo
     this->impl->cache.ClearKernels(algorithm, network_config);
 }
 
-const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
-                                                  const std::string& network_config) const
+std::vector<Kernel> Handle::GetKernelsImpl(const std::string& algorithm,
+                                           const std::string& network_config) const
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
@@ -482,7 +482,7 @@ std::ostream& Handle::Print(std::ostream& os) const
     return os;
 }
 
-std::size_t Handle::GetMaxMemoryAllocSize()
+std::size_t Handle::GetMaxMemoryAllocSize() const
 {
     if(m_MaxMemoryAllocSizeCached == 0)
         m_MaxMemoryAllocSizeCached = miopen::GetDeviceInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>(

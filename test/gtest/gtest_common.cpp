@@ -37,7 +37,10 @@ std::string MockHandle::GetDeviceName() const { return std::string{dev_descr.nam
 
 std::size_t MockHandle::GetMaxComputeUnits() const { return dev_descr.cu_cnt; }
 
-std::size_t MockHandle::GetMaxMemoryAllocSize() { return std::numeric_limits<std::size_t>::max(); }
+std::size_t MockHandle::GetMaxMemoryAllocSize() const
+{
+    return std::numeric_limits<std::size_t>::max();
+}
 
 bool MockHandle::CooperativeLaunchSupported() const { return false; }
 

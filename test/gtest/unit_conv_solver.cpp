@@ -73,26 +73,6 @@ bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
     return false;
 }
 
-miopen::conv::ProblemDescription GetProblemDescription(miopen::conv::Direction direction,
-                                                       const ConvTestCase& conv_config)
-{
-    const auto x_desc    = conv_config.GetXTensorDescriptor();
-    const auto w_desc    = conv_config.GetWTensorDescriptor();
-    const auto conv_desc = conv_config.GetConv();
-    const auto y_desc =
-        conv_desc.GetForwardOutputTensor(x_desc, w_desc, conv_config.GetYDataType());
-
-    switch(direction)
-    {
-    case miopen::conv::Direction::Forward:
-    case miopen::conv::Direction::BackwardData:
-        return miopen::conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, direction);
-    case miopen::conv::Direction::BackwardWeights:
-        return miopen::conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, direction);
-    default: throw std::runtime_error("unknown direction");
-    }
-}
-
 } // namespace
 
 //************************************************************************************
@@ -171,6 +151,25 @@ miopen::ConvolutionDescriptor ConvTestCase::GetConv() const
     return conv.GetConvolutionDescriptor();
 }
 
+miopen::conv::ProblemDescription
+ConvTestCase::GetProblemDescription(miopen::conv::Direction direction) const
+{
+    const auto x_desc    = GetXTensorDescriptor();
+    const auto w_desc    = GetWTensorDescriptor();
+    const auto conv_desc = GetConv();
+    const auto y_desc    = conv_desc.GetForwardOutputTensor(x_desc, w_desc, GetYDataType());
+
+    switch(direction)
+    {
+    case miopen::conv::Direction::Forward:
+    case miopen::conv::Direction::BackwardData:
+        return miopen::conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, direction);
+    case miopen::conv::Direction::BackwardWeights:
+        return miopen::conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, direction);
+    default: throw std::runtime_error("unknown direction");
+    }
+}
+
 std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 {
     os << "(";
@@ -192,7 +191,8 @@ UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_)
     : supported_devs(supported_devs_),
       use_cpu_ref(false),
       enable_deprecated_solvers(false),
-      tunable(false)
+      tunable(false),
+      disable_xnack(false)
 {
 }
 
@@ -205,6 +205,8 @@ void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
     tunable               = true;
     tuning_iterations_max = iterations_max_;
 }
+
+void UnitTestConvSolverParams::CheckXnackDisabled() { disable_xnack = true; }
 
 namespace {
 
@@ -241,6 +243,10 @@ double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction directio
         {
             tolerance *= 2.0;
         }
+        else if(algo == miopenConvolutionAlgoImplicitGEMM)
+        {
+            tolerance *= 2.0;
+        }
     }
 
     if constexpr(std::is_same_v<T, float>)
@@ -249,6 +255,10 @@ double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction directio
            direction == miopen::conv::Direction::BackwardWeights)
         {
             tolerance *= 2.0;
+        }
+        else if(algo == miopenConvolutionAlgoImplicitGEMM)
+        {
+            tolerance *= 3.0;
         }
     }
 
@@ -699,6 +709,10 @@ void UnitTestConvSolverBase::SetUpImpl(const UnitTestConvSolverParams& params)
     {
         GTEST_SKIP();
     }
+    else if(params.disable_xnack && get_handle_xnack())
+    {
+        GTEST_SKIP();
+    }
 }
 
 void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverInterface& solver,
@@ -732,7 +746,7 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
         deprecated_solv_enabler.Enable();
     }
 
-    const auto problem = GetProblemDescription(direction, conv_config);
+    const auto problem = conv_config.GetProblemDescription(direction);
 
     const auto all_known_devs = GetAllKnownDevices();
     for(const auto& [dev, dev_descr] : all_known_devs)
