@@ -70,7 +70,7 @@ private:
     miopenSoftmaxMode_t mode;
 };
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftmaxForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftmaxForward(const Handle& handle,
                                                       const void* alpha,
                                                       const void* beta,
                                                       const TensorDescriptor& xDesc,
@@ -82,7 +82,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftmaxForward(Handle& handle,
                                                       int x_offset = 0,
                                                       int y_offset = 0);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftmaxBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftmaxBackward(const Handle& handle,
                                                        const void* alpha,
                                                        const TensorDescriptor& yDesc,
                                                        ConstData_t y,
