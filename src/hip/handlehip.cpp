@@ -755,7 +755,7 @@ std::size_t Handle::GetWavefrontWidth() const
 
 // No HIP API that could return maximum memory allocation size
 // for a single object.
-std::size_t Handle::GetMaxMemoryAllocSize()
+std::size_t Handle::GetMaxMemoryAllocSize() const
 {
     if(m_MaxMemoryAllocSizeCached == 0)
     {

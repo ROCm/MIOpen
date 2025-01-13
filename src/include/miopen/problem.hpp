@@ -114,8 +114,9 @@ struct Problem
 
     const OperatorDescriptor& GetOperatorDescriptor() const { return operator_descriptor; }
 
-    std::vector<Solution>
-    FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const;
+    std::vector<Solution> FindSolutions(const Handle& handle,
+                                        const FindOptions& options,
+                                        std::size_t max_solutions) const;
 
     conv::ProblemDescription AsConvolution() const;
     activ::ProblemDescription AsActivation() const;
@@ -182,20 +183,20 @@ private:
     std::unordered_map<miopenTensorArgumentId_t, TensorDescriptor> tensor_descriptors;
     OperatorDescriptor operator_descriptor;
 
-    std::vector<Solution> FindSolutionsImpl(Handle& handle,
+    std::vector<Solution> FindSolutionsImpl(const Handle& handle,
                                             const FindOptions& options,
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
                                             const ConvolutionDescriptor& conv_desc,
                                             const Problem& original) const;
 
-    std::vector<Solution> FindSolutionsImpl(Handle& handle,
+    std::vector<Solution> FindSolutionsImpl(const Handle& handle,
                                             const FindOptions& options,
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
                                             const MhaDescriptor& mha_desc) const;
 
-    std::vector<Solution> FindSolutionsImpl(Handle& handle,
+    std::vector<Solution> FindSolutionsImpl(const Handle& handle,
                                             const FindOptions& options,
                                             std::size_t max_solutions,
                                             const Buffers& buffers,
@@ -218,8 +219,9 @@ struct MIOPEN_INTERNALS_EXPORT FusedProblem
         // Not implemented, but silently
     }
 
-    [[nodiscard]] std::vector<Solution>
-    FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const;
+    [[nodiscard]] std::vector<Solution> FindSolutions(const Handle& handle,
+                                                      const FindOptions& options,
+                                                      std::size_t max_solutions) const;
 
     void PropagateDescriptors();
 
