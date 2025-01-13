@@ -610,7 +610,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
         }
         catch(const miopen::Exception& ex)
         {
-            MIOPEN_LOG_I2("[Warning] Caught exception: (" << ex.what() << "), passing empty solver vector");
+            MIOPEN_LOG_I2("[Warning] Caught exception: (" << ex.what()
+                                                          << "), passing empty solver vector");
         }
 
         if(!solvers.empty())
