@@ -173,8 +173,8 @@ struct MIOPEN_EXPORT Handle : miopenHandle
         return StartsWith(name, "gfx1") ? num_cu * 2 /* CUs per WGP */ : num_cu;
     }
 
-    std::size_t m_MaxMemoryAllocSizeCached = 0;
-    virtual std::size_t GetMaxMemoryAllocSize();
+    mutable std::size_t m_MaxMemoryAllocSizeCached = 0;
+    virtual std::size_t GetMaxMemoryAllocSize() const;
     virtual bool CooperativeLaunchSupported() const;
 
     virtual std::string GetDeviceName() const;
@@ -199,13 +199,13 @@ public:
 #endif
 
     template <class T>
-    Allocator::ManageDataPtr Create(std::size_t sz)
+    Allocator::ManageDataPtr Create(std::size_t sz) const
     {
         return this->Create(sz * sizeof(T));
     }
 
     template <class Container>
-    Allocator::ManageDataPtr Write(const Container& c)
+    Allocator::ManageDataPtr Write(const Container& c) const
     {
         assert(!c.empty());
         using type = typename Container::value_type;
@@ -215,7 +215,7 @@ public:
     }
 
     template <class T>
-    std::vector<T> Read(const Allocator::ManageDataPtr& ddata, std::size_t sz)
+    std::vector<T> Read(const Allocator::ManageDataPtr& ddata, std::size_t sz) const
     {
         std::vector<T> result(sz);
         this->ReadTo(result.data(), ddata, sz * sizeof(T));
@@ -223,7 +223,7 @@ public:
     }
 
     template <class V>
-    void ReadToVec(const Allocator::ManageDataPtr& ddata, V& output_vec)
+    void ReadToVec(const Allocator::ManageDataPtr& ddata, V& output_vec) const
     {
         using T = typename V::value_type;
         assert(ddata);
@@ -259,15 +259,16 @@ public:
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,
                          const std::string& solver,
-                         const std::optional<AlgorithmName>& algo = std::nullopt)
+                         const std::optional<AlgorithmName>& algo = std::nullopt) const
     {
         invokers.Register({config, solver}, invoker);
         if(algo.has_value())
             SetAsFound1_0(config, *algo, solver);
     }
 
-    void
-    SetAsFound1_0(const NetworkConfig& config, const AlgorithmName& algo, const std::string& solver)
+    void SetAsFound1_0(const NetworkConfig& config,
+                       const AlgorithmName& algo,
+                       const std::string& solver) const
     {
         invokers.SetAsFound1_0(config, algo, solver);
     }
@@ -314,7 +315,7 @@ private:
     hipblasLt_handle_ptr CreateHipblasLtHandle() const;
 #endif
 
-    InvokerCache invokers;
+    mutable InvokerCache invokers;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Handle& handle) { return handle.Print(os); }

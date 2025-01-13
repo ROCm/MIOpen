@@ -485,6 +485,8 @@ public:
 
     void ZeroOutBuffer(const Handle& handle)
     {
+        HipEventProfiler pfr(handle);
+
         [[maybe_unused]] auto status =
             hipMemsetAsync(buf_handle.get(), 0, tensor_sz, handle.GetStream());
         assert(status == hipSuccess);
@@ -508,7 +510,7 @@ private:
         kern_args[0] = out_ptr;
         kern_args[1] = in_ptr;
 
-        auto save = handle.IsProfilingEnabled() ? 0.0f : handle.GetKernelTime();
+        auto save = handle.IsProfilingEnabled() ? handle.GetKernelTime() : 0.0f;
         handle.Run(kernels[kern_idx])(kern_args);
         if(handle.IsProfilingEnabled())
         {
@@ -749,6 +751,8 @@ ZeroOutTensor(const Handle& handle, const TensorDescriptor& tensorDesc, Data_t t
     // Use faster clear if possible.
     if(tensorDesc.IsPacked())
     {
+        HipEventProfiler pfr(handle);
+
         auto status = hipMemsetAsync(tensorData, 0, tensorDesc.GetNumBytes(), handle.GetStream());
         if(status != hipSuccess)
         {
@@ -855,16 +859,20 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 std::swap(conv_tensors.x, conv_tensors.y);
                 std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
             }
-            WorkAroundHipEventProfiler pfr(handle);
+
+            float elapsed = 0.0f;
+
+            // ConvertFrom automatically keeps kernel time and accumulates
             input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-
             input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-
             output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
             /// \todo: Will need SetTensor() to properly zero out non-packed tensors
             /// Note: Need to clear buffer memory for output since all values may not be set.
+            elapsed = handle.IsProfilingEnabled() ? handle.GetKernelTime() : 0.0f;
             output_tr_inst.ZeroOutBuffer(handle);
+            if(handle.IsProfilingEnabled())
+                elapsed += handle.GetKernelTime();
 
             std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
                 &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
@@ -874,7 +882,6 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
             });
 
-            auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
             std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
             if constexpr(IsSplitKNeeded<DeviceOpType>())
             {
@@ -907,7 +914,21 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 assert(buf_handle.get());
                 sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
             }
-            invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+
+            auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
+            {
+                WorkAroundHipEventProfiler prf(handle);
+                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+            }
+
+            if(handle.IsProfilingEnabled())
+            {
+                elapsed += handle.GetKernelTime();
+                handle.ResetKernelTime();
+                handle.AccumKernelTime(elapsed);
+            }
+
+            // ConvertTo automatically keeps kernel time and accumulates
             output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
         };
     };
@@ -983,12 +1004,15 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                                       data_ctx.beta.GetAsFloat());
                 }
 
-                auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
-                HipEventProfiler pfr(handle);
-
+                float elapsed = 0.0f;
                 if(alpha_beta_case == DEFAULT)
                 {
                     ZeroOutTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw);
+
+                    if(handle.IsProfilingEnabled())
+                    {
+                        elapsed += handle.GetKernelTime();
+                    }
                 }
                 // use captured value, other wise getting warning
                 // "lambda capture is not used" since this variable is only used in assert.
@@ -999,7 +1023,19 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 {
                     sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
                 }
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+
+                auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
+                {
+                    WorkAroundHipEventProfiler prf(handle);
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                }
+
+                if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
             };
         };
         result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
@@ -1020,16 +1056,31 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                                        data_ctx.alpha.GetAsFloat(),
                                                        data_ctx.beta.GetAsFloat());
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
-                HipEventProfiler pfr(handle);
 
                 // Zero out the buffer for output data since it won't always write all output
                 // values.
+                float elapsed = 0.0f;
                 if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
                 {
                     ZeroOutTensor(handle, data_ctx.tensors.outDesc, data_ctx.tensors.out);
+
+                    if(handle.IsProfilingEnabled())
+                    {
+                        elapsed += handle.GetKernelTime();
+                    }
                 }
 
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                {
+                    WorkAroundHipEventProfiler prf(handle);
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                }
+
+                if(handle.IsProfilingEnabled())
+                {
+                    elapsed += handle.GetKernelTime();
+                    handle.ResetKernelTime();
+                    handle.AccumKernelTime(elapsed);
+                }
             };
         };
         return result;

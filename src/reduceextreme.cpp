@@ -35,7 +35,7 @@
 
 namespace miopen {
 
-miopenStatus_t ReduceExtremeForward(Handle& handle,
+miopenStatus_t ReduceExtremeForward(const Handle& handle,
                                     const TensorDescriptor& xDesc,
                                     ConstData_t x,
                                     const TensorDescriptor& indiceDesc,
@@ -93,7 +93,7 @@ miopenStatus_t ReduceExtremeForward(Handle& handle,
     return miopenStatusUnsupportedOp;
 }
 
-miopenStatus_t ReduceExtremeForward(Handle& handle,
+miopenStatus_t ReduceExtremeForward(const Handle& handle,
                                     const TensorDescriptor& xDesc,
                                     ConstData_t x,
                                     const TensorDescriptor& yDesc,
