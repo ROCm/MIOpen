@@ -67,13 +67,15 @@ bool RNNBwWeightMSIsFast(const int seqLen)
     return false;
 }
 
-std::tuple<size_t, size_t> RNNDescriptor::GetTmpSpaceSizeDynamicAlgo(
-    Handle& /*handle*/, const SeqTensorDescriptor& xDesc, miopenRNNFWDMode_t /*fwdMode*/) const
+std::tuple<size_t, size_t>
+RNNDescriptor::GetTmpSpaceSizeDynamicAlgo(const Handle& /*handle*/,
+                                          const SeqTensorDescriptor& xDesc,
+                                          miopenRNNFWDMode_t /*fwdMode*/) const
 {
     return rnn_base::RNNDynamicModularSingleStreamFWD::getTempBuffersSize(*this, xDesc);
 }
 
-bool RNNDescriptor::CheckDynamicAlgoSelection(Handle& /*handle*/,
+bool RNNDescriptor::CheckDynamicAlgoSelection(const Handle& /*handle*/,
                                               const SeqTensorDescriptor& /*xDesc*/,
                                               miopenRNNFWDMode_t fwdMode) const
 {
@@ -94,7 +96,7 @@ bool RNNDescriptor::CheckDynamicAlgoSelection(Handle& /*handle*/,
     return false;
 }
 
-void RNNDescriptor::ModularForward(Handle& handle,
+void RNNDescriptor::ModularForward(const Handle& handle,
                                    miopenRNNFWDMode_t fwdMode,
                                    ConstData_t w,
                                    const SeqTensorDescriptor& xDesc,
@@ -127,7 +129,7 @@ void RNNDescriptor::ModularForward(Handle& handle,
     }
 }
 
-void RNNDescriptor::ModularBackward(Handle& handle,
+void RNNDescriptor::ModularBackward(const Handle& handle,
                                     const SeqTensorDescriptor& yDesc,
                                     ConstData_t dy,
                                     const TensorDescriptor& hDesc,
@@ -175,7 +177,7 @@ void RNNDescriptor::ModularBackward(Handle& handle,
     }
 }
 
-void RNNDescriptor::ModularBackwardWeights(Handle& handle,
+void RNNDescriptor::ModularBackwardWeights(const Handle& handle,
                                            const SeqTensorDescriptor& xDesc,
                                            ConstData_t x,
                                            const TensorDescriptor& hDesc,

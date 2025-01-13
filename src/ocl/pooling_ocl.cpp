@@ -54,7 +54,7 @@ static auto PoolingBackwardSolvers()
                                    solver::pooling::TransposedPoolingBwdNd>{};
 }
 
-miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
+miopenStatus_t PoolingDescriptor::Forward(const Handle& handle,
                                           const void* alpha,
                                           const TensorDescriptor& xDesc,
                                           ConstData_t x,
@@ -139,7 +139,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
+miopenStatus_t PoolingDescriptor::Backward(const Handle& handle,
                                            const void* alpha,
                                            const TensorDescriptor& yDesc,
                                            ConstData_t /*y*/,
