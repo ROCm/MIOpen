@@ -38,7 +38,6 @@ bool ValidateGcnAssembler() { return true; }
 #include <cstdlib>
 #include <fstream>
 #include <miopen/filesystem.hpp>
-#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/manage_ptr.hpp>
 #include <miopen/write_file.hpp>

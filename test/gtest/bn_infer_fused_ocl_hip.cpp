@@ -42,7 +42,7 @@
 #define warpSize 32
 #endif
 
-void BatchNormFusedInferencGPU(miopen::Handle& handle,
+void BatchNormFusedInferencGPU(const miopen::Handle& handle,
                                miopenBatchNormMode_t bn_mode,
                                miopenActivationMode_t activ_mode,
                                const float activ_alpha,
