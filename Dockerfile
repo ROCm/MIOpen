@@ -109,24 +109,24 @@ RUN ccache -s
 # purge existing composable kernel installed with ROCm
 # hence cannot use autoremove since it will remove more components
 # even purge will remove some other components which is not ideal
-RUN apt-get update && \
-DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
-    composablekernel-dev \
-    miopen-hip
+#RUN apt-get update && \
+#DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
+#    composablekernel-dev \
+#    miopen-hip
 
 # TODO: it should be able to automatically get commit hash from requirements.txt
 ARG CK_COMMIT=c5ad2e8075ccaf3457a41884b25f3dbe85bf251c
-RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
-    tar zxvf ck.tar.gz &&\
-    cd composable_kernel-${CK_COMMIT} && \
-    mkdir build && cd build && \
-    CXX=/opt/rocm/bin/amdclang++ cmake \
-    -D CMAKE_PREFIX_PATH=/opt/rocm \
-    -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
-    -D CMAKE_BUILD_TYPE=Release \
-    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
-    -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j $(nproc) install
+#RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
+#    tar zxvf ck.tar.gz &&\
+#    cd composable_kernel-${CK_COMMIT} && \
+#    mkdir build && cd build && \
+#    CXX=/opt/rocm/bin/amdclang++ cmake \
+#    -D CMAKE_PREFIX_PATH=/opt/rocm \
+#    -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
+#    -D CMAKE_BUILD_TYPE=Release \
+#    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
+#    -D CMAKE_CXX_FLAGS=" -O3 " .. && \
+#    make -j $(nproc) install
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 # this can minimize build time
@@ -151,18 +151,19 @@ RUN pip3 install --upgrade cmake==3.27.5
 #install miopen
 ARG INSTALL_MIOPEN=ON
 ARG MIOPEN_BRANCH=alex_perf_test
-RUN if [ "$INSTALL_MIOPEN" = "ON" ]; then \
-    git clone https://github.com/ROCm/MIOpen.git miopen; \ 
-    cd miopen; \
-    CXX=/opt/rocm/llvm/bin/clang++ cget install -f ./dev-requirements.txt; \
-    git pull && git checkout $MIOPEN_BRANCH; \
-    mkdir build; \
-    mkdir install; \
-    rm -f src/kernels/*.ufdb.txt; \
-    rm -f src/kernels/miopen*.udb; \
-    cd build ; \
-    CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=debug -DBUILD_DEV=On -DCMAKE_INSTALL_PREFIX=/opt/rocm -DMIOPEN_USE_MLIR=OFF -DMIOPEN_GPU_SYNC=Off  -DCMAKE_PREFIX_PATH=/opt/rocm    ..; \ 
-    LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \
+RUN set -e; \
+    if [ "$INSTALL_MIOPEN" = "ON" ]; then \
+        git clone https://github.com/ROCm/MIOpen.git miopen; \
+        cd miopen; \
+        CXX=/opt/rocm/llvm/bin/clang++ cget install -f ./dev-requirements.txt; \
+        git pull && git checkout $MIOPEN_BRANCH; \
+        mkdir build; \
+        mkdir install; \
+        rm -f src/kernels/*.ufdb.txt; \
+        rm -f src/kernels/miopen*.udb; \
+        cd build ; \
+        CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=debug -DBUILD_DEV=On -DCMAKE_INSTALL_PREFIX=/opt/rocm -DMIOPEN_USE_MLIR=OFF -DMIOPEN_GPU_SYNC=Off  -DCMAKE_PREFIX_PATH=/opt/rocm    ..; \
+        LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \
     fi
 
 # groupadd can add one group a time

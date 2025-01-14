@@ -201,7 +201,10 @@ def getDockerImage(Map conf=[:])
 
     def install_miopen = 'OFF' 
     if(params.INSTALL_MIOPEN == 'ON')
+    {
       install_miopen = 'ON'
+      gpu_arch = "gfx90a"
+    }
     def miopen_branch = 'develop' 
     if(params.branch_name != null)
       miopen_branch = params.branch_name
