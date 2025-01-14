@@ -70,9 +70,10 @@ struct TestNameGenerator
         const testing::TestParamInfo<std::tuple<TestCase, miopenTensorLayout_t, BNApiType>>& info)
         const
     {
-        std::string dimension = std::is_same<TestCase, BN2DTestCase>::value   ? "2D"
-                                : std::is_same<TestCase, BN3DTestCase>::value ? "3D"
-                                                                              : "Unknown";
+        constexpr int dimension = std::is_same<TestCase, BN2DTestCase>::value   ? 2
+                                  : std::is_same<TestCase, BN3DTestCase>::value ? 3
+                                                                                : -1;
+        static_assert(dimension > 0);
 
         const auto& layout_type = std::get<1>(info.param);
         const auto& api_type    = std::get<2>(info.param);
@@ -80,7 +81,10 @@ struct TestNameGenerator
         std::string tensor_name = LayoutToString(layout_type);
         std::string api_name    = ApiVerisonToString(api_type);
 
-        return tensor_name + "_" + api_name + dimension + "_" + std::to_string(info.index);
+        std::ostringstream oss;
+        oss << tensor_name + "_" + api_name + "_Dim_" + std::to_string(dimension) + "_test_id_" +
+                   std::to_string(info.index);
+        return oss.str();
     }
 };
 
