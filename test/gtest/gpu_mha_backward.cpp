@@ -121,7 +121,7 @@ protected:
     {
         prng::reset_seed();
         auto [n, h, s, d, drop] = GetParam();
-        Handle& handle          = get_handle();
+        const Handle& handle    = get_handle();
 
         if((drop > 0.0f))
         {
