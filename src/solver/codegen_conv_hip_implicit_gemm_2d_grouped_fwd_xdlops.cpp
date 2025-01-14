@@ -232,7 +232,7 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
         {{"include", x.prob.GetIncludeHeader()}, {"template", solution[0].ToTemplateString()}});
     auto name = solution[0].GetTemplateParameter<std::string>("name");
 
-    auto kernel_info = KernelInfo{};
+    auto kernel_info        = KernelInfo{};
     kernel_info.kernel_name = "run_" + name;
 
     // Grid size calculation
