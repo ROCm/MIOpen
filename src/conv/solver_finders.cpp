@@ -214,7 +214,7 @@ const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders()
 } // namespace conv
 
 /// Register invoker only for the best solution within algorithm.
-static std::vector<Solution> EvaluateInvokers(Handle& handle,
+static std::vector<Solution> EvaluateInvokers(const Handle& handle,
                                               const std::vector<solver::ConvSolution>& solutions,
                                               const AlgorithmName& algorithm_name,
                                               const NetworkConfig& network_config,
@@ -298,7 +298,7 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
                 best_invoker = invoker;
             }
 
-            auto solution = Solution{solver::Id{selected.solver_id}, best, selected.workspace_sz};
+            auto solution = Solution{solver::Id{sol.solver_id}, elapsed, sol.workspace_sz};
             if(force_attach_binary)
                 solution.SetInvoker(invoker, programs, selected.construction_params);
             else

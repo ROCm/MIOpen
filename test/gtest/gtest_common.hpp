@@ -113,7 +113,7 @@ public:
     // Add additional methods here if needed
     std::string GetDeviceName() const override;
     std::size_t GetMaxComputeUnits() const override;
-    std::size_t GetMaxMemoryAllocSize() override;
+    std::size_t GetMaxMemoryAllocSize() const override;
     bool CooperativeLaunchSupported() const override;
 
 private:

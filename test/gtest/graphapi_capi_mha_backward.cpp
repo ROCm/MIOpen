@@ -45,7 +45,7 @@ protected:
         }
     }
 
-    virtual void MakeRealTensorsAndFillData(miopen::Handle& handle) override
+    virtual void MakeRealTensorsAndFillData(const miopen::Handle& handle) override
     {
         auto q = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
         auto k = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
@@ -374,7 +374,7 @@ protected:
                       m_realTensorMap[miopenTensorMhaDK]->m_gapiDesc);
     }
 
-    virtual void RunCPUverify(miopen::Handle& handle) override
+    virtual void RunCPUverify(const miopen::Handle& handle) override
     {
         const double errorThreshold    = 5e-5;
         const double fp8ErrorThreshold = (std::is_same_v<T, float8>) ? 3e-3 : errorThreshold;
