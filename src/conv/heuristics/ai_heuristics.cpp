@@ -707,6 +707,11 @@ bool ModelSetParams(const std::string& arch,
 {
     auto model = GetModel(arch, solver);
 
+    std::stringstream ss;
+    for(int i = 0; i < 17; ++i)
+        ss << features[i * 17 + i] << ", ";
+    MIOPEN_LOG_I2("Features: " << ss.str());
+
     // get context
     int dim = 0;
     if(transform_features)
@@ -727,10 +732,11 @@ bool ModelSetParams(const std::string& arch,
     default: return false;
     }
 
+    MIOPEN_LOG_I2("PREDICT TYPE: " << model->metadata.predict_type);
+
     // run decoder to set kernel parameters
     for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params; ++i)
     {
-
         if(i == 0 && (model->metadata.predict_type == 0u))
             num_tuning_params = model->metadata.num_tuning_params[dir];
 
@@ -740,7 +746,9 @@ bool ModelSetParams(const std::string& arch,
         // order tokens according to their scores
         std::priority_queue<std::pair<float, int>> pq;
         for(int j = 0; j < token_scores.size(); j++)
+        {
             pq.push(std::make_pair(token_scores[j], j)); // sort by value at index
+        }
 
         // find a token whose value is a valid kernel parameter for the i-th position
         int output_token_index = -1;
@@ -751,11 +759,12 @@ bool ModelSetParams(const std::string& arch,
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
 
+            MIOPEN_LOG_I2(std::to_string((int)i) + ": " + std::to_string(token) + " " + value);
             if(value == "-1") // if token-value is "-1", then decoding has finished
             {
                 auto stop     = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-                MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
+                MIOPEN_LOG_I2("KTN ran for " << duration.count() << " micro-seconds. Ended at -1.");
                 return false;
             }
             if(validator(i, value)) // if token-value is a valid kernel parameter, it's set
@@ -773,7 +782,7 @@ bool ModelSetParams(const std::string& arch,
 
     auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
+    MIOPEN_LOG_I2("KTN ran for " << duration.count() << " micro-seconds");
     return true;
 }
 

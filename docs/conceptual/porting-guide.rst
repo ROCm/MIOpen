@@ -1,25 +1,25 @@
 .. meta::
-  :description: Porting MIOpen
+  :description: Porting to MIOpen
   :keywords: MIOpen, ROCm, API, documentation, porting
 
 ********************************************************************
 Porting to MIOpen
 ********************************************************************
 
-The following is a summary of the key differences between MIOpen and cuDNN.
+The following is a summary of the key differences between MIOpen and NVIDIA CUDA cuDNN.
 
-* Calling ``miopenFindConvolution*Algorithm()`` is `mandatory` before calling any Convolution API
-* The typical calling sequence for MIOpen Convolution APIs is:
+*  Calling ``miopenFindConvolution*Algorithm()`` is **mandatory** before calling any Convolution API
+*  The typical calling sequence for the MIOpen Convolution APIs is:
 
-    * ``miopenConvolution*GetWorkSpaceSize()`` (returns the workspace size required by ``Find()``)
-    * ``miopenFindConvolution*Algorithm()`` (returns performance information for various algorithms)
-    * ``miopenConvolution*()``
+   * ``miopenConvolution*GetWorkSpaceSize()`` (returns the workspace size required by ``Find()``)
+   * ``miopenFindConvolution*Algorithm()`` (returns the performance information for various algorithms)
+   * ``miopenConvolution*()``
 
 MIOpen supports:
 
-* 4D tensors in the NCHW and NHWC storage format; the cuDNN ``__“\*Nd\*”__`` APIs don't have a
-  corresponding MIOpen API
-* ``__`float(fp32)`__`` datatype
+* 4D tensors in the NCHW and NHWC storage format. The CUDA cuDNN ``__“\*Nd\*”__`` APIs don't have a
+  corresponding MIOpen API.
+* The ``__`float(fp32)`__`` datatype
 * ``__2D Convolutions__`` and ``__3D Convolutions__``
 * ``__2D Pooling__``
 
@@ -31,17 +31,17 @@ MIOpen doesn't support:
 
 Useful MIOpen environment variables include:
 
-* ``MIOPEN_ENABLE_LOGGING=1``: Logs all the MIOpen APIs called, including the parameters passed
+* ``MIOPEN_ENABLE_LOGGING=1``: Logs all the MIOpen APIs that are called, including the parameters passed
   to those APIs
 * ``MIOPEN_DEBUG_GCN_ASM_KERNELS=0``: Disables hand-tuned ASM kernels (the fallback is to use
   kernels written in a high-level language)
 * ``MIOPEN_DEBUG_CONV_FFT=0``: Disables the FFT convolution algorithm
 * ``MIOPEN_DEBUG_CONV_DIRECT=0``: Disables the direct convolution algorithm
 
-cuDNN versus MIOpen APIs
+CUDA cuDNN versus MIOpen APIs
 ===================================================
 
-The following sections compare cuDNN and MIOpen APIs with similar functions.
+The following sections compare the CUDA cuDNN and MIOpen APIs with similar functions.
 
 Handle operations
 -------------------------------------------------------------------------------------------
@@ -180,7 +180,7 @@ Tensor operations
                     int h,
                     int w)
 
-            (Only ``NCHW`` format is supported)
+          Only the ``NCHW`` format is supported
 
     *
         - .. code-block:: cpp
@@ -240,7 +240,7 @@ Tensor operations
                     const miopenTensorDescriptor_t  cDesc,
                     void *C)
 
-            For forward bias, use ``miopenConvolutionForwardBias``.
+          For forward bias, use ``miopenConvolutionForwardBias``
 
     *
         - .. code-block:: cpp
@@ -338,7 +338,7 @@ Filter operations
                 cudnnStatus_t
                 cudnnCreateFilterDescriptor(
                     cudnnFilterDescriptor_t *filterDesc)
-        - All ``FilterDescriptor`` APIs are substituted by their respective ``TensorDescriptor`` API.
+        - All ``TensorDescriptor`` APIs substitute for the respective ``FilterDescriptor`` APIs.
 
 Convolution operations
 -------------------------------------------------------------------------------------------
@@ -571,9 +571,9 @@ Convolution operations
                     cudnnConvolutionFwdAlgo_t *algo)
 
         - ``FindConvolution()`` is mandatory.
-            Allocate workspace prior to running this API.
+            Allocate the workspace prior to running this API.
             A table with times and memory requirements for different algorithms is returned.
-            You can choose the top-most algorithm if you want only the fastest algorithm.
+            Choose the top-most algorithm if you only want the fastest algorithm.
 
             .. code-block:: cpp
 
@@ -660,9 +660,9 @@ Convolution operations
                     cudnnConvolutionBwdFilterAlgo_t *algo)
 
         - ``FindConvolution()`` is mandatory.
-            Allocate workspace prior to running this API.
+            Allocate the workspace prior to running this API.
             A table with times and memory requirements for different algorithms is returned.
-            You can choose the top-most algorithm if you want only the fastest algorithm.
+            Choose the top-most algorithm if you only want the fastest algorithm.
 
             .. code-block:: cpp
 
@@ -725,9 +725,9 @@ Convolution operations
                     cudnnConvolutionBwdDataAlgo_t *algo)
 
         - ``FindConvolution()`` is mandatory.
-            Allocate workspace prior to running this API.
+            Allocate the workspace prior to running this API.
             A table with times and memory requirements for different algorithms is returned.
-            You can choose the top-most algorithm if you want only the fastest algorithm.
+            Choose the top-most algorithm if you only want the fastest algorithm.
 
             .. code-block:: cpp
 
