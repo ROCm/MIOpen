@@ -35,7 +35,7 @@
 
 namespace miopen {
 
-miopenStatus_t RoPEForward(Handle& handle,
+miopenStatus_t RoPEForward(const Handle& handle,
                            const TensorDescriptor& xDesc,
                            ConstData_t x,
                            const TensorDescriptor& cosDesc,
@@ -69,7 +69,7 @@ miopenStatus_t RoPEForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t RoPEBackward(Handle& handle,
+miopenStatus_t RoPEBackward(const Handle& handle,
                             const TensorDescriptor& dyDesc,
                             ConstData_t dy,
                             const TensorDescriptor& cosDesc,

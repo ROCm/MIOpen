@@ -151,7 +151,7 @@ struct PerfHelper
     }
 
     template <typename... Args>
-    void perfTest(miopen::Handle& handle,
+    void perfTest(const miopen::Handle& handle,
                   const std::string& kernel_name,
                   const std::string& network_config,
                   bool append,

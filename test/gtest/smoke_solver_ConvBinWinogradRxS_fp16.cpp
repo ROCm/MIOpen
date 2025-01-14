@@ -63,15 +63,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class GPU_Conv2dDefault_FP16 : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultBinWinogradRxS_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(GPU_Conv2dDefault_FP16, HalfTest_smoke_solver_ConvBinWinogradRxS_fp16)
+TEST_P(GPU_Conv2dDefaultBinWinogradRxS_FP16, HalfTest_smoke_solver_ConvBinWinogradRxS_fp16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, GPU_Conv2dDefault_FP16>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultBinWinogradRxS_FP16>(default_check);
     }
     else
     {
@@ -79,4 +79,6 @@ TEST_P(GPU_Conv2dDefault_FP16, HalfTest_smoke_solver_ConvBinWinogradRxS_fp16)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dDefault_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dDefaultBinWinogradRxS_FP16,
+                         testing::Values(GetTestCases()));
