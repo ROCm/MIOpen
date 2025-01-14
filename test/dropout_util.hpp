@@ -106,7 +106,7 @@ inline void ExpandTensorDim(std::vector<T> x_len,
 }
 
 template <typename T>
-void DropoutForwardVerify(miopen::Handle& handle,
+void DropoutForwardVerify(const miopen::Handle& handle,
                           const miopen::DropoutDescriptor& DropoutDesc,
                           const miopen::TensorDescriptor& inputTensor,
                           const std::vector<T>& input,

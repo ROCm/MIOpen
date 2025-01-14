@@ -26,6 +26,7 @@
 #pragma once
 
 #include <miopen/conv/solvers.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 #include "gtest_common.hpp"
 #include "unit_conv_ConvolutionDescriptor.hpp"
@@ -71,6 +72,7 @@ struct ConvTestCase
     miopenDataType_t GetYDataType() const;
 
     miopen::ConvolutionDescriptor GetConv() const;
+    miopen::conv::ProblemDescription GetProblemDescription(miopen::conv::Direction direction) const;
 
     friend std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc);
 
@@ -93,11 +95,13 @@ struct UnitTestConvSolverParams
     void UseCpuRef();
     void EnableDeprecatedSolvers();
     void Tunable(std::size_t iterations_max);
+    void CheckXnackDisabled();
 
     Gpu supported_devs;
     bool use_cpu_ref;
     bool enable_deprecated_solvers;
     bool tunable;
+    bool disable_xnack;
     std::size_t tuning_iterations_max;
 };
 
