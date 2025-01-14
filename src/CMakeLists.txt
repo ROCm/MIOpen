@@ -162,6 +162,8 @@ set( MIOpen_Source
     lock_file.cpp
     logger.cpp
     lrn_api.cpp
+    matrix_diag/problem_description.cpp
+    matrix_diag_api.cpp
     mha/mha_descriptor.cpp
     mha/problem_description.cpp
     multimarginloss/problem_description.cpp
@@ -312,6 +314,7 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/layernorm/forward_t5layernorm.cpp
+    solver/matrix_diag/forward_matrix_diag_contiguous.cpp
     solver/mha/mha_ck_fa_v2_solver_forward.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
@@ -537,6 +540,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
+        kernels/MIOpenMatrixDiag.cpp
         kernels/MIOpenMultiMarginLoss.cpp
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPReLU.cpp
@@ -676,6 +680,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kthvalue.cpp
         layernorm.cpp
         lrn.cpp
+        matrix_diag.cpp
         mlo_dir_conv.cpp
         multimarginloss.cpp
         ocl/activ_ocl.cpp

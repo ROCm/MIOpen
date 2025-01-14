@@ -26,6 +26,7 @@
 #ifndef MIOPEN_GUARD_MIOPEN_H_
 #define MIOPEN_GUARD_MIOPEN_H_
 
+#include <cstddef>
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wextern-c-compat"
@@ -72,6 +73,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
+ * @defgroup MatrixDiag
  *
  */
 
@@ -8174,6 +8176,67 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+
+/*! @ingroup MatrixDiag
+ * @enum miopenMatrixDiagAlignMode_t
+ * Aligm mode for MatrixDiag, MatrixSetDiag, MatrixDiagPart function
+ */
+typedef enum
+{
+    MIOPEN_MATRIX_ALIGN_LEFT_RIGHT  = 0,
+    MIOPEN_MATRIX_ALIGN_RIGHT_LEFT  = 1,
+    MIOPEN_MATRIX_ALIGN_LEFT_LEFT   = 2,
+    MIOPEN_MATRIX_ALIGN_RIGHT_RIGHT = 3,
+} miopenMatrixDiagAlignMode_t;
+
+// MatrixDiag APIs
+/** @addtogroup MatrixDiag
+ *
+ *  @{
+ */
+/*! @brief Execute a MatrixDiag forward layer
+ *
+ * @param [in]  handle              MIOpen handle
+ * @param [in]  diagDesc            Tensor descriptor for diagonal tensor. Rank r, where r >= 1.
+ * @param [in]  diag                Data tensor diagonal
+ * @param [in]  outputDesc          Tensor descriptor for output tensor. If reduction is 'none,
+ * then it must have shape (N). Otherwise, it is a scalar.
+ * @param [out] output              Data tensor output
+ * @param [in] diagOffset0          Diagonal offset. Positive value means superdiagonal,
+ * 0 refers to the main diagonal, and negative value means subdiagonals. Must be smaller than
+ * diagOffset1.
+ * @param [in] diagOffset1          Diagonal offset. Positive value means superdiagonal,
+ * 0 refers to the main diagonal, and negative value means subdiagonals. Must be larger than
+ * diagOffset0.
+ * @param [in]  padDesc             Tensor descriptor for pading tensor. One element only.
+ * @param [in]  pad                 Data tensor padding
+ * @param [in]  align               Some diagonals are shorter than max_diag_len and need to be
+ * padded. align is a enum specifying how superdiagonals and subdiagonals should be aligned,
+ * respectively. There are four possible alignments: MIOPEN_MATRIX_ALIGN_RIGHT_LEFT (default),
+ * MIOPEN_MATRIX_ALIGN_LEFT_RIGHT, MIOPEN_MATRIX_ALIGN_LEFT_LEFT, and
+ * MIOPEN_MATRIX_ALIGN_RIGHT_RIGHT. MIOPEN_MATRIX_ALIGN_RIGHT_LEFT aligns superdiagonals to the
+ * right (left-pads the row) and subdiagonals to the left (right-pads the row). It is the packing
+ * format LAPACK uses. cuSPARSE uses MIOPEN_MATRIX_ALIGN_LEFT_RIGHT, which is the opposite
+ * alignment. (Default = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT)
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenMatrixDiagForward(miopenHandle_t handle,
+                        miopenTensorDescriptor_t diagDesc,
+                        const void* diag,
+                        miopenTensorDescriptor_t outputDesc,
+                        void* output,
+                        const int64_t diagOffset0,
+                        const int64_t diagOffset1,
+                        miopenTensorDescriptor_t padDesc,
+                        const void* pad,
+                        const miopenMatrixDiagAlignMode_t align = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT);
+
+/** @} */
+// CLOSEOUT MatrixDiag DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

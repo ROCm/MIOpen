@@ -1,0 +1,208 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
+#include "cpu_matrix_diag.hpp"
+#include "get_handle.hpp"
+#include "random.hpp"
+#include "tensor_holder.hpp"
+#include "verify.hpp"
+#include <gtest/gtest.h>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+#include <miopen/matrix_diag.hpp>
+
+#include <vector>
+
+template <typename T>
+inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
+{
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
+
+struct MatrixDiagTestcase
+{
+    std::vector<size_t> diagSize;
+    int diagOffset0;
+    int diagOffset1;
+    int num_rows;
+    int num_cols;
+    miopenMatrixDiagAlignMode_t align = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT;
+
+    friend std::ostream& operator<<(std::ostream& os, const MatrixDiagTestcase& tc)
+    {
+        return os << " DiagSize:" << tc.diagSize << " offset0:" << tc.diagOffset0
+                  << " offset1:" << tc.diagOffset1 << " NRow:" << tc.num_rows
+                  << " NCol:" << tc.num_cols << " Align:" << tc.align;
+    }
+};
+
+inline std::vector<MatrixDiagTestcase>
+MatrixDiagConfigs(const std::vector<MatrixDiagTestcase> configs)
+{
+    std::vector<MatrixDiagTestcase> tcs;
+    const auto all_mode = {MIOPEN_MATRIX_ALIGN_LEFT_LEFT,
+                           MIOPEN_MATRIX_ALIGN_LEFT_RIGHT,
+                           MIOPEN_MATRIX_ALIGN_RIGHT_LEFT,
+                           MIOPEN_MATRIX_ALIGN_RIGHT_RIGHT};
+    size_t counter      = 0;
+    for(auto config : configs)
+        for(auto align : all_mode)
+        {
+            if(counter++ != 0)
+                continue;
+            config.align = align;
+            tcs.push_back(config);
+        }
+    return tcs;
+}
+
+inline std::vector<MatrixDiagTestcase> MatrixDiagSmokeTestConfigs()
+{
+    return MatrixDiagConfigs({{{2, 4}, 0, 0, 4, 4},
+                              {{2, 3}, 1, 1, 4, 4},
+                              {{2, 3, 3}, -1, 1, 3, 3},
+                              {{2}, -1, -1, 3, 4},
+                              {{2}, -1, -1, 3, 2}});
+}
+
+inline std::vector<MatrixDiagTestcase> MatrixDiagPerfTestConfigs() { return MatrixDiagConfigs({}); }
+
+inline std::vector<MatrixDiagTestcase> MatrixDiagFullTestConfigs()
+{
+    std::vector<MatrixDiagTestcase> tcs;
+
+    auto smoke_test = MatrixDiagSmokeTestConfigs();
+    auto perf_test  = MatrixDiagPerfTestConfigs();
+
+    tcs.reserve(smoke_test.size() + perf_test.size());
+    for(const auto& test : smoke_test)
+        tcs.push_back(test);
+    for(const auto& test : perf_test)
+        tcs.push_back(test);
+
+    return tcs;
+}
+
+template <typename TIO = float>
+struct MatrixDiagTestForward : public ::testing::TestWithParam<MatrixDiagTestcase>
+{
+protected:
+    void SetUp() override
+    {
+        auto&& handle      = get_handle();
+        matrix_diag_config = GetParam();
+        auto gen_value     = [](auto...) { return prng::gen_descreet_uniform_sign<TIO>(1e-2, 1); };
+
+        k0            = matrix_diag_config.diagOffset0;
+        k1            = matrix_diag_config.diagOffset1;
+        align         = matrix_diag_config.align;
+        auto diagSize = matrix_diag_config.diagSize;
+        auto num_rows = matrix_diag_config.num_rows;
+        auto num_cols = matrix_diag_config.num_cols;
+
+        diag   = tensor<TIO>{diagSize}.generate(gen_value);
+        pad    = tensor<TIO>{{1}};
+        pad[0] = -1;
+
+        auto outSize = diagSize;
+        if(k0 == k1)
+            outSize.push_back(0);
+        outSize[outSize.size() - 2] = num_rows;
+        outSize[outSize.size() - 1] = num_cols;
+
+        output = tensor<TIO>{outSize};
+        std::fill(output.begin(), output.end(), std::numeric_limits<TIO>::quiet_NaN());
+
+        ref_output = tensor<TIO>{outSize};
+        std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<TIO>::quiet_NaN());
+
+        diag_dev   = handle.Write(diag.data);
+        pad_dev    = handle.Write(pad.data);
+        output_dev = handle.Write(output.data);
+    }
+
+    void RunTest()
+    {
+        auto&& handle = get_handle();
+
+        cpu_matrix_set_diag(pad, diag, ref_output, k0, k1, true, align);
+        miopenStatus_t status = miopen::MatrixDiagForward(handle,
+                                                          diag.desc,
+                                                          diag_dev.get(),
+                                                          output.desc,
+                                                          output_dev.get(),
+                                                          k0,
+                                                          k1,
+                                                          pad.desc,
+                                                          pad_dev.get(),
+                                                          align);
+        ASSERT_EQ(status, miopenStatusSuccess);
+
+        output.data = handle.Read<TIO>(output_dev, output.data.size());
+    }
+
+    void Verify()
+    {
+        // Computation error of fp16 is ~2^13 (=8192) bigger than
+        // the one of fp32 because mantissa is shorter by 13 bits.
+        double tolerance = std::is_same<TIO, float>::value ? 1.5e-6 : 8.2e-3;
+
+        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
+        if(std::is_same<TIO, bfloat16>::value)
+            tolerance *= 8.0;
+
+        tolerance = 0;
+
+        auto error = miopen::rms_range(ref_output, output);
+
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, tolerance)
+            << "Error output beyond tolerance Error: " << error << ",  Tolerance: " << tolerance;
+    }
+    MatrixDiagTestcase matrix_diag_config;
+
+    tensor<TIO> diag;
+    tensor<TIO> pad;
+    tensor<TIO> output;
+
+    tensor<TIO> ref_output;
+
+    miopen::Allocator::ManageDataPtr diag_dev;
+    miopen::Allocator::ManageDataPtr output_dev;
+    miopen::Allocator::ManageDataPtr pad_dev;
+
+    int64_t k0, k1;
+
+    miopenMatrixDiagAlignMode_t align;
+};
