@@ -49,23 +49,25 @@ struct FractionalMaxPoolTestCase
 {
     std::vector<size_t> input_dim;
     std::vector<int64_t> kernel_size;
+    std::vector<size_t> output_dim;
     friend std::ostream& operator<<(std::ostream& os, const FractionalMaxPoolTestCase& tc)
     {
-        return os << " input_dim:" << tc.input_dim << " kernel_size:" << tc.kernel_size;
+        return os << " input_dim:" << tc.input_dim << " kernel_size:" << tc.kernel_size
+                  << " output_dim:" << tc.output_dim;
     }
 };
 
 inline std::vector<FractionalMaxPoolTestCase> FractionalMaxPoolTestConfigs()
 {
     return {
-        {{10, 10, 10, 10}, {2, 2}},
-        {{10, 100, 10, 10}, {3, 4}},
-        {{10, 10, 100, 100}, {5, 6}},
-        {{1, 100, 100, 100}, {7, 8}},
-        {{10, 10, 10, 10, 10}, {2, 2, 2}},
-        {{10, 100, 10, 10, 10}, {3, 2, 2}},
-        {{10, 10, 100, 10, 10}, {4, 2, 2}},
-        {{10, 10, 10, 100, 100}, {5, 2, 2}},
+        {{10, 10, 10, 10}, {2, 2}, {10, 10, 1, 1}},
+        {{10, 100, 10, 10}, {3, 4}, {10, 100, 1, 1}},
+        {{10, 10, 100, 100}, {5, 6}, {10, 10, 1, 1}},
+        {{1, 100, 100, 100}, {7, 8}, {1, 100, 1, 1}},
+        {{10, 10, 10, 10, 10}, {2, 2, 2}, {10, 10, 1, 1, 1}},
+        {{10, 100, 10, 10, 10}, {3, 2, 2}, {10, 100, 1, 1, 1}},
+        {{10, 10, 100, 10, 10}, {4, 2, 2}, {10, 10, 1, 1, 1}},
+        {{10, 10, 10, 100, 100}, {5, 2, 2}, {10, 10, 1, 1, 1}},
     };
 }
 
@@ -80,14 +82,7 @@ protected:
         fractionalmaxpool_config = GetParam();
         in_dim                   = fractionalmaxpool_config.input_dim;
         ksize                    = fractionalmaxpool_config.kernel_size;
-
-        N                           = in_dim[0];
-        C                           = in_dim[1];
-        std::vector<size_t> out_dim = {N, C};
-        for(int i = 0; i < in_dim.size() - 2; i++)
-        {
-            out_dim.push_back(in_dim[i + 2] / ksize[i]);
-        }
+        out_dim                  = fractionalmaxpool_config.output_dim;
 
         auto gen_input_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
@@ -97,7 +92,7 @@ protected:
         auto gen_random_sample = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(0.0f), static_cast<T>(1.0f));
         };
-        std::vector<size_t> random_dim = {N, C, ksize.size()};
+        std::vector<size_t> random_dim = {in_dim[0], in_dim[1], ksize.size()};
         random_sample                  = tensor<T>{random_dim}.generate(gen_random_sample);
 
         output = tensor<T>{out_dim};
@@ -172,6 +167,7 @@ protected:
 
     std::vector<size_t> in_dim;
     std::vector<int64_t> ksize;
+    std::vector<size_t> out_dim;
     bool use_indices;
 
     tensor<T> input;
@@ -180,8 +176,6 @@ protected:
     tensor<T> random_sample;
     tensor<T> ref_output;
     tensor<Ti> ref_indices;
-
-    int64_t N = 1, C = 1, D = 1, H = 1, W = 1, OD = 1, OH = 1, OW = 1;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
@@ -200,14 +194,7 @@ protected:
         fractionalmaxpool_config = GetParam();
         in_dim                   = fractionalmaxpool_config.input_dim;
         ksize                    = fractionalmaxpool_config.kernel_size;
-
-        N                           = in_dim[0];
-        C                           = in_dim[1];
-        std::vector<size_t> out_dim = {N, C};
-        for(int i = 0; i < in_dim.size() - 2; i++)
-        {
-            out_dim.push_back(in_dim[i + 2] / ksize[i]);
-        }
+        out_dim                  = fractionalmaxpool_config.output_dim;
 
         auto gen_value = [](auto...) {
             return prng::gen_A_to_B<T>(static_cast<T>(-10.0f), static_cast<T>(10.0f));
@@ -265,13 +252,12 @@ protected:
 
     std::vector<size_t> in_dim;
     std::vector<int64_t> ksize;
+    std::vector<size_t> out_dim;
 
     tensor<Ti> indices;
     tensor<T> output_grad;
     tensor<T> input_grad;
     tensor<T> ref_input_grad;
-
-    int64_t N = 1, C = 1, D = 1, H = 1, W = 1, OD = 1, OH = 1, OW = 1;
 
     miopen::Allocator::ManageDataPtr indices_dev;
     miopen::Allocator::ManageDataPtr output_grad_dev;

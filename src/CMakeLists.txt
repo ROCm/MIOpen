@@ -122,6 +122,8 @@ set( MIOpen_Source
     expanduser.cpp
     find_controls.cpp
     find_db.cpp
+    fractionalmaxpool_api.cpp
+    fractionalmaxpool/problem_description.cpp
     fused_api.cpp
     fusion.cpp
     fusion/problem_description.cpp
@@ -300,6 +302,8 @@ set( MIOpen_Source
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
+    solver/fractionalmaxpool/backward_fractionalmaxpool.cpp
+    solver/fractionalmaxpool/forward_fractionalmaxpool.cpp
     solver/glu/backward_glu.cpp
     solver/glu/forward_glu.cpp
     solver/groupnorm/forward_groupnorm.cpp
@@ -334,10 +338,6 @@ set( MIOpen_Source
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
-    solver/fractionalmaxpool/backward_fractionalmaxpool.cpp
-    solver/fractionalmaxpool/forward_fractionalmaxpool.cpp
-    fractionalmaxpool_api.cpp
-    fractionalmaxpool/problem_description.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
@@ -532,6 +532,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
+        kernels/MIOpenFractionalMaxPool.cpp
         kernels/MIOpenGLU.cpp
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenGetitem.cpp
@@ -554,7 +555,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenReduceExtreme.cpp
         kernels/MIOpenReduceSum.cpp
         kernels/MIOpenRoPE.cpp
-        kernels/MIOpenFractionalMaxPool.cpp
         kernels/MIOpenSoftMarginLoss.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
@@ -672,6 +672,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         addlayernorm.cpp
         cat.cpp
         exec_utils.cpp
+        fractionalmaxpool.cpp
         groupnorm.cpp
         getitem.cpp
         glu.cpp
@@ -706,7 +707,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reduceextreme.cpp
         rope.cpp
         softmarginloss.cpp
-        fractionalmaxpool.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
