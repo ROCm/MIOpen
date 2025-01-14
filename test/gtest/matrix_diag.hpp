@@ -75,12 +75,9 @@ MatrixDiagConfigs(const std::vector<MatrixDiagTestcase> configs)
                            MIOPEN_MATRIX_ALIGN_LEFT_RIGHT,
                            MIOPEN_MATRIX_ALIGN_RIGHT_LEFT,
                            MIOPEN_MATRIX_ALIGN_RIGHT_RIGHT};
-    size_t counter      = 0;
     for(auto config : configs)
         for(auto align : all_mode)
         {
-            if(counter++ != 0)
-                continue;
             config.align = align;
             tcs.push_back(config);
         }
@@ -122,7 +119,7 @@ protected:
     {
         auto&& handle      = get_handle();
         matrix_diag_config = GetParam();
-        auto gen_value     = [](auto...) { return prng::gen_descreet_uniform_sign<TIO>(1e-2, 1); };
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<TIO>(1e-2, 100); };
 
         k0            = matrix_diag_config.diagOffset0;
         k1            = matrix_diag_config.diagOffset1;
@@ -174,21 +171,10 @@ protected:
 
     void Verify()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        double tolerance = std::is_same<TIO, float>::value ? 1.5e-6 : 8.2e-3;
-
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<TIO, bfloat16>::value)
-            tolerance *= 8.0;
-
-        tolerance = 0;
-
         auto error = miopen::rms_range(ref_output, output);
 
         ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
-        EXPECT_LT(error, tolerance)
-            << "Error output beyond tolerance Error: " << error << ",  Tolerance: " << tolerance;
+        EXPECT_EQ(error, 0) << "Error! Incorrect output: " << error;
     }
     MatrixDiagTestcase matrix_diag_config;
 

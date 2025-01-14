@@ -74,11 +74,13 @@ struct ForwardProblemDescription : ProblemDescriptionBase
         if(outputDesc.GetNumDims() < 2)
             MIOPEN_THROW(miopenStatusBadParm,
                          "MatrixDiag: Output tensor must have at least 2 dimensions");
-        if(-diagOffset0 >= outputDesc.GetLengths()[outputDesc.GetNumDims() - 2])
+        if(-diagOffset0 >=
+           static_cast<int64_t>(outputDesc.GetLengths()[outputDesc.GetNumDims() - 2]))
             MIOPEN_THROW(
                 miopenStatusBadParm,
                 "MatrixDiag: diagOffset0 must be less than the second last Output dimension");
-        if(diagOffset1 >= outputDesc.GetLengths()[outputDesc.GetNumDims() - 1])
+        if(diagOffset1 >=
+           static_cast<int64_t>(outputDesc.GetLengths()[outputDesc.GetNumDims() - 1]))
             MIOPEN_THROW(miopenStatusBadParm,
                          "MatrixDiag: diagOffset1 must be less than the last Output dimension");
         if(diagOffset0 == diagOffset1)
@@ -131,7 +133,7 @@ struct ForwardProblemDescription : ProblemDescriptionBase
                              "MatrixDiag: When diagOffset0 != diagOffset1, Diagonal tensor has "
                              "shape [I, J, ..., L, M, N] then Output tensor must have shape [I, J, "
                              "..., L, num_rows, num_cols]");
-            if(diagDesc.GetLengths()[diagDesc.GetNumDims() - 2] != diagOffset1 - diagOffset0)
+            if(diagDesc.GetLengths()[diagDesc.GetNumDims() - 2] != diagOffset1 - diagOffset0 + 1)
                 MIOPEN_THROW(
                     miopenStatusBadParm,
                     "MatrixDiag: When diagOffset0 != diagOffset1, Diagonal tensor second last "
