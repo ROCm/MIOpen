@@ -25,8 +25,17 @@
  *******************************************************************************/
 
 #include <miopen/errors.hpp>
+#include <miopen/graphapi/conv_bias_res_add_activ_forward_executor.hpp>
 #include <miopen/graphapi/engine.hpp>
 #include <miopen/graphapi/opgraph.hpp>
+#include <miopen/utility/base64.hpp>
+#include <miopen/utility/scope.hpp>
+#include <nlohmann/json.hpp>
+
+#include <algorithm>
+#include <map>
+#include <string>
+#include <vector>
 
 namespace miopen {
 
@@ -34,9 +43,59 @@ namespace graphapi {
 
 GraphPatternExecutor::~GraphPatternExecutor() = default;
 
-size_t GraphExecutorFind20::getWorkspaceSize() const
+size_t GraphExecutorFind20::getWorkspaceSize() const { return mSolution.GetWorkspaceSize(); }
+
+nlohmann::json GraphExecutorFind20::getJson()
 {
-    return miopen::deref(mSolution).GetWorkspaceSize();
+    std::map<int64_t, miopenTensorArgumentId_t> id2ArgumentMap{};
+
+    for(const auto& [tensorId, tensorInfo] : *mTensorInfoMap)
+    {
+        id2ArgumentMap.try_emplace(tensorId, tensorInfo.mEnumId);
+    }
+
+    std::size_t size{0U};
+    auto status = miopenGetSolutionSize(&mSolution, &size);
+    MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                    "Serialization size for Solution wasn't obtained");
+
+    std::vector<uint8_t> serializedSolution(size);
+    status = miopenSaveSolution(&mSolution, reinterpret_cast<char*>(serializedSolution.data()));
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Solution failed to be serialized");
+
+    std::string base64edSolution = base64Encode(serializedSolution);
+
+    return {
+        {GraphPatternExecutor::JsonFields::Name, name},
+        {GraphExecutorFind20::JsonFields::Solution, base64edSolution},
+        {GraphExecutorFind20::JsonFields::Id2ArgumentMap, id2ArgumentMap},
+    };
+}
+
+GraphExecutorFind20::GraphExecutorFind20(const nlohmann::json& json)
+{
+    auto base64edSolution   = json.at(GraphExecutorFind20::JsonFields::Solution).get<std::string>();
+    auto serializedSolution = base64Decode(base64edSolution);
+
+    miopenSolution_t solutionDescriptor;
+    auto status = miopenLoadSolution(&solutionDescriptor,
+                                     reinterpret_cast<char*>(serializedSolution.data()),
+                                     serializedSolution.size());
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Failed to deserialize Solution");
+
+    // Ensure miopenDestroySolution() will be called
+    scope_exit finallyForSolution([=]() { miopenDestroySolution(solutionDescriptor); });
+
+    mSolution = std::move(deref(solutionDescriptor));
+
+    auto id2ArgumentMap = json.at(GraphExecutorFind20::JsonFields::Id2ArgumentMap)
+                              .get<std::map<int64_t, miopenTensorArgumentId_t>>();
+
+    mTensorInfoMap = std::make_shared<TensorInfoMap>();
+    for(const auto [tensorId, argumentId] : id2ArgumentMap)
+    {
+        mTensorInfoMap->try_emplace(tensorId, argumentId, nullptr);
+    }
 }
 
 void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
@@ -79,7 +138,7 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
     }
 
     auto s = miopenRunSolution(handle,
-                               mSolution,
+                               &mSolution,
                                tens_args.size(),
                                tens_args.data(),
                                vpk.getWorkspace(),
@@ -90,6 +149,39 @@ void GraphExecutorFind20::execute(miopenHandle_t handle, const VariantPack& vpk)
     {
         MIOPEN_LOG_I2("Graph API Find 2.0 Solution Ran");
     }
+}
+
+void to_json(nlohmann::json& json, const Engine& engine)
+{
+    MIOPEN_THROW_IF(!engine.mExecutor, "Cannot serialize an Engine without an Executor");
+
+    json = nlohmann::json{
+        {Engine::JsonFields::Executor, engine.mExecutor->getJson()},
+        {Engine::JsonFields::GlobalIndex, engine.mGlobalIndex},
+        {Engine::JsonFields::SmCount, engine.mSmCount},
+    };
+}
+
+void from_json(const nlohmann::json& json, Engine& engine)
+{
+    static const std::map<
+        std::string,
+        std::function<std::shared_ptr<GraphPatternExecutor>(const nlohmann::json& json)>>
+        name2Maker{
+            {GraphExecutorFind20::name,
+             std::make_shared<GraphExecutorFind20, const nlohmann::json&>},
+            {ConvBiasResAddActivForwardExecutor::name,
+             std::make_shared<ConvBiasResAddActivForwardExecutor, const nlohmann::json&>},
+        };
+
+    auto jExecutor    = json.at(Engine::JsonFields::Executor);
+    auto executorName = jExecutor.at(GraphPatternExecutor::JsonFields::Name).get<std::string>();
+    auto maker        = name2Maker.at(executorName);
+
+    engine.mExecutor = maker(jExecutor);
+    engine.mGraph    = nullptr;
+    json.at(Engine::JsonFields::GlobalIndex).get_to(engine.mGlobalIndex);
+    json.at(Engine::JsonFields::SmCount).get_to(engine.mSmCount);
 }
 
 EngineBuilder& EngineBuilder::setGraph(OpGraph* g)

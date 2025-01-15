@@ -32,7 +32,7 @@ template <typename T>
 class MhaForwardTest : public MhaCommonTest
 {
 protected:
-    virtual void MakeRealTensorsAndFillData(miopen::Handle& handle) override
+    virtual void MakeRealTensorsAndFillData(const miopen::Handle& handle) override
     {
         // We use identifiers from Find 2.0 enum to have sopmething unique for the test purposes
         MakeAndAddRealTensorDescriptor(
@@ -73,7 +73,7 @@ protected:
         m_nextTensorId++;
     }
 
-    void InitTensorValues(miopen::Handle& handle)
+    void InitTensorValues(const miopen::Handle& handle)
     {
         using namespace test::cpu;
 
@@ -215,7 +215,7 @@ protected:
                       m_realTensorMap[miopenTensorMhaO]->m_gapiDesc);
     }
 
-    virtual void RunCPUverify(miopen::Handle& handle) override
+    virtual void RunCPUverify(const miopen::Handle& handle) override
     {
         auto softmaxRef  = tensor<float>{m_testN, m_testH, m_testS, m_testS};
         auto oDescRef    = tensor<T>{m_testN, m_testH, m_testS, m_testD};
@@ -313,7 +313,7 @@ class GPU_MhaForward_FP16 : public MhaForwardTest<half_float::half>
         }
     }
 
-    void RunCPUverify(miopen::Handle& handle) override
+    void RunCPUverify(const miopen::Handle& handle) override
     {
         auto softmaxRef  = tensor<float>{m_testN, m_testH, m_testS, m_testS};
         auto oDescRef    = tensor<half_float::half>{m_testN, m_testH, m_testS, m_testD};
