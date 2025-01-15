@@ -72,6 +72,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
+ * @defgroup GenerateRandomBitMask
  *
  */
 
@@ -8174,6 +8175,61 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
+#ifdef MIOPEN_BETA_API
+// GenerateRandomBitMask APIs
+/** @addtogroup GenerateRandomBitMask
+ *
+ *  @{
+ */
+
+/*! @brief Query the amount of memory required to store the states of the random number generators
+ *
+ * This function calculates the amount of memory required to store the states of the random number
+ * generators used by miopenGenerateRandomBitMask.
+ *
+ * @param handle            MIOpen handle (input)
+ * @param stateSizeInBytes  Number of bytes required to store random generator states (Output)
+ * @return                  miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetGenerateRandomBitMaskStatesSize(miopenHandle_t handle,
+                                                                      size_t* stateSizeInBytes);
+
+/*! @brief Initialize the states of the random number generators
+ *
+ * @param handle            MIOpen handle (input)
+ * @param pstate            Data tensor prng_states (output)
+ * @param stateSizeInBytes  Number of bytes required to store random generator states (input)
+ * @param seed              Random seed (input)
+ * @return                  miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenInitGenerateRandomBitMaskStates(miopenHandle_t handle,
+                                                                   void* pstate,
+                                                                   size_t stateSizeInBytes,
+                                                                   const uint64_t seed = 0ULL);
+
+/*! @brief Execute a GenerateRandomBitMask layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param pstateDesc               Tensor descriptor for input random prng_state tensor (input)
+ * @param pstate                   Random prng_state tensor. This state should be initialized before
+                                   running `miopenGenerateRandomBitMask`. Read
+ `miopenInitGenerateRandomBitMaskStates` for more information about initializing the state (input)
+ * @param maskDesc                 Tensor descriptor for output random bit mask tensor (input)
+ * @param mask                     Random bit mask tensor output (output)
+ * @param p                        probability of an element to be zeroed. Default: 0.5 (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGenerateRandomBitMask(miopenHandle_t handle,
+                                                         const miopenTensorDescriptor_t pstateDesc,
+                                                         void* pstate,
+                                                         const miopenTensorDescriptor_t maskDesc,
+                                                         void* mask,
+                                                         const float p = 0.5f);
+
+/** @} */
+// CLOSEOUT GenerateRandomBitMask DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
