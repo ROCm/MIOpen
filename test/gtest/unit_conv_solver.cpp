@@ -37,6 +37,8 @@
 
 #include "../workspace.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+
 namespace miopen {
 namespace unit_tests {
 
@@ -50,20 +52,32 @@ public:
     DeprecatedSolversScopedEnabler(DeprecatedSolversScopedEnabler&&)      = delete;
     DeprecatedSolversScopedEnabler& operator=(const DeprecatedSolversScopedEnabler&) = delete;
     DeprecatedSolversScopedEnabler& operator=(DeprecatedSolversScopedEnabler&&) = delete;
-    ~DeprecatedSolversScopedEnabler() noexcept
+
+    ~DeprecatedSolversScopedEnabler()
     {
-        if(prev)
-            miopen::debug::enable_deprecated_solvers = prev.value();
+        if(changed)
+        {
+            if(prev)
+                env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, false);
+            else
+                env::clear(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+        }
     }
 
-    void Enable() noexcept
+    void Enable()
     {
-        prev                                     = miopen::debug::enable_deprecated_solvers;
-        miopen::debug::enable_deprecated_solvers = true;
+        if(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+            prev = env::value(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+        if(prev != true)
+        {
+            env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, true);
+            changed = true;
+        }
     }
 
 private:
     std::optional<bool> prev;
+    bool changed;
 };
 
 bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
