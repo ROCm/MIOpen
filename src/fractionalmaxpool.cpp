@@ -44,12 +44,13 @@ miopenStatus_t FractionalMaxPoolForward(Handle& handle,
                                         Data_t indices,
                                         const TensorDescriptor& randomSampleDesc,
                                         ConstData_t random_sample,
+                                        const bool return_indices,
                                         const int64_t KD,
                                         const int64_t KH,
                                         const int64_t KW)
 {
     const auto problem = fractionalmaxpool::FwdProblemDescription{
-        inputDesc, outputDesc, indicesDesc, randomSampleDesc, KD, KH, KW};
+        inputDesc, outputDesc, indicesDesc, randomSampleDesc, return_indices, KD, KH, KW};
     const auto invoke_params = [&]() {
         auto tmp             = fractionalmaxpool::FwdInvokeParams{};
         tmp.inputDesc        = &inputDesc;

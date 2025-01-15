@@ -43,6 +43,7 @@ FractionalMaxPoolForward(Handle& handle,
                          Data_t indices,
                          const TensorDescriptor& randomSampleDesc,
                          ConstData_t random_sample,
+                         bool return_indices,
                          int64_t KD,
                          int64_t KH,
                          int64_t KW);

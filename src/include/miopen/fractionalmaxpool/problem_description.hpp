@@ -42,6 +42,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
                           const TensorDescriptor& outputDesc_,
                           const TensorDescriptor& indicesDesc_,
                           const TensorDescriptor& randomSampleDesc_,
+                          const bool return_indices_,
                           const int64_t KD_,
                           const int64_t KH_,
                           const int64_t KW_)
@@ -49,6 +50,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
           outputDesc(outputDesc_),
           indicesDesc(indicesDesc_),
           randomSampleDesc(randomSampleDesc_),
+          return_indices(return_indices_),
           KD(KD_),
           KH(KH_),
           KW(KW_)
@@ -72,20 +74,62 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidType() const
     {
-        if(indicesDesc.GetType() != miopenInt32 && indicesDesc.GetType() != miopenInt64)
+        if(return_indices && indicesDesc.GetType() != miopenInt32 &&
+           indicesDesc.GetType() != miopenInt64)
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "FractionalMaxPoolForward: target tensor must be int32 "
+                         "FractionalMaxPoolForward: indices tensor must be int32 "
                          "or int64.");
         }
         return true;
     }
 
-    bool IsValidDims() const { return true; }
-
-    bool IsAllContiguous() const
+    bool IsValidDims() const
     {
-        return inputDesc.IsContiguous() && outputDesc.IsContiguous() && indicesDesc.IsContiguous();
+        if(inputDesc.GetNumDims() != outputDesc.GetNumDims())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "FractionalMaxPoolForward: input and output tensors must have the "
+                         "same number of dimensions.");
+        }
+
+        if(return_indices && outputDesc.GetLengths() != indicesDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "FractionalMaxPoolForward: output and indices tensors must have the "
+                         "same dimensions.");
+        }
+
+        if(randomSampleDesc.GetNumDims() != 3)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "FractionalMaxPoolForward: randomSample tensor must be 3D.");
+        }
+
+        if(inputDesc.GetNumDims() != 4 && inputDesc.GetNumDims() != 5)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "FractionalMaxPoolForward: input tensor must be 4D or 5D.");
+        }
+
+        if(outputDesc.GetLengths()[2] + KD - 1 > inputDesc.GetLengths()[2] ||
+           outputDesc.GetLengths()[3] + KH - 1 > inputDesc.GetLengths()[3] ||
+           (inputDesc.GetNumDims() == 5 &&
+            outputDesc.GetLengths()[4] + KW - 1 > inputDesc.GetLengths()[4]))
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "FractionalMaxPoolForward: We must have KD + Dout - 1 <= Din, KH + Hout - "
+                         "1 <= Hin, KW + Wout - "
+                         "1 <= Win.");
+        }
+        if(randomSampleDesc.GetLengths()[2] != inputDesc.GetNumDims() - 2)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "FractionalMaxPoolForward: randomSample tensor's last dimension must be "
+                         "equal to (input tensor's number of dimensions - 2).");
+        }
+
+        return true;
     }
 
     NetworkConfig MakeNetworkConfig() const override;
@@ -95,6 +139,7 @@ private:
     TensorDescriptor outputDesc;
     TensorDescriptor indicesDesc;
     TensorDescriptor randomSampleDesc;
+    bool return_indices;
     int64_t KD, KH, KW;
 };
 
@@ -106,6 +151,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
         : indicesDesc(indicesDesc_), outputGradDesc(outputGradDesc_), inputGradDesc(inputGradDesc_)
     {
         IsSameType();
+        IsValidType();
         IsValidDims();
     }
 
@@ -120,12 +166,40 @@ struct BwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsValidDims() const { return true; }
-
-    bool IsAllContiguous() const
+    bool IsValidType() const
     {
-        return indicesDesc.IsContiguous() && outputGradDesc.IsContiguous() &&
-               inputGradDesc.IsContiguous();
+        if(indicesDesc.GetType() != miopenInt32 && indicesDesc.GetType() != miopenInt64)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "FractionalMaxPoolForward: indices tensor must be int32 "
+                         "or int64.");
+        }
+        return true;
+    }
+
+    bool IsValidDims() const
+    {
+        if(inputGradDesc.GetNumDims() != outputGradDesc.GetNumDims())
+        {
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "FractionalMaxPoolForward: input grad and output grad tensors must have the "
+                "same number of dimensions.");
+        }
+
+        if(outputGradDesc.GetLengths() != indicesDesc.GetLengths())
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "FractionalMaxPoolForward: output grad and indices tensors must have the "
+                         "same dimensions.");
+        }
+        if(inputGradDesc.GetNumDims() != 4 && inputGradDesc.GetNumDims() != 5)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "FractionalMaxPoolForward: input grad tensor must be 4D or 5D.");
+        }
+
+        return true;
     }
 
     NetworkConfig MakeNetworkConfig() const override;

@@ -55,7 +55,6 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
     ss << "-dtype" << dtype;
     ss << "-Is" << inputDesc.GetLengths();
     ss << "-Os" << outputDesc.GetLengths();
-    ss << "-IsContiguous" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }
@@ -69,7 +68,6 @@ NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
     ss << "-dtype" << dtype;
     ss << "-dIs" << inputGradDesc.GetLengths();
     ss << "-dOs" << outputGradDesc.GetLengths();
-    ss << "-IsContiguous" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }

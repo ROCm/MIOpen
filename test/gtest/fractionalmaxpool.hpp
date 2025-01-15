@@ -138,6 +138,7 @@ protected:
                                                                 indices_dev.get(),
                                                                 random_sample.desc,
                                                                 random_sample_dev.get(),
+                                                                true,
                                                                 ksize[0],
                                                                 ksize[1],
                                                                 ksize.size() == 3 ? ksize[2] : 1);

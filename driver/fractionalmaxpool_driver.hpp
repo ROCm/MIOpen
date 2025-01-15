@@ -346,36 +346,19 @@ int FractionalMaxPoolDriver<Tgpu, Tref, Tindices>::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         miopenStatus_t status;
-        if(return_indices)
-        {
-            status = miopenFractionalMaxPoolForward(GetHandle(),
-                                                    inputDesc,
-                                                    input_dev->GetMem(),
-                                                    outputDesc,
-                                                    output_dev->GetMem(),
-                                                    indicesDesc,
-                                                    indices_dev->GetMem(),
-                                                    randomSampleDesc,
-                                                    random_sample_dev->GetMem(),
-                                                    ksize[0],
-                                                    ksize[1],
-                                                    ksize.size() == 3 ? ksize[2] : 1);
-        }
-        else
-        {
-            status = miopenFractionalMaxPoolForward(GetHandle(),
-                                                    inputDesc,
-                                                    input_dev->GetMem(),
-                                                    outputDesc,
-                                                    output_dev->GetMem(),
-                                                    indicesDesc,
-                                                    nullptr,
-                                                    randomSampleDesc,
-                                                    random_sample_dev->GetMem(),
-                                                    ksize[0],
-                                                    ksize[1],
-                                                    ksize.size() == 3 ? ksize[2] : 1);
-        }
+        status = miopenFractionalMaxPoolForward(GetHandle(),
+                                                inputDesc,
+                                                input_dev->GetMem(),
+                                                outputDesc,
+                                                output_dev->GetMem(),
+                                                indicesDesc,
+                                                return_indices ? indices_dev->GetMem() : nullptr,
+                                                randomSampleDesc,
+                                                random_sample_dev->GetMem(),
+                                                return_indices,
+                                                ksize[0],
+                                                ksize[1],
+                                                ksize.size() == 3 ? ksize[2] : 1);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenFractionalMaxPoolForward");
 
