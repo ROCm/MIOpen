@@ -162,8 +162,8 @@ protected:
         // }
         // std::cout << std::endl;
 
-        auto output_mask = tensor<unsigned char>{mask.desc.GetLengths()};
-        std::fill(output_mask.begin(), output_mask.end(), 1);
+        // auto output_mask = tensor<unsigned char>{mask.desc.GetLengths()};
+        // std::fill(output_mask.begin(), output_mask.end(), 1);
 
         // counting number 1 in mask
         int64_t count_1 = 0;
