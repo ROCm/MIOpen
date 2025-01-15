@@ -57,7 +57,7 @@ void cpu_matrix_set_diag(const tensor<TIO> input,
     auto M = ref_output.desc.GetLengths()[ref_output.desc.GetNumDims() - 2];
     auto N = ref_output.desc.GetLengths()[ref_output.desc.GetNumDims() - 1];
 
-    ford(size)([&](size_t gid) {
+    par_ford(size)([&](size_t gid) {
         int batch_id     = gid / M / N;
         int m            = (gid / N) % M;
         int n            = gid % N;
@@ -70,13 +70,17 @@ void cpu_matrix_set_diag(const tensor<TIO> input,
             if(n - m == k1)
             {
                 int diag_id = batch_id * max_diag_len + n - std::max(k1, 0L);
-                val         = is_fwd ? diag[diag_id] : 0;
+                if(is_fwd)
+                    val = diag[diag_id];
+                else
+                    val = 0;
             }
             else
             {
-                val = input.desc.GetElementSize() > 0
-                          ? (input.desc.GetElementSize() == 1 ? input_val : input[gid])
-                          : 0;
+                if(input.desc.GetElementSize() > 0)
+                    val = input.desc.GetElementSize() == 1 ? input_val : input[gid];
+                else
+                    val = 0;
             }
         }
         else
@@ -90,13 +94,17 @@ void cpu_matrix_set_diag(const tensor<TIO> input,
                 int index_in_diag = n - std::max(d, 0) + offset;
                 int diag_id =
                     batch_id * num_diags * max_diag_len + diag_index * max_diag_len + index_in_diag;
-                val = is_fwd ? diag[diag_id] : 0;
+                if(is_fwd)
+                    val = diag[diag_id];
+                else
+                    val = 0;
             }
             else
             {
-                val = input.desc.GetElementSize() > 0
-                          ? (input.desc.GetElementSize() == 1 ? input_val : input[gid])
-                          : 0;
+                if(input.desc.GetElementSize() > 0)
+                    val = input.desc.GetElementSize() == 1 ? input_val : input[gid];
+                else
+                    val = 0;
             }
         }
         ref_output[gid] = val;

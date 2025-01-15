@@ -24,70 +24,70 @@
  *
  *******************************************************************************/
 
-#include "matrix_diag.hpp"
+#include "matrix_set_diag.hpp"
 #include <miopen/bfloat16.hpp>
 
-namespace matrix_diag {
+namespace matrix_set_diag {
 
-struct GPU_MatrixDiagForward_FP32 : MatrixDiagTestForward<float>
+struct GPU_MatrixSetDiagForward_FP32 : MatrixSetDiagTestForward<float>
 {
 };
 
-struct GPU_MatrixDiagForward_FP16 : MatrixDiagTestForward<half>
+struct GPU_MatrixSetDiagForward_FP16 : MatrixSetDiagTestForward<half>
 {
 };
 
-struct GPU_MatrixDiagForward_BFP16 : MatrixDiagTestForward<bfloat16>
+struct GPU_MatrixSetDiagForward_BFP16 : MatrixSetDiagTestForward<bfloat16>
 {
 };
 
-} // namespace matrix_diag
-using namespace matrix_diag;
+} // namespace matrix_set_diag
+using namespace matrix_set_diag;
 
-TEST_P(GPU_MatrixDiagForward_FP32, Test)
-{
-    RunTest();
-    Verify();
-};
-
-TEST_P(GPU_MatrixDiagForward_FP16, Test)
+TEST_P(GPU_MatrixSetDiagForward_FP32, Test)
 {
     RunTest();
     Verify();
 };
 
-TEST_P(GPU_MatrixDiagForward_BFP16, Test)
+TEST_P(GPU_MatrixSetDiagForward_FP16, Test)
+{
+    RunTest();
+    Verify();
+};
+
+TEST_P(GPU_MatrixSetDiagForward_BFP16, Test)
 {
     RunTest();
     Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_MatrixDiagForward_FP32,
-                         testing::ValuesIn(MatrixDiagSmokeTestConfigs()));
+                         GPU_MatrixSetDiagForward_FP32,
+                         testing::ValuesIn(MatrixSetDiagSmokeTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_MatrixDiagForward_FP16,
-                         testing::ValuesIn(MatrixDiagSmokeTestConfigs()));
+                         GPU_MatrixSetDiagForward_FP16,
+                         testing::ValuesIn(MatrixSetDiagSmokeTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_MatrixDiagForward_BFP16,
-                         testing::ValuesIn(MatrixDiagSmokeTestConfigs()));
+                         GPU_MatrixSetDiagForward_BFP16,
+                         testing::ValuesIn(MatrixSetDiagSmokeTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_MatrixDiagForward_FP32,
-                         testing::ValuesIn(MatrixDiagPerfTestConfigs()));
+                         GPU_MatrixSetDiagForward_FP32,
+                         testing::ValuesIn(MatrixSetDiagPerfTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_MatrixDiagForward_FP16,
-                         testing::ValuesIn(MatrixDiagPerfTestConfigs()));
+                         GPU_MatrixSetDiagForward_FP16,
+                         testing::ValuesIn(MatrixSetDiagPerfTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_MatrixDiagForward_BFP16,
-                         testing::ValuesIn(MatrixDiagPerfTestConfigs()));
+                         GPU_MatrixSetDiagForward_BFP16,
+                         testing::ValuesIn(MatrixSetDiagPerfTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_MatrixDiagForward_FP32,
-                         testing::ValuesIn(MatrixDiagFullTestConfigs()));
+                         GPU_MatrixSetDiagForward_FP32,
+                         testing::ValuesIn(MatrixSetDiagFullTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_MatrixDiagForward_FP16,
-                         testing::ValuesIn(MatrixDiagFullTestConfigs()));
+                         GPU_MatrixSetDiagForward_FP16,
+                         testing::ValuesIn(MatrixSetDiagFullTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_MatrixDiagForward_BFP16,
-                         testing::ValuesIn(MatrixDiagFullTestConfigs()));
+                         GPU_MatrixSetDiagForward_BFP16,
+                         testing::ValuesIn(MatrixSetDiagFullTestConfigs()));

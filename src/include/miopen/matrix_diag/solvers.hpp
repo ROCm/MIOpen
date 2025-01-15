@@ -53,6 +53,28 @@ struct MatrixDiagForwardContiguous final : MatrixDiagForwardSolverBase
 
 } // namespace matrix_diag
 
+namespace matrix_set_diag {
+
+using MatrixSetDiagForwardSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::matrix_set_diag::ForwardProblemDescription>;
+
+struct MatrixSetDiagForwardContiguous final : MatrixSetDiagForwardSolverBase
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<MatrixSetDiagForwardContiguous>();
+    }
+
+    bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::matrix_set_diag::ForwardProblemDescription& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::matrix_set_diag::ForwardProblemDescription& problem) const override;
+};
+
+} // namespace matrix_set_diag
+
 } // namespace solver
 
 } // namespace miopen

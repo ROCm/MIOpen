@@ -315,6 +315,7 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/layernorm/forward_t5layernorm.cpp
     solver/matrix_diag/forward_matrix_diag_contiguous.cpp
+    solver/matrix_diag/forward_matrix_set_diag_contiguous.cpp
     solver/mha/mha_ck_fa_v2_solver_forward.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp

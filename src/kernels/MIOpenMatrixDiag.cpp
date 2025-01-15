@@ -82,9 +82,10 @@ __device__ void MatrixSetDiag(const TIO* input,
     if(is_input_padding)
     {
         if(lid == 0)
-        {
-            input_val = input ? input[0] : 0;
-        }
+            if(input)
+                input_val = input[0];
+            else
+                input_val = 0;
         __syncthreads();
     }
 
@@ -94,11 +95,17 @@ __device__ void MatrixSetDiag(const TIO* input,
         if(n - m == k1)
         {
             int64_t diag_id = batch_id * max_diag_len + n - max(k1, 0LL);
-            val             = is_fwd ? diagonal[diag_id] : 0;
+            if(is_fwd)
+                val = diagonal[diag_id];
+            else
+                val = 0;
         }
         else
         {
-            val = input ? (is_input_padding ? input_val : input[gid]) : 0;
+            if(input)
+                val = (is_input_padding ? input_val : input[gid]);
+            else
+                val = 0;
         }
     }
     else
@@ -112,11 +119,17 @@ __device__ void MatrixSetDiag(const TIO* input,
             int64_t index_in_diag = n - max(d, 0LL) + offset;
             int64_t diag_id =
                 batch_id * num_diags * max_diag_len + diag_index * max_diag_len + index_in_diag;
-            val = is_fwd ? diagonal[diag_id] : 0;
+            if(is_fwd)
+                val = diagonal[diag_id];
+            else
+                0;
         }
         else
         {
-            val = input ? (is_input_padding ? input_val : input[gid]) : 0;
+            if(input)
+                val = (is_input_padding ? input_val : input[gid]);
+            else
+                val = 0;
         }
     }
     output[gid] = val;

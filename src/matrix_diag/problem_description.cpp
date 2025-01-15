@@ -52,4 +52,25 @@ NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
 
 } // namespace matrix_diag
 
+namespace matrix_set_diag {
+
+NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
+{
+    auto dtype      = diagDesc.GetType();
+    auto diagSize   = diagDesc.GetElementSize();
+    auto outputSize = outputDesc.GetElementSize();
+
+    std::ostringstream ss;
+
+    ss << "matrix_set_diag_fwd";
+    ss << "dtype" << dtype;
+    ss << "diagSize" << diagSize;
+    ss << "outputSize" << outputSize;
+    ss << "align" << align;
+
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace matrix_set_diag
+
 } // namespace miopen
