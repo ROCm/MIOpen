@@ -19,6 +19,7 @@ pipeline {
       Smoke_targets   = " check MIOpenDriver"
       NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
       NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
+      perftest_image  = "perftest_image"
   }
   parameters {
     booleanParam(name: 'COMPARE_TO_BASE', defaultValue : true, description: 'Compare test results to base results')
@@ -36,8 +37,13 @@ pipeline {
                     def utils = load "vars/utils.groovy"
                     utils.getDockerImage()
                     def (docker_image, image) = utils.getDockerImage()
+                    docker_image.inside("--network host  --dns 8.8.8.8 ") {
+                        utils.buildHipClangJobAndReboot(build_install: true, needs_cleanup:true)
+                    }
                     withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
-                        docker_image.push()
+                        perftest_image = "${image}_perftest"
+                        sh "docker tag ${image} ${perftest_image}"
+                        sh "docker push ${perftest_image}"
                     }
                 }
             }
@@ -65,7 +71,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install", docker_image: docker_image)
+                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install", docker_image: perftest_image)
                         }
                     }
                 }/*

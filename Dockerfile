@@ -57,7 +57,6 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
     rocm-developer-tools \
     rocm-llvm-dev \
     rpm \
-    sqlite3 \
     software-properties-common && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
@@ -109,24 +108,24 @@ RUN ccache -s
 # purge existing composable kernel installed with ROCm
 # hence cannot use autoremove since it will remove more components
 # even purge will remove some other components which is not ideal
-#RUN apt-get update && \
-#DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
-#    composablekernel-dev \
-#    miopen-hip
+RUN apt-get update && \
+DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
+    composablekernel-dev \
+    miopen-hip
 
 # TODO: it should be able to automatically get commit hash from requirements.txt
-ARG CK_COMMIT=c5ad2e8075ccaf3457a41884b25f3dbe85bf251c
-#RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
-#    tar zxvf ck.tar.gz &&\
-#    cd composable_kernel-${CK_COMMIT} && \
-#    mkdir build && cd build && \
-#    CXX=/opt/rocm/bin/amdclang++ cmake \
-#    -D CMAKE_PREFIX_PATH=/opt/rocm \
-#    -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
-#    -D CMAKE_BUILD_TYPE=Release \
-#    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
-#    -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-#    make -j $(nproc) install
+ARG CK_COMMIT=fb948120d2d674607e70d0e7587dcb249c0e74c7
+RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
+    tar zxvf ck.tar.gz &&\
+    cd composable_kernel-${CK_COMMIT} && \
+    mkdir build && cd build && \
+    CXX=/opt/rocm/bin/amdclang++ cmake \
+    -D CMAKE_PREFIX_PATH=/opt/rocm \
+    -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
+    -D CMAKE_CXX_FLAGS=" -O3 " .. && \
+    make -j $(nproc) install
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 # this can minimize build time
@@ -134,11 +133,11 @@ RUN sed -i '/composable_kernel/d' /requirements.txt
 
 ARG COMPILER_LAUNCHER=""
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
-#RUN if [ "$USE_FIN" = "ON" ]; then \
-#        rbuild prepare -s fin -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
-#    else \
-#        rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
-#    fi
+RUN if [ "$USE_FIN" = "ON" ]; then \
+        rbuild prepare -s fin -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+    else \
+        rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+    fi
 
 RUN ccache -s 
 # Install doc requirements
@@ -155,8 +154,15 @@ RUN set -e; \
     if [ "$INSTALL_MIOPEN" = "ON" ]; then \
         git clone https://github.com/ROCm/MIOpen.git miopen; \
         cd miopen; \
-        CXX=/opt/rocm/llvm/bin/clang++ cget install -f ./dev-requirements.txt; \
         git pull && git checkout $MIOPEN_BRANCH; \
+    fi
+#RUN set -e; \
+#    if [ "$INSTALL_MIOPEN" = "ON" ]; then \
+#        pip install cget; \
+#        CXX=/opt/rocm/llvm/bin/clang++ cget install -f ./dev-requirements.txt; \
+#    fi
+RUN set -e; \
+    if [ "$INSTALL_MIOPEN" = "ON" ]; then \
         mkdir build; \
         mkdir install; \
         rm -f src/kernels/*.ufdb.txt; \
