@@ -171,7 +171,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
         if(indicesDesc.GetType() != miopenInt32 && indicesDesc.GetType() != miopenInt64)
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "FractionalMaxPoolForward: indices tensor must be int32 "
+                         "FractionalMaxPoolBackward: indices tensor must be int32 "
                          "or int64.");
         }
         return true;
@@ -183,20 +183,20 @@ struct BwdProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
-                "FractionalMaxPoolForward: input grad and output grad tensors must have the "
+                "FractionalMaxPoolBackward: input grad and output grad tensors must have the "
                 "same number of dimensions.");
         }
 
         if(outputGradDesc.GetLengths() != indicesDesc.GetLengths())
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "FractionalMaxPoolForward: output grad and indices tensors must have the "
+                         "FractionalMaxPoolBackward: output grad and indices tensors must have the "
                          "same dimensions.");
         }
         if(inputGradDesc.GetNumDims() != 4 && inputGradDesc.GetNumDims() != 5)
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "FractionalMaxPoolForward: input grad tensor must be 4D or 5D.");
+                         "FractionalMaxPoolBackward: input grad tensor must be 4D or 5D.");
         }
 
         return true;

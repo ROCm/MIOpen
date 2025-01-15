@@ -48,11 +48,13 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<uint64_t>& v
 
 NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype = outputDesc.GetType();
+    auto dtype         = outputDesc.GetType();
+    auto indices_dtype = indicesDesc.GetType();
     std::ostringstream ss;
 
     ss << "fractionalmaxpool_fwd";
     ss << "-dtype" << dtype;
+    ss << "-indices_dtype" << indices_dtype;
     ss << "-Is" << inputDesc.GetLengths();
     ss << "-Os" << outputDesc.GetLengths();
 
@@ -61,11 +63,13 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 
 NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype = outputGradDesc.GetType();
+    auto dtype         = outputGradDesc.GetType();
+    auto indices_dtype = indicesDesc.GetType();
     std::ostringstream ss;
 
     ss << "fractionalmaxpool_bwd";
     ss << "-dtype" << dtype;
+    ss << "-indices_dtype" << indices_dtype;
     ss << "-dIs" << inputGradDesc.GetLengths();
     ss << "-dOs" << outputGradDesc.GetLengths();
 
