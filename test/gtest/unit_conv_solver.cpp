@@ -206,7 +206,7 @@ UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_)
       use_cpu_ref(false),
       enable_deprecated_solvers(false),
       tunable(false),
-      disable_xnack(false)
+      check_xnack_disabled(false)
 {
 }
 
@@ -220,7 +220,7 @@ void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
     tuning_iterations_max = iterations_max_;
 }
 
-void UnitTestConvSolverParams::CheckXnackDisabled() { disable_xnack = true; }
+void UnitTestConvSolverParams::CheckXnackDisabled() { check_xnack_disabled = true; }
 
 namespace {
 
@@ -723,7 +723,7 @@ void UnitTestConvSolverBase::SetUpImpl(const UnitTestConvSolverParams& params)
     {
         GTEST_SKIP();
     }
-    else if(params.disable_xnack && get_handle_xnack())
+    else if(params.check_xnack_disabled && get_handle_xnack())
     {
         GTEST_SKIP();
     }
