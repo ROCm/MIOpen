@@ -144,7 +144,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BN_FWD_Train_Large_FP64,
-                         testing::Combine(testing::ValuesIn(NetworkSmall<BNTestCase>()),
+                         testing::Combine(testing::ValuesIn(NetworkLarge<BNTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({testBNAPIV2})),
                          TestNameGenerator());
