@@ -31,7 +31,8 @@
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 #include <miopen/stringutils.hpp>
 
-/// WORKAROUND_SWDEV_271887 disables ConvOclDirectFwd1x1 solver on gfx10 and gfx11 due to precision issues.
+/// WORKAROUND_SWDEV_271887 disables ConvOclDirectFwd1x1 solver on gfx10 and gfx11 due to precision
+/// issues.
 #define WORKAROUND_SWDEV_271887 1
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
