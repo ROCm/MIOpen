@@ -720,7 +720,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry,
              ++id,
              Primitive::MatrixDiag,
-             matrix_diag::MatrixDiagForwardContiguous{}.SolverDbId());
+             matrix_diag::MatrixSetDiagForwardContiguous{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }

@@ -40,7 +40,7 @@ namespace miopen {
 
 namespace solver {
 
-namespace matrix_set_diag {
+namespace matrix_diag {
 
 namespace {
 const auto make_hip_kernel = [](std::vector<size_t> localsize,
@@ -61,7 +61,7 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
 
 bool MatrixSetDiagForwardContiguous::IsApplicable(
     const ExecutionContext& /*context*/,
-    const miopen::matrix_set_diag::ForwardProblemDescription& problem) const
+    const miopen::matrix_diag::MatrixSetDiagForwardProblemDescription& problem) const
 {
     if(!problem.IsAllContiguous())
         return false;
@@ -70,7 +70,7 @@ bool MatrixSetDiagForwardContiguous::IsApplicable(
 
 ConvSolution MatrixSetDiagForwardContiguous::GetSolution(
     const ExecutionContext& /*context*/,
-    const miopen::matrix_set_diag::ForwardProblemDescription& problem) const
+    const miopen::matrix_diag::MatrixSetDiagForwardProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -92,7 +92,7 @@ ConvSolution MatrixSetDiagForwardContiguous::GetSolution(
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) params = raw_params.CastTo<miopen::matrix_set_diag::FwdInvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::matrix_diag::FwdInvokeParams>();
             decltype(auto) kernel = handle_.Run(kernels[0]);
             kernel(
                 params.input,
@@ -113,7 +113,7 @@ ConvSolution MatrixSetDiagForwardContiguous::GetSolution(
     return result;
 }
 
-} // namespace matrix_set_diag
+} // namespace matrix_diag
 
 } // namespace solver
 

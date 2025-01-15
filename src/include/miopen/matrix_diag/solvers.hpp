@@ -34,29 +34,9 @@ namespace solver {
 
 namespace matrix_diag {
 
-using MatrixDiagForwardSolverBase =
-    NonTunableSolverBase<ExecutionContext, miopen::matrix_diag::ForwardProblemDescription>;
-
-struct MatrixDiagForwardContiguous final : MatrixDiagForwardSolverBase
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<MatrixDiagForwardContiguous>();
-    }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::matrix_diag::ForwardProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::matrix_diag::ForwardProblemDescription& problem) const override;
-};
-
-} // namespace matrix_diag
-
-namespace matrix_set_diag {
-
 using MatrixSetDiagForwardSolverBase =
-    NonTunableSolverBase<ExecutionContext, miopen::matrix_set_diag::ForwardProblemDescription>;
+    NonTunableSolverBase<ExecutionContext,
+                         miopen::matrix_diag::MatrixSetDiagForwardProblemDescription>;
 
 struct MatrixSetDiagForwardContiguous final : MatrixSetDiagForwardSolverBase
 {
@@ -65,15 +45,15 @@ struct MatrixSetDiagForwardContiguous final : MatrixSetDiagForwardSolverBase
         return GetSolverDbId<MatrixSetDiagForwardContiguous>();
     }
 
-    bool
-    IsApplicable(const ExecutionContext& context,
-                 const miopen::matrix_set_diag::ForwardProblemDescription& problem) const override;
-    ConvSolution
-    GetSolution(const ExecutionContext& context,
-                const miopen::matrix_set_diag::ForwardProblemDescription& problem) const override;
+    bool IsApplicable(
+        const ExecutionContext& context,
+        const miopen::matrix_diag::MatrixSetDiagForwardProblemDescription& problem) const override;
+    ConvSolution GetSolution(
+        const ExecutionContext& context,
+        const miopen::matrix_diag::MatrixSetDiagForwardProblemDescription& problem) const override;
 };
 
-} // namespace matrix_set_diag
+} // namespace matrix_diag
 
 } // namespace solver
 

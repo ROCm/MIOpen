@@ -34,35 +34,35 @@
 
 namespace miopen {
 
-miopenStatus_t MatrixDiagForward(Handle& handle,
-                                 const TensorDescriptor& diagDesc,
-                                 ConstData_t diag,
-                                 const TensorDescriptor& outputDesc,
-                                 Data_t output,
-                                 const int64_t diagOffset0,
-                                 const int64_t diagOffset1,
-                                 const TensorDescriptor& padDesc,
-                                 ConstData_t pad,
-                                 const miopenMatrixDiagAlignMode_t align)
+miopenStatus_t MatrixSetDiagForward(Handle& handle,
+                                    const TensorDescriptor& inputDesc,
+                                    ConstData_t input,
+                                    const TensorDescriptor& diagDesc,
+                                    ConstData_t diag,
+                                    const TensorDescriptor& outputDesc,
+                                    Data_t output,
+                                    const int64_t diagOffset0,
+                                    const int64_t diagOffset1,
+                                    const miopenMatrixDiagAlignMode_t align)
 {
-    const auto problem = matrix_diag::MatrixDiagForwardProblemDescription{
-        diagDesc, outputDesc, diagOffset0, diagOffset1, padDesc, align};
+    const auto problem = matrix_diag::MatrixSetDiagForwardProblemDescription{
+        inputDesc, diagDesc, outputDesc, diagOffset0, diagOffset1, align};
 
     const auto invoke_params = [&]() {
         auto tmp        = matrix_diag::FwdInvokeParams{};
         tmp.type        = InvokeType::Run;
+        tmp.inputDesc   = &inputDesc;
         tmp.diagDesc    = &diagDesc;
         tmp.outputDesc  = &outputDesc;
-        tmp.inputDesc   = &padDesc;
+        tmp.input       = input;
         tmp.diag        = diag;
         tmp.output      = output;
-        tmp.input       = pad;
         tmp.diagOffset0 = diagOffset0;
         tmp.diagOffset1 = diagOffset1;
         return tmp;
     }();
 
-    const auto algo = AlgorithmName{"MatrixDiagForward"};
+    const auto algo = AlgorithmName{"MatrixSetDiagForward"};
     const auto solvers =
         solver::SolverContainer<solver::matrix_diag::MatrixSetDiagForwardContiguous>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
