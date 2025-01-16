@@ -57,7 +57,7 @@ void LogCmdConvolution(const miopen::TensorDescriptor& x,
 
 namespace miopen {
 
-void Solution::Run(Handle& handle,
+void Solution::Run(const Handle& handle,
                    const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                    Data_t workspace,
                    std::size_t workspace_size)
@@ -148,7 +148,7 @@ void Solution::LogDriverCommand(const FusedProblem& problem_) const
     /// \todo: add logging of some command to reproduce current solution or at least problem
 }
 
-void Solution::RunImpl(Handle& handle,
+void Solution::RunImpl(const Handle& handle,
                        const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                        Data_t workspace,
                        std::size_t workspace_size,
@@ -257,7 +257,7 @@ void Solution::RunImpl(Handle& handle,
     checkNumericsOutput_();
 }
 
-void Solution::RunImpl(Handle& handle,
+void Solution::RunImpl(const Handle& handle,
                        const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                        Data_t workspace,
                        std::size_t workspace_size,
@@ -451,7 +451,7 @@ void Solution::RunImpl(Handle& handle,
     (*invoker)(handle, invoke_ctx);
 }
 
-void Solution::RunImpl(Handle& handle,
+void Solution::RunImpl(const Handle& handle,
                        const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                        Data_t /*workspace*/,
                        std::size_t /*workspace_size*/,
@@ -554,7 +554,7 @@ void Solution::RunImpl(Handle& handle,
     (*invoker)(handle, invoke_ctx);
 }
 
-void Solution::RunImpl(Handle& handle,
+void Solution::RunImpl(const Handle& handle,
                        const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                        Data_t /*workspace*/,
                        std::size_t /*workspace_size*/,

@@ -33,7 +33,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t KthvalueForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t KthvalueForward(const Handle& handle,
                                                        const TensorDescriptor& inputDesc,
                                                        ConstData_t input,
                                                        const TensorDescriptor& outputDesc,
