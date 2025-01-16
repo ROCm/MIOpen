@@ -50,6 +50,7 @@ add_executable(MIOpenDriver
     dm_layernorm.cpp
     dm_lrn.cpp
     dm_multimarginloss.cpp
+    dm_normalize.cpp
     dm_pool.cpp
     dm_prelu.cpp
     dm_reduce.cpp

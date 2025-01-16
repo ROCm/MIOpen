@@ -102,6 +102,22 @@ inline tensor_view_t<N - 1> get_tv_without_dim(const tensor_view_t<N>& origin_tv
     return res;
 }
 
+template <int N>
+tensor_view_t<N> move_dims_back(const tensor_view_t<N>& input_tv, uint32_t dim)
+{
+    tensor_view_t<N> res{};
+    int cnt = 0;
+    for(int i = 0; i < N; ++i)
+        if(i != dim)
+        {
+            res.size[cnt]     = input_tv.size[i];
+            res.stride[cnt++] = input_tv.stride[i];
+        }
+    res.size[cnt]   = input_tv.size[dim];
+    res.stride[cnt] = input_tv.stride[dim];
+    return res;
+}
+
 } // namespace miopen
 
 #endif // MIOPEN_TENSOR_VIEW_UTIL_HPP_

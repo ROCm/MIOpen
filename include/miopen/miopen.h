@@ -8176,6 +8176,76 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 // CLOSEOUT LossFunction DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
+#ifdef MIOPEN_BETA_API
+// Normalize APIs
+/** @addtogroup activation
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the
+NormalizeBackward call
+ *
+ * @param [in]  handle              MIOpen Handle
+ * @param [in]  inputDesc           Tensor descriptor for input tensor
+ * @param [in]  divisorDesc         Tensor descriptor for divisor tensor
+ * @param [in]  outputGradDesc      Tensor descriptor for output gradient tensor
+ * @param [in]  inputGradDesc       Tensor descriptor for input gradient tensor
+ * @param [in]  p                   The exponent value in the norm formulation
+ * @param [in]  eps                 Small value to avoid division by zero
+ * @param [in]  dim                 The dimension to reduce
+ * @param [out] sizeInBytes         Pointer to data to return the minimum workspace size
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetNormalizeBackwardWorkspaceSize(miopenHandle_t handle,
+                                        miopenTensorDescriptor_t inputDesc,
+                                        miopenTensorDescriptor_t divisorDesc,
+                                        miopenTensorDescriptor_t outputGradDesc,
+                                        miopenTensorDescriptor_t inputGradDesc,
+                                        float p,
+                                        float eps,
+                                        uint32_t dim,
+                                        size_t* sizeInBytes);
+
+/*! @brief Execute a Normalize backward layer
+ *
+ * @param [in]  handle                  MIOpen Handle
+ * @param [in]  inputDesc               Tensor descriptor for input tensor
+ * @param [in]  input                   Input tensor data
+ * @param [in]  divisorDesc             Tensor descriptor for divisor tensor, the dimension 'dim'
+ * should be 1
+ * @param [in]  divisor                 Divisor tensor data. Output equals input divided by divisor
+ * @param [in]  outputGradDesc          Tensor descriptor for output gradient tensor
+ * @param [in]  outputGrad              Output gradient data
+ * @param [in]  inputGradDesc           Tensor descriptor for input gradient tensor
+ * @param [out] inputGrad               Input gradient data
+ * @param [in]  p                       The exponent value in the norm formulation
+ * @param [in]  eps                     Small value to avoid division by zero
+ * @param [in]  dim                     The dimension to reduce
+ * @param [in]  workspace               Address of the allocated workspace data
+ * @param [in]  workspaceSizeInBytes    Size in bytes of the allocated workspace data
+ * @return                              miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenNormalizeBackward(miopenHandle_t handle,
+                                                     miopenTensorDescriptor_t inputDesc,
+                                                     const void* input,
+                                                     miopenTensorDescriptor_t divisorDesc,
+                                                     const void* divisor,
+                                                     miopenTensorDescriptor_t outputGradDesc,
+                                                     const void* outputGrad,
+                                                     miopenTensorDescriptor_t inputGradDesc,
+                                                     void* inputGrad,
+                                                     float p,
+                                                     float eps,
+                                                     uint32_t dim,
+                                                     void* workspace,
+                                                     size_t workspaceSizeInBytes);
+
+/** @} */
+// CLOSEOUT activation DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
 #ifdef __cplusplus
 }
 #endif
