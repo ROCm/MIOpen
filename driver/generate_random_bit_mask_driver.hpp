@@ -214,7 +214,7 @@ int GenerateRandomBitMaskDriver::RunForwardGPU()
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
         auto status = miopenGenerateRandomBitMask(
-            GetHandle(), pstateDesc, pstate_dev->GetMem(), maskDesc, mask_dev->GetMem(), p);
+            GetHandle(), pstate_dev->GetMem(), statesSizeInBytes, maskDesc, mask_dev->GetMem(), p);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenPdistBackward");
 

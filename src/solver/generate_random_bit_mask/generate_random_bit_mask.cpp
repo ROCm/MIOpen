@@ -48,6 +48,13 @@ bool GenerateRandomBitMask::IsApplicable(
     const ExecutionContext& context,
     const miopen::generate_random_bit_mask::ProblemDescription& problem) const
 {
+    auto& handle = context.GetStream();
+
+    if(problem.GetStateSizeInBytes() > handle.GetMaxMemoryAllocSize())
+    {
+        MIOPEN_THROW("PRNG state size should not exceed system maximum memory allocation size.");
+    }
+
     return true;
 }
 
@@ -92,8 +99,6 @@ ConvSolution GenerateRandomBitMask::GetSolution(
     }
     else
     {
-        const std::string READ_DAT_TYPE =
-            RD_BLCK == 1 ? "float" : "float" + std::to_string(RD_BLCK);
         size_t wk_grp_num =
             std::min(size_t(MAX_PRNG_STATE) / LOCAL_SIZE, ((bitmask_numel + 255) / 256));
 

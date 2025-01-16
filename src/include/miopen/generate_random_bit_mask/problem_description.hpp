@@ -56,19 +56,23 @@ private:
 
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& pstateDesc_,
+    ProblemDescription(const size_t stateSizeInBytes_,
                        const TensorDescriptor& maskDesc_,
                        const float p_)
-        : pstateDesc(pstateDesc_), maskDesc(maskDesc_), p(p_)
+        : stateSizeInBytes(stateSizeInBytes_), maskDesc(maskDesc_), p(p_)
     {
-
+        if(stateSizeInBytes <= 0)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "GenerateRandomBitMask: State size in bytes must be greater than 0");
+        }
         IsValidProbValue();
         IsRightType();
     }
 
     const TensorDescriptor& GetMaskDesc() const { return maskDesc; }
     float GetProb() const { return p; }
-    float GetStateSizeInBytes() const { return pstateDesc.GetNumBytes(); }
+    size_t GetStateSizeInBytes() const { return stateSizeInBytes; }
 
     bool IsValidProbValue() const
     {
@@ -97,7 +101,7 @@ struct ProblemDescription : ProblemDescriptionBase
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    const TensorDescriptor& pstateDesc;
+    const size_t stateSizeInBytes;
     const TensorDescriptor& maskDesc;
     float p;
 };

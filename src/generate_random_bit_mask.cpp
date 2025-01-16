@@ -61,21 +61,23 @@ miopenStatus_t InitGenerateRandomBitMaskStates(Handle& handle,
 }
 
 miopenStatus_t GenerateRandomBitMask(Handle& handle,
-                                     const TensorDescriptor& pstateDesc,
                                      Data_t pstate,
+                                     const size_t stateSizeInBytes,
                                      const TensorDescriptor& maskDesc,
                                      Data_t mask,
                                      float p)
 {
-    const auto problem = generate_random_bit_mask::ProblemDescription{pstateDesc, maskDesc, p};
+    const auto problem =
+        generate_random_bit_mask::ProblemDescription{stateSizeInBytes, maskDesc, p};
 
     const auto invoke_params = [&]() {
-        auto tmp       = miopen::generate_random_bit_mask::InvokeParams{};
-        tmp.pstateDesc = &pstateDesc;
-        tmp.maskDesc   = &maskDesc;
+        auto tmp     = miopen::generate_random_bit_mask::InvokeParams{};
+        tmp.maskDesc = &maskDesc;
 
         tmp.pstates = pstate;
         tmp.mask    = mask;
+
+        tmp.stateSizeInBytes = stateSizeInBytes;
 
         tmp.p = p;
 

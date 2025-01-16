@@ -28,6 +28,21 @@
 
 #define MAX_PRNG_STATE (256 * 64)
 
+struct xorwowStates
+{
+    // Xorshift values (160 bits)
+    unsigned int x;
+    unsigned int y;
+    unsigned int z;
+    unsigned int w;
+    unsigned int v;
+
+    // Weyl sequence value
+    unsigned int d;
+};
+
+using prngStates = xorwowStates;
+
 #include <miopen/common.hpp>
 
 namespace miopen {
@@ -43,8 +58,8 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t InitGenerateRandomBitMaskStates(Handle& h
                                                                        uint64_t seed);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t GenerateRandomBitMask(Handle& handle,
-                                                             const TensorDescriptor& pstateDesc,
                                                              Data_t pstate,
+                                                             size_t stateSizeInBytes,
                                                              const TensorDescriptor& maskDesc,
                                                              Data_t mask,
                                                              float p);

@@ -37,19 +37,15 @@
 
 #include <algorithm>
 
-// GenerateBitMaskTestCase
-struct GBMTestCase
+struct GenerateRandomBitMaskTestCase
 {
-    std::vector<size_t> input_shape;
     std::vector<size_t> mask_shape;
     float p;
 
-    // Add mask size
-
-    friend std::ostream& operator<<(std::ostream& os, const GBMTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& os, const GenerateRandomBitMaskTestCase& tc)
     {
-        os << "input_shape: (";
-        for(auto i : tc.input_shape)
+        os << "mask_shape: (";
+        for(auto i : tc.mask_shape)
         {
             os << i << ", ";
         }
@@ -60,40 +56,31 @@ struct GBMTestCase
         return os;
     }
 
-    std::vector<size_t> GetInputShape() const { return input_shape; }
     std::vector<size_t> GetMaskShape() const { return mask_shape; }
     float GetProb() const { return p; }
 
-    GBMTestCase() {}
+    GenerateRandomBitMaskTestCase() {}
 
-    GBMTestCase(std::vector<size_t> input_shape_, std::vector<size_t> mask_shape_, float p_ = 0.5)
-        : input_shape(input_shape_), mask_shape(mask_shape_), p(p_)
+    GenerateRandomBitMaskTestCase(std::vector<size_t> mask_shape_, float p_ = 0.5)
+        : mask_shape(mask_shape_), p(p_)
     {
-    }
-
-    GBMTestCase(std::vector<size_t> input_shape_, float p_ = 0.5) : input_shape(input_shape_), p(p_)
-    {
-        mask_shape        = input_shape;
-        mask_shape.back() = (input_shape.back() + 7) / 8;
     }
 };
 
-inline std::vector<GBMTestCase> GBMTestConfigs()
+inline std::vector<GenerateRandomBitMaskTestCase> GBMTestConfigs()
 {
     return {
-        // GBMTestCase({std::pow(2,0)}),
-        // GBMTestCase({2, 3, 4}),
-        GBMTestCase({800}, {100}, 0), // drop nothing
-        GBMTestCase({800}, {100}, 1), // drop all
-        // GBMTestCase({800}, {100}, 0.5),
-        GBMTestCase({16, 2048, 4096}, {16, 2048, 512}, 0.7),
-        // GBMTestCase({16, 32, 2048, 2048}, 0.7),
-        // GBMTestCase({50, 700} , 0.7),
-        // GBMTestCase({std::pow(2,2)}),
+        GenerateRandomBitMaskTestCase({400}, 0), // drop nothing
+        GenerateRandomBitMaskTestCase({400}, 0.7),
+        GenerateRandomBitMaskTestCase({400}, 1), // drop all
+        GenerateRandomBitMaskTestCase({4, 400}, 0.7),
+        GenerateRandomBitMaskTestCase({2, 4, 400}, 0.7),
+        GenerateRandomBitMaskTestCase({1, 2, 4, 400}, 0.7),
+        GenerateRandomBitMaskTestCase({700, 700}, 0.7), // not div 8 size
     };
 }
 
-struct GBMTest : public ::testing::TestWithParam<GBMTestCase>
+struct GBMTest : public ::testing::TestWithParam<GenerateRandomBitMaskTestCase>
 {
 protected:
     void SetUp() override
@@ -101,17 +88,20 @@ protected:
         auto&& handle = get_handle();
         config        = GetParam();
 
-        auto input_shape = config.GetInputShape();
-        auto mask_shape  = config.GetMaskShape();
-        p                = config.GetProb();
+        auto mask_shape = config.GetMaskShape();
+        p               = config.GetProb();
 
-        auto in_gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<float>(1e-2, 100);
-        };
+        // Initialize pstate
+        auto status = miopenGetGenerateRandomBitMaskStatesSize(&handle, &stateSizeInBytes);
 
-        // NOTE: This function only need inputDescriptor to get input_shape, so other values (e.g.
-        // dtype, strides, values are not important, just random choose them)
-        input = tensor<float>{input_shape}.generate(in_gen_value);
+        ASSERT_EQ(status, miopenStatusSuccess);
+
+        pstate_dev = handle.Create<rocrand_state_xorwow>(stateSizeInBytes);
+
+        status = miopen::generate_random_bit_mask::InitGenerateRandomBitMaskStates(
+            handle, pstate_dev.get(), stateSizeInBytes, 0);
+
+        ASSERT_EQ(status, miopenStatusSuccess);
 
         mask = tensor<unsigned char>{mask_shape};
         std::fill(mask.begin(), mask.end(), 0);
@@ -128,24 +118,8 @@ protected:
         miopenStatus_t status;
 
         // Run kernel
-        // Step 1: Initialize pstate
-        status = miopenGetGenerateRandomBitMaskStatesSize(&handle, &stateSizeInBytes);
-
-        ASSERT_EQ(status, miopenStatusSuccess);
-
-        pstate = tensor<uchar>{stateSizeInBytes / sizeof(rocrand_state_xorwow)};
-        std::fill(pstate.begin(), pstate.end(), 0);
-
-        pstate_dev = handle.Write(pstate.data);
-
-        status = miopen::generate_random_bit_mask::InitGenerateRandomBitMaskStates(
-            handle, pstate_dev.get(), stateSizeInBytes, 0);
-
-        ASSERT_EQ(status, miopenStatusSuccess);
-
-        // Step 2: Generate random bit mask
         status = miopen::generate_random_bit_mask::GenerateRandomBitMask(
-            handle, pstate.desc, pstate_dev.get(), mask.desc, mask_dev.get(), p);
+            handle, pstate_dev.get(), stateSizeInBytes, mask.desc, mask_dev.get(), p);
 
         ASSERT_EQ(status, miopenStatusSuccess);
 
@@ -155,17 +129,8 @@ protected:
 
     void Verify()
     {
-        // Print mask.data
-        // std::cout << "mask.data: ";
-        // for(auto i : mask.data) {
-        //     std::cout << static_cast<int>(i) << " ";
-        // }
-        // std::cout << std::endl;
 
-        // auto output_mask = tensor<unsigned char>{mask.desc.GetLengths()};
-        // std::fill(output_mask.begin(), output_mask.end(), 1);
-
-        // counting number 1 in mask
+        // counting number bit 1 in mask
         int64_t count_1 = 0;
         for(size_t i = 0; i < mask.data.size(); i++)
         {
@@ -177,7 +142,7 @@ protected:
             }
         }
 
-        auto input_numel = input.desc.GetElementSize();
+        auto input_numel = mask.desc.GetElementSize() * 8;
 
         // NOTE: 5% is heuristic number
         // +- 5% allowed
@@ -191,10 +156,11 @@ protected:
             << min_expected << ", " << max_expected << "]";
     }
 
-    GBMTestCase config;
+    GenerateRandomBitMaskTestCase config;
 
-    tensor<float> input;
-    tensor<uchar> pstate;
+    // pstate.type is `rocrand_state_xorwow` but use `uchar` instead, to be able to create a tensor
+    // type
+    tensor<unsigned char> pstate;
     tensor<unsigned char> mask;
 
     tensor<unsigned char> ref_mask;

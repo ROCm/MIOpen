@@ -57,6 +57,8 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t pstates = nullptr;
     Data_t mask    = nullptr;
 
+    size_t stateSizeInBytes = 0;
+
     float p = 0.5f;
 
     std::size_t GetWorkspaceSize() const { return 0; }

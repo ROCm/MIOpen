@@ -52,6 +52,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     {
         ss << i << ",";
     }
+    ss << "state_size: " << stateSizeInBytes;
+    ss << "p: " << p;
 
     return NetworkConfig{ss.str()};
 }
