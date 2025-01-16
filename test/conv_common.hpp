@@ -68,7 +68,7 @@ using Direction              = miopen::conv::Direction;
 bool get_handle_xnack();
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
-static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
+static inline bool is_direct_fwd_bwd_data_supported(const miopen::Handle& handle,
                                                     const miopen::ConvolutionDescriptor convDesc,
                                                     const miopen::TensorDescriptor& xDesc,
                                                     const miopen::TensorDescriptor& wDesc,
@@ -97,7 +97,7 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
     return true;
 }
 
-static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
+static inline bool is_direct_bwd_wrw_supported(const miopen::Handle& handle,
                                                const miopen::ConvolutionDescriptor convDesc,
                                                const miopen::TensorDescriptor& xDesc,
                                                const miopen::TensorDescriptor& wDesc,

@@ -52,7 +52,7 @@ namespace solver {
 namespace conv {
 namespace gemm {
 
-std::size_t MaxMemAllocSz(Handle& h,
+std::size_t MaxMemAllocSz(const Handle& h,
                           const miopen::conv::ProblemDescription& problem,
                           bool double_limit_for_fp32)
 {

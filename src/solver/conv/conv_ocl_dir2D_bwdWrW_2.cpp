@@ -135,7 +135,7 @@ inline static bool Inc_2_to_11_optimized(int& v)
 // in issue 1289
 #define WORKAROUND_ISSUE_1185 1
 
-static bool IsTunable(const ProblemDescription& problem)
+static bool IsTunableBase(const ProblemDescription& problem)
 {
     return !(problem.GetGroupCount() == 1 &&
              ((problem.GetWeightsWidth() == 3 && problem.GetWeightsHeight() == 3) ||
@@ -149,7 +149,7 @@ bool ConvOclBwdWrW2NonTunable::IsApplicable(const ExecutionContext& ctx,
     // reasons: after tuning ocl kernel for 3x3 and 1x1 filters, assembly kernel still
     // dominates. Thus, this solver is used for non-group 3x3 and 1x1 filters only.
     const auto tunable = ConvOclBwdWrW2<1>{};
-    return tunable.IsApplicableBase(ctx, problem) && !IsTunable(problem);
+    return tunable.IsApplicableBase(ctx, problem) && !IsTunableBase(problem);
 }
 
 size_t ConvOclBwdWrW2NonTunable::GetWorkspaceSize(const ExecutionContext& ctx,
@@ -520,7 +520,7 @@ template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicable(const ExecutionContext& ctx,
                                                  const ProblemDescription& problem) const
 {
-    return IsApplicableBase(ctx, problem) && IsTunable(problem);
+    return IsApplicableBase(ctx, problem) && IsTunableBase(problem);
 }
 
 template <int N_BATCH_LOOPS>

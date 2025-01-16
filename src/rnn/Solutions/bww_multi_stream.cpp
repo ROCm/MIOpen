@@ -33,7 +33,7 @@ namespace miopen {
 
 namespace rnn_base {
 
-void RNNModularMultiStreamBWWeights::PrologueDispatch(const runtimeArgsBww& args) const
+void RNNModularMultiStreamBWWeights::PrologueDispatch(const runtimeArgsBWWeights& args) const
 {
     rnnAlgoModules.PrepareWriteBuffers(*args.handle, args.dw);
 }
@@ -51,7 +51,15 @@ void RNNModularMultiStreamBWWeights::Compute(const Handle& handle,
     if(rnnDesc.nLayers == 0 || max_seq_len == 0)
         return;
 
-    const runtimeArgsBww args{&handle, x, hx, dw, workSpace, reserveSpace};
+    const ConstData_t back_data_space = workSpace;
+    const auto back_data_byte_size =
+        rnnAlgoModules.workspaceInfo.getBufferSizeImpl() * GetTypeSize(rnnDesc.dataType);
+
+    const Data_t free_ws    = moveDataPtrByte(workSpace, back_data_byte_size);
+    const auto free_ws_size = workSpaceSize - back_data_byte_size;
+
+    const runtimeArgsBWWeights args{
+        &handle, x, hx, dw, back_data_space, reserveSpace, free_ws, free_ws_size};
 
     MultiStreamController ms_controller{handle, env::value_or(MIOPEN_RNN_MS_STREAM_CNT, 4)};
 
@@ -74,7 +82,7 @@ void RNNModularMultiStreamBWWeights::Compute(const Handle& handle,
 
     ms_controller.ChangeActiveStream(bias_stream);
     for(int layer_i = 0; layer_i < rnnDesc.nLayers; layer_i++)
-        rnnAlgoModules.BiasUpdate(handle, dw, workSpace, layer_i, workSpaceSize);
+        rnnAlgoModules.BiasUpdate(handle, dw, back_data_space, free_ws, layer_i, free_ws_size);
 
     auto sequence_directions =
         rnnDesc.dirMode == miopenRNNDirectionMode_t::miopenRNNbidirection ? 2 : 1;
@@ -85,9 +93,9 @@ void RNNModularMultiStreamBWWeights::Compute(const Handle& handle,
         ms_controller.ChangeActiveStream(dispatch_stream_id);
 
         if(layer_i == 0)
-            rnnAlgoModules.PhisXInputWeights(handle, dw, workSpace, x);
+            rnnAlgoModules.PhisXInputWeights(handle, dw, back_data_space, x);
         else
-            rnnAlgoModules.HiddenXInputWeights(handle, dw, workSpace, reserveSpace, layer_i);
+            rnnAlgoModules.HiddenXInputWeights(handle, dw, back_data_space, reserveSpace, layer_i);
 
         for(int dir = 0; dir < sequence_directions; dir++)
         {
@@ -95,10 +103,10 @@ void RNNModularMultiStreamBWWeights::Compute(const Handle& handle,
                                           : rnn_base::SequenceDirection::Reverse;
 
             rnnAlgoModules.PhisHStateWeights(
-                handle, dw, workSpace, hx, layer_i, max_seq_len, seq_dir);
+                handle, dw, back_data_space, hx, layer_i, max_seq_len, seq_dir);
 
             rnnAlgoModules.HiddenHStateWeights(
-                handle, dw, workSpace, reserveSpace, layer_i, max_seq_len, seq_dir);
+                handle, dw, back_data_space, reserveSpace, layer_i, max_seq_len, seq_dir);
         }
     }
 
