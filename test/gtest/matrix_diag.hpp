@@ -157,12 +157,12 @@ protected:
         miopenStatus_t status = miopen::MatrixDiagForward(handle,
                                                           diag.desc,
                                                           diag_dev.get(),
+                                                          pad.desc,
+                                                          pad_dev.get(),
                                                           output.desc,
                                                           output_dev.get(),
                                                           k0,
                                                           k1,
-                                                          pad.desc,
-                                                          pad_dev.get(),
                                                           align);
         ASSERT_EQ(status, miopenStatusSuccess);
 
@@ -174,7 +174,7 @@ protected:
         auto error = miopen::rms_range(ref_output, output);
 
         ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
-        EXPECT_EQ(error, 0) << "Error! Incorrect output: " << error;
+        EXPECT_EQ(error, 0) << "Error! Incorrect output!";
     }
     MatrixDiagTestcase matrix_diag_config;
 

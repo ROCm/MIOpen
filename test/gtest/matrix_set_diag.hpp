@@ -60,7 +60,7 @@ struct MatrixSetDiagTestcase
 
     friend std::ostream& operator<<(std::ostream& os, const MatrixSetDiagTestcase& tc)
     {
-        return os << " InputSize:" << tc.inputSize << " DiagSize:" << tc.diagSize
+        return os << " inputSize:" << tc.inputSize << " DiagSize:" << tc.diagSize
                   << " offset0:" << tc.diagOffset0 << " offset1:" << tc.diagOffset1
                   << " Align:" << tc.align;
     }
@@ -167,7 +167,7 @@ protected:
         auto error = miopen::rms_range(ref_output, output);
 
         ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
-        EXPECT_EQ(error, 0) << "Error! Incorrect output: " << error;
+        EXPECT_EQ(error, 0) << "Error! Incorrect output!";
     }
     MatrixSetDiagTestcase matrix_set_diag_config;
 

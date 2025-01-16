@@ -25,10 +25,13 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/names.hpp>
 #include <miopen/miopen.h>
 #include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
+
+#include <sstream>
 
 namespace miopen {
 
@@ -43,13 +46,15 @@ struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
                                            const TensorDescriptor& outputDesc_,
                                            const int64_t diagOffset0_,
                                            const int64_t diagOffset1_,
-                                           const miopenMatrixDiagAlignMode_t align_)
+                                           const miopenMatrixDiagAlignMode_t align_,
+                                           const std::string algo_ = "MatrixSetDiagForward")
         : inputDesc(inputDesc_),
           diagDesc(diagDesc_),
           outputDesc(outputDesc_),
           diagOffset0(diagOffset0_),
           diagOffset1(diagOffset1_),
-          align(align_)
+          align(align_),
+          algo(algo_)
     {
         IsValidType();
         IsValidSize();
@@ -58,66 +63,75 @@ struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     miopenMatrixDiagAlignMode_t GetAlign() const { return align; }
 
-    bool IsValidInputType() const
+    bool IsValidType() const
     {
         if(diagDesc.GetType() != inputDesc.GetType())
             MIOPEN_THROW(miopenStatusBadParm,
-                         "MatrixDiag: Diagonal and Input datatype do not match.");
-        return true;
-    }
-
-    bool IsValidType() const
-    {
-        if(!IsValidInputType())
-            return false;
+                         (std::stringstream()
+                          << algo << ": Diagonal and Input/Padding datatype do not match.")
+                             .str());
         if(diagDesc.GetType() != outputDesc.GetType())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "MatrixDiag: Diagonal and Output datatype do not match.");
-        return true;
-    }
-
-    bool IsValidInputSize() const
-    {
-        if(inputDesc.GetElementSize() > 1 && inputDesc.GetLengths() != outputDesc.GetLengths())
             MIOPEN_THROW(
                 miopenStatusBadParm,
-                "MatrixDiag: When there are more than 1 element in Input tensor, Input and Output "
-                "tensor size must be same.");
+                (std::stringstream() << algo << ": Diagonal and Output datatype do not match.")
+                    .str());
         return true;
     }
 
     bool IsValidSize() const
     {
         if(outputDesc.GetNumDims() < 2)
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "MatrixDiag: Output tensor must have at least 2 dimensions");
-        if(-diagOffset0 >=
-           static_cast<int64_t>(outputDesc.GetLengths()[outputDesc.GetNumDims() - 2]))
             MIOPEN_THROW(
                 miopenStatusBadParm,
-                "MatrixDiag: diagOffset0 must be less than the second last Output dimension");
+                (std::stringstream() << algo << ": Output tensor must have at least 2 dimensions")
+                    .str());
+        if(-diagOffset0 >=
+           static_cast<int64_t>(outputDesc.GetLengths()[outputDesc.GetNumDims() - 2]))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         (std::stringstream()
+                          << algo
+                          << ": diagOffset0 must be less than the second last Output dimension")
+                             .str());
         if(diagOffset1 >=
            static_cast<int64_t>(outputDesc.GetLengths()[outputDesc.GetNumDims() - 1]))
             MIOPEN_THROW(miopenStatusBadParm,
-                         "MatrixDiag: diagOffset1 must be less than the last Output dimension");
+                         (std::stringstream()
+                          << algo << ": diagOffset1 must be less than the last Output dimension")
+                             .str());
         if(diagOffset0 == diagOffset1)
         {
             if(diagDesc.GetNumDims() < 1)
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
-                             "MatrixDiag: When diagOffset0 == diagOffset1, Diagonal tensor must "
-                             "have at least 1 dimension");
+                             (std::stringstream()
+                              << algo
+                              << ": When diagOffset0 == diagOffset1, Diagonal tensor must "
+                                 "have at least 1 dimension")
+                                 .str());
+            }
             if(diagDesc.GetNumDims() + 1 != outputDesc.GetNumDims())
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
-                             "MatrixDiag: When diagOffset0 == diagOffset1, Output tensor must have "
-                             "1 more dimension than Diagonal tensor");
+                             (std::stringstream()
+                              << algo
+                              << ": When diagOffset0 == diagOffset1, Output tensor must have "
+                                 "1 more dimension than Diagonal tensor")
+                                 .str());
+            }
             if(std::vector<size_t>(diagDesc.GetLengths().begin(),
                                    diagDesc.GetLengths().end() - 1) !=
                std::vector<size_t>(outputDesc.GetLengths().begin(),
                                    outputDesc.GetLengths().end() - 2))
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "MatrixDiag: When diagOffset0 == diagOffset1, Diagonal tensor has "
-                             "shape [I, J, ..., L, M, N] then Output tensor must have shape [I, J, "
-                             "..., L, M, num_rows, num_cols]");
+            {
+                MIOPEN_THROW(
+                    miopenStatusBadParm,
+                    (std::stringstream()
+                     << algo
+                     << ": When diagOffset0 == diagOffset1, Diagonal tensor has "
+                        "shape [I, J, ..., L, M, N] then Output tensor must have shape [I, J, "
+                        "..., L, M, num_rows, num_cols]")
+                        .str());
+            }
             int64_t num_rows = outputDesc.GetLengths()[outputDesc.GetNumDims() - 2];
             int64_t num_cols = outputDesc.GetLengths()[outputDesc.GetNumDims() - 1];
             auto diagLength  = std::min(num_rows, num_cols) -
@@ -125,36 +139,63 @@ struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
                                         diagOffset0 - std::max(num_cols - num_rows, 0L),
                                         0L});
             if(diagDesc.GetLengths().back() != diagLength)
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
-                             "MatrixDiag: When diagOffset0 == diagOffset1, Diagonal tensor last "
-                             "dimension must match with Output tensor diagonal length");
+                             (std::stringstream()
+                              << algo
+                              << ": When diagOffset0 == diagOffset1, Diagonal tensor last "
+                                 "dimension must match with Output tensor diagonal length")
+                                 .str());
+            }
         }
         else
         {
             if(diagOffset0 > diagOffset1)
                 MIOPEN_THROW(miopenStatusBadParm,
-                             "MatrixDiag: diagOffset0 must be less than or equal to diagOffset1");
+                             (std::stringstream()
+                              << algo << ": diagOffset0 must be less than or equal to diagOffset1")
+                                 .str());
             if(diagDesc.GetNumDims() < 2)
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
-                             "MatrixDiag: When diagOffset0 == diagOffset1, Diagonal tensor must "
-                             "have at least 2 dimensions");
+                             (std::stringstream()
+                              << algo
+                              << ": When diagOffset0 == diagOffset1, Diagonal tensor must "
+                                 "have at least 2 dimensions")
+                                 .str());
+            }
             if(diagDesc.GetNumDims() != outputDesc.GetNumDims())
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
-                             "MatrixDiag: When diagOffset0 != diagOffset1, Output tensor must has "
-                             "the same number of dimension with Diagonal tensor");
+                             (std::stringstream()
+                              << algo
+                              << ": When diagOffset0 != diagOffset1, Output tensor must has "
+                                 "the same number of dimension with Diagonal tensor")
+                                 .str());
+            }
             if(std::vector<size_t>(diagDesc.GetLengths().begin(),
                                    diagDesc.GetLengths().end() - 2) !=
                std::vector<size_t>(outputDesc.GetLengths().begin(),
                                    outputDesc.GetLengths().end() - 2))
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "MatrixDiag: When diagOffset0 != diagOffset1, Diagonal tensor has "
-                             "shape [I, J, ..., L, M, N] then Output tensor must have shape [I, J, "
-                             "..., L, num_rows, num_cols]");
-            if(diagDesc.GetLengths()[diagDesc.GetNumDims() - 2] != diagOffset1 - diagOffset0 + 1)
+            {
                 MIOPEN_THROW(
                     miopenStatusBadParm,
-                    "MatrixDiag: When diagOffset0 != diagOffset1, Diagonal tensor second last "
-                    "dimension must equal to diagOffset1 - diagOffset0");
+                    (std::stringstream()
+                     << algo
+                     << ": When diagOffset0 != diagOffset1, Diagonal tensor has "
+                        "shape [I, J, ..., L, M, N] then Output tensor must have shape [I, J, "
+                        "..., L, num_rows, num_cols]")
+                        .str());
+            }
+            if(diagDesc.GetLengths()[diagDesc.GetNumDims() - 2] != diagOffset1 - diagOffset0 + 1)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << algo
+                              << ": When diagOffset0 != diagOffset1, Diagonal tensor second last "
+                                 "dimension must equal to diagOffset1 - diagOffset0")
+                                 .str());
+            }
             int64_t num_rows = outputDesc.GetLengths()[outputDesc.GetNumDims() - 2];
             int64_t num_cols = outputDesc.GetLengths()[outputDesc.GetNumDims() - 1];
             auto diagLength0 = std::min(num_rows, num_cols) -
@@ -167,20 +208,33 @@ struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
             if(std::abs(diagOffset0 + diagOffset1) < std::abs(diagOffset0) + std::abs(diagOffset1))
                 diagLength = std::min(num_rows, num_cols);
             if(diagDesc.GetLengths().back() != std::max({diagLength, diagLength0, diagLength1}))
+            {
                 MIOPEN_THROW(miopenStatusBadParm,
-                             "MatrixDiag: When diagOffset0 != diagOffset1, Diagonal tensor last "
-                             "dimension must match with Output tensor diagonal length");
+                             (std::stringstream()
+                              << algo
+                              << ": When diagOffset0 != diagOffset1, Diagonal tensor last "
+                                 "dimension must match with Output tensor diagonal length")
+                                 .str());
+            }
         }
-        if(!IsValidInputSize())
-            return false;
+        if(inputDesc.GetElementSize() > 1 && inputDesc.GetLengths() != outputDesc.GetLengths())
+        {
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                (std::stringstream()
+                 << algo
+                 << ": When there are more than 1 input/padding value, Input/Padding and Ouput "
+                    "tensor size must be same.")
+                    .str());
+        }
         return true;
     }
 
     bool IsAllContiguous() const
     {
-        if(!inputDesc.IsContiguous())
-            return false;
         if(!diagDesc.IsContiguous())
+            return false;
+        if(!inputDesc.IsContiguous())
             return false;
         if(!outputDesc.IsContiguous())
             return false;
@@ -197,38 +251,9 @@ protected:
     const int64_t diagOffset1;
     const miopenMatrixDiagAlignMode_t align;
 
+    const std::string algo;
+
     NetworkConfig MakeForwardNetworkConfig() const;
-};
-
-struct MatrixDiagForwardProblemDescription : MatrixSetDiagForwardProblemDescription
-{
-    MatrixDiagForwardProblemDescription(const TensorDescriptor& diagDesc_,
-                                        const TensorDescriptor& outputDesc_,
-                                        const int64_t diagOffset0_,
-                                        const int64_t diagOffset1_,
-                                        const TensorDescriptor& padDesc_,
-                                        const miopenMatrixDiagAlignMode_t align_)
-        : MatrixSetDiagForwardProblemDescription(
-              padDesc_, diagDesc_, outputDesc_, diagOffset0_, diagOffset1_, align_)
-    {
-    }
-
-    bool IsInputType() const
-    {
-        if(diagDesc.GetType() != inputDesc.GetType())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "MatrixDiag: Diagonal and Padding datatype do not match.");
-        return true;
-    }
-
-    bool IsInputSize() const
-    {
-        if(inputDesc.GetElementSize() > 1 && inputDesc.GetLengths() != outputDesc.GetLengths())
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "MatrixDiag: When there are more than 1 padding value, Padding and Ouput "
-                         "tensor size must be same.");
-        return true;
-    }
 };
 
 } // namespace matrix_diag

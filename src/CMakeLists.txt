@@ -163,6 +163,7 @@ set( MIOpen_Source
     logger.cpp
     lrn_api.cpp
     matrix_diag/problem_description.cpp
+    matrix_diag_part_api.cpp
     matrix_diag_api.cpp
     matrix_set_diag_api.cpp
     mha/mha_descriptor.cpp
@@ -681,6 +682,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kthvalue.cpp
         layernorm.cpp
         lrn.cpp
+        matrix_diag_part.cpp
         matrix_diag.cpp
         matrix_set_diag.cpp
         mlo_dir_conv.cpp

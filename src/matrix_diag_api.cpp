@@ -45,10 +45,10 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 }
 
 static void LogCmdMatrixDiag(const miopenTensorDescriptor_t diagDesc,
+                             const miopenTensorDescriptor_t padDesc,
                              const miopenTensorDescriptor_t outputDesc,
                              const int64_t diagOffset0,
                              const int64_t diagOffset1,
-                             const miopenTensorDescriptor_t padDesc,
                              const miopenMatrixDiagAlignMode_t align,
                              bool is_fwd)
 {
@@ -72,12 +72,12 @@ static void LogCmdMatrixDiag(const miopenTensorDescriptor_t diagDesc,
         MIOPEN_LOG_FUNCTION(diagDesc);
         ss << " -D " << miopen::deref(diagDesc).GetLengths();
         ss << " -Sd " << miopen::deref(diagDesc).GetStrides();
+        ss << " -P " << miopen::deref(padDesc).GetLengths();
+        ss << " -Sp " << miopen::deref(padDesc).GetStrides();
         ss << " -O " << miopen::deref(outputDesc).GetLengths();
         ss << " -So " << miopen::deref(outputDesc).GetStrides();
         ss << " -k0 " << diagOffset0;
         ss << " -k1 " << diagOffset1;
-        ss << " -P " << miopen::deref(padDesc).GetLengths();
-        ss << " -Sp " << miopen::deref(padDesc).GetStrides();
         ss << " -al " << align;
         ss << " -F " << ((is_fwd) ? "1" : "2");
 
@@ -88,28 +88,28 @@ static void LogCmdMatrixDiag(const miopenTensorDescriptor_t diagDesc,
 extern "C" miopenStatus_t miopenMatrixDiagForward(miopenHandle_t handle,
                                                   miopenTensorDescriptor_t diagDesc,
                                                   const void* diag,
+                                                  miopenTensorDescriptor_t padDesc,
+                                                  const void* pad,
                                                   miopenTensorDescriptor_t outputDesc,
                                                   void* output,
                                                   const int64_t diagOffset0,
                                                   const int64_t diagOffset1,
-                                                  miopenTensorDescriptor_t padDesc,
-                                                  const void* pad,
                                                   const miopenMatrixDiagAlignMode_t align)
 {
     MIOPEN_LOG_FUNCTION(
-        handle, diagDesc, diag, outputDesc, output, diagOffset0, diagOffset1, padDesc, pad, align);
+        handle, diagDesc, diag, padDesc, pad, outputDesc, output, diagOffset0, diagOffset1, align);
 
-    LogCmdMatrixDiag(diagDesc, outputDesc, diagOffset0, diagOffset1, padDesc, align, true);
+    LogCmdMatrixDiag(diagDesc, padDesc, outputDesc, diagOffset0, diagOffset1, align, true);
     return miopen::try_([&] {
         miopen::MatrixDiagForward(miopen::deref(handle),
                                   miopen::deref(diagDesc),
                                   DataCast(diag),
+                                  miopen::deref(padDesc),
+                                  DataCast(pad),
                                   miopen::deref(outputDesc),
                                   DataCast(output),
                                   diagOffset0,
                                   diagOffset1,
-                                  miopen::deref(padDesc),
-                                  DataCast(pad),
                                   align);
     });
 }
