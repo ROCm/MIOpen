@@ -148,7 +148,7 @@ RUN pip3 install -r /doc-requirements.txt
 RUN pip3 install --upgrade cmake==3.27.5
 
 #install miopen
-ARG INSTALL_MIOPEN=ON
+ARG INSTALL_MIOPEN=OFF
 ARG MIOPEN_BRANCH=alex_perf_test
 RUN set -e; \
     if [ "$INSTALL_MIOPEN" = "ON" ]; then \
