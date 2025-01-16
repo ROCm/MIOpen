@@ -29,20 +29,33 @@
 
 namespace matrix_diag {
 
-struct GPU_MatrixDiagPartBackward_FP32 : MatrixDiagPartTestBackward<float>
-{
-};
-
-struct GPU_MatrixDiagPartBackward_FP16 : MatrixDiagPartTestBackward<half>
-{
-};
-
-struct GPU_MatrixDiagPartBackward_BFP16 : MatrixDiagPartTestBackward<bfloat16>
-{
-};
+using GPU_MatrixDiagPartForward_FP32   = MatrixDiagPartTestForward<float>;
+using GPU_MatrixDiagPartForward_FP16   = MatrixDiagPartTestForward<half>;
+using GPU_MatrixDiagPartForward_BFP16  = MatrixDiagPartTestForward<bfloat16>;
+using GPU_MatrixDiagPartBackward_FP32  = MatrixDiagPartTestBackward<float>;
+using GPU_MatrixDiagPartBackward_FP16  = MatrixDiagPartTestBackward<half>;
+using GPU_MatrixDiagPartBackward_BFP16 = MatrixDiagPartTestBackward<bfloat16>;
 
 } // namespace matrix_diag
 using namespace matrix_diag;
+
+TEST_P(GPU_MatrixDiagPartForward_FP32, Test)
+{
+    RunTest();
+    Verify();
+};
+
+TEST_P(GPU_MatrixDiagPartForward_FP16, Test)
+{
+    RunTest();
+    Verify();
+};
+
+TEST_P(GPU_MatrixDiagPartForward_BFP16, Test)
+{
+    RunTest();
+    Verify();
+};
 
 TEST_P(GPU_MatrixDiagPartBackward_FP32, Test)
 {
@@ -61,6 +74,36 @@ TEST_P(GPU_MatrixDiagPartBackward_BFP16, Test)
     RunTest();
     Verify();
 };
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_MatrixDiagPartForward_FP32,
+                         testing::ValuesIn(MatrixDiagPartSmokeTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_MatrixDiagPartForward_FP16,
+                         testing::ValuesIn(MatrixDiagPartSmokeTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_MatrixDiagPartForward_BFP16,
+                         testing::ValuesIn(MatrixDiagPartSmokeTestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Perf,
+                         GPU_MatrixDiagPartForward_FP32,
+                         testing::ValuesIn(MatrixDiagPartPerfTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf,
+                         GPU_MatrixDiagPartForward_FP16,
+                         testing::ValuesIn(MatrixDiagPartPerfTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Perf,
+                         GPU_MatrixDiagPartForward_BFP16,
+                         testing::ValuesIn(MatrixDiagPartPerfTestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MatrixDiagPartForward_FP32,
+                         testing::ValuesIn(MatrixDiagPartFullTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MatrixDiagPartForward_FP16,
+                         testing::ValuesIn(MatrixDiagPartFullTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MatrixDiagPartForward_BFP16,
+                         testing::ValuesIn(MatrixDiagPartFullTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MatrixDiagPartBackward_FP32,

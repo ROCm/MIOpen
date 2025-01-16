@@ -57,6 +57,18 @@ MatrixSetDiagForward(Handle& handle,
                      miopenMatrixDiagAlignMode_t align = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
+MatrixDiagPartForward(Handle& handle,
+                      const TensorDescriptor& inputDesc,
+                      ConstData_t input,
+                      const TensorDescriptor& padDesc,
+                      ConstData_t pad,
+                      const TensorDescriptor& outputDesc,
+                      Data_t output,
+                      int64_t diagOffset0,
+                      int64_t diagOffset1,
+                      miopenMatrixDiagAlignMode_t align = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT);
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
 MatrixDiagPartBackward(Handle& handle,
                        const TensorDescriptor& padDesc,
                        ConstData_t pad,

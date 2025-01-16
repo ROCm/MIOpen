@@ -34,6 +34,42 @@
 
 namespace miopen {
 
+miopenStatus_t MatrixDiagPartForward(Handle& handle,
+                                     const TensorDescriptor& inputDesc,
+                                     ConstData_t input,
+                                     const TensorDescriptor& padDesc,
+                                     ConstData_t pad,
+                                     const TensorDescriptor& outputDesc,
+                                     Data_t output,
+                                     const int64_t diagOffset0,
+                                     const int64_t diagOffset1,
+                                     const miopenMatrixDiagAlignMode_t align)
+{
+    const auto problem = matrix_diag::MatrixDiagPartForwardProblemDescription{
+        inputDesc, padDesc, outputDesc, diagOffset0, diagOffset1, align};
+
+    const auto invoke_params = [&]() {
+        auto tmp        = matrix_diag::MatrixDiagPartFwdInvokeParams{};
+        tmp.type        = InvokeType::Run;
+        tmp.inputDesc   = &inputDesc;
+        tmp.padDesc     = &padDesc;
+        tmp.outputDesc  = &outputDesc;
+        tmp.input       = input;
+        tmp.pad         = pad;
+        tmp.output      = output;
+        tmp.diagOffset0 = diagOffset0;
+        tmp.diagOffset1 = diagOffset1;
+        return tmp;
+    }();
+
+    const auto algo = AlgorithmName{"MatrixDiagPartForward"};
+    const auto solvers =
+        solver::SolverContainer<solver::matrix_diag::MatrixDiagPartForwardContiguous>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
+
 miopenStatus_t MatrixDiagPartBackward(Handle& handle,
                                       const TensorDescriptor& padDesc,
                                       ConstData_t pad,
@@ -52,28 +88,20 @@ miopenStatus_t MatrixDiagPartBackward(Handle& handle,
                                                             diagOffset0,
                                                             diagOffset1,
                                                             align,
-                                                            "MatrixDiagPartBackward"};
-
-    const auto invoke_params = [&]() {
-        auto tmp        = matrix_diag::FwdInvokeParams{};
-        tmp.type        = InvokeType::Run;
-        tmp.inputDesc   = &padDesc;
-        tmp.diagDesc    = &doutputDesc;
-        tmp.outputDesc  = &dinputDesc;
-        tmp.input       = pad;
-        tmp.diag        = doutput;
-        tmp.output      = dinput;
-        tmp.diagOffset0 = diagOffset0;
-        tmp.diagOffset1 = diagOffset1;
-        return tmp;
-    }();
-
-    const auto algo = AlgorithmName{"MatrixDiagPartBackward"};
-    const auto solvers =
-        solver::SolverContainer<solver::matrix_diag::MatrixSetDiagForwardContiguous>{};
-    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
-
-    return miopenStatusSuccess;
+                                                            "MatrixDiagPartBackward",
+                                                            "Padding",
+                                                            "Output gradient",
+                                                            "Input gradient"};
+    return MatrixSetDiagForward(handle,
+                                padDesc,
+                                pad,
+                                doutputDesc,
+                                doutput,
+                                dinputDesc,
+                                dinput,
+                                diagOffset0,
+                                diagOffset1,
+                                align);
 }
 
 } // namespace miopen

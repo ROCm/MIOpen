@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/matrix_diag/problem_description.hpp"
 #include <miopen/buffer_info.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -59,18 +60,18 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
 };
 } // namespace
 
-bool MatrixSetDiagForwardContiguous::IsApplicable(
+bool MatrixDiagPartForwardContiguous::IsApplicable(
     const ExecutionContext& /*context*/,
-    const miopen::matrix_diag::MatrixSetDiagForwardProblemDescription& problem) const
+    const miopen::matrix_diag::MatrixDiagPartForwardProblemDescription& problem) const
 {
     if(!problem.IsAllContiguous())
         return false;
     return true;
 }
 
-ConvSolution MatrixSetDiagForwardContiguous::GetSolution(
+ConvSolution MatrixDiagPartForwardContiguous::GetSolution(
     const ExecutionContext& /*context*/,
-    const miopen::matrix_diag::MatrixSetDiagForwardProblemDescription& problem) const
+    const miopen::matrix_diag::MatrixDiagPartForwardProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -88,26 +89,25 @@ ConvSolution MatrixSetDiagForwardContiguous::GetSolution(
             static_cast<int>(problem.GetAlign()),
         }};
     result.construction_params.push_back(make_hip_kernel(
-        {LOCAL_SIZE}, {size}, "MIOpenMatrixDiag.cpp", "MatrixSetDiag", build_params));
+        {LOCAL_SIZE}, {size}, "MIOpenMatrixDiag.cpp", "MatrixDiagPart", build_params));
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params =
-                raw_params.CastTo<miopen::matrix_diag::MatrixSetDiagFwdInvokeParams>();
+                raw_params.CastTo<miopen::matrix_diag::MatrixDiagPartFwdInvokeParams>();
             decltype(auto) kernel = handle_.Run(kernels[0]);
             kernel(
                 params.input,
-                params.diag,
+                params.pad,
                 params.output,
                 params.diagOffset0,
                 params.diagOffset1,
-                static_cast<uint64_t>(deref(params.outputDesc)
-                                          .GetLengths()[deref(params.outputDesc).GetNumDims() - 2]),
-                static_cast<uint64_t>(deref(params.outputDesc)
-                                          .GetLengths()[deref(params.outputDesc).GetNumDims() - 1]),
+                static_cast<uint64_t>(
+                    deref(params.inputDesc).GetLengths()[deref(params.inputDesc).GetNumDims() - 2]),
+                static_cast<uint64_t>(
+                    deref(params.inputDesc).GetLengths()[deref(params.inputDesc).GetNumDims() - 1]),
                 static_cast<uint64_t>(deref(params.outputDesc).GetElementSize()),
-                true,
-                deref(params.inputDesc).GetElementSize() == 1);
+                deref(params.padDesc).GetElementSize() == 1);
         };
     };
 

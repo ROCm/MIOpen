@@ -29,17 +29,9 @@
 
 namespace matrix_set_diag {
 
-struct GPU_MatrixSetDiagForward_FP32 : MatrixSetDiagTestForward<float>
-{
-};
-
-struct GPU_MatrixSetDiagForward_FP16 : MatrixSetDiagTestForward<half>
-{
-};
-
-struct GPU_MatrixSetDiagForward_BFP16 : MatrixSetDiagTestForward<bfloat16>
-{
-};
+using GPU_MatrixSetDiagForward_FP32  = MatrixSetDiagTestForward<float>;
+using GPU_MatrixSetDiagForward_FP16  = MatrixSetDiagTestForward<half>;
+using GPU_MatrixSetDiagForward_BFP16 = MatrixSetDiagTestForward<bfloat16>;
 
 } // namespace matrix_set_diag
 using namespace matrix_set_diag;

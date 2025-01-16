@@ -49,7 +49,7 @@ miopenStatus_t MatrixSetDiagForward(Handle& handle,
         inputDesc, diagDesc, outputDesc, diagOffset0, diagOffset1, align};
 
     const auto invoke_params = [&]() {
-        auto tmp        = matrix_diag::FwdInvokeParams{};
+        auto tmp        = matrix_diag::MatrixSetDiagFwdInvokeParams{};
         tmp.type        = InvokeType::Run;
         tmp.inputDesc   = &inputDesc;
         tmp.diagDesc    = &diagDesc;

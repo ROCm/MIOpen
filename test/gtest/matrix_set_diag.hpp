@@ -121,20 +121,20 @@ protected:
         auto gen_value1 = [](auto...) { return prng::gen_descreet_uniform_sign<TIO>(1e-2, 100); };
         auto gen_value2 = [](auto...) { return prng::gen_descreet_uniform_sign<TIO>(1e-2, 100); };
 
-        k0             = matrix_set_diag_config.diagOffset0;
-        k1             = matrix_set_diag_config.diagOffset1;
-        align          = matrix_set_diag_config.align;
-        auto inputSize = matrix_set_diag_config.inputSize;
-        auto diagSize  = matrix_set_diag_config.diagSize;
-        auto outSize   = inputSize;
+        k0              = matrix_set_diag_config.diagOffset0;
+        k1              = matrix_set_diag_config.diagOffset1;
+        align           = matrix_set_diag_config.align;
+        auto inputSize  = matrix_set_diag_config.inputSize;
+        auto diagSize   = matrix_set_diag_config.diagSize;
+        auto outputSize = inputSize;
 
         input = tensor<TIO>{inputSize}.generate(gen_value1);
         diag  = tensor<TIO>{diagSize}.generate(gen_value2);
 
-        output = tensor<TIO>{outSize};
+        output = tensor<TIO>{outputSize};
         std::fill(output.begin(), output.end(), std::numeric_limits<TIO>::quiet_NaN());
 
-        ref_output = tensor<TIO>{outSize};
+        ref_output = tensor<TIO>{outputSize};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<TIO>::quiet_NaN());
 
         diag_dev   = handle.Write(diag.data);

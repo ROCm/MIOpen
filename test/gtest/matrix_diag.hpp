@@ -132,16 +132,16 @@ protected:
         pad    = tensor<TIO>{{1}};
         pad[0] = -1;
 
-        auto outSize = diagSize;
+        auto outputSize = diagSize;
         if(k0 == k1)
-            outSize.push_back(0);
-        outSize[outSize.size() - 2] = num_rows;
-        outSize[outSize.size() - 1] = num_cols;
+            outputSize.push_back(0);
+        outputSize[outputSize.size() - 2] = num_rows;
+        outputSize[outputSize.size() - 1] = num_cols;
 
-        output = tensor<TIO>{outSize};
+        output = tensor<TIO>{outputSize};
         std::fill(output.begin(), output.end(), std::numeric_limits<TIO>::quiet_NaN());
 
-        ref_output = tensor<TIO>{outSize};
+        ref_output = tensor<TIO>{outputSize};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<TIO>::quiet_NaN());
 
         diag_dev   = handle.Write(diag.data);

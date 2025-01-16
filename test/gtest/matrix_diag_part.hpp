@@ -112,6 +112,89 @@ inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartFullTestConfigs()
 }
 
 template <typename TIO = float>
+struct MatrixDiagPartTestForward : public ::testing::TestWithParam<MatrixDiagPartTestcase>
+{
+protected:
+    void SetUp() override
+    {
+        auto&& handle          = get_handle();
+        matrix_set_diag_config = GetParam();
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<TIO>(1e-2, 100); };
+
+        k0                = matrix_set_diag_config.diagOffset0;
+        k1                = matrix_set_diag_config.diagOffset1;
+        align             = matrix_set_diag_config.align;
+        auto inputSize    = matrix_set_diag_config.inputSize;
+        auto max_diag_len = std::min(inputSize[inputSize.size() - 2] + std::min(k1, 0L),
+                                     inputSize[inputSize.size() - 1] + std::min(-k0, 0L));
+        auto outputSize   = inputSize;
+        if(k0 == k1)
+            outputSize.pop_back();
+        else
+            outputSize[outputSize.size() - 2] = k1 - k0 + 1;
+        outputSize.back() = max_diag_len;
+
+        input = tensor<TIO>{inputSize}.generate(gen_value);
+
+        pad    = tensor<TIO>{{1}};
+        pad[0] = -1;
+
+        output = tensor<TIO>{outputSize};
+        std::fill(output.begin(), output.end(), std::numeric_limits<TIO>::quiet_NaN());
+
+        ref_output = tensor<TIO>{outputSize};
+        std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<TIO>::quiet_NaN());
+
+        input_dev  = handle.Write(input.data);
+        pad_dev    = handle.Write(pad.data);
+        output_dev = handle.Write(output.data);
+    }
+
+    void RunTest()
+    {
+        auto&& handle = get_handle();
+
+        cpu_matrix_diag_part(input, pad, ref_output, k0, k1, align);
+        miopenStatus_t status = miopen::MatrixDiagPartForward(handle,
+                                                              input.desc,
+                                                              input_dev.get(),
+                                                              pad.desc,
+                                                              pad_dev.get(),
+                                                              output.desc,
+                                                              output_dev.get(),
+                                                              k0,
+                                                              k1,
+                                                              align);
+        ASSERT_EQ(status, miopenStatusSuccess);
+
+        output.data = handle.Read<TIO>(output_dev, output.data.size());
+    }
+
+    void Verify()
+    {
+        auto error = miopen::rms_range(ref_output, output);
+
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_EQ(error, 0) << "Error! Incorrect output!";
+    }
+    MatrixDiagPartTestcase matrix_set_diag_config;
+
+    tensor<TIO> input;
+    tensor<TIO> pad;
+    tensor<TIO> output;
+
+    tensor<TIO> ref_output;
+
+    miopen::Allocator::ManageDataPtr input_dev;
+    miopen::Allocator::ManageDataPtr pad_dev;
+    miopen::Allocator::ManageDataPtr output_dev;
+
+    int64_t k0, k1;
+
+    miopenMatrixDiagAlignMode_t align;
+};
+
+template <typename TIO = float>
 struct MatrixDiagPartTestBackward : public ::testing::TestWithParam<MatrixDiagPartTestcase>
 {
 protected:
@@ -127,14 +210,14 @@ protected:
         auto inputSize    = matrix_set_diag_config.inputSize;
         auto max_diag_len = std::min(inputSize[inputSize.size() - 2] + std::min(k1, 0L),
                                      inputSize[inputSize.size() - 1] + std::min(-k0, 0L));
-        auto outSize      = inputSize;
+        auto outputSize   = inputSize;
         if(k0 == k1)
-            outSize.pop_back();
+            outputSize.pop_back();
         else
-            outSize[outSize.size() - 2] = k1 - k0 + 1;
-        outSize.back() = max_diag_len;
+            outputSize[outputSize.size() - 2] = k1 - k0 + 1;
+        outputSize.back() = max_diag_len;
 
-        doutput = tensor<TIO>{outSize}.generate(gen_value);
+        doutput = tensor<TIO>{outputSize}.generate(gen_value);
 
         pad    = tensor<TIO>{{1}};
         pad[0] = -1;

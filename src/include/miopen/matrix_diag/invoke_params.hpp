@@ -34,11 +34,11 @@ namespace matrix_diag {
 
 struct BaseInvokeParams : public miopen::InvokeParams
 {
-    const TensorDescriptor* inputDesc = nullptr;
-    const TensorDescriptor* diagDesc  = nullptr;
+    const TensorDescriptor* inputDesc  = nullptr;
+    const TensorDescriptor* outputDesc = nullptr;
 
     ConstData_t input = nullptr;
-    ConstData_t diag  = nullptr;
+    Data_t output     = nullptr;
 
     int64_t diagOffset0 = 0;
     int64_t diagOffset1 = 0;
@@ -47,13 +47,22 @@ struct BaseInvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-struct FwdInvokeParams : public BaseInvokeParams
+struct MatrixSetDiagFwdInvokeParams : public BaseInvokeParams
 {
-    FwdInvokeParams() = default;
+    MatrixSetDiagFwdInvokeParams() = default;
 
-    const TensorDescriptor* outputDesc = nullptr;
+    const TensorDescriptor* diagDesc = nullptr;
 
-    Data_t output = nullptr;
+    ConstData_t diag = nullptr;
+};
+
+struct MatrixDiagPartFwdInvokeParams : public BaseInvokeParams
+{
+    MatrixDiagPartFwdInvokeParams() = default;
+
+    const TensorDescriptor* padDesc = nullptr;
+
+    ConstData_t pad = nullptr;
 };
 
 } // namespace matrix_diag
