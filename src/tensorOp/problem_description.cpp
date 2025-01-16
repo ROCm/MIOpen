@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,35 +24,53 @@
  *
  *******************************************************************************/
 
-#pragma once
-
-#include <string>
+#include <miopen/tensorOp/problem_description.hpp>
+#include <miopen/names.hpp>
+#include <miopen/float_equal.hpp>
 
 namespace miopen {
 
-struct NetworkConfig
+namespace tensorOp {
+
+NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    NetworkConfig() = default;
-    explicit NetworkConfig(const std::string& value_) : value(value_) {}
-    explicit NetworkConfig(std::string&& value_) noexcept : value(std::move(value_)) {}
-    operator std::string() const { return value; }
-    const std::string& ToString() const { return value; }
+    std::string ss;
 
-private:
-    std::string value;
-};
+    const auto& alens = aTensorDesc.GetLengths();
+    const auto& blens = bTensorDesc.GetLengths();
 
-struct AlgorithmName
-{
-    AlgorithmName() = default;
-    explicit AlgorithmName(const std::string& value_) : value(value_) {}
-    operator std::string() const { return value; }
-    const std::string& ToString() const { return value; }
+    const auto& astrides = aTensorDesc.GetStrides();
+    const auto& bstrides = bTensorDesc.GetStrides();
+    const auto& cstrides = cTensorDesc.GetStrides();
 
-    bool operator<(const AlgorithmName& r) const { return (value < r.value); }
+    auto printDims = [&ss, dims = alens.size() - 1](const auto& dim) {
+        for(uint32_t i = 0; i < dims; i++)
+        {
+            ss.append(std::to_string(dim[i]));
+            ss += 'x';
+        }
+        ss += std::to_string(dim.back());
+        ss += '-';
+    };
 
-private:
-    std::string value;
-};
+    ss.reserve(1024);
+    ss.append(std::string_view("TensorOp-"));
+    ss += std::to_string(aTensorDesc.GetType());
+    ss += '-';
+    ss += std::to_string(tensorOp);
+    ss += '-';
+
+    printDims(alens);
+    printDims(blens);
+    printDims(astrides);
+    printDims(bstrides);
+    printDims(cstrides);
+
+    ss += (float_equal(beta, 0.0f) ? '1' : '0');
+
+    return NetworkConfig(std::move(ss));
+}
+
+} // namespace tensorOp
 
 } // namespace miopen
