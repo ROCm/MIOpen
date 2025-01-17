@@ -139,7 +139,6 @@ __device__ void roialign_fwd(const DTYPE* input,
 
     uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    // TODO: Pass those as arguments to avoid recomputation
     uint64_t N = input_tv.size[0];
     uint64_t C = input_tv.size[1];
     uint64_t H = input_tv.size[2];
@@ -158,7 +157,7 @@ __device__ void roialign_fwd(const DTYPE* input,
     if(k >= K)
         return;
 
-    int64_t roi_batch_index = CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+    int64_t roi_batch_index = static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
 
     if(roi_batch_index < 0 || roi_batch_index >= N)
     {
@@ -300,7 +299,7 @@ __device__ void roialign_backward(const DTYPE* output_grad,
     for(auto k = 0; k < K; ++k)
     {
         // Check k-th roi box belongs to n-th image inside mini-batch
-        if(CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 0})]) != n)
+        if(static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]) != n)
             continue;
 
         // roi box

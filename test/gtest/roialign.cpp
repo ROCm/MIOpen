@@ -50,20 +50,16 @@ TEST_P(GPU_RoIAlign_fwd_BFP16, Test)
     Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_RoIAlign_fwd_FP32, testing::ValuesIn(RoIAlignTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_RoIAlign_fwd_FP16, testing::ValuesIn(RoIAlignTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_RoIAlign_fwd_BFP16, testing::ValuesIn(RoIAlignTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_RoIAlign_fwd_FP32, testing::ValuesIn(FwdRoIAlignTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_RoIAlign_fwd_FP16, testing::ValuesIn(FwdRoIAlignTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_RoIAlign_fwd_BFP16,
+                         testing::ValuesIn(FwdRoIAlignTestConfigs()));
 
 // BACKWARD TEST
-using GPU_RoIAlign_bwd_FP32  = RoIAlignBwdTest<float>;
+// Omit tests for FP32 because it won't pass `IsApplicable()`
 using GPU_RoIAlign_bwd_FP16  = RoIAlignBwdTest<float16>;
 using GPU_RoIAlign_bwd_BFP16 = RoIAlignBwdTest<bfloat16>;
-
-TEST_P(GPU_RoIAlign_bwd_FP32, Test)
-{
-    RunTest();
-    Verify();
-}
 
 TEST_P(GPU_RoIAlign_bwd_FP16, Test)
 {
@@ -77,6 +73,7 @@ TEST_P(GPU_RoIAlign_bwd_BFP16, Test)
     Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_RoIAlign_bwd_FP32, testing::ValuesIn(RoIAlignTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_RoIAlign_bwd_FP16, testing::ValuesIn(RoIAlignTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_RoIAlign_bwd_BFP16, testing::ValuesIn(RoIAlignTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_RoIAlign_bwd_FP16, testing::ValuesIn(BwdRoIAlignTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_RoIAlign_bwd_BFP16,
+                         testing::ValuesIn(BwdRoIAlignTestConfigs()));

@@ -27,13 +27,13 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/execution_context.hpp>
-#include <miopen/miopen.h>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/miopen.h>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/roialign.hpp>
-#include <miopen/roialign/solvers.hpp>
 #include <miopen/roialign/invoke_params.hpp>
 #include <miopen/roialign/problem_description.hpp>
+#include <miopen/roialign/solvers.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
 #define ROIALIGN_LOCAL_SIZE 256
@@ -117,7 +117,6 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
             auto build_params = KernelBuildParameters{
                 {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
                 {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-                {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
                 {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
                 {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
                 {"VIEW_DIMS", 4}};
@@ -151,7 +150,6 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
             auto build_params = KernelBuildParameters{
                 {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
                 {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-                {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
                 {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
                 {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
@@ -184,7 +182,6 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
         auto build_params =
             KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
                                   {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-                                  {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
                                   {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
                                   {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 

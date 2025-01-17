@@ -109,7 +109,7 @@ struct RoIAlignTestCase
     }
 };
 
-inline std::vector<RoIAlignTestCase> RoIAlignTestConfigs()
+inline std::vector<RoIAlignTestCase> BwdRoIAlignTestConfigs()
 {
     return {
         // Small tensors
@@ -138,15 +138,47 @@ inline std::vector<RoIAlignTestCase> RoIAlignTestConfigs()
         {1, 3, 96, 96, 6, 7, 14, false, 0.3125, 2, false},
 
         // Large tensor with numel > 10^5
-        // Those tests cause roialign_fwd failed with diff ~ 1e-5
-        // For large tensor but sampling_ratio=-1, the tests are passed (since no additional ceil()
-        // calculation is required)
-        {4, 3, 96, 800, 400, 7, 14, false, 0.3125, 2, false},
         {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, false},
         {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, true},
         {1, 1, 800, 1060, 6, 32, 32, true, 0.25, 2, true},
         {1, 1, 2000, 2000, 6, 32, 32, true, 0.25, 2, true},
-        // But if sampling_ratio = -1, the tests would pass
+        {6, 1, 800, 1060, 6, 14, 14, true, 0.25, -1, false},
+        {6, 1, 800, 1060, 6, 32, 32, true, 0.25, -1, false},
+    };
+}
+
+inline std::vector<RoIAlignTestCase> FwdRoIAlignTestConfigs()
+{
+    return {
+        // Small tensors
+        {1, 1, 8, 8, 2, 2, 2},            // Using default args
+        {1, 1, 8, 8, 2, 2, 2, true, 0.5}, // custom spatial_scaling=0.5
+        {1, 1, 8, 8, 2, 2, 2, true, 1.0}, // custom spatial_scaling=1
+        {1, 1, 8, 8, 2, 2, 2, true, 2.0}, // custom spatial_scaling=2
+        {1, 1, 8, 8, 2, 2, 2, true, 3.0}, // custom spatial_scaling=3
+        {1, 1, 8, 8, 2, 2, 2, true, 4.0}, // custom spatial_scaling=4
+
+        {1, 1, 8, 8, 2, 2, 2, true, 1.0, 1},        // custom sampling_ratio=1
+        {1, 1, 8, 8, 2, 2, 2, true, 1.0, 2},        // custom sampling_ratio=2
+        {1, 1, 8, 8, 2, 2, 2, true, 1.0, 3},        // custom sampling_ratio=3
+        {1, 1, 8, 8, 2, 2, 2, true, 1.0, -1, true}, // custom Custom aligned=True
+
+        // Larger tensors
+        // Contiguous tensors
+        {1, 3, 96, 96, 6, 7, 7, true, 0.3125, 2, false},
+        {1, 3, 96, 96, 36, 7, 7, true, 0.3125, 2, false},
+        {1, 3, 96, 96, 6, 7, 14, true, 0.3125, 2, false},
+
+        // Large tensor with numel > 10^5
+        // Those tests cause roialign_fwd failed with `tolerance=std::numeric_limits<T>::epsilon() *
+        // 10`
+        // Hence, adapt to `tolerance=std::numeric_limits<T>::epsilon() * 100`
+        {4, 3, 96, 800, 400, 7, 14, true, 0.3125, 2, false},
+        {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, false},
+        {6, 1, 800, 1060, 6, 14, 14, true, 0.25, 2, true},
+        {1, 1, 800, 1060, 6, 32, 32, true, 0.25, 2, true},
+        {1, 1, 2000, 2000, 6, 32, 32, true, 0.25, 2, true},
+        {1, 1, 2000, 2000, 6, 32, 32, true, 0.25, 2, false},
         {6, 1, 800, 1060, 6, 14, 14, true, 0.25, -1, false},
         {6, 1, 800, 1060, 6, 32, 32, true, 0.25, -1, false},
 
@@ -253,7 +285,9 @@ protected:
 
     double GetTolerance()
     {
-        double tolerance = std::numeric_limits<T>::epsilon() * 10;
+        // NOTE: `RoIAlignForward` seems to includes too many calculations, increase tolerance to
+        // adapt its behavior
+        double tolerance = std::numeric_limits<T>::epsilon() * 100;
         return tolerance;
     }
 

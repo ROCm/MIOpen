@@ -29,22 +29,18 @@
 #include <sstream>
 
 namespace miopen {
-
 namespace roialign {
 
 NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype          = inputDesc.GetType();
-    auto output_lengths = outputDesc.GetLengths();
+    auto dtype = inputDesc.GetType();
 
     std::ostringstream oss;
 
     oss << "RoIAlign_fwd";
     oss << "dtype" << dtype;
 
-    // output shape is {K, C, OH, OW}
-    for(auto length : output_lengths)
-        oss << length << ',';
+    oss << "output_size" << outputDesc.GetElementSize();
 
     oss << "is_all_contiguous" << IsAllContiguous();
 
@@ -73,5 +69,4 @@ NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 }
 
 } // namespace roialign
-
 } // namespace miopen

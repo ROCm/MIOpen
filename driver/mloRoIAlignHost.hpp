@@ -99,14 +99,14 @@ int32_t mloRoIAlignForwardRunHost(const miopenTensorDescriptor_t inputDesc,
 
         const float scale = 1.0f / static_cast<float>(bin_grid_h * bin_grid_w);
 
-        for(int c = 0; c < C; ++c)
+        for(auto c = 0; c < C; ++c)
         {
-            for(int ph = 0; ph < output_h; ++ph)
+            for(auto ph = 0; ph < output_h; ++ph)
             {
-                for(int pw = 0; pw < output_w; ++pw)
+                for(auto pw = 0; pw < output_w; ++pw)
                 {
                     float sum = 0.0f;
-                    for(int iy = 0; iy < bin_grid_h; ++iy)
+                    for(auto iy = 0; iy < bin_grid_h; ++iy)
                     {
                         const float yy = roi_h1 + static_cast<float>(ph) * bin_size_h +
                                          (static_cast<float>(iy) + 0.5f) *
@@ -115,7 +115,7 @@ int32_t mloRoIAlignForwardRunHost(const miopenTensorDescriptor_t inputDesc,
                         {
                             continue;
                         }
-                        for(int ix = 0; ix < bin_grid_w; ++ix)
+                        for(auto ix = 0; ix < bin_grid_w; ++ix)
                         {
                             const float xx = roi_w1 + pw * bin_size_w +
                                              (static_cast<float>(ix) + 0.5f) *

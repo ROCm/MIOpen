@@ -8195,9 +8195,10 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * @param [out] output          Output tensor
  * @param [in]  alignedHeight   Height of the aligned output
  * @param [in]  alignedWidth    Width of the aligned output
- * @param [in]  spatialScale    RoI spatial scale
- * @param [in]  samplingRatio   Number of sampling points in the interpolation grid
+ * @param [in]  spatialScale    RoI spatial scale (Default=1.0)
+ * @param [in]  samplingRatio   Number of sampling points in the interpolation grid (Default=-1)
  * @param [in]  aligned         Flag to indicate whether to use aligned or unaligned RoI Align
+ * (Default=false)
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
@@ -8209,9 +8210,9 @@ MIOPEN_EXPORT miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
                                                    void* output,
                                                    const uint64_t alignedHeight,
                                                    const uint64_t alignedWidth,
-                                                   const float spatialScale,
-                                                   const int64_t samplingRatio,
-                                                   const bool aligned);
+                                                   const float spatialScale    = 1.0,
+                                                   const int64_t samplingRatio = -1,
+                                                   const bool aligned          = false);
 
 /*! @brief Execute a Region-of-Interest (RoI) Align backward layer
  *
@@ -8224,9 +8225,10 @@ MIOPEN_EXPORT miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
  * @param [out] inputGrad       Input gradient tensor
  * @param [in]  alignedHeight   Height of the aligned output
  * @param [in]  alignedWidth    Width of the aligned output
- * @param [in]  spatialScale    RoI spatial scale
- * @param [in]  samplingRatio   Number of sampling points in the interpolation grid
+ * @param [in]  spatialScale    RoI spatial scale (Default=1.0)
+ * @param [in]  samplingRatio   Number of sampling points in the interpolation grid (Default=-1)
  * @param [in]  aligned         Flag to indicate whether to use aligned or unaligned RoI Align
+ * (Default=false)
  * @return                      miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenRoIAlignBackward(miopenHandle_t handle,
@@ -8238,9 +8240,9 @@ MIOPEN_EXPORT miopenStatus_t miopenRoIAlignBackward(miopenHandle_t handle,
                                                     void* inputGrad,
                                                     const uint64_t alignedHeight,
                                                     const uint64_t alignedWidth,
-                                                    const float spatialScale,
-                                                    const int64_t samplingRatio,
-                                                    const bool aligned);
+                                                    const float spatialScale    = 1.0,
+                                                    const int64_t samplingRatio = -1,
+                                                    const bool aligned          = false);
 
 /** @}*/
 // CLOSEOUT RoIAlign DOXYGEN GROUP

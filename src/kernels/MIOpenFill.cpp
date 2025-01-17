@@ -32,7 +32,7 @@
 #include "tensor_view.hpp"
 
 template <typename TIO>
-__device__ void fill_zero_contiguous(TIO* output, long size)
+__device__ void fill_zero_contiguous(TIO* output, uint64_t size)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= size)
@@ -41,13 +41,13 @@ __device__ void fill_zero_contiguous(TIO* output, long size)
     output[gid] = static_cast<TIO>(0);
 }
 
-extern "C" __global__ void FillZeroContiguous(IO_TYPE* output, long size)
+extern "C" __global__ void FillZeroContiguous(IO_TYPE* output, uint64_t size)
 {
     fill_zero_contiguous<IO_TYPE>(output, size);
 }
 
 template <typename TIO, uint32_t NDIMS>
-__device__ void fill_zero(TIO* output, const long size, tensor_view_t<NDIMS> output_tv)
+__device__ void fill_zero(TIO* output, const uint64_t size, tensor_view_t<NDIMS> output_tv)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -59,7 +59,7 @@ __device__ void fill_zero(TIO* output, const long size, tensor_view_t<NDIMS> out
 }
 
 extern "C" __global__ void
-FillZero(IO_TYPE* output, const long size, tensor_view_t<VIEW_DIMS> output_tv)
+FillZero(IO_TYPE* output, const uint64_t size, tensor_view_t<VIEW_DIMS> output_tv)
 {
     fill_zero<IO_TYPE, VIEW_DIMS>(output, size, output_tv);
 }
