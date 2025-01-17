@@ -101,70 +101,34 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
     // Start building result.construction_params
     if(is_use_atomic_roialign_kernel)
     {
-        /* Phrase 1: Fill input_grad with zeros */
-        {
-            const size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
-            size_t xgridsize        = AlignUp(input_grad_numel, xlocalsize);
-            size_t ylocalsize       = 1;
-            size_t ygridsize        = 1;
-            size_t zlocalsize       = 1;
-            size_t zgridsize        = 1;
+        size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
+        size_t xgridsize  = AlignUp(K * C * OH * OW, xlocalsize);
+        size_t ylocalsize = 1;
+        size_t ygridsize  = 1;
+        size_t zlocalsize = 1;
+        size_t zgridsize  = 1;
 
-            auto kernel        = KernelInfo{};
-            kernel.kernel_file = "MIOpenFill.cpp";
-            kernel.kernel_name = "FillZero";
+        auto kernel        = KernelInfo{};
+        kernel.kernel_file = "MIOpenRoIAlign.cpp";
+        kernel.kernel_name = "RoIAlignBackwardAtomic";
 
-            auto build_params = KernelBuildParameters{
-                {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-                {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-                {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype},
-                {"VIEW_DIMS", 4}};
+        auto build_params =
+            KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                                  {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                                  {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                                  {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
-            kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
-            kernel.l_wk.push_back(xlocalsize);
-            kernel.l_wk.push_back(ylocalsize);
-            kernel.l_wk.push_back(zlocalsize);
+        kernel.l_wk.push_back(xlocalsize);
+        kernel.l_wk.push_back(ylocalsize);
+        kernel.l_wk.push_back(zlocalsize);
 
-            kernel.g_wk.push_back(xgridsize);
-            kernel.g_wk.push_back(ygridsize);
-            kernel.g_wk.push_back(zgridsize);
+        kernel.g_wk.push_back(xgridsize);
+        kernel.g_wk.push_back(ygridsize);
+        kernel.g_wk.push_back(zgridsize);
 
-            result.construction_params.push_back(kernel);
-        }
-
-        /* Phrase 2: Run RoIAlign Backward Atomic */
-        {
-            size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
-            size_t xgridsize  = AlignUp(K * C * OH * OW, xlocalsize);
-            size_t ylocalsize = 1;
-            size_t ygridsize  = 1;
-            size_t zlocalsize = 1;
-            size_t zgridsize  = 1;
-
-            auto kernel        = KernelInfo{};
-            kernel.kernel_file = "MIOpenRoIAlign.cpp";
-            kernel.kernel_name = "RoIAlignBackwardAtomic";
-
-            auto build_params = KernelBuildParameters{
-                {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-                {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-                {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-                {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
-
-            kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
-
-            kernel.l_wk.push_back(xlocalsize);
-            kernel.l_wk.push_back(ylocalsize);
-            kernel.l_wk.push_back(zlocalsize);
-
-            kernel.g_wk.push_back(xgridsize);
-            kernel.g_wk.push_back(ygridsize);
-            kernel.g_wk.push_back(zgridsize);
-
-            result.construction_params.push_back(kernel);
-        }
+        result.construction_params.push_back(kernel);
     }
     else
     {
@@ -222,9 +186,8 @@ RoIAlignBackward::GetSolution(const ExecutionContext& context,
             /* Phase 1: Fill input grad with zeros */
             if(is_use_atomic_roialign_kernel)
             {
-
-                decltype(auto) kernel = handle_.Run(kernels.front());
-                kernel(params.inputGrad, input_grad_numel, input_grad_tv);
+                auto in_size_in_bytes = input_grad_numel * GetTypeSize(dtype);
+                hipMemsetAsync(params.inputGrad, 0, in_size_in_bytes, handle_.GetStream());
             }
 
             /* Phase 2: Run RoIAlign Backward */
