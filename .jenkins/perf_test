@@ -7,8 +7,13 @@
 
 //library "${util_lib}"
 
+def rocmnode(name) {
+    return '(rocmtest || miopen) && (' + name + ')'
+}
+
 pipeline {
-  agent { node { label 'austin' } }
+  agent{ label rocmnode("gfx90a") }
+  //agent { node { label 'austin' } }
     environment {
       docker_args="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v=/var/jenkins/:/var/jenkins"
       extra_log_env   = " MIOPEN_LOG_LEVEL=5 "
