@@ -52,7 +52,11 @@ bool NormalizeBackward::IsApplicable(
          problem.GetInputDesc().GetType() == miopenHalf ||
          problem.GetInputDesc().GetType() == miopenBFloat16))
         return false;
-    return true;
+    if(problem.IsLastDim() && (problem.GetInnerSize() % LOCAL_SIZE == 0) &&
+       problem.IsAllContiguous())
+        return true;
+    else
+        return false;
 }
 
 ConvSolution
@@ -62,13 +66,11 @@ NormalizeBackward::GetSolution(const ExecutionContext& /*context*/,
     auto result = ConvSolution{miopenStatusSuccess};
 
     // Start building result.construction_params
-    auto num_elem    = problem.GetInputDesc().GetElementSize();
-    auto inner_size  = problem.GetInnerSize();
-    auto outer_size  = num_elem / inner_size;
-    auto dtype       = problem.GetInputDesc().GetType();
-    bool is_all_cont = problem.IsAllContiguous();
-    bool use_opt =
-        problem.IsLastDim() && (inner_size % LOCAL_SIZE == 0) && problem.IsAllContiguous();
+    auto num_elem   = problem.GetInputDesc().GetElementSize();
+    auto inner_size = problem.GetInnerSize();
+    auto outer_size = num_elem / inner_size;
+    auto dtype      = problem.GetInputDesc().GetType();
+
     const auto build_params =
         KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
                               {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
@@ -78,10 +80,7 @@ NormalizeBackward::GetSolution(const ExecutionContext& /*context*/,
     {
         auto kernel        = KernelInfo{};
         kernel.kernel_file = "MIOpenNormalize.cpp";
-        if(is_all_cont)
-            kernel.kernel_name = "NormalizeReduceContiguous";
-        else
-            kernel.kernel_name = "NormalizeReduce";
+        kernel.kernel_name = "NormalizeReduceContiguous";
 
         size_t xlocalsize = 1;
         size_t xgridsize  = outer_size;
@@ -105,12 +104,7 @@ NormalizeBackward::GetSolution(const ExecutionContext& /*context*/,
     {
         auto kernel        = KernelInfo{};
         kernel.kernel_file = "MIOpenNormalize.cpp";
-        if(use_opt)
-            kernel.kernel_name = "NormalizeBackwardOpt";
-        else if(is_all_cont)
-            kernel.kernel_name = "NormalizeBackwardContiguous";
-        else
-            kernel.kernel_name = "NormalizeBackward";
+        kernel.kernel_name = "NormalizeBackwardOpt";
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(num_elem, xlocalsize);
@@ -134,17 +128,11 @@ NormalizeBackward::GetSolution(const ExecutionContext& /*context*/,
 
     // Start building result.invoker_factory
     {
-        result.invoker_factory = [is_all_cont](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) params = raw_params.CastTo<miopen::normalize::InvokeParams>();
                 auto input_tv         = get_inner_expanded_tv<5>(deref(params.inputDesc));
                 auto divisor_tv       = get_inner_expanded_tv<5>(deref(params.divisorDesc));
-                auto output_grad_tv   = get_inner_expanded_tv<5>(deref(params.outputGradDesc));
-                auto input_grad_tv    = get_inner_expanded_tv<5>(deref(params.inputGradDesc));
-                // reduce tensor is contiguous tensor which same size as divisor tensor
-                TensorDescriptor reduceDesc(params.divisorDesc->GetType(),
-                                            params.divisorDesc->GetLengths());
-                auto reduce_tv = get_inner_expanded_tv<5>(reduceDesc);
 
                 float elapsed = 0.0f;
                 HipEventPtr start;
@@ -160,59 +148,26 @@ NormalizeBackward::GetSolution(const ExecutionContext& /*context*/,
                 }
 
                 {
-                    auto transpose_input_tv       = move_dims_back(input_tv, params.dim);
-                    auto transpose_output_grad_tv = move_dims_back(output_grad_tv, params.dim);
-                    decltype(auto) kernel         = handle_.Run(kernels[0]);
-                    auto inner_size               = params.inputDesc->GetLengths()[params.dim];
-                    if(is_all_cont)
-                    {
-                        kernel(params.input, params.outputGrad, params.workspace, inner_size);
-                    }
-                    else
-                    {
-                        kernel(params.input,
-                               params.outputGrad,
-                               params.workspace,
-                               inner_size,
-                               transpose_input_tv,
-                               transpose_output_grad_tv);
-                    }
+                    decltype(auto) kernel = handle_.Run(kernels[0]);
+                    auto inner_size       = params.inputDesc->GetLengths()[params.dim];
+
+                    kernel(params.input, params.outputGrad, params.workspace, inner_size);
                 }
 
                 {
                     decltype(auto) kernel = handle_.Run(kernels[1]);
                     auto num_elem         = params.inputDesc->GetElementSize();
-                    if(is_all_cont)
-                    {
-                        kernel(params.input,
-                               params.divisor,
-                               params.outputGrad,
-                               params.inputGrad,
-                               params.workspace,
-                               params.p,
-                               params.eps,
-                               num_elem,
-                               params.dim,
-                               input_tv,
-                               divisor_tv);
-                    }
-                    else
-                    {
-                        kernel(params.input,
-                               params.divisor,
-                               params.outputGrad,
-                               params.inputGrad,
-                               params.workspace,
-                               params.p,
-                               params.eps,
-                               num_elem,
-                               params.dim,
-                               input_tv,
-                               divisor_tv,
-                               output_grad_tv,
-                               input_grad_tv,
-                               reduce_tv);
-                    }
+                    kernel(params.input,
+                           params.divisor,
+                           params.outputGrad,
+                           params.inputGrad,
+                           params.workspace,
+                           params.p,
+                           params.eps,
+                           num_elem,
+                           params.dim,
+                           input_tv,
+                           divisor_tv);
                 }
 
                 if(profiling)
