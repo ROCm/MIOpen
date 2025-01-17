@@ -38,7 +38,7 @@ pipeline {
                     utils.getDockerImage()
                     def (docker_image, image) = utils.getDockerImage()
                     docker_image.inside("--network host  --dns 8.8.8.8 ") {
-                        utils.buildHipClangJobAndReboot(build_install: true, needs_cleanup:true)
+                        utils.cmake_build(build_install: true, needs_cleanup:true)
                     }
                     withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
                         perftest_image = "${image}_perftest"
@@ -71,7 +71,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(gpu_arch: "gfx90a", filename: "Resnet50_v1.5_FP32_BS128.txt", needs_gpu:true, needs_reboot:false, build_install: true, needs_cleanup:false, make_targets: "install", docker_image: perftest_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }/*
