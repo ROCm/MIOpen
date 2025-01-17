@@ -13,7 +13,7 @@ all types of MIOpen installations.
 * A base software stack that includes either:
 
   * :doc:`HIP <hip:index>` (HIP and HCC libraries and header files)
-  * OpenCL (OpenCL libraries and header files), which is now deprecated
+  * OpenCL (OpenCL libraries and header files) (Using MIOpen with OpenCL is now deprecated.)
 
 * `ROCm CMake <https://github.com/ROCm/rocm-cmake>`_: CMake modules for common
   build tasks needed for the ROCm software stack
