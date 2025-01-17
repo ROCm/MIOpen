@@ -77,7 +77,7 @@ public:
 
 private:
     std::optional<bool> prev;
-    bool changed;
+    bool changed = false;
 };
 
 bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
