@@ -884,7 +884,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
 
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a") &&
-       (!StartsWith(device_name, "gfx94")))
+       (!StartsWith(device_name, "gfx94")) && (!StartsWith(device_name, "gfx95")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -903,7 +903,7 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16() &&
-       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
+       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94") || StartsWith(device_name, "gfx95"))))
         return false;
 
     if(problem.IsTensorsCasted())
@@ -998,6 +998,13 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::GetSolution(
             msg << ", force_sc0_sc1:1, atomic_add_using_cas:1 (gfx941)";
     }
     else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx94"))
+    {
+        GenerateClangDefsym(options, "force_sc0_sc1", 0);
+        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
+        if(miopen::IsLogging(LoggingLevel::Info2))
+            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942+)";
+    }
+    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx95"))
     {
         GenerateClangDefsym(options, "force_sc0_sc1", 0);
         GenerateClangDefsym(options, "atomic_add_using_cas", 0);
