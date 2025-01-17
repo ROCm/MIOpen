@@ -115,18 +115,18 @@ RUN ccache -s
 #    miopen-hip
 
 # TODO: it should be able to automatically get commit hash from requirements.txt
-ARG CK_COMMIT=c5ad2e8075ccaf3457a41884b25f3dbe85bf251c
-#RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
-#    tar zxvf ck.tar.gz &&\
-#    cd composable_kernel-${CK_COMMIT} && \
-#    mkdir build && cd build && \
-#    CXX=/opt/rocm/bin/amdclang++ cmake \
-#    -D CMAKE_PREFIX_PATH=/opt/rocm \
-#    -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
-#    -D CMAKE_BUILD_TYPE=Release \
-#    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
-#    -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-#    make -j $(nproc) install
+ARG CK_COMMIT=fb948120d2d674607e70d0e7587dcb249c0e74c7
+RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
+    tar zxvf ck.tar.gz &&\
+    cd composable_kernel-${CK_COMMIT} && \
+    mkdir build && cd build && \
+    CXX=/opt/rocm/bin/amdclang++ cmake \
+    -D CMAKE_PREFIX_PATH=/opt/rocm \
+    -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
+    -D CMAKE_CXX_FLAGS=" -O3 " .. && \
+    make -j $(nproc) install 
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 # this can minimize build time
