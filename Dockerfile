@@ -26,7 +26,7 @@ RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc
 RUN wget https://repo.radeon.com/amdgpu-install/6.3.1/ubuntu/jammy/amdgpu-install_6.3.60301-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_6.2.60202-1_all.deb
+    ./amdgpu-install_6.3.60301-1_all.deb
 
 # Add rocm repository
 RUN export ROCM_APT_VER=6.3.1;\
