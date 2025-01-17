@@ -44,9 +44,9 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
     return os;
 }
 
-static void LogCmdMatrixDiagPart(const miopenTensorDescriptor_t dinputDesc,
+static void LogCmdMatrixDiagPart(const miopenTensorDescriptor_t inputDesc,
                                  const miopenTensorDescriptor_t padDesc,
-                                 const miopenTensorDescriptor_t doutputDesc,
+                                 const miopenTensorDescriptor_t outputDesc,
                                  const int64_t diagOffset0,
                                  const int64_t diagOffset1,
                                  const miopenMatrixDiagAlignMode_t align,
@@ -70,12 +70,12 @@ static void LogCmdMatrixDiagPart(const miopenTensorDescriptor_t dinputDesc,
         }
 
         MIOPEN_LOG_FUNCTION(padDesc);
-        ss << " -I " << miopen::deref(dinputDesc).GetLengths();
-        ss << " -Si " << miopen::deref(dinputDesc).GetStrides();
+        ss << " -I " << miopen::deref(inputDesc).GetLengths();
+        ss << " -Si " << miopen::deref(inputDesc).GetStrides();
         ss << " -P " << miopen::deref(padDesc).GetLengths();
         ss << " -Sp " << miopen::deref(padDesc).GetStrides();
-        ss << " -O " << miopen::deref(doutputDesc).GetLengths();
-        ss << " -So " << miopen::deref(doutputDesc).GetStrides();
+        ss << " -O " << miopen::deref(outputDesc).GetLengths();
+        ss << " -So " << miopen::deref(outputDesc).GetStrides();
         ss << " -k0 " << diagOffset0;
         ss << " -k1 " << diagOffset1;
         ss << " -al " << align;
@@ -85,12 +85,12 @@ static void LogCmdMatrixDiagPart(const miopenTensorDescriptor_t dinputDesc,
     }
 }
 
-extern "C" miopenStatus_t miopenMatrixDiagPartForward(miopenHandle_t handle,
-                                                      miopenTensorDescriptor_t inputDesc,
+extern "C" miopenStatus_t miopenMatrixDiagPartForward(const miopenHandle_t handle,
+                                                      const miopenTensorDescriptor_t inputDesc,
                                                       const void* input,
-                                                      miopenTensorDescriptor_t padDesc,
+                                                      const miopenTensorDescriptor_t padDesc,
                                                       const void* pad,
-                                                      miopenTensorDescriptor_t outputDesc,
+                                                      const miopenTensorDescriptor_t outputDesc,
                                                       void* output,
                                                       const int64_t diagOffset0,
                                                       const int64_t diagOffset1,
@@ -121,36 +121,38 @@ extern "C" miopenStatus_t miopenMatrixDiagPartForward(miopenHandle_t handle,
     });
 }
 
-extern "C" miopenStatus_t miopenMatrixDiagPartBackward(miopenHandle_t handle,
-                                                       miopenTensorDescriptor_t padDesc,
-                                                       const void* pad,
-                                                       miopenTensorDescriptor_t doutputDesc,
-                                                       const void* doutput,
-                                                       miopenTensorDescriptor_t dinputDesc,
-                                                       void* dinput,
-                                                       const int64_t diagOffset0,
-                                                       const int64_t diagOffset1,
-                                                       const miopenMatrixDiagAlignMode_t align)
+extern "C" miopenStatus_t
+miopenMatrixDiagPartBackward(const miopenHandle_t handle,
+                             const miopenTensorDescriptor_t padDesc,
+                             const void* pad,
+                             const miopenTensorDescriptor_t outputGradDesc,
+                             const void* outputGrad,
+                             const miopenTensorDescriptor_t inputGradDesc,
+                             void* inputGrad,
+                             const int64_t diagOffset0,
+                             const int64_t diagOffset1,
+                             const miopenMatrixDiagAlignMode_t align)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         padDesc,
                         pad,
-                        doutputDesc,
-                        doutput,
-                        dinputDesc,
-                        dinput,
+                        outputGradDesc,
+                        outputGrad,
+                        inputGradDesc,
+                        inputGrad,
                         diagOffset0,
                         diagOffset1,
                         align);
-    LogCmdMatrixDiagPart(dinputDesc, padDesc, doutputDesc, diagOffset0, diagOffset1, align, false);
+    LogCmdMatrixDiagPart(
+        inputGradDesc, padDesc, outputGradDesc, diagOffset0, diagOffset1, align, false);
     return miopen::try_([&] {
         miopen::MatrixDiagPartBackward(miopen::deref(handle),
                                        miopen::deref(padDesc),
                                        DataCast(pad),
-                                       miopen::deref(doutputDesc),
-                                       DataCast(doutput),
-                                       miopen::deref(dinputDesc),
-                                       DataCast(dinput),
+                                       miopen::deref(outputGradDesc),
+                                       DataCast(outputGrad),
+                                       miopen::deref(inputGradDesc),
+                                       DataCast(inputGrad),
                                        diagOffset0,
                                        diagOffset1,
                                        align);

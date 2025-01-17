@@ -217,60 +217,61 @@ protected:
             outputSize[outputSize.size() - 2] = k1 - k0 + 1;
         outputSize.back() = max_diag_len;
 
-        doutput = tensor<TIO>{outputSize}.generate(gen_value);
+        output_grad = tensor<TIO>{outputSize}.generate(gen_value);
 
         pad    = tensor<TIO>{{1}};
         pad[0] = -1;
 
-        dinput = tensor<TIO>{inputSize};
-        std::fill(dinput.begin(), dinput.end(), std::numeric_limits<TIO>::quiet_NaN());
+        input_grad = tensor<TIO>{inputSize};
+        std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<TIO>::quiet_NaN());
 
-        ref_dinput = tensor<TIO>{inputSize};
-        std::fill(ref_dinput.begin(), ref_dinput.end(), std::numeric_limits<TIO>::quiet_NaN());
+        ref_input_grad = tensor<TIO>{inputSize};
+        std::fill(
+            ref_input_grad.begin(), ref_input_grad.end(), std::numeric_limits<TIO>::quiet_NaN());
 
-        pad_dev     = handle.Write(pad.data);
-        doutput_dev = handle.Write(doutput.data);
-        dinput_dev  = handle.Write(dinput.data);
+        pad_dev         = handle.Write(pad.data);
+        output_grad_dev = handle.Write(output_grad.data);
+        input_grad_dev  = handle.Write(input_grad.data);
     }
 
     void RunTest()
     {
         auto&& handle = get_handle();
 
-        cpu_matrix_set_diag(pad, doutput, ref_dinput, k0, k1, true, align);
+        cpu_matrix_set_diag(pad, output_grad, ref_input_grad, k0, k1, true, align);
         miopenStatus_t status = miopen::MatrixDiagPartBackward(handle,
                                                                pad.desc,
                                                                pad_dev.get(),
-                                                               doutput.desc,
-                                                               doutput_dev.get(),
-                                                               dinput.desc,
-                                                               dinput_dev.get(),
+                                                               output_grad.desc,
+                                                               output_grad_dev.get(),
+                                                               input_grad.desc,
+                                                               input_grad_dev.get(),
                                                                k0,
                                                                k1,
                                                                align);
         ASSERT_EQ(status, miopenStatusSuccess);
 
-        dinput.data = handle.Read<TIO>(dinput_dev, dinput.data.size());
+        input_grad.data = handle.Read<TIO>(input_grad_dev, input_grad.data.size());
     }
 
     void Verify()
     {
-        auto error = miopen::rms_range(ref_dinput, dinput);
+        auto error = miopen::rms_range(ref_input_grad, input_grad);
 
-        ASSERT_EQ(miopen::range_distance(ref_dinput), miopen::range_distance(dinput));
+        ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));
         EXPECT_EQ(error, 0) << "Error! Incorrect input gradient!";
     }
     MatrixDiagPartTestcase matrix_set_diag_config;
 
     tensor<TIO> pad;
-    tensor<TIO> doutput;
-    tensor<TIO> dinput;
+    tensor<TIO> output_grad;
+    tensor<TIO> input_grad;
 
-    tensor<TIO> ref_dinput;
+    tensor<TIO> ref_input_grad;
 
     miopen::Allocator::ManageDataPtr pad_dev;
-    miopen::Allocator::ManageDataPtr doutput_dev;
-    miopen::Allocator::ManageDataPtr dinput_dev;
+    miopen::Allocator::ManageDataPtr output_grad_dev;
+    miopen::Allocator::ManageDataPtr input_grad_dev;
 
     int64_t k0, k1;
 

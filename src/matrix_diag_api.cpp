@@ -85,12 +85,12 @@ static void LogCmdMatrixDiag(const miopenTensorDescriptor_t diagDesc,
     }
 }
 
-extern "C" miopenStatus_t miopenMatrixDiagForward(miopenHandle_t handle,
-                                                  miopenTensorDescriptor_t diagDesc,
+extern "C" miopenStatus_t miopenMatrixDiagForward(const miopenHandle_t handle,
+                                                  const miopenTensorDescriptor_t diagDesc,
                                                   const void* diag,
-                                                  miopenTensorDescriptor_t padDesc,
+                                                  const miopenTensorDescriptor_t padDesc,
                                                   const void* pad,
-                                                  miopenTensorDescriptor_t outputDesc,
+                                                  const miopenTensorDescriptor_t outputDesc,
                                                   void* output,
                                                   const int64_t diagOffset0,
                                                   const int64_t diagOffset1,
@@ -111,5 +111,42 @@ extern "C" miopenStatus_t miopenMatrixDiagForward(miopenHandle_t handle,
                                   diagOffset0,
                                   diagOffset1,
                                   align);
+    });
+}
+
+extern "C" miopenStatus_t miopenMatrixDiagBackward(const miopenHandle_t handle,
+                                                   const miopenTensorDescriptor_t padDesc,
+                                                   const void* pad,
+                                                   const miopenTensorDescriptor_t outputGradDesc,
+                                                   const void* outputGrad,
+                                                   const miopenTensorDescriptor_t diagGradDesc,
+                                                   void* diagGrad,
+                                                   const int64_t diagOffset0,
+                                                   const int64_t diagOffset1,
+                                                   const miopenMatrixDiagAlignMode_t align)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        padDesc,
+                        pad,
+                        outputGradDesc,
+                        outputGrad,
+                        diagGradDesc,
+                        diagGrad,
+                        diagOffset0,
+                        diagOffset1,
+                        align);
+
+    LogCmdMatrixDiag(diagGradDesc, padDesc, outputGradDesc, diagOffset0, diagOffset1, align, true);
+    return miopen::try_([&] {
+        miopen::MatrixDiagBackward(miopen::deref(handle),
+                                   miopen::deref(padDesc),
+                                   DataCast(pad),
+                                   miopen::deref(outputGradDesc),
+                                   DataCast(outputGrad),
+                                   miopen::deref(diagGradDesc),
+                                   DataCast(diagGrad),
+                                   diagOffset0,
+                                   diagOffset1,
+                                   align);
     });
 }

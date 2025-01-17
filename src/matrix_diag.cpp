@@ -60,4 +60,38 @@ miopenStatus_t MatrixDiagForward(Handle& handle,
         handle, padDesc, pad, diagDesc, diag, outputDesc, output, diagOffset0, diagOffset1, align);
 }
 
+miopenStatus_t MatrixDiagBackward(Handle& handle,
+                                  const TensorDescriptor& padDesc,
+                                  ConstData_t pad,
+                                  const TensorDescriptor& outputGradDesc,
+                                  ConstData_t outputGrad,
+                                  const TensorDescriptor& diagGradDesc,
+                                  Data_t diagGrad,
+                                  int64_t diagOffset0,
+                                  int64_t diagOffset1,
+                                  miopenMatrixDiagAlignMode_t align)
+{
+    const auto problem = matrix_diag::MatrixDiagPartForwardProblemDescription{outputGradDesc,
+                                                                              padDesc,
+                                                                              diagGradDesc,
+                                                                              diagOffset0,
+                                                                              diagOffset1,
+                                                                              align,
+                                                                              "MatrixDiagBackward",
+                                                                              "Output gradient",
+                                                                              "Padding",
+                                                                              "Diagonal gradient"};
+
+    return MatrixDiagPartForward(handle,
+                                 outputGradDesc,
+                                 outputGrad,
+                                 padDesc,
+                                 pad,
+                                 diagGradDesc,
+                                 diagGrad,
+                                 diagOffset0,
+                                 diagOffset1,
+                                 align);
+}
+
 } // namespace miopen

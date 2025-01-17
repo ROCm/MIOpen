@@ -8224,16 +8224,54 @@ typedef enum
  * @return                          miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenMatrixDiagForward(miopenHandle_t handle,
-                        miopenTensorDescriptor_t diagDesc,
+miopenMatrixDiagForward(const miopenHandle_t handle,
+                        const miopenTensorDescriptor_t diagDesc,
                         const void* diag,
-                        miopenTensorDescriptor_t padDesc,
+                        const miopenTensorDescriptor_t padDesc,
                         const void* pad,
-                        miopenTensorDescriptor_t outputDesc,
+                        const miopenTensorDescriptor_t outputDesc,
                         void* output,
                         const int64_t diagOffset0,
                         const int64_t diagOffset1,
                         const miopenMatrixDiagAlignMode_t align = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT);
+
+/*! @brief Execute a MatrixDiag backward layer
+ *
+ * @param [in]  handle              MIOpen handle
+ * @param [in]  padDesc             Tensor descriptor for pading tensor. Must have one or the same
+ * amount of elements similar to output gradient tensor.
+ * @param [in]  pad                 Data tensor padding
+ * @param [in]  outputGradDesc      Tensor descriptor for output gradient tensor
+ * @param [in]  outputGrad          Data tensor output gradient
+ * @param [in]  diagGradDesc        Tensor descriptor for diagonal gradient tensor
+ * @param [out] diagGrad            Data tensor diagonal gradient
+ * @param [in]  diagOffset0         Diagonal offset. Positive value means superdiagonal,
+ * 0 refers to the main diagonal, and negative value means subdiagonals. Must be smaller than
+ * diagOffset1.
+ * @param [in]  diagOffset1         Diagonal offset. Positive value means superdiagonal,
+ * 0 refers to the main diagonal, and negative value means subdiagonals. Must be larger than
+ * diagOffset0.
+ * @param [in]  align               Some diagonals are shorter than max_diag_len and need to be
+ * padded. align is a enum specifying how superdiagonals and subdiagonals should be aligned,
+ * respectively. There are four possible alignments: MIOPEN_MATRIX_ALIGN_RIGHT_LEFT (default),
+ * MIOPEN_MATRIX_ALIGN_LEFT_RIGHT, MIOPEN_MATRIX_ALIGN_LEFT_LEFT, and
+ * MIOPEN_MATRIX_ALIGN_RIGHT_RIGHT. MIOPEN_MATRIX_ALIGN_RIGHT_LEFT aligns superdiagonals to the
+ * right (left-pads the row) and subdiagonals to the left (right-pads the row). It is the packing
+ * format LAPACK uses. cuSPARSE uses MIOPEN_MATRIX_ALIGN_LEFT_RIGHT, which is the opposite
+ * alignment. (Default = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT)
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenMatrixDiagBackward(const miopenHandle_t handle,
+                         const miopenTensorDescriptor_t padDesc,
+                         const void* pad,
+                         const miopenTensorDescriptor_t outputGradDesc,
+                         const void* outputGrad,
+                         const miopenTensorDescriptor_t diagGradDesc,
+                         void* diagGrad,
+                         const int64_t diagOffset0,
+                         const int64_t diagOffset1,
+                         const miopenMatrixDiagAlignMode_t align = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT);
 
 /*! @brief Execute a MatrixSetDiag forward layer
  *
@@ -8300,12 +8338,12 @@ MIOPEN_EXPORT miopenStatus_t miopenMatrixSetDiagForward(
  * @return                          miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenMatrixDiagPartForward(
-    miopenHandle_t handle,
-    miopenTensorDescriptor_t inputDesc,
+    const miopenHandle_t handle,
+    const miopenTensorDescriptor_t inputDesc,
     const void* input,
-    miopenTensorDescriptor_t padDesc,
+    const miopenTensorDescriptor_t padDesc,
     const void* pad,
-    miopenTensorDescriptor_t outputDesc,
+    const miopenTensorDescriptor_t outputDesc,
     void* output,
     const int64_t diagOffset0,
     const int64_t diagOffset1,
@@ -8317,10 +8355,10 @@ MIOPEN_EXPORT miopenStatus_t miopenMatrixDiagPartForward(
  * @param [in]  padDesc             Tensor descriptor for pading tensor. Must have one or the same
  * amount of elements similar to output tensor.
  * @param [in]  pad                 Data tensor padding
- * @param [in]  doutputDesc         Tensor descriptor for output gradient tensor
- * @param [in]  doutput             Data tensor output gradient
- * @param [in]  dinputDesc          Tensor descriptor for input gradient tensor
- * @param [out] dinput              Data tensor input gradient
+ * @param [in]  outputGradDesc      Tensor descriptor for output gradient tensor
+ * @param [in]  outputGrad          Data tensor output gradient
+ * @param [in]  inputGradDesc       Tensor descriptor for input gradient tensor
+ * @param [out] inputGrad           Data tensor input gradient
  * @param [in]  diagOffset0         Diagonal offset. Positive value means superdiagonal,
  * 0 refers to the main diagonal, and negative value means subdiagonals. Must be smaller than
  * diagOffset1.
@@ -8338,13 +8376,13 @@ MIOPEN_EXPORT miopenStatus_t miopenMatrixDiagPartForward(
  * @return                          miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenMatrixDiagPartBackward(
-    miopenHandle_t handle,
-    miopenTensorDescriptor_t padDesc,
+    const miopenHandle_t handle,
+    const miopenTensorDescriptor_t padDesc,
     const void* pad,
-    miopenTensorDescriptor_t doutputDesc,
-    const void* doutput,
-    miopenTensorDescriptor_t dinputDesc,
-    void* dinput,
+    const miopenTensorDescriptor_t outputGradDesc,
+    const void* outputGrad,
+    const miopenTensorDescriptor_t inputGradDesc,
+    void* inputGrad,
     const int64_t diagOffset0,
     const int64_t diagOffset1,
     const miopenMatrixDiagAlignMode_t align = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT);

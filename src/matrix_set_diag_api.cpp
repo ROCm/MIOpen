@@ -85,12 +85,12 @@ static void LogCmdMatrixSetDiag(const miopenTensorDescriptor_t inputDesc,
     }
 }
 
-extern "C" miopenStatus_t miopenMatrixSetDiagForward(miopenHandle_t handle,
-                                                     miopenTensorDescriptor_t inputDesc,
+extern "C" miopenStatus_t miopenMatrixSetDiagForward(const miopenHandle_t handle,
+                                                     const miopenTensorDescriptor_t inputDesc,
                                                      const void* input,
-                                                     miopenTensorDescriptor_t diagDesc,
+                                                     const miopenTensorDescriptor_t diagDesc,
                                                      const void* diag,
-                                                     miopenTensorDescriptor_t outputDesc,
+                                                     const miopenTensorDescriptor_t outputDesc,
                                                      void* output,
                                                      const int64_t diagOffset0,
                                                      const int64_t diagOffset1,
