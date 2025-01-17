@@ -48,6 +48,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
           alignedHeight(alignedHeight_),
           alignedWidth(alignedWidth_)
     {
+        IsRightDim();
         IsSameType();
         IsRightLength();
     }
@@ -67,6 +68,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
                          "RoIAlignForward: input tensor should be 4-dimensions");
         }
 
+        // TODO: Support for rois as  List[Tensor[L, 4]]) in the future
         if(roisDesc.GetNumDims() != 2)
         {
             MIOPEN_THROW(miopenStatusBadParm,

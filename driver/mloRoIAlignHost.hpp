@@ -56,13 +56,11 @@ int32_t mloRoIAlignForwardRunHost(const miopenTensorDescriptor_t inputDesc,
 
     const auto K = miopen::deref(roisDesc).GetLengths()[0];
 
-    int roi_cols           = 5;
     const float roi_offset = aligned ? 0.5f : 0.0f;
 
     for(int k = 0; k < K; ++k)
     {
-        const int roi_batch_idx =
-            roi_cols == 4 ? 0 : static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+        const int roi_batch_idx = static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
 
         const float roi_w1 =
             static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 1})]) * spatial_scale -
