@@ -8238,9 +8238,6 @@ miopenMatrixDiagForward(const miopenHandle_t handle,
 /*! @brief Execute a MatrixDiag backward layer
  *
  * @param [in]  handle              MIOpen handle
- * @param [in]  padDesc             Tensor descriptor for pading tensor. Must have one or the same
- * amount of elements similar to output gradient tensor.
- * @param [in]  pad                 Data tensor padding
  * @param [in]  outputGradDesc      Tensor descriptor for output gradient tensor
  * @param [in]  outputGrad          Data tensor output gradient
  * @param [in]  diagGradDesc        Tensor descriptor for diagonal gradient tensor
@@ -8263,8 +8260,6 @@ miopenMatrixDiagForward(const miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenMatrixDiagBackward(const miopenHandle_t handle,
-                         const miopenTensorDescriptor_t padDesc,
-                         const void* pad,
                          const miopenTensorDescriptor_t outputGradDesc,
                          const void* outputGrad,
                          const miopenTensorDescriptor_t diagGradDesc,
@@ -8352,9 +8347,6 @@ MIOPEN_EXPORT miopenStatus_t miopenMatrixDiagPartForward(
 /*! @brief Execute a MatrixDiagPart backward layer
  *
  * @param [in]  handle              MIOpen handle
- * @param [in]  padDesc             Tensor descriptor for pading tensor. Must have one or the same
- * amount of elements similar to output tensor.
- * @param [in]  pad                 Data tensor padding
  * @param [in]  outputGradDesc      Tensor descriptor for output gradient tensor
  * @param [in]  outputGrad          Data tensor output gradient
  * @param [in]  inputGradDesc       Tensor descriptor for input gradient tensor
@@ -8377,8 +8369,6 @@ MIOPEN_EXPORT miopenStatus_t miopenMatrixDiagPartForward(
  */
 MIOPEN_EXPORT miopenStatus_t miopenMatrixDiagPartBackward(
     const miopenHandle_t handle,
-    const miopenTensorDescriptor_t padDesc,
-    const void* pad,
     const miopenTensorDescriptor_t outputGradDesc,
     const void* outputGrad,
     const miopenTensorDescriptor_t inputGradDesc,

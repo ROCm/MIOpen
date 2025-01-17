@@ -211,7 +211,7 @@ protected:
         auto num_cols = matrix_diag_config.num_cols;
 
         pad    = tensor<TIO>{{1}};
-        pad[0] = -1;
+        pad[0] = 0;
 
         auto outputSize = diagSize;
         if(k0 == k1)
@@ -227,7 +227,6 @@ protected:
         std::fill(
             ref_diag_grad.begin(), ref_diag_grad.end(), std::numeric_limits<TIO>::quiet_NaN());
 
-        pad_dev         = handle.Write(pad.data);
         output_grad_dev = handle.Write(output_grad.data);
         diag_grad_dev   = handle.Write(diag_grad.data);
     }
@@ -238,8 +237,6 @@ protected:
 
         cpu_matrix_diag_part(output_grad, pad, ref_diag_grad, k0, k1, align);
         miopenStatus_t status = miopen::MatrixDiagBackward(handle,
-                                                           pad.desc,
-                                                           pad_dev.get(),
                                                            output_grad.desc,
                                                            output_grad_dev.get(),
                                                            diag_grad.desc,
@@ -267,7 +264,6 @@ protected:
 
     tensor<TIO> ref_diag_grad;
 
-    miopen::Allocator::ManageDataPtr pad_dev;
     miopen::Allocator::ManageDataPtr output_grad_dev;
     miopen::Allocator::ManageDataPtr diag_grad_dev;
 

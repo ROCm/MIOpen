@@ -220,7 +220,7 @@ protected:
         output_grad = tensor<TIO>{outputSize}.generate(gen_value);
 
         pad    = tensor<TIO>{{1}};
-        pad[0] = -1;
+        pad[0] = 0;
 
         input_grad = tensor<TIO>{inputSize};
         std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<TIO>::quiet_NaN());
@@ -229,7 +229,6 @@ protected:
         std::fill(
             ref_input_grad.begin(), ref_input_grad.end(), std::numeric_limits<TIO>::quiet_NaN());
 
-        pad_dev         = handle.Write(pad.data);
         output_grad_dev = handle.Write(output_grad.data);
         input_grad_dev  = handle.Write(input_grad.data);
     }
@@ -240,8 +239,6 @@ protected:
 
         cpu_matrix_set_diag(pad, output_grad, ref_input_grad, k0, k1, true, align);
         miopenStatus_t status = miopen::MatrixDiagPartBackward(handle,
-                                                               pad.desc,
-                                                               pad_dev.get(),
                                                                output_grad.desc,
                                                                output_grad_dev.get(),
                                                                input_grad.desc,
@@ -269,7 +266,6 @@ protected:
 
     tensor<TIO> ref_input_grad;
 
-    miopen::Allocator::ManageDataPtr pad_dev;
     miopen::Allocator::ManageDataPtr output_grad_dev;
     miopen::Allocator::ManageDataPtr input_grad_dev;
 

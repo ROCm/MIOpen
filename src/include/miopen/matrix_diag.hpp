@@ -46,8 +46,6 @@ MatrixDiagForward(Handle& handle,
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 MatrixDiagBackward(Handle& handle,
-                   const TensorDescriptor& padDesc,
-                   ConstData_t pad,
                    const TensorDescriptor& outputGradDesc,
                    ConstData_t outputGrad,
                    const TensorDescriptor& diagGradDesc,
@@ -82,8 +80,6 @@ MatrixDiagPartForward(Handle& handle,
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 MatrixDiagPartBackward(Handle& handle,
-                       const TensorDescriptor& padDesc,
-                       ConstData_t pad,
                        const TensorDescriptor& outputGradDesc,
                        ConstData_t outputGrad,
                        const TensorDescriptor& inputGradDesc,

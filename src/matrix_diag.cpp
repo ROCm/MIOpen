@@ -54,15 +54,14 @@ miopenStatus_t MatrixDiagForward(Handle& handle,
                                                                              "MatrixDiagForward",
                                                                              "Padding",
                                                                              "Diagonal",
-                                                                             "Output"};
+                                                                             "Output",
+                                                                             pad != nullptr};
 
     return MatrixSetDiagForward(
         handle, padDesc, pad, diagDesc, diag, outputDesc, output, diagOffset0, diagOffset1, align);
 }
 
 miopenStatus_t MatrixDiagBackward(Handle& handle,
-                                  const TensorDescriptor& padDesc,
-                                  ConstData_t pad,
                                   const TensorDescriptor& outputGradDesc,
                                   ConstData_t outputGrad,
                                   const TensorDescriptor& diagGradDesc,
@@ -71,8 +70,9 @@ miopenStatus_t MatrixDiagBackward(Handle& handle,
                                   int64_t diagOffset1,
                                   miopenMatrixDiagAlignMode_t align)
 {
+    const auto& dummyTensorDescriptor = outputGradDesc;
     const auto problem = matrix_diag::MatrixDiagPartForwardProblemDescription{outputGradDesc,
-                                                                              padDesc,
+                                                                              dummyTensorDescriptor,
                                                                               diagGradDesc,
                                                                               diagOffset0,
                                                                               diagOffset1,
@@ -80,13 +80,14 @@ miopenStatus_t MatrixDiagBackward(Handle& handle,
                                                                               "MatrixDiagBackward",
                                                                               "Output gradient",
                                                                               "Padding",
-                                                                              "Diagonal gradient"};
+                                                                              "Diagonal gradient",
+                                                                              false};
 
     return MatrixDiagPartForward(handle,
                                  outputGradDesc,
                                  outputGrad,
-                                 padDesc,
-                                 pad,
+                                 dummyTensorDescriptor,
+                                 nullptr,
                                  diagGradDesc,
                                  diagGrad,
                                  diagOffset0,

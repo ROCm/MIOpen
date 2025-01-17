@@ -45,8 +45,17 @@ miopenStatus_t MatrixSetDiagForward(Handle& handle,
                                     const int64_t diagOffset1,
                                     const miopenMatrixDiagAlignMode_t align)
 {
-    const auto problem = matrix_diag::MatrixSetDiagForwardProblemDescription{
-        inputDesc, diagDesc, outputDesc, diagOffset0, diagOffset1, align};
+    const auto problem = matrix_diag::MatrixSetDiagForwardProblemDescription{inputDesc,
+                                                                             diagDesc,
+                                                                             outputDesc,
+                                                                             diagOffset0,
+                                                                             diagOffset1,
+                                                                             align,
+                                                                             "MatrixSetDiagForward",
+                                                                             "Input",
+                                                                             "Diagonal",
+                                                                             "Output",
+                                                                             input != nullptr};
 
     const auto invoke_params = [&]() {
         auto tmp        = matrix_diag::MatrixSetDiagFwdInvokeParams{};

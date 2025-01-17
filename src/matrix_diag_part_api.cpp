@@ -72,8 +72,11 @@ static void LogCmdMatrixDiagPart(const miopenTensorDescriptor_t inputDesc,
         MIOPEN_LOG_FUNCTION(padDesc);
         ss << " -I " << miopen::deref(inputDesc).GetLengths();
         ss << " -Si " << miopen::deref(inputDesc).GetStrides();
-        ss << " -P " << miopen::deref(padDesc).GetLengths();
-        ss << " -Sp " << miopen::deref(padDesc).GetStrides();
+        if(is_fwd)
+        {
+            ss << " -P " << miopen::deref(padDesc).GetLengths();
+            ss << " -Sp " << miopen::deref(padDesc).GetStrides();
+        }
         ss << " -O " << miopen::deref(outputDesc).GetLengths();
         ss << " -So " << miopen::deref(outputDesc).GetStrides();
         ss << " -k0 " << diagOffset0;
@@ -123,8 +126,6 @@ extern "C" miopenStatus_t miopenMatrixDiagPartForward(const miopenHandle_t handl
 
 extern "C" miopenStatus_t
 miopenMatrixDiagPartBackward(const miopenHandle_t handle,
-                             const miopenTensorDescriptor_t padDesc,
-                             const void* pad,
                              const miopenTensorDescriptor_t outputGradDesc,
                              const void* outputGrad,
                              const miopenTensorDescriptor_t inputGradDesc,
@@ -134,8 +135,6 @@ miopenMatrixDiagPartBackward(const miopenHandle_t handle,
                              const miopenMatrixDiagAlignMode_t align)
 {
     MIOPEN_LOG_FUNCTION(handle,
-                        padDesc,
-                        pad,
                         outputGradDesc,
                         outputGrad,
                         inputGradDesc,
@@ -144,11 +143,9 @@ miopenMatrixDiagPartBackward(const miopenHandle_t handle,
                         diagOffset1,
                         align);
     LogCmdMatrixDiagPart(
-        inputGradDesc, padDesc, outputGradDesc, diagOffset0, diagOffset1, align, false);
+        inputGradDesc, nullptr, outputGradDesc, diagOffset0, diagOffset1, align, false);
     return miopen::try_([&] {
         miopen::MatrixDiagPartBackward(miopen::deref(handle),
-                                       miopen::deref(padDesc),
-                                       DataCast(pad),
                                        miopen::deref(outputGradDesc),
                                        DataCast(outputGrad),
                                        miopen::deref(inputGradDesc),

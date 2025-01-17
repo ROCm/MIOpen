@@ -106,7 +106,6 @@ ConvSolution MatrixSetDiagForwardContiguous::GetSolution(
                 static_cast<uint64_t>(deref(params.outputDesc)
                                           .GetLengths()[deref(params.outputDesc).GetNumDims() - 1]),
                 static_cast<uint64_t>(deref(params.outputDesc).GetElementSize()),
-                true,
                 deref(params.inputDesc).GetElementSize() == 1);
         };
     };

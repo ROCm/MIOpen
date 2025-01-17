@@ -45,8 +45,18 @@ miopenStatus_t MatrixDiagPartForward(Handle& handle,
                                      const int64_t diagOffset1,
                                      const miopenMatrixDiagAlignMode_t align)
 {
-    const auto problem = matrix_diag::MatrixDiagPartForwardProblemDescription{
-        inputDesc, padDesc, outputDesc, diagOffset0, diagOffset1, align};
+    const auto problem =
+        matrix_diag::MatrixDiagPartForwardProblemDescription{inputDesc,
+                                                             padDesc,
+                                                             outputDesc,
+                                                             diagOffset0,
+                                                             diagOffset1,
+                                                             align,
+                                                             "MatrixDiagPartForward",
+                                                             "Input",
+                                                             "Padding",
+                                                             "Output",
+                                                             pad != nullptr};
 
     const auto invoke_params = [&]() {
         auto tmp        = matrix_diag::MatrixDiagPartFwdInvokeParams{};
@@ -71,8 +81,6 @@ miopenStatus_t MatrixDiagPartForward(Handle& handle,
 }
 
 miopenStatus_t MatrixDiagPartBackward(Handle& handle,
-                                      const TensorDescriptor& padDesc,
-                                      ConstData_t pad,
                                       const TensorDescriptor& outputGradDesc,
                                       ConstData_t outputGrad,
                                       const TensorDescriptor& inputGradDesc,
@@ -81,8 +89,9 @@ miopenStatus_t MatrixDiagPartBackward(Handle& handle,
                                       const int64_t diagOffset1,
                                       const miopenMatrixDiagAlignMode_t align)
 {
+    const auto& dummyTensorDescriptor = outputGradDesc;
     const auto problem =
-        matrix_diag::MatrixSetDiagForwardProblemDescription{padDesc,
+        matrix_diag::MatrixSetDiagForwardProblemDescription{dummyTensorDescriptor,
                                                             outputGradDesc,
                                                             inputGradDesc,
                                                             diagOffset0,
@@ -91,10 +100,11 @@ miopenStatus_t MatrixDiagPartBackward(Handle& handle,
                                                             "MatrixDiagPartBackward",
                                                             "Padding",
                                                             "Output gradient",
-                                                            "Input gradient"};
+                                                            "Input gradient",
+                                                            false};
     return MatrixSetDiagForward(handle,
-                                padDesc,
-                                pad,
+                                dummyTensorDescriptor,
+                                nullptr,
                                 outputGradDesc,
                                 outputGrad,
                                 inputGradDesc,

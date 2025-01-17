@@ -45,7 +45,9 @@ bool IsValidMatrixDiag(const TensorDescriptor& padDesc,
                        const std::string& refer_name,
                        const std::string& pad_alias_name,
                        const std::string& diag_alias_name,
-                       const std::string& out_alias_name);
+                       const std::string& out_alias_name,
+                       bool hasPad,
+                       bool hasDiag);
 
 struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
 {
@@ -55,10 +57,11 @@ struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
                                            const int64_t diagOffset0_,
                                            const int64_t diagOffset1_,
                                            const miopenMatrixDiagAlignMode_t align_,
-                                           const std::string refer_name_ = "MatrixSetDiagForward",
-                                           const std::string input_alias_name_  = "Input",
-                                           const std::string diag_alias_name_   = "Diagonal",
-                                           const std::string output_alias_name_ = "Output")
+                                           const std::string refer_name_,
+                                           const std::string input_alias_name_,
+                                           const std::string diag_alias_name_,
+                                           const std::string output_alias_name_,
+                                           const bool hasInput)
         : inputDesc(inputDesc_),
           diagDesc(diagDesc_),
           outputDesc(outputDesc_),
@@ -78,7 +81,9 @@ struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
                           refer_name,
                           input_alias_name,
                           diag_alias_name,
-                          output_alias_name);
+                          output_alias_name,
+                          hasInput,
+                          true);
     }
 
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
@@ -121,10 +126,11 @@ struct MatrixDiagPartForwardProblemDescription : ProblemDescriptionBase
                                             const int64_t diagOffset0_,
                                             const int64_t diagOffset1_,
                                             const miopenMatrixDiagAlignMode_t align_,
-                                            const std::string refer_name_ = "MatrixDiagPartForward",
-                                            const std::string input_alias_name_  = "Input",
-                                            const std::string pad_alias_name_    = "Padding",
-                                            const std::string output_alias_name_ = "Output")
+                                            const std::string refer_name_,
+                                            const std::string input_alias_name_,
+                                            const std::string pad_alias_name_,
+                                            const std::string output_alias_name_,
+                                            const bool hasPad)
         : inputDesc(inputDesc_),
           padDesc(padDesc_),
           outputDesc(outputDesc_),
@@ -144,7 +150,9 @@ struct MatrixDiagPartForwardProblemDescription : ProblemDescriptionBase
                           refer_name,
                           pad_alias_name,
                           output_alias_name,
-                          input_alias_name);
+                          input_alias_name,
+                          hasPad,
+                          true);
     }
 
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }

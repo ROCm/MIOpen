@@ -72,17 +72,24 @@ bool IsValidMatrixDiag(const TensorDescriptor& padDesc,
                        const std::string& refer_name,
                        const std::string& pad_alias_name,
                        const std::string& diag_alias_name,
-                       const std::string& out_alias_name)
+                       const std::string& out_alias_name,
+                       const bool hasPad,
+                       const bool hasDiag)
 {
     // Valid type
-    if(diagDesc.GetType() != padDesc.GetType())
+    if(hasPad && hasDiag && diagDesc.GetType() != padDesc.GetType())
         MIOPEN_THROW(miopenStatusBadParm,
                      (std::stringstream() << refer_name << ": " << diag_alias_name << " and "
                                           << pad_alias_name << " datatype do not match.")
                          .str());
-    if(diagDesc.GetType() != outDesc.GetType())
+    if(hasDiag && diagDesc.GetType() != outDesc.GetType())
         MIOPEN_THROW(miopenStatusBadParm,
                      (std::stringstream() << refer_name << ": " << diag_alias_name << " and "
+                                          << out_alias_name << " datatype do not match.")
+                         .str());
+    if(hasPad && padDesc.GetType() != outDesc.GetType())
+        MIOPEN_THROW(miopenStatusBadParm,
+                     (std::stringstream() << refer_name << ": " << pad_alias_name << " and "
                                           << out_alias_name << " datatype do not match.")
                          .str());
 
@@ -108,112 +115,126 @@ bool IsValidMatrixDiag(const TensorDescriptor& padDesc,
                       << refer_name << ": diagOffset1 must be less than the last " << out_alias_name
                       << " dimension")
                          .str());
-    if(diagOffset0 == diagOffset1)
+    if(hasDiag)
     {
-        if(diagDesc.GetNumDims() < 1)
+        if(diagOffset0 == diagOffset1)
         {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << refer_name << ": When diagOffset0 == diagOffset1, " << diag_alias_name
-                          << " tensor must "
-                             "have at least 1 dimension")
-                             .str());
+            if(diagDesc.GetNumDims() < 1)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << refer_name << ": When diagOffset0 == diagOffset1, "
+                              << diag_alias_name
+                              << " tensor must "
+                                 "have at least 1 dimension")
+                                 .str());
+            }
+            if(diagDesc.GetNumDims() + 1 != outDesc.GetNumDims())
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << refer_name << ": When diagOffset0 == diagOffset1, "
+                              << out_alias_name
+                              << " tensor must have "
+                                 "1 more dimension than "
+                              << diag_alias_name << " tensor")
+                                 .str());
+            }
+            if(std::vector<size_t>(diagDesc.GetLengths().begin(),
+                                   diagDesc.GetLengths().end() - 1) !=
+               std::vector<size_t>(outDesc.GetLengths().begin(), outDesc.GetLengths().end() - 2))
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << refer_name << ": When diagOffset0 == diagOffset1, "
+                              << diag_alias_name
+                              << " tensor has "
+                                 "shape [I, J, ..., L, M, N] then "
+                              << out_alias_name
+                              << " tensor must have shape [I, J, "
+                                 "..., L, M, num_rows, num_cols]")
+                                 .str());
+            }
+            if(diagDesc.GetLengths().back() != max_diag_len)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << refer_name << ": When diagOffset0 == diagOffset1, "
+                              << diag_alias_name
+                              << " tensor last "
+                                 "dimension must match with "
+                              << out_alias_name << " tensor diagonal length")
+                                 .str());
+            }
         }
-        if(diagDesc.GetNumDims() + 1 != outDesc.GetNumDims())
+        else
         {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << refer_name << ": When diagOffset0 == diagOffset1, " << out_alias_name
-                          << " tensor must have "
-                             "1 more dimension than "
-                          << diag_alias_name << " tensor")
-                             .str());
-        }
-        if(std::vector<size_t>(diagDesc.GetLengths().begin(), diagDesc.GetLengths().end() - 1) !=
-           std::vector<size_t>(outDesc.GetLengths().begin(), outDesc.GetLengths().end() - 2))
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << refer_name << ": When diagOffset0 == diagOffset1, " << diag_alias_name
-                          << " tensor has "
-                             "shape [I, J, ..., L, M, N] then "
-                          << out_alias_name
-                          << " tensor must have shape [I, J, "
-                             "..., L, M, num_rows, num_cols]")
-                             .str());
-        }
-        if(diagDesc.GetLengths().back() != max_diag_len)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << refer_name << ": When diagOffset0 == diagOffset1, " << diag_alias_name
-                          << " tensor last "
-                             "dimension must match with "
-                          << out_alias_name << " tensor diagonal length")
-                             .str());
+            if(diagOffset0 > diagOffset1)
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << refer_name
+                              << ": diagOffset0 must be less than or equal to diagOffset1")
+                                 .str());
+            if(diagDesc.GetNumDims() < 2)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << refer_name << ": When diagOffset0 == diagOffset1, "
+                              << diag_alias_name
+                              << " tensor must "
+                                 "have at least 2 dimensions")
+                                 .str());
+            }
+            if(diagDesc.GetNumDims() != outDesc.GetNumDims())
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << refer_name << ": When diagOffset0 != diagOffset1, "
+                              << out_alias_name
+                              << " tensor must has "
+                                 "the same number of dimension with "
+                              << diag_alias_name << " tensor")
+                                 .str());
+            }
+            if(std::vector<size_t>(diagDesc.GetLengths().begin(),
+                                   diagDesc.GetLengths().end() - 2) !=
+               std::vector<size_t>(outDesc.GetLengths().begin(), outDesc.GetLengths().end() - 2))
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << refer_name << ": When diagOffset0 != diagOffset1, "
+                              << diag_alias_name
+                              << " tensor has "
+                                 "shape [I, J, ..., L, M, N] then "
+                              << out_alias_name
+                              << " tensor must have shape [I, J, "
+                                 "..., L, num_rows, num_cols]")
+                                 .str());
+            }
+            if(diagDesc.GetLengths()[diagDesc.GetNumDims() - 2] != diagOffset1 - diagOffset0 + 1)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << refer_name << ": When diagOffset0 != diagOffset1, "
+                              << diag_alias_name
+                              << " tensor second last "
+                                 "dimension must equal to diagOffset1 - diagOffset0")
+                                 .str());
+            }
+            if(diagDesc.GetLengths().back() != max_diag_len)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             (std::stringstream()
+                              << refer_name << ": When diagOffset0 != diagOffset1, "
+                              << diag_alias_name
+                              << " tensor last "
+                                 "dimension must match with "
+                              << out_alias_name << " tensor diagonal length")
+                                 .str());
+            }
         }
     }
-    else
-    {
-        if(diagOffset0 > diagOffset1)
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << refer_name
-                          << ": diagOffset0 must be less than or equal to diagOffset1")
-                             .str());
-        if(diagDesc.GetNumDims() < 2)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << refer_name << ": When diagOffset0 == diagOffset1, " << diag_alias_name
-                          << " tensor must "
-                             "have at least 2 dimensions")
-                             .str());
-        }
-        if(diagDesc.GetNumDims() != outDesc.GetNumDims())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << refer_name << ": When diagOffset0 != diagOffset1, " << out_alias_name
-                          << " tensor must has "
-                             "the same number of dimension with "
-                          << diag_alias_name << " tensor")
-                             .str());
-        }
-        if(std::vector<size_t>(diagDesc.GetLengths().begin(), diagDesc.GetLengths().end() - 2) !=
-           std::vector<size_t>(outDesc.GetLengths().begin(), outDesc.GetLengths().end() - 2))
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << refer_name << ": When diagOffset0 != diagOffset1, " << diag_alias_name
-                          << " tensor has "
-                             "shape [I, J, ..., L, M, N] then "
-                          << out_alias_name
-                          << " tensor must have shape [I, J, "
-                             "..., L, num_rows, num_cols]")
-                             .str());
-        }
-        if(diagDesc.GetLengths()[diagDesc.GetNumDims() - 2] != diagOffset1 - diagOffset0 + 1)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << refer_name << ": When diagOffset0 != diagOffset1, " << diag_alias_name
-                          << " tensor second last "
-                             "dimension must equal to diagOffset1 - diagOffset0")
-                             .str());
-        }
-        if(diagDesc.GetLengths().back() != max_diag_len)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         (std::stringstream()
-                          << refer_name << ": When diagOffset0 != diagOffset1, " << diag_alias_name
-                          << " tensor last "
-                             "dimension must match with "
-                          << out_alias_name << " tensor diagonal length")
-                             .str());
-        }
-    }
-    if(padDesc.GetElementSize() > 1 && padDesc.GetLengths() != outDesc.GetLengths())
+    if(hasPad && padDesc.GetElementSize() > 1 && padDesc.GetLengths() != outDesc.GetLengths())
     {
         MIOPEN_THROW(miopenStatusBadParm,
                      (std::stringstream()
