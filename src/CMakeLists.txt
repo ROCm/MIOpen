@@ -336,11 +336,22 @@ set( MIOpen_Source
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
+    solver/tensorOp/Op1dTensorGeneric.cpp
+    solver/tensorOp/Op2dTensorGeneric.cpp
+    solver/tensorOp/Op2dTensorLite.cpp
+    solver/tensorOp/Op2dTensorSquash.cpp
+    solver/tensorOp/Op3dTensorGeneric.cpp
+    solver/tensorOp/Op4dTensorGeneric.cpp
+    solver/tensorOp/Op4dTensorLite.cpp
+    solver/tensorOp/Op5dTensorGeneric.cpp
+    solver/tensorOp/OpTensorFwdBias.cpp
+    solver/tensorOp/OpTensorLeadingOnes.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
+    tensorOp/problem_description.cpp
     tensor_api.cpp
     transformers_adam_w_api.cpp
     seq_tensor.cpp
@@ -684,7 +695,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/lrn_ocl.cpp
         ocl/mloNorm.cpp
         ocl/pooling_ocl.cpp
-        ocl/tensorocl.cpp
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/ctcocl.cpp

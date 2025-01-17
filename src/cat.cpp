@@ -35,7 +35,7 @@
 
 namespace miopen {
 
-miopenStatus_t CatForward(Handle& handle,
+miopenStatus_t CatForward(const Handle& handle,
                           int32_t xCount,
                           const TensorDescriptor* const* xDescs,
                           ConstData_t* xs,

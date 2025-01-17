@@ -67,7 +67,7 @@ public:
     // TODO
     static size_t GetWsSize() { return 0; };
 
-    void ComputeFWD(Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
+    void ComputeFWD(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
 
     const rnn_base::RNNForwardDataModularAlgo rnnAlgoModules;
 
@@ -109,7 +109,7 @@ public:
         return rnn_base::RNNModuleAlgoDynamic::getTempBuffersSize(handle, rnn, xDesc);
     }
 
-    void ComputeFWD(Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
+    void ComputeFWD(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
 
     const rnn_base::RNNModuleAlgoDynamic rnnAlgoModules;
     const RNNDescriptor& rnnDesc;
@@ -145,7 +145,7 @@ public:
     // TODO
     static size_t GetWsSize() { return 0; };
 
-    void ComputeBWD(Handle& handle,
+    void ComputeBWD(const Handle& handle,
                     ConstData_t dy,
                     ConstData_t dhy,
                     Data_t dhx,
@@ -196,7 +196,7 @@ public:
         return decltype(rnnAlgoModules)::getTempBuffersSize(handle, rnn, xDesc);
     }
 
-    void ComputeBWD(Handle& handle, const runtimeArgsBwd& runtimeArgs) const;
+    void ComputeBWD(const Handle& handle, const runtimeArgsBwd& runtimeArgs) const;
 
     const rnn_base::RNNBackwardModuleAlgoDynamic rnnAlgoModules;
     const RNNDescriptor& rnnDesc;
@@ -228,7 +228,7 @@ public:
     // TODO
     static size_t GetWsSize() { return 0; };
 
-    void ComputeBWD(Handle& handle,
+    void ComputeBWD(const Handle& handle,
                     ConstData_t dy,
                     ConstData_t dhy,
                     Data_t dhx,
