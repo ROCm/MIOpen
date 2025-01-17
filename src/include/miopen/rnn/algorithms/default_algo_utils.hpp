@@ -121,13 +121,15 @@ public:
                                     const TensorDescriptor& hDesc,
                                     miopenRNNFWDMode_t mode)
     {
-        auto [max_layers_hid, max_batch_hid, hidden_vec_sz] = miopen::tien<3>(hDesc.GetLengths());
-        auto [max_batch_in, max_seq, input_vec_sz]          = miopen::tien<3>(xDesc.GetLengths());
+        [[maybe_unused]] auto [max_layers_hid, max_batch_hid, hidden_vec_sz] =
+            miopen::tien<3>(hDesc.GetLengths());
+        [[maybe_unused]] auto [max_batch_in, max_seq, input_vec_sz] =
+            miopen::tien<3>(xDesc.GetLengths());
 
         assert(max_batch_in <= max_batch_hid);
 
-        auto layers_cnt         = static_cast<int>(rnnDesc.nLayers);
-        const bool is_seq_bidir = rnnDesc.dirMode == miopenRNNbidirection;
+        [[maybe_unused]] auto layers_cnt         = static_cast<int>(rnnDesc.nLayers);
+        [[maybe_unused]] const bool is_seq_bidir = rnnDesc.dirMode == miopenRNNbidirection;
 
         assert(static_cast<size_t>(layers_cnt) * (is_seq_bidir ? 2 : 1) <= max_layers_hid);
 
