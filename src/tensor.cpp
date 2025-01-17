@@ -26,8 +26,19 @@
 #include <miopen/tensor.hpp>
 
 #include <miopen/errors.hpp>
+#include <miopen/float_equal.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_layout.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/tensor_ops.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/tensorOp/invoke_params.hpp>
+#include <miopen/tensorOp/solvers.hpp>
+#include <miopen/find_solution.hpp>
+#include <miopen/visit_float.hpp>
+#include <miopen/util.hpp>
+
+#include <boost/range/combine.hpp>
 
 #include <nlohmann/json.hpp>
 
@@ -863,6 +874,1200 @@ void from_json(const nlohmann::json& j, TensorDescriptor& descriptor)
     j.at("strides").get_to(descriptor.strides);
     j.at("packed").get_to(descriptor.packed);
     j.at("type").get_to(descriptor.type);
+}
+
+TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
+{
+    // is packed
+    if(desc.IsPacked())
+        return {desc.GetType(), {desc.GetElementSize()}, {static_cast<std::size_t>(1)}};
+
+    // start flattening tensor
+    std::vector<std::size_t> flat_lengths;
+    std::vector<std::size_t> flat_strides;
+
+    auto non1_length_strides = boost::combine(desc.GetLengths(), desc.GetStrides()) |
+                               boost::adaptors::filtered(f_length_is_not_1_t());
+
+    auto i               = non1_length_strides.begin();
+    std::size_t flat_len = boost::get<0>(*i);
+    auto i_previous      = i++;
+
+    // the 0-th dimension full-length doesn't matter
+    for(; i != non1_length_strides.end(); ++i)
+    {
+        std::size_t len             = boost::get<0>(*i);
+        std::size_t stride          = boost::get<1>(*i);
+        std::size_t previous_stride = boost::get<1>(*i_previous);
+        std::size_t full_len        = previous_stride / stride;
+
+        if(len == full_len)
+        {
+            flat_len *= len;
+        }
+        else
+        {
+            flat_lengths.push_back(flat_len);
+            flat_strides.push_back(previous_stride);
+            flat_len = len;
+        }
+        i_previous = i;
+    }
+    flat_lengths.push_back(flat_len);
+    flat_strides.push_back(boost::get<1>(*i_previous));
+
+    return {desc.GetType(), flat_lengths, flat_strides};
+}
+
+struct two_exp_ceiling_t
+{
+    std::size_t operator()(std::size_t n) const
+    {
+        assert(n > 0);
+
+        std::size_t i = 1;
+
+        n--;
+        while(n != 0)
+        {
+            i *= 2;
+            n /= 2;
+        }
+
+        return i;
+    }
+};
+
+static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>& data_sizes)
+{
+    const std::size_t dim = data_sizes.size();
+
+    std::vector<std::size_t> worker_sizes(dim);
+
+    std::transform(data_sizes.begin(), data_sizes.end(), worker_sizes.begin(), two_exp_ceiling_t{});
+
+    std::size_t wgd = std::accumulate(
+        worker_sizes.begin(), worker_sizes.end(), std::size_t{1}, std::multiplies<std::size_t>());
+
+    if(wgd > 65536)
+    {
+        std::size_t n = wgd / 65536;
+
+        int i = 0;
+        while(n > 1 && i < dim)
+        {
+            std::size_t size_old = worker_sizes[i];
+            worker_sizes[i]      = (size_old - 1) / n + 1;
+            n /= size_old / worker_sizes[i];
+            ++i;
+        }
+    }
+
+    return worker_sizes;
+}
+
+void SetTensor(const Handle& handle,
+               const TensorDescriptor& yDesc,
+               Data_t y,
+               const void* alpha,
+               const int offset)
+{
+    if(y == nullptr || alpha == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    const TensorDescriptor yDesc_flat = GetFlattenedTensorDescriptor(yDesc);
+
+#ifndef NDEBUG
+    if(yDesc.GetNumDims() != yDesc_flat.GetNumDims())
+    {
+        MIOPEN_LOG_I2("real descriptor: " << yDesc);
+        MIOPEN_LOG_I2("flat descriptor: " << yDesc_flat);
+    }
+#endif
+
+    const std::size_t yDim_flat = yDesc_flat.GetNumDims();
+
+    assert(yDim_flat > 0 && yDim_flat <= 5);
+
+    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
+
+    const miopenDataType_t dataType = yDesc_flat.GetType();
+
+    std::string network_config = "set " + std::to_string(dataType);
+    for(auto& len : yDesc_flat.GetLengths())
+    {
+        network_config += " " + std::to_string(len);
+    }
+
+    auto&& kernels = handle.GetKernels(kernel_name, network_config);
+
+    KernelInvoke kernel;
+
+    if(!kernels.empty())
+    {
+        kernel = kernels.front();
+    }
+    else
+    {
+        std::string program_name = "MIOpenSubTensorOpWithScalarKernel.cl";
+
+        std::vector<std::size_t> worker_sizes = get_worker_sizes(yDesc_flat.GetLengths());
+
+        std::size_t wgd = std::accumulate(worker_sizes.begin(),
+                                          worker_sizes.end(),
+                                          std::size_t{1},
+                                          std::multiplies<std::size_t>());
+
+        std::size_t wld = 256 < wgd ? 256 : wgd;
+        std::stringstream ss;
+        ss << "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_SET"
+           << GetDataTypeKernelParams(dataType);
+        for(int i = 0; i < yDim_flat; ++i)
+        {
+            ss << " -DWORK_LENGTH_" << std::to_string(i) << "=" << std::to_string(worker_sizes[i]);
+        }
+
+        kernel = handle.AddKernel(kernel_name,
+                                  network_config,
+                                  program_name,
+                                  kernel_name,
+                                  {wld, 1, 1},
+                                  {wgd, 1, 1},
+                                  ss.str());
+    }
+
+    switch(yDim_flat)
+    {
+    case 1: {
+        visit_float(dataType, [&](auto as_float) {
+            kernel(y,
+                   *as_float(alpha),
+                   offset,
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]));
+        });
+
+        break;
+    }
+    case 2: {
+        visit_float(dataType, [&](auto as_float) {
+            kernel(y,
+                   *as_float(alpha),
+                   offset,
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]));
+        });
+
+        break;
+    }
+    case 3: {
+        visit_float(dataType, [&](auto as_float) {
+            kernel(y,
+                   *as_float(alpha),
+                   offset,
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]));
+        });
+
+        break;
+    }
+    case 4: {
+        visit_float(dataType, [&](auto as_float) {
+            kernel(y,
+                   *as_float(alpha),
+                   offset,
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetStrides()[3]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[3]));
+        });
+
+        break;
+    }
+    case 5: {
+        visit_float(dataType, [&](auto as_float) {
+            kernel(y,
+                   *as_float(alpha),
+                   offset,
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetStrides()[3]),
+                   static_cast<int>(yDesc_flat.GetStrides()[4]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[3]),
+                   static_cast<int>(yDesc_flat.GetLengths()[4]));
+        });
+
+        break;
+    }
+    default: assert(false);
+    }
+}
+
+void ScaleTensor(const Handle& handle,
+                 const TensorDescriptor& yDesc,
+                 Data_t y,
+                 const void* alpha,
+                 const int offset)
+{
+    if(y == nullptr || alpha == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    const TensorDescriptor yDesc_flat = GetFlattenedTensorDescriptor(yDesc);
+
+#ifndef NDEBUG
+    if(yDesc.GetNumDims() != yDesc_flat.GetNumDims())
+    {
+        MIOPEN_LOG_I2("real descriptor: " << yDesc);
+        MIOPEN_LOG_I2("flat descriptor: " << yDesc_flat);
+    }
+#endif
+
+    const std::size_t yDim_flat = yDesc_flat.GetNumDims();
+
+    assert(yDim_flat > 0 && yDim_flat <= 5);
+
+    const miopenDataType_t dataType = yDesc_flat.GetType();
+
+    if(!(dataType == miopenHalf     //
+         || dataType == miopenFloat //
+         || dataType == miopenInt32 //
+         || dataType == miopenDouble))
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "ScaleTensor: unsupported data type.");
+    }
+
+    std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
+
+    const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
+
+    std::string network_config = "scale " + std::to_string(yDesc_flat.GetType());
+    for(auto& len : lens)
+    {
+        network_config += " " + std::to_string(len);
+    }
+
+    auto&& kernels = handle.GetKernels(kernel_name, network_config);
+
+    KernelInvoke kernel;
+
+    if(!kernels.empty())
+    {
+        kernel = kernels.front();
+    }
+    else
+    {
+        std::string program_name = "MIOpenSubTensorOpWithScalarKernel.cl";
+
+        std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
+
+        std::size_t wgd = std::accumulate(worker_sizes.begin(),
+                                          worker_sizes.end(),
+                                          std::size_t{1},
+                                          std::multiplies<std::size_t>());
+
+        std::size_t wld = 256 < wgd ? 256 : wgd;
+
+        std::string parms = "-DSUBTENSOR_OP_WITH_SCALAR=SUBTENSOR_OP_WITH_SCALAR_MULTIPLY" +
+                            GetDataTypeKernelParams(dataType);
+        for(int i = 0; i < yDim_flat; ++i)
+        {
+            parms += " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
+        }
+
+        kernel = handle.AddKernel(kernel_name,
+                                  network_config,
+                                  program_name,
+                                  kernel_name,
+                                  {wld, 1, 1},
+                                  {wgd, 1, 1},
+                                  parms);
+    }
+
+    switch(yDim_flat)
+    {
+    case 1: {
+        visit_float(dataType, [&](auto as_float) {
+            kernel(y,
+                   *as_float(alpha),
+                   offset,
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]));
+        });
+
+        break;
+    }
+    case 2: {
+        visit_float(dataType, [&](auto as_float) {
+            kernel(y,
+                   *as_float(alpha),
+                   offset,
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]));
+        });
+
+        break;
+    }
+    case 3: {
+        visit_float(dataType, [&](auto as_float) {
+            kernel(y,
+                   *as_float(alpha),
+                   offset,
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]));
+        });
+
+        break;
+    }
+    case 4: {
+        visit_float(dataType, [&](auto as_float) {
+            kernel(y,
+                   *as_float(alpha),
+                   offset,
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetStrides()[3]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[3]));
+        });
+
+        break;
+    }
+    case 5: {
+        visit_float(dataType, [&](auto as_float) {
+            kernel(y,
+                   *as_float(alpha),
+                   offset,
+                   static_cast<int>(yDesc_flat.GetStrides()[0]),
+                   static_cast<int>(yDesc_flat.GetStrides()[1]),
+                   static_cast<int>(yDesc_flat.GetStrides()[2]),
+                   static_cast<int>(yDesc_flat.GetStrides()[3]),
+                   static_cast<int>(yDesc_flat.GetStrides()[4]),
+                   static_cast<int>(yDesc_flat.GetLengths()[0]),
+                   static_cast<int>(yDesc_flat.GetLengths()[1]),
+                   static_cast<int>(yDesc_flat.GetLengths()[2]),
+                   static_cast<int>(yDesc_flat.GetLengths()[3]),
+                   static_cast<int>(yDesc_flat.GetLengths()[4]));
+        });
+
+        break;
+    }
+    default: assert(false);
+    }
+}
+
+void CopyTensor(const Handle& handle,
+                const TensorDescriptor& srcDesc,
+                ConstData_t src,
+                const TensorDescriptor& dstDesc,
+                Data_t dst,
+                int srcOffset,
+                int dstOffset,
+                bool forseAsync)
+{
+    if(src == nullptr || dst == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
+    }
+
+    if(srcDesc.GetType() != dstDesc.GetType())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+    }
+
+    if(srcDesc.GetLengths() != dstDesc.GetLengths())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+    }
+
+    auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);
+    const TensorDescriptor& srcDesc_flat = std::get<0>(flat_descriptors);
+    const TensorDescriptor& dstDesc_flat = std::get<1>(flat_descriptors);
+
+#ifndef NDEBUG
+    if(srcDesc.GetNumDims() != srcDesc_flat.GetNumDims())
+    {
+        MIOPEN_LOG_I2("src real descriptor: " << srcDesc);
+        MIOPEN_LOG_I2("src flat descriptor: " << srcDesc_flat);
+        MIOPEN_LOG_I2("dst real descriptor: " << dstDesc);
+        MIOPEN_LOG_I2("dst flat descriptor: " << dstDesc_flat);
+    }
+#endif
+
+    std::size_t srcDim_flat = srcDesc_flat.GetNumDims();
+
+    if(srcDim_flat < 1 || srcDim_flat > 5)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
+    }
+
+    if(forseAsync || srcOffset > 0 || dstOffset > 0 ||
+       (!(srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked())))
+    {
+        std::string kernel_name = "SubTensorOpWithSubTensor" + std::to_string(srcDim_flat) + "d";
+
+        const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
+
+        std::string network_config = "copy " + std::to_string(srcDesc_flat.GetType());
+        for(auto& len : lens)
+        {
+            network_config += " " + std::to_string(len);
+        }
+
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+
+        KernelInvoke kernel;
+
+        if(!kernels.empty())
+        {
+            kernel = kernels.front();
+        }
+        else
+        {
+            std::string program_name = "MIOpenSubTensorOpWithSubTensorKernel.cl";
+
+            std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
+
+            std::size_t wgd = std::accumulate(worker_sizes.begin(),
+                                              worker_sizes.end(),
+                                              std::size_t{1},
+                                              std::multiplies<std::size_t>());
+
+            std::size_t wld = 256 < wgd ? 256 : wgd;
+
+            std::string parms = "-DSUBTENSOR_OP_WITH_SUBTENSOR=SUBTENSOR_OP_WITH_SUBTENSOR_COPY" +
+                                GetDataTypeKernelParams(srcDesc_flat.GetType());
+            for(std::size_t i = 0; i < srcDim_flat; ++i)
+            {
+                parms +=
+                    " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
+            }
+
+            kernel = handle.AddKernel(kernel_name,
+                                      network_config,
+                                      program_name,
+                                      kernel_name,
+                                      {wld, 1, 1},
+                                      {wgd, 1, 1},
+                                      parms);
+        }
+
+        switch(srcDim_flat)
+        {
+        case 1: {
+            kernel(src,
+                   srcOffset,
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   dst,
+                   dstOffset,
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]));
+
+            break;
+        }
+        case 2: {
+            kernel(src,
+                   srcOffset,
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   dst,
+                   dstOffset,
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]));
+
+            break;
+        }
+        case 3: {
+            kernel(src,
+                   srcOffset,
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
+                   dst,
+                   dstOffset,
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]));
+
+            break;
+        }
+        case 4: {
+            kernel(src,
+                   srcOffset,
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[3]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[3]),
+                   dst,
+                   dstOffset,
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[3]));
+
+            break;
+        }
+        case 5: {
+            kernel(src,
+                   srcOffset,
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[3]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[4]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[3]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[4]),
+                   dst,
+                   dstOffset,
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[3]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[4]));
+
+            break;
+        }
+        default: assert(false);
+        }
+    }
+    else
+    {
+        handle.Copy(src, dst, srcDesc_flat.GetElementSize() * GetTypeSize(srcDesc_flat.GetType()));
+    }
+}
+
+std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, miopenDataType_t type)
+{
+    std::string option(buildOption);
+    switch(type)
+    {
+    case miopenInt8: return option += "0";
+    case miopenInt32: return option += "1";
+    case miopenHalf: return option += "2";
+    case miopenFloat: return option += "3";
+    case miopenBFloat16: return option += "4";
+    case miopenFloat8:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenFloat8 data type not supported in cast tensor.");
+    case miopenBFloat8:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenBFloat8 data type not supported in cast tensor.");
+    case miopenDouble:
+        // TODO
+        MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
+    case miopenInt64:
+        MIOPEN_THROW(miopenStatusBadParm, "miopenInt64 data type not supported in cast tensor.");
+    default: MIOPEN_THROW(miopenStatusBadParm, "Invalid data type in cast tensor desc.");
+    }
+}
+
+void CastTensor(const Handle& handle,
+                const void* alpha,
+                const bool clamping,
+                const TensorDescriptor& srcDesc,
+                ConstData_t src,
+                const TensorDescriptor& dstDesc,
+                Data_t dst,
+                int srcOffset,
+                int dstOffset)
+{
+    if(src == nullptr || dst == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Null pointer for tensor.");
+    }
+
+    if(srcDesc.GetLengths() != dstDesc.GetLengths())
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+    }
+
+    auto flat_descriptors = GetConsistentFlattenedTensorDescriptors(srcDesc, dstDesc);
+    const TensorDescriptor& srcDesc_flat = std::get<0>(flat_descriptors);
+    const TensorDescriptor& dstDesc_flat = std::get<1>(flat_descriptors);
+
+#ifndef NDEBUG
+    if(srcDesc.GetNumDims() != srcDesc_flat.GetNumDims())
+    {
+        MIOPEN_LOG_I2("src real descriptor: " << srcDesc);
+        MIOPEN_LOG_I2("src flat descriptor: " << srcDesc_flat);
+        MIOPEN_LOG_I2("dst real descriptor: " << dstDesc);
+        MIOPEN_LOG_I2("dst flat descriptor: " << dstDesc_flat);
+    }
+#endif
+
+    std::size_t srcDim_flat = srcDesc_flat.GetNumDims();
+
+    if(srcDim_flat < 1 || srcDim_flat > 5)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension sizes unsupported.");
+    }
+
+    auto miopen_alpha = *(static_cast<const float*>(alpha));
+
+    if(srcDesc.GetType() == dstDesc.GetType() && srcOffset == 0 && dstOffset == 0 &&
+       srcDesc_flat.IsPacked() && dstDesc_flat.IsPacked() && float_equal(miopen_alpha, 1.0))
+    {
+        handle.Copy(src, dst, srcDesc_flat.GetElementSize() * GetTypeSize(srcDesc_flat.GetType()));
+    }
+    else
+    {
+        std::string kernel_name = "SubTensorOpWithCastTensor" + std::to_string(srcDim_flat) + "d";
+
+        const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
+
+        // TODO: make proper network config
+        std::string network_config = "cast " + std::to_string(srcDesc_flat.GetType()) +
+                                     std::to_string(dstDesc_flat.GetType());
+        for(auto& len : lens)
+        {
+            network_config += " " + std::to_string(len);
+        }
+
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+        KernelInvoke kernel;
+
+        if(!kernels.empty())
+        {
+            kernel = kernels.front();
+        }
+        else
+        {
+            std::string program_name = "MIOpenSubTensorOpWithCastTensorKernel.cl";
+
+            std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
+
+            std::size_t wgd = std::accumulate(worker_sizes.begin(),
+                                              worker_sizes.end(),
+                                              std::size_t{1},
+                                              std::multiplies<std::size_t>());
+
+            std::size_t wld = 256 < wgd ? 256 : wgd;
+
+            std::string parms =
+                GetCastTensorBuildOptionFromType(" -DMIOPEN_SRC_TYPE=", srcDesc_flat.GetType()) +
+                GetCastTensorBuildOptionFromType(" -DMIOPEN_DST_TYPE=", dstDesc_flat.GetType());
+
+            for(std::size_t i = 0; i < srcDim_flat; ++i)
+            {
+                parms +=
+                    " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
+            }
+
+            if(dstDesc_flat.GetType() == miopenBFloat16)
+            {
+                parms += " -DMIOPEN_USE_RNE_BFLOAT16=1";
+            }
+
+            kernel = handle.AddKernel(kernel_name,
+                                      network_config,
+                                      program_name,
+                                      kernel_name,
+                                      {wld, 1, 1},
+                                      {wgd, 1, 1},
+                                      parms);
+        }
+
+        const int clamping_arg = clamping ? 1 : 0;
+        switch(srcDim_flat)
+        {
+        case 1: {
+            kernel(src,
+                   miopen_alpha,
+                   clamping_arg,
+                   srcOffset,
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   dst,
+                   dstOffset,
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]));
+
+            break;
+        }
+        case 2: {
+            kernel(src,
+                   miopen_alpha,
+                   clamping_arg,
+                   srcOffset,
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   dst,
+                   dstOffset,
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]));
+
+            break;
+        }
+        case 3: {
+            kernel(src,
+                   miopen_alpha,
+                   clamping_arg,
+                   srcOffset,
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
+                   dst,
+                   dstOffset,
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]));
+
+            break;
+        }
+        case 4: {
+            kernel(src,
+                   miopen_alpha,
+                   clamping_arg,
+                   srcOffset,
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[3]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[3]),
+                   dst,
+                   dstOffset,
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[3]));
+
+            break;
+        }
+        case 5: {
+            kernel(src,
+                   miopen_alpha,
+                   clamping_arg,
+                   srcOffset,
+                   static_cast<int>(srcDesc_flat.GetStrides()[0]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[1]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[2]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[3]),
+                   static_cast<int>(srcDesc_flat.GetStrides()[4]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[0]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[1]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[2]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[3]),
+                   static_cast<int>(srcDesc_flat.GetLengths()[4]),
+                   dst,
+                   dstOffset,
+                   static_cast<int>(dstDesc_flat.GetStrides()[0]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[1]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[2]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[3]),
+                   static_cast<int>(dstDesc_flat.GetStrides()[4]));
+
+            break;
+        }
+        default: assert(false);
+        }
+    }
+}
+
+void TransformTensor(const Handle& handle,
+                     const void* alpha,
+                     const TensorDescriptor& xDesc,
+                     ConstData_t x,
+                     const void* beta,
+                     const TensorDescriptor& yDesc,
+                     Data_t y,
+                     size_t Xoffset,
+                     size_t Yoffset)
+{
+    if(x == nullptr || y == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(alpha == nullptr || beta == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    auto x_len = xDesc.GetLengths();
+    auto y_len = yDesc.GetLengths();
+
+    if(x_len.size() != y_len.size())
+    {
+        MIOPEN_THROW("Tensor dimension must be the same");
+    }
+
+    if(x_len[0] != y_len[0])
+    {
+        MIOPEN_THROW("Tensor x and y batch sizes do not match");
+    }
+
+    const auto is_alpha_one = float_equal(*(static_cast<const float*>(alpha)), 1);
+    const auto is_beta_zero = float_equal(*(static_cast<const float*>(beta)), 0);
+
+    if(xDesc.GetType() == miopenInt8 && yDesc.GetType() == miopenInt8 && x_len.size() >= 3)
+    {
+        if(x_len[1] <= y_len[1])
+        {
+            if(x_len[1] <= (y_len[1] - 4) || y_len[1] % 4 != 0)
+            {
+                MIOPEN_THROW("Invalid y channel size");
+            }
+
+            int8_t zero = 0;
+            SetTensor(handle, yDesc, y, &zero);
+        }
+        else if(x_len[1] % 4 != 0)
+        {
+            MIOPEN_THROW("Invalid x channel size");
+        }
+
+        size_t batch_n = x_len[0];
+
+        x_len[0] = 1;
+        y_len[0] = 1;
+
+        miopen::TensorDescriptor x_batch_desc, y_batch_desc;
+        x_batch_desc = miopen::TensorDescriptor(miopenInt8, x_len);
+        y_batch_desc = miopen::TensorDescriptor(miopenInt8, y_len);
+
+        size_t x_batch_sz = x_batch_desc.GetElementSize();
+        size_t y_batch_sz = y_batch_desc.GetElementSize();
+
+        for(size_t i = 0; i < batch_n; i++)
+        {
+            size_t x_offset = i * x_batch_sz;
+            size_t y_offset = i * y_batch_sz;
+
+            if(is_alpha_one && is_beta_zero)
+            {
+                CopyTensor(handle,
+                           ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
+                           x,
+                           ((x_len[1] <= y_len[1]) ? x_batch_desc : y_batch_desc),
+                           y,
+                           x_offset,
+                           y_offset);
+            }
+            else
+            {
+                MIOPEN_THROW(miopenStatusNotImplemented,
+                             "y=alpha*x+beta*y is not supported for int8 yet");
+            }
+        }
+    }
+    else
+    {
+        auto x_y_len          = boost::combine(x_len, y_len);
+        bool same_spatial_len = std::all_of(x_y_len.begin(), x_y_len.end(), [](auto v) {
+            return boost::get<0>(v) == boost::get<1>(v);
+        });
+
+        if(!same_spatial_len)
+        {
+            MIOPEN_THROW("Tensor x and y spatial sizes do not match");
+        }
+
+        auto flat_descriptors              = GetConsistentFlattenedTensorDescriptors(xDesc, yDesc);
+        const TensorDescriptor& xDesc_flat = std::get<0>(flat_descriptors);
+        const TensorDescriptor& yDesc_flat = std::get<1>(flat_descriptors);
+
+        if(xDesc.GetNumDims() != xDesc_flat.GetNumDims())
+        {
+            MIOPEN_LOG_I2("x real descriptor: " << xDesc);
+            MIOPEN_LOG_I2("x flat descriptor: " << xDesc_flat);
+        }
+
+        if(yDesc.GetNumDims() != yDesc_flat.GetNumDims())
+        {
+            MIOPEN_LOG_I2("y real descriptor: " << yDesc);
+            MIOPEN_LOG_I2("y flat descriptor: " << yDesc_flat);
+        }
+
+        const std::size_t yDim_flat = yDesc_flat.GetNumDims();
+
+        assert(yDim_flat > 0 && yDim_flat <= 5);
+
+        const miopenDataType_t dataTypex = xDesc_flat.GetType();
+        const miopenDataType_t dataTypey = yDesc_flat.GetType();
+
+        if(!(dataTypex == miopenHalf        //
+             || dataTypex == miopenFloat    //
+             || dataTypex == miopenInt32    //
+             || dataTypex == miopenBFloat16 //
+             || dataTypex == miopenDouble))
+        {
+            MIOPEN_THROW("Tensor x is a unsupported data type");
+        }
+
+        if(!(dataTypey == miopenHalf        //
+             || dataTypey == miopenFloat    //
+             || dataTypey == miopenInt32    //
+             || dataTypey == miopenBFloat16 //
+             || dataTypey == miopenDouble))
+        {
+            MIOPEN_THROW("Tensor y is a unsupported data type");
+        }
+
+        if(dataTypex != dataTypey)
+        {
+            MIOPEN_THROW("Tensor x and y have different data types");
+        }
+
+        std::string kernel_name = "SubTensorOpWithTransform" + std::to_string(yDim_flat) + "d";
+
+        const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
+
+        std::string network_config = "transform " + std::to_string(yDesc_flat.GetType());
+        for(auto& len : lens)
+        {
+            network_config += "x" + std::to_string(len);
+        }
+
+        if(is_beta_zero)
+            network_config += "xBETA_IS_ZERO";
+        if(is_alpha_one)
+            network_config += "xALPHA_IS_ONE";
+
+        auto&& kernels = handle.GetKernels(kernel_name, network_config);
+
+        KernelInvoke kernel;
+
+        if(!kernels.empty())
+        {
+            kernel = kernels.front();
+        }
+        else
+        {
+            std::string program_name = "MIOpenSubTensorOpWithTransformKernel.cl";
+
+            std::vector<std::size_t> worker_sizes = get_worker_sizes(lens);
+
+            std::size_t wgd = std::accumulate(worker_sizes.begin(),
+                                              worker_sizes.end(),
+                                              std::size_t{1},
+                                              std::multiplies<std::size_t>());
+
+            std::size_t wld = 256 < wgd ? 256 : wgd;
+
+            std::string parms =
+                GetDataTypeKernelParams(dataTypey)                                           //
+                + " -DMIOPEN_BETA_IS_ZERO=" + std::to_string(static_cast<int>(is_beta_zero)) //
+                + " -DMIOPEN_ALPHA_IS_ONE=" + std::to_string(static_cast<int>(is_alpha_one));
+
+            for(int i = 0; i < yDim_flat; ++i)
+            {
+                parms +=
+                    " -DWORK_LENGTH_" + std::to_string(i) + "=" + std::to_string(worker_sizes[i]);
+            }
+
+            kernel = handle.AddKernel(kernel_name,
+                                      network_config,
+                                      program_name,
+                                      kernel_name,
+                                      {wld, 1, 1},
+                                      {wgd, 1, 1},
+                                      parms);
+        }
+
+        switch(yDim_flat)
+        {
+        case 1: {
+            visit_float(dataTypey, [&](auto as_float) {
+                kernel(x,
+                       *as_float(alpha),
+                       y,
+                       *as_float(beta),
+                       static_cast<unsigned>(Xoffset),
+                       static_cast<unsigned>(Yoffset),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[0]));
+            });
+
+            break;
+        }
+        case 2: {
+            visit_float(dataTypey, [&](auto as_float) {
+                kernel(x,
+                       *as_float(alpha),
+                       y,
+                       *as_float(beta),
+                       static_cast<unsigned>(Xoffset),
+                       static_cast<unsigned>(Yoffset),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[1]));
+            });
+
+            break;
+        }
+        case 3: {
+            visit_float(dataTypey, [&](auto as_float) {
+                kernel(x,
+                       *as_float(alpha),
+                       y,
+                       *as_float(beta),
+                       static_cast<unsigned>(Xoffset),
+                       static_cast<unsigned>(Yoffset),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[2]));
+            });
+
+            break;
+        }
+        case 4: {
+            visit_float(dataTypey, [&](auto as_float) {
+                kernel(x,
+                       *as_float(alpha),
+                       y,
+                       *as_float(beta),
+                       static_cast<unsigned>(Xoffset),
+                       static_cast<unsigned>(Yoffset),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[3]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[3]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[3]));
+            });
+
+            break;
+        }
+        case 5: {
+            visit_float(dataTypey, [&](auto as_float) {
+                kernel(x,
+                       *as_float(alpha),
+                       y,
+                       *as_float(beta),
+                       static_cast<unsigned>(Xoffset),
+                       static_cast<unsigned>(Yoffset),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[3]),
+                       static_cast<unsigned>(xDesc_flat.GetStrides()[4]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[3]),
+                       static_cast<unsigned>(yDesc_flat.GetStrides()[4]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[0]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[1]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[2]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[3]),
+                       static_cast<unsigned>(yDesc_flat.GetLengths()[4]));
+            });
+
+            break;
+        }
+        default: assert(false);
+        }
+    }
+}
+
+void OpTensor(const Handle& handle,
+              miopenTensorOp_t tensorOp,
+              const void* alpha0,
+              const TensorDescriptor& aTensorDesc,
+              ConstData_t ATensor,
+              const void* alpha1,
+              const TensorDescriptor& bTensorDesc,
+              ConstData_t BTensor,
+              const void* beta,
+              const TensorDescriptor& cTensorDesc,
+              Data_t CTensor,
+              const size_t Aoffset,
+              const size_t Boffset,
+              const size_t Coffset,
+              bool nonStandardSquash)
+{
+    if(ATensor == nullptr || BTensor == nullptr || CTensor == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    if(alpha0 == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Alpha0 value is nullptr");
+    }
+
+    if(alpha1 == nullptr)
+    {
+        MIOPEN_THROW(miopenStatusBadParm, "Alpha1 value is nullptr");
+    }
+
+    const auto problem = tensorOp::ProblemDescription{
+        tensorOp, beta, aTensorDesc, bTensorDesc, cTensorDesc, nonStandardSquash};
+
+    const auto invoke_params = tensorOp::InvokeParams{
+        alpha0, ATensor, alpha1, BTensor, beta, CTensor, Aoffset, Boffset, Coffset};
+
+    const auto algo    = AlgorithmName{"TensorOpSolver"};
+    const auto solvers = solver::SolverContainer<solver::tensorOp::OpTensorFwdBias>{} +
+                         solver::SolverContainer<solver::tensorOp::Op4dTensorLite>{} +
+                         solver::SolverContainer<solver::tensorOp::OpTensorLeadingOnes>{} +
+                         solver::SolverContainer<solver::tensorOp::Op2dTensorLite>{} +
+                         solver::SolverContainer<solver::tensorOp::Op2dTensorSquash>{} +
+                         solver::SolverContainer<solver::tensorOp::Op5dTensorGeneric>{} +
+                         solver::SolverContainer<solver::tensorOp::Op4dTensorGeneric>{} +
+                         solver::SolverContainer<solver::tensorOp::Op3dTensorGeneric>{} +
+                         solver::SolverContainer<solver::tensorOp::Op2dTensorGeneric>{} +
+                         solver::SolverContainer<solver::tensorOp::Op1dTensorGeneric>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 }
 
 } // namespace miopen
