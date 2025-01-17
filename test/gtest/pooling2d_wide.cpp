@@ -68,10 +68,10 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-        FAIL()
-            << "miopenBFloat16, miopenInt8, miopenInt32, miopenDouble, miopenFloat8_fnuz, miopenBFloat8_fnuz "
-               "data type not supported by "
-               "pooling2d_wide test";
+        FAIL() << "miopenBFloat16, miopenInt8, miopenInt32, miopenDouble, miopenFloat8_fnuz, "
+                  "miopenBFloat8_fnuz "
+                  "data type not supported by "
+                  "pooling2d_wide test";
 
     default: params = GPU_WidePooling2d_FP32::GetParam();
     }

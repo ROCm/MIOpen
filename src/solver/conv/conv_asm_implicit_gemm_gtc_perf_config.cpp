@@ -262,10 +262,13 @@ std::string PerformanceConfigAsmImplicitGemmGTC::ToKernelName(const ExecutionCon
 {
     std::ostringstream kernel_name;
     const auto device_name = ctx.GetStream().GetDeviceName();
-    std::string gtc_str = "_gtcx";
-    if(device_name == "gfx90a") gtc_str += "2";
-    else if(StartsWith(device_name, "gfx94")) gtc_str += "3";
-    else if(StartsWith(device_name, "gfx95")) gtc_str += "35";
+    std::string gtc_str    = "_gtcx";
+    if(device_name == "gfx90a")
+        gtc_str += "2";
+    else if(StartsWith(device_name, "gfx94"))
+        gtc_str += "3";
+    else if(StartsWith(device_name, "gfx95"))
+        gtc_str += "35";
     gtc_str += "_";
     kernel_name << "igemm_" << direction << gtc_str << tensor_layout << "_" << precision << "_bx"
                 << nxb << "_ex" << nxe << "_bt" << gemm_m_per_block << "x" << gemm_n_per_block
