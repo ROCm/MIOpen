@@ -53,6 +53,7 @@ struct tensor_view_t
 template <int N>
 struct tensor_layout_t
 {
+    constexpr tensor_layout_t() {}
     // Make tensor layout at index using tensor view
     constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
     {
