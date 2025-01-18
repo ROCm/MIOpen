@@ -77,7 +77,7 @@ pipeline {
                     steps{
                         script {
                         def utils = load "vars/utils.groovy"
-                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: perftest_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: docker.image(perftest_image))
                         }
                     }
                 }/*
