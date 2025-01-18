@@ -42,7 +42,8 @@ pipeline {
                     def utils = load "vars/utils.groovy"
                     utils.getDockerImage()
                     def (docker_image, image) = utils.getDockerImage()
-                    docker_image.inside("--network host  --dns 8.8.8.8 ") {
+                    def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network host  --dns 8.8.8.8 "
+                    docker_image.inside(dockerOpts) {
                         utils.cmake_build(build_install: true, needs_cleanup:true)
                     }
                     withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
