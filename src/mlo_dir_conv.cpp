@@ -201,14 +201,19 @@ static auto GetBwdWrW2DSolvers()
 
 static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::conv::fft>{}; }
 
-auto miopen::MakeConvDbGetter(const ExecutionContext& ctx) -> std::function<PerformanceDb&()>
-{
-    return [&, db_container = std::optional<PerformanceDb>()]() mutable -> PerformanceDb& {
-        if(!db_container)
-            db_container.emplace(GetDb(ctx));
+miopen::DbGetter::DbGetter(std::function<PerformanceDb()>&& init_) : init(init_) {}
 
-        return *db_container;
-    };
+auto miopen::DbGetter::operator()() -> PerformanceDb&
+{
+    if(!db)
+        db.emplace(init());
+
+    return *db;
+}
+
+auto miopen::MakeConvDbGetter(const ExecutionContext& ctx) -> DbGetter
+{
+    return DbGetter{[&]() { return GetDb(ctx); }};
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -216,7 +221,8 @@ FindAllGemmSolutions(const miopen::ExecutionContext& ctx,
                      const miopen::conv::ProblemDescription& problem,
                      const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetGemmSolvers().SearchForAllSolutions(ctx, problem, MakeConvDbGetter(ctx), invoke_ctx);
+    return GetGemmSolvers().SearchForAllSolutions(
+        ctx, problem, miopen::MakeConvDbGetter(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
@@ -232,7 +238,7 @@ FindAllDirectSolutions(const miopen::ExecutionContext& ctx,
                        const miopen::AnyInvokeParams& invoke_ctx)
 {
     return GetDirectSolvers().SearchForAllSolutions(
-        ctx, problem, MakeConvDbGetter(ctx), invoke_ctx);
+        ctx, problem, miopen::MakeConvDbGetter(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
@@ -269,7 +275,7 @@ FindAllImplicitGemmSolutions(const miopen::ExecutionContext& ctx,
                              const miopen::AnyInvokeParams& invoke_ctx)
 {
     return GetImplicitGemmSolvers().SearchForAllSolutions(
-        ctx, problem, MakeConvDbGetter(ctx), invoke_ctx);
+        ctx, problem, miopen::MakeConvDbGetter(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -278,7 +284,7 @@ FindAllWinogradSolutions(const miopen::ExecutionContext& ctx,
                          const miopen::AnyInvokeParams& invoke_ctx)
 {
     return GetWindogradSolvers().SearchForAllSolutions(
-        ctx, problem, MakeConvDbGetter(ctx), invoke_ctx);
+        ctx, problem, miopen::MakeConvDbGetter(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -287,7 +293,7 @@ FindWinogradWrWAllSolutions(const miopen::ExecutionContext& ctx,
                             const miopen::AnyInvokeParams& invoke_ctx)
 {
     return GetWindogradWrWSolvers().SearchForAllSolutions(
-        ctx, problem, MakeConvDbGetter(ctx), invoke_ctx);
+        ctx, problem, miopen::MakeConvDbGetter(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>
@@ -310,7 +316,7 @@ FindImplicitGemmWrWAllSolutions(const miopen::ExecutionContext& ctx,
                                 const miopen::AnyInvokeParams& invoke_ctx)
 {
     return GetImplicitGemmWrWSolvers().SearchForAllSolutions(
-        ctx, problem, MakeConvDbGetter(ctx), invoke_ctx);
+        ctx, problem, miopen::MakeConvDbGetter(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -319,7 +325,7 @@ FindAllBwdWrW2DSolutions(const miopen::ExecutionContext& ctx,
                          const miopen::AnyInvokeParams& invoke_ctx)
 {
     return GetBwdWrW2DSolvers().SearchForAllSolutions(
-        ctx, problem, MakeConvDbGetter(ctx), invoke_ctx);
+        ctx, problem, miopen::MakeConvDbGetter(ctx), invoke_ctx);
 }
 
 std::vector<miopen::solver::ConvSolution>
@@ -327,7 +333,8 @@ FindAllFFTSolutions(const miopen::ExecutionContext& ctx,
                     const miopen::conv::ProblemDescription& problem,
                     const miopen::AnyInvokeParams& invoke_ctx)
 {
-    return GetFFTSolvers().SearchForAllSolutions(ctx, problem, MakeConvDbGetter(ctx), invoke_ctx);
+    return GetFFTSolvers().SearchForAllSolutions(
+        ctx, problem, miopen::MakeConvDbGetter(ctx), invoke_ctx);
 }
 
 std::vector<std::pair<std::string, size_t>>

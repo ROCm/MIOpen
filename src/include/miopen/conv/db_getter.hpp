@@ -43,6 +43,22 @@ using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
 #else
 using PerformanceDb = DbTimer<MultiFileDb<ReadonlyRamDb, RamDb, true>>;
 #endif
-MIOPEN_INTERNALS_EXPORT auto MakeConvDbGetter(const ExecutionContext& ctx)
-    -> std::function<PerformanceDb&()>;
+
+class [[nodiscard]] DbGetter final
+{
+public:
+    explicit DbGetter(std::function<PerformanceDb()>&& init_);
+
+    DbGetter(const DbGetter&) = delete;
+    auto operator=(const DbGetter&) -> DbGetter& = delete;
+
+    [[nodiscard]] auto operator()() -> PerformanceDb&;
+
+private:
+    std::function<PerformanceDb()> init;
+    std::optional<PerformanceDb> db;
+};
+
+[[nodiscard]] MIOPEN_INTERNALS_EXPORT auto MakeConvDbGetter(const ExecutionContext& ctx)
+    -> DbGetter;
 } // namespace miopen
