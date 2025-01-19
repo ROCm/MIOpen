@@ -34,6 +34,7 @@
 #endif
 
 #include <functional>
+#include <optional>
 
 namespace miopen {
 struct ExecutionContext;
