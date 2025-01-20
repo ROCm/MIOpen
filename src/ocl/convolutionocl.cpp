@@ -603,7 +603,17 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     if(!env::disabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK))
     {
         const static std::string arch = ctx.GetStream().GetDeviceName();
-        auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
+        std::vector<uint64_t> solvers;
+        try
+        {
+            solvers = ai::immed_mode::PredictSolver(problem, ctx, arch);
+        }
+        catch(const miopen::Exception& ex)
+        {
+            MIOPEN_LOG_I2("[Warning] Caught exception: (" << ex.what()
+                                                          << "), passing empty solver vector");
+        }
+
         if(!solvers.empty())
         {
             MIOPEN_LOG_I2("Using TunaNet Fallback");
