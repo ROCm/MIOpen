@@ -30,6 +30,7 @@ def cmake_build(Map conf=[:]){
     def build_envs = "CTEST_PARALLEL_LEVEL=4 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/opt/rocm")
     def build_type_debug = (conf.get("build_type",'release') == 'debug')
+    def miopen_install_path = conf.get(miopen_install_path, "${env.WORKSPACE}/install")
 
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
     // WORKAROUND_ISSUE_3192 Disabling MLIR for debug builds since MLIR generates sanitizer errors.
@@ -53,7 +54,6 @@ def cmake_build(Map conf=[:]){
         setup_args = " -DMIOPEN_TEST_DISCRETE=OFF " + setup_args
     }
 
-    def miopen_install_path = "${env.WORKSPACE}/install"
     if(conf.get("build_install",false) == true)
     {
         make_targets = 'install ' + make_targets
@@ -400,6 +400,7 @@ def RunPerfTest(Map conf=[:]){
     try {
         //(retimage, image) = getDockerImage(conf)
         def docker_image = conf.get("docker_image")
+        def miopen_install_path = conf.get(miopen_install_path, "${env.WORKSPACE}/install/")
         docker_image.pull()
         echo "docker image: ${docker_image}"
         docker_image.inside(dockerOpts + ' -v=/var/jenkins/:/var/jenkins')
@@ -409,31 +410,31 @@ def RunPerfTest(Map conf=[:]){
                 //cmake_build(conf)
                 //unstash 'miopen_tar'
                 //sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
-                ld_lib="${env.WORKSPACE}/install/lib"
+                ld_lib="${miopen_install_path}/lib"
                 def filename = conf.get("filename", "")
                 if(params.PERF_TEST_OVERRIDE != '')
                 {
                     echo "Appending MIOpenDriver cmd env vars: ${params.PERF_TEST_OVERRIDE}"
-                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/install/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/install/ --override ${params.PERF_TEST_OVERRRIDE}"
+                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --override ${params.PERF_TEST_OVERRRIDE}"
                 }else
                 {
-                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/install/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/install/"
+                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path}"
                 }
                 archiveArtifacts artifacts: "install/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
-                //sh "export LD_LIBRARY_PATH=${ld_lib} && ${env.WORKSPACE}/install/bin/test_perf.py  --filename ${filename} --install_path ${env.WORKSPACE}/install/"
+                //sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path}"
                 jenkins_url = "${env.artifact_path}/MIOpenPerf/lastSuccessfulBuild/artifact"
                 if(params.COMPARE_TO_BASE)
                 {
                   try {
-                      sh "rm -rf ${env.WORKSPACE}/install/bin/old_results/"
-                      sh "wget -P ${env.WORKSPACE}/install/bin/old_results/ ${jenkins_url}/install/bin/perf_results/${filename}"
+                      sh "rm -rf ${miopen_install_path}/bin/old_results/"
+                      sh "wget -P ${miopen_install_path}/bin/old_results/ ${jenkins_url}/install/bin/perf_results/${filename}"
                   }
                   catch (Exception err){
                       currentBuild.result = 'SUCCESS'
                   }
 
                   try{
-                     sh "${env.WORKSPACE}/install/bin/test_perf.py --compare_results --old_results_path ${env.WORKSPACE}/install/bin/old_results --filename ${filename}"
+                     sh "${miopen_install_path}/bin/test_perf.py --compare_results --old_results_path ${miopen_install_path}/bin/old_results --filename ${filename}"
                   }
                   catch (Exception err){
                       currentBuild.result = 'SUCCESS'
