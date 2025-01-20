@@ -44,7 +44,7 @@ pipeline {
                     def (docker_image, image) = utils.getDockerImage()
                     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network host  --dns 8.8.8.8 "
                     docker_image.inside(dockerOpts) {
-                        utils.cmake_build(build_install: true, make_targets: "all", miopen_install_path:"/opt/rocm", needs_cleanup:true)
+                        utils.cmake_build(build_install: true, make_targets: "all", needs_cleanup:true)//, miopen_install_path:"/opt/rocm"
                     }
                     withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
                         perftest_image = "${image}_perftest"
@@ -78,7 +78,7 @@ pipeline {
                         script {
                         def utils = load "vars/utils.groovy"
                         def docker_image = docker.image(perftest_image)
-                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: docker_image, miopen_install_path:"/opt/rocm")
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
                 }/*
