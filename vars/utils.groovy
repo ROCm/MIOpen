@@ -30,7 +30,7 @@ def cmake_build(Map conf=[:]){
     def build_envs = "CTEST_PARALLEL_LEVEL=4 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/opt/rocm")
     def build_type_debug = (conf.get("build_type",'release') == 'debug')
-    def miopen_install_path = conf.get(miopen_install_path, "${env.WORKSPACE}/install")
+    def miopen_install_path = conf.get("miopen_install_path", "${env.WORKSPACE}/install")
 
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
     // WORKAROUND_ISSUE_3192 Disabling MLIR for debug builds since MLIR generates sanitizer errors.
@@ -400,7 +400,7 @@ def RunPerfTest(Map conf=[:]){
     try {
         //(retimage, image) = getDockerImage(conf)
         def docker_image = conf.get("docker_image")
-        def miopen_install_path = conf.get(miopen_install_path, "${env.WORKSPACE}/install/")
+        def miopen_install_path = conf.get("miopen_install_path", "${env.WORKSPACE}/install/")
         docker_image.pull()
         echo "docker image: ${docker_image}"
         docker_image.inside(dockerOpts + ' -v=/var/jenkins/:/var/jenkins')
