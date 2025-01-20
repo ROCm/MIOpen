@@ -153,7 +153,7 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_matrix_set_diag(pad, diag, ref_output, k0, k1, true, align);
+        cpu_matrix_set_diag_forward(pad, diag, ref_output, k0, k1, true, align);
         miopenStatus_t status = miopen::MatrixDiagForward(handle,
                                                           diag.desc,
                                                           diag_dev.get(),
@@ -235,7 +235,7 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_matrix_diag_part(output_grad, pad, ref_diag_grad, k0, k1, align);
+        cpu_matrix_diag_part_forward(output_grad, pad, ref_diag_grad, k0, k1, align);
         miopenStatus_t status = miopen::MatrixDiagBackward(handle,
                                                            output_grad.desc,
                                                            output_grad_dev.get(),

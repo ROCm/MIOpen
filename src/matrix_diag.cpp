@@ -66,9 +66,9 @@ miopenStatus_t MatrixDiagBackward(Handle& handle,
                                   ConstData_t outputGrad,
                                   const TensorDescriptor& diagGradDesc,
                                   Data_t diagGrad,
-                                  int64_t diagOffset0,
-                                  int64_t diagOffset1,
-                                  miopenMatrixDiagAlignMode_t align)
+                                  const int64_t diagOffset0,
+                                  const int64_t diagOffset1,
+                                  const miopenMatrixDiagAlignMode_t align)
 {
     const auto& dummyTensorDescriptor = outputGradDesc;
     const auto problem = matrix_diag::MatrixDiagPartForwardProblemDescription{outputGradDesc,

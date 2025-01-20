@@ -102,6 +102,7 @@ miopenStatus_t MatrixDiagPartBackward(Handle& handle,
                                                             "Output gradient",
                                                             "Input gradient",
                                                             false};
+
     return MatrixSetDiagForward(handle,
                                 dummyTensorDescriptor,
                                 nullptr,

@@ -8306,6 +8306,45 @@ MIOPEN_EXPORT miopenStatus_t miopenMatrixSetDiagForward(
     const int64_t diagOffset1,
     const miopenMatrixDiagAlignMode_t align = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT);
 
+/*! @brief Execute a MatrixSetDiag backward layer
+ *
+ * @param [in]  handle              MIOpen handle
+ * @param [in]  outputGradDesc      Tensor descriptor for output tensor
+ * @param [in]  outputGrad          Data tensor output
+ * @param [in]  inputGradDesc       Tensor descriptor for input gradient tensor. Must have one or
+ * the same amount of elements similar to output tensor.
+ * @param [out] inputGrad           Data tensor input gradient
+ * @param [in]  diagGradDesc        Tensor descriptor for diagonal gradient tensor. Rank r, where r
+ * >= 1.
+ * @param [out] diagGrad            Data tensor diagonal gradient
+ * @param [in]  diagOffset0         Diagonal offset. Positive value means superdiagonal,
+ * 0 refers to the main diagonal, and negative value means subdiagonals. Must be smaller than
+ * diagOffset1.
+ * @param [in]  diagOffset1         Diagonal offset. Positive value means superdiagonal,
+ * 0 refers to the main diagonal, and negative value means subdiagonals. Must be larger than
+ * diagOffset0.
+ * @param [in]  align               Some diagonals are shorter than max_diag_len and need to be
+ * padded. align is a enum specifying how superdiagonals and subdiagonals should be aligned,
+ * respectively. There are four possible alignments: MIOPEN_MATRIX_ALIGN_RIGHT_LEFT (default),
+ * MIOPEN_MATRIX_ALIGN_LEFT_RIGHT, MIOPEN_MATRIX_ALIGN_LEFT_LEFT, and
+ * MIOPEN_MATRIX_ALIGN_RIGHT_RIGHT. MIOPEN_MATRIX_ALIGN_RIGHT_LEFT aligns superdiagonals to the
+ * right (left-pads the row) and subdiagonals to the left (right-pads the row). It is the packing
+ * format LAPACK uses. cuSPARSE uses MIOPEN_MATRIX_ALIGN_LEFT_RIGHT, which is the opposite
+ * alignment. (Default = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT)
+ * @return                          miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenMatrixSetDiagBackward(
+    miopenHandle_t handle,
+    miopenTensorDescriptor_t outputGradDesc,
+    const void* outputGrad,
+    miopenTensorDescriptor_t inputGradDesc,
+    void* inputGrad,
+    miopenTensorDescriptor_t diagGradDesc,
+    void* diagGrad,
+    const int64_t diagOffset0,
+    const int64_t diagOffset1,
+    const miopenMatrixDiagAlignMode_t align = MIOPEN_MATRIX_ALIGN_RIGHT_LEFT);
+
 /*! @brief Execute a MatrixDiagPart forward layer
  *
  * @param [in]  handle              MIOpen handle

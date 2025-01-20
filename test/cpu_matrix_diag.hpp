@@ -44,13 +44,13 @@ inline int GetOffset(int max_diag_len, int d, int M, int N, miopenMatrixDiagAlig
 }
 
 template <typename TIO>
-void cpu_matrix_set_diag(const tensor<TIO> input,
-                         const tensor<TIO> diag,
-                         tensor<TIO>& ref_output,
-                         const int64_t k0,
-                         const int64_t k1,
-                         const bool is_fwd,
-                         const miopenMatrixDiagAlignMode_t align)
+void cpu_matrix_set_diag_forward(const tensor<TIO> input,
+                                 const tensor<TIO> diag,
+                                 tensor<TIO>& ref_output,
+                                 const int64_t k0,
+                                 const int64_t k1,
+                                 const bool is_fwd,
+                                 const miopenMatrixDiagAlignMode_t align)
 {
     auto size = ref_output.desc.GetElementSize();
 
@@ -113,12 +113,12 @@ void cpu_matrix_set_diag(const tensor<TIO> input,
 }
 
 template <typename TIO>
-void cpu_matrix_diag_part(const tensor<TIO> input,
-                          const tensor<TIO> pad,
-                          tensor<TIO>& ref_output,
-                          const int64_t k0,
-                          const int64_t k1,
-                          const miopenMatrixDiagAlignMode_t align)
+void cpu_matrix_diag_part_forward(const tensor<TIO> input,
+                                  const tensor<TIO> pad,
+                                  tensor<TIO>& ref_output,
+                                  const int64_t k0,
+                                  const int64_t k1,
+                                  const miopenMatrixDiagAlignMode_t align)
 {
     auto size = ref_output.desc.GetElementSize();
 
@@ -169,4 +169,19 @@ void cpu_matrix_diag_part(const tensor<TIO> input,
         }
         ref_output[gid] = val;
     });
+}
+
+template <typename TIO>
+void cpu_matrix_set_diag_backward(const tensor<TIO> output_grad,
+                                  tensor<TIO>& ref_input_grad,
+                                  tensor<TIO>& ref_diag_grad,
+                                  const int64_t k0,
+                                  const int64_t k1,
+                                  const miopenMatrixDiagAlignMode_t align)
+{
+    const auto& fake_diag = output_grad;
+    cpu_matrix_set_diag_forward(output_grad, fake_diag, ref_input_grad, k0, k1, false, align);
+    auto fake_pad = tensor<TIO>{{1}};
+    fake_pad[0]   = 0;
+    cpu_matrix_diag_part_forward(output_grad, fake_pad, ref_diag_grad, k0, k1, align);
 }

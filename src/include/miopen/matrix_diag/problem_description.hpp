@@ -30,10 +30,20 @@
 #include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/kernel_info.hpp>
+#include <miopen/kernel_build_params.hpp>
 
 namespace miopen {
 
 struct NetworkConfig;
+
+namespace solver::matrix_diag {
+KernelInfo make_hip_kernel(std::vector<size_t> localsize,
+                           std::vector<size_t> gridsize,
+                           std::string kernel_file,
+                           std::string kernel_name,
+                           KernelBuildParameters build_params);
+} // namespace solver::matrix_diag
 
 namespace matrix_diag {
 
@@ -91,9 +101,9 @@ struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
 
     bool IsAllContiguous() const
     {
-        if(!diagDesc.IsContiguous())
-            return false;
         if(!inputDesc.IsContiguous())
+            return false;
+        if(!diagDesc.IsContiguous())
             return false;
         if(!outputDesc.IsContiguous())
             return false;
@@ -102,7 +112,7 @@ struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
 
     NetworkConfig MakeNetworkConfig() const override;
 
-protected:
+private:
     const TensorDescriptor inputDesc;
     const TensorDescriptor diagDesc;
     const TensorDescriptor outputDesc;
@@ -114,8 +124,72 @@ protected:
     const std::string input_alias_name;
     const std::string diag_alias_name;
     const std::string output_alias_name;
+};
 
-    NetworkConfig MakeForwardNetworkConfig() const;
+struct MatrixSetDiagBackwardProblemDescription : ProblemDescriptionBase
+{
+    MatrixSetDiagBackwardProblemDescription(const TensorDescriptor& outputGradDesc_,
+                                            const TensorDescriptor& inputGradDesc_,
+                                            const TensorDescriptor& diagGradDesc_,
+                                            const int64_t diagOffset0_,
+                                            const int64_t diagOffset1_,
+                                            const miopenMatrixDiagAlignMode_t align_)
+        : outputGradDesc(outputGradDesc_),
+          inputGradDesc(inputGradDesc_),
+          diagGradDesc(diagGradDesc_),
+          diagOffset0(diagOffset0_),
+          diagOffset1(diagOffset1_),
+          align(align_)
+    {
+        IsValidMatrixDiag(outputGradDesc,
+                          outputGradDesc,
+                          inputGradDesc,
+                          diagOffset0,
+                          diagOffset1,
+                          "MatrixSetDiagBackward",
+                          "Output gradient",
+                          "",
+                          "Input gradient",
+                          true,
+                          false);
+        IsValidMatrixDiag(outputGradDesc,
+                          diagGradDesc,
+                          outputGradDesc,
+                          diagOffset0,
+                          diagOffset1,
+                          "MatrixSetDiagBackward",
+                          "",
+                          "Diagonal gradient",
+                          "Output gradient",
+                          false,
+                          true);
+    }
+
+    const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
+    const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
+    const TensorDescriptor& GetDiagGradDesc() const { return diagGradDesc; }
+    miopenMatrixDiagAlignMode_t GetAlign() const { return align; }
+
+    bool IsAllContiguous() const
+    {
+        if(!outputGradDesc.IsContiguous())
+            return false;
+        if(!inputGradDesc.IsContiguous())
+            return false;
+        if(!diagGradDesc.IsContiguous())
+            return false;
+        return true;
+    }
+
+    NetworkConfig MakeNetworkConfig() const override;
+
+private:
+    const TensorDescriptor outputGradDesc;
+    const TensorDescriptor inputGradDesc;
+    const TensorDescriptor diagGradDesc;
+    const int64_t diagOffset0;
+    const int64_t diagOffset1;
+    const miopenMatrixDiagAlignMode_t align;
 };
 
 struct MatrixDiagPartForwardProblemDescription : ProblemDescriptionBase
@@ -160,9 +234,9 @@ struct MatrixDiagPartForwardProblemDescription : ProblemDescriptionBase
 
     bool IsAllContiguous() const
     {
-        if(!padDesc.IsContiguous())
-            return false;
         if(!inputDesc.IsContiguous())
+            return false;
+        if(!padDesc.IsContiguous())
             return false;
         if(!outputDesc.IsContiguous())
             return false;
@@ -171,7 +245,7 @@ struct MatrixDiagPartForwardProblemDescription : ProblemDescriptionBase
 
     NetworkConfig MakeNetworkConfig() const override;
 
-protected:
+private:
     const TensorDescriptor inputDesc;
     const TensorDescriptor padDesc;
     const TensorDescriptor outputDesc;
@@ -183,8 +257,6 @@ protected:
     const std::string input_alias_name;
     const std::string pad_alias_name;
     const std::string output_alias_name;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
 };
 
 } // namespace matrix_diag

@@ -27,6 +27,9 @@
 #include <miopen/matrix_diag/problem_description.hpp>
 #include <miopen/names.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/kernel_info.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #include <sstream>
 
@@ -41,10 +44,27 @@ NetworkConfig MatrixSetDiagForwardProblemDescription::MakeNetworkConfig() const
 
     std::ostringstream ss;
 
-    ss << "matrix_set_diag_fwd";
-    ss << "dtype" << dtype;
-    ss << "outputSize" << outputSize;
-    ss << "align" << align;
+    ss << "matrix_set_diag_fwd" << IsAllContiguous();
+    ss << " dtype" << dtype;
+    ss << " outputSize" << outputSize;
+    ss << " align" << align;
+
+    return NetworkConfig{ss.str()};
+}
+
+NetworkConfig MatrixSetDiagBackwardProblemDescription::MakeNetworkConfig() const
+{
+    auto dtype     = outputGradDesc.GetType();
+    auto inputSize = inputGradDesc.GetElementSize();
+    auto diagSize  = diagGradDesc.GetElementSize();
+
+    std::ostringstream ss;
+
+    ss << "matrix_set_diag_bwd" << IsAllContiguous();
+    ss << " dtype" << dtype;
+    ss << " inputSize" << inputSize;
+    ss << " diagSize" << diagSize;
+    ss << " align" << align;
 
     return NetworkConfig{ss.str()};
 }
@@ -56,10 +76,10 @@ NetworkConfig MatrixDiagPartForwardProblemDescription::MakeNetworkConfig() const
 
     std::ostringstream ss;
 
-    ss << "matrix_diag_part_fwd";
-    ss << "dtype" << dtype;
-    ss << "outputSize" << outputSize;
-    ss << "align" << align;
+    ss << "matrix_diag_part_fwd" << IsAllContiguous();
+    ss << " dtype" << dtype;
+    ss << " outputSize" << outputSize;
+    ss << " align" << align;
 
     return NetworkConfig{ss.str()};
 }
@@ -248,5 +268,23 @@ bool IsValidMatrixDiag(const TensorDescriptor& padDesc,
 }
 
 } // namespace matrix_diag
+
+namespace solver::matrix_diag {
+KernelInfo make_hip_kernel(std::vector<size_t> localsize,
+                           std::vector<size_t> gridsize,
+                           std::string kernel_file,
+                           std::string kernel_name,
+                           KernelBuildParameters build_params)
+{
+    while(localsize.size() < 3)
+        localsize.push_back(1);
+    while(gridsize.size() < 3)
+        gridsize.push_back(1);
+    for(int i = 0; i < localsize.size(); ++i)
+        gridsize[i] = AlignUp(gridsize[i], localsize[i]);
+    return KernelInfo{
+        build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
+}
+} // namespace solver::matrix_diag
 
 } // namespace miopen

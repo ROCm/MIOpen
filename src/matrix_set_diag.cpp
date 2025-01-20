@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/miopen.h"
 #include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/matrix_diag/invoke_params.hpp>
@@ -74,6 +75,42 @@ miopenStatus_t MatrixSetDiagForward(Handle& handle,
     const auto algo = AlgorithmName{"MatrixSetDiagForward"};
     const auto solvers =
         solver::SolverContainer<solver::matrix_diag::MatrixSetDiagForwardContiguous>{};
+    solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
+
+    return miopenStatusSuccess;
+}
+
+miopenStatus_t MatrixSetDiagBackward(Handle& handle,
+                                     const TensorDescriptor& outputGradDesc,
+                                     ConstData_t outputGrad,
+                                     const TensorDescriptor& inputGradDesc,
+                                     Data_t inputGrad,
+                                     const TensorDescriptor& diagGradDesc,
+                                     Data_t diagGrad,
+                                     const int64_t diagOffset0,
+                                     const int64_t diagOffset1,
+                                     const miopenMatrixDiagAlignMode_t align)
+{
+    const auto problem = matrix_diag::MatrixSetDiagBackwardProblemDescription{
+        outputGradDesc, inputGradDesc, diagGradDesc, diagOffset0, diagOffset1, align};
+
+    const auto invoke_params = [&]() {
+        auto tmp           = matrix_diag::MatrixSetDiagBwdInvokeParams{};
+        tmp.type           = InvokeType::Run;
+        tmp.outputGradDesc = &outputGradDesc;
+        tmp.inputGradDesc  = &inputGradDesc;
+        tmp.diagGradDesc   = &diagGradDesc;
+        tmp.outputGrad     = outputGrad;
+        tmp.inputGrad      = inputGrad;
+        tmp.diagGrad       = diagGrad;
+        tmp.diagOffset0    = diagOffset0;
+        tmp.diagOffset1    = diagOffset1;
+        return tmp;
+    }();
+
+    const auto algo = AlgorithmName{"MatrixSetDiagBackward"};
+    const auto solvers =
+        solver::SolverContainer<solver::matrix_diag::MatrixSetDiagBackwardContiguous>{};
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;

@@ -34,12 +34,6 @@ namespace matrix_diag {
 
 struct BaseInvokeParams : public miopen::InvokeParams
 {
-    const TensorDescriptor* inputDesc  = nullptr;
-    const TensorDescriptor* outputDesc = nullptr;
-
-    ConstData_t input = nullptr;
-    Data_t output     = nullptr;
-
     int64_t diagOffset0 = 0;
     int64_t diagOffset1 = 0;
 
@@ -47,7 +41,16 @@ struct BaseInvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-struct MatrixSetDiagFwdInvokeParams : public BaseInvokeParams
+struct ForwardInvokeParams : public BaseInvokeParams
+{
+    const TensorDescriptor* inputDesc  = nullptr;
+    const TensorDescriptor* outputDesc = nullptr;
+
+    ConstData_t input = nullptr;
+    Data_t output     = nullptr;
+};
+
+struct MatrixSetDiagFwdInvokeParams : public ForwardInvokeParams
 {
     MatrixSetDiagFwdInvokeParams() = default;
 
@@ -56,13 +59,26 @@ struct MatrixSetDiagFwdInvokeParams : public BaseInvokeParams
     ConstData_t diag = nullptr;
 };
 
-struct MatrixDiagPartFwdInvokeParams : public BaseInvokeParams
+struct MatrixDiagPartFwdInvokeParams : public ForwardInvokeParams
 {
     MatrixDiagPartFwdInvokeParams() = default;
 
     const TensorDescriptor* padDesc = nullptr;
 
     ConstData_t pad = nullptr;
+};
+
+struct MatrixSetDiagBwdInvokeParams : public BaseInvokeParams
+{
+    MatrixSetDiagBwdInvokeParams() = default;
+
+    const TensorDescriptor* outputGradDesc = nullptr;
+    const TensorDescriptor* inputGradDesc  = nullptr;
+    const TensorDescriptor* diagGradDesc   = nullptr;
+
+    ConstData_t outputGrad = nullptr;
+    Data_t inputGrad       = nullptr;
+    Data_t diagGrad        = nullptr;
 };
 
 } // namespace matrix_diag

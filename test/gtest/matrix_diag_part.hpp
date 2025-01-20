@@ -154,7 +154,7 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_matrix_diag_part(input, pad, ref_output, k0, k1, align);
+        cpu_matrix_diag_part_forward(input, pad, ref_output, k0, k1, align);
         miopenStatus_t status = miopen::MatrixDiagPartForward(handle,
                                                               input.desc,
                                                               input_dev.get(),
@@ -219,9 +219,6 @@ protected:
 
         output_grad = tensor<TIO>{outputSize}.generate(gen_value);
 
-        pad    = tensor<TIO>{{1}};
-        pad[0] = 0;
-
         input_grad = tensor<TIO>{inputSize};
         std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<TIO>::quiet_NaN());
 
@@ -237,7 +234,9 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_matrix_set_diag(pad, output_grad, ref_input_grad, k0, k1, true, align);
+        auto fake_pad = tensor<TIO>{{1}};
+        fake_pad[0]   = 0;
+        cpu_matrix_set_diag_forward(fake_pad, output_grad, ref_input_grad, k0, k1, true, align);
         miopenStatus_t status = miopen::MatrixDiagPartBackward(handle,
                                                                output_grad.desc,
                                                                output_grad_dev.get(),
@@ -260,7 +259,6 @@ protected:
     }
     MatrixDiagPartTestcase matrix_set_diag_config;
 
-    tensor<TIO> pad;
     tensor<TIO> output_grad;
     tensor<TIO> input_grad;
 

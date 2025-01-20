@@ -24,15 +24,11 @@
  *
  *******************************************************************************/
 
-#include <miopen/buffer_info.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/kernel_build_params.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/matrix_diag/invoke_params.hpp>
 #include <miopen/matrix_diag/solvers.hpp>
 #include <miopen/matrix_diag.hpp>
-#include <miopen/target_properties.hpp>
-#include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE 256
 
@@ -41,23 +37,6 @@ namespace miopen {
 namespace solver {
 
 namespace matrix_diag {
-
-namespace {
-const auto make_hip_kernel = [](std::vector<size_t> localsize,
-                                std::vector<size_t> gridsize,
-                                std::string kernel_file,
-                                std::string kernel_name,
-                                KernelBuildParameters build_params) {
-    while(localsize.size() < 3)
-        localsize.push_back(1);
-    while(gridsize.size() < 3)
-        gridsize.push_back(1);
-    for(int i = 0; i < localsize.size(); ++i)
-        gridsize[i] = AlignUp(gridsize[i], localsize[i]);
-    return KernelInfo{
-        build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
-};
-} // namespace
 
 bool MatrixSetDiagForwardContiguous::IsApplicable(
     const ExecutionContext& /*context*/,

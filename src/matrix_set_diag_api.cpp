@@ -120,3 +120,40 @@ extern "C" miopenStatus_t miopenMatrixSetDiagForward(const miopenHandle_t handle
                                      align);
     });
 }
+
+extern "C" miopenStatus_t miopenMatrixSetDiagBackward(const miopenHandle_t handle,
+                                                      const miopenTensorDescriptor_t outputGradDesc,
+                                                      const void* outputGrad,
+                                                      const miopenTensorDescriptor_t inputGradDesc,
+                                                      void* inputGrad,
+                                                      const miopenTensorDescriptor_t diagGradDesc,
+                                                      void* diagGrad,
+                                                      const int64_t diagOffset0,
+                                                      const int64_t diagOffset1,
+                                                      const miopenMatrixDiagAlignMode_t align)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        inputGradDesc,
+                        inputGrad,
+                        diagGradDesc,
+                        diagGrad,
+                        outputGradDesc,
+                        outputGrad,
+                        diagOffset0,
+                        diagOffset1,
+                        align);
+    LogCmdMatrixSetDiag(
+        inputGradDesc, diagGradDesc, outputGradDesc, diagOffset0, diagOffset1, align, false);
+    return miopen::try_([&] {
+        miopen::MatrixSetDiagBackward(miopen::deref(handle),
+                                      miopen::deref(outputGradDesc),
+                                      DataCast(outputGrad),
+                                      miopen::deref(inputGradDesc),
+                                      DataCast(inputGrad),
+                                      miopen::deref(diagGradDesc),
+                                      DataCast(diagGrad),
+                                      diagOffset0,
+                                      diagOffset1,
+                                      align);
+    });
+}
