@@ -707,11 +707,6 @@ bool ModelSetParams(const std::string& arch,
 {
     auto model = GetModel(arch, solver);
 
-    std::stringstream ss;
-    for(int i = 0; i < 17; ++i)
-        ss << features[i * 17 + i] << ", ";
-    MIOPEN_LOG_I2("Features: " << ss.str());
-
     // get context
     int dim = 0;
     if(transform_features)
@@ -731,8 +726,6 @@ bool ModelSetParams(const std::string& arch,
     case miopen::conv::Direction::BackwardWeights: dir = "wrw"; break;
     default: return false;
     }
-
-    MIOPEN_LOG_I2("PREDICT TYPE: " << model->metadata.predict_type);
 
     // run decoder to set kernel parameters
     for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params; ++i)
@@ -759,7 +752,6 @@ bool ModelSetParams(const std::string& arch,
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
 
-            MIOPEN_LOG_I2(std::to_string((int)i) + ": " + std::to_string(token) + " " + value);
             if(value == "-1") // if token-value is "-1", then decoding has finished
             {
                 auto stop     = std::chrono::high_resolution_clock::now();
