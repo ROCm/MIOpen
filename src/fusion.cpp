@@ -785,12 +785,13 @@ solver::ConvSolution MakeFusedSolution(const FusionContext& ctx,
                                        const FusionDescription& problem,
                                        const AnyInvokeParams& invoke_params)
 {
-    decltype(auto) db = GetDb(ctx);
+    auto db_getter = MakeConvDbGetter(ctx);
+
     solver::ConvSolution solution{miopenStatusInternalError};
 
     GetAllFusionSolvers().FindById(id, [&](auto solver) {
         solution = miopen::solver::FindSolution(
-            solver, ctx, problem, db, invoke_params, perf_cfg_override.value_or(""));
+            solver, ctx, problem, db_getter, invoke_params, perf_cfg_override.value_or(""));
     });
 
     return solution;
@@ -829,7 +830,7 @@ protected:
         const auto fusion_ctx = FusionContext(ctx);
         return solvers.SearchForAllSolutions(fusion_ctx,
                                              problem,
-                                             miopen::GetDb(ctx),
+                                             MakeConvDbGetter(ctx),
                                              invoke_ctx,
                                              std::numeric_limits<std::size_t>::max(),
                                              options);
@@ -1038,9 +1039,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(const Handle& handle)
 
             GetAllFusionSolvers().FindById(id, [&](auto solver) {
                 const auto ctx      = FusionContext{handle};
-                auto db             = GetDb(ctx);
+                auto db_getter      = MakeConvDbGetter(ctx);
                 const auto solution = solver::FindSolution(
-                    solver, ctx, fusion_problem, db, {}); // auto tune is not expected here
+                    solver, ctx, fusion_problem, db_getter, {}); // auto tune is not expected here
                 auto invoker =
                     handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
                 // We register the invoker below
