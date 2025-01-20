@@ -1002,11 +1002,7 @@ void BuildHip(const std::string& name,
         }
         opts.push_back("-I" + rocm_path + "/include");
 
-        MIOPEN_LOG_I("HIPRTC compile options:");
-        for(const auto& opt : opts)
-        {
-            MIOPEN_LOG_I(opt);
-        }
+        MIOPEN_LOG_T("HIPRTC compile ROCm path: " << rocm_path);
 
         HiprtcProgram prog(name, text);
         prog.Compile(opts);
