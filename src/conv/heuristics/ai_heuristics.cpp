@@ -412,7 +412,7 @@ public:
             MIOPEN_LOG_I2("TunaNet Inapplicable: Problem not 2D");
             return false;
         }
-        if(problem.GetInLayout() != "NCHW")
+        if(problem.GetInLayout() != "NCHW" && problem.GetInLayout() != "NHWC")
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Layout not supported");
             return false;
@@ -480,6 +480,7 @@ protected:
             static_cast<float>(problem.GetDilationH()),
             static_cast<float>(problem.GetDilationW()),
             static_cast<float>(problem.GetOutBatchSize()),
+            static_cast<float>(metadata.EncodeLayout(problem.GetInLayout())),
             static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
             static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
             static_cast<float>(problem.GetGroupCount())};
