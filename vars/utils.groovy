@@ -199,13 +199,13 @@ def getDockerImage(Map conf=[:])
     def gpu_arch = "gfx908;gfx90a;gfx942;gfx1100;1201" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def mlir_build = conf.get("mlir_build", "ON") // always ON
 
-    def install_miopen = 'OFF' 
+    def install_miopen = 'OFF'
     if(params.INSTALL_MIOPEN == 'ON')
     {
       install_miopen = 'ON'
       //gpu_arch = "gfx90a"
     }
-    def miopen_branch = 'develop' 
+    def miopen_branch = 'develop'
     if(params.branch_name != null)
       miopen_branch = params.branch_name
 
