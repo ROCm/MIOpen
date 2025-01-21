@@ -206,6 +206,10 @@ def getDockerImage(Map conf=[:])
       //gpu_arch = "gfx90a"
     }
     def miopen_branch = scm.branches[0].name
+    if (miopen_branch.startsWith("*/"))
+    {
+        miopen_branch = miopen_branch.split('/')[1]
+    }
     if(params.branch_name != null)
       miopen_branch = params.branch_name
 
