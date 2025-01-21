@@ -205,7 +205,7 @@ def getDockerImage(Map conf=[:])
       install_miopen = 'ON'
       //gpu_arch = "gfx90a"
     }
-    def miopen_branch = 'develop'
+    def miopen_branch = env.BRANCH_NAME
     if(params.branch_name != null)
       miopen_branch = params.branch_name
 
