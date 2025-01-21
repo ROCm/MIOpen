@@ -318,8 +318,6 @@ int NormalizeDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                                             divisorDesc,
                                             outputGradDesc,
                                             inputGradDesc,
-                                            p,
-                                            eps,
                                             reduce_dim,
                                             &ws_sizeInBytes);
     if(ws_sizeInBytes == static_cast<size_t>(-1))

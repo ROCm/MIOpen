@@ -39,8 +39,6 @@ GetNormalizeBackwardWorkspaceSize(Handle& handle,
                                   const TensorDescriptor& divisorDesc,
                                   const TensorDescriptor& outputGradDesc,
                                   const TensorDescriptor& inputGradDesc,
-                                  float p,
-                                  float eps,
                                   uint32_t dim);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t NormalizeBackward(Handle& handle,

@@ -122,14 +122,8 @@ protected:
         ref_input_grad = GenerateTensor<T>(config.dims, config.cont);
         std::fill(ref_input_grad.begin(), ref_input_grad.end(), 0);
 
-        ws_sizeInBytes = miopen::GetNormalizeBackwardWorkspaceSize(handle,
-                                                                   input.desc,
-                                                                   divisor.desc,
-                                                                   output_grad.desc,
-                                                                   input_grad.desc,
-                                                                   config.p,
-                                                                   config.eps,
-                                                                   config.reduce_dim);
+        ws_sizeInBytes = miopen::GetNormalizeBackwardWorkspaceSize(
+            handle, input.desc, divisor.desc, output_grad.desc, input_grad.desc, config.reduce_dim);
 
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_FAIL() << "Call GetNormalizeBackwardWorkspaceSize failed!";

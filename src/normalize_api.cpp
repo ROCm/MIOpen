@@ -36,12 +36,10 @@ miopenGetNormalizeBackwardWorkspaceSize(miopenHandle_t handle,
                                         const miopenTensorDescriptor_t divisorDesc,
                                         const miopenTensorDescriptor_t outputGradDesc,
                                         const miopenTensorDescriptor_t inputGradDesc,
-                                        const float p,
-                                        const float eps,
                                         const uint32_t dim,
                                         size_t* sizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(handle, inputDesc, divisorDesc, outputGradDesc, inputGradDesc, p, eps, dim);
+    MIOPEN_LOG_FUNCTION(handle, inputDesc, divisorDesc, outputGradDesc, inputGradDesc, dim);
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
@@ -50,8 +48,6 @@ miopenGetNormalizeBackwardWorkspaceSize(miopenHandle_t handle,
                                                       miopen::deref(divisorDesc),
                                                       miopen::deref(outputGradDesc),
                                                       miopen::deref(inputGradDesc),
-                                                      p,
-                                                      eps,
                                                       dim);
     });
 }

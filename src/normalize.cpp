@@ -40,8 +40,6 @@ std::size_t GetNormalizeBackwardWorkspaceSize(Handle& handle,
                                               const TensorDescriptor& divisorDesc,
                                               const TensorDescriptor& outputGradDesc,
                                               const TensorDescriptor& inputGradDesc,
-                                              const float p,
-                                              const float eps,
                                               const uint32_t dim)
 {
     auto ctx           = ExecutionContext{&handle};

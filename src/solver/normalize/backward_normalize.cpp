@@ -45,13 +45,16 @@ namespace solver {
 namespace normalize {
 
 bool NormalizeBackward::IsApplicable(
-    const ExecutionContext& /*context*/,
+    const ExecutionContext& context,
     const miopen::normalize::BackwardProblemDescription& problem) const
 {
     if(!(problem.GetInputDesc().GetType() == miopenFloat))
         return false;
+    auto num_elem   = problem.GetInputDesc().GetElementSize();
+    auto inner_size = problem.GetInnerSize();
+    auto outer_size = num_elem / inner_size;
     if(problem.IsLastDim() && (problem.GetInnerSize() % LOCAL_SIZE == 0) &&
-       problem.IsAllContiguous())
+       problem.IsAllContiguous() && outer_size >= context.GetStream().GetMaxComputeUnits())
         return true;
     else
         return false;
