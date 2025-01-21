@@ -155,20 +155,12 @@ RUN set -e; \
         git clone https://github.com/ROCm/MIOpen.git miopen; \
         cd miopen; \
         git pull && git checkout $MIOPEN_BRANCH; \
-    fi
-#RUN set -e; \
-#    if [ "$INSTALL_MIOPEN" = "ON" ]; then \
-#        pip install cget; \
-#        CXX=/opt/rocm/llvm/bin/clang++ cget install -f ./dev-requirements.txt; \
-#    fi
-RUN set -e; \
-    if [ "$INSTALL_MIOPEN" = "ON" ]; then \
         mkdir build; \
         mkdir install; \
         rm -f src/kernels/*.ufdb.txt; \
         rm -f src/kernels/miopen*.udb; \
         cd build ; \
-        CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=debug -DBUILD_DEV=On -DCMAKE_INSTALL_PREFIX=/opt/rocm -DMIOPEN_USE_MLIR=OFF -DMIOPEN_GPU_SYNC=Off  -DCMAKE_PREFIX_PATH=/opt/rocm    ..; \
+        CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=debug -DBUILD_DEV=On -DCMAKE_INSTALL_PREFIX=/opt/rocm -DMIOPEN_USE_MLIR=OFF -DMIOPEN_GPU_SYNC=Off  -DCMAKE_PREFIX_PATH=/opt/rocm ..; \
         LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \
     fi
 
