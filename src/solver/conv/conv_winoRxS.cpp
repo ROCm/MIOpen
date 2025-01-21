@@ -859,7 +859,7 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     kernel.l_wk.push_back(1);
 
     const auto force_cache_bypass =
-        (name == "gfx940") || (name == "gfx941"); // TODO gfx942 -> gfx95x
+        (name == "gfx940") || (name == "gfx941")
 
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", 5},
