@@ -107,8 +107,6 @@ size_t Metadata::EncodePrecision(miopenDataType_t data_type) const
 
 size_t Metadata::EncodeLayout(const std::string& layout) const
 {
-    if(layout != "NCDHW" && layout != "NCHW") // TunaNet supports NCHW and NCDHW layouts only atm
-        MIOPEN_THROW("Unsupported layout passed to TunaNet");
     return layout_encodings.at(layout);
 }
 
