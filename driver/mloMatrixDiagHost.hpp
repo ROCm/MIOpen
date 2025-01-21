@@ -23,13 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
-#include "tensor_holder.hpp"
-#include <miopen/miopen.h>
-#include <miopen/tensor_view_utils.hpp>
+#include <../test/ford.hpp>
 
-#include <cmath>
+#include <miopen/errors.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
 
 inline int GetOffset(int max_diag_len, int d, int M, int N, miopenMatrixDiagAlignMode_t align)
 {
@@ -43,30 +44,34 @@ inline int GetOffset(int max_diag_len, int d, int M, int N, miopenMatrixDiagAlig
     return 0;
 }
 
-template <typename TIO>
-void cpu_matrix_set_diag_forward(const tensor<TIO> input,
-                                 const tensor<TIO> diag,
-                                 tensor<TIO>& ref_output,
-                                 const int64_t k0,
-                                 const int64_t k1,
-                                 const bool is_fwd,
-                                 const miopenMatrixDiagAlignMode_t align)
+template <typename T>
+int32_t mloMatrixSetDiagForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                       const miopenTensorDescriptor_t /*diagDesc*/,
+                                       const miopenTensorDescriptor_t outputDesc,
+                                       const T* input,
+                                       const T* diag,
+                                       T* output_host,
+                                       const int64_t k0,
+                                       const int64_t k1,
+                                       const bool is_fwd,
+                                       const miopenMatrixDiagAlignMode_t align)
 {
-    auto inSize  = input.desc.GetElementSize();
-    auto outSize = ref_output.desc.GetElementSize();
+    auto inSize  = (input != nullptr ? miopen::deref(inputDesc).GetElementSize() : 0);
+    auto outSize = miopen::deref(outputDesc).GetElementSize();
 
-    auto M = ref_output.desc.GetLengths()[ref_output.desc.GetNumDims() - 2];
-    auto N = ref_output.desc.GetLengths()[ref_output.desc.GetNumDims() - 1];
+    auto outShape = miopen::deref(outputDesc).GetLengths();
+    auto M        = outShape[outShape.size() - 2];
+    auto N        = outShape[outShape.size() - 1];
 
     int max_diag_len = std::min(M + std::min(k1, 0L), N + std::min(-k0, 0L));
-    TIO input_val    = inSize > 0 ? input[0] : static_cast<TIO>(0);
+    T input_val      = (inSize > 0 ? input[0] : static_cast<T>(0));
 
     par_ford(outSize)([&](size_t gid) {
         int batch_id = gid / M / N;
         int m        = (gid / N) % M;
         int n        = gid % N;
 
-        TIO val;
+        T val;
         if(k0 == k1)
         {
             if(n - m == k1)
@@ -109,29 +114,35 @@ void cpu_matrix_set_diag_forward(const tensor<TIO> input,
                     val = 0;
             }
         }
-        ref_output[gid] = val;
+        output_host[gid] = val;
     });
+
+    return miopenStatusSuccess;
 }
 
-template <typename TIO>
-void cpu_matrix_diag_part_forward(const tensor<TIO> input,
-                                  const tensor<TIO> pad,
-                                  tensor<TIO>& ref_output,
-                                  const int64_t k0,
-                                  const int64_t k1,
-                                  const miopenMatrixDiagAlignMode_t align)
+template <typename T>
+int32_t mloMatrixDiagPartForwardRunHost(const miopenTensorDescriptor_t /*inputDesc*/,
+                                        const miopenTensorDescriptor_t padDesc,
+                                        const miopenTensorDescriptor_t outputDesc,
+                                        const T* input,
+                                        const T* pad,
+                                        T* output_host,
+                                        const int64_t k0,
+                                        const int64_t k1,
+                                        const miopenMatrixDiagAlignMode_t align)
 {
-    auto padSize = pad.desc.GetElementSize();
-    auto outSize = ref_output.desc.GetElementSize();
+    auto padSize = (pad != nullptr ? miopen::deref(padDesc).GetElementSize() : 0);
+    auto outSize = miopen::deref(outputDesc).GetElementSize();
 
-    auto M = input.desc.GetLengths()[input.desc.GetNumDims() - 2];
-    auto N = input.desc.GetLengths()[input.desc.GetNumDims() - 1];
+    auto outShape = miopen::deref(outputDesc).GetLengths();
+    auto M        = outShape[outShape.size() - 2];
+    auto N        = outShape[outShape.size() - 1];
 
     int max_diag_len = std::min(M + std::min(k1, 0L), N + std::min(-k0, 0L));
-    TIO padding_val  = padSize > 0 ? pad[0] : static_cast<TIO>(0);
+    T padding_val    = (padSize > 0 ? pad[0] : static_cast<T>(0));
 
     par_ford(outSize)([&](size_t gid) {
-        TIO val;
+        T val;
         if(k0 == k1)
         {
             int batch_id = gid / max_diag_len;
@@ -169,21 +180,36 @@ void cpu_matrix_diag_part_forward(const tensor<TIO> input,
                 val = padding_val;
             }
         }
-        ref_output[gid] = val;
+        output_host[gid] = val;
     });
+
+    return miopenStatusSuccess;
 }
 
-template <typename TIO>
-void cpu_matrix_set_diag_backward(const tensor<TIO> output_grad,
-                                  tensor<TIO>& ref_input_grad,
-                                  tensor<TIO>& ref_diag_grad,
-                                  const int64_t k0,
-                                  const int64_t k1,
-                                  const miopenMatrixDiagAlignMode_t align)
+template <typename T>
+int32_t mloMatrixSetDiagBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc,
+                                        const miopenTensorDescriptor_t inputGradDesc,
+                                        const miopenTensorDescriptor_t diagGradDesc,
+                                        const T* output_grad,
+                                        T* input_grad_host,
+                                        T* diag_grad_host,
+                                        const int64_t k0,
+                                        const int64_t k1,
+                                        const miopenMatrixDiagAlignMode_t align)
 {
-    const auto& fake_diag = output_grad;
-    cpu_matrix_set_diag_forward(output_grad, fake_diag, ref_input_grad, k0, k1, false, align);
-    auto fake_pad = tensor<TIO>{{1}};
-    fake_pad[0]   = 0;
-    cpu_matrix_diag_part_forward(output_grad, fake_pad, ref_diag_grad, k0, k1, align);
+    int32_t status = mloMatrixSetDiagForwardRunHost<T>(outputGradDesc,
+                                                       nullptr,
+                                                       inputGradDesc,
+                                                       output_grad,
+                                                       nullptr,
+                                                       input_grad_host,
+                                                       k0,
+                                                       k1,
+                                                       false,
+                                                       align);
+    if(status != miopenStatusSuccess)
+        return status;
+    status = mloMatrixDiagPartForwardRunHost<T>(
+        outputGradDesc, nullptr, diagGradDesc, output_grad, nullptr, diag_grad_host, k0, k1, align);
+    return status;
 }

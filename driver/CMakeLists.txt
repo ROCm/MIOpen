@@ -49,6 +49,9 @@ add_executable(MIOpenDriver
     dm_kthvalue.cpp
     dm_layernorm.cpp
     dm_lrn.cpp
+    dm_matrix_diag_part.cpp
+    dm_matrix_diag.cpp
+    dm_matrix_set_diag.cpp
     dm_multimarginloss.cpp
     dm_pool.cpp
     dm_prelu.cpp
