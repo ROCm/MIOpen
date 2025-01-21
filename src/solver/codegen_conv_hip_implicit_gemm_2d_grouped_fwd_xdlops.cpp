@@ -61,34 +61,7 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 static constexpr ck::index_t NumDimSpatial = 2;
 
-const std::string conv_compile_check = R"__ck__(
-#include <${include}>
-${template};
-
-)__ck__";
-
 namespace {
-
-std::string epilogue = R"(
-struct Epilogue
-{
-    __host__ __device__ Epilogue(float alpha, float beta) : alpha_(alpha), beta_(beta){};
-
-    template <typename E, typename D>
-    __host__ __device__ constexpr void operator()(E& e, const D& d) const;
-
-    template <>
-    __host__ __device__ constexpr void operator()<ck::half_t, ck::half_t>(ck::half_t& e,
-                                                                          const ck::half_t& d) const
-    {
-        e = ck::type_convert<ck::half_t>(alpha_ * e + beta_ * ck::type_convert<float>(d));
-    }
-
-    float alpha_;
-    float beta_;
-};
-)";
-std::string prologue = "";
 
 struct CKArgs
 {
@@ -218,6 +191,33 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    const std::string conv_compile_check = R"__ck__(
+#include <${include}>
+${template};
+
+)__ck__";
+
+    std::string epilogue = R"(
+struct Epilogue
+{
+    __host__ __device__ Epilogue(float alpha, float beta) : alpha_(alpha), beta_(beta){};
+
+    template <typename E, typename D>
+    __host__ __device__ constexpr void operator()(E& e, const D& d) const;
+
+    template <>
+    __host__ __device__ constexpr void operator()<ck::half_t, ck::half_t>(ck::half_t& e,
+                                                                          const ck::half_t& d) const
+    {
+        e = ck::type_convert<ck::half_t>(alpha_ * e + beta_ * ck::type_convert<float>(d));
+    }
+
+    float alpha_;
+    float beta_;
+};
+)";
+    std::string prologue = "";
+
     auto x = CKArgs(problem);
 
     const auto workspace_req = GetWorkspaceSize(ctx, problem);
@@ -252,7 +252,7 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlopsCodegen::GetSolution(
     kernel_info.comp_options += " -DCK_DONT_USE_HIP_RUNTIME_HEADERS";
     kernel_info.comp_options += " -DCK_CODE_GEN_RTC";
 
-    soln.invoker_factory = [=](const std::vector<Kernel>& kernels) {
+    soln.invoker_factory = [=](const std::vector<Kernel>&) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::conv::DataInvokeParams>();
             auto kernel           = handle_.AddKernel("tmp",
