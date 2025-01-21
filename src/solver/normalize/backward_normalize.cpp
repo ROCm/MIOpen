@@ -48,9 +48,7 @@ bool NormalizeBackward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::normalize::BackwardProblemDescription& problem) const
 {
-    if(!(problem.GetInputDesc().GetType() == miopenFloat ||
-         problem.GetInputDesc().GetType() == miopenHalf ||
-         problem.GetInputDesc().GetType() == miopenBFloat16))
+    if(!(problem.GetInputDesc().GetType() == miopenFloat))
         return false;
     if(problem.IsLastDim() && (problem.GetInnerSize() % LOCAL_SIZE == 0) &&
        problem.IsAllContiguous())

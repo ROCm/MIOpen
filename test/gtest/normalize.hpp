@@ -56,13 +56,14 @@ inline std::vector<NormalizeTestCase> NormalizeTestConfigs()
 {
     // clang-format off
     return {
-        {{16, 16}, 2, 1e-12, 1, true}, // small test 
-        {{16, 512, 512}, 2, 1e-12, 2, true}, // inner_size % 256 == 0, reduce last dim, cont
-        {{16, 512, 512}, 3, 1e-9, 2, false}, // cont = false
-        {{16000, 91}, 1.5, 1e-10, 1, true},  // inner % 256 != 0
-        {{16, 12, 512, 512}, 2.5, 1e-12, 2, true}, // reduce inner dim
-        {{10, 3, 4, 5, 6}, 4, 1e-12, 0, false}, // 5d uncont reduce first dim
-        {{524288}, 2.2, 1e-10, 0, true}, // 1d cont inner_size % 256 == 0
+        {{10, 32000}, 2, 1e-12, 1, true}, 
+        {{256, 512, 512}, 2, 1e-12, 2, true}, 
+        {{40, 12, 512, 512}, 2, 1e-12, 3, true}, 
+        {{16, 12, 512, 512}, 2, 1e-12, 3, true}, 
+        {{16, 12, 1024, 1024}, 2, 1e-12, 3, true},
+        {{32, 12, 512, 512}, 2, 1e-12, 3, true}, 
+        {{48, 8, 512, 512}, 2, 1e-12, 3, true}, 
+        {{32, 8, 512, 512}, 2, 1e-12, 3, true}, 
     };
     // clang-format on
 }

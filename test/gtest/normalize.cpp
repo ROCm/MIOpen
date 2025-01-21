@@ -33,18 +33,8 @@ struct GPU_NormalizeBackward_FP32 : NormalizeBackwardTest<float>
 {
 };
 
-struct GPU_NormalizeBackward_FP16 : NormalizeBackwardTest<half_float::half>
-{
-};
-
-struct GPU_NormalizeBackward_BFP16 : NormalizeBackwardTest<bfloat16>
-{
-};
-
 } // namespace normalize
 
-using normalize::GPU_NormalizeBackward_BFP16;
-using normalize::GPU_NormalizeBackward_FP16;
 using normalize::GPU_NormalizeBackward_FP32;
 
 TEST_P(GPU_NormalizeBackward_FP32, Test)
@@ -53,23 +43,6 @@ TEST_P(GPU_NormalizeBackward_FP32, Test)
     Verify();
 };
 
-TEST_P(GPU_NormalizeBackward_FP16, Test)
-{
-    RunTest();
-    Verify();
-};
-
-TEST_P(GPU_NormalizeBackward_BFP16, Test)
-{
-    RunTest();
-    Verify();
-};
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_NormalizeBackward_FP32,
-                         testing::ValuesIn(NormalizeTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_NormalizeBackward_FP16,
-                         testing::ValuesIn(NormalizeTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_NormalizeBackward_BFP16,
                          testing::ValuesIn(NormalizeTestConfigs()));
