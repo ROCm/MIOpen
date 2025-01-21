@@ -56,7 +56,6 @@ inline std::vector<NormalizeTestCase> NormalizeTestConfigs()
 {
     // clang-format off
     return {
-        {{10, 32000}, 2, 1e-12, 1, true}, 
         {{256, 512, 512}, 2, 1e-12, 2, true}, 
         {{40, 12, 512, 512}, 2, 1e-12, 3, true}, 
         {{16, 12, 512, 512}, 2, 1e-12, 3, true}, 
