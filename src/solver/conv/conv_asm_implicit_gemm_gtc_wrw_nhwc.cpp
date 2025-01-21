@@ -1149,13 +1149,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
         if(miopen::IsLogging(LoggingLevel::Info2))
             msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942+)";
     }
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx95"))
-    {
-        GenerateClangDefsym(options, "force_sc0_sc1", 0);
-        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
-        if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942+)";
-    }
 
     std::ostringstream opts_0(options.str(), std::ios_base::ate); // Options for normal kernel.
     if(isGfx90aFp16altSupport)
