@@ -80,7 +80,7 @@ ConvSolution FractionalMaxPoolBackward::GetSolution(
                                                              "FractionalMaxPool2dBackward",
                                                              build_params));
 
-        result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels[0]);
                 decltype(auto) params =
@@ -92,7 +92,6 @@ ConvSolution FractionalMaxPoolBackward::GetSolution(
                 kernel(params.indices,
                        params.output_grad,
                        params.input_grad,
-                       numel,
                        indices_tv,
                        output_grad_tv,
                        input_grad_tv);
@@ -107,7 +106,7 @@ ConvSolution FractionalMaxPoolBackward::GetSolution(
                                                              "FractionalMaxPool3dBackward",
                                                              build_params));
 
-        result.invoker_factory = [numel](const std::vector<Kernel>& kernels) {
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels[0]);
                 decltype(auto) params =
@@ -119,7 +118,6 @@ ConvSolution FractionalMaxPoolBackward::GetSolution(
                 kernel(params.indices,
                        params.output_grad,
                        params.input_grad,
-                       numel,
                        indices_tv,
                        output_grad_tv,
                        input_grad_tv);

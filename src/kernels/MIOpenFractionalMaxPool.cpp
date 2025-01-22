@@ -52,7 +52,7 @@ template <typename T, typename Ti>
 __device__ void fractionalMaxPool2dForward(const T* input,
                                            T* output,
                                            Ti* indices,
-                                           T* random_sample,
+                                           const T* random_sample,
                                            int64_t KH,
                                            int64_t KW,
                                            tensor_view_t<4> input_tv,
@@ -131,7 +131,7 @@ __device__ void fractionalMaxPool2dForward(const T* input,
 extern "C" __global__ void FractionalMaxPool2dForward(const D_TYPE* input,
                                                       D_TYPE* output,
                                                       I_TYPE* indices,
-                                                      D_TYPE* random_sample,
+                                                      const D_TYPE* random_sample,
                                                       int64_t KH,
                                                       int64_t KW,
                                                       tensor_view_t<4> input_tv,
@@ -155,17 +155,16 @@ template <typename T, typename Ti>
 __device__ void fractionalMaxPool2dBackward(const Ti* indices,
                                             const T* output_grad,
                                             T* input_grad,
-                                            uint64_t numel,
                                             tensor_view_t<4> indices_tv,
                                             tensor_view_t<4> output_grad_tv,
                                             tensor_view_t<4> input_grad_tv)
 {
     uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if(gid >= numel)
+    tensor_layout_t<4> layout(output_grad_tv, gid);
+    if(layout.layout[0] >= output_grad_tv.size[0])
         return;
 
-    tensor_layout_t<4> layout(output_grad_tv, gid);
     uint64_t index = static_cast<uint64_t>(indices[indices_tv.get_tensor_view_idx(layout)]);
     uint64_t h     = index / input_grad_tv.size[3];
     uint64_t w     = index % input_grad_tv.size[3];
@@ -178,20 +177,19 @@ __device__ void fractionalMaxPool2dBackward(const Ti* indices,
 extern "C" __global__ void FractionalMaxPool2dBackward(const I_TYPE* indices,
                                                        const D_TYPE* output_grad,
                                                        D_TYPE* input_grad,
-                                                       uint64_t numel,
                                                        tensor_view_t<4> indices_tv,
                                                        tensor_view_t<4> output_grad_tv,
                                                        tensor_view_t<4> input_grad_tv)
 {
     fractionalMaxPool2dBackward<D_TYPE, I_TYPE>(
-        indices, output_grad, input_grad, numel, indices_tv, output_grad_tv, input_grad_tv);
+        indices, output_grad, input_grad, indices_tv, output_grad_tv, input_grad_tv);
 }
 
 template <typename T, typename Ti>
 __device__ void fractionalMaxPool3dForward(const T* input,
                                            T* output,
                                            Ti* indices,
-                                           T* random_sample,
+                                           const T* random_sample,
                                            int64_t KD,
                                            int64_t KH,
                                            int64_t KW,
@@ -285,7 +283,7 @@ __device__ void fractionalMaxPool3dForward(const T* input,
 extern "C" __global__ void FractionalMaxPool3dForward(const D_TYPE* input,
                                                       D_TYPE* output,
                                                       I_TYPE* indices,
-                                                      D_TYPE* random_sample,
+                                                      const D_TYPE* random_sample,
                                                       int64_t KD,
                                                       int64_t KH,
                                                       int64_t KW,
@@ -311,17 +309,16 @@ template <typename T, typename Ti>
 __device__ void fractionalMaxPool3dBackward(const Ti* indices,
                                             const T* output_grad,
                                             T* input_grad,
-                                            uint64_t numel,
                                             tensor_view_t<5> indices_tv,
                                             tensor_view_t<5> output_grad_tv,
                                             tensor_view_t<5> input_grad_tv)
 {
     uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if(gid >= numel)
+    tensor_layout_t<5> layout(output_grad_tv, gid);
+    if(layout.layout[0] >= output_grad_tv.size[0])
         return;
 
-    tensor_layout_t<5> layout(output_grad_tv, gid);
     uint64_t index = static_cast<uint64_t>(indices[indices_tv.get_tensor_view_idx(layout)]);
     uint64_t d     = index / (input_grad_tv.size[4] * input_grad_tv.size[3]);
     uint64_t h     = (index / input_grad_tv.size[4]) % input_grad_tv.size[3];
@@ -335,11 +332,10 @@ __device__ void fractionalMaxPool3dBackward(const Ti* indices,
 extern "C" __global__ void FractionalMaxPool3dBackward(const I_TYPE* indices,
                                                        const D_TYPE* output_grad,
                                                        D_TYPE* input_grad,
-                                                       uint64_t numel,
                                                        tensor_view_t<5> indices_tv,
                                                        tensor_view_t<5> output_grad_tv,
                                                        tensor_view_t<5> input_grad_tv)
 {
     fractionalMaxPool3dBackward<D_TYPE, I_TYPE>(
-        indices, output_grad, input_grad, numel, indices_tv, output_grad_tv, input_grad_tv);
+        indices, output_grad, input_grad, indices_tv, output_grad_tv, input_grad_tv);
 }
