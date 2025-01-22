@@ -71,19 +71,11 @@ RoIAlignForward::GetSolution(const ExecutionContext& context,
 
     auto input_dims = problem.GetInputDesc().GetLengths();
     auto rois_dims  = problem.GetRoisDesc().GetLengths();
-    // auto output_dims = problem.GetOutputDesc().GetLengths();
 
     auto output_numel = problem.GetOutputDesc().GetElementSize();
 
-    // const size_t C = problem.GetInputDesc().GetLengths()[1];
-
-    // const size_t K = problem.GetRoisDesc().GetLengths()[0];
-    // const size_t g =
-    //     K * C * problem.GetAlignedHeight() * problem.GetAlignedWidth() / ROIALIGN_LOCAL_SIZE;
-
     // Start building result.construction_params
     size_t xlocalsize = ROIALIGN_LOCAL_SIZE;
-    // size_t xgridsize  = (g + 1) * xlocalsize;
     size_t xgridsize  = AlignUp(output_numel, xlocalsize);
     size_t ylocalsize = 1;
     size_t ygridsize  = 1;

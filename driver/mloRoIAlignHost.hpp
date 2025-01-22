@@ -58,9 +58,10 @@ int32_t mloRoIAlignForwardRunHost(const miopenTensorDescriptor_t inputDesc,
 
     const float roi_offset = aligned ? 0.5f : 0.0f;
 
-    for(int k = 0; k < K; ++k)
+    for(auto k = 0; k < K; ++k)
     {
-        const int roi_batch_idx = static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+        const int64_t roi_batch_idx =
+            static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
 
         const float roi_w1 =
             static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 1})]) * spatial_scale -
@@ -77,11 +78,10 @@ int32_t mloRoIAlignForwardRunHost(const miopenTensorDescriptor_t inputDesc,
         float roi_w = roi_w2 - roi_w1;
         float roi_h = roi_h2 - roi_h1;
 
-        if(aligned) {}
-        else
+        if(!aligned)
         {
-            roi_w = std::max(roi_w, 1.0f);
-            roi_h = std::max(roi_h, 1.0f);
+            roi_w = std::fmax(roi_w, 1);
+            roi_h = std::fmax(roi_h, 1);
         }
         const float bin_size_h = roi_h / static_cast<float>(output_h);
         const float bin_size_w = roi_w / static_cast<float>(output_w);
@@ -200,7 +200,7 @@ int32_t mloRoIAlignBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc
         uint64_t k  = (i / (C * OW * OH));
 
         // Check k-th roi box belongs to n-th image inside mini-batch
-        int64_t n = rois[rois_tv.get_tensor_view_idx({k, 0})];
+        int64_t n = static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
 
         if(n < 0 || n >= N)
             break;
@@ -247,11 +247,11 @@ int32_t mloRoIAlignBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc
             float y = y1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5f);
             if(y < 0 || y > H)
                 continue;
-            y_low = (int64_t)y;
+            y_low = static_cast<int64_t>(y);
             if(y_low >= H - 1)
             {
                 y_high = y_low = H - 1;
-                y              = (float)y_low;
+                y              = static_cast<float>(y_low);
             }
             else
             {
@@ -263,11 +263,11 @@ int32_t mloRoIAlignBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc
                 if(x < 0 || x > W)
                     continue;
 
-                x_low = (int64_t)x;
+                x_low = static_cast<int64_t>(x);
                 if(x_low >= W - 1)
                 {
                     x_high = x_low = W - 1;
-                    x              = (float)x_low;
+                    x              = static_cast<float>(x_low);
                 }
                 else
                 {

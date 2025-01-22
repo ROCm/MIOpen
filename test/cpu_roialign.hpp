@@ -55,7 +55,7 @@ void cpu_roialign_forward(const tensor<T> input,
 
     for(auto k = 0; k < K; ++k)
     {
-        int64_t roi_batch_idx = static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+        int64_t roi_batch_idx = static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
 
         const float roi_w1 =
             static_cast<float>(rois[rois_tv.get_tensor_view_idx({k, 1})]) * spatial_scale -
@@ -75,20 +75,18 @@ void cpu_roialign_forward(const tensor<T> input,
 
         if(!aligned)
         {
-            roi_w = std::max(roi_w, 1.0f);
-            roi_h = std::max(roi_h, 1.0f);
+            roi_w = std::fmax(roi_w, 1);
+            roi_h = std::fmax(roi_h, 1);
         }
         const float bin_size_h = roi_h / static_cast<float>(output_h);
         const float bin_size_w = roi_w / static_cast<float>(output_w);
 
-        const int64_t bin_grid_h =
-            (sampling_ratio > 0)
-                ? sampling_ratio
-                : static_cast<int64_t>(std::ceil(roi_h / static_cast<float>(output_h)));
-        const int64_t bin_grid_w =
-            (sampling_ratio > 0)
-                ? sampling_ratio
-                : static_cast<int64_t>(std::ceil(roi_w / static_cast<float>(output_w)));
+        const int64_t bin_grid_h = (sampling_ratio > 0)
+                                       ? sampling_ratio
+                                       : static_cast<int64_t>(std::ceil(roi_h / output_h));
+        const int64_t bin_grid_w = (sampling_ratio > 0)
+                                       ? sampling_ratio
+                                       : static_cast<int64_t>(std::ceil(roi_w / output_w));
 
         const float scale = 1.0f / static_cast<float>(bin_grid_h * bin_grid_w);
 
@@ -211,8 +209,8 @@ void cpu_roialign_backward(const tensor<T> output_grad,
         if(!aligned)
         {
             // Force ROI to be at least 1x1
-            roi_h = std::fmax(roi_h, 1.0);
-            roi_w = std::fmax(roi_w, 1.0);
+            roi_h = std::fmax(roi_h, 1);
+            roi_w = std::fmax(roi_w, 1);
         }
 
         // bin is OH * OW cells inside ROI
@@ -236,11 +234,11 @@ void cpu_roialign_backward(const tensor<T> output_grad,
             float y = y1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5f);
             if(y < 0 || y > H)
                 continue;
-            y_low = (int64_t)y;
+            y_low = static_cast<int64_t>(y);
             if(y_low >= H - 1)
             {
                 y_high = y_low = H - 1;
-                y              = (float)y_low;
+                y              = static_cast<float>(y_low);
             }
             else
             {
@@ -252,11 +250,11 @@ void cpu_roialign_backward(const tensor<T> output_grad,
                 if(x < 0 || x > W)
                     continue;
 
-                x_low = (int64_t)x;
+                x_low = static_cast<int64_t>(x);
                 if(x_low >= W - 1)
                 {
                     x_high = x_low = W - 1;
-                    x              = (float)x_low;
+                    x              = static_cast<float>(x_low);
                 }
                 else
                 {

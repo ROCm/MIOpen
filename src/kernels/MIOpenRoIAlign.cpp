@@ -67,13 +67,13 @@ __device__ FLOAT_ACCUM bilinear_interpolate(const DTYPE* input,
         x = 0;
     }
 
-    y_low = (int64_t)y;
-    x_low = (int64_t)x;
+    y_low = static_cast<int64_t>(y);
+    x_low = static_cast<int64_t>(x);
 
     if(y_low >= height - 1)
     {
         y_high = y_low = height - 1;
-        y              = (FLOAT_ACCUM)y_low;
+        y              = static_cast<FLOAT_ACCUM>(y_low);
     }
     else
     {
@@ -83,7 +83,7 @@ __device__ FLOAT_ACCUM bilinear_interpolate(const DTYPE* input,
     if(x_low >= width - 1)
     {
         x_high = x_low = width - 1;
-        x              = (FLOAT_ACCUM)x_low;
+        x              = static_cast<FLOAT_ACCUM>(x_low);
     }
     else
     {
@@ -162,7 +162,6 @@ __device__ void roialign_fwd(const DTYPE* input,
     if(roi_batch_index < 0 || roi_batch_index >= N)
     {
         output[output_tv.get_tensor_view_idx({k, c, ph, pw})] = static_cast<DTYPE>(0);
-
         return;
     }
 
@@ -194,8 +193,8 @@ __device__ void roialign_fwd(const DTYPE* input,
 
     if(!aligned)
     {
-        roi_width  = fmax((FLOAT_ACCUM)roi_width, (FLOAT_ACCUM)1.0f);
-        roi_height = fmax((FLOAT_ACCUM)roi_height, (FLOAT_ACCUM)1.0f);
+        roi_width  = fmax(roi_width, 1);
+        roi_height = fmax(roi_height, 1);
     }
 
     bin_size_h = roi_height / output_h;
@@ -320,8 +319,8 @@ __device__ void roialign_backward(const DTYPE* output_grad,
         if(!aligned)
         {
             // Force ROI to be at least 1x1
-            roi_h = fmax(roi_h, (FLOAT_ACCUM)1);
-            roi_w = fmax(roi_w, (FLOAT_ACCUM)1);
+            roi_h = fmax(roi_h, 1);
+            roi_w = fmax(roi_w, 1);
         }
 
         // bin is OH * OW cells inside ROI
@@ -346,7 +345,7 @@ __device__ void roialign_backward(const DTYPE* output_grad,
 
                     if(sy > H - 1)
                     {
-                        sy = (FLOAT_ACCUM)(H - 1);
+                        sy = static_cast<FLOAT_ACCUM>(H - 1);
                     }
 
                     for(long s = 0; s < sampling_ratio_w; ++s)
@@ -356,11 +355,10 @@ __device__ void roialign_backward(const DTYPE* output_grad,
                             continue;
                         if(sx > W - 1)
                         {
-                            sx = (FLOAT_ACCUM)(W - 1);
+                            sx = static_cast<FLOAT_ACCUM>(W - 1);
                         }
 
-                        weight += fmax((FLOAT_ACCUM)(1 - fabs(sy - h)), (FLOAT_ACCUM)0) *
-                                  fmax((FLOAT_ACCUM)(1 - fabs(sx - w)), (FLOAT_ACCUM)0);
+                        weight += fmax(1 - fabs(sy - h), 0) * fmax(1 - fabs(sx - w), 0);
                     }
                 }
                 if(weight != 0)
@@ -448,7 +446,7 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
         return;
 
     // Check k-th roi box belongs to n-th image inside mini-batch
-    int64_t n = CVT_FLOAT2ACCUM(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+    int64_t n = static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
 
     if(n < 0 || n >= N)
         return;
@@ -470,8 +468,8 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
     if(!aligned)
     {
         // Force ROI to be at least 1x1
-        roi_h = fmax(roi_h, (FLOAT_ACCUM)1);
-        roi_w = fmax(roi_w, (FLOAT_ACCUM)1);
+        roi_h = fmax(roi_h, 1);
+        roi_w = fmax(roi_w, 1);
     }
 
     // bin is OH * OW cells inside ROI
@@ -499,7 +497,7 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
         if(y_low >= H - 1)
         {
             y_high = y_low = H - 1;
-            y              = (FLOAT_ACCUM)y_low;
+            y              = static_cast<FLOAT_ACCUM>(y_low);
         }
         else
         {
@@ -510,11 +508,11 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
             FLOAT_ACCUM x = x1 + bin_w * ow + bin_w / sampling_ratio_w * (s + 0.5f);
             if(x < 0 || x > W)
                 continue;
-            x_low = (long)x;
+            x_low = static_cast<int64_t>(x);
             if(x_low >= W - 1)
             {
                 x_high = x_low = W - 1;
-                x              = (FLOAT_ACCUM)x_low;
+                x              = static_cast<FLOAT_ACCUM>(x_low);
             }
             else
             {

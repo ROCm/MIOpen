@@ -436,7 +436,6 @@ protected:
 
     void Verify()
     {
-
         // Verify output_tensor
         double threshold = GetTolerance();
         auto error       = miopen::rms_range(ref_input_grad, input_grad);

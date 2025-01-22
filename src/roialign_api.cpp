@@ -25,12 +25,12 @@
  *******************************************************************************/
 
 #include <miopen/common.hpp>
-#include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/tensor_ops.hpp>
+#include <miopen/miopen.h>
 #include <miopen/roialign.hpp>
+#include <miopen/tensor_ops.hpp>
 
 extern "C" miopenStatus_t miopenRoIAlignForward(miopenHandle_t handle,
                                                 const miopenTensorDescriptor_t inputDesc,
