@@ -405,12 +405,14 @@ def RunPerfTest(Map conf=[:]){
         //(retimage, image) = getDockerImage(conf)
         def docker_image = conf.get("docker_image")
         def miopen_install_path = conf.get("miopen_install_path", "/opt/rocm")
+        def results_dir = conf.get("results_dir", "${env.WORKSPACE}/results/")
         docker_image.pull()
         echo "docker image: ${docker_image}"
         docker_image.inside(dockerOpts + ' -v=/var/jenkins/:/var/jenkins')
         {
             timeout(time: 100, unit: 'MINUTES')
             {
+                cd "$results_dir"
                 //cmake_build(conf)
                 //unstash 'miopen_tar'
                 //sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
@@ -430,15 +432,15 @@ def RunPerfTest(Map conf=[:]){
                 if(params.COMPARE_TO_BASE)
                 {
                   try {
-                      sh "rm -rf ${miopen_install_path}/bin/old_results/"
-                      sh "wget -P ${miopen_install_path}/bin/old_results/ ${jenkins_url}/install/bin/perf_results/${filename}"
+                      sh "rm -rf ${results_dir}/old_results/"
+                      sh "wget -P ${results_dir}/old_results/ ${jenkins_url}/results/perf_results/${filename}"
                   }
                   catch (Exception err){
                       currentBuild.result = 'SUCCESS'
                   }
 
                   try{
-                     sh "${miopen_install_path}/bin/test_perf.py --compare_results --old_results_path ${miopen_install_path}/bin/old_results --filename ${filename}"
+                     sh "${miopen_install_path}/bin/test_perf.py --compare_results --old_results_path ${results_dir}/old_results --filename ${filename}"
                   }
                   catch (Exception err){
                       currentBuild.result = 'SUCCESS'
