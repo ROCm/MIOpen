@@ -56,7 +56,7 @@ class Manager(mp.Process):
     self.filename = None
     self.install_path = None
     self.override = False
-    self.results_path = f"{os.path.dirname(__file__)}/perf_results"
+    self.results_path = f"{curr_path}/perf_results"
     self.__dict__.update(
         (key, value) for key, value in kwargs.items() if key in allowed_keys)
 
