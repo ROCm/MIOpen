@@ -493,7 +493,7 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
         FLOAT_ACCUM y = y1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5f);
         if(y < 0 || y > H)
             continue;
-        y_low = (int64_t)y;
+        y_low = static_cast<int64_t>(y);
         if(y_low >= H - 1)
         {
             y_high = y_low = H - 1;
