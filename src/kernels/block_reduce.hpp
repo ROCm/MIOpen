@@ -66,12 +66,7 @@ __device__ FLOAT_ACCUM block_reduce(FLOAT_ACCUM val)
     val = tid < reduce_size / warpSize ? shared[lane] : 0;
     if(wid == 0)
         val = warp_reduce<Op>(val);
-
-    if(tid == 0)
-        shared[0] = val;
-    __syncthreads();
-
-    return shared[0];
+    return val;
 }
 
 #endif // GUARD_BLOCK_REDUCE_HPP
