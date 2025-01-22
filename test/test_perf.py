@@ -267,7 +267,7 @@ def parse_args():
                       help='Specify full path to old results directory')
   parser.add_argument('--results_path',
                       dest='results_path',
-                      default=default_results_path
+                      default=default_results_path,
                       type=str,
                       help='Specify full path to output results directory')
   parser.add_argument('--override',
