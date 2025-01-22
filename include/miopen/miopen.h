@@ -667,7 +667,7 @@ typedef enum
     miopenConvolutionFindModeDynamicHybrid =
         5, /*!< Checks the Find-db for an entry. If there is a hit, uses that entry. If there is a
               miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving
-              compilation time. Faster start-up times than Hybrid Find, but GPU performance may be a
+              compilation time. Faster start-up times than Hybrid Find, but GPU performance might be a
               bit worse. >*/
 } miopenConvolutionFindMode_t;
 
