@@ -404,7 +404,7 @@ def RunPerfTest(Map conf=[:]){
     try {
         //(retimage, image) = getDockerImage(conf)
         def docker_image = conf.get("docker_image")
-        def miopen_install_path = conf.get("miopen_install_path", "${env.WORKSPACE}/install/")
+        def miopen_install_path = conf.get("miopen_install_path", "/opt/rocm")
         docker_image.pull()
         echo "docker image: ${docker_image}"
         docker_image.inside(dockerOpts + ' -v=/var/jenkins/:/var/jenkins')
