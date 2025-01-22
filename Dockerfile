@@ -150,7 +150,6 @@ RUN pip3 install --upgrade cmake==3.27.5
 #install miopen
 ARG INSTALL_MIOPEN=OFF
 ARG MIOPEN_BRANCH=alex_perf_test
-RUN echo 'freckle'
 RUN set -e; \
     if [ "$INSTALL_MIOPEN" = "ON" ]; then \
         git clone https://github.com/ROCm/MIOpen.git miopen; \
