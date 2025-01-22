@@ -424,7 +424,7 @@ def RunPerfTest(Map conf=[:]){
                 {
                     sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
                 }
-                archiveArtifacts artifacts: "install/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
+                archiveArtifacts artifacts: "${results_dir}/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
                 jenkins_url = "${env.artifact_path}/MIOpenPerf/lastSuccessfulBuild/artifact"
                 if(params.COMPARE_TO_BASE)
                 {
