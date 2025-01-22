@@ -412,6 +412,7 @@ def RunPerfTest(Map conf=[:]){
         {
             timeout(time: 100, unit: 'MINUTES')
             {
+                sh "mkdir $results_dir"
                 sh "cd $results_dir"
                 ld_lib="${miopen_install_path}/lib"
                 def filename = conf.get("filename", "")
