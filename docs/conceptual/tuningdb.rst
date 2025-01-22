@@ -7,7 +7,7 @@ Tuning performance databases
 ************************************************************************************************
 
 A key element for ensuring the best performance is to do tuning on the shapes used by your model.
-MIOpen will use the following to decide the best solver to be used for a requested convolution:
+MIOpen uses the following to decide upon the best solver to be used for a requested convolution:
 
 * User DB.  This stores results of previous tuning and by default is found in ~/.config/miopen though this can be changed.
 * System DB.  This is part of the MIOpen install files and has specific shapes that the MIOpen team have saved tuning choices.
