@@ -29,10 +29,10 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T, class Tn>
-void cpu_matrixbandpart(const tensor<T> input,
+void cpu_matrixbandpart(const tensor<T>& input,
                         tensor<T>& output,
-                        const tensor<Tn> num_lower,
-                        const tensor<Tn> num_upper)
+                        const tensor<Tn>& num_lower,
+                        const tensor<Tn>& num_upper)
 {
     auto input_tv    = miopen::get_inner_expanded_tv<5>(input.desc);
     auto output_tv   = miopen::get_inner_expanded_tv<5>(output.desc);

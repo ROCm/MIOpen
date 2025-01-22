@@ -23,13 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/matrixbandpart.hpp>
-#include <miopen/kernel_cache.hpp>
+#include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>
-#include <miopen/tensor.hpp>
+#include <miopen/kernel_cache.hpp>
+#include <miopen/matrixbandpart.hpp>
 #include <miopen/matrixbandpart/invoke_params.hpp>
 #include <miopen/matrixbandpart/solvers.hpp>
-#include <miopen/find_solution.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 

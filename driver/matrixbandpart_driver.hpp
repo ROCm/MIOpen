@@ -202,24 +202,21 @@ int MatrixBandPartDriver<Tgpu, Tref, Tnum>::AllocateBuffersAndCopy()
 
     uint32_t ctx = 0;
 
-    input_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
-    input_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
-    output_dev      = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
-    output_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
-    num_lower_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, 1, sizeof(Tnum)));
-    num_upper_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, 1, sizeof(Tnum)));
+    num_lower_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, 1, sizeof(Tnum)));
+    num_upper_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, 1, sizeof(Tnum)));
 
-    input           = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
-    input_grad      = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
-    output          = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
-    output_grad     = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
-    output_host     = std::vector<Tref>(input_sz, static_cast<Tref>(0));
-    input_grad_host = std::vector<Tref>(input_sz, static_cast<Tref>(0));
-    num_lower       = std::vector<Tnum>(1, static_cast<Tnum>(0));
-    num_upper       = std::vector<Tnum>(1, static_cast<Tnum>(0));
+    num_lower = std::vector<Tnum>(1, static_cast<Tnum>(0));
+    num_upper = std::vector<Tnum>(1, static_cast<Tnum>(0));
 
     if(forw == 0 || forw == 1)
     {
+        input_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
+        output_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
+
+        input       = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
+        output      = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
+        output_host = std::vector<Tref>(input_sz, static_cast<Tref>(0));
+
         for(size_t i = 0; i < input_sz; i++)
         {
             input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
@@ -241,6 +238,13 @@ int MatrixBandPartDriver<Tgpu, Tref, Tnum>::AllocateBuffersAndCopy()
 
     if(forw == 0 || forw == 2)
     {
+        input_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
+        output_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(Tgpu)));
+
+        input_grad      = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
+        output_grad     = std::vector<Tgpu>(input_sz, static_cast<Tgpu>(0));
+        input_grad_host = std::vector<Tref>(input_sz, static_cast<Tref>(0));
+
         for(size_t i = 0; i < input_sz; i++)
         {
             output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));

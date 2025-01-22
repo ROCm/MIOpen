@@ -84,7 +84,6 @@ MatrixBandPartBackward::GetSolution(const ExecutionContext& context,
     auto build_params = KernelBuildParameters{
         {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-        {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         {"N_TYPE", num_lower_dtype == "int64" ? "size_t" : num_lower_dtype},
