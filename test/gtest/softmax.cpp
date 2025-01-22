@@ -24,12 +24,9 @@
  *
  *******************************************************************************/
 
-
 #include "get_handle.hpp"
-#include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
 #include <miopen/softmax.hpp>
 
 #define NEGATIVE_CUTOFF_VAL_FP32 (-1e20)
@@ -44,7 +41,7 @@ T logaddexp(T x, T y, T neg_inf)
     T b = std::min(x, y);
     T c = b - a;
 
-    return c <= neg_inf ? std::max(a, neg_inf) : std::max(T(a + log(T(1) + exp(b - a))), neg_inf);   
+    return c <= neg_inf ? std::max(a, neg_inf) : std::max(T(a + log(T(1) + exp(b - a))), neg_inf);
 }
 
 struct TestCase
@@ -55,17 +52,17 @@ struct TestCase
     miopenSoftmaxMode_t mode;
 };
 
-template<typename T>
-void AddTestCasesForDifferentScales(std::vector<TestCase>& test_cases, 
-                                    const std::vector<size_t>& in_dim, 
+template <typename T>
+void AddTestCasesForDifferentScales(std::vector<TestCase>& test_cases,
+                                    const std::vector<size_t>& in_dim,
                                     int algo,
                                     int mode,
                                     const std::vector<std::vector<float>>& scales)
 {
     /// \todo Apply mix-precision in softmax to improve the stability of fp16
-    if (miopen_type<T>{} == miopenHalf)
+    if(miopen_type<T>{} == miopenHalf)
     {
-        if((in_dim[1] * in_dim[2] * in_dim[3] >= 2048) && mode == MIOPEN_SOFTMAX_MODE_INSTANCE )
+        if((in_dim[1] * in_dim[2] * in_dim[3] >= 2048) && mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
             return;
 
         if(in_dim[1] >= 96 && in_dim[2] >= 14 && in_dim[3] >= 14 && algo == MIOPEN_SOFTMAX_FAST)
@@ -77,16 +74,16 @@ void AddTestCasesForDifferentScales(std::vector<TestCase>& test_cases,
         TestCase& test_case = test_cases.emplace_back();
 
         test_case.in_dim = in_dim;
-        test_case.algo = static_cast<miopenSoftmaxAlgorithm_t> (algo);
-        test_case.mode = static_cast<miopenSoftmaxMode_t> (mode);
-        test_case.scale = scale;
-    }    
+        test_case.algo   = static_cast<miopenSoftmaxAlgorithm_t>(algo);
+        test_case.mode   = static_cast<miopenSoftmaxMode_t>(mode);
+        test_case.scale  = scale;
+    }
 }
 
-template<typename T>
+template <typename T>
 std::vector<TestCase> GenCases()
 {
-    int batch_factor       = 0;
+    int batch_factor = 0;
 
     std::set<std::vector<size_t>> in_dim_set = get_inputs<size_t>(batch_factor);
 
@@ -104,8 +101,8 @@ std::vector<TestCase> GenCases()
     in_dim_set.erase({1, 32, 7, 7});
     in_dim_set.erase({1, 32, 8, 8});
 
-    std::vector<int> algos = {0, 1, 2};
-    std::vector<int> modes = {0, 1};
+    std::vector<int> algos                 = {0, 1, 2};
+    std::vector<int> modes                 = {0, 1};
     std::vector<std::vector<float>> scales = {{1.0f, 0.0f}, {0.5f, 0.5f}};
 
     std::vector<TestCase> test_cases;
@@ -120,32 +117,14 @@ std::vector<TestCase> GenCases()
     return test_cases;
 }
 
-template<typename T>
+template <typename T>
 auto GetCases()
 {
     static const auto cases = testing::ValuesIn(GenCases<T>());
     return cases;
 }
 
-}
-
-
-/*#include "test.hpp"
-#include <array>
-#include <cmath>
-#include <iostream>
-#include <iterator>
-#include <limits>
-#include <memory>
-#include <miopen/convolution.hpp>
-
-#include <miopen/tensor.hpp>
-#include <utility>
-
-#include "driver.hpp"
-#include "get_handle.hpp"
-#include "tensor_holder.hpp"
-#include "verify.hpp"*/
+} // namespace
 
 template <typename T>
 struct TensorOpsCommon : public testing::TestWithParam<TestCase>
@@ -159,8 +138,8 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
         uint64_t max_value =
             miopen_type<T>{} == miopenHalf ? (test_case.algo == MIOPEN_SOFTMAX_LOG ? 3 : 5) : 17;
 
-        input             = tensor<T>{test_case.in_dim}.generate(tensor_elem_gen_integer{max_value});
-        size_t total_mem  = 2 * input.desc.GetNumBytes(); // estimate based on backward pass
+        input            = tensor<T>{test_case.in_dim}.generate(tensor_elem_gen_integer{max_value});
+        size_t total_mem = 2 * input.desc.GetNumBytes(); // estimate based on backward pass
         size_t device_mem = get_handle().GetGlobalMemorySize();
         if(total_mem >= device_mem)
         {
@@ -179,12 +158,12 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
         // check forward results
         CompareResults(tensorGpuDataForward, tensorCpuDataForward);
 
-        dout = tensor<T>{test_case.in_dim}.generate([&](int n, int c, int h, int w) {
+        dout   = tensor<T>{test_case.in_dim}.generate([&](int n, int c, int h, int w) {
             T x      = input(n, c, h, w);
             double y = (877 * n + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
             return ((x * y) / 1301.0);
         });
-        dinput  = tensor<T>{test_case.in_dim}.generate(tensor_elem_gen_integer{max_value});
+        dinput = tensor<T>{test_case.in_dim}.generate(tensor_elem_gen_integer{max_value});
 
         std::vector<T> tensorCpuDataBackward = GetBackwardCpu();
         std::vector<T> tensorGpuDataBackward = GetBackwardGpu();
@@ -210,7 +189,7 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
             miopen::tien<4>(out.desc.GetStrides());
 
         float alpha = test_case.scale[0];
-        float beta = test_case.scale[1];
+        float beta  = test_case.scale[1];
 
         if(test_case.mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
         {
@@ -344,14 +323,21 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
     std::vector<T> GetForwardGpu() const
     {
         const TestCase& test_case = GetParam();
-        auto&& handle = get_handle();
-        //auto out      = output;
+        auto&& handle             = get_handle();
+        // auto out      = output;
 
         auto in_dev  = handle.Write(input.data);
         auto out_dev = handle.Write(output.data);
 
-        miopen::SoftmaxForward(
-            handle, &test_case.scale[0], &test_case.scale[1], input.desc, in_dev.get(), output.desc, out_dev.get(), test_case.algo, test_case.mode);
+        miopen::SoftmaxForward(handle,
+                               &test_case.scale[0],
+                               &test_case.scale[1],
+                               input.desc,
+                               in_dev.get(),
+                               output.desc,
+                               out_dev.get(),
+                               test_case.algo,
+                               test_case.mode);
 
         return handle.Read<T>(out_dev, output.data.size());
     }
@@ -373,7 +359,7 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
             miopen::tien<4>(dout.desc.GetStrides());
 
         float alpha = test_case.scale[0];
-        float beta = test_case.scale[1];
+        float beta  = test_case.scale[1];
 
         if(test_case.mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
         {
@@ -395,10 +381,9 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
                     if(test_case.algo == MIOPEN_SOFTMAX_LOG)
                     {
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
-                            T(alpha *
-                                  (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] -
-                                   sum * std::exp(
-                                             output[o * out_nstr + c * out_cstr + i * out_hstr + j])) +
+                            T(alpha * (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] -
+                                       sum * std::exp(output[o * out_nstr + c * out_cstr +
+                                                             i * out_hstr + j])) +
                               beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j]);
                     }
                     else
@@ -433,8 +418,9 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
                             alpha *
                                 (dout[o * out_nstr + c * out_cstr + i * out_hstr + j] -
-                                 sum * std::exp(
-                                           output[o * out_nstr + c * out_cstr + i * out_hstr + j])) +
+                                 sum *
+                                     std::exp(
+                                         output[o * out_nstr + c * out_cstr + i * out_hstr + j])) +
                             beta * din[o * in_nstr + c * in_cstr + i * in_hstr + j];
                     }
                     else
@@ -455,7 +441,7 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
         const TestCase& test_case = GetParam();
 
         auto&& handle = get_handle();
-        //auto din      = dinput;
+        // auto din      = dinput;
 
         auto din_dev  = handle.Write(dinput.data);
         auto dout_dev = handle.Write(dout.data);
@@ -480,21 +466,18 @@ struct TensorOpsCommon : public testing::TestWithParam<TestCase>
     {
         const TestCase& test_case = GetParam();
 
-        double tolerance = 80;
+        // taken from the original c test
+        double tolerance = 8000;
 
         double threshold = std::numeric_limits<T>::epsilon() * tolerance;
         double error     = miopen::rms_range(tensorCPUData, tensorGPUData);
 
         ASSERT_LE(error, threshold)
-            << "Tensor Dims: "  << test_case.in_dim[0] << ", "
-                                << test_case.in_dim[1] << ", "
-                                << test_case.in_dim[2] << ", "
-                                << test_case.in_dim[3] << ", "          
-            << "Alpha / Beta: " << test_case.scale[0] << ", " 
-                                << test_case.scale[1]
-            << ". Algo: "         << test_case.algo 
-            << ". Mode: "         << test_case.mode << std::endl;
-    }    
+            << "Tensor Dims: " << test_case.in_dim[0] << ", " << test_case.in_dim[1] << ", "
+            << test_case.in_dim[2] << ", " << test_case.in_dim[3] << ", "
+            << "Alpha / Beta: " << test_case.scale[0] << ", " << test_case.scale[1]
+            << ". Algo: " << test_case.algo << ". Mode: " << test_case.mode << std::endl;
+    }
 
 private:
     tensor<T> input;
@@ -507,129 +490,8 @@ private:
 using GPU_Softmax_FP32 = TensorOpsCommon<float>;
 using GPU_Softmax_FP16 = TensorOpsCommon<half_float::half>;
 
-
-/*template <class T>
-struct verify_forward_sofmax
-{
-    tensor<T> input;
-    tensor<T> output;
-
-    float alpha;
-    float beta;
-    miopenSoftmaxAlgorithm_t algo;
-    miopenSoftmaxMode_t mode;
-
-    verify_forward_sofmax(const tensor<T>& pinput,
-                          const tensor<T>& pout,
-                          float palpha                = 1,
-                          float pbeta                 = 0,
-                          miopenSoftmaxAlgorithm_t pa = MIOPEN_SOFTMAX_ACCURATE,
-                          miopenSoftmaxMode_t pm      = MIOPEN_SOFTMAX_MODE_CHANNEL)
-    {
-        input  = pinput;
-        output = pout;
-        alpha  = palpha;
-        beta   = pbeta;
-        algo   = pa;
-        mode   = pm;
-    }
-   
-
-    void fail(int = 0) const
-    {
-        std::cout << "Forward Sofmax: " << std::endl;
-        std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
-    }
-};
-
-
-template <class T>
-struct softmax_driver : test_driver
-{
-    tensor<T> input;
-    tensor<T> out;
-    tensor<T> din;
-    tensor<T> dout;
-
-    std::vector<int> in_dim;
-    std::vector<float> scales;
-    int algo_cmd = 1;
-    int mode_cmd = 1;
-
-    softmax_driver()
-    {
-        std::set<std::vector<int>> in_dim_set = get_inputs(batch_factor);
-
-        /// \todo Resolve this workaround. Random failure on Jenkins (ROCm3.0):
-        /// --float --input-dim 1 480 128 256 --algorithm 2 --mode 1 --scales 1 0 --tolerance 8000
-        /// FAILED: inf
-        in_dim_set.erase({1, 480, 128, 256});
-
-        /// \todo Resolve this workaround. Regular failures on Radeon VII, ROCm 3.3:
-        /// --float --input-dim 1 1 8 8 --algorithm 0 --mode 1 --scales 1 0 --tolerance 8000
-        /// FAILED: -nan
-        in_dim_set.erase({1, 1, 8, 8});
-        in_dim_set.erase({1, 1, 14, 14});
-        in_dim_set.erase({1, 1, 27, 27});
-        in_dim_set.erase({1, 32, 7, 7});
-        in_dim_set.erase({1, 32, 8, 8});
-
-        std::vector<std::vector<int>> in_dim_vec(in_dim_set.begin(), in_dim_set.end());
-
-        add(in_dim, "input-dim", generate_data(in_dim_vec, {16, 32, 8, 8}));
-
-        add(algo_cmd, "algorithm", generate_data({0, 1, 2}));
-        add(mode_cmd, "mode", generate_data({0, 1}));
-
-        add(scales, "scales", generate_data({{1.f, 0.f}, {float(0.5), float(0.5)}}));
-        add(tolerance, "tolerance", generate_data({8000})); // 80 for MIOPEN_SOFTMAX_MODE_CHANNEL
-    }
-
-    void run()
-    {
-        miopenSoftmaxAlgorithm_t algo = miopenSoftmaxAlgorithm_t(algo_cmd);
-        miopenSoftmaxMode_t mode      = miopenSoftmaxMode_t(mode_cmd);
-        uint64_t max_value =
-            miopen_type<T>{} == miopenHalf ? (algo == MIOPEN_SOFTMAX_LOG ? 3 : 5) : 17;
-
-        /// \todo Apply mix-precision in softmax to improve the stability of fp16
-        if((in_dim[1] * in_dim[2] * in_dim[3] >= 2048) && mode == MIOPEN_SOFTMAX_MODE_INSTANCE &&
-           miopen_type<T>{} == miopenHalf)
-            return;
-        if(in_dim[1] >= 96 && in_dim[2] >= 14 && in_dim[3] >= 14 && algo == MIOPEN_SOFTMAX_FAST &&
-           miopen_type<T>{} == miopenHalf)
-            return;
-        
-        input             = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
-        size_t total_mem  = 2 * input.desc.GetNumBytes(); // estimate based on backward pass
-        size_t device_mem = get_handle().GetGlobalMemorySize();
-        if(total_mem >= device_mem)
-        {
-            show_command();
-            std::cout << "Config requires " << total_mem
-                      << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
-                      << " Bytes of memory." << std::endl;
-
-            return;
-        }
-
-        out         = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
-        float alpha = scales[0];
-        float beta  = scales[1];
-
-        verify(verify_forward_sofmax<T>{input, out, alpha, beta, algo, mode});
-        dout = tensor<T>{in_dim}.generate([&](int n, int c, int h, int w) {
-            T x      = input(n, c, h, w);
-            double y = (877 * n + 547 * c + 701 * h + 1049 * w + static_cast<int>(769 * x)) % 2503;
-            return ((x * y) / 1301.0);
-        });
-        din  = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
-        verify(verify_backward_sofmax<T>{out, dout, din, alpha, beta, algo, mode});
-    }
-};*/
-
 TEST_P(GPU_Softmax_FP32, TestFloat) { this->Run(); }
-//TEST_P(GPU_Softmax_FP16, TestFloat16) { this->Run(); }
+TEST_P(GPU_Softmax_FP16, TestFloat16) { this->Run(); }
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Softmax_FP32, GetCases<float>());
-//INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Softmax_FP16, GetCases<half_float::half>());
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Softmax_FP32, GetCases<float>());
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Softmax_FP16, GetCases<half_float::half>());
