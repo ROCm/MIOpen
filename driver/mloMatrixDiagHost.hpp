@@ -121,7 +121,7 @@ int32_t mloMatrixSetDiagForwardRunHost(const miopenTensorDescriptor_t inputDesc,
 }
 
 template <typename T>
-int32_t mloMatrixDiagPartForwardRunHost(const miopenTensorDescriptor_t /*inputDesc*/,
+int32_t mloMatrixDiagPartForwardRunHost(const miopenTensorDescriptor_t inputDesc,
                                         const miopenTensorDescriptor_t padDesc,
                                         const miopenTensorDescriptor_t outputDesc,
                                         const T* input,
@@ -134,12 +134,12 @@ int32_t mloMatrixDiagPartForwardRunHost(const miopenTensorDescriptor_t /*inputDe
     auto padSize = (pad != nullptr ? miopen::deref(padDesc).GetElementSize() : 0);
     auto outSize = miopen::deref(outputDesc).GetElementSize();
 
-    auto outShape = miopen::deref(outputDesc).GetLengths();
-    auto M        = outShape[outShape.size() - 2];
-    auto N        = outShape[outShape.size() - 1];
+    auto inShape = miopen::deref(inputDesc).GetLengths();
+    auto M       = inShape[inShape.size() - 2];
+    auto N       = inShape[inShape.size() - 1];
 
     int max_diag_len = std::min(M + std::min(k1, 0L), N + std::min(-k0, 0L));
-    T padding_val    = (padSize > 0 ? pad[0] : static_cast<T>(0));
+    T padding_val    = padSize > 0 ? pad[0] : static_cast<T>(0);
 
     par_ford(outSize)([&](size_t gid) {
         T val;

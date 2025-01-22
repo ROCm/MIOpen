@@ -125,16 +125,14 @@ int MatrixSetDiagDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
         miopenEnableProfiling(GetHandle(), true);
     }
 
-    auto inputTensorParam = inflags.GetValueTensor("input-shape");
-    auto input_length     = inputTensorParam.lengths;
+    auto input_length = inflags.GetValueVectorUint64("input-shape");
     if(input_length.empty())
     {
         std::cout << "Input tensor must not be empty";
         return miopenStatusBadParm;
     }
 
-    auto diagTensorParam = inflags.GetValueTensor("diagonal-shape");
-    auto diag_length     = diagTensorParam.lengths;
+    auto diag_length = inflags.GetValueVectorUint64("diagonal-shape");
     if(diag_length.empty())
     {
         std::cout << "Diagonal tensor must not be empty";
@@ -198,7 +196,7 @@ int MatrixSetDiagDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "input-shape", 'I', "2,3,4", "Shape of input tensor (Default=2,3,4)", "vector<uint>");
     inflags.AddInputFlag(
-        "diagonal-shape", 'P', "2,3", "Shape of diagonal tensor (Default=2,3)", "vector<uint>");
+        "diagonal-shape", 'D', "2,3", "Shape of diagonal tensor (Default=2,3)", "vector<uint>");
     inflags.AddInputFlag(
         "k0",
         'k',
@@ -259,7 +257,7 @@ int MatrixSetDiagDriver<T>::AllocateBuffersAndCopy()
     input       = std::vector<T>(input_sz);
     diag        = std::vector<T>(diag_sz);
     output      = std::vector<T>(out_sz, std::numeric_limits<T>::quiet_NaN());
-    output_grad = std::vector<T>(out_sz);
+    output_grad = std::vector<T>(out_sz, static_cast<T>(1));
     input_grad  = std::vector<T>(input_sz, std::numeric_limits<T>::quiet_NaN());
     diag_grad   = std::vector<T>(diag_sz, std::numeric_limits<T>::quiet_NaN());
 
@@ -272,9 +270,6 @@ int MatrixSetDiagDriver<T>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < diag_sz; i++)
         diag[i] = prng::gen_A_to_B<T>(static_cast<T>(-1e-5), static_cast<T>(1e-6));
-
-    for(int i = 0; i < out_sz; i++)
-        output_grad[i] = prng::gen_A_to_B<T>(static_cast<T>(-1e-5), static_cast<T>(1e-6));
 
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
     {
@@ -331,11 +326,11 @@ int MatrixSetDiagDriver<T>::RunForwardGPU()
     {
         miopenMatrixSetDiagForward(GetHandle(),
                                    inputDesc,
-                                   input_dev.get(),
+                                   input_dev->GetMem(),
                                    diagDesc,
-                                   diag_dev.get(),
+                                   diag_dev->GetMem(),
                                    outputDesc,
-                                   output_dev.get(),
+                                   output_dev->GetMem(),
                                    k0,
                                    k1,
                                    align);
@@ -399,11 +394,11 @@ int MatrixSetDiagDriver<T>::RunBackwardGPU()
     {
         miopenMatrixSetDiagBackward(GetHandle(),
                                     outputGradDesc,
-                                    output_grad_dev.get(),
+                                    output_grad_dev->GetMem(),
                                     inputGradDesc,
-                                    input_grad_dev.get(),
+                                    input_grad_dev->GetMem(),
                                     diagGradDesc,
-                                    diag_grad_dev.get(),
+                                    diag_grad_dev->GetMem(),
                                     k0,
                                     k1,
                                     align);
@@ -462,13 +457,13 @@ int MatrixSetDiagDriver<T>::VerifyForward()
 
     if(error_output != 0)
     {
-        std::cout << "Backward MatrixSetDiag Output FAILED: " << error_output << " != " << 0
+        std::cout << "Forward MatrixSetDiag Output FAILED: " << error_output << " != " << 0
                   << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Backward MatrixSetDiag Output Verifies OK on CPU reference (" << error_output
+        std::cout << "Forward MatrixSetDiag Output Verifies OK on CPU reference (" << error_output
                   << " = " << 0 << ')' << std::endl;
     }
 

@@ -119,16 +119,14 @@ int MatrixDiagPartDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
         miopenEnableProfiling(GetHandle(), true);
     }
 
-    auto inputTensorParam = inflags.GetValueTensor("input-shape");
-    auto input_length     = inputTensorParam.lengths;
+    auto input_length = inflags.GetValueVectorUint64("input-shape");
     if(input_length.size() < 2)
     {
         std::cout << "Input tensor must have at least 2 dimensions";
         return miopenStatusBadParm;
     }
 
-    auto padTensorParam = inflags.GetValueTensor("padding-shape");
-    auto pad_length     = padTensorParam.lengths;
+    auto pad_length = inflags.GetValueVectorUint64("padding-shape");
     if(pad_length.empty())
     {
         std::cout << "Padding tensor must not be empty";
@@ -262,9 +260,9 @@ int MatrixDiagPartDriver<T>::AllocateBuffersAndCopy()
     input_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_sz, sizeof(T)));
 
     input       = std::vector<T>(input_sz);
-    pad         = std::vector<T>(pad_sz);
+    pad         = std::vector<T>(pad_sz, static_cast<T>(0));
     output      = std::vector<T>(out_sz, std::numeric_limits<T>::quiet_NaN());
-    output_grad = std::vector<T>(out_sz);
+    output_grad = std::vector<T>(out_sz, static_cast<T>(1));
     input_grad  = std::vector<T>(input_sz, std::numeric_limits<T>::quiet_NaN());
 
     output_host     = std::vector<T>(out_sz, std::numeric_limits<T>::quiet_NaN());
@@ -272,12 +270,6 @@ int MatrixDiagPartDriver<T>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < input_sz; i++)
         input[i] = prng::gen_A_to_B<T>(static_cast<T>(-1e-5), static_cast<T>(1e-6));
-
-    for(int i = 0; i < pad_sz; i++)
-        pad[i] = prng::gen_A_to_B<T>(static_cast<T>(-1e-5), static_cast<T>(1e-6));
-
-    for(int i = 0; i < out_sz; i++)
-        output_grad[i] = prng::gen_A_to_B<T>(static_cast<T>(-1e-5), static_cast<T>(1e-6));
 
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
     {
@@ -327,11 +319,11 @@ int MatrixDiagPartDriver<T>::RunForwardGPU()
     {
         miopenMatrixDiagPartForward(GetHandle(),
                                     inputDesc,
-                                    input_dev.get(),
+                                    input_dev->GetMem(),
                                     padDesc,
-                                    pad_dev.get(),
+                                    pad_dev->GetMem(),
                                     outputDesc,
-                                    output_dev.get(),
+                                    output_dev->GetMem(),
                                     k0,
                                     k1,
                                     align);
@@ -394,9 +386,9 @@ int MatrixDiagPartDriver<T>::RunBackwardGPU()
     {
         miopenMatrixDiagPartBackward(GetHandle(),
                                      outputGradDesc,
-                                     output_grad_dev.get(),
+                                     output_grad_dev->GetMem(),
                                      inputGradDesc,
-                                     input_grad_dev.get(),
+                                     input_grad_dev->GetMem(),
                                      k0,
                                      k1,
                                      align);
@@ -456,13 +448,13 @@ int MatrixDiagPartDriver<T>::VerifyForward()
 
     if(error_output != 0)
     {
-        std::cout << "Backward MatrixDiagPart Output FAILED: " << error_output << " != " << 0
+        std::cout << "Forward MatrixDiagPart Output FAILED: " << error_output << " != " << 0
                   << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Backward MatrixDiagPart Output Verifies OK on CPU reference (" << error_output
+        std::cout << "Forward MatrixDiagPart Output Verifies OK on CPU reference (" << error_output
                   << " = " << 0 << ')' << std::endl;
     }
 

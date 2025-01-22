@@ -28,11 +28,11 @@
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    if(base_arg == "matrix_diag")
+    if(base_arg == "matrixdiagpart")
         return new MatrixDiagPartDriver<float>();
-    if(base_arg == "matrix_diagfp16")
+    if(base_arg == "matrixdiagpartfp16")
         return new MatrixDiagPartDriver<float16>();
-    if(base_arg == "matrix_diagbfp16")
+    if(base_arg == "matrixdiagpartbfp16")
         return new MatrixDiagPartDriver<bfloat16>();
     return nullptr;
 }

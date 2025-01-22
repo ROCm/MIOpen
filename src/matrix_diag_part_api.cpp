@@ -55,7 +55,7 @@ static void LogCmdMatrixDiagPart(const miopenTensorDescriptor_t inputDesc,
     if(miopen::IsLoggingCmd())
     {
         std::stringstream ss;
-        auto dtype = miopen::deref(padDesc).GetType();
+        auto dtype = miopen::deref(inputDesc).GetType();
         if(dtype == miopenHalf)
         {
             ss << "matrixdiagpartfp16";
@@ -69,7 +69,7 @@ static void LogCmdMatrixDiagPart(const miopenTensorDescriptor_t inputDesc,
             ss << "matrixdiagpartbfp16";
         }
 
-        MIOPEN_LOG_FUNCTION(padDesc);
+        MIOPEN_LOG_FUNCTION(inputDesc, padDesc, outputDesc);
         ss << " -I " << miopen::deref(inputDesc).GetLengths();
         ss << " -Si " << miopen::deref(inputDesc).GetStrides();
         if(is_fwd)

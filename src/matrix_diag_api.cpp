@@ -69,7 +69,7 @@ static void LogCmdMatrixDiag(const miopenTensorDescriptor_t diagDesc,
             ss << "matrixdiagbfp16";
         }
 
-        MIOPEN_LOG_FUNCTION(diagDesc);
+        MIOPEN_LOG_FUNCTION(diagDesc, padDesc, outputDesc);
         ss << " -D " << miopen::deref(diagDesc).GetLengths();
         ss << " -Sd " << miopen::deref(diagDesc).GetStrides();
         if(is_fwd)
@@ -135,7 +135,7 @@ extern "C" miopenStatus_t miopenMatrixDiagBackward(const miopenHandle_t handle,
                         diagOffset1,
                         align);
 
-    LogCmdMatrixDiag(diagGradDesc, nullptr, outputGradDesc, diagOffset0, diagOffset1, align, true);
+    LogCmdMatrixDiag(diagGradDesc, nullptr, outputGradDesc, diagOffset0, diagOffset1, align, false);
     return miopen::try_([&] {
         miopen::MatrixDiagBackward(miopen::deref(handle),
                                    miopen::deref(outputGradDesc),

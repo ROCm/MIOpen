@@ -24,15 +24,15 @@
  *
  *******************************************************************************/
 #include "registry_driver_maker.hpp"
-#include "matrix_diag_set_driver.hpp"
+#include "matrix_set_diag_driver.hpp"
 
 static Driver* makeDriver(const std::string& base_arg)
 {
-    if(base_arg == "matrix_diag")
+    if(base_arg == "matrixsetdiag")
         return new MatrixSetDiagDriver<float>();
-    if(base_arg == "matrix_diagfp16")
+    if(base_arg == "matrixsetdiagfp16")
         return new MatrixSetDiagDriver<float16>();
-    if(base_arg == "matrix_diagbfp16")
+    if(base_arg == "matrixsetdiagbfp16")
         return new MatrixSetDiagDriver<bfloat16>();
     return nullptr;
 }

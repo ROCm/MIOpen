@@ -119,16 +119,14 @@ int MatrixDiagDriver<T>::ParseCmdLineArgs(int argc, char* argv[])
         miopenEnableProfiling(GetHandle(), true);
     }
 
-    auto diagTensorParam = inflags.GetValueTensor("diagonal-shape");
-    auto diag_length     = diagTensorParam.lengths;
+    auto diag_length = inflags.GetValueVectorUint64("diagonal-shape");
     if(diag_length.empty())
     {
         std::cout << "Diagonal tensor must not be empty";
         return miopenStatusBadParm;
     }
 
-    auto padTensorParam = inflags.GetValueTensor("padding-shape");
-    auto pad_length     = padTensorParam.lengths;
+    auto pad_length = inflags.GetValueVectorUint64("padding-shape");
     if(pad_length.empty())
     {
         std::cout << "Padding tensor must not be empty";
@@ -154,9 +152,13 @@ int MatrixDiagDriver<T>::GetandSetData()
     k0               = inflags.GetValueInt("k0");
     k1               = inflags.GetValueInt("k1");
     auto num_rows    = inflags.GetValueUint64("num-rows");
-    auto num_cols    = inflags.GetValueUint64("num-cols");
-    auto out_length  = diag_length;
-    if(k0 != k1)
+    if(num_rows == 0)
+        num_rows = diag_length.back();
+    auto num_cols = inflags.GetValueUint64("num-cols");
+    if(num_cols == 0)
+        num_cols = diag_length.back();
+    auto out_length = diag_length;
+    if(k0 == k1)
         out_length.push_back(0);
     out_length[out_length.size() - 2] = num_rows;
     out_length[out_length.size() - 1] = num_cols;
@@ -218,14 +220,14 @@ int MatrixDiagDriver<T>::AddCmdLineArgs()
     inflags.AddInputFlag("num-rows",
                          'R',
                          "0",
-                         "The number of rows of the output matrix. If it is not provided, the op "
+                         "The number of rows of the output matrix. If it is 0, the op "
                          "assumes the output matrix is a square matrix and infers the matrix size "
                          "from k and the innermost dimension of diagonal. (Default=0)",
                          "uint");
     inflags.AddInputFlag("num-cols",
                          'C',
                          "0",
-                         "The number of columns of the output matrix. If it is not provided, the "
+                         "The number of columns of the output matrix. If it is 0, the "
                          "op assumes the output matrix is a square matrix and infers the matrix "
                          "size from k and the innermost dimension of diagonal. (Default=0)",
                          "uint");
@@ -267,9 +269,9 @@ int MatrixDiagDriver<T>::AllocateBuffersAndCopy()
     diag_grad_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, diag_sz, sizeof(T)));
 
     diag        = std::vector<T>(diag_sz);
-    pad         = std::vector<T>(pad_sz);
+    pad         = std::vector<T>(pad_sz, static_cast<T>(0));
     output      = std::vector<T>(out_sz, std::numeric_limits<T>::quiet_NaN());
-    output_grad = std::vector<T>(out_sz);
+    output_grad = std::vector<T>(out_sz, static_cast<T>(1));
     diag_grad   = std::vector<T>(diag_sz, std::numeric_limits<T>::quiet_NaN());
 
     output_host    = std::vector<T>(out_sz, std::numeric_limits<T>::quiet_NaN());
@@ -277,12 +279,6 @@ int MatrixDiagDriver<T>::AllocateBuffersAndCopy()
 
     for(int i = 0; i < diag_sz; i++)
         diag[i] = prng::gen_A_to_B<T>(static_cast<T>(-1e-5), static_cast<T>(1e-6));
-
-    for(int i = 0; i < pad_sz; i++)
-        pad[i] = prng::gen_A_to_B<T>(static_cast<T>(-1e-5), static_cast<T>(1e-6));
-
-    for(int i = 0; i < out_sz; i++)
-        output_grad[i] = prng::gen_A_to_B<T>(static_cast<T>(-1e-5), static_cast<T>(1e-6));
 
     if(diag_dev->ToGPU(GetStream(), diag.data()) != 0)
     {
@@ -332,11 +328,11 @@ int MatrixDiagDriver<T>::RunForwardGPU()
     {
         miopenMatrixDiagForward(GetHandle(),
                                 diagDesc,
-                                diag_dev.get(),
+                                diag_dev->GetMem(),
                                 padDesc,
-                                pad_dev.get(),
+                                pad_dev->GetMem(),
                                 outputDesc,
-                                output_dev.get(),
+                                output_dev->GetMem(),
                                 k0,
                                 k1,
                                 align);
@@ -400,9 +396,9 @@ int MatrixDiagDriver<T>::RunBackwardGPU()
     {
         miopenMatrixDiagBackward(GetHandle(),
                                  outputGradDesc,
-                                 output_grad_dev.get(),
+                                 output_grad_dev->GetMem(),
                                  diagGradDesc,
-                                 diag_grad_dev.get(),
+                                 diag_grad_dev->GetMem(),
                                  k0,
                                  k1,
                                  align);
@@ -461,13 +457,13 @@ int MatrixDiagDriver<T>::VerifyForward()
 
     if(error_output != 0)
     {
-        std::cout << "Backward MatrixDiag Output FAILED: " << error_output << " != " << 0
+        std::cout << "Forward MatrixDiag Output FAILED: " << error_output << " != " << 0
                   << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        std::cout << "Backward MatrixDiag Output Verifies OK on CPU reference (" << error_output
+        std::cout << "Forward MatrixDiag Output Verifies OK on CPU reference (" << error_output
                   << " = " << 0 << ')' << std::endl;
     }
 
