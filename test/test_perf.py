@@ -35,7 +35,7 @@ import time
 from decimal import Decimal
 import multiprocessing as mp
 
-curr_path = os.path.abspath(os.path.dirname(__file__))
+curr_path = os.path.abspath(os.getcwd())
 results_path = curr_path + "/perf_results"
 TOLERANCE = -5  #tolerance 5%
 
