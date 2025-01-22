@@ -10,7 +10,7 @@ A key element for ensuring the best performance is to do tuning on the shapes us
 MIOpen uses the following to decide upon the best solver to be used for a requested convolution:
 
 * User DB:  This stores the results of previous tunings and by default is found in "~/.config/miopen", although this can be changed.
-* System DB.  This is part of the MIOpen install files and has specific shapes that the MIOpen team have saved tuning choices.
+* System DB:  This is part of the MIOpen install files and has specific shapes that the MIOpen team has saved as tuning choices.
 * Heuristics.  This is a model trained on the shapes and solvers so that it picks the best solver and parameters.
   The goal is that this is within 90% of what can be achieved by specific tuning for the given shape,
   but manual tuning is expected to often give somewhat better results.
