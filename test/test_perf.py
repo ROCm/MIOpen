@@ -36,7 +36,7 @@ from decimal import Decimal
 import multiprocessing as mp
 
 curr_path = os.path.abspath(os.getcwd())
-results_path = curr_path + "/perf_results"
+default_results_path = curr_path + "/perf_results"
 TOLERANCE = -5  #tolerance 5%
 
 re_Elapsed = re.compile(r"(\d*\.*\d+)")
@@ -52,11 +52,11 @@ class Manager(mp.Process):
   """Queue manager"""
 
   def __init__(self, **kwargs):
-    allowed_keys = set(['filename', 'install_path', 'overrride'])
+    allowed_keys = set(['filename', 'install_path', 'override', 'results_path'])
     self.filename = None
     self.install_path = None
     self.override = False
-    self.results_path = f"{curr_path}/perf_results"
+    self.results_path = f"{default_results_path}"
     self.__dict__.update(
         (key, value) for key, value in kwargs.items() if key in allowed_keys)
 
@@ -265,6 +265,11 @@ def parse_args():
                       dest='old_results_path',
                       type=str,
                       help='Specify full path to old results directory')
+  parser.add_argument('--results_path',
+                      dest='results_path',
+                      default=default_results_path
+                      type=str,
+                      help='Specify full path to output results directory')
   parser.add_argument('--override',
                       dest='override',
                       type=str,
@@ -280,12 +285,12 @@ def parse_args():
 
 def compare_results(args):
   """Compare current results with previous results"""
-  if not os.path.exists(results_path):
-    raise ValueError(f"Results path does not exist {results_path}")
+  if not os.path.exists(args.results_path):
+    raise ValueError(f"Results path does not exist {args.results_path}")
   if not os.path.exists(args.old_results_path):
     raise ValueError(f"Old results path does not exist {args.old_results_path}")
 
-  if not compare_file(f"{results_path}/{args.filename}", \
+  if not compare_file(f"{args.results_path}/{args.filename}", \
     f"{args.old_results_path}/{args.filename}"):
     raise ValueError(f"FAILED: {args.filename}")
   print(f"PASSED: {args.filename}")
@@ -332,14 +337,15 @@ def main():
       print(f'ERR: {ex}')
       sys.exit(1)
   else:
-    if not os.path.exists(results_path):
-      os.makedirs(results_path)
+    if not os.path.exists(args.results_path):
+      os.makedirs(args.results_path)
 
     try:
       #run_driver_cmds(f"{args.filename}", args.install_path, args.override)
       manager = Manager(filename=args.filename,
                         install_path=args.install_path,
-                        override=args.override)
+                        override=args.override,
+                        results_path=args.results_path)
       manager.run()
     except Exception as ex:
       print(f'ERR: {ex}')

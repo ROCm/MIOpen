@@ -438,7 +438,7 @@ def RunPerfTest(Map conf=[:]){
                   }
 
                   try{
-                     sh "${miopen_install_path}/bin/test_perf.py --compare_results --old_results_path ${results_dir}/old_results --filename ${filename}"
+                     sh "${miopen_install_path}/bin/test_perf.py --compare_results --old_results_path ${results_dir}/old_results --results_path ${results_dir}/perf_results --filename ${filename}"
                   }
                   catch (Exception err){
                       currentBuild.result = 'SUCCESS'
