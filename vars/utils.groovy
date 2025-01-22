@@ -412,7 +412,7 @@ def RunPerfTest(Map conf=[:]){
         {
             timeout(time: 100, unit: 'MINUTES')
             {
-                cd "$results_dir"
+                dir "$results_dir"
                 //cmake_build(conf)
                 //unstash 'miopen_tar'
                 //sh "tar -zxvf build/miopen-hip-*-Linux-runtime.tar.gz"
