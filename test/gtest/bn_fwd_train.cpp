@@ -116,8 +116,8 @@ TEST_P(GPU_BNFWDTrainSmall3D_FP32, BnV1SmallFWD_TrainC_3DKfp32) {}
 
 // // // fp64
 TEST_P(GPU_BNFWDTrainSmall2D_FP64, DISABLED_BnV1SmallFWD_TrainCKfp64) {}
-TEST_P(GPU_BNFWDTrainLarge2D_FP64, DISABLED_BnV2LargeFWD_TrainCKfp64) {}
-TEST_P(GPU_BNFWDTrainLarge2D_FP64, DISABLED_BnV2LargeFWD_TrainCKfp64) {}
+TEST_P(GPU_BNFWDTrainLarge2D_FP64, DISABLED_BnV2Large2DFWD_TrainCKfp64) {}
+TEST_P(GPU_BNFWDTrainSmall3D_FP64, DISABLED_BnV2Large3DFWD_TrainCKfp64) {}
 
 // fp16
 
@@ -142,7 +142,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({testBNAPIV1, testBNAPIV2})),
                          TestNameGenerator<BN3DTestCase>());
 
-// // bfp16
+// bfp16
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BNCKFWDTrainLarge2D_BFP16,
                          testing::Combine(testing::ValuesIn(Network2DSmall<BN2DTestCase>()),
@@ -163,7 +163,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCDHW}),
                                           testing::ValuesIn({testBNAPIV1, testBNAPIV2})),
                          TestNameGenerator<BN3DTestCase>());
-// // fp32
+// fp32
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BNFWDTrainSmall2D_FP32,
                          testing::Combine(testing::ValuesIn(Network2DSmall<BN2DTestCase>()),
@@ -184,7 +184,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW}),
                                           testing::ValuesIn({testBNAPIV2})),
                          TestNameGenerator<BN2DTestCase>());
-// // fp64
+// fp64
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_BNFWDTrainSmall2D_FP64,
                          testing::Combine(testing::ValuesIn(Network2DSmall<BN2DTestCase>()),
