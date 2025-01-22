@@ -1117,8 +1117,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     const auto isFp16                 = problem.IsFp16();
     const auto isGfx90aFp16altSupport = (ctx.GetStream().GetDeviceName() == "gfx90a") && isFp16;
-    const bool need_cast              = (problem.IsBfp16() && gemm_k_global_splits >= 1) ||
-                           (isFp16 && gemm_k_global_splits >= 1 &&
+    const bool need_cast              = (problem.IsBfp16() && config.gemm_k_global_split >= 1) ||
+                           (isFp16 && config.gemm_k_global_split >= 1 &&
                             (config.tensor_b_thread_lengths[3] == 1 || config.vector_store == 1));
 
     const auto is_nchw = problem.IsLayoutDefault();

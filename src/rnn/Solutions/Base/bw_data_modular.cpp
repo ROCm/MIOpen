@@ -145,7 +145,7 @@ void RNNBackwardDataModularAlgo::PropHiddenDht(const Handle& handle,
 
     const miopen::TensorDescriptor& filter_src_dsc = BuildLstmFilterHidDesc2D();
 
-    const miopen::TensorDescriptor& ht_dest_dsc = BuildWsHtDesc2D(gemm_batch_size);
+    const miopen::TensorDescriptor& ht_dest_dsc = BuildTmpHtDesc2D(workspaceInfo, gemm_batch_size);
 
     RnnBaseFunctions::BWD_GEMM_Hidden_Prop(
         handle,
@@ -172,127 +172,39 @@ void RNNBackwardDataModularAlgo::UpdateHStatePerTimeSeq(const Handle& handle,
                                                         const SequenceIterator& seq,
                                                         SequenceDirection direction) const
 {
-    // Inited
-    const size_t hidden_vec = rnnDesc.hsize;
-    auto rnn_data_type      = rnnDesc.dataType;
-    auto rnn_mode           = rnnDesc.rnnMode;
-    auto rnn_algo_mode      = rnnDesc.algoMode;
 
-    if(rnn_mode == miopenRNNRELU || rnn_mode == miopenRNNTANH)
-    {
-        // float alpha = 1;
-        // float beta  = 0;
-        //
-        //// activation
-        // auto& activDesc = rnn_mode == miopenRNNRELU ? reluDesc : tanhDesc;
+    const auto [cur_batch, dcy_use_batch, cx_use_batch] =
+        [](const auto& seq, const BatchController& batch_c, const SequenceDirection dir) {
+            auto current_batch = batch_c.getBatchSize(seq.getPhisVal());
+            if(dir == SequenceDirection::Forward)
+            {
+                const auto dcy_batch = seq.isFirst()
+                                           ? current_batch
+                                           : batch_c.getBatchSize(seq.getPrev().getPhisVal());
+                const auto cx_batch  = current_batch;
+                return std::make_tuple(current_batch, dcy_batch, cx_batch);
+            }
+            else
+            {
+                const auto dcy_batch = current_batch;
+                const auto cx_batch =
+                    seq.isLast() ? current_batch : batch_c.getBatchSize(seq.getNext().getPhisVal());
+                return std::make_tuple(current_batch, dcy_batch, cx_batch);
+            }
+        }(seq, batchController, direction);
 
-        /*
-        activDesc.Backward(handle,
-                           &alpha,
-                           dht_desc,
-                           reserveSpace,
-                           dht_desc,
-                           workSpace,
-                           dht_desc,
-                           reserveSpace,
-                           &beta,
-                           sp_desc,
-                           workSpace,
-                           offset + static_cast<size_t>(ri) * wei_len +
-                               static_cast<size_t>(nLayers) * batch_n * hy_stride,
-                           offset + static_cast<size_t>(ri) * wei_len,
-                           offset + static_cast<size_t>(ri) * wei_len,
-                           offset + static_cast<size_t>(ri) * wei_len);
-        */
-    }
-    else if(rnn_mode == miopenLSTM)
-    {
-        if(rnn_algo_mode == miopenRNNdefault)
-        {
-
-            size_t cur_batch = batchController.getBatchSize(seq.getPhisVal());
-
-            const auto [dcy_use_batch, cx_use_batch] = [](const auto& seq,
-                                                          const BatchController& batch_c,
-                                                          const SequenceDirection dir) {
-                auto current_batch = batch_c.getBatchSize(seq.getPhisVal());
-                if(dir == SequenceDirection::Forward)
-                {
-                    const auto dcy_batch = seq.isFirst()
-                                               ? current_batch
-                                               : batch_c.getBatchSize(seq.getPrev().getPhisVal());
-                    const auto cx_batch  = current_batch;
-                    return std::make_tuple(dcy_batch, cx_batch);
-                }
-                else
-                {
-                    const auto dcy_batch = current_batch;
-                    const auto cx_batch  = seq.isLast()
-                                               ? current_batch
-                                               : batch_c.getBatchSize(seq.getNext().getPhisVal());
-                    return std::make_tuple(dcy_batch, cx_batch);
-                }
-            }(seq, batchController, direction);
-
-            size_t cur_comb_dim  = batchController.getBatchSum(seq.getPhisVal());
-            size_t prev_comb_dim = !seq.isFirst()
-                                       ? batchController.getBatchSum(seq.getPrev().getPhisVal())
-                                       : batchController.getBatchSum(seq.getPhisVal());
-            size_t next_comb_dim = !seq.isLast()
-                                       ? batchController.getBatchSum(seq.getNext().getPhisVal())
-                                       : batchController.getBatchSum(seq.getPhisVal());
-
-            LSTMBackwardHiddenStateUpdate(
-                handle,
-                rnn_data_type,
-                seq.isLast(),  // ti == 0,
-                seq.isFirst(), // ti == seqLen - 1,
-                static_cast<int>(direction),
-                batchController.getBatchSize(0),
-                cur_batch,
-                dcy_use_batch,
-                cx_use_batch,
-                hidden_vec,
-                reservLayout.gateStride[1],
-                -666, // unused
-                -666, // unused
-                cx,
-                hiddenHxCxInfo.getOffset(getVirtualLayer(layer, direction), 0),
-                reserveSpace,
-                reservLayout.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::I),
-                reservLayout.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::F),
-                reservLayout.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::O),
-                reservLayout.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::G),
-                reservLayout.getActiveCellOffset(layer, cur_comb_dim, direction),
-                reservLayout.getGasOffset( // TODO
-                    layer,
-                    next_comb_dim,
-                    direction,
-                    LstmGateAndState::St),
-                dcy,
-                hiddenHxCxInfo.getOffset(getVirtualLayer(layer, direction), 0),
-                workSpace,
-                workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::I),
-                workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::F),
-                workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::O),
-                workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::G),
-                workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::St),
-                workspaceInfo.getGasOffset(layer, prev_comb_dim, direction, LstmGateAndState::St),
-                workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::Ht),
-                workspaceInfo.getGasOffset(layer, prev_comb_dim, direction, LstmGateAndState::F));
-        }
-        else
-        {
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "TODO implementation algoMode != miopenRNNdefault");
-            // TODO implementation
-        }
-    }
-    else if(rnn_mode == miopenGRU)
-    {
-        MIOPEN_THROW(miopenStatusInternalError, "TODO implementation miopenGRU");
-        // TODO implementation
-    }
+    return UpdateHStatePerTimeSeq(handle,
+                                  dcy,
+                                  cx,
+                                  nullptr,
+                                  workSpace,
+                                  reserveSpace,
+                                  cur_batch,
+                                  dcy_use_batch,
+                                  cx_use_batch,
+                                  layer,
+                                  seq,
+                                  direction);
 }
 
 void RNNBackwardDataModularAlgo::PropDhxDcx(const Handle& handle,
@@ -363,15 +275,8 @@ void RNNBackwardDataModularAlgo::PropDhxDcx(const Handle& handle,
             const float alpha1 = 1;
             const float beta_t = 1;
 
-            const auto bOffset = rnnDesc.algoMode == miopenRNNdefault
-                                     ? reservLayout.getGasOffset(layer,
-                                                                 acc_batch_offset,
-                                                                 direction,
-                                                                 LstmGateAndState::F)
-                                     : reservLayout.getActiveCellOffset( // TODO double check
-                                           layer,
-                                           acc_batch_offset,
-                                           direction);
+            const auto bOffset =
+                reservLayout.getGasOffset(layer, acc_batch_offset, direction, LstmGateAndState::F);
 
             const auto a_offset = workspaceInfo.getGasOffset(
                 layer, acc_batch_offset, direction, LstmGateAndState::St);
@@ -532,7 +437,7 @@ void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
 
         const auto filter_src_dsc = BuildLstmFilterXDesc2D(layer);
 
-        const auto ht_x_desc = BuildWsHtDesc2D(gemm_batch_size);
+        const auto ht_x_desc = BuildTmpHtDesc2D(workspaceInfo, gemm_batch_size);
 
         RnnBaseFunctions::BWD_GEMM_Hidden_Prop(handle,
                                                workSpace,
@@ -670,6 +575,230 @@ void RNNBackwardDataModularAlgo::PropDx(const Handle& handle,
                                            ht_x_offset,
                                            ht_x_desc,
                                            false);
+}
+
+void RNNBackwardDataModularAlgo::UpdateHStatePerTimeSeq(const Handle& handle,
+                                                        ConstData_t dcy,
+                                                        ConstData_t cx,
+                                                        Data_t,
+                                                        Data_t workSpace,
+                                                        Data_t reserveSpace,
+                                                        size_t batchSizeUpdate,
+                                                        size_t useDcyIfGtBatch,
+                                                        size_t useCxIfGTBatch,
+                                                        int layer,
+                                                        const SequenceIterator& seq,
+                                                        SequenceDirection direction) const
+{
+    // Inited
+    const size_t hidden_vec = rnnDesc.hsize;
+    auto rnn_data_type      = rnnDesc.dataType;
+    auto rnn_mode           = rnnDesc.rnnMode;
+
+    if(rnn_mode == miopenRNNRELU || rnn_mode == miopenRNNTANH) {}
+    else if(rnn_mode == miopenLSTM)
+    {
+
+        size_t cur_comb_dim  = batchController.getBatchSum(seq.getPhisVal());
+        size_t prev_comb_dim = !seq.isFirst()
+                                   ? batchController.getBatchSum(seq.getPrev().getPhisVal())
+                                   : batchController.getBatchSum(seq.getPhisVal());
+        size_t next_comb_dim = !seq.isLast()
+                                   ? batchController.getBatchSum(seq.getNext().getPhisVal())
+                                   : batchController.getBatchSum(seq.getPhisVal());
+
+        LSTMBackwardHiddenStateUpdate(
+            handle,
+            rnn_data_type,
+            seq.isLast(),  // ti == 0,
+            seq.isFirst(), // ti == seqLen - 1,
+            static_cast<int>(direction),
+            batchController.getBatchSize(0),
+            batchSizeUpdate,
+            useDcyIfGtBatch,
+            useCxIfGTBatch,
+            hidden_vec,
+            reservLayout.gateStride[1],
+            -666, // unused
+            -666, // unused
+            cx,
+            hiddenHxCxInfo.getOffset(getVirtualLayer(layer, direction), 0),
+            reserveSpace,
+            reservLayout.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::I),
+            reservLayout.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::F),
+            reservLayout.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::O),
+            reservLayout.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::G),
+            reservLayout.getActiveCellOffset(layer, cur_comb_dim, direction),
+            reservLayout.getGasOffset( // TODO
+                layer,
+                next_comb_dim,
+                direction,
+                LstmGateAndState::St),
+            dcy,
+            hiddenHxCxInfo.getOffset(getVirtualLayer(layer, direction), 0),
+            workSpace,
+            workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::I),
+            workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::F),
+            workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::O),
+            workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::G),
+            workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::St),
+            workspaceInfo.getGasOffset(layer, prev_comb_dim, direction, LstmGateAndState::St),
+            workspaceInfo.getGasOffset(layer, cur_comb_dim, direction, LstmGateAndState::Ht),
+            workspaceInfo.getGasOffset(layer, prev_comb_dim, direction, LstmGateAndState::F));
+    }
+    else if(rnn_mode == miopenGRU)
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "TODO implementation miopenGRU");
+        // TODO implementation
+    }
+}
+
+void RNNBackwardModuleAlgoDynamic::realDyProp(const Handle& handle,
+                                              const runtimeArgsBwdDynamicExt& runtimeArgsExt) const
+{
+    RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(handle,
+                                                            realDyDesc,
+                                                            runtimeArgsExt.realDy,
+                                                            tmpMapDyDesc,
+                                                            runtimeArgsExt.tempDy,
+                                                            nullptr,
+                                                            false);
+}
+
+void RNNBackwardModuleAlgoDynamic::realDxProp(const Handle& handle,
+                                              const runtimeArgsBwdDynamicExt& runtimeArgsExt) const
+{
+    RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(handle,
+                                                            tmpMapDxDesc,
+                                                            runtimeArgsExt.tempDx,
+                                                            realDxDesc,
+                                                            runtimeArgsExt.realDx,
+                                                            nullptr,
+                                                            false);
+}
+
+void RNNBackwardModuleAlgoDynamic::realPropDhy(const Handle& handle,
+                                               ConstData_t dhy,
+                                               Data_t workSpace,
+                                               unsigned int layer,
+                                               const SequenceIterator& currentSeq,
+                                               SequenceDirection direction) const
+{
+    if(dhy == nullptr)
+        return;
+
+    if(direction == SequenceDirection::Reverse && !currentSeq.isFirst())
+        return;
+
+    const auto [copy_batch_size, copy_batch_offset_id] = [](const SequenceIterator& current_seq,
+                                                            const BatchController& b_c) {
+        const auto cur_time_batch = b_c.getBatchSize(current_seq.getPhisVal());
+        const auto prev_time_batch =
+            current_seq.isFirst() ? 0 : b_c.getBatchSize(current_seq.getPrev().getPhisVal());
+
+        size_t dst_batch_offset_id_ = prev_time_batch;
+        size_t dst_batch_size_      = cur_time_batch - prev_time_batch;
+        return std::make_tuple(dst_batch_size_, dst_batch_offset_id_);
+    }(currentSeq, realBatchController);
+
+    // no data so return
+    if(copy_batch_size <= 0)
+        return;
+
+    // ws_dy + dhy
+    const float alpha0 = 1;
+    const float alpha1 = 1;
+    const float beta_t = 0;
+
+    // TODO remove virtual in implementation change getOffset
+    auto virtual_layer      = getVirtualLayer(layer, direction);
+    size_t dhy_layer_offset = hiddenHxCxInfo.getOffset(virtual_layer, copy_batch_offset_id);
+
+    size_t time_batch_offset_id = batchController.getBatchSum(currentSeq.getPhisVal());
+    size_t workspace_dy_offset  = workspaceInfo.getHiddenStateOffset(
+        layer, time_batch_offset_id + copy_batch_offset_id, direction);
+
+    const auto dhy_desc = BuildHxCxDesc3D(1, copy_batch_size);
+
+    const auto workspace_dy_desc = BuildTempDhtDesc3D(1, copy_batch_size);
+
+    OpTensor(handle,
+             miopenTensorOpAdd,
+             &alpha0,
+             dhy_desc,
+             dhy,
+             &alpha1,
+             workspace_dy_desc,
+             workSpace,
+             &beta_t,
+             workspace_dy_desc,
+             workSpace,
+             dhy_layer_offset,
+             workspace_dy_offset,
+             workspace_dy_offset);
+}
+
+void RNNBackwardModuleAlgoDynamic::realUpdateHStatePerTimeSeq(const Handle& handle,
+                                                              ConstData_t dcy,
+                                                              ConstData_t cx,
+                                                              Data_t,
+                                                              Data_t workSpace,
+                                                              Data_t reserveSpace,
+                                                              int layer,
+                                                              const SequenceIterator& seq,
+                                                              SequenceDirection direction) const
+{
+    // Inited
+
+    const auto [cur_batch, dcy_use_batch, cx_use_batch] =
+        [](const auto& seq, const BatchController& batch_c, const SequenceDirection dir) {
+            auto current_batch = batch_c.getBatchSize(seq.getPhisVal());
+            if(dir == SequenceDirection::Forward)
+            {
+                const auto dcy_batch = seq.isFirst()
+                                           ? current_batch
+                                           : batch_c.getBatchSize(seq.getPrev().getPhisVal());
+                const auto cx_batch  = current_batch;
+                return std::make_tuple(current_batch, dcy_batch, cx_batch);
+            }
+            else
+            {
+                const auto dcy_batch = current_batch;
+                const auto cx_batch =
+                    seq.isLast() ? current_batch : batch_c.getBatchSize(seq.getNext().getPhisVal());
+                return std::make_tuple(current_batch, dcy_batch, cx_batch);
+            }
+        }(seq, realBatchController, direction);
+
+    return UpdateHStatePerTimeSeq(handle,
+                                  dcy,
+                                  cx,
+                                  nullptr,
+                                  workSpace,
+                                  reserveSpace,
+                                  cur_batch,
+                                  dcy_use_batch,
+                                  cx_use_batch,
+                                  layer,
+                                  seq,
+                                  direction);
+}
+
+void RNNBackwardModuleAlgoDynamic::PrepareWriteBuffers(
+    const Handle& handle, const runtimeArgsBwdDynamicExt& runtimeArgsExt) const
+{
+    RNNBackwardDataModularAlgo::PrepareWriteBuffers(
+        handle, runtimeArgsExt.dhx, runtimeArgsExt.dcx, runtimeArgsExt.workSpace);
+
+    {
+        float beta        = 0;
+        auto temp_dy_size = buildDynamicVirtual(realDyDesc).GetElementCount();
+        miopen::TensorDescriptor temp_dy_desk{
+            rnnDesc.dataType, {1, temp_dy_size}, {temp_dy_size, 1}};
+        SetTensor(handle, temp_dy_desk, runtimeArgsExt.tempDy, &beta);
+    }
+
+    // realDxProp(handle, runtimeArgsExt);
 }
 
 } // namespace rnn_base

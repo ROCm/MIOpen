@@ -37,7 +37,7 @@ using miopen::graphapi::EngineCfgBuilder;
 
 } // namespace
 
-TEST(CPU_GraphApi_NONE, EngineCfgBuilder)
+TEST(CPU_GraphApiEngineCfgBuilder_NONE, EngineCfgBuilder)
 {
     Engine engine;
 
@@ -62,7 +62,7 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 } // namespace
 
-TEST(CPU_GraphApi_NONE, EngineCfg)
+TEST(CPU_GraphApiEngineCfg_NONE, EngineCfg)
 {
     MockEngineDescriptor engineDescriptor;
 
