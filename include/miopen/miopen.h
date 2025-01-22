@@ -645,34 +645,30 @@ typedef enum
 #endif
 } miopenConvolutionAttrib_t;
 
-/*! @enum miopenConvolutionFindMode_t
- *
- * * Normal: This is the full Find mode call, which will benchmark all the solvers and return a
- * list.
- *
- * * Fast: Checks the Find-db for an entry. If there is a hit, use that entry. If there is a miss,
- * utilize the Immediate mode fallback. If Start-up times are expected to be faster, but worse GPU
- * performance.
- *
- * * Hybrid: Checks the Find-db for an entry. If there is a hit, use that entry. If there is a miss,
- * use the existing Find machinery. Slower start-up times than Fast Find, but no GPU performance
- * drop.
- *
- * * Dynamic Hybrid: Checks the Find-db for an entry. If there is a hit, uses that entry. If there
- * is a miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving
- * compilation time.slow-compiling kernels. Faster start-up times than Hybrid Find, but GPU
- * performance may be a bit worse.
- *
- * * The default find mode may be queried by using the miopenGetConvolutionFindMode API described
- * below
+/*! @ingroup convolutions
+ *  @enum miopenConvolutionFindMode_t
+ * Findmode for convolution descriptor, used for changing the find behavior when calling
+ * miopenFindConvolutionForwardAlgorithm(), miopenFindConvolutionBackwardDataAlgorithm(), or
+ * miopenFindConvolutionBackwardWeightsAlgorithm().
  */
 typedef enum
 {
-    miopenConvolutionFindModeNormal        = 1, /*!< Normal mode */
-    miopenConvolutionFindModeFast          = 2, /*!< Fast mode */
-    miopenConvolutionFindModeHybrid        = 3, /*!< Hybrid mode */
-    miopenConvolutionFindModeReserved_4    = 4, /*!< Reserved - do not use */
-    miopenConvolutionFindModeDynamicHybrid = 5, /*!< Dynamic Hybrid mode */
+    miopenConvolutionFindModeNormal =
+        1, /*!< Full Find mode call, which will benchmark all the solvers and return a list. >*/
+    miopenConvolutionFindModeFast =
+        2, /*!< Checks the Find-db for an entry. If there is a hit, use that entry. If there is a
+              miss, utilize the Immediate mode fallback. Start-up times are expected to be faster,
+              but worse GPU performance. >*/
+    miopenConvolutionFindModeHybrid =
+        3, /*!< Checks the Find-db for an entry. If there is a hit, use that entry. If there is a
+              miss, use the existing Find machinery. Slower start-up times than Fast Find, but
+              better GPU performance. >*/
+    // miopenConvolutionFindModeReserved_4 = 4, /*!< Reserved - do not use */
+    miopenConvolutionFindModeDynamicHybrid =
+        5, /*!< Checks the Find-db for an entry. If there is a hit, uses that entry. If there is a
+              miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving
+              compilation time. Faster start-up times than Hybrid Find, but GPU performance may be a
+              bit worse. >*/
 } miopenConvolutionFindMode_t;
 
 /** @addtogroup tensor
@@ -1202,7 +1198,7 @@ MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionAttribute(miopenConvolutionDesc
 /*! @brief Sets the Find Mode attribute in the convolution descriptor.
  *
  * The subsequent calls of miopenFindConvolutionForwardAlgorithm(),
- * miopenFindConvolutionBakwardDataAlgorithm(), miopenFindConvolutionBakwardDataAlgorithm(),
+ * miopenFindConvolutionBackwardDataAlgorithm(), or miopenFindConvolutionBackwardWeightsAlgorithm()
  * invoked with convDesc, will follow the findMode set by this call.
  *
  * Note that the default Find Mode is overriden by the MIOPEN_FIND_MODE environment variable,
