@@ -1,11 +1,11 @@
-//def shared_library_branch = scm.branches[0].name
-//if (shared_library_branch .contains("*/")) {
-//    shared_library_branch  = shared_library_branch.split("\\*/")[1]
-//   }
-//def util_lib="jenkins-shared@${shared_library_branch}"
-//echo "${util_lib}"
+def shared_library_branch = scm.branches[0].name
+if (shared_library_branch .contains("*/")) {
+    shared_library_branch  = shared_library_branch.split("\\*/")[1]
+   }
+def util_lib="jenkins-shared@${shared_library_branch}"
+echo "${util_lib}"
 
-//library "${util_lib}"
+library "${util_lib}"
 
 def rocmnode(name) {
     return '(rocmtest || miopen) && (' + name + ')'
@@ -39,13 +39,10 @@ pipeline {
             steps{
                 script {
                     echo "Build Docker Stage"
-                    def utils = load "vars/utils.groovy"
+                    //def utils = load "vars/utils.groovy"
                     utils.getDockerImage()
                     def (docker_image, image) = utils.getDockerImage()
                     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network host  --dns 8.8.8.8 "
-                    //docker_image.inside(dockerOpts) {
-                    //    utils.cmake_build(build_install: true, make_targets: "all", needs_cleanup:true)//, miopen_install_path:"/opt/rocm"
-                    //}
 
                     withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
                         perftest_image = "${image}_perftest"
@@ -63,12 +60,12 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
+                        //def utils = load "vars/utils.groovy"
                         def docker_image = docker.image(perftest_image)
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
-                }
+                }/*
                 stage('Fp32 BS256 Hip Performance Resnet50_v1.5 gfx90A'){
                     when {
                         expression {params.PERF_TEST_FP32}
@@ -791,7 +788,7 @@ pipeline {
                         utils.RunPerfTest(filename: "VGG19_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
-                }
+                }*/
             }
         }
   }
