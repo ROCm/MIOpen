@@ -419,13 +419,12 @@ def RunPerfTest(Map conf=[:]){
                 if(params.PERF_TEST_OVERRIDE != '')
                 {
                     echo "Appending MIOpenDriver cmd env vars: ${params.PERF_TEST_OVERRIDE}"
-                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --override ${params.PERF_TEST_OVERRRIDE}"
+                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results --override ${params.PERF_TEST_OVERRRIDE}"
                 }else
                 {
-                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path}"
+                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
                 }
                 archiveArtifacts artifacts: "install/bin/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
-                //sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path}"
                 jenkins_url = "${env.artifact_path}/MIOpenPerf/lastSuccessfulBuild/artifact"
                 if(params.COMPARE_TO_BASE)
                 {
