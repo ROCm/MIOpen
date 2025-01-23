@@ -77,60 +77,60 @@ TEST_P(GPU_MatrixDiagPartBackward_BFP16, Test)
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MatrixDiagPartForward_FP32,
-                         testing::ValuesIn(MatrixDiagPartSmokeTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartFwdSmokeTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MatrixDiagPartForward_FP16,
-                         testing::ValuesIn(MatrixDiagPartSmokeTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartFwdSmokeTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MatrixDiagPartForward_BFP16,
-                         testing::ValuesIn(MatrixDiagPartSmokeTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartFwdSmokeTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Perf,
                          GPU_MatrixDiagPartForward_FP32,
-                         testing::ValuesIn(MatrixDiagPartPerfTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartFwdPerfTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Perf,
                          GPU_MatrixDiagPartForward_FP16,
-                         testing::ValuesIn(MatrixDiagPartPerfTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartFwdPerfTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Perf,
                          GPU_MatrixDiagPartForward_BFP16,
-                         testing::ValuesIn(MatrixDiagPartPerfTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartFwdPerfTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_MatrixDiagPartForward_FP32,
-                         testing::ValuesIn(MatrixDiagPartFullTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartFwdFullTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_MatrixDiagPartForward_FP16,
-                         testing::ValuesIn(MatrixDiagPartFullTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartFwdFullTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_MatrixDiagPartForward_BFP16,
-                         testing::ValuesIn(MatrixDiagPartFullTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartFwdFullTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MatrixDiagPartBackward_FP32,
-                         testing::ValuesIn(MatrixDiagPartSmokeTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartBwdSmokeTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MatrixDiagPartBackward_FP16,
-                         testing::ValuesIn(MatrixDiagPartSmokeTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartBwdSmokeTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MatrixDiagPartBackward_BFP16,
-                         testing::ValuesIn(MatrixDiagPartSmokeTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartBwdSmokeTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Perf,
                          GPU_MatrixDiagPartBackward_FP32,
-                         testing::ValuesIn(MatrixDiagPartPerfTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartBwdPerfTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Perf,
                          GPU_MatrixDiagPartBackward_FP16,
-                         testing::ValuesIn(MatrixDiagPartPerfTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartBwdPerfTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Perf,
                          GPU_MatrixDiagPartBackward_BFP16,
-                         testing::ValuesIn(MatrixDiagPartPerfTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartBwdPerfTestConfigs()));
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_MatrixDiagPartBackward_FP32,
-                         testing::ValuesIn(MatrixDiagPartFullTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartBwdFullTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_MatrixDiagPartBackward_FP16,
-                         testing::ValuesIn(MatrixDiagPartFullTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartBwdFullTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_MatrixDiagPartBackward_BFP16,
-                         testing::ValuesIn(MatrixDiagPartFullTestConfigs()));
+                         testing::ValuesIn(MatrixDiagPartBwdFullTestConfigs()));

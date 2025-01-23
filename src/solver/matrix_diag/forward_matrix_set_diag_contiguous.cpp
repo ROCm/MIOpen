@@ -38,10 +38,25 @@ namespace solver {
 
 namespace matrix_diag {
 
+namespace {
+bool ImprovementOverRocm(const miopen::matrix_diag::MatrixSetDiagForwardProblemDescription& problem)
+{
+    size_t totalMemAccess = problem.GetInputDesc().GetElementSize() +
+                            problem.GetDiagDesc().GetElementSize() +
+                            problem.GetOutputDesc().GetElementSize();
+    // 2^20 is number observed from experiment on MI250
+    if(problem.IsOneDiagonal() && totalMemAccess > (1ul << 20))
+        return false;
+    return true;
+}
+} // namespace
+
 bool MatrixSetDiagForwardContiguous::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::matrix_diag::MatrixSetDiagForwardProblemDescription& problem) const
 {
+    if(!ImprovementOverRocm(problem))
+        return false;
     if(!problem.IsAllContiguous())
         return false;
     return true;

@@ -38,10 +38,25 @@ namespace solver {
 
 namespace matrix_diag {
 
+namespace {
+bool ImprovementOverRocm(
+    const miopen::matrix_diag::MatrixSetDiagBackwardProblemDescription& problem)
+{
+    size_t totalMemAccess = problem.GetInputGradDesc().GetElementSize() * 2 +
+                            problem.GetDiagGradDesc().GetElementSize() * 2;
+    // 2^24 is number observed from experiment on MI250
+    if(problem.IsOneDiagonal() && totalMemAccess > (1ul << 24))
+        return false;
+    return true;
+}
+} // namespace
+
 bool MatrixSetDiagBackwardContiguous::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::matrix_diag::MatrixSetDiagBackwardProblemDescription& problem) const
 {
+    if(!ImprovementOverRocm(problem))
+        return false;
     if(!problem.IsAllContiguous())
         return false;
     return true;
@@ -93,7 +108,7 @@ ConvSolution MatrixSetDiagBackwardContiguous::GetSolution(
 
             int kernelCnt = 0;
 
-            // Calculate Input gradient
+            // Calculate Input gradient using MatrixSetDiag
             if(params.inputGrad != nullptr)
             {
                 decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
@@ -112,7 +127,7 @@ ConvSolution MatrixSetDiagBackwardContiguous::GetSolution(
                        deref(params.outputGradDesc).GetElementSize() == 1);
             }
 
-            // Calculate Diagonal gradient
+            // Calculate Diagonal gradient using MatrixDiagPart
             if(params.diagGrad != nullptr)
             {
                 decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);

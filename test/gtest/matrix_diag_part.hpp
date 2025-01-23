@@ -81,7 +81,27 @@ MatrixDiagPartConfigs(const std::vector<MatrixDiagPartTestcase> configs)
     return tcs;
 }
 
-inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartSmokeTestConfigs()
+inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartFwdSmokeTestConfigs()
+{
+    return MatrixDiagPartConfigs({{{2, 3, 4}, -1, 2}, {{2, 3, 4}, -2, -1}, {{2, 3, 4}, 1, 3}});
+}
+
+inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartFwdPerfTestConfigs()
+{
+    return MatrixDiagPartConfigs({});
+}
+
+inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartFwdFullTestConfigs()
+{
+    std::vector<MatrixDiagPartTestcase> tcs;
+    auto smoke_test = MatrixDiagPartFwdSmokeTestConfigs();
+    auto perf_test  = MatrixDiagPartFwdPerfTestConfigs();
+    tcs.insert(tcs.end(), smoke_test.begin(), smoke_test.end());
+    tcs.insert(tcs.end(), perf_test.begin(), perf_test.end());
+    return tcs;
+}
+
+inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartBwdSmokeTestConfigs()
 {
     return MatrixDiagPartConfigs({{{2, 3, 4}, 0, 0},
                                   {{2, 3, 4}, 1, 1},
@@ -90,24 +110,18 @@ inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartSmokeTestConfigs()
                                   {{2, 3, 4}, 1, 3}});
 }
 
-inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartPerfTestConfigs()
+inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartBwdPerfTestConfigs()
 {
     return MatrixDiagPartConfigs({});
 }
 
-inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartFullTestConfigs()
+inline std::vector<MatrixDiagPartTestcase> MatrixDiagPartBwdFullTestConfigs()
 {
     std::vector<MatrixDiagPartTestcase> tcs;
-
-    auto smoke_test = MatrixDiagPartSmokeTestConfigs();
-    auto perf_test  = MatrixDiagPartPerfTestConfigs();
-
-    tcs.reserve(smoke_test.size() + perf_test.size());
-    for(const auto& test : smoke_test)
-        tcs.push_back(test);
-    for(const auto& test : perf_test)
-        tcs.push_back(test);
-
+    auto smoke_test = MatrixDiagPartBwdSmokeTestConfigs();
+    auto perf_test  = MatrixDiagPartBwdPerfTestConfigs();
+    tcs.insert(tcs.end(), smoke_test.begin(), smoke_test.end());
+    tcs.insert(tcs.end(), perf_test.begin(), perf_test.end());
     return tcs;
 }
 

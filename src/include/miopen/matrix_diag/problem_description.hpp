@@ -59,7 +59,31 @@ bool IsValidMatrixDiag(const TensorDescriptor& padDesc,
                        bool hasPad,
                        bool hasDiag);
 
-struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
+struct MatrixDiagProblemDescriptionBase : ProblemDescriptionBase
+{
+    MatrixDiagProblemDescriptionBase(const int64_t diagOffset0_,
+                                     const int64_t diagOffset1_,
+                                     const miopenMatrixDiagAlignMode_t align_)
+        : diagOffset0(diagOffset0_), diagOffset1(diagOffset1_), align(align_)
+    {
+    }
+
+    miopenMatrixDiagAlignMode_t GetAlign() const { return align; }
+
+    bool IsOneDiagonal() const
+    {
+        if(diagOffset0 != diagOffset1)
+            return false;
+        return true;
+    }
+
+protected:
+    int64_t diagOffset0;
+    int64_t diagOffset1;
+    const miopenMatrixDiagAlignMode_t align;
+};
+
+struct MatrixSetDiagForwardProblemDescription : MatrixDiagProblemDescriptionBase
 {
     MatrixSetDiagForwardProblemDescription(const TensorDescriptor& inputDesc_,
                                            const TensorDescriptor& diagDesc_,
@@ -72,12 +96,10 @@ struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
                                            const std::string diag_alias_name_,
                                            const std::string output_alias_name_,
                                            const bool hasInput)
-        : inputDesc(inputDesc_),
+        : MatrixDiagProblemDescriptionBase(diagOffset0_, diagOffset1_, align_),
+          inputDesc(inputDesc_),
           diagDesc(diagDesc_),
           outputDesc(outputDesc_),
-          diagOffset0(diagOffset0_),
-          diagOffset1(diagOffset1_),
-          align(align_),
           refer_name(refer_name_),
           input_alias_name(input_alias_name_),
           diag_alias_name(diag_alias_name_),
@@ -96,8 +118,9 @@ struct MatrixSetDiagForwardProblemDescription : ProblemDescriptionBase
                           true);
     }
 
+    const TensorDescriptor& GetInputDesc() const { return inputDesc; }
+    const TensorDescriptor& GetDiagDesc() const { return diagDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    miopenMatrixDiagAlignMode_t GetAlign() const { return align; }
 
     bool IsAllContiguous() const
     {
@@ -116,9 +139,6 @@ private:
     const TensorDescriptor inputDesc;
     const TensorDescriptor diagDesc;
     const TensorDescriptor outputDesc;
-    const int64_t diagOffset0;
-    const int64_t diagOffset1;
-    const miopenMatrixDiagAlignMode_t align;
 
     const std::string refer_name;
     const std::string input_alias_name;
@@ -126,7 +146,7 @@ private:
     const std::string output_alias_name;
 };
 
-struct MatrixSetDiagBackwardProblemDescription : ProblemDescriptionBase
+struct MatrixSetDiagBackwardProblemDescription : MatrixDiagProblemDescriptionBase
 {
     MatrixSetDiagBackwardProblemDescription(const TensorDescriptor& outputGradDesc_,
                                             const TensorDescriptor& inputGradDesc_,
@@ -134,12 +154,10 @@ struct MatrixSetDiagBackwardProblemDescription : ProblemDescriptionBase
                                             const int64_t diagOffset0_,
                                             const int64_t diagOffset1_,
                                             const miopenMatrixDiagAlignMode_t align_)
-        : outputGradDesc(outputGradDesc_),
+        : MatrixDiagProblemDescriptionBase(diagOffset0_, diagOffset1_, align_),
+          outputGradDesc(outputGradDesc_),
           inputGradDesc(inputGradDesc_),
-          diagGradDesc(diagGradDesc_),
-          diagOffset0(diagOffset0_),
-          diagOffset1(diagOffset1_),
-          align(align_)
+          diagGradDesc(diagGradDesc_)
     {
         IsValidMatrixDiag(outputGradDesc,
                           outputGradDesc,
@@ -168,7 +186,6 @@ struct MatrixSetDiagBackwardProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
     const TensorDescriptor& GetDiagGradDesc() const { return diagGradDesc; }
-    miopenMatrixDiagAlignMode_t GetAlign() const { return align; }
 
     bool IsAllContiguous() const
     {
@@ -187,12 +204,9 @@ private:
     const TensorDescriptor outputGradDesc;
     const TensorDescriptor inputGradDesc;
     const TensorDescriptor diagGradDesc;
-    const int64_t diagOffset0;
-    const int64_t diagOffset1;
-    const miopenMatrixDiagAlignMode_t align;
 };
 
-struct MatrixDiagPartForwardProblemDescription : ProblemDescriptionBase
+struct MatrixDiagPartForwardProblemDescription : MatrixDiagProblemDescriptionBase
 {
     MatrixDiagPartForwardProblemDescription(const TensorDescriptor& inputDesc_,
                                             const TensorDescriptor& padDesc_,
@@ -205,12 +219,10 @@ struct MatrixDiagPartForwardProblemDescription : ProblemDescriptionBase
                                             const std::string pad_alias_name_,
                                             const std::string output_alias_name_,
                                             const bool hasPad)
-        : inputDesc(inputDesc_),
+        : MatrixDiagProblemDescriptionBase(diagOffset0_, diagOffset1_, align_),
+          inputDesc(inputDesc_),
           padDesc(padDesc_),
           outputDesc(outputDesc_),
-          diagOffset0(diagOffset0_),
-          diagOffset1(diagOffset1_),
-          align(align_),
           refer_name(refer_name_),
           input_alias_name(input_alias_name_),
           pad_alias_name(pad_alias_name_),
@@ -230,7 +242,6 @@ struct MatrixDiagPartForwardProblemDescription : ProblemDescriptionBase
     }
 
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    miopenMatrixDiagAlignMode_t GetAlign() const { return align; }
 
     bool IsAllContiguous() const
     {
@@ -249,9 +260,6 @@ private:
     const TensorDescriptor inputDesc;
     const TensorDescriptor padDesc;
     const TensorDescriptor outputDesc;
-    const int64_t diagOffset0;
-    const int64_t diagOffset1;
-    const miopenMatrixDiagAlignMode_t align;
 
     const std::string refer_name;
     const std::string input_alias_name;

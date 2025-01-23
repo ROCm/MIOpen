@@ -83,30 +83,45 @@ MatrixSetDiagConfigs(const std::vector<MatrixSetDiagTestcase> configs)
     return tcs;
 }
 
-inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagSmokeTestConfigs()
+inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagFwdSmokeTestConfigs()
 {
     return MatrixSetDiagConfigs(
         {{{2, 3, 4}, {2, 3}, 0, 0}, {{2, 3, 4}, {2, 3}, 1, 1}, {{2, 3, 4}, {2, 4, 3}, -1, 2}});
 }
 
-inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagPerfTestConfigs()
+inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagFwdPerfTestConfigs()
 {
     return MatrixSetDiagConfigs({});
 }
 
-inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagFullTestConfigs()
+inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagFwdFullTestConfigs()
 {
     std::vector<MatrixSetDiagTestcase> tcs;
+    auto smoke_test = MatrixSetDiagFwdSmokeTestConfigs();
+    auto perf_test  = MatrixSetDiagFwdPerfTestConfigs();
+    tcs.insert(tcs.end(), smoke_test.begin(), smoke_test.end());
+    tcs.insert(tcs.end(), perf_test.begin(), perf_test.end());
+    return tcs;
+}
 
-    auto smoke_test = MatrixSetDiagSmokeTestConfigs();
-    auto perf_test  = MatrixSetDiagPerfTestConfigs();
+inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagBwdSmokeTestConfigs()
+{
+    return MatrixSetDiagConfigs(
+        {{{2, 3, 4}, {2, 3}, 0, 0}, {{2, 3, 4}, {2, 3}, 1, 1}, {{2, 3, 4}, {2, 4, 3}, -1, 2}});
+}
 
-    tcs.reserve(smoke_test.size() + perf_test.size());
-    for(const auto& test : smoke_test)
-        tcs.push_back(test);
-    for(const auto& test : perf_test)
-        tcs.push_back(test);
+inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagBwdPerfTestConfigs()
+{
+    return MatrixSetDiagConfigs({});
+}
 
+inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagBwdFullTestConfigs()
+{
+    std::vector<MatrixSetDiagTestcase> tcs;
+    auto smoke_test = MatrixSetDiagBwdSmokeTestConfigs();
+    auto perf_test  = MatrixSetDiagBwdPerfTestConfigs();
+    tcs.insert(tcs.end(), smoke_test.begin(), smoke_test.end());
+    tcs.insert(tcs.end(), perf_test.begin(), perf_test.end());
     return tcs;
 }
 
