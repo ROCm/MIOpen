@@ -27,6 +27,7 @@ pipeline {
       NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
       NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
       perftest_image  = "perftest_image"
+      library "jenkins-shared@${get_branch_name()}"
   }
   parameters {
     booleanParam(name: 'COMPARE_TO_BASE', defaultValue : true, description: 'Compare test results to base results')
@@ -41,7 +42,6 @@ pipeline {
             steps{
                 script {
                     echo "Build Docker Stage"
-                    library "jenkins-shared@${get_branch_name()}"
                     //def utils = load "vars/utils.groovy"
                     utils.getDockerImage()
                     def (docker_image, image) = utils.getDockerImage()
