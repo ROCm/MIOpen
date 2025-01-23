@@ -30,12 +30,10 @@
 #if MIOPEN_USE_FP32 == 1
 #define HIP_FLOAT float
 #define __float2T(x) (x)
-#define custom_pow(x, y) (powf(x, y))
 #elif MIOPEN_USE_FP16 == 1
 #include <hip/hip_fp16.h>
 #define HIP_FLOAT __half
 #define __float2T(x) (__float2half(x))
-#define custom_pow(x, y) (hexp(hlog(x) * y))
 #endif
 
 #include "float_types.h"
@@ -61,6 +59,20 @@ extern "C" __global__ void NormalizeReduceContiguous(const FLOAT* __restrict__ i
 
     if(lid == 0)
         output[gid_0] = CVT_ACCUM2FLOAT(sum);
+}
+
+__device__ HIP_FLOAT custom_pow(HIP_FLOAT x, HIP_FLOAT y)
+{
+    if(y == __float2T(1.0f))
+        return x;
+    else if(y == __float2T(2.0f))
+        return x * x;
+    else
+#if MIOPEN_USE_FP32 == 1
+        return powf(x, y);
+#elif MIOPEN_USE_FP16 == 1
+        return hexp(hlog(x) * y);
+#endif
 }
 
 template <typename T>
