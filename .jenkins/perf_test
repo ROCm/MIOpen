@@ -1,4 +1,6 @@
-library "jenkins-shared@${get_branch_name()}"
+def rocmnode(name) {
+    return '(rocmtest || miopen) && (' + name + ')'
+}
 
 def get_branch_name(){
     def shared_library_branch = scm.branches[0].name
@@ -9,9 +11,7 @@ def get_branch_name(){
     return shared_library_branch
 }
 
-def rocmnode(name) {
-    return '(rocmtest || miopen) && (' + name + ')'
-}
+library "jenkins-shared@${get_branch_name()}"
 
 pipeline {
   agent{ label rocmnode("gfx90a") }
@@ -62,7 +62,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        //def utils = load "vars/utils.groovy"
                         def docker_image = docker.image(perftest_image)
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: docker_image)
                         }
@@ -74,7 +73,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -85,7 +83,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -96,7 +93,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -107,7 +103,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -118,7 +113,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -129,7 +123,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Alexnet_v1_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -140,7 +133,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Alexnet_v1_FP16_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -151,7 +143,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS4.txt", docker_image: docker_image)
                         }
                     }
@@ -162,7 +153,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS64.txt", docker_image: docker_image)
                         }
                     }
@@ -173,7 +163,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -184,7 +173,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -195,7 +183,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Densenet201_v1_FP16_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -206,7 +193,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Densenet201_v1_FP32_BS256.txt",  docker_image: docker_image)
                         }
                     }
@@ -217,7 +203,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Densenet_v1_FP16_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -228,7 +213,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Densenet_v1_FP32_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -239,7 +223,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Googlenet_v1_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -250,7 +233,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Googlenet_v1_FP16_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -261,7 +243,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Googlenet_v1_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -272,7 +253,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Googlenet_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -283,7 +263,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Inception3_v1_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -294,7 +273,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Inception3_v1_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -305,7 +283,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Inception3_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -316,7 +293,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Inception4_v1_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -327,7 +303,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Inception4_v1_FP16_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -338,7 +313,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Inception4_v1_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -349,7 +323,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Inception4_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -360,7 +333,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Mobilenet_v1_FP32_BS4.txt", docker_image: docker_image)
                         }
                     }
@@ -371,7 +343,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Mobilenet_v1_FP32_BS64.txt", docker_image: docker_image)
                         }
                     }
@@ -382,7 +353,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS32.txt", docker_image: docker_image)
                         }
                     }
@@ -393,7 +363,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -404,7 +373,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -415,7 +383,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -426,7 +393,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -437,7 +403,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -448,7 +413,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -459,7 +423,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet152_v1_FP16_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -470,7 +433,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet152_v1_FP32_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -481,7 +443,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet152_v2_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -492,7 +453,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet152_v2_FP16_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -503,7 +463,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet152_v2_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -514,7 +473,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet152_v2_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -526,7 +484,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS32.txt", docker_image: docker_image)
                         }
                     }
@@ -538,7 +495,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS64.txt", docker_image: docker_image)
                         }
                     }
@@ -550,7 +506,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -562,7 +517,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -574,7 +528,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -586,7 +539,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -598,7 +550,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -610,7 +561,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -621,7 +571,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "Shufflenet_v2_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -632,7 +581,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "SSD_v1_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -643,7 +591,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "SSD_v1_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -654,7 +601,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG11_v1_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -665,7 +611,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG11_v1_FP16_BS256.txt", docker_image: docker_image)
                         }
                     }
@@ -676,7 +621,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG11_v1_FP16_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -687,7 +631,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG11_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -698,7 +641,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG16_v1_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -709,7 +651,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG16_v1_FP32_BS4.txt", docker_image: docker_image)
                         }
                     }
@@ -720,7 +661,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG16_v1_FP32_BS64.txt", docker_image: docker_image)
                         }
                     }
@@ -731,7 +671,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG16_v1_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -742,7 +681,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG16_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -753,7 +691,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG19_v1_FP16_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -764,7 +701,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG19_v1_FP16_BS512.txt", docker_image: docker_image)
                         }
                     }
@@ -775,7 +711,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG19_v1_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
@@ -786,7 +721,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.RunPerfTest(filename: "VGG19_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }

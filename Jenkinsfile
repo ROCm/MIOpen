@@ -2,17 +2,16 @@ def rocmnode(name) {
     return '(rocmtest || miopen) && (' + name + ')'
 }
 
-//def shared_library_branch = scm.branches[0].name
-//if (shared_library_branch .contains("*/")) {
-//    shared_library_branch  = shared_library_branch.split("\\*/")[1]
-//   }
-//def util_lib="jenkins-shared@${shared_library_branch}"
-//echo "${util_lib}"
+def get_branch_name(){
+    def shared_library_branch = scm.branches[0].name
+    if (shared_library_branch .contains("*/")) {
+        shared_library_branch  = shared_library_branch.split("\\*/")[1]
+    }
+    echo "${shared_library_branch}"
+    return shared_library_branch
+}
 
-//library "${util_lib}"
-
-//library "jenkins-shared@$branch_name"
-//def utils = load "vars/utils.groovy"
+library "jenkins-shared@${get_branch_name()}"
 
 /// Stage name format:
 /// [DataType] Backend[/Compiler] BuildType [TestSet] [Target]
@@ -158,7 +157,6 @@ pipeline {
             agent{ label rocmnode("gfx90a") }
             steps{
                 script {
-                def utils = load "vars/utils.groovy"
                 utils.getDockerImage()
                 }
             }
@@ -172,7 +170,6 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot( package_build: "true", needs_gpu:false, needs_reboot:false, needs_cleanup:true)
                         }
                     }
@@ -192,7 +189,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false, needs_cleanup:true)
                         }
                     }
@@ -212,7 +208,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false, needs_reboot:false, needs_cleanup:true)
                         }
                     }
@@ -229,7 +224,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJob( build_type: 'debug', setup_flags: HipNoGPU_flags, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false, needs_cleanup:true)
                         }
                     }
@@ -241,7 +235,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
 		                    utils.buildHipClangJobAndReboot(setup_flags: fin_flags, make_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: true, needs_cleanup:true)
                         }
                     }
@@ -264,7 +257,6 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot(make_targets: Smoke_targets, build_install: true, needs_cleanup:true)
                         }
                     }
@@ -280,7 +272,6 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: true, needs_cleanup:true)
                         }
                     }
@@ -296,7 +287,6 @@ pipeline {
                     agent{ label rocmnode("gfx908") }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: true, needs_cleanup:true)
                         }
                     }
@@ -312,7 +302,6 @@ pipeline {
                     agent{ label rocmnode("gfx94X") }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true, needs_cleanup:true)
                         }
                     }
@@ -339,7 +328,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCOMGR_flags, build_cmd: NOCOMGR_build_cmd, test_flags: ' --verbose ', build_install: true, needs_cleanup:true)
                         }
                     }
@@ -359,7 +347,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ', build_install: true, needs_cleanup:true)
                         }
                     }
@@ -375,7 +362,6 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", make_targets: "", build_install: true, needs_cleanup:true)
                         }
                     }
@@ -394,7 +380,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ', build_install: true, needs_cleanup:true)
                         }
                     }
@@ -410,7 +395,6 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF', build_install: true, needs_cleanup:true)
                         }
                     }
@@ -430,7 +414,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot(make_targets: make_targets, execute_cmd: execute_cmd, find_mode: "Normal", build_install: true, needs_cleanup:true)
                         }
                     }
@@ -450,7 +433,6 @@ pipeline {
                     }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot( make_targets: make_targets, execute_cmd: execute_cmd, build_install: true, needs_cleanup:true)
                         }
                     }
@@ -466,7 +448,6 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot(needs_cleanup:true)
                         }
                     }
@@ -482,7 +463,6 @@ pipeline {
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On", build_install: true, needs_cleanup:true)
                         }
                     }
@@ -520,7 +500,6 @@ pipeline {
                     agent{ label rocmnode("vega20") }
                     steps{
                         script {
-                        def utils = load "vars/utils.groovy"
                         utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: true, needs_cleanup:true)
                         }
                     }
