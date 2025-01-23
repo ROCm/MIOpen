@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/buffer_info.hpp"
 #include "miopen/miopen.h"
 #include "miopen/mlo_internal.hpp"
 #include "miopen/tensor.hpp"
@@ -56,7 +55,9 @@ bool NormalizeBackward::IsApplicable(
     const ExecutionContext& context,
     const miopen::normalize::BackwardProblemDescription& problem) const
 {
-    if(!(problem.GetInputDesc().GetType() == miopenFloat))
+    if(!(problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
         return false;
     if(!IsImprovementOverROCm(context, problem))
         return false;
@@ -200,7 +201,7 @@ std::size_t NormalizeBackward::GetWorkspaceSize(
     const miopen::normalize::BackwardProblemDescription& problem) const
 {
     return problem.GetInputDesc().GetElementSize() / problem.GetInnerSize() *
-           get_data_size(miopenFloat);
+           get_data_size(problem.GetInputDesc().GetType());
 }
 
 } // namespace normalize
