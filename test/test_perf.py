@@ -146,6 +146,7 @@ class Manager(mp.Process):
     results = []
     while not results_queue.empty():
       results.append(results_queue.get())
+    results.sort()
     self.write_to_file(results)
 
   def parse_result(self, result):
@@ -304,7 +305,9 @@ def compare_file(new_results, old_results):
             'r', encoding='utf-8') as new, open(old_results,
                                                 'r',
                                                 encoding='utf-8') as old:
-    for line_new, line_old in zip(csv.DictReader(new), csv.DictReader(old)):
+    csv_new = csv.DictReader(new).sort(key=lambda x: x['Driver'])
+    csv_old = csv.DictReader(old).sort(key=lambda x: x['Driver'])
+    for line_new, line_old in zip(csv_new, csv_old):
       if line_new['Driver'] != line_old['Driver']:
         print(f"New driver: {line_new['Driver']}")
         print(f"Old driver: {line_old['Driver']}")
