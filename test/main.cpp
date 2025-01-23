@@ -206,14 +206,7 @@ struct conv_forward : output_tensor_fixture
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
 
-#if MIOPEN_BUILD_DEV
-            miopenHandle_t handle2{};
-            STATUS(miopenCreate(&handle2));
-
-            miopenHandle_t& used_handle = handle2;
-#else
             miopenHandle_t& used_handle = handle;
-#endif
 
             STATUS(miopenEnableProfiling(used_handle, Profile));
 
@@ -248,10 +241,6 @@ struct conv_forward : output_tensor_fixture
                                             wspace.size()));
 
             STATUS(miopenGetKernelTime(used_handle, &time));
-
-#if MIOPEN_BUILD_DEV
-            STATUS(miopenDestroy(handle2));
-#endif
         }).join();
 
         if(Profile)
