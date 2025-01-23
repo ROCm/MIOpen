@@ -96,7 +96,11 @@ inline std::vector<BNTestCase> NetworkLarge()
         {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {128, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {128, 256, 16, 16, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {670, 1, 224, 224, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1}};
+        {670, 1, 224, 224, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {768, 1, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {768, 1, 23, 23, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {832, 1, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {832, 1, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1}};
 }
 
 template <>
