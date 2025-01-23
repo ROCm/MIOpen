@@ -101,7 +101,7 @@ struct UnitTestConvSolverParams
     bool use_cpu_ref;
     bool enable_deprecated_solvers;
     bool tunable;
-    bool disable_xnack;
+    bool check_xnack_disabled;
     std::size_t tuning_iterations_max;
 };
 
