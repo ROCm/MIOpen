@@ -127,7 +127,7 @@ auto GetCases()
 } // namespace
 
 template <typename T>
-struct TensorOpsCommon : public testing::TestWithParam<TestCase>
+struct SoftmaxCommon : public testing::TestWithParam<TestCase>
 {
     void SetUp() override { prng::reset_seed(); }
 
@@ -487,8 +487,8 @@ private:
     tensor<T> dout;
 };
 
-using GPU_Softmax_FP32 = TensorOpsCommon<float>;
-using GPU_Softmax_FP16 = TensorOpsCommon<half_float::half>;
+using GPU_Softmax_FP32 = SoftmaxCommon<float>;
+using GPU_Softmax_FP16 = SoftmaxCommon<half_float::half>;
 
 TEST_P(GPU_Softmax_FP32, TestFloat) { this->Run(); }
 TEST_P(GPU_Softmax_FP16, TestFloat16) { this->Run(); }
