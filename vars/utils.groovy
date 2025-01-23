@@ -427,7 +427,7 @@ def RunPerfTest(Map conf=[:]){
                 {
                   try {
                       sh "rm -rf ${results_dir}/old_results/"
-                      sh "wget -P ${results_dir}/old_results/ ${jenkins_url}/results/perf_results/${filename}"
+                      sh "wget -P ${results_dir}/old_results/ ${jenkins_url}/${filename}"
                   }
                   catch (Exception err){
                       currentBuild.result = 'SUCCESS'
