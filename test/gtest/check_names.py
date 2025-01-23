@@ -154,7 +154,7 @@ def check_names_uniqueness() :
             error_count += 1
             cases_count += len(occurences[key])
 
-    print ("Gtest folder test class names uniqness check, total files checked: " + str(files_count) + ", total errors = " + str(error_count) + ". Total files with duplicates = " + str(cases_count))
+    print ("Gtest folder test class names uniqueness check, total cpp-files checked: " + str(files_count) + ", total errors = " + str(error_count) + ". Total files with duplicates = " + str(cases_count))
 
     if error_count > 0:
         return -1
@@ -163,10 +163,15 @@ def check_names_uniqueness() :
 
 def main():
     """Main function"""
+    print("Step 1")
     args = parse_args()
     naming_check_result = check_naming_schema(args)
+
+    print("Step 2")
     if naming_check_result < 0:
         return naming_check_result
+
+    print("Step 3")
 
     return check_names_uniqueness()
 
