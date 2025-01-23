@@ -1,11 +1,13 @@
-def shared_library_branch = scm.branches[0].name
-if (shared_library_branch .contains("*/")) {
-    shared_library_branch  = shared_library_branch.split("\\*/")[1]
-   }
-def util_lib="jenkins-shared@${shared_library_branch}"
-echo "${util_lib}"
+library "jenkins-shared@${get_branch_name()}"
 
-library "${util_lib}"
+def get_branch_name(){
+    def shared_library_branch = scm.branches[0].name
+    if (shared_library_branch .contains("*/")) {
+        shared_library_branch  = shared_library_branch.split("\\*/")[1]
+    }
+    echo "${shared_library_branch}"
+    return shared_library_branch
+}
 
 def rocmnode(name) {
     return '(rocmtest || miopen) && (' + name + ')'
