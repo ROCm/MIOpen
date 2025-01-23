@@ -1,4 +1,4 @@
-//library "jenkins-shared@${get_branch_name()}"
+library "jenkins-shared@${get_branch_name()}"
 
 def get_branch_name(){
     def shared_library_branch = scm.branches[0].name
@@ -37,7 +37,6 @@ pipeline {
     choice(name: 'INSTALL_MIOPEN', choices: ['ON', 'OFF'], description: 'Build/Install MIOpen inside docker')
   }
   stages {
-      library "jenkins-shared@${get_branch_name()}"
         stage('Build Docker'){
             steps{
                 script {
