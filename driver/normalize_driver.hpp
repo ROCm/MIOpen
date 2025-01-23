@@ -203,7 +203,7 @@ private:
     std::vector<Tgpu> input_grad;
     std::vector<Tref> reduce;
     std::vector<Tref> ref_input_grad;
-    float p   = 2;
+    float p;
     float eps = 1e-12;
     int32_t reduce_dim;
 
@@ -228,6 +228,8 @@ int NormalizeDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
     inflags.AddInputFlag("dim", 'd', "2", "The dimension to reduce (Default=2)", "int");
+    inflags.AddInputFlag(
+        "exponent", 'p', "2", "the exponent value in the norm formulation (Default=2)", "double");
 
     return miopenStatusSuccess;
 }
@@ -247,6 +249,7 @@ int NormalizeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         MIOPEN_THROW("Only support backward mode");
     }
     reduce_dim = inflags.GetValueInt("dim");
+    p          = inflags.GetValueDouble("exponent");
     return miopenStatusSuccess;
 }
 
