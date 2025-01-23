@@ -422,7 +422,7 @@ def RunPerfTest(Map conf=[:]){
                     sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
                 }
                 archiveArtifacts artifacts: "results/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
-                jenkins_url = "${env.artifact_path}/MIOpenPerf/lastSuccessfulBuild/artifact"
+                jenkins_url = "${env.artifact_path}/${env.JOB_BASE_NAME}/lastSuccessfulBuild/artifact/results/perf_results"
                 if(params.COMPARE_TO_BASE)
                 {
                   try {

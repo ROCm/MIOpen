@@ -41,7 +41,6 @@ pipeline {
             steps{
                 script {
                     echo "Build Docker Stage"
-                    //def utils = load "vars/utils.groovy"
                     utils.getDockerImage()
                     def (docker_image, image) = utils.getDockerImage()
                     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network host  --dns 8.8.8.8 "
