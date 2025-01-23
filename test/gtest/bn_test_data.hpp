@@ -311,7 +311,7 @@ private:
     void InitTensorsWithRandValue()
     {
         auto gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<ScaleDataType>(1e-2, 100);
+            return prng::gen_descreet_uniform_sign<ScaleDataType>(2e-3, 1000);
         };
         dy.generate(gen_value);
         bnScale.generate(gen_value);
