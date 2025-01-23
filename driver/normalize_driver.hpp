@@ -85,7 +85,7 @@ int32_t mloNormalizeBackwardRunHost(miopenTensorDescriptor_t inputDesc,
                                     Tgpu* divisor,
                                     Tgpu* output_grad,
                                     Tcheck* input_grad,
-                                    float* reduce,
+                                    Tcheck* reduce,
                                     float p,
                                     float eps,
                                     int32_t dim)
@@ -100,13 +100,13 @@ int32_t mloNormalizeBackwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto transpose_output_grad_tv = miopen::move_dims_back(output_grad_tv, dim);
     for(size_t outer = 0; outer < outer_size; outer++)
     {
-        float res = 0;
+        Tcheck res = 0;
         for(size_t inner = 0; inner < inner_size; inner++)
         {
             auto gid = outer * inner_size + inner;
             tensor_layout_t<5> idx(transpose_input_tv, gid);
-            float i  = input[transpose_input_tv.get_tensor_view_idx(idx)];
-            float og = output_grad[transpose_output_grad_tv.get_tensor_view_idx(idx)];
+            Tcheck i  = input[transpose_input_tv.get_tensor_view_idx(idx)];
+            Tcheck og = output_grad[transpose_output_grad_tv.get_tensor_view_idx(idx)];
             res += i * og;
         }
         reduce[outer] = res;
@@ -121,17 +121,17 @@ int32_t mloNormalizeBackwardRunHost(miopenTensorDescriptor_t inputDesc,
         tensor_layout_t<5> idx(input_grad_tv, gid);
         tensor_layout_t<5> div_idx(idx);
         div_idx.layout[dim] = 0;
-        float div           = divisor[divisor_tv.get_tensor_view_idx(div_idx)];
-        float dy            = output_grad[output_grad_tv.get_tensor_view_idx(idx)];
+        Tcheck div          = divisor[divisor_tv.get_tensor_view_idx(div_idx)];
+        Tcheck dy           = output_grad[output_grad_tv.get_tensor_view_idx(idx)];
         if(eps == div)
         {
             input_grad[input_grad_tv.get_tensor_view_idx(idx)] = dy / eps;
         }
         else
         {
-            float x        = input[input_tv.get_tensor_view_idx(idx)];
-            float abs_coef = (x < 0 ? -1 : 1);
-            float tmp      = -1 / div / std::pow(div, p) * std::pow(abs_coef * x, p - 1) * abs_coef;
+            Tcheck x        = input[input_tv.get_tensor_view_idx(idx)];
+            Tcheck abs_coef = (x < 0 ? -1 : 1);
+            Tcheck tmp = -1 / div / std::pow(div, p) * std::pow(abs_coef * x, p - 1) * abs_coef;
             input_grad[input_grad_tv.get_tensor_view_idx(idx)] =
                 reduce[reduce_tv.get_tensor_view_idx(div_idx)] * tmp + dy / div;
         }
@@ -201,7 +201,7 @@ private:
     std::vector<Tgpu> divisor;
     std::vector<Tgpu> output_grad;
     std::vector<Tgpu> input_grad;
-    std::vector<float> reduce;
+    std::vector<Tref> reduce;
     std::vector<Tref> ref_input_grad;
     float p   = 2;
     float eps = 1e-12;
@@ -273,7 +273,7 @@ int NormalizeDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(divisorDesc, div_len, data_type);
     SetTensorNd(outputGradDesc, in_len, data_type);
     SetTensorNd(inputGradDesc, in_len, data_type);
-    SetTensorNd(reduceDesc, div_len, miopenFloat);
+    SetTensorNd(reduceDesc, div_len, miopen_type<Tref>{});
     return miopenStatusSuccess;
 }
 
@@ -329,14 +329,9 @@ int NormalizeDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     input_grad_dev       = std::unique_ptr<GPUMem>(new GPUMem(ctx, input_grad_sz, sizeof(Tgpu)));
     input_grad           = std::vector<Tgpu>(input_grad_sz);
     ref_input_grad       = std::vector<Tref>(input_grad_sz);
-    std::fill(input_grad.begin(), input_grad.end(), 0);
-    std::fill(ref_input_grad.begin(), ref_input_grad.end(), 0);
-    if(input_grad_dev->ToGPU(GetStream(), input_grad.data()) != 0)
-        std::cerr << "Error copying (input_grad) to GPU, size: " << input_grad_dev->GetSize()
-                  << std::endl;
 
     size_t reduce_sz = GetTensorSpace(reduceDesc);
-    reduce           = std::vector<float>(reduce_sz);
+    reduce           = std::vector<Tref>(reduce_sz);
     workspace_dev    = std::make_unique<GPUMem>(ctx, ws_sizeInBytes, sizeof(std::byte));
     return miopenStatusSuccess;
 }
