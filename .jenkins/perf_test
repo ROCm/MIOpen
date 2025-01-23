@@ -5,7 +5,8 @@ if (shared_library_branch .contains("*/")) {
 def util_lib="jenkins-shared@${shared_library_branch}"
 echo "${util_lib}"
 
-library "${util_lib}"
+//library "${util_lib}"
+@Library("${util_lib}")
 
 def rocmnode(name) {
     return '(rocmtest || miopen) && (' + name + ')'
