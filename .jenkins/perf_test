@@ -1,4 +1,4 @@
-library "jenkins-shared@${get_branch_name()}"
+//library "jenkins-shared@${get_branch_name()}"
 
 def get_branch_name(){
     def shared_library_branch = scm.branches[0].name
@@ -41,6 +41,7 @@ pipeline {
             steps{
                 script {
                     echo "Build Docker Stage"
+                    library "jenkins-shared@${get_branch_name()}"
                     //def utils = load "vars/utils.groovy"
                     utils.getDockerImage()
                     def (docker_image, image) = utils.getDockerImage()
