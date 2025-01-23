@@ -658,7 +658,7 @@ typedef enum
     miopenConvolutionFindModeFast =
         2, /*!< Checks the Find-db for an entry. If there is a hit, use that entry. If there is a
               miss, utilize the Immediate mode fallback. Start-up times are expected to be faster,
-              but worse GPU performance. >*/
+              but with worse GPU performance. >*/
     miopenConvolutionFindModeHybrid =
         3, /*!< Checks the Find-db for an entry. If there is a hit, use that entry. If there is a
               miss, use the existing Find machinery. Slower start-up times than Fast Find, but
@@ -667,7 +667,7 @@ typedef enum
     miopenConvolutionFindModeDynamicHybrid =
         5, /*!< Checks the Find-db for an entry. If there is a hit, uses that entry. If there is a
               miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving
-              compilation time. Faster start-up times than Hybrid Find, but GPU performance may be a
+              compilation time. Faster start-up times than Hybrid Find, but GPU performance might be a
               bit worse. >*/
 } miopenConvolutionFindMode_t;
 
