@@ -163,15 +163,11 @@ def check_names_uniqueness() :
 
 def main():
     """Main function"""
-    print("Step 1")
     args = parse_args()
     naming_check_result = check_naming_schema(args)
 
-    print("Step 2")
     if naming_check_result < 0:
         return naming_check_result
-
-    print("Step 3")
 
     return check_names_uniqueness()
 
