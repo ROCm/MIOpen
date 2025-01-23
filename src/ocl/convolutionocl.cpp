@@ -89,7 +89,7 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
     ctx.disable_search_enforce = true;
 
     const auto solver = solver_id.GetSolver();
-    auto db           = GetDb(ctx);
+    auto db           = MakeConvDbGetter(ctx);
     auto solution     = solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
     auto& handle      = ctx.GetStream();
     auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
@@ -603,7 +603,17 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     if(!env::disabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK))
     {
         const static std::string arch = ctx.GetStream().GetDeviceName();
-        auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
+        std::vector<uint64_t> solvers;
+        try
+        {
+            solvers = ai::immed_mode::PredictSolver(problem, ctx, arch);
+        }
+        catch(const miopen::Exception& ex)
+        {
+            MIOPEN_LOG_I2("[Warning] Caught exception: (" << ex.what()
+                                                          << "), passing empty solver vector");
+        }
+
         if(!solvers.empty())
         {
             MIOPEN_LOG_I2("Using TunaNet Fallback");
