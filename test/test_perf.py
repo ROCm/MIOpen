@@ -146,7 +146,7 @@ class Manager(mp.Process):
     results = []
     while not results_queue.empty():
       results.append(results_queue.get())
-    results.sort()
+    results.sort(key=lambda x: x['Driver'])
     self.write_to_file(results)
 
   def parse_result(self, result):
