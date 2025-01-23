@@ -42,7 +42,7 @@
 #include <hip/hip_bfloat16.h>
 #define HIP_FLOAT hip_bfloat16
 #define __float2T(x) (hip_bfloat16(x))
-#define custom_pow(x, y) (powf(float(x), float(y)))
+#define custom_pow(x, y) (hip_bfloat16(powf(float(x), float(y))))
 #endif
 
 #include "float_types.h"
