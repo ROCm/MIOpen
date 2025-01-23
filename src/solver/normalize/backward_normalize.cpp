@@ -56,8 +56,7 @@ bool NormalizeBackward::IsApplicable(
     const miopen::normalize::BackwardProblemDescription& problem) const
 {
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
-         problem.GetInputDesc().GetType() == miopenHalf ||
-         problem.GetInputDesc().GetType() == miopenBFloat16))
+         problem.GetInputDesc().GetType() == miopenHalf))
         return false;
     if(!IsImprovementOverROCm(context, problem))
         return false;
@@ -79,8 +78,6 @@ NormalizeBackward::GetSolution(const ExecutionContext& /*context*/,
     const auto build_params =
         KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
                               {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-                              {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
-                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
                               {"LOCAL_SIZE", LOCAL_SIZE}};
     {
         auto kernel        = KernelInfo{};

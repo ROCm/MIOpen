@@ -36,13 +36,6 @@
 #define HIP_FLOAT __half
 #define __float2T(x) (__float2half(x))
 #define custom_pow(x, y) (hexp(hlog(x) * y))
-#elif MIOPEN_USE_BFP16 == 1
-// Should use <hip/hip_bf16.h> according to https://github.com/ROCm/ROCm/issues/2534 but when
-// include got "error: redefinition of ..."
-#include <hip/hip_bfloat16.h>
-#define HIP_FLOAT hip_bfloat16
-#define __float2T(x) (hip_bfloat16(x))
-#define custom_pow(x, y) (hip_bfloat16(powf(float(x), float(y))))
 #endif
 
 #include "float_types.h"

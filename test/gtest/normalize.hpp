@@ -114,12 +114,10 @@ protected:
         std::generate(output_grad.begin(), output_grad.end(), gen_in_value);
         output_grad_dev = handle.Write(output_grad.data);
 
-        input_grad = GenerateTensor<T>(config.dims, config.cont);
-        std::fill(input_grad.begin(), input_grad.end(), 0);
-        input_grad_dev = handle.Write(input_grad.data);
+        input_grad     = GenerateTensor<T>(config.dims, config.cont);
+        input_grad_dev = handle.Create<T>(input_grad.GetSize());
 
         ref_input_grad = GenerateTensor<T>(config.dims, config.cont);
-        std::fill(ref_input_grad.begin(), ref_input_grad.end(), 0);
 
         ws_sizeInBytes = miopen::GetNormalizeBackwardWorkspaceSize(
             handle, input.desc, divisor.desc, output_grad.desc, input_grad.desc, config.reduce_dim);
@@ -128,9 +126,8 @@ protected:
             GTEST_FAIL() << "Call GetNormalizeBackwardWorkspaceSize failed!";
         if(ws_sizeInBytes > 0)
         {
-            reduce = GenerateTensor<float>(divisor_len, true);
-            std::fill(reduce.begin(), reduce.end(), 0);
-            workspace_dev = handle.Write(reduce.data);
+            reduce        = GenerateTensor<float>(divisor_len, true);
+            workspace_dev = handle.Create<std::byte>(ws_sizeInBytes);
         }
         else
         {
