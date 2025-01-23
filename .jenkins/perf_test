@@ -27,7 +27,6 @@ pipeline {
       NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
       NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
       perftest_image  = "perftest_image"
-      library "jenkins-shared@${get_branch_name()}"
   }
   parameters {
     booleanParam(name: 'COMPARE_TO_BASE', defaultValue : true, description: 'Compare test results to base results')
@@ -38,6 +37,7 @@ pipeline {
     choice(name: 'INSTALL_MIOPEN', choices: ['ON', 'OFF'], description: 'Build/Install MIOpen inside docker')
   }
   stages {
+      library "jenkins-shared@${get_branch_name()}"
         stage('Build Docker'){
             steps{
                 script {
