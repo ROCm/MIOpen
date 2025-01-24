@@ -28,12 +28,12 @@
 #if MIOPEN_BACKEND_HIP
 #include "log.hpp"
 
-TEST(CPU_LOG_TEST_NONE, AssertLogCmdOutput)
+TEST(CPU_LOG_TEST_ASSERT_NONE, AssertLogCmdOutput)
 {
     TestLogFun(miopen::debug::LogCmdConvolution, logConv, true);
 }
 
-TEST(CPU_LOG_TEST_NONE, AssertLogFindCmdOutput)
+TEST(CPU_LOG_TEST_ASSERT_NONE, AssertLogFindCmdOutput)
 {
     TestLogFun(miopen::debug::LogCmdFindConvolution, logFindConv, true);
 }

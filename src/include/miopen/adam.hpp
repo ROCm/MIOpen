@@ -33,7 +33,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t Adam(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t Adam(const Handle& handle,
                                             const TensorDescriptor& paramInDesc,
                                             ConstData_t paramIn,
                                             const TensorDescriptor& paramOutDesc,
@@ -74,7 +74,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t Adam(Handle& handle,
                                             bool is_amp);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
-TransformersAdamW(Handle& handle,
+TransformersAdamW(const Handle& handle,
                   const TensorDescriptor& paramInDesc,
                   ConstData_t paramIn,
                   const TensorDescriptor& paramOutDesc,
