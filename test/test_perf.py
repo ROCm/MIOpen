@@ -177,8 +177,7 @@ class Manager(mp.Process):
           line = line.decode("utf-8")
           line = line.strip()
           #print(line)
-          if (line.find('MIOpenDriver') != -1) and
-             (line.find('MIOpen(HIP)') == -1):  #fragile solution
+          if (line.find('MIOpenDriver') != -1) and (line.find('MIOpen(HIP)') == -1):  #fragile solution
             e.cmd = line
             print(e.cmd)
             continue
