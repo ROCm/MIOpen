@@ -69,6 +69,80 @@ inline size_t getLowerBoundPow2(size_t v)
     return v;
 };
 
+// Decomposing a number into a sum of powers of two.
+class MaskedPow2Range
+{
+public:
+    class Iterator
+    {
+    public:
+        using iterator_category = std::bidirectional_iterator_tag;
+        using difference_type   = size_t;
+        using reference         = size_t;
+        using pointer           = size_t*;
+        using value_type        = size_t;
+
+        static Iterator BuildBegin(size_t mask)
+        {
+            Iterator begin{mask, 0};
+            return (mask & 1) != 0u ? begin : ++begin;
+        }
+
+        static Iterator BuildEnd(size_t mask) { return {mask, MAX_BIT_POS}; }
+
+        Iterator(size_t range_mask, int bit_position) : mask(range_mask), bitPosition(bit_position)
+        {
+        }
+
+        size_t operator*() const { return (1LL) << bitPosition; }
+
+        Iterator& operator++()
+        {
+            bitPosition++;
+            while(bitPosition < MAX_BIT_POS && !BitExistenceCheck())
+            {
+                bitPosition++;
+            }
+            return *this;
+        }
+
+        Iterator& operator--()
+        {
+            if(bitPosition > 0)
+                bitPosition--;
+
+            while(bitPosition > 0 && !BitExistenceCheck())
+            {
+                bitPosition--;
+            }
+            return *this;
+        }
+
+        bool operator!=(const Iterator& other) const { return bitPosition != other.bitPosition; }
+
+    private:
+        size_t mask;
+        unsigned int bitPosition;
+
+        bool BitExistenceCheck() const { return (mask & ((1LL) << bitPosition)) != 0u; }
+
+        static constexpr unsigned int MAX_BIT_POS = sizeof(size_t) * 8;
+    };
+
+    explicit MaskedPow2Range(size_t range_mask) : mask(range_mask) {}
+
+    Iterator begin() const { return Iterator::BuildBegin(mask); }
+
+    Iterator end() const { return Iterator::BuildEnd(mask); }
+
+    auto rbegin() const { return std::reverse_iterator<Iterator>(end()); }
+
+    auto rend() const { return std::reverse_iterator<Iterator>{begin()}; }
+
+private:
+    size_t mask;
+};
+
 } // namespace rnn_dynamic
 
 inline std::vector<size_t> roundedDynamicLengths(const SeqTensorDescriptor& desc)

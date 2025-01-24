@@ -435,22 +435,25 @@ void RNNBackwardWeiModuleAlgoDynamic::HiddenXInputWeights(const Handle& handle,
                                                           size_t layer) const
 {
     const size_t total_seq_cnt = getTimeSeqSize();
-    auto step_size             = rnn_dynamic::getLowerBoundPow2(total_seq_cnt);
 
-    for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
+    size_t seq_it = 0;
+    for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
     {
-        if((total_seq_cnt - seq_it & step_size) != 0)
-        {
-            const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
-            const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
-                                                  ? batchController.getTotalBatchSum()
-                                                  : batchController.getBatchSum(seq_it + step_size)) -
-                                           gemm_batch_offset;
+        // for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
+        //{
+        //     if((total_seq_cnt - seq_it & step_size) != 0)
+        //     {
+        const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+        const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                              ? batchController.getTotalBatchSum()
+                                              : batchController.getBatchSum(seq_it + step_size)) -
+                                       gemm_batch_offset;
 
-            RNNBackwardWeightsModularAlgo::HiddenXInputWeights(
-                handle, dw, workSpace, reserveSpace, layer, gemm_batch_offset, gemm_batch_size);
-            seq_it += step_size;
-        }
+        RNNBackwardWeightsModularAlgo::HiddenXInputWeights(
+            handle, dw, workSpace, reserveSpace, layer, gemm_batch_offset, gemm_batch_size);
+        seq_it += step_size;
+        //    }
+        //}
     }
 }
 
@@ -460,22 +463,25 @@ void RNNBackwardWeiModuleAlgoDynamic::PhisXInputWeights(const Handle& handle,
                                                         ConstData_t x) const
 {
     const size_t total_seq_cnt = getTimeSeqSize();
-    auto step_size             = rnn_dynamic::getLowerBoundPow2(total_seq_cnt);
 
-    for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
+    size_t seq_it = 0;
+    for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
     {
-        if((total_seq_cnt - seq_it & step_size) != 0)
-        {
-            const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
-            const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
-                                                  ? batchController.getTotalBatchSum()
-                                                  : batchController.getBatchSum(seq_it + step_size)) -
-                                           gemm_batch_offset;
+        // for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
+        //{
+        //     if((total_seq_cnt - seq_it & step_size) != 0)
+        //     {
+        const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+        const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                              ? batchController.getTotalBatchSum()
+                                              : batchController.getBatchSum(seq_it + step_size)) -
+                                       gemm_batch_offset;
 
-            RNNBackwardWeightsModularAlgo::PhisXInputWeights(
-                handle, dw, workSpace, x, gemm_batch_offset, gemm_batch_size);
-            seq_it += step_size;
-        }
+        RNNBackwardWeightsModularAlgo::PhisXInputWeights(
+            handle, dw, workSpace, x, gemm_batch_offset, gemm_batch_size);
+        seq_it += step_size;
+        //    }
+        //}
     }
 }
 

@@ -808,22 +808,23 @@ void RNNBackwardModuleAlgoDynamic::PropDx(const Handle& handle,
                                           SequenceDirection direction) const
 {
     const size_t total_seq_cnt = getTimeSeqSize();
-    auto step_size             = rnn_dynamic::getLowerBoundPow2(total_seq_cnt);
 
-    for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
+    size_t seq_it = 0;
+    for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
+    // for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
     {
-        if((total_seq_cnt - seq_it & step_size) != 0)
-        {
-            const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
-            const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
-                                                  ? batchController.getTotalBatchSum()
-                                                  : batchController.getBatchSum(seq_it + step_size)) -
-                                           gemm_batch_offset;
+        //    if((total_seq_cnt - seq_it & step_size) != 0)
+        //      {
+        const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+        const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                              ? batchController.getTotalBatchSum()
+                                              : batchController.getBatchSum(seq_it + step_size)) -
+                                       gemm_batch_offset;
 
-            RNNBackwardDataModularAlgo::PropDx(
-                handle, w, workSpace, dx, direction, gemm_batch_offset, gemm_batch_size);
-            seq_it += step_size;
-        }
+        RNNBackwardDataModularAlgo::PropDx(
+            handle, w, workSpace, dx, direction, gemm_batch_offset, gemm_batch_size);
+        seq_it += step_size;
+        //      }
     }
 }
 
@@ -835,28 +836,31 @@ void RNNBackwardModuleAlgoDynamic::PropHiddenDy(const Handle& handle,
                                                 SequenceDirection direction) const
 {
     const size_t total_seq_cnt = getTimeSeqSize();
-    auto step_size             = rnn_dynamic::getLowerBoundPow2(total_seq_cnt);
 
-    for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
+    size_t seq_it = 0;
+    for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
     {
-        if((total_seq_cnt - seq_it & step_size) != 0)
-        {
-            const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
-            const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
-                                                  ? batchController.getTotalBatchSum()
-                                                  : batchController.getBatchSum(seq_it + step_size)) -
-                                           gemm_batch_offset;
+        // for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
+        //{
+        //    if((total_seq_cnt - seq_it & step_size) != 0)
+        //    {
+        const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+        const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                              ? batchController.getTotalBatchSum()
+                                              : batchController.getBatchSum(seq_it + step_size)) -
+                                       gemm_batch_offset;
 
-            RNNBackwardDataModularAlgo::PropHiddenDy(handle,
-                                                     w,
-                                                     workSpace,
-                                                     reserveSpace,
-                                                     layer,
-                                                     direction,
-                                                     gemm_batch_offset,
-                                                     gemm_batch_size);
-            seq_it += step_size;
-        }
+        RNNBackwardDataModularAlgo::PropHiddenDy(handle,
+                                                 w,
+                                                 workSpace,
+                                                 reserveSpace,
+                                                 layer,
+                                                 direction,
+                                                 gemm_batch_offset,
+                                                 gemm_batch_size);
+        seq_it += step_size;
+        //    }
+        //}
     }
 }
 
