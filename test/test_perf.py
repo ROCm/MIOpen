@@ -305,8 +305,10 @@ def compare_file(new_results, old_results):
             'r', encoding='utf-8') as new, open(old_results,
                                                 'r',
                                                 encoding='utf-8') as old:
-    csv_new = csv.DictReader(new).sort(key=lambda x: x['Driver'])
-    csv_old = csv.DictReader(old).sort(key=lambda x: x['Driver'])
+    csv_new = list(csv.DictReader(new))
+    csv_new.sort(key=lambda x: x['Driver'])
+    csv_old = list(csv.DictReader(old))
+    csv_old.sort(key=lambda x: x['Driver'])
     for line_new, line_old in zip(csv_new, csv_old):
       if line_new['Driver'] != line_old['Driver']:
         print(f"New driver: {line_new['Driver']}")
