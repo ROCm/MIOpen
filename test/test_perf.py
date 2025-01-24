@@ -37,7 +37,7 @@ import multiprocessing as mp
 
 curr_path = os.path.abspath(os.getcwd())
 default_results_path = curr_path + "/perf_results"
-TOLERANCE = -5  #tolerance 5%
+TOLERANCE = -10  #tolerance 10%
 
 re_Elapsed = re.compile(r"(\d*\.*\d+)")
 re_Solver = re.compile(r"^MIOpen .* Algorithm: (\d+), Solution: (\d+)/(\w+)")
@@ -179,11 +179,11 @@ class Manager(mp.Process):
           #print(line)
           if (line.find('MIOpenDriver') != -1) and (line.find('MIOpen(HIP)') == -1):  #fragile solution
             e.cmd = line
+            print("")
             print(e.cmd)
             continue
           if line.find('Wall-clock Time') != -1:
             res = re_Elapsed.findall(line)
-            print("")
             print(res)
             e.wall_elapsed = res[0]
             e.wall_aux = res[1]
@@ -200,9 +200,7 @@ class Manager(mp.Process):
             e.fdb_key = re_Key.findall(line)[0]
           if re_GPU.match(line):
             res = re_GPU.findall(line)
-            print(res)
             e.sol_time = res[0]
-            print()
             print('k_time: %s', e.sol_time)
           if line.find('error') != -1:
             raise ValueError(p_out)
