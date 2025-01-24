@@ -26,7 +26,7 @@ pipeline {
       Smoke_targets   = " check MIOpenDriver"
       NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
       NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
-      perftest_image  = "perftest_image"
+      perftest_image  = docker.image('ubuntu:22.04')
   }
   parameters {
     booleanParam(name: 'COMPARE_TO_BASE', defaultValue : true, description: 'Compare test results to base results')
@@ -41,16 +41,8 @@ pipeline {
             steps{
                 script {
                     echo "Build Docker Stage"
-                    utils.getDockerImage()
-                    def (docker_image, image) = utils.getDockerImage()
-                    def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network host  --dns 8.8.8.8 "
-                    perftest_image = "${image}"
-
-                    //withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
-                    //    perftest_image = "${image}_perftest"
-                    //    sh "docker tag ${image} ${perftest_image}"
-                    //    sh "docker push ${perftest_image}"
-                    //}
+                    def (docker_image, image_name) = utils.getDockerImage()
+                    perftest_image = docker_image
                 }
             }
         }
@@ -62,8 +54,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        def docker_image = docker.image(perftest_image)
-                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -73,7 +64,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -83,7 +74,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -93,7 +84,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -103,7 +94,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -113,7 +104,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -123,7 +114,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Alexnet_v1_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -133,7 +124,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Alexnet_v1_FP16_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP16_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -143,7 +134,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS4.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS4.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -153,7 +144,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS64.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS64.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -163,7 +154,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -173,7 +164,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -183,7 +174,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Densenet201_v1_FP16_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Densenet201_v1_FP16_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -193,7 +184,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Densenet201_v1_FP32_BS256.txt",  docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Densenet201_v1_FP32_BS256.txt",  docker_image: perftest_image)
                         }
                     }
                 }
@@ -203,7 +194,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Densenet_v1_FP16_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Densenet_v1_FP16_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -213,7 +204,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Densenet_v1_FP32_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Densenet_v1_FP32_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -223,7 +214,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Googlenet_v1_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Googlenet_v1_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -233,7 +224,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Googlenet_v1_FP16_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Googlenet_v1_FP16_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -243,7 +234,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Googlenet_v1_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Googlenet_v1_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -253,7 +244,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Googlenet_v1_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Googlenet_v1_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -263,7 +254,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Inception3_v1_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Inception3_v1_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -273,7 +264,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Inception3_v1_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Inception3_v1_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -283,7 +274,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Inception3_v1_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Inception3_v1_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -293,7 +284,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Inception4_v1_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Inception4_v1_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -303,7 +294,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Inception4_v1_FP16_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Inception4_v1_FP16_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -313,7 +304,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Inception4_v1_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Inception4_v1_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -323,7 +314,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Inception4_v1_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Inception4_v1_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -333,7 +324,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Mobilenet_v1_FP32_BS4.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Mobilenet_v1_FP32_BS4.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -343,7 +334,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Mobilenet_v1_FP32_BS64.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Mobilenet_v1_FP32_BS64.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -353,7 +344,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS32.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS32.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -363,7 +354,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -373,7 +364,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -383,7 +374,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -393,7 +384,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -403,7 +394,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -413,7 +404,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -423,7 +414,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet152_v1_FP16_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet152_v1_FP16_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -433,7 +424,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet152_v1_FP32_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet152_v1_FP32_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -443,7 +434,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet152_v2_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet152_v2_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -453,7 +444,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet152_v2_FP16_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet152_v2_FP16_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -463,7 +454,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet152_v2_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet152_v2_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -473,7 +464,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet152_v2_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet152_v2_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -484,7 +475,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS32.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS32.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -495,7 +486,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS64.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS64.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -506,7 +497,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -517,7 +508,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -528,7 +519,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -539,7 +530,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -550,7 +541,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -561,7 +552,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -571,7 +562,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "Shufflenet_v2_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "Shufflenet_v2_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -581,7 +572,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "SSD_v1_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "SSD_v1_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -591,7 +582,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "SSD_v1_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "SSD_v1_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -601,7 +592,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG11_v1_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG11_v1_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -611,7 +602,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG11_v1_FP16_BS256.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG11_v1_FP16_BS256.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -621,7 +612,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG11_v1_FP16_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG11_v1_FP16_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -631,7 +622,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG11_v1_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG11_v1_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -641,7 +632,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG16_v1_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG16_v1_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -651,7 +642,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS4.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS4.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -661,7 +652,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS64.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS64.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -671,7 +662,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -681,7 +672,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -691,7 +682,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG19_v1_FP16_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG19_v1_FP16_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -701,7 +692,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG19_v1_FP16_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG19_v1_FP16_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -711,7 +702,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG19_v1_FP32_BS128.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG19_v1_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
                 }
@@ -721,7 +712,7 @@ pipeline {
                     }
                     steps{
                         script {
-                        utils.RunPerfTest(filename: "VGG19_v1_FP32_BS512.txt", docker_image: docker_image)
+                        utils.RunPerfTest(filename: "VGG19_v1_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
                 }

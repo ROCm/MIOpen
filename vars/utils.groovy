@@ -401,7 +401,6 @@ def RunPerfTest(Map conf=[:]){
     checkout scm
     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
     try {
-        //(retimage, image) = getDockerImage(conf)
         def docker_image = conf.get("docker_image")
         def miopen_install_path = conf.get("miopen_install_path", "/opt/rocm")
         def results_dir = conf.get("results_dir", "${env.WORKSPACE}/results")
