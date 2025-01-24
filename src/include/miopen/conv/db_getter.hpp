@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,33 +26,40 @@
 
 #pragma once
 
-#include <string>
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+#include <miopen/sqlite_db.hpp>
+#else
+#include <miopen/readonlyramdb.hpp>
+#include <miopen/ramdb.hpp>
+#endif
+
+#include <functional>
+#include <optional>
 
 namespace miopen {
+struct ExecutionContext;
 
-struct NetworkConfig
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
+#else
+using PerformanceDb = DbTimer<MultiFileDb<ReadonlyRamDb, RamDb, true>>;
+#endif
+
+class [[nodiscard]] DbGetter final
 {
-    NetworkConfig() = default;
-    explicit NetworkConfig(const std::string& value_) : value(value_) {}
-    explicit NetworkConfig(std::string&& value_) noexcept : value(std::move(value_)) {}
-    operator std::string() const { return value; }
-    const std::string& ToString() const { return value; }
+public:
+    explicit DbGetter(std::function<PerformanceDb()>&& init_);
+
+    DbGetter(const DbGetter&) = delete;
+    auto operator=(const DbGetter&) -> DbGetter& = delete;
+
+    [[nodiscard]] auto operator()() -> PerformanceDb&;
 
 private:
-    std::string value;
+    std::function<PerformanceDb()> init;
+    std::optional<PerformanceDb> db;
 };
 
-struct AlgorithmName
-{
-    AlgorithmName() = default;
-    explicit AlgorithmName(const std::string& value_) : value(value_) {}
-    operator std::string() const { return value; }
-    const std::string& ToString() const { return value; }
-
-    bool operator<(const AlgorithmName& r) const { return (value < r.value); }
-
-private:
-    std::string value;
-};
-
+[[nodiscard]] MIOPEN_INTERNALS_EXPORT auto MakeConvDbGetter(const ExecutionContext& ctx)
+    -> DbGetter;
 } // namespace miopen
