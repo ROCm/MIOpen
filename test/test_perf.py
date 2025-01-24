@@ -201,7 +201,7 @@ class Manager(mp.Process):
           if re_GPU.match(line):
             res = re_GPU.findall(line)
             e.sol_time = res[0]
-            print('k_time: %s', e.sol_time)
+            print('k_time: ', e.sol_time)
           if line.find('error') != -1:
             raise ValueError(p_out)
 
@@ -217,7 +217,7 @@ class Manager(mp.Process):
 
       results_queue.put(res_dict)
       ret = res_dict
-      print(f"driver: {e.cmd}, k_time: {e.sol_time}")
+      print(f"driver: {res_dict['Driver']}, k_time: {res_dict['k_time']}")
     finally:
       queue.put(gpu_id)
     return ret
