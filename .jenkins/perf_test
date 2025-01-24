@@ -44,12 +44,13 @@ pipeline {
                     utils.getDockerImage()
                     def (docker_image, image) = utils.getDockerImage()
                     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined --network host  --dns 8.8.8.8 "
+                    perftest_image = "${image}"
 
-                    withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
-                        perftest_image = "${image}_perftest"
-                        sh "docker tag ${image} ${perftest_image}"
-                        sh "docker push ${perftest_image}"
-                    }
+                    //withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
+                    //    perftest_image = "${image}_perftest"
+                    //    sh "docker tag ${image} ${perftest_image}"
+                    //    sh "docker push ${perftest_image}"
+                    //}
                 }
             }
         }
@@ -65,7 +66,7 @@ pipeline {
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: docker_image)
                         }
                     }
-                }/*
+                }
                 stage('Fp32 BS256 Hip Performance Resnet50_v1.5 gfx90A'){
                     when {
                         expression {params.PERF_TEST_FP32}
@@ -723,7 +724,7 @@ pipeline {
                         utils.RunPerfTest(filename: "VGG19_v1_FP32_BS512.txt", docker_image: docker_image)
                         }
                     }
-                }*/
+                }
             }
         }
   }
