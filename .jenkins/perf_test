@@ -14,8 +14,7 @@ def get_branch_name(){
 library "jenkins-shared@${get_branch_name()}"
 
 pipeline {
-  agent{ label rocmnode("gfx90a") }
-  //agent { node { label 'austin' } }
+  agent none
     environment {
       docker_args="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v=/var/jenkins/:/var/jenkins"
       extra_log_env   = " MIOPEN_LOG_LEVEL=5 "
@@ -38,6 +37,7 @@ pipeline {
   }
   stages {
         stage('Build Docker'){
+            agent{ label rocmnode("gfx90a") }
             steps{
                 script {
                     echo "Build Docker Stage"
@@ -52,6 +52,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: perftest_image)
@@ -62,6 +63,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS256.txt", docker_image: perftest_image)
@@ -72,6 +74,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS512.txt", docker_image: perftest_image)
@@ -82,6 +85,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS128.txt", docker_image: perftest_image)
@@ -92,6 +96,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS256.txt", docker_image: perftest_image)
@@ -102,6 +107,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS512.txt", docker_image: perftest_image)
@@ -112,6 +118,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Alexnet_v1_FP16_BS128.txt", docker_image: perftest_image)
@@ -122,6 +129,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Alexnet_v1_FP16_BS512.txt", docker_image: perftest_image)
@@ -132,6 +140,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS4.txt", docker_image: perftest_image)
@@ -142,6 +151,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS64.txt", docker_image: perftest_image)
@@ -152,6 +162,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS128.txt", docker_image: perftest_image)
@@ -162,6 +173,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS512.txt", docker_image: perftest_image)
@@ -172,6 +184,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Densenet201_v1_FP16_BS256.txt", docker_image: perftest_image)
@@ -182,6 +195,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Densenet201_v1_FP32_BS256.txt",  docker_image: perftest_image)
@@ -192,6 +206,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Densenet_v1_FP16_BS256.txt", docker_image: perftest_image)
@@ -202,6 +217,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Densenet_v1_FP32_BS256.txt", docker_image: perftest_image)
@@ -212,6 +228,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Googlenet_v1_FP16_BS128.txt", docker_image: perftest_image)
@@ -222,6 +239,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Googlenet_v1_FP16_BS512.txt", docker_image: perftest_image)
@@ -232,6 +250,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Googlenet_v1_FP32_BS128.txt", docker_image: perftest_image)
@@ -242,6 +261,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Googlenet_v1_FP32_BS512.txt", docker_image: perftest_image)
@@ -252,6 +272,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Inception3_v1_FP16_BS128.txt", docker_image: perftest_image)
@@ -262,6 +283,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Inception3_v1_FP32_BS128.txt", docker_image: perftest_image)
@@ -272,6 +294,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Inception3_v1_FP32_BS512.txt", docker_image: perftest_image)
@@ -282,6 +305,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Inception4_v1_FP16_BS128.txt", docker_image: perftest_image)
@@ -292,6 +316,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Inception4_v1_FP16_BS512.txt", docker_image: perftest_image)
@@ -302,6 +327,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Inception4_v1_FP32_BS128.txt", docker_image: perftest_image)
@@ -312,6 +338,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Inception4_v1_FP32_BS512.txt", docker_image: perftest_image)
@@ -322,6 +349,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Mobilenet_v1_FP32_BS4.txt", docker_image: perftest_image)
@@ -332,6 +360,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Mobilenet_v1_FP32_BS64.txt", docker_image: perftest_image)
@@ -342,6 +371,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS32.txt", docker_image: perftest_image)
@@ -352,6 +382,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS128.txt", docker_image: perftest_image)
@@ -362,6 +393,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS256.txt", docker_image: perftest_image)
@@ -372,6 +404,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS512.txt", docker_image: perftest_image)
@@ -382,6 +415,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS128.txt", docker_image: perftest_image)
@@ -392,6 +426,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS256.txt", docker_image: perftest_image)
@@ -402,6 +437,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS512.txt", docker_image: perftest_image)
@@ -412,6 +448,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet152_v1_FP16_BS256.txt", docker_image: perftest_image)
@@ -422,6 +459,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet152_v1_FP32_BS256.txt", docker_image: perftest_image)
@@ -432,6 +470,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet152_v2_FP16_BS128.txt", docker_image: perftest_image)
@@ -442,6 +481,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet152_v2_FP16_BS512.txt", docker_image: perftest_image)
@@ -452,6 +492,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet152_v2_FP32_BS128.txt", docker_image: perftest_image)
@@ -462,6 +503,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet152_v2_FP32_BS512.txt", docker_image: perftest_image)
@@ -473,6 +515,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS32.txt", docker_image: perftest_image)
@@ -484,6 +527,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS64.txt", docker_image: perftest_image)
@@ -495,6 +539,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS128.txt", docker_image: perftest_image)
@@ -506,6 +551,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS256.txt", docker_image: perftest_image)
@@ -517,6 +563,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS512.txt", docker_image: perftest_image)
@@ -528,6 +575,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS128.txt", docker_image: perftest_image)
@@ -539,6 +587,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS256.txt", docker_image: perftest_image)
@@ -550,6 +599,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS512.txt", docker_image: perftest_image)
@@ -560,6 +610,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "Shufflenet_v2_FP16_BS128.txt", docker_image: perftest_image)
@@ -570,6 +621,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "SSD_v1_FP16_BS128.txt", docker_image: perftest_image)
@@ -580,6 +632,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "SSD_v1_FP32_BS128.txt", docker_image: perftest_image)
@@ -590,6 +643,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG11_v1_FP16_BS128.txt", docker_image: perftest_image)
@@ -600,6 +654,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG11_v1_FP16_BS256.txt", docker_image: perftest_image)
@@ -610,6 +665,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG11_v1_FP16_BS512.txt", docker_image: perftest_image)
@@ -620,6 +676,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG11_v1_FP32_BS512.txt", docker_image: perftest_image)
@@ -630,6 +687,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG16_v1_FP16_BS128.txt", docker_image: perftest_image)
@@ -640,6 +698,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG16_v1_FP32_BS4.txt", docker_image: perftest_image)
@@ -650,6 +709,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG16_v1_FP32_BS64.txt", docker_image: perftest_image)
@@ -660,6 +720,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG16_v1_FP32_BS128.txt", docker_image: perftest_image)
@@ -670,6 +731,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG16_v1_FP32_BS512.txt", docker_image: perftest_image)
@@ -680,6 +742,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG19_v1_FP16_BS128.txt", docker_image: perftest_image)
@@ -690,6 +753,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG19_v1_FP16_BS512.txt", docker_image: perftest_image)
@@ -700,6 +764,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG19_v1_FP32_BS128.txt", docker_image: perftest_image)
@@ -710,6 +775,7 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
                         utils.RunPerfTest(filename: "VGG19_v1_FP32_BS512.txt", docker_image: perftest_image)
