@@ -58,7 +58,7 @@ pipeline {
                         utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: perftest_image)
                         }
                     }
-                }/*
+                }
                 stage('Fp32 BS256 Hip Performance Resnet50_v1.5 gfx90A'){
                     when {
                         expression {params.PERF_TEST_FP32}
@@ -781,7 +781,7 @@ pipeline {
                         utils.RunPerfTest(filename: "VGG19_v1_FP32_BS512.txt", docker_image: perftest_image)
                         }
                     }
-                }*/
+                }
             }
         }
   }
