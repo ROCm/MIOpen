@@ -52,12 +52,6 @@ namespace debug {
 MIOPEN_EXPORT extern bool
     AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
-/// WORKAROUND_SWDEV_271887 disables ConvOclDirectFwd1x1 solver on gfx10 due to precision issues.
-/// However we still want to check that the solver is not broken and therefore use
-/// disable_wa_swdev_271887 = true to enable it.
-// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-MIOPEN_INTERNALS_EXPORT extern bool disable_wa_swdev_271887;
-
 } // namespace debug
 
 struct AnyInvokeParams;

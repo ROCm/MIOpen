@@ -196,7 +196,7 @@ def getDockerImage(Map conf=[:])
     checkout scm
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
-    def gpu_arch = "gfx908;gfx90a;gfx942;gfx1100;1201" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
+    def gpu_arch = "gfx908;gfx90a;gfx942;gfx1100" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def mlir_build = conf.get("mlir_build", "ON") // always ON
 
     def install_miopen = 'OFF'
@@ -213,7 +213,6 @@ def getDockerImage(Map conf=[:])
       miopen_branch = params.branch_name
 
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg MIOPEN_BRANCH=${miopen_branch}"
-    //def dockerArgs = "--build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}'"
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()

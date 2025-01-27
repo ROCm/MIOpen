@@ -37,6 +37,8 @@
 
 #include "../workspace.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+
 namespace miopen {
 namespace unit_tests {
 
@@ -50,20 +52,32 @@ public:
     DeprecatedSolversScopedEnabler(DeprecatedSolversScopedEnabler&&)      = delete;
     DeprecatedSolversScopedEnabler& operator=(const DeprecatedSolversScopedEnabler&) = delete;
     DeprecatedSolversScopedEnabler& operator=(DeprecatedSolversScopedEnabler&&) = delete;
-    ~DeprecatedSolversScopedEnabler() noexcept
+
+    ~DeprecatedSolversScopedEnabler()
     {
-        if(prev)
-            miopen::debug::enable_deprecated_solvers = prev.value();
+        if(changed)
+        {
+            if(prev)
+                env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, false);
+            else
+                env::clear(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+        }
     }
 
-    void Enable() noexcept
+    void Enable()
     {
-        prev                                     = miopen::debug::enable_deprecated_solvers;
-        miopen::debug::enable_deprecated_solvers = true;
+        if(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+            prev = env::value(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+        if(prev != true)
+        {
+            env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, true);
+            changed = true;
+        }
     }
 
 private:
     std::optional<bool> prev;
+    bool changed = false;
 };
 
 bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
@@ -192,7 +206,7 @@ UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_)
       use_cpu_ref(false),
       enable_deprecated_solvers(false),
       tunable(false),
-      disable_xnack(false)
+      check_xnack_disabled(false)
 {
 }
 
@@ -206,7 +220,7 @@ void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
     tuning_iterations_max = iterations_max_;
 }
 
-void UnitTestConvSolverParams::CheckXnackDisabled() { disable_xnack = true; }
+void UnitTestConvSolverParams::CheckXnackDisabled() { check_xnack_disabled = true; }
 
 namespace {
 
@@ -709,7 +723,7 @@ void UnitTestConvSolverBase::SetUpImpl(const UnitTestConvSolverParams& params)
     {
         GTEST_SKIP();
     }
-    else if(params.disable_xnack && get_handle_xnack())
+    else if(params.check_xnack_disabled && get_handle_xnack())
     {
         GTEST_SKIP();
     }
