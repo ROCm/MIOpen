@@ -149,15 +149,11 @@ RUN pip3 install --upgrade cmake==3.27.5
 
 #install miopen
 ARG INSTALL_MIOPEN=OFF
-ARG MIOPEN_BRANCH=alex_perf_test
-ARG FRECKLE=0 #update to force miopen rebuild
+ADD . / miopen/
 RUN set -e; \
     if [ "$INSTALL_MIOPEN" = "ON" ]; then \
-        git clone https://github.com/ROCm/MIOpen.git miopen; \
         cd miopen; \
-        git pull && git checkout $MIOPEN_BRANCH; \
         mkdir build; \
-        mkdir install; \
         rm -f src/kernels/*.ufdb.txt; \
         rm -f src/kernels/miopen*.udb; \
         cd build ; \
