@@ -797,8 +797,6 @@ void RNNBackwardModuleAlgoDynamic::PrepareWriteBuffers(
             rnnDesc.dataType, {1, temp_dy_size}, {temp_dy_size, 1}};
         SetTensor(handle, temp_dy_desk, runtimeArgsExt.tempDy, &beta);
     }
-
-    // realDxProp(handle, runtimeArgsExt);
 }
 
 void RNNBackwardModuleAlgoDynamic::PropDx(const Handle& handle,
@@ -811,10 +809,7 @@ void RNNBackwardModuleAlgoDynamic::PropDx(const Handle& handle,
 
     size_t seq_it = 0;
     for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
-    // for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
     {
-        //    if((total_seq_cnt - seq_it & step_size) != 0)
-        //      {
         const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
         const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
                                               ? batchController.getTotalBatchSum()
@@ -824,7 +819,6 @@ void RNNBackwardModuleAlgoDynamic::PropDx(const Handle& handle,
         RNNBackwardDataModularAlgo::PropDx(
             handle, w, workSpace, dx, direction, gemm_batch_offset, gemm_batch_size);
         seq_it += step_size;
-        //      }
     }
 }
 
@@ -840,10 +834,6 @@ void RNNBackwardModuleAlgoDynamic::PropHiddenDy(const Handle& handle,
     size_t seq_it = 0;
     for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
     {
-        // for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
-        //{
-        //    if((total_seq_cnt - seq_it & step_size) != 0)
-        //    {
         const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
         const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
                                               ? batchController.getTotalBatchSum()
@@ -859,8 +849,6 @@ void RNNBackwardModuleAlgoDynamic::PropHiddenDy(const Handle& handle,
                                                  gemm_batch_offset,
                                                  gemm_batch_size);
         seq_it += step_size;
-        //    }
-        //}
     }
 }
 

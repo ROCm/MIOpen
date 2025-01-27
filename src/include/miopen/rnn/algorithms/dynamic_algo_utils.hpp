@@ -36,7 +36,7 @@ namespace rnn_base {
 namespace rnn_dynamic {
 
 // 12.5% overhead
-constexpr int rounding_limit = 3;
+constexpr int rounding_limit = 4;
 
 inline size_t getPow2Mask(size_t pow_2)
 {

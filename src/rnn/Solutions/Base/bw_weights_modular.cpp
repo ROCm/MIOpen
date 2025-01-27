@@ -392,42 +392,6 @@ void RNNBackwardWeiModuleAlgoDynamic::PhisHStateWeights(const Handle& handle,
                                  true);
 }
 
-// void RNNBackwardWeiModuleAlgoDynamic::HiddenHStateWeights_Unchecked(const Handle& handle,
-//                                                                  Data_t dw,
-//                                                                  ConstData_t workSpace,
-//                                                                  ConstData_t reserveSpace,
-//                                                                  const SequenceIterator& seq,
-//                                                                  size_t layer,
-//                                                                  SequenceDirection direction,
-//                                                                  size_t gemm_batch_size) const
-//{
-//    const size_t total_seq_cnt = getTimeSeqSize();
-//    auto step_size             = rnn_dynamic::getLowerBoundPow2(total_seq_cnt);
-//
-//    for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
-//    {
-//        if((total_seq_cnt - seq_it & step_size) != 0)
-//        {
-//            const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
-//            const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
-//                                                  ? batchController.getTotalBatchSum()
-//                                                  : batchController.getBatchSum(seq_it +
-//                                                  step_size)) -
-//                                           gemm_batch_offset;
-//
-//            RNNBackwardDataModularAlgo::HiddenHStateWeights_Unchecked(handle,
-//                                                     dw,
-//                                                     workSpace,
-//                                                     reserveSpace,
-//                                                     layer,
-//                                                     direction,
-//                                                     gemm_batch_offset,
-//                                                     gemm_batch_size);
-//            seq_it += step_size;
-//        }
-//    }
-//}
-
 void RNNBackwardWeiModuleAlgoDynamic::HiddenXInputWeights(const Handle& handle,
                                                           Data_t dw,
                                                           ConstData_t workSpace,
@@ -439,10 +403,6 @@ void RNNBackwardWeiModuleAlgoDynamic::HiddenXInputWeights(const Handle& handle,
     size_t seq_it = 0;
     for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
     {
-        // for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
-        //{
-        //     if((total_seq_cnt - seq_it & step_size) != 0)
-        //     {
         const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
         const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
                                               ? batchController.getTotalBatchSum()
@@ -452,8 +412,6 @@ void RNNBackwardWeiModuleAlgoDynamic::HiddenXInputWeights(const Handle& handle,
         RNNBackwardWeightsModularAlgo::HiddenXInputWeights(
             handle, dw, workSpace, reserveSpace, layer, gemm_batch_offset, gemm_batch_size);
         seq_it += step_size;
-        //    }
-        //}
     }
 }
 
@@ -467,10 +425,6 @@ void RNNBackwardWeiModuleAlgoDynamic::PhisXInputWeights(const Handle& handle,
     size_t seq_it = 0;
     for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
     {
-        // for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
-        //{
-        //     if((total_seq_cnt - seq_it & step_size) != 0)
-        //     {
         const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
         const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
                                               ? batchController.getTotalBatchSum()
@@ -480,8 +434,6 @@ void RNNBackwardWeiModuleAlgoDynamic::PhisXInputWeights(const Handle& handle,
         RNNBackwardWeightsModularAlgo::PhisXInputWeights(
             handle, dw, workSpace, x, gemm_batch_offset, gemm_batch_size);
         seq_it += step_size;
-        //    }
-        //}
     }
 }
 
