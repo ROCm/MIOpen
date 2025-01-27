@@ -164,55 +164,53 @@ class Manager(mp.Process):
       print(cmd)
 
       res_dict = {}
-      for i in range(3):
-        proc = subprocess.Popen(cmd,
-                                shell=True,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
-        p_out = proc.stdout.readlines()
-        res = None
-        e = Entry()
-        for line in p_out:
-          line = line.decode("utf-8")
-          line = line.strip()
-          #print(line)
-          if (line.find('MIOpenDriver') != -1) and (line.find('MIOpen(HIP)') == -1):  #fragile solution
-            e.cmd = line
-            print("")
-            print(e.cmd)
-            continue
-          if line.find('Wall-clock Time') != -1:
-            res = re_Elapsed.findall(line)
-            print(res)
-            e.wall_elapsed = res[0]
-            e.wall_aux = res[1]
-            e.wall_gwss = res[2]
-            continue
-          if re_Solver.match(line):
-            res = re_Solver.findall(line)[0]
-            print(res)
-            e.algo = res[0]
-            e.sol_id = res[1]
-            e.sol_name = res[2]
-            continue
-          if re_Key.match(line):
-            e.fdb_key = re_Key.findall(line)[0]
-          if re_GPU.match(line):
-            res = re_GPU.findall(line)
-            e.sol_time = res[0]
-            print('k_time: ', e.sol_time)
-          if line.find('error') != -1:
-            raise ValueError(p_out)
+      proc = subprocess.Popen(cmd,
+                              shell=True,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT)
+      p_out = proc.stdout.readlines()
+      res = None
+      e = Entry()
+      for line in p_out:
+        line = line.decode("utf-8")
+        line = line.strip()
+        #print(line)
+        if (line.find('MIOpenDriver') != -1) and (line.find('MIOpen(HIP)') == -1):  #fragile solution
+          e.cmd = line
+          print("")
+          print(e.cmd)
+          continue
+        if line.find('Wall-clock Time') != -1:
+          res = re_Elapsed.findall(line)
+          print(res)
+          e.wall_elapsed = res[0]
+          e.wall_aux = res[1]
+          e.wall_gwss = res[2]
+          continue
+        if re_Solver.match(line):
+          res = re_Solver.findall(line)[0]
+          print(res)
+          e.algo = res[0]
+          e.sol_id = res[1]
+          e.sol_name = res[2]
+          continue
+        if re_Key.match(line):
+          e.fdb_key = re_Key.findall(line)[0]
+        if re_GPU.match(line):
+          res = re_GPU.findall(line)
+          e.sol_time = res[0]
+          print('k_time: ', e.sol_time)
+        if line.find('error') != -1:
+          raise ValueError(p_out)
 
-        if i == 0 or e.sol_time < res_dict['k_time']:
-          res_dict = {
-            'Driver': e.cmd,
-            'k_time': e.sol_time,
-            'wall_time': e.wall_elapsed,
-            'solver_id': e.sol_id,
-            'solver_name': e.sol_name,
-            'fdb_key': e.fdb_key
-          }
+      res_dict = {
+        'Driver': e.cmd,
+        'k_time': e.sol_time,
+        'wall_time': e.wall_elapsed,
+        'solver_id': e.sol_id,
+        'solver_name': e.sol_name,
+        'fdb_key': e.fdb_key
+      }
 
       results_queue.put(res_dict)
       ret = res_dict
