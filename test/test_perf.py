@@ -25,7 +25,6 @@
 #
 #################################################################################
 """Performance tracking script"""
-import sys
 import os
 import re
 import subprocess
@@ -340,13 +339,12 @@ def main():
       compare_results(args)
     except Exception as ex:
       print(f'ERR: {ex}')
-      sys.exit(1)
+      return False
   else:
     if not os.path.exists(args.results_path):
       os.makedirs(args.results_path)
 
     try:
-      #run_driver_cmds(f"{args.filename}", args.install_path, args.override)
       manager = Manager(filename=args.filename,
                         install_path=args.install_path,
                         override=args.override,
@@ -354,7 +352,7 @@ def main():
       manager.run()
     except Exception as ex:
       print(f'ERR: {ex}')
-      sys.exit(1)
+      return False
 
   return True
 
