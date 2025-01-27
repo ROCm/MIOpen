@@ -88,11 +88,6 @@ def cmake_build(Map conf=[:]){
        setup_args = "-DMIOPEN_TEST_FLAGS='${test_flags}'" + setup_args
     }
 
-    if(conf.containsKey("find_mode"))
-    {
-        def fmode = conf.get("find_mode", "")
-        setup_args = " -DMIOPEN_DEFAULT_FIND_MODE=${fmode} " + setup_args
-    }
     if(env.CCACHE_HOST)
     {
         setup_args = " -DCMAKE_CXX_COMPILER_LAUNCHER='ccache' -DCMAKE_C_COMPILER_LAUNCHER='ccache' " + setup_args
