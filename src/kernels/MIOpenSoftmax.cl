@@ -822,7 +822,7 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
 
             _FLOAT value = dy[dy_gidx];
 #if USE_SOFTMAX_LOG
-            value -= channel_dot * exp(y[y_gidx]);
+            value -= channel_dot * exp((_FLOAT_ACCUM)y[y_gidx]);
 #else
             value = (value - channel_dot) * y[y_gidx];
 #endif
@@ -987,7 +987,7 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
         if(mad24(batch_n, vector_size, i) * spatial_dim + batch_s < vector_size * grid_size)
         {
 #if USE_SOFTMAX_LOG
-            dx_value[v_idx] -= channel_dot * exp(y_value[v_idx]);
+            dx_value[v_idx] -= channel_dot * exp((_FLOAT_ACCUM)y_value[v_idx]);
 #else
             dx_value[v_idx] = (dx_value[v_idx] - channel_dot) * y_value[v_idx];
 #endif

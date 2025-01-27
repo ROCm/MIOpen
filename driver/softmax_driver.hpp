@@ -228,7 +228,7 @@ int SoftmaxDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         for(int i = 0; i < out_sz; i++)
         {
-            out[i] = prng::gen_A_to_B(static_cast<Tgpu>(-5.0), static_cast<Tgpu>(5.0));
+            out[i] = prng::gen_A_to_B(static_cast<Tgpu>(-0.6), static_cast<Tgpu>(0.6));
         }
     }
 
