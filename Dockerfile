@@ -23,13 +23,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/6.2.2/ubuntu/jammy/amdgpu-install_6.2.60202-1_all.deb --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/6.3.1/ubuntu/jammy/amdgpu-install_6.3.60301-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_6.2.60202-1_all.deb
+    ./amdgpu-install_6.3.60301-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=6.2.2;\
+RUN export ROCM_APT_VER=6.3.1;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
@@ -89,7 +89,7 @@ ADD dev-requirements.txt /dev-requirements.txt
 # Install dependencies
 # TODO: Add --std=c++14
 # GPU_ARCH can be defined in docker build process
-ARG GPU_ARCHS=gfx908;gfx90a;gfx942;gfx1100
+ARG GPU_ARCHS=gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201
 # install to /opt/rocm will cause permission issue
 ARG PREFIX=/usr/local
 ARG USE_FIN="OFF"
@@ -123,7 +123,7 @@ RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK
     -D CMAKE_PREFIX_PATH=/opt/rocm \
     -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
     -D CMAKE_BUILD_TYPE=Release \
-    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
+    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201" \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
     make -j $(nproc) install 
 
