@@ -96,21 +96,14 @@ struct GroupConvTestConfig<2u>
             1.0};
     }
 
-    template <Direction DIR, bool cg = true>
+    template <Direction DIR>
     static std::vector<GroupConvTestConfig> GetConfigs()
     {
-        if(cg == true)
-        {
-            return {
-                {1, 256, 192, 192, {28, 28}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
-            };
-        }
-        else
-        {
-            if constexpr(DIR == Direction::Forward)
-            {
 
-                // clang-format off
+        if constexpr(DIR == Direction::Forward)
+        {
+
+            // clang-format off
             return {
             // g   n   C     K      img       filter   pad    stride  dilation
               {1 , 256, 192 , 192 , {28, 28}  , {3, 3}, {1, 1}, {1, 1}, {1, 1}},
@@ -129,11 +122,11 @@ struct GroupConvTestConfig<2u>
               {1 , 6  , 448 , 896 , {118, 182}, {1, 1}, {0, 0}, {2, 2}, {1, 1}},
               {4 , 16 , 224 , 224 , {469, 724}, {3, 3}, {1, 1}, {2, 2}, {1, 1}},
             };
-                // clang-format on
-            }
-            else if constexpr(DIR == Direction::BackwardData || DIR == Direction::BackwardWeights)
-            {
-                // clang-format off
+            // clang-format on
+        }
+        else if constexpr(DIR == Direction::BackwardData || DIR == Direction::BackwardWeights)
+        {
+            // clang-format off
             return {
             // g   n   C     K      img       filter   pad    stride  dilation
               {1 , 1  , 1   , 1   , {28, 28}  , {3, 3}, {1, 1}, {1, 1}, {1, 1}},
@@ -149,12 +142,11 @@ struct GroupConvTestConfig<2u>
               // Todo: test failed for fp32 on mi200 for wrw. Need more analysis
               //{4 , 16 , 224 , 224 , {469, 724}, {3, 3}, {1, 1}, {2, 2}, {1, 1}},
             };
-                // clang-format on
-            }
-            else
-            {
-                std::abort();
-            }
+            // clang-format on
+        }
+        else
+        {
+            std::abort();
         }
     }
 };
@@ -215,7 +207,7 @@ struct GroupConvTestConfig<3u>
             1.0};
     }
 
-    template <Direction DIR, bool cg>
+    template <Direction DIR>
     static std::vector<GroupConvTestConfig> GetConfigs()
     {
 
@@ -608,7 +600,7 @@ std::vector<float> GetBetaValues()
     }
 }
 
-#define DEFINE_GROUP_CONV_TEST(ndim, type, naming_type, dir, cg)                                   \
+#define DEFINE_GROUP_CONV_TEST(ndim, type, naming_type, dir)                                       \
     struct GPU_GroupConv##ndim##D_##dir##_##naming_type                                            \
         : GroupConvTestFix<ndim, type, Direction::dir>                                             \
     {                                                                                              \
@@ -621,14 +613,13 @@ std::vector<float> GetBetaValues()
         Full,                                                                                      \
         GPU_GroupConv##ndim##D_##dir##_##naming_type,                                              \
         testing::Combine(                                                                          \
-            testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir, cg>()),        \
+            testing::ValuesIn(GroupConvTestConfig<ndim>::GetConfigs<Direction::dir>()),            \
             testing::ValuesIn(GetAlphaValues<ndim>()),                                             \
             testing::ValuesIn(GetBetaValues<ndim>()),                                              \
             testing::ValuesIn(GetLayoutValues<ndim>())));
 
 #define DEFINE_GROUP_CONV2D_TEST(type, naming_type, dir) \
-    DEFINE_GROUP_CONV_TEST(2, type, naming_type, dir, false)
-#define DEFINE_CG_GROUP_CONV2D_TEST(type, naming_type, dir) \
-    DEFINE_GROUP_CONV_TEST(2, type, naming_type, dir, true)
+    DEFINE_GROUP_CONV_TEST(2, type, naming_type, dir)
 #define DEFINE_GROUP_CONV3D_TEST(type, naming_type, dir) \
-    DEFINE_GROUP_CONV_TEST(3, type, naming_type, dir, false)
+    DEFINE_GROUP_CONV_TEST(3, type, naming_type, dir)
+
