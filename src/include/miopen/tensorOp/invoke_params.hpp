@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,33 +26,53 @@
 
 #pragma once
 
-#include <string>
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
-struct NetworkConfig
-{
-    NetworkConfig() = default;
-    explicit NetworkConfig(const std::string& value_) : value(value_) {}
-    explicit NetworkConfig(std::string&& value_) noexcept : value(std::move(value_)) {}
-    operator std::string() const { return value; }
-    const std::string& ToString() const { return value; }
+namespace tensorOp {
 
-private:
-    std::string value;
+struct InvokeParams : public miopen::InvokeParams
+{
+    InvokeParams(const void* alpha0_,
+                 ConstData_t ATensor_,
+                 const void* alpha1_,
+                 ConstData_t BTensor_,
+                 const void* beta_,
+                 Data_t CTensor_,
+                 const size_t Aoffset_,
+                 const size_t Boffset_,
+                 const size_t Coffset_)
+        : alpha0(alpha0_),
+          alpha1(alpha1_),
+          beta(beta_),
+          ATensor(ATensor_),
+          BTensor(BTensor_),
+          CTensor(CTensor_),
+          Aoffset(Aoffset_),
+          Boffset(Boffset_),
+          Coffset(Coffset_)
+    {
+    }
+
+    size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+
+public:
+    const void* alpha0;
+    const void* alpha1;
+    const void* beta;
+
+    ConstData_t ATensor;
+    ConstData_t BTensor;
+    Data_t CTensor;
+
+    size_t Aoffset;
+    size_t Boffset;
+    size_t Coffset;
 };
 
-struct AlgorithmName
-{
-    AlgorithmName() = default;
-    explicit AlgorithmName(const std::string& value_) : value(value_) {}
-    operator std::string() const { return value; }
-    const std::string& ToString() const { return value; }
-
-    bool operator<(const AlgorithmName& r) const { return (value < r.value); }
-
-private:
-    std::string value;
-};
+} // namespace tensorOp
 
 } // namespace miopen
