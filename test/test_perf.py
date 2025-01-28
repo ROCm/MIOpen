@@ -71,13 +71,14 @@ class Manager(mp.Process):
 
   def get_num_gpus(self):
     """Get num_gpus"""
-    cmd = "/opt/rocm/bin/rocminfo | grep ${arch}:sramecc+:xnack | wc -l"
+    #rocminfo will have 2 lines with gfx per gpu, arch name and target id
+    cmd = "/opt/rocm/bin/rocminfo | grep gfx | wc -l"
     proc = subprocess.Popen(cmd,
                           shell=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
     output = proc.communicate()[0]
-    return output.decode('utf-8').strip()
+    return int(output.decode('utf-8').strip()) / 2
 
   def set_driver_cmds(self):
     if self.override:
@@ -112,7 +113,7 @@ class Manager(mp.Process):
         except Exception as err:
           print(f"Could not get driver commands: {err}")
 
-    print('#driver commands: %s', len(self.driver_cmds))
+    print('#driver commands: ', len(self.driver_cmds))
 
   def run(self):
     """Main function to launch worker pool"""
@@ -140,7 +141,6 @@ class Manager(mp.Process):
     for result in pool.imap_unordered(self.run_driver_cmd, self.driver_cmds):
       self.parse_result(result)
     pool.close()
-    pool.join()
     print(f"Size of results Q: {results_queue.qsize()}")
     results = []
     while not results_queue.empty():
@@ -150,7 +150,7 @@ class Manager(mp.Process):
 
   def parse_result(self, result):
     """Potential to use result as it becomes available"""
-    print(result)
+    #print(result)
 
   def run_driver_cmd(self, driver_cmd):
     """Launch each driver cmd in subproc"""
@@ -160,6 +160,7 @@ class Manager(mp.Process):
     gpu_id = queue.get()
     cmd = driver_cmd.replace('GPU_ID', str(gpu_id))
     try:
+      print("")
       print(f"Starting process on GPU {gpu_id}")
       print(cmd)
 
@@ -174,10 +175,8 @@ class Manager(mp.Process):
       for line in p_out:
         line = line.decode("utf-8")
         line = line.strip()
-        #print(line)
         if (line.find('MIOpenDriver') != -1) and (line.find('MIOpen(HIP)') == -1):  #fragile solution
           e.cmd = line
-          print("")
           print(e.cmd)
           continue
         if line.find('Wall-clock Time') != -1:
@@ -214,7 +213,6 @@ class Manager(mp.Process):
 
       results_queue.put(res_dict)
       ret = res_dict
-      print(f"driver: {res_dict['Driver']}, k_time: {res_dict['k_time']}")
     finally:
       queue.put(gpu_id)
     return ret
