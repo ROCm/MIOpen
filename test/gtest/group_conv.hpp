@@ -622,4 +622,3 @@ std::vector<float> GetBetaValues()
     DEFINE_GROUP_CONV_TEST(2, type, naming_type, dir)
 #define DEFINE_GROUP_CONV3D_TEST(type, naming_type, dir) \
     DEFINE_GROUP_CONV_TEST(3, type, naming_type, dir)
-
