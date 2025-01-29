@@ -204,7 +204,7 @@ def getDockerImage(Map conf=[:])
     if(params.INSTALL_MIOPEN == 'ON')
     {
         install_miopen = 'ON'
-        freckle = BUILD_ID
+        freckle = scm.GIT_COMMIT
     }
 
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg FRECKLE=${freckle}"
