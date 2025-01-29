@@ -314,9 +314,7 @@ def reboot(){
 def buildHipClangJobAndReboot(Map conf=[:]){
     try{
         buildHipClangJob(conf)
-        if (conf.get("needs_cleanup", true)) {
-            cleanWs()
-        }
+        cleanWs()
     }
     catch(e){
         echo "throwing error exception for the stage"
@@ -330,66 +328,6 @@ def buildHipClangJobAndReboot(Map conf=[:]){
     }
 }
 
-
-def CheckPerfDbValid(Map conf=[:]){
-    def pdb_image = buildHipClangJob(conf)
-    pdb_image.inside(){
-        dir(path: "$WORKSPACE"){
-            sh "ls install/bin/"
-            sh "MIOPEN_LOG_LEVEL=4 LD_LIBRARY_PATH='install/lib:/opt/rocm/lib/' install/bin/fin -i fin/tests/pdb_check_all.json -o pdb_valid_err.json"
-            archiveArtifacts "pdb_valid_err.json"
-            sh "grep clear pdb_valid_err.json"
-            def has_error = sh (
-                script: "echo \$?",
-                returnStdout: true
-            ).trim()
-            assert has_error.toInteger() == 0
-        }
-    }
-}
-def evaluate(params)
-{
-  (build_args, partition) = getBuildArgs()
-  def tuna_docker_name = getDockerName("${backend}")
-
-  docker.withRegistry('', "$DOCKER_CRED"){
-    def tuna_docker
-    tuna_docker = docker.build("${tuna_docker_name}", "${build_args} ." )
-    tuna_docker.push()
-  }
-
-  env_list = params.env.split(' ')
-  for(item in env_list)
-  {
-    if(item.replaceAll("\\s","") != "")
-    {
-      if(item.contains("="))
-      {
-        docker_args += " -e ${item}"
-      }
-      else
-      {
-        error "Not added to env: ${item}"
-      }
-    }
-  }
-  def eval_cmd = ''
-  if(params.stage == 'fin_find')
-  {
-    eval_cmd = '--fin_steps miopen_find_eval'
-  }
-  else
-  {
-    eval_cmd = '--fin_steps miopen_perf_eval'
-  }
-  if(params.dynamic_solvers_only)
-  {
-    eval_cmd += ' --dynamic_solvers_only'
-  }
-
-  sh "docker run ${docker_args} ${tuna_docker_name} python3 /tuna/tuna/go_fish.py miopen ${eval_cmd} --session_id ${params.session_id} --enqueue_only &"
-  sh "srun --no-kill -p ${partition} -N 1-10 -l bash -c 'echo ${env.CREDS_PSW} | HOME=/home/slurm docker login -u ${env.CREDS_USR} --password-stdin && HOME=/home/slurm docker run ${docker_args} ${tuna_docker_name} python3 /tuna/tuna/go_fish.py miopen ${eval_cmd} --session_id ${params.session_id}'"
-}
 
 def RunPerfTest(Map conf=[:]){
     checkout scm
@@ -405,15 +343,15 @@ def RunPerfTest(Map conf=[:]){
             timeout(time: 100, unit: 'MINUTES')
             {
                 ld_lib="${miopen_install_path}/lib"
-                def filename = conf.get("filename", "")
+                def filename = conf.get("filename")
+                assert(filename.trim())
+                def cmd = "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
                 if(params.PERF_TEST_OVERRIDE != '')
                 {
                     echo "Appending MIOpenDriver cmd env vars: ${params.PERF_TEST_OVERRIDE}"
-                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results --override ${params.PERF_TEST_OVERRRIDE}"
-                }else
-                {
-                    sh "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
+                    cmd += " --override ${params.PERF_TEST_OVERRIDE}"
                 }
+                sh cmd
                 archiveArtifacts artifacts: "results/perf_results/${filename}", allowEmptyArchive: true, fingerprint: true
                 jenkins_url = "${env.artifact_path}/${env.JOB_BASE_NAME}/lastSuccessfulBuild/artifact/results/perf_results"
                 if(params.COMPARE_TO_BASE)
@@ -432,7 +370,7 @@ def RunPerfTest(Map conf=[:]){
                   catch (Exception err){
                       currentBuild.result = 'SUCCESS'
                   }
-                  //cleanWs()
+                  cleanWs()
                 }
             }
         }
