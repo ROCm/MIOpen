@@ -57,7 +57,7 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
         case miopenBFloat8:
         default:
             MIOPEN_LOG_W(
-                "Pooing cmd args logging is not implemented properly for " +
+                "Pooling cmd args logging is not implemented properly for " +
                 miopen::GetDataType(miopen::deref(tensorDesc).GetType()) +
                 " data type. Check the ./bin/MIOpenDriver --help for the correct base argument.");
             ss << "???";
@@ -86,6 +86,19 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
             ss << " --input " << miopen::JoinStrings(lengthStrs, "x") << ","
                << miopen::JoinStrings(strideStrs, "x");
         }
+
+	ss << " -I ";
+	switch (miopen::deref(poolDesc).GetIndexType())
+	{
+	case miopenIndexUint8:	ss << "miopenUint8"; break;
+	case miopenIndexUint16:	ss << "miopenUint16"; break;
+	case miopenIndexUint32:	ss << "miopenUint32"; break;
+	case miopenIndexUint64:	ss << "miopenUint64"; break;
+        default:
+	    MIOPEN_LOG_W("Pooling cmd logging has invalid index data type");
+            ss << "???";
+            break;
+	}
 
         if(tensor_dim == 5)
         {
