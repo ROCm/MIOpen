@@ -182,6 +182,10 @@ bool ConvHipImplicitGemmGroupFwdXdlopsCodegen::IsApplicable(
     {
         return false;
     }
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
+    {
+        return false;
+    }
     return true;
 #else
     return false;
