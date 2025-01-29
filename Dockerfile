@@ -149,6 +149,7 @@ RUN pip3 install --upgrade cmake==3.27.5
 
 #install miopen
 ARG INSTALL_MIOPEN=OFF
+ARG FRECKLE=0
 ADD . / miopen/
 RUN set -e; \
     if [ "$INSTALL_MIOPEN" = "ON" ]; then \

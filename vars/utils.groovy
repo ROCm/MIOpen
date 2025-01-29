@@ -200,12 +200,15 @@ def getDockerImage(Map conf=[:])
     def mlir_build = conf.get("mlir_build", "ON") // always ON
 
     def install_miopen = 'OFF'
+    def freckle = 0
     if(params.INSTALL_MIOPEN == 'ON')
     {
         install_miopen = 'ON'
+        freckle = BUILD_ID
     }
+    .git/refs/heads/cderb/perf_test
 
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen}"
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg FRECKLE=${freckle}"
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
