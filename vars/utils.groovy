@@ -207,7 +207,7 @@ def getDockerImage(Map conf=[:])
         freckle = BUILD_ID
     }
 
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg  --build-arg FRECKLE=${freckle}FRECKLE=${freckle}"
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg  --build-arg FRECKLE=${freckle}"
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
