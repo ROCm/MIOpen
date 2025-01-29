@@ -52,6 +52,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -62,6 +65,9 @@ pipeline {
                 stage('Fp32 BS256 Hip Performance Resnet50_v1.5 gfx90A'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -74,6 +80,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -84,6 +93,9 @@ pipeline {
                 stage('Fp16 BS128 Hip Performance Resnet50_v1.5 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -96,6 +108,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -106,6 +121,9 @@ pipeline {
                 stage('Fp16 BS512 Hip Performance Resnet50_v1.5 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -118,6 +136,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -128,6 +149,9 @@ pipeline {
                 stage('Fp16 BS512 Hip Performance Alexnet_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -140,6 +164,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -150,6 +177,9 @@ pipeline {
                 stage('Fp32 BS64 Hip Performance Alexnet_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -162,6 +192,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -172,6 +205,9 @@ pipeline {
                 stage('Fp32 BS512 Hip Performance Alexnet_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -184,6 +220,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -194,6 +233,9 @@ pipeline {
                 stage('Fp32 BS256 Hip Performance Densenet201_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -206,6 +248,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -216,6 +261,9 @@ pipeline {
                 stage('Fp32 BS256 Hip Performance Densenet_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -228,6 +276,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -238,6 +289,9 @@ pipeline {
                 stage('Fp16 BS512 Hip Performance Googlenet_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -250,6 +304,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -260,6 +317,9 @@ pipeline {
                 stage('Fp32 BS512 Hip Performance Googlenet_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -272,6 +332,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -282,6 +345,9 @@ pipeline {
                 stage('Fp32 BS128 Hip Performance Inception3_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -294,6 +360,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -304,6 +373,9 @@ pipeline {
                 stage('Fp16 BS128 Hip Performance Inception4_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -316,6 +388,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -326,6 +401,9 @@ pipeline {
                 stage('Fp32 BS128 Hip Performance Inception4_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -338,6 +416,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -348,6 +429,9 @@ pipeline {
                 stage('Fp32 BS4 Hip Performance Mobilenet_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -360,6 +444,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -370,6 +457,9 @@ pipeline {
                 stage('Fp16 BS32 Hip Performance Resnet101_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -382,6 +472,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -392,6 +485,9 @@ pipeline {
                 stage('Fp16 BS256 Hip Performance Resnet101_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -404,6 +500,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -414,6 +513,9 @@ pipeline {
                 stage('Fp32 BS128 Hip Performance Resnet101_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -426,6 +528,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -436,6 +541,9 @@ pipeline {
                 stage('Fp32 BS512 Hip Performance Resnet101_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -448,6 +556,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -458,6 +569,9 @@ pipeline {
                 stage('Fp32 BS256 Hip Performance Resnet152_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -470,6 +584,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -480,6 +597,9 @@ pipeline {
                 stage('Fp16 BS512 Hip Performance Resnet152_v2 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -492,6 +612,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -502,6 +625,9 @@ pipeline {
                 stage('Fp32 BS512 Hip Performance Resnet152_v2 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -515,6 +641,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -526,6 +655,9 @@ pipeline {
 
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -539,6 +671,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -550,6 +685,9 @@ pipeline {
 
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -563,6 +701,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -574,6 +715,9 @@ pipeline {
 
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -587,6 +731,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -599,6 +746,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -609,6 +759,9 @@ pipeline {
                 stage('Fp16 BS128 Hip Performance Shufflenet_v2 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -621,6 +774,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -631,6 +787,9 @@ pipeline {
                 stage('Fp32 BS128 Hip Performance SSD_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -643,6 +802,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -653,6 +815,9 @@ pipeline {
                 stage('Fp16 BS256 Hip Performance VGG11_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -665,6 +830,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -675,6 +843,9 @@ pipeline {
                 stage('Fp32 BS512 Hip Performance VGG11_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -687,6 +858,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -697,6 +871,9 @@ pipeline {
                 stage('Fp32 BS4 Hip Performance VGG16_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -709,6 +886,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -719,6 +899,9 @@ pipeline {
                 stage('Fp32 BS128 Hip Performance VGG16_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -731,6 +914,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -741,6 +927,9 @@ pipeline {
                 stage('Fp16 BS128 Hip Performance VGG19_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
@@ -753,6 +942,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP16}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -764,6 +956,9 @@ pipeline {
                     when {
                         expression {params.PERF_TEST_FP32}
                     }
+                    options {
+                        retry(2)
+                    }
                     agent{ label rocmnode("gfx90a") }
                     steps{
                         script {
@@ -774,6 +969,9 @@ pipeline {
                 stage('Fp32 BS512 Hip Performance VGG19_v1 gfx90a'){
                     when {
                         expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{

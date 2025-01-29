@@ -63,7 +63,7 @@ class Manager(mp.Process):
     self.num_gpus = int(self.get_num_gpus())
     self.resfile = f"{self.results_path}/{self.filename}"
     print(self.resfile)
-    print('install_path: %s', self.install_path)
+    print('install_path: ', self.install_path)
     self.model_path = f"{self.install_path}/share/miopen/perf_models/{self.filename}"
     self.driver_cmds = []
     self.set_driver_cmds()
