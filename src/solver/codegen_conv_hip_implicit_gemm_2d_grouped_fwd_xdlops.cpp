@@ -178,11 +178,11 @@ bool ConvHipImplicitGemmGroupFwdXdlopsCodegen::IsApplicable(
     {
         return false;
     }
-    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
+    if(!problem.IsLayoutNHWC())
     {
         return false;
     }
-    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
+    if(!(ctx.GetStream().GetDeviceName() == "gfx908"))
     {
         return false;
     }
