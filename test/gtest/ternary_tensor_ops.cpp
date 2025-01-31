@@ -248,9 +248,9 @@ private:
     tensor<T> tensorC;
 };
 
-using GPU_TensorOps_FP32 = TensorOpsCommon<float>;
-using GPU_TensorOps_FP16 = TensorOpsCommon<half_float::half>;
-using GPU_TensorOps_FP64 = TensorOpsCommon<double>;
+using GPU_TernaryTensorOps_FP32 = TensorOpsCommon<float>;
+using GPU_TernaryTensorOps_FP16 = TensorOpsCommon<half_float::half>;
+using GPU_TernaryTensorOps_FP64 = TensorOpsCommon<double>;
 
 namespace {
 bool checkTensorsCompatibility(const std::vector<size_t>& tensorALens,
@@ -368,12 +368,12 @@ inline auto GetCases()
 }
 } // namespace
 
-TEST_P(GPU_TensorOps_FP32, TestFloat) { this->Run(); }
+TEST_P(GPU_TernaryTensorOps_FP32, TestFloat) { this->Run(); }
 
-TEST_P(GPU_TensorOps_FP16, TestFloat16) { this->Run(); }
+TEST_P(GPU_TernaryTensorOps_FP16, TestFloat16) { this->Run(); }
 
-TEST_P(GPU_TensorOps_FP64, TestDouble) { this->Run(); }
+TEST_P(GPU_TernaryTensorOps_FP64, TestDouble) { this->Run(); }
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TensorOps_FP32, GetCases());
-INSTANTIATE_TEST_SUITE_P(Full, GPU_TensorOps_FP64, GetCases());
-INSTANTIATE_TEST_SUITE_P(Full, GPU_TensorOps_FP16, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TernaryTensorOps_FP32, GetCases());
+INSTANTIATE_TEST_SUITE_P(Full, GPU_TernaryTensorOps_FP64, GetCases());
+INSTANTIATE_TEST_SUITE_P(Full, GPU_TernaryTensorOps_FP16, GetCases());

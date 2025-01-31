@@ -35,13 +35,13 @@ struct Handle;
 struct TensorDescriptor;
 
 MIOPEN_INTERNALS_EXPORT std::size_t
-GetSoftMarginLossForwardWorkspaceSize(Handle& handle,
+GetSoftMarginLossForwardWorkspaceSize(const Handle& handle,
                                       const TensorDescriptor& iDesc,
                                       const TensorDescriptor& tDesc,
                                       const TensorDescriptor& oDesc,
                                       miopenLossReductionMode_t reduction);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossForward(const Handle& handle,
                                                              Data_t workspace,
                                                              size_t workspaceSizeInBytes,
                                                              const TensorDescriptor& iDesc,
@@ -52,7 +52,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossForward(Handle& handle,
                                                              Data_t o,
                                                              miopenLossReductionMode_t reduction);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t SoftMarginLossBackward(const Handle& handle,
                                                               const TensorDescriptor& iDesc,
                                                               ConstData_t i,
                                                               const TensorDescriptor& tDesc,

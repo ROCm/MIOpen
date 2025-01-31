@@ -46,7 +46,6 @@
 #include <miopen/find_controls.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/miopen.h>
-#include <miopen/miopen_internal.h>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/tensor.hpp>
 
