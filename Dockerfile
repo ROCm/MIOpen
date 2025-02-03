@@ -158,7 +158,7 @@ RUN set -e; \
         rm -f src/kernels/*.ufdb.txt; \
         rm -f src/kernels/miopen*.udb; \
         cd build ; \
-        CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=debug -DBUILD_DEV=On -DCMAKE_INSTALL_PREFIX=/opt/rocm -DMIOPEN_USE_MLIR=OFF -DMIOPEN_GPU_SYNC=Off  -DCMAKE_PREFIX_PATH=/opt/rocm ..; \
+        CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=release -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=/opt/rocm -DCMAKE_PREFIX_PATH=/opt/rocm ..; \
         LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \
     fi
 
