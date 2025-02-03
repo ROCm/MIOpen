@@ -514,8 +514,6 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
         return false;
     if(problem.IsTensorsCasted())
         return false;
-    if(problem.GetConv().attribute.deterministic)
-        return false;
     if(problem.HasMixedDataTypes())
         return false;
     if(!problem.IsDirectionForward())
