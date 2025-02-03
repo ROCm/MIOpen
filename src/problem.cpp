@@ -518,6 +518,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(const Handle& handle,
 
     auto results =
         FindConvolution(ctx, conv_problem, invoke_ctx, max_solutions, options.attach_binaries);
+    auto db = MakeConvDbGetter(ctx);
 
     for(auto& result : results)
     {
@@ -529,7 +530,6 @@ std::vector<Solution> Problem::FindSolutionsImpl(const Handle& handle,
             // This would make binaries not serialized and invoker not cached.
             // So we prepare them here.
 
-            auto db = GetDb(ctx);
             const auto conv_solution =
                 result.GetSolver().GetSolver().FindSolution(ctx, conv_problem, db, invoke_ctx);
 
