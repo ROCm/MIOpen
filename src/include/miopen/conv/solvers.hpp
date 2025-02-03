@@ -4490,7 +4490,6 @@ private:
 
 struct ConvHipImplicitGemmGroupFwdXdlopsCodegen final : ConvSolver
 {
-    // TODO: update this fcn
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvHipImplicitGemmGroupFwdXdlopsCodegen>();

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -178,11 +178,11 @@ bool ConvHipImplicitGemmGroupFwdXdlopsCodegen::IsApplicable(
     {
         return false;
     }
-    if(!problem.IsLayoutNHWC())
+    if(!(problem.IsLayoutDefault()))
     {
         return false;
     }
-    if(!(ctx.GetStream().GetDeviceName() == "gfx908"))
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
     {
         return false;
     }
