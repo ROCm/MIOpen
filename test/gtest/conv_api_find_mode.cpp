@@ -27,31 +27,59 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 
-#define MIOPEN_CHECK_RET(val) ASSERT_EQ(val, miopenStatusSuccess)
+#define MIOPEN_ASSERT_CHECK_RET(val) ASSERT_EQ(val, miopenStatusSuccess)
+#define MIOPEN_EXPECT_CHECK_RET(val) EXPECT_EQ(val, miopenStatusSuccess)
+#define MIOPEN_EXPECT_BAD_PARAM_CHECK_RET(val) EXPECT_EQ(val, miopenStatusBadParm)
 
-class GPU_ConvFindModeAPI_FP32 : public ::testing::Test
+class CPU_ConvFindModeAPI_NONE : public ::testing::Test
 {
 };
 
-TEST_F(GPU_ConvFindModeAPI_FP32, ConvFindModeAPI)
+TEST_F(CPU_ConvFindModeAPI_NONE, ConvFindModeAPI)
 {
     miopenConvolutionDescriptor_t conv_descr = nullptr;
-    MIOPEN_CHECK_RET(miopenCreateConvolutionDescriptor(&conv_descr));
+    MIOPEN_ASSERT_CHECK_RET(miopenCreateConvolutionDescriptor(&conv_descr));
 
     miopenConvolutionFindMode_t findMode;
-    MIOPEN_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
-    EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeDynamicHybrid);
+    MIOPEN_EXPECT_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
+    EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeDefault);
 
-    MIOPEN_CHECK_RET(miopenSetConvolutionFindMode(
+    MIOPEN_EXPECT_CHECK_RET(miopenSetConvolutionFindMode(
         conv_descr, miopenConvolutionFindMode_t::miopenConvolutionFindModeNormal));
-    MIOPEN_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
+    MIOPEN_EXPECT_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
     EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeNormal);
 
-    ASSERT_EQ(miopenGetConvolutionFindMode(conv_descr, nullptr), miopenStatusBadParm);
-    ASSERT_EQ(miopenGetConvolutionFindMode(nullptr, &findMode), miopenStatusBadParm);
-    ASSERT_EQ(miopenSetConvolutionFindMode(
-                  nullptr, miopenConvolutionFindMode_t::miopenConvolutionFindModeNormal),
-              miopenStatusBadParm);
+    MIOPEN_EXPECT_CHECK_RET(miopenSetConvolutionFindMode(
+        conv_descr, miopenConvolutionFindMode_t::miopenConvolutionFindModeFast));
+    MIOPEN_EXPECT_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
+    EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeFast);
 
-    MIOPEN_CHECK_RET(miopenDestroyConvolutionDescriptor(conv_descr));
+    MIOPEN_EXPECT_CHECK_RET(miopenSetConvolutionFindMode(
+        conv_descr, miopenConvolutionFindMode_t::miopenConvolutionFindModeHybrid));
+    MIOPEN_EXPECT_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
+    EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeHybrid);
+
+    MIOPEN_EXPECT_CHECK_RET(miopenSetConvolutionFindMode(
+        conv_descr, miopenConvolutionFindMode_t::miopenConvolutionFindModeDynamicHybrid));
+    MIOPEN_EXPECT_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
+    EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeDynamicHybrid);
+
+    MIOPEN_EXPECT_CHECK_RET(miopenSetConvolutionFindMode(
+        conv_descr, miopenConvolutionFindMode_t::miopenConvolutionFindModeDefault));
+    MIOPEN_EXPECT_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
+    EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeDefault);
+
+    MIOPEN_EXPECT_BAD_PARAM_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, nullptr));
+    MIOPEN_EXPECT_BAD_PARAM_CHECK_RET(miopenGetConvolutionFindMode(nullptr, &findMode));
+    MIOPEN_EXPECT_BAD_PARAM_CHECK_RET(miopenSetConvolutionFindMode(
+        nullptr, miopenConvolutionFindMode_t::miopenConvolutionFindModeNormal));
+
+    MIOPEN_EXPECT_BAD_PARAM_CHECK_RET(
+        miopenSetConvolutionFindMode(conv_descr, static_cast<miopenConvolutionFindMode_t>(0)));
+    MIOPEN_EXPECT_BAD_PARAM_CHECK_RET(
+        miopenSetConvolutionFindMode(conv_descr, static_cast<miopenConvolutionFindMode_t>(100)));
+    MIOPEN_EXPECT_BAD_PARAM_CHECK_RET(
+        miopenSetConvolutionFindMode(conv_descr, static_cast<miopenConvolutionFindMode_t>(4)));
+
+    MIOPEN_ASSERT_CHECK_RET(miopenDestroyConvolutionDescriptor(conv_descr));
 }
