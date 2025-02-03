@@ -461,9 +461,16 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
     unsigned int ygid    = get_global_id(1);
     unsigned int ygrp_sz = get_local_size(1);
     unsigned int index;
+
+#if MIO_LAYOUT_NHWC
+    unsigned int cidx           = xgid;
+    unsigned int meanstashindex = ygrp_sz * ygrp_id * MIO_BN_C + cidx + 1 * MIO_BN_C;
+    unsigned int varstashindex  = ygrp_sz * ygrp_id * MIO_BN_C + cidx + 3 * MIO_BN_C;
+#else
     unsigned int cidx           = xgid * MIO_BN_HW;
     unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
     unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3;
+#endif
 
     // #4 apply the normalization :: x_hat = (x_i - mean) / sqrt(variance_accum + epsilon)
     if(get_local_id(1) == 0)
@@ -487,7 +494,11 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
         __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
 #endif
         { // apply normalization
+#if MIO_LAYOUT_NHWC
+            index = n * MIO_BN_CHW + ygid * MIO_BN_C + cidx;
+#else
             index = n * MIO_BN_CHW + cidx + ygid;
+#endif
             inhat = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
             // #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
             out[index] = FLOATPREC2FLOAT(mad(pvt_scale, inhat, pvt_bias));
@@ -524,16 +535,27 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
     unsigned int xgid           = get_global_id(0);
     unsigned int ygrp_sz        = get_local_size(1);
     unsigned int yngrps         = get_num_groups(1);
+#if MIO_LAYOUT_NHWC
+    unsigned int cidx           = xgid;
+    unsigned int meanstashindex = ygrp_sz * ygrp_id * MIO_BN_C + cidx + 1 * MIO_BN_C;
+    unsigned int varstashindex  = ygrp_sz * ygrp_id * MIO_BN_C + cidx + 3 * MIO_BN_C;
+#else
     unsigned int cidx           = xgid * MIO_BN_HW;
     unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
     unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3;
+#endif
     unsigned int commitID       = 0;
 
     for(int gn = 0; gn < yngrps; gn++)
     {
         unsigned int offset    = gn * ygrp_sz + lid;
+#if MIO_LAYOUT_NHWC
+        unsigned int meanindex = ygrp_sz * offset * MIO_BN_C + cidx;
+        unsigned int varindex  = ygrp_sz * offset * MIO_BN_C + cidx + 2 * MIO_BN_C;
+#else
         unsigned int meanindex = cidx + ygrp_sz * offset;
         unsigned int varindex  = cidx + ygrp_sz * offset + 2;
+#endif
         if(offset < yngrps)
         { // modify to span larger number of groups
             mean += FLOAT2FLOATPREC(*(meanvarbuff + meanindex));
@@ -590,9 +612,15 @@ MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
     unsigned int ygid    = get_global_id(1);
     unsigned int ygrp_sz = get_local_size(1);
     unsigned int index;
+#if MIO_LAYOUT_NHWC
+    unsigned int cidx      = xgid;
+    unsigned int meanindex = ygrp_sz * ygrp_id * MIO_BN_C + cidx;
+    unsigned int varindex  = ygrp_sz * ygrp_id * MIO_BN_C + cidx + 2 * MIO_BN_C;
+#else
     unsigned int cidx      = xgid * MIO_BN_HW;
     unsigned int meanindex = cidx + ygrp_sz * ygrp_id;
     unsigned int varindex  = meanindex + 2;
+#endif
     _FLOAT_ACCUM mean      = (_FLOAT_ACCUM)0.;
     _FLOAT_ACCUM variance  = (_FLOAT_ACCUM)0.;
     _FLOAT_ACCUM value     = (_FLOAT_ACCUM)0.;
@@ -605,7 +633,11 @@ MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
         __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
 #endif
         {
+#if MIO_LAYOUT_NHWC
+            index = n * MIO_BN_CHW + ygid * MIO_BN_C + cidx;
+#else
             index = n * MIO_BN_CHW + cidx + ygid;
+#endif
             value = FLOAT2ACCUM(*(in + index));
             mean += value;
             variance = mad(value, value, variance);
