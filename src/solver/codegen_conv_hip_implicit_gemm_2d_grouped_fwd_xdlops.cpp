@@ -178,7 +178,7 @@ bool ConvHipImplicitGemmGroupFwdXdlopsCodegen::IsApplicable(
     {
         return false;
     }
-    if(!(problem.IsLayoutDefault()))
+    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
     {
         return false;
     }
