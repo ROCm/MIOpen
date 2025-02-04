@@ -5,16 +5,16 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 ## MIOpen 3.4.0 for ROCm 6.4.0
 ### Added
 
-* [Conv] enable tuning through miopenSetConvolutionFindMode API 
-* [RNN] Added new algo type (miopenRNNroundedDynamic) for LSTM
-* [TunaNet] enabled NHWC for MI300
+* [Conv] Enabled tuning through the `miopenSetConvolutionFindMode` API 
+* [RNN] Added the new algorithm type `miopenRNNroundedDynamic` for LSTM
+* [TunaNet] Enabled NHWC for MI300
 ### Optimized
-* updated KernelTuningNet for CK solvers
+* Updated KernelTuningNet for CK solvers
 
 ### Resolved issues
 
-- Fixed tuning timing results
-- Accuracy for ASM solvers
+* Fixed tuning timing results
+* Accuracy for ASM solvers
 
 
 ## MIOpen 3.3.0 for ROCm 6.3.0
