@@ -32,6 +32,7 @@ The MIOpen public repository is located at `<https://github.com/ROCm/MIOpen>`_.
     * :doc:`Find database <./conceptual/finddb>`
     * :doc:`Kernel cache <./conceptual/cache>`
     * :doc:`Performance database <./conceptual/perfdb>`
+    * :doc:`Manual tuning <./conceptual/tuningdb>`
     * :doc:`MI200 alternate implementation <./conceptual/MI200-alt-implementation>`
     * :doc:`Porting to MIOpen <./conceptual/porting-guide>`
 
