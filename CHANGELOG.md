@@ -9,11 +9,12 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 * [RNN] Added new algo type (miopenRNNroundedDynamic) for LSTM
 * [TunaNet] enabled NHWC for MI300
 ### Optimized
-* KernelTuningNet for CK solvers
+* updated KernelTuningNet for CK solvers
 
 ### Resolved issues
 
 - Fixed tuning timing results
+- Accuracy for ASM solvers
 
 
 ## MIOpen 3.3.0 for ROCm 6.3.0
