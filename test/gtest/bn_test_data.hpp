@@ -91,6 +91,7 @@ inline std::vector<BN2DTestCase> Network2DLarge()
 {
     // pyt_mlperf_resnet50v1.5
     return {
+        {64, 1, 1024, 1024, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
         {192, 1, 8, 8, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
         {12, 40, 122, 122, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
