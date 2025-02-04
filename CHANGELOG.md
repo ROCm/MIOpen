@@ -7,9 +7,10 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 
 * [Conv] enable tuning through miopenSetConvolutionFindMode API 
 * [RNN] Added new algo type (miopenRNNroundedDynamic) for LSTM
+* [TunaNet] enabled NHWC for MI300
 ### Optimized
+* KernelTuningNet for CK solvers
 
-* [TunaNet] KernelTuningNet updates for CK conv solvers
 ### Resolved issues
 
 - Fixed tuning timing results
