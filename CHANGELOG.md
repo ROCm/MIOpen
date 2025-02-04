@@ -2,6 +2,19 @@
 # Change Log for MIOpen
 
 Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/)
+## MIOpen 3.4.0 for ROCm 6.4.0
+### Added
+
+* [Conv] enable tuning through miopenSetConvolutionFindMode API 
+* [RNN] Added new algo type (miopenRNNroundedDynamic) for LSTM
+### Optimized
+
+* [TunaNet] KernelTuningNet updates for CK conv solvers
+### Resolved issues
+
+- Fixed tuning timing results
+
+
 ## MIOpen 3.3.0 for ROCm 6.3.0
 ### Added
 
