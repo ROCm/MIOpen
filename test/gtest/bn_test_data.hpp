@@ -94,7 +94,14 @@ inline std::vector<BNTestCase> NetworkLarge()
         {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0}};
+        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {128, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {128, 256, 16, 16, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {670, 1, 224, 224, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+        {768, 1, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {768, 1, 23, 23, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {832, 1, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {832, 1, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1}};
 }
 
 template <>
@@ -308,17 +315,17 @@ private:
 
     void InitTensorsWithRandValue()
     {
-        // -2.0 to 2.0
-        dy.generate(
-            [](auto...) { return prng::gen_descreet_uniform_sign<DyDataType>(2e-3, 1000); });
-        bnScale.generate(
-            [](auto...) { return prng::gen_descreet_uniform_sign<ScaleDataType>(2e-3, 1000); });
-        savedMean.generate(
-            [](auto...) { return prng::gen_descreet_uniform_sign<MeanVarDataType>(2e-3, 1000); });
-        // 0.0 to 2.0
-        savedInvVar.generate([](auto...) {
-            return static_cast<MeanVarDataType>(2e-3 * (prng::gen_0_to_B(1000) + 1));
-        });
+        auto gen_value = [](auto...) {
+            return prng::gen_descreet_uniform_sign<ScaleDataType>(2e-3, 1000);
+        };
+        dy.generate(gen_value);
+        bnScale.generate(gen_value);
+        savedMean.generate(gen_value);
+
+        auto gen_var = [](auto...) {
+            return static_cast<MeanVarDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
+        };
+        savedInvVar.generate(gen_var);
 
         std::fill(dScale.begin(), dScale.end(), 0.);
         std::fill(dBias.begin(), dBias.end(), 0.);

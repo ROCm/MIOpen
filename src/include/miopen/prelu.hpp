@@ -32,11 +32,11 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT size_t GetPReLUBackwardWorkspaceSize(Handle& handle,
+MIOPEN_INTERNALS_EXPORT size_t GetPReLUBackwardWorkspaceSize(const Handle& handle,
                                                              const TensorDescriptor& inputDesc,
                                                              const TensorDescriptor& weightDesc);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t PReLUBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t PReLUBackward(const Handle& handle,
                                                      Data_t workspace,
                                                      size_t workspaceSizeInBytes,
                                                      const TensorDescriptor& inputDesc,
