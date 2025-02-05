@@ -852,10 +852,10 @@ endfunction()
 
 target_include_directories(MIOpen PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src/include>
-    /usr/local/lib/composable_kernel_host/include
 )
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
+    target_include_directories(MIOpen PUBLIC /usr/local/lib/composable_kernel_host/include)
     set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_reduction_operations composable_kernel::device_mha_operations composable_kernel::ck_host hip::host)
 endif()
 
