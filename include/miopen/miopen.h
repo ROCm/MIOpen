@@ -669,6 +669,8 @@ typedef enum
               miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving
               compilation time. Faster start-up times than Hybrid Find, but GPU performance might be
               a bit worse. >*/
+    miopenConvolutionFindModeDefault =
+        miopenConvolutionFindModeDynamicHybrid /*!< Default FindMode >*/
 } miopenConvolutionFindMode_t;
 
 /** @addtogroup tensor
