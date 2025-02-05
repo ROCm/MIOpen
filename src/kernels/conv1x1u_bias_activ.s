@@ -1052,7 +1052,7 @@ last_wave:
         s_lshl_b32 s[\dst], s[\src0], 16
         s_or_b32 s[\dst], s[\tmp], s[\dst]
     .endm
-    .macro bias_f base, bias, k, stmp0, stmp1
+    .macro bias_f base, k, stmp0, stmp1
         .if elements_in_dword == 2
             k_off_1 = k / elements_in_dword
             k_off_2 = k % elements_in_dword
