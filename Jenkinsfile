@@ -477,9 +477,11 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        utils.buildHipClangJobAndReboot(setup_flags: "-DMIOPEN_ENABLE_FIN_INTERFACE=On",
-                                                  make_targets: "test_unit_FinInterface",
-                                                  execute_cmd: "bin/test_unit_FinInterface")
+                        script {
+                            utils.buildHipClangJobAndReboot(setup_flags: "-DMIOPEN_ENABLE_FIN_INTERFACE=On",
+                                                            make_targets: "test_unit_FinInterface",
+                                                            execute_cmd: "bin/test_unit_FinInterface")
+                        }
                     }
                 }
             }
