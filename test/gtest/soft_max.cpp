@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -468,6 +468,11 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
 
         // taken from the original c test
         double tolerance = 8000;
+
+        if(std::is_same_v<T, half_float::half>)
+        {
+            tolerance = 80;
+        }
 
         double threshold = std::numeric_limits<T>::epsilon() * tolerance;
         double error     = miopen::rms_range(tensorCPUData, tensorGPUData);
