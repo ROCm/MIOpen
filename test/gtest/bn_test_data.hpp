@@ -35,7 +35,7 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 
-struct BNTestCase
+struct BN2DTestCase
 {
     size_t N;
     size_t C;
@@ -46,7 +46,7 @@ struct BNTestCase
     bool save;
     bool keepRunning;
 
-    friend std::ostream& operator<<(std::ostream& ss, const BNTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& ss, const BN2DTestCase& tc)
     {
         return ss << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " mode: " << tc.mode << " Direction: " << static_cast<int>(tc.Direction)
@@ -55,14 +55,39 @@ struct BNTestCase
     std::vector<size_t> GetInput() const { return {N, C, H, W}; }
 };
 
-template <typename T>
-std::vector<T> NetworkSmall();
+struct BN3DTestCase
+{
+    size_t N;
+    size_t C;
+    size_t D;
+    size_t H;
+    size_t W;
+    miopenBatchNormMode_t mode;
+    miopen::batchnorm::Direction Direction;
+    bool save;
+    bool keepRunning;
+
+    friend std::ostream& operator<<(std::ostream& ss, const BN3DTestCase& tc)
+    {
+        return ss << "(N: " << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
+                  << " W:" << tc.W << " mode: " << tc.mode
+                  << " Direction: " << static_cast<int>(tc.Direction) << " save: " << tc.save
+                  << " keepRunning: " << tc.keepRunning;
+    }
+    std::vector<size_t> GetInput() const { return {N, C, D, H, W}; }
+};
 
 template <typename T>
-std::vector<T> NetworkLarge();
+std::vector<T> Network2DSmall();
+
+template <typename T>
+std::vector<T> Network2DLarge();
+
+template <typename T>
+std::vector<T> Network3DBN();
 
 template <>
-inline std::vector<BNTestCase> NetworkLarge()
+inline std::vector<BN2DTestCase> Network2DLarge()
 {
     // pyt_mlperf_resnet50v1.5
     return {
@@ -101,14 +126,26 @@ inline std::vector<BNTestCase> NetworkLarge()
 }
 
 template <>
-inline std::vector<BNTestCase> NetworkSmall()
+inline std::vector<BN2DTestCase> Network2DSmall()
 {
     // pyt_mlperf_resnet50v1.5
     return {
         {192, 2, 8, 8, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 132, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
         {64, 2048, 17, 17, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+
+    };
+}
+
+template <>
+inline std::vector<BN3DTestCase> Network3DBN()
+{
+    return {
+        {2, 2, 3, 224, 224, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 132, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 16, 128, 128, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
+        {2, 2048, 16, 128, 128, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
 
     };
 }
