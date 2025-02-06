@@ -125,7 +125,7 @@ RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK
     -D CMAKE_BUILD_TYPE=Release \
     -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201" \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j $(nproc) install 
+    make -j $(nproc) install
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 # this can minimize build time
@@ -146,6 +146,21 @@ RUN pip3 install -r /doc-requirements.txt
 
 # Composable Kernel requires this version cmake
 RUN pip3 install --upgrade cmake==3.27.5
+
+#install miopen
+ARG INSTALL_MIOPEN=OFF
+ARG FRECKLE=0
+ADD . / miopen/
+RUN set -e; \
+    if [ "$INSTALL_MIOPEN" = "ON" ]; then \
+        cd miopen; \
+        mkdir build; \
+        rm -f src/kernels/*.ufdb.txt; \
+        rm -f src/kernels/miopen*.udb; \
+        cd build ; \
+        CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=release -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=/opt/rocm -DCMAKE_PREFIX_PATH=/opt/rocm ..; \
+        LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \
+    fi
 
 # groupadd can add one group a time
 RUN groupadd -f render
