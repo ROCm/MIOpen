@@ -67,6 +67,13 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
     unsigned int in_cstride = h * w;
     unsigned int in_nhw     = n * in_cstride;
 
+    // TODO: For now enable variant 2 for NHWC because other variants are slower.
+    // Remove when other variants are optimized
+    if(bn_problem.IsLayoutNHWC())
+    {
+        return false;
+    }
+
     return (in_cstride > 1024 && in_nhw < (32 * 1024 * 1024)) ||
            (in_cstride > 512 && in_nhw < (32 * 1024 * 1024)) || in_cstride <= 512;
 }
