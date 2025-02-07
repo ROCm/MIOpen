@@ -2791,7 +2791,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
 
     // high priority for DynamicAlgo
     if(!CheckDynamicAlgoSelection(handle, {}, miopenRNNTraining) &&
-       RNNForwardMSIsSupported(*this, false) && RNNForwardMSIsFast(seqLen))
+       RNNForwardMSIsSupported(*this, use_dropout) && RNNForwardMSIsFast(seqLen))
     {
         return RNNForwardMS(handle,
                             in_n,

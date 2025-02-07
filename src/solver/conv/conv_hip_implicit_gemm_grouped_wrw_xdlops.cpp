@@ -587,7 +587,7 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS))
         return false;
-    if(env::enabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC))
+    if(problem.GetConv().attribute.deterministic)
         return false;
     if(problem.HasMixedDataTypes())
         return false;
