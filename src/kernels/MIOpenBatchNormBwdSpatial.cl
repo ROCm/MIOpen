@@ -634,47 +634,65 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_VARIANT == 2)
 
+inline void storefp32In16bitBuffer(__global void *buf, uint half_offset, _FLOAT_PREC value) {
+    uint byte_offset = half_offset * 2;
+    __global char *bptr = (__global char *)buf;
+    __global _FLOAT_PREC *fp32ptr = (__global _FLOAT_PREC *)(bptr + byte_offset);
+    *fp32ptr = value;
+}
+
+inline _FLOAT_PREC loadfp32From16bitBbuffer(__global void *buf, uint half_offset) {
+    uint byte_offset = half_offset * 2;
+    __global char *bptr = (__global char *)buf;
+    __global _FLOAT_PREC *fp32ptr = (__global _FLOAT_PREC *)(bptr + byte_offset);
+    return *fp32ptr;
+}
+
+
 #if(MIO_BN_USESAVED == 0)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbuff,
-                                           _FLOAT INHW,
+                                           _FLOAT_PREC INHW,
                                            double epsilon)
 {
-    _FLOAT variance             = (_FLOAT)0.;
-    _FLOAT invVariance          = (_FLOAT)0.;
-    _FLOAT mean                 = (_FLOAT)0.;
+    _FLOAT_PREC variance             = (_FLOAT_PREC)0.;
+    _FLOAT_PREC invVariance          = (_FLOAT_PREC)0.;
+    _FLOAT_PREC mean                 = (_FLOAT_PREC)0.;
     unsigned int lid            = get_local_id(1);
     unsigned int ygrp_id        = get_group_id(1);
     unsigned int xgid           = get_global_id(0);
     unsigned int ygrp_sz        = get_local_size(1);
     unsigned int yngrps         = get_num_groups(1);
     unsigned int cidx           = xgid * MIO_BN_HW;
-    unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
-    unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3;
+    unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1 + 1;
+    unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3 + 3;
     unsigned int commitID       = 0;
 
     for(int gn = 0; gn < yngrps; gn++)
     {
         unsigned int offset    = gn * ygrp_sz + lid;
         unsigned int meanindex = cidx + ygrp_sz * offset;
-        unsigned int varindex  = cidx + ygrp_sz * offset + 2;
+        unsigned int varindex  = cidx + ygrp_sz * offset + 2 + 2;
         if(offset < yngrps)
         { // modify to span larger number of groups
-            mean += *(meanvarbuff + meanindex);
-            variance += *(meanvarbuff + varindex); // load per group variance
+            //mean += FLOAT2FLOATPREC(*(meanvarbuff + meanindex));
+            //variance += FLOAT2FLOATPREC(*(meanvarbuff + varindex)); // load per group variance
+
+            mean += loadfp32From16bitBbuffer(meanvarbuff, meanindex);
+            variance += loadfp32From16bitBbuffer(meanvarbuff, varindex);
         }
     }
 
 #if !MIOPEN_USE_AMDGCN
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
-    lds_reduce2(&mean, &variance, FLOAT2ACCUM(INHW), lcl_data_x, lcl_data_y, lid);
+    lds_reduce2(&mean, &variance, INHW, lcl_data_x, lcl_data_y, lid);
 #else
     commitID = 64;
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDSGCN_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDSGCN_SIZE];
-    gcn_reduce2(&mean, &variance, FLOAT2ACCUM(INHW), lcl_data_x, lcl_data_y, lid);
+    gcn_reduce2(&mean, &variance, INHW, lcl_data_x, lcl_data_y, lid);
 #endif
 
     barrier(CLK_LOCAL_MEM_FENCE | CLK_GLOBAL_MEM_FENCE);
@@ -686,8 +704,10 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
     invVariance = rsqrt(variance + epsilon);
     if(lid == commitID)
     {
-        meanvarbuff[meanstashindex] = mean;        // stash mean
-        meanvarbuff[varstashindex]  = invVariance; // stash mean
+        //meanvarbuff[meanstashindex] = FLOATPREC2FLOAT(mean);        // stash mean
+        //meanvarbuff[varstashindex]  = FLOATPREC2FLOAT(invVariance); // stash mean
+        storefp32In16bitBuffer(meanvarbuff, meanstashindex, mean);
+        storefp32In16bitBuffer(meanvarbuff, varstashindex, invVariance);
     }
 }
 
@@ -704,10 +724,10 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
     unsigned int index;
     unsigned int cidx      = xgid * MIO_BN_HW;
     unsigned int meanindex = cidx + ygrp_sz * ygrp_id;
-    unsigned int varindex  = meanindex + 2;
-    _FLOAT mean            = (_FLOAT)0.;
-    _FLOAT variance        = (_FLOAT)0.;
-    _FLOAT value           = (_FLOAT)0.;
+    unsigned int varindex  = meanindex + 2 + 2;
+    _FLOAT_PREC mean            = (_FLOAT_PREC)0.;
+    _FLOAT_PREC variance        = (_FLOAT_PREC)0.;
+    _FLOAT_PREC value           = (_FLOAT_PREC)0.;
 
     if(ygid < MIO_BN_HW)
     {
@@ -715,7 +735,7 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
             index = n * MIO_BN_CHW + cidx + ygid;
-            value = *(in + index);
+            value = FLOAT2FLOATPREC(*(in + index));
             mean += value;
             variance = mad(value, value, variance);
         }
@@ -733,8 +753,12 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
 
     if(ylid == 0)
     {
-        mvbuff[meanindex] = mean;
-        mvbuff[varindex]  = variance;
+        // mvbuff[meanindex] = FLOATPREC2FLOAT(mean);
+        // mvbuff[varindex]  = FLOATPREC2FLOAT(variance);
+
+        storefp32In16bitBuffer(mvbuff, meanindex, mean);
+        storefp32In16bitBuffer(mvbuff, varindex, variance);
+
     }
 } // end spatial mean kernel
 
@@ -747,8 +771,8 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
 #if(MIO_BN_USESAVED == 1)
 
                                      ,
-                                     const __global _FLOAT* savedMean,
-                                     const __global _FLOAT* savedInvVariance
+                                     const __global _FLOAT_PREC* savedMean,
+                                     const __global _FLOAT_PREC* savedInvVariance
 #endif
 )
 {
@@ -761,22 +785,24 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
     unsigned int index;
     unsigned int cidx = xgid * MIO_BN_HW;
 
-    _FLOAT mean    = (_FLOAT)0.;
-    _FLOAT invVar  = (_FLOAT)0.;
-    _FLOAT elemStd = (_FLOAT)0.;
-    _FLOAT xhat    = (_FLOAT)0.;
-    _FLOAT dscale  = (_FLOAT)0.;
-    _FLOAT dbias   = (_FLOAT)0.;
+    _FLOAT_PREC mean    = (_FLOAT_PREC)0.;
+    _FLOAT_PREC invVar  = (_FLOAT_PREC)0.;
+    _FLOAT_PREC elemStd = (_FLOAT_PREC)0.;
+    _FLOAT_PREC xhat    = (_FLOAT_PREC)0.;
+    _FLOAT_PREC dscale  = (_FLOAT_PREC)0.;
+    _FLOAT_PREC dbias   = (_FLOAT_PREC)0.;
 
-    __local _FLOAT lmean, livar;
+    __local _FLOAT_PREC lmean, livar;
 
     if(ylid == 0)
     {
 #if(MIO_BN_USESAVED == 0)
-        unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
-        unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3;
-        lmean                       = *(buff + meanstashindex); // load stashed mean
-        livar                       = *(buff + varstashindex);
+        unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1 + 1;
+        unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3 + 3;
+        //lmean                       = FLOAT2FLOATPREC(*(buff + meanstashindex)); // load stashed mean
+        //livar                       = FLOAT2FLOATPREC(*(buff + varstashindex));
+        lmean = loadfp32From16bitBbuffer(buff, meanstashindex);
+        livar = loadfp32From16bitBbuffer(buff, varstashindex);
 #else  // NO SAVED
         lmean = *(savedMean + xgid);
         livar = *(savedInvVariance + xgid);
@@ -792,10 +818,10 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
             index = n * MIO_BN_CHW + cidx + ygid;
-            dbias += *(dy_in + index);
-            elemStd = *(x_in + index) - mean;
+            dbias += FLOAT2FLOATPREC(*(dy_in + index));
+            elemStd = FLOAT2FLOATPREC(*(x_in + index)) - mean;
             xhat    = elemStd * invVar;
-            dscale  = mad(xhat, dy_in[index], dscale);
+            dscale  = mad(xhat, FLOAT2FLOATPREC(dy_in[index]), dscale);
         }
     }
 
@@ -813,21 +839,23 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* x_in,
     // end reduction-----------
     if(ylid == 0)
     {
-        unsigned int betaindex  = cidx + ygrp_sz * ygrp_id + 6;
-        unsigned int gammaindex = cidx + ygrp_sz * ygrp_id + 4;
-        buff[gammaindex]        = FLOAT2FLOATPREC(dscale);
-        buff[betaindex]         = FLOAT2FLOATPREC(dbias);
+        unsigned int gammaindex = cidx + ygrp_sz * ygrp_id + 4 + 4;
+        unsigned int betaindex  = cidx + ygrp_sz * ygrp_id + 6 + 4;
+        //buff[gammaindex]        = FLOATPREC2FLOAT(dscale);
+        //buff[betaindex]         = FLOATPREC2FLOAT(dbias);
+        storefp32In16bitBuffer(buff, gammaindex, dscale);
+        storefp32In16bitBuffer(buff, betaindex, dbias);
     }
 }
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
-                                          __global _FLOAT* delta_scale,
-                                          __global _FLOAT* delta_bias)
+                                          __global _FLOAT_PREC* delta_scale,
+                                          __global _FLOAT_PREC* delta_bias)
 {
 
-    _FLOAT ds = (_FLOAT)0.;
-    _FLOAT db = (_FLOAT)0.;
+    _FLOAT_PREC ds = (_FLOAT_PREC)0.;
+    _FLOAT_PREC db = (_FLOAT_PREC)0.;
 
     unsigned int lid     = get_local_id(1);
     unsigned int xgid    = get_global_id(0);
@@ -841,10 +869,12 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
         unsigned int offset = gn * ygrp_sz + lid;
         if(offset < yngrps)
         { // modify to span larger number of groups
-            unsigned int gammaindex = cidx + ygrp_sz * offset + 4;
-            unsigned int betaindex  = cidx + ygrp_sz * offset + 6;
-            ds += *(buff + gammaindex);
-            db += *(buff + betaindex);
+            unsigned int gammaindex = cidx + ygrp_sz * offset + 4 + 4;
+            unsigned int betaindex  = cidx + ygrp_sz * offset + 6 + 4;
+            //ds += FLOAT2FLOATPREC(*(buff + gammaindex));
+            //db += FLOAT2FLOATPREC(*(buff + betaindex));
+            ds += loadfp32From16bitBbuffer(buff, gammaindex);
+            db += loadfp32From16bitBbuffer(buff, betaindex);
         }
     }
 
@@ -860,8 +890,8 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(__global _FLOAT* buff,
 
     if(ygid == 0)
     {
-        delta_scale[xgid] = FLOAT2FLOATPREC(ds);
-        delta_bias[xgid]  = FLOAT2FLOATPREC(db);
+        delta_scale[xgid] = ds;
+        delta_bias[xgid]  = db;
     }
 }
 
@@ -869,27 +899,27 @@ __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __k
 MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* x_in,
                             const __global _FLOAT* dy_in,
                             __global _FLOAT* dx_out,
-                            const __global _FLOAT* bnScale,
-                            __global _FLOAT* delta_scale,
-                            __global _FLOAT* delta_bias,
+                            const __global _FLOAT_PREC* bnScale,
+                            __global _FLOAT_PREC* delta_scale,
+                            __global _FLOAT_PREC* delta_bias,
 #if(MIO_BN_USESAVED == 1)
-                            const __global _FLOAT* savedMean,
-                            const __global _FLOAT* savedInvVariance,
+                            const __global _FLOAT_PREC* savedMean,
+                            const __global _FLOAT_PREC* savedInvVariance,
 #endif
-                            _FLOAT INHW)
+                            _FLOAT_PREC INHW)
 {
 
     int xgid = get_global_id(0);
     int ygid = get_global_id(1);
     int cidx = MIO_BN_HW * xgid;
     unsigned int index;
-    _FLOAT mean, invVar;
-    _FLOAT elemStd, xhat;
-    _FLOAT scale, dscale, dbias;
-    _FLOAT tmp1, tmp2, tmp3;
-    _FLOAT NHW = (_FLOAT)MIO_BN_NHW;
+    _FLOAT_PREC mean, invVar;
+    _FLOAT_PREC elemStd, xhat;
+    _FLOAT_PREC scale, dscale, dbias;
+    _FLOAT_PREC tmp1, tmp2, tmp3;
+    _FLOAT_PREC NHW = (_FLOAT_PREC)MIO_BN_NHW;
 
-    local _FLOAT lscale, ldscale, ldbias, lmean, livar;
+    local _FLOAT_PREC lscale, ldscale, ldbias, lmean, livar;
 
     if(get_local_id(1) == 0)
     {
@@ -897,10 +927,12 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* x_in,
 #if(MIO_BN_USESAVED == 0)
         int ygrp_id                 = get_group_id(1);
         int ygrp_sz                 = get_local_size(1);
-        unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1;
-        unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3;
-        lmean                       = *(dx_out + meanstashindex); // load stashed mean
-        livar                       = *(dx_out + varstashindex);
+        unsigned int meanstashindex = cidx + ygrp_sz * ygrp_id + 1 + 1;
+        unsigned int varstashindex  = cidx + ygrp_sz * ygrp_id + 3 + 3;
+        //lmean                       = FLOAT2FLOATPREC(*(dx_out + meanstashindex)); // load stashed mean
+        //livar                       = FLOAT2FLOATPREC(*(dx_out + varstashindex));
+        lmean = loadfp32From16bitBbuffer(dx_out, meanstashindex);
+        livar = loadfp32From16bitBbuffer(dx_out, varstashindex);
 #else  // SAVED
         lmean = *(savedMean + xgid);
         livar = *(savedInvVariance + xgid);
@@ -926,12 +958,12 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* x_in,
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
             index         = n * MIO_BN_CHW + cidx + ygid;
-            elemStd       = *(x_in + index) - mean; // (x_i - mean)
+            elemStd       = FLOAT2FLOATPREC(*(x_in + index)) - mean; // (x_i - mean)
             xhat          = elemStd * invVar;       // recalculating this again...
-            tmp1          = mad(NHW, *(dy_in + index), -dbias);
+            tmp1          = mad(NHW, FLOAT2FLOATPREC(*(dy_in + index)), -dbias);
             tmp2          = -xhat * dscale;
             tmp3          = scale * invVar * INHW;
-            dx_out[index] = tmp3 * (tmp2 + tmp1);
+            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
         }
     }
 }
