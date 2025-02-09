@@ -42,6 +42,7 @@ namespace batchnorm {
 bool BnFwdTrainingSpatialSingle::IsApplicable(
     const ExecutionContext&, const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
+
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
        bn_problem.GetMode() != miopenBNSpatial)
         return false;
@@ -54,6 +55,16 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
 
     unsigned int in_cstride = h * w;
     unsigned int in_nhw     = n * in_cstride;
+
+    if (bn_problem.IsLayoutNHWC() && bn_problem.GetXDesc().GetType() == miopenFloat)
+    {
+        // Variant 2 needs to have at least 4 elements in the y direction (in_cstride)
+        // for each workgroup to write intermediate mean and variance results
+        unsigned int xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
+        unsigned int ylocalsize = 1024 / xlocalsize;
+        if (in_cstride % ylocalsize == 0 || in_cstride % ylocalsize >= 4)
+            return false;
+    }
 
     bool bfpmixparm = false;
     bool bfp32parm  = true;

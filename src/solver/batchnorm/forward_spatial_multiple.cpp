@@ -61,7 +61,9 @@ bool BNFwdTrainIsCaseVariant2(const miopen::batchnorm::ProblemDescription& probl
         return true;
     }
     else
-        return false;
+    {
+        return problem.IsLayoutNHWC() && problem.GetXDesc().GetType() == miopenFloat;
+    }
 }
 
 bool BnFwdTrainingSpatialMultiple::IsApplicable(
@@ -100,15 +102,6 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
     unsigned int in_nchw    = n * in_nstride;
     auto inhw               = float(1.0 / in_nhw);
 
-    size_t xlocalsize = 1024;
-    if(((in_cstride < 256) && (n < 256)) || ((in_cstride < 100) && (n <= 256)))
-        xlocalsize = 256;
-
-    size_t ylocalsize = 1;
-
-    size_t xgridsize = c * xlocalsize;
-    size_t ygridsize = 1;
-
     bool bfpmixparm   = false;
     bool bbfpmixparam = false;
     bool bfp16parm    = false;
@@ -130,12 +123,34 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
         bfp32parm    = false;
     }
 
-    int variant           = 1;
-    unsigned int ldsgcn   = xlocalsize / 64;
-    unsigned int ldsnogcn = xlocalsize;
+    size_t xlocalsize;
+    size_t ylocalsize;
+    size_t xgridsize;
+    size_t ygridsize;
+
+    size_t max_localsize = 1024;
+    if(((in_cstride < 256) && (n < 256)) || ((in_cstride < 100) && (n <= 256)))
+        max_localsize = 256;
+    int variant           = 2;
+    unsigned int ldsgcn   = max_localsize / 64;
+    unsigned int ldsnogcn = max_localsize;
+    if(problem.IsLayoutNHWC())
+    {
+        xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
+        xgridsize  = xlocalsize * ((c + xlocalsize - 1) / xlocalsize);
+        ylocalsize = max_localsize / xlocalsize;
+        ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+    }
+    else
+    {
+        xlocalsize = 1;
+        xgridsize  = c;
+        ylocalsize = max_localsize;
+        ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+    }
 
 #if(WORKAROUND_SWDEV_253606 == 0)
-    if(n < 3)
+    if(n < 3 && !problem.IsLayoutNHWC())
     {
         variant    = 4;
         xlocalsize = 256;
@@ -145,44 +160,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
         ldsgcn     = xlocalsize / 64;
         ldsnogcn   = xlocalsize;
     }
-    else
 #endif
-
-        // clang-format off
-    if((in_nhw < 33554432 && in_cstride > 1024) ||
-        ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
-        ((in_cstride > 512) && bfpmixparm))
-    {
-        variant = 1;
-    }
-    else if(in_cstride <= 512)
-    {
-        variant = 0;
-    }
-    else
-    {
-        variant      = 2;
-        xlocalsize   = 1;
-        ylocalsize   = 1024;
-        auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-        xgridsize    = c;
-        ygridsize    = segment * ylocalsize;
-        ldsgcn       = ylocalsize / 64;
-        ldsnogcn     = ylocalsize;
-    }
-    // clang-format on
-
-    if((n > 768) && (in_cstride > 150) && bfp32parm)
-    {
-        variant      = 2;
-        xlocalsize   = 1;
-        ylocalsize   = 1024;
-        auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-        xgridsize    = c;
-        ygridsize    = segment * ylocalsize;
-        ldsgcn       = ylocalsize / 64;
-        ldsnogcn     = ylocalsize;
-    }
 
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -208,7 +186,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_NHW", in_nhw},
             {"MIO_BN_CHW", in_nstride},
             {"MIO_BN_NCHW", in_nchw},
-            {"MIO_BN_NGRPS", int(std::ceil(float(ygridsize) / ylocalsize))},
+            {"MIO_BN_NGRPS", ygridsize / ylocalsize},
             {"MIO_BN_LDS_SIZE", ldsnogcn},
             {"MIO_BN_LDSGCN_SIZE", ldsgcn},
             {"MIO_BN_VARIANT", variant},
@@ -236,9 +214,11 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
         result.construction_params.push_back(copy);
 
         copy.kernel_name = kernel.kernel_name + "FinalMeanVariance";
+        copy.g_wk[1]     = kernel.l_wk[1];
         result.construction_params.push_back(copy);
 
         copy.kernel_name = kernel.kernel_name + "Norm";
+        copy.g_wk[1]     = kernel.g_wk[1];
         result.construction_params.push_back(copy);
     }
 
@@ -255,6 +235,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
 
             float ctime = 0.;
             visit_float(dtype, [&](auto as_float) {
+
                 handle_.Run(kernels[0])(params.x, params.y);
                 profileSequence(handle_, 0, &ctime);
 
