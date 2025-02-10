@@ -50,7 +50,7 @@
 
 template <class TensorT>
 miopen::Allocator::ManageDataPtr
-createTensorAtGPUOrNullptr(miopen::Handle& handle, TensorT& tensor, bool is_nullptr)
+createTensorAtGPUOrNullptr(const miopen::Handle& handle, TensorT& tensor, bool is_nullptr)
 {
     if(!is_nullptr)
         return handle.Create(tensor.GetDataByteSize());
@@ -60,7 +60,7 @@ createTensorAtGPUOrNullptr(miopen::Handle& handle, TensorT& tensor, bool is_null
 
 template <class TensorT>
 miopen::Allocator::ManageDataPtr
-transferTensorToGPUOrNullptr(miopen::Handle& handle, TensorT& tensor, bool is_nullptr)
+transferTensorToGPUOrNullptr(const miopen::Handle& handle, TensorT& tensor, bool is_nullptr)
 {
     if(!is_nullptr)
         return handle.Write(tensor.data);
@@ -70,7 +70,7 @@ transferTensorToGPUOrNullptr(miopen::Handle& handle, TensorT& tensor, bool is_nu
 
 // read from GPU cnt elements of type T
 template <template <class T> typename TensorT, class T>
-auto readTFromGPUOrEmpty(miopen::Handle& handle,
+auto readTFromGPUOrEmpty(const miopen::Handle& handle,
                          miopen::Allocator::ManageDataPtr& gpuPtr,
                          const TensorT<T>& tensor,
                          bool isEmpty) -> decltype(handle.Read<T>(gpuPtr, tensor.GetSize()))

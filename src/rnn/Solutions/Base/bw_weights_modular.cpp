@@ -144,17 +144,16 @@ void RNNBackwardWeightsModularAlgo::PrepareWriteBuffers(const Handle& handle, Da
 void RNNBackwardWeightsModularAlgo::PhisXInputWeights(const Handle& handle,
                                                       Data_t dw,
                                                       ConstData_t workSpace,
-                                                      ConstData_t x) const
+                                                      ConstData_t x,
+                                                      size_t gemm_batch_offset,
+                                                      size_t gemm_batch_size) const
 {
-    const size_t gemm_batch_size = xInfo.getFullSeqMajorSize()[0];
-
     assert(gemm_batch_size != 0);
 
     if(rnnDesc.inputMode == miopenRNNlinear)
     {
         constexpr int layer                   = 0;
         constexpr SequenceDirection direction = SequenceDirection::Forward;
-        constexpr size_t gemm_batch_offset    = 0;
 
         // both directions in 1 call;
 
@@ -198,12 +197,10 @@ void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
                                                         Data_t dw,
                                                         ConstData_t workSpace,
                                                         ConstData_t reserveSpace,
-                                                        size_t layer) const
+                                                        size_t layer,
+                                                        size_t gemm_batch_offset,
+                                                        size_t gemm_batch_size) const
 {
-    const size_t gemm_batch_size = workspaceInfo.getGateBlockSize()[1];
-
-    const size_t gemm_batch_offset    = 0;
-    const size_t seq_start            = 0;
     const SequenceDirection direction = SequenceDirection::Forward;
 
     assert(gemm_batch_size != 0);
@@ -217,11 +214,9 @@ void RNNBackwardWeightsModularAlgo::HiddenXInputWeights(const Handle& handle,
 
     const auto tmp_block_offset =
         workspaceInfo.getGateBlockOffset(layer, gemm_batch_offset, direction);
-
     const auto filter_offset = weightsLayout.getMatrixXinOff(layer, static_cast<int>(direction));
-
-    const auto ht_offset = reservLayout.getHiddenStateOffset(
-        layer - 1, batchController.getBatchSum(seq_start), direction);
+    const auto ht_offset =
+        reservLayout.getHiddenStateOffset(layer - 1, gemm_batch_offset, direction);
 
     const auto tmp_block_src_dsc = BuildLstmTmpBlockDesc2D(workspaceInfo, gemm_batch_size);
 
@@ -395,6 +390,51 @@ void RNNBackwardWeiModuleAlgoDynamic::PhisHStateWeights(const Handle& handle,
                                  filter_offset,
                                  filter_dsc,
                                  true);
+}
+
+void RNNBackwardWeiModuleAlgoDynamic::HiddenXInputWeights(const Handle& handle,
+                                                          Data_t dw,
+                                                          ConstData_t workSpace,
+                                                          ConstData_t reserveSpace,
+                                                          size_t layer) const
+{
+    const size_t total_seq_cnt = getTimeSeqSize();
+
+    size_t seq_it = 0;
+    for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
+    {
+        const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+        const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                              ? batchController.getTotalBatchSum()
+                                              : batchController.getBatchSum(seq_it + step_size)) -
+                                       gemm_batch_offset;
+
+        RNNBackwardWeightsModularAlgo::HiddenXInputWeights(
+            handle, dw, workSpace, reserveSpace, layer, gemm_batch_offset, gemm_batch_size);
+        seq_it += step_size;
+    }
+}
+
+void RNNBackwardWeiModuleAlgoDynamic::PhisXInputWeights(const Handle& handle,
+                                                        Data_t dw,
+                                                        ConstData_t workSpace,
+                                                        ConstData_t x) const
+{
+    const size_t total_seq_cnt = getTimeSeqSize();
+
+    size_t seq_it = 0;
+    for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
+    {
+        const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+        const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                              ? batchController.getTotalBatchSum()
+                                              : batchController.getBatchSum(seq_it + step_size)) -
+                                       gemm_batch_offset;
+
+        RNNBackwardWeightsModularAlgo::PhisXInputWeights(
+            handle, dw, workSpace, x, gemm_batch_offset, gemm_batch_size);
+        seq_it += step_size;
+    }
 }
 
 } // namespace rnn_base

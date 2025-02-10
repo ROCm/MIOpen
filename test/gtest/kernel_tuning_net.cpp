@@ -113,7 +113,7 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases_FP32
               miopenFloat,
               miopenTensorNHWC},
              "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64, 64, 64, 4, Default, 4, 2, 2, 1, 4, 1, 4, "
-             "1, 1, 1>+8",
+             "1, 1, 1>+1",
              "gfx942"}};
 }
 
