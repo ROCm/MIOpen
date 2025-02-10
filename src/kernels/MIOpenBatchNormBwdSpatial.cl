@@ -634,20 +634,57 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_VARIANT == 2)
 
-inline void storefp32In16bitBuffer(__global void* buf, uint half_offset, _FLOAT_PREC value)
+inline _FLOAT_PREC loadFromStash(const __global _FLOAT* stash,
+                                 unsigned int vindex,
+                                 unsigned int ygroupoffset,
+                                 unsigned int ystride,
+                                 unsigned int xgrp_sz,
+                                 unsigned int xgrp_id,
+                                 unsigned int xlid,
+                                 unsigned int xstride)
 {
-    uint byte_offset              = half_offset * 2;
-    __global char* bptr           = (__global char*)buf;
-    __global _FLOAT_PREC* fp32ptr = (__global _FLOAT_PREC*)(bptr + byte_offset);
-    *fp32ptr                      = value;
+#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
+    // 2 _FLOAT values are used to store 1 _FLOAT_PREC value.
+#if MIO_LAYOUT_NHWC
+    // xgrp_sz values are stpit in halves: the first half is stored at even rows, the second half
+    // is stored at odd rows.
+    unsigned int index = (ygroupoffset + vindex * 2 + xlid / (xgrp_sz / 2)) * ystride +
+                         (xgrp_sz * xgrp_id + xlid % (xgrp_sz / 2) * 2) * xstride;
+#else
+    // Values are stored consecutively in y dim.
+    unsigned int index =
+        (ygroupoffset + vindex * 2) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+#endif
+    return *((const __global _FLOAT_PREC*)(stash + index));
+#else
+    unsigned int index = (ygroupoffset + vindex) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+    return FLOAT2FLOATPREC(*(stash + index));
+#endif
 }
 
-inline _FLOAT_PREC loadfp32From16bitBuffer(const __global void* buf, uint half_offset)
+inline void storeToStash(_FLOAT_PREC value,
+                         __global _FLOAT* stash,
+                         unsigned int vindex,
+                         unsigned int ygroupoffset,
+                         unsigned int ystride,
+                         unsigned int xgrp_sz,
+                         unsigned int xgrp_id,
+                         unsigned int xlid,
+                         unsigned int xstride)
 {
-    uint byte_offset                    = half_offset * 2;
-    const __global char* bptr           = (const __global char*)buf;
-    const __global _FLOAT_PREC* fp32ptr = (const __global _FLOAT_PREC*)(bptr + byte_offset);
-    return *fp32ptr;
+#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
+#if MIO_LAYOUT_NHWC
+    unsigned int index = (ygroupoffset + vindex * 2 + xlid / (xgrp_sz / 2)) * ystride +
+                         (xgrp_sz * xgrp_id + xlid % (xgrp_sz / 2) * 2) * xstride;
+#else
+    unsigned int index =
+        (ygroupoffset + vindex * 2) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+#endif
+    *((__global _FLOAT_PREC*)(stash + index)) = value;
+#else
+    unsigned int index = (ygroupoffset + vindex) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+    *(stash + index)   = FLOATPREC2FLOAT(value);
+#endif
 }
 
 #if (MIO_BN_USESAVED == 0)
@@ -660,7 +697,9 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
 
     unsigned int xlid    = get_local_id(0);
     unsigned int ylid    = get_local_id(1);
+    unsigned int xgrp_id = get_group_id(0);
     unsigned int xgid    = get_global_id(0);
+    unsigned int xgrp_sz = get_local_size(0);
     unsigned int ygrp_sz = get_local_size(1);
 
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
@@ -673,17 +712,12 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
     _FLOAT_PREC mean     = (_FLOAT_PREC)0.;
     _FLOAT_PREC invVariance;
 
-    for(unsigned int offset = ylid; offset < MIO_BN_NGRPS; offset += ygrp_sz)
+    for(unsigned int yoffset = ylid; yoffset < MIO_BN_NGRPS; yoffset += ygrp_sz)
     {
-        unsigned int meanindex = ygrp_sz * offset * ystride + xgid * xstride;
-        unsigned int varindex  = ygrp_sz * offset * ystride + xgid * xstride + (2 * 2) * ystride;
-#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
-        mean += loadfp32From16bitBuffer(meanvarbuff, meanindex);
-        variance += loadfp32From16bitBuffer(meanvarbuff, varindex);
-#else
-        mean += FLOAT2FLOATPREC(*(meanvarbuff + meanindex));
-        variance += FLOAT2FLOATPREC(*(meanvarbuff + varindex)); // load per group variance
-#endif
+        mean += loadFromStash(
+            meanvarbuff, 0, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        variance += loadFromStash(
+            meanvarbuff, 1, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
     }
 
 #if !MIOPEN_USE_AMDGCN || MIO_BN_GRP1 > 1
@@ -709,19 +743,21 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
         variance = 0;
     }
     invVariance = rsqrt(variance + epsilon);
-    for(unsigned int offset = ylid; offset < MIO_BN_NGRPS; offset += ygrp_sz)
+    for(unsigned int yoffset = ylid; yoffset < MIO_BN_NGRPS; yoffset += ygrp_sz)
     {
         // Replicate mean and variance for all y groups because stash == dx_out and
         // MIOpenBatchNormBwdSpatialDX will read them and rewrite the buffer entirely.
-        unsigned int meanindex = ygrp_sz * offset * ystride + xgid * xstride + (1 * 2) * ystride;
-        unsigned int varindex  = ygrp_sz * offset * ystride + xgid * xstride + (3 * 2) * ystride;
-#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
-        storefp32In16bitBuffer(meanvarbuff, meanindex, mean);
-        storefp32In16bitBuffer(meanvarbuff, varindex, invVariance);
-#else
-        meanvarbuff[meanindex] = FLOATPREC2FLOAT(mean);        // stash mean
-        meanvarbuff[varindex]  = FLOATPREC2FLOAT(invVariance); // stash variance
-#endif
+        storeToStash(
+            mean, meanvarbuff, 2, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        storeToStash(invVariance,
+                     meanvarbuff,
+                     3,
+                     ygrp_sz * yoffset,
+                     ystride,
+                     xgrp_sz,
+                     xgrp_id,
+                     xlid,
+                     xstride);
     }
 }
 
@@ -732,9 +768,11 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
 
     unsigned int xlid    = get_local_id(0);
     unsigned int ylid    = get_local_id(1);
+    unsigned int xgrp_id = get_group_id(0);
     unsigned int ygrp_id = get_group_id(1);
     unsigned int xgid    = get_global_id(0);
     unsigned int ygid    = get_global_id(1);
+    unsigned int xgrp_sz = get_local_size(0);
     unsigned int ygrp_sz = get_local_size(1);
 
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
@@ -777,15 +815,10 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
 
     if(ylid == 0)
     {
-        unsigned int meanindex = ygrp_sz * ygrp_id * ystride + xgid * xstride;
-        unsigned int varindex  = ygrp_sz * ygrp_id * ystride + xgid * xstride + (2 * 2) * ystride;
-#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
-        storefp32In16bitBuffer(meanvarbuff, meanindex, mean);
-        storefp32In16bitBuffer(meanvarbuff, varindex, variance);
-#else
-        meanvarbuff[meanindex] = FLOATPREC2FLOAT(mean);
-        meanvarbuff[varindex]  = FLOATPREC2FLOAT(variance);
-#endif
+        storeToStash(
+            mean, meanvarbuff, 0, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        storeToStash(
+            variance, meanvarbuff, 1, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
     }
 } // end spatial mean kernel
 
@@ -807,7 +840,9 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
     unsigned int ylid    = get_local_id(1);
     unsigned int xgid    = get_global_id(0);
     unsigned int ygid    = get_global_id(1);
+    unsigned int xgrp_id = get_group_id(0);
     unsigned int ygrp_id = get_group_id(1);
+    unsigned int xgrp_sz = get_local_size(0);
     unsigned int ygrp_sz = get_local_size(1);
 
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
@@ -826,15 +861,10 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
     if(ylid == 0)
     {
 #if MIO_BN_USESAVED == 0
-        unsigned int meanindex = ygrp_sz * ygrp_id * ystride + xgid * xstride + (1 * 2) * ystride;
-        unsigned int varindex  = ygrp_sz * ygrp_id * ystride + xgid * xstride + (3 * 2) * ystride;
-#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
-        lmean[xlid] = loadfp32From16bitBuffer(buff, meanindex);
-        livar[xlid] = loadfp32From16bitBuffer(buff, varindex);
-#else
-        lmean[xlid] = FLOAT2FLOATPREC(*(buff + meanindex)); // load stashed
-        livar[xlid] = FLOAT2FLOATPREC(*(buff + varindex));
-#endif
+        lmean[xlid] =
+            loadFromStash(buff, 2, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        livar[xlid] =
+            loadFromStash(buff, 3, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
 #else
         lmean[xlid] = *(savedMean + xgid);
         livar[xlid] = *(savedInvVariance + xgid);
@@ -875,15 +905,8 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
 
     if(ylid == 0)
     {
-        unsigned int gammaindex = ygrp_sz * ygrp_id * ystride + xgid * xstride + (4 * 2) * ystride;
-        unsigned int betaindex  = ygrp_sz * ygrp_id * ystride + xgid * xstride + (6 * 2) * ystride;
-#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
-        storefp32In16bitBuffer(buff, gammaindex, dscale);
-        storefp32In16bitBuffer(buff, betaindex, dbias);
-#else
-        buff[gammaindex] = FLOATPREC2FLOAT(dscale);
-        buff[betaindex]  = FLOATPREC2FLOAT(dbias);
-#endif
+        storeToStash(dscale, buff, 4, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        storeToStash(dbias, buff, 5, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
     }
 }
 
@@ -896,6 +919,8 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(const __global _FLOAT* __restrict buff
     unsigned int xlid    = get_local_id(0);
     unsigned int ylid    = get_local_id(1);
     unsigned int xgid    = get_global_id(0);
+    unsigned int xgrp_id = get_group_id(0);
+    unsigned int xgrp_sz = get_local_size(0);
     unsigned int ygrp_sz = get_local_size(1);
 
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
@@ -907,17 +932,12 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(const __global _FLOAT* __restrict buff
     _FLOAT_PREC dscale = (_FLOAT_PREC)0.;
     _FLOAT_PREC dbias  = (_FLOAT_PREC)0.;
 
-    for(unsigned int offset = ylid; offset < MIO_BN_NGRPS; offset += ygrp_sz)
+    for(unsigned int yoffset = ylid; yoffset < MIO_BN_NGRPS; yoffset += ygrp_sz)
     {
-        unsigned int gammaindex = ygrp_sz * offset * ystride + xgid * xstride + (4 * 2) * ystride;
-        unsigned int betaindex  = ygrp_sz * offset * ystride + xgid * xstride + (6 * 2) * ystride;
-#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
-        dscale += loadfp32From16bitBuffer(buff, gammaindex);
-        dbias += loadfp32From16bitBuffer(buff, betaindex);
-#else
-        dscale += FLOAT2FLOATPREC(*(buff + gammaindex));
-        dbias += FLOAT2FLOATPREC(*(buff + betaindex));
-#endif
+        dscale +=
+            loadFromStash(buff, 4, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        dbias +=
+            loadFromStash(buff, 5, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
     }
 
 #if !MIOPEN_USE_AMDGCN || MIO_BN_GRP1 > 1
@@ -981,17 +1001,15 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
     if(ylid == 0)
     {
 #if MIO_BN_USESAVED == 0
-        unsigned int ygrp_id   = get_group_id(1);
-        unsigned int ygrp_sz   = get_local_size(1);
-        unsigned int meanindex = ygrp_sz * ygrp_id * ystride + xgid * xstride + (1 * 2) * ystride;
-        unsigned int varindex  = ygrp_sz * ygrp_id * ystride + xgid * xstride + (3 * 2) * ystride;
-#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
-        lmean[xlid] = loadfp32From16bitBuffer(dx_out, meanindex);
-        livar[xlid] = loadfp32From16bitBuffer(dx_out, varindex);
-#else
-        lmean[xlid] = FLOAT2FLOATPREC(*(dx_out + meanindex)); // load
-        livar[xlid] = FLOAT2FLOATPREC(*(dx_out + varindex));
-#endif
+        unsigned int xgrp_id = get_group_id(0);
+        unsigned int ygrp_id = get_group_id(1);
+        unsigned int xgrp_sz = get_local_size(0);
+        unsigned int ygrp_sz = get_local_size(1);
+
+        lmean[xlid] =
+            loadFromStash(dx_out, 2, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        livar[xlid] =
+            loadFromStash(dx_out, 3, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
 #else
         lmean[xlid] = *(savedMean + xgid);
         livar[xlid] = *(savedInvVariance + xgid);
