@@ -418,13 +418,12 @@ void RNNForwardDataModularAlgo::PropHyCy(const Handle& handle,
 void RNNForwardDataModularAlgo::PropHiddenY(const Handle& handle,
                                             const runtimeArgsFwd& runtimeArgs,
                                             size_t layer,
-                                            SequenceDirection direction) const
+                                            SequenceDirection direction,
+                                            size_t gemm_batch_offset,
+                                            size_t gemm_batch_size) const
 {
     if(layer == 0)
         return;
-
-    const auto gemm_batch_size   = batchController.getTotalBatchSum();
-    const auto gemm_batch_offset = 0;
 
     // rnnocl 1512
 
@@ -558,6 +557,51 @@ void RNNModuleAlgoDynamic::PrepareWriteBuffers(const Handle& handle,
     realXProp(handle, runtimeArgsExt);
 }
 
+void RNNModuleAlgoDynamic::PropX(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const
+{
+
+    const size_t total_seq_cnt = getTimeSeqSize();
+
+    size_t seq_it = 0;
+    for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
+    {
+        const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+        const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                              ? batchController.getTotalBatchSum()
+                                              : batchController.getBatchSum(seq_it + step_size)) -
+                                       gemm_batch_offset;
+
+        RNNForwardDataModularAlgo::PropX(handle, runtimeArgs, gemm_batch_offset, gemm_batch_size);
+        seq_it += step_size;
+    }
+}
+
+void RNNModuleAlgoDynamic::PropHiddenY(const Handle& handle,
+                                       const runtimeArgsFwd& runtimeArgs,
+                                       size_t layer,
+                                       SequenceDirection direction) const
+{
+
+    const size_t total_seq_cnt = getTimeSeqSize();
+    auto step_size             = rnn_dynamic::getLowerBoundPow2(total_seq_cnt);
+
+    for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
+    {
+        if((total_seq_cnt - seq_it & step_size) != 0)
+        {
+            const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+            const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                                  ? batchController.getTotalBatchSum()
+                                                  : batchController.getBatchSum(seq_it + step_size)) -
+                                           gemm_batch_offset;
+
+            RNNForwardDataModularAlgo::PropHiddenY(
+                handle, runtimeArgs, layer, direction, gemm_batch_offset, gemm_batch_size);
+            seq_it += step_size;
+        }
+    }
+}
+
 void RNNModuleAlgoDynamic::PropHyCy(const Handle& handle,
                                     const runtimeArgsFwdDynamicExt& runtimeArgs,
                                     size_t layer,
@@ -626,10 +670,6 @@ void RNNModuleAlgoDynamic::PropHyCy(const Handle& handle,
         }
     }
 }
-
-//
-//
-//
 
 } // namespace rnn_base
 } // namespace miopen
