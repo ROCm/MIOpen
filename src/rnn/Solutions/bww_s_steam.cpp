@@ -104,6 +104,8 @@ void RNNDynamicModularSingleStreamBWWeights::Compute(const Handle& handle,
 
     rnnAlgoModules.realXProp(handle, args_ext);
 
+    auto real_seq_len = rnnAlgoModules.getRealTimeSeqSize();
+
     for(int layer_i = 0; layer_i < rnnDesc.nLayers; layer_i++)
     {
         if(layer_i == 0)
@@ -120,10 +122,10 @@ void RNNDynamicModularSingleStreamBWWeights::Compute(const Handle& handle,
                                           : rnn_base::SequenceDirection::Reverse;
 
             rnnAlgoModules.PhisHStateWeights(
-                handle, dw, back_data_space, hx, layer_i, max_seq_len, seq_dir);
+                handle, dw, back_data_space, hx, layer_i, real_seq_len, seq_dir);
 
             rnnAlgoModules.HiddenHStateWeights(
-                handle, dw, back_data_space, reserveSpace, layer_i, max_seq_len, seq_dir);
+                handle, dw, back_data_space, reserveSpace, layer_i, real_seq_len, seq_dir);
         }
     }
 }
