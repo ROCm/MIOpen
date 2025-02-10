@@ -24,123 +24,123 @@
  *
  *******************************************************************************/
 
-.macro _sop1_lit op:req, sdst:req, lit:req
-    .long (0b101111101 << 23) | (\sdst << 16) | (\op << 8) | 255
-    .long \lit
+.macro _sop1_lit arg_op:req, arg_sdst:req, arg_lit:req
+    .long (0b101111101 << 23) | (\arg_sdst << 16) | (\arg_op << 8) | 255
+    .long \arg_lit
 .endm
 
-.macro _s_mov_b32__sop1_lit sdst:req, lit:req
-    _sop1_lit 0, \sdst, \lit
+.macro _s_mov_b32__sop1_lit arg_sdst:req, arg_lit:req
+    _sop1_lit 0, \arg_sdst, \arg_lit
 .endm
 
-.macro _vop1 op:req, vdst:req, src:req
-    .long (0b0111111 << 25) | (\vdst << 17) | (\op << 9) | \src
+.macro _vop1 arg_op:req, arg_vdst:req, arg_src:req
+    .long (0b0111111 << 25) | (\arg_vdst << 17) | (\arg_op << 9) | \arg_src
 .endm
 
-.macro _v_cvt_f16_i16__vop1 vdst:req, vsrc:req
-    _vop1 81, \vdst, (\vsrc + /*VGPR*/ 256)
+.macro _v_cvt_f16_i16__vop1 arg_vdst:req, arg_vsrc:req
+    _vop1 81, \arg_vdst, (\arg_vsrc + /*VGPR*/ 256)
 .endm
 
-.macro _v_rcp_f16__vop1 vdst:req, vsrc:req
-    _vop1 84, \vdst, (\vsrc + /*VGPR*/ 256)
+.macro _v_rcp_f16__vop1 arg_vdst:req, arg_vsrc:req
+    _vop1 84, \arg_vdst, (\arg_vsrc + /*VGPR*/ 256)
 .endm
 
-.macro _v_exp_f16__vop1 vdst:req, vsrc:req
-    _vop1 88, \vdst, (\vsrc + /*VGPR*/ 256)
+.macro _v_exp_f16__vop1 arg_vdst:req, arg_vsrc:req
+    _vop1 88, \arg_vdst, (\arg_vsrc + /*VGPR*/ 256)
 .endm
 
-.macro _vop3 op:req, vdst:req, src0:req, src1:req, src2:req, opsel:req, abs:req, neg:req
-    .long (0b110101 << 26) | (\op << 16) | (\opsel << 11) | (\abs << 8) | \vdst
-    .long (\neg << 29) | (\src2 << 18) | (\src1 << 9) | \src0
+.macro _vop3 arg_op:req, arg_vdst:req, arg_src0:req, arg_src1:req, arg_src2:req, arg_opsel:req, arg_abs:req, arg_neg:req
+    .long (0b110101 << 26) | (\arg_op << 16) | (\arg_opsel << 11) | (\arg_abs << 8) | \arg_vdst
+    .long (\arg_neg << 29) | (\arg_src2 << 18) | (\arg_src1 << 9) | \arg_src0
 .endm
 
-.macro _vop3_lit op:req, vdst:req, src0:req, src1:req, src2:req, lit:req, opsel:req, abs:req, neg:req
-    .long (0b110101 << 26) | (\op << 16) | (\opsel << 11) | (\abs << 8) | \vdst
-    .long (\neg << 29) | (\src2 << 18) | (\src1 << 9) | \src0
-    .long \lit
+.macro _vop3_lit arg_op:req, arg_vdst:req, arg_src0:req, arg_src1:req, arg_src2:req, arg_lit:req, arg_opsel:req, arg_abs:req, arg_neg:req
+    .long (0b110101 << 26) | (\arg_op << 16) | (\arg_opsel << 11) | (\arg_abs << 8) | \arg_vdst
+    .long (\arg_neg << 29) | (\arg_src2 << 18) | (\arg_src1 << 9) | \arg_src0
+    .long \arg_lit
 .endm
 
-.macro _v_cvt_f16_i16__vop3 vdst:req, vsrc:req, opsel:req
-    _vop3 465, \vdst, (\vsrc + /*VGPR*/ 256), 0, 0, \opsel, 0, 0
+.macro _v_cvt_f16_i16__vop3 arg_vdst:req, arg_vsrc:req, arg_opsel:req
+    _vop3 465, \arg_vdst, (\arg_vsrc + /*VGPR*/ 256), 0, 0, \arg_opsel, 0, 0
 .endm
 
-.macro _v_rcp_f16__vop3 vdst:req, vsrc:req, opsel:req
-    _vop3 468, \vdst, (\vsrc + /*VGPR*/ 256), 0, 0, \opsel, 0, 0
+.macro _v_rcp_f16__vop3 arg_vdst:req, arg_vsrc:req, arg_opsel:req
+    _vop3 468, \arg_vdst, (\arg_vsrc + /*VGPR*/ 256), 0, 0, \arg_opsel, 0, 0
 .endm
 
-.macro _v_exp_f16__vop3 vdst:req, vsrc:req, opsel:req
-    _vop3 472, \vdst, (\vsrc + /*VGPR*/ 256), 0, 0, \opsel, 0, 0
+.macro _v_exp_f16__vop3 arg_vdst:req, arg_vsrc:req, arg_opsel:req
+    _vop3 472, \arg_vdst, (\arg_vsrc + /*VGPR*/ 256), 0, 0, \arg_opsel, 0, 0
 .endm
 
-.macro _v_cndmask_b16__vop3 vdst:req, vsrc0:req, vsrc1:req, src2:req, opsel:req
-    _vop3 605, \vdst, (\vsrc0 + /*VGPR*/ 256), (\vsrc1 + /*VGPR*/ 256), \src2, \opsel, 0, 0
+.macro _v_cndmask_b16__vop3 arg_vdst:req, arg_vsrc0:req, arg_vsrc1:req, arg_src2:req, arg_opsel:req
+    _vop3 605, \arg_vdst, (\arg_vsrc0 + /*VGPR*/ 256), (\arg_vsrc1 + /*VGPR*/ 256), \arg_src2, \arg_opsel, 0, 0
 .endm
 
-.macro _v_cmp_gt_f16__vop3_s_lit sdst:req, ssrc0:req, lit:req, opsel:req, abs:req
-    _vop3_lit 4, \sdst, \ssrc0, 255, 0, \lit, \opsel, \abs, 0
+.macro _v_cmp_gt_f16__vop3_s_lit arg_sdst:req, arg_ssrc0:req, arg_lit:req, arg_opsel:req, arg_abs:req
+    _vop3_lit 4, \arg_sdst, \arg_ssrc0, 255, 0, \arg_lit, \arg_opsel, \arg_abs, 0
 .endm
 
-.macro _v_cmp_gt_f16__vop3_v_lit sdst:req, vsrc0:req, lit:req, opsel:req, abs:req
-    _vop3_lit 4, \sdst, (\vsrc0 + /*VGPR*/ 256), 255, 0, \lit, \opsel, \abs, 0
+.macro _v_cmp_gt_f16__vop3_v_lit arg_sdst:req, arg_vsrc0:req, arg_lit:req, arg_opsel:req, arg_abs:req
+    _vop3_lit 4, \arg_sdst, (\arg_vsrc0 + /*VGPR*/ 256), 255, 0, \arg_lit, \arg_opsel, \arg_abs, 0
 .endm
 
-.macro _v_cmp_lt_u16__vop3 sdst:req, vsrc0:req, ssrc1:req, opsel:req
-    _vop3 57, \sdst, (\vsrc0 + /*VGPR*/ 256), \ssrc1, 0, \opsel, 0, 0
+.macro _v_cmp_lt_u16__vop3 arg_sdst:req, arg_vsrc0:req, arg_ssrc1:req, arg_opsel:req
+    _vop3 57, \arg_sdst, (\arg_vsrc0 + /*VGPR*/ 256), \arg_ssrc1, 0, \arg_opsel, 0, 0
 .endm
 
-.macro _v_cmpx_lt_u32__vop3 sdst:req, vsrc0:req, ssrc1:req
-    _vop3 201, \sdst, (\vsrc0 + /*VGPR*/ 256), \ssrc1, 0, 0, 0, 0
+.macro _v_cmpx_lt_u32__vop3 arg_sdst:req, arg_vsrc0:req, arg_ssrc1:req
+    _vop3 201, \arg_sdst, (\arg_vsrc0 + /*VGPR*/ 256), \arg_ssrc1, 0, 0, 0, 0
 .endm
 
-.macro _vop3p op:req, vdst:req, src0:req, src1:req, src2:req, opsel:req, opsel_hi:req, opsel_hi2:req, neg:req, neg_hi:req
-    .long (0b11001100 << 24) | (\op << 16) | (\opsel_hi2 << 14) | (\opsel << 11) | (\neg_hi << 8) | \vdst
-    .long (\neg << 29) | (\opsel_hi << 27) | (\src2 << 18) | (\src1 << 9) | \src0
+.macro _vop3p arg_op:req, arg_vdst:req, arg_src0:req, arg_src1:req, arg_src2:req, arg_opsel:req, arg_opsel_hi:req, arg_opsel_hi2:req, arg_neg:req, arg_neg_hi:req
+    .long (0b11001100 << 24) | (\arg_op << 16) | (\arg_opsel_hi2 << 14) | (\arg_opsel << 11) | (\arg_neg_hi << 8) | \arg_vdst
+    .long (\arg_neg << 29) | (\arg_opsel_hi << 27) | (\arg_src2 << 18) | (\arg_src1 << 9) | \arg_src0
 .endm
 
-.macro _vop3p_lit op:req, vdst:req, src0:req, src1:req, src2:req, lit:req, opsel:req, opsel_hi:req, opsel_hi2:req, neg:req, neg_hi:req
-    .long (0b11001100 << 24) | (\op << 16) | (\opsel_hi2 << 14) | (\opsel << 11) | (\neg_hi << 8) | \vdst
-    .long (\neg << 29) | (\opsel_hi << 27) | (\src2 << 18) | (\src1 << 9) | \src0
-    .long \lit
+.macro _vop3p_lit arg_op:req, arg_vdst:req, arg_src0:req, arg_src1:req, arg_src2:req, arg_lit:req, arg_opsel:req, arg_opsel_hi:req, arg_opsel_hi2:req, arg_neg:req, arg_neg_hi:req
+    .long (0b11001100 << 24) | (\arg_op << 16) | (\arg_opsel_hi2 << 14) | (\arg_opsel << 11) | (\arg_neg_hi << 8) | \arg_vdst
+    .long (\arg_neg << 29) | (\arg_opsel_hi << 27) | (\arg_src2 << 18) | (\arg_src1 << 9) | \arg_src0
+    .long \arg_lit
 .endm
 
-.macro _v_pk_ashrrev_i16__vop3p vdst:req, src0:req, src1:req, opsel:req, opsel_hi:req, neg:req, neg_hi:req
-    _vop3p 6, \vdst, \src0, \src1, 0, \opsel, \opsel_hi, 0, \neg, \neg_hi
+.macro _v_pk_ashrrev_i16__vop3p arg_vdst:req, arg_src0:req, arg_src1:req, arg_opsel:req, arg_opsel_hi:req, arg_neg:req, arg_neg_hi:req
+    _vop3p 6, \arg_vdst, \arg_src0, \arg_src1, 0, \arg_opsel, \arg_opsel_hi, 0, \arg_neg, \arg_neg_hi
 .endm
 
-.macro _v_pk_add_u16__vop3p vdst:req, src0:req, src1:req, opsel:req, opsel_hi:req, neg:req, neg_hi:req
-    _vop3p 10, \vdst, \src0, \src1, 0, \opsel, \opsel_hi, 0, \neg, \neg_hi
+.macro _v_pk_add_u16__vop3p arg_vdst:req, arg_src0:req, arg_src1:req, arg_opsel:req, arg_opsel_hi:req, arg_neg:req, arg_neg_hi:req
+    _vop3p 10, \arg_vdst, \arg_src0, \arg_src1, 0, \arg_opsel, \arg_opsel_hi, 0, \arg_neg, \arg_neg_hi
 .endm
 
-.macro _v_pk_sub_u16__vop3p vdst:req, src0:req, src1:req, opsel:req, opsel_hi:req, neg:req, neg_hi:req
-    _vop3p 11, \vdst, \src0, \src1, 0, \opsel, \opsel_hi, 0, \neg, \neg_hi
+.macro _v_pk_sub_u16__vop3p arg_vdst:req, arg_src0:req, arg_src1:req, arg_opsel:req, arg_opsel_hi:req, arg_neg:req, arg_neg_hi:req
+    _vop3p 11, \arg_vdst, \arg_src0, \arg_src1, 0, \arg_opsel, \arg_opsel_hi, 0, \arg_neg, \arg_neg_hi
 .endm
 
-.macro _v_pk_min_u16__vop3p vdst:req, src0:req, src1:req, opsel:req, opsel_hi:req, neg:req, neg_hi:req
-    _vop3p 13, \vdst, \src0, \src1, 0, \opsel, \opsel_hi, 0, \neg, \neg_hi
+.macro _v_pk_min_u16__vop3p arg_vdst:req, arg_src0:req, arg_src1:req, arg_opsel:req, arg_opsel_hi:req, arg_neg:req, arg_neg_hi:req
+    _vop3p 13, \arg_vdst, \arg_src0, \arg_src1, 0, \arg_opsel, \arg_opsel_hi, 0, \arg_neg, \arg_neg_hi
 .endm
 
-.macro _v_pk_add_f16__vop3p vdst:req, src0:req, src1:req, opsel:req, opsel_hi:req, neg:req, neg_hi:req
-    _vop3p 15, \vdst, \src0, \src1, 0, \opsel, \opsel_hi, 0, \neg, \neg_hi
+.macro _v_pk_add_f16__vop3p arg_vdst:req, arg_src0:req, arg_src1:req, arg_opsel:req, arg_opsel_hi:req, arg_neg:req, arg_neg_hi:req
+    _vop3p 15, \arg_vdst, \arg_src0, \arg_src1, 0, \arg_opsel, \arg_opsel_hi, 0, \arg_neg, \arg_neg_hi
 .endm
 
-.macro _v_pk_add_f16__vop3p_lit vdst:req, lit:req, src1:req, opsel:req, opsel_hi:req
-    _vop3p_lit 15, \vdst, 255, \src1, 0, \lit, \opsel, \opsel_hi, 0, 0, 0
+.macro _v_pk_add_f16__vop3p_lit arg_vdst:req, arg_lit:req, arg_src1:req, arg_opsel:req, arg_opsel_hi:req
+    _vop3p_lit 15, \arg_vdst, 255, \arg_src1, 0, \arg_lit, \arg_opsel, \arg_opsel_hi, 0, 0, 0
 .endm
 
-.macro _v_pk_mul_f16__vop3p vdst:req, src0:req, src1:req, opsel:req, opsel_hi:req, neg:req, neg_hi:req
-    _vop3p 16, \vdst, \src0, \src1, 0, \opsel, \opsel_hi, 0, \neg, \neg_hi
+.macro _v_pk_mul_f16__vop3p arg_vdst:req, arg_src0:req, arg_src1:req, arg_opsel:req, arg_opsel_hi:req, arg_neg:req, arg_neg_hi:req
+    _vop3p 16, \arg_vdst, \arg_src0, \arg_src1, 0, \arg_opsel, \arg_opsel_hi, 0, \arg_neg, \arg_neg_hi
 .endm
 
-.macro _v_pk_mul_f16__vop3p_lit vdst:req, lit:req, src1:req, opsel:req, opsel_hi:req
-    _vop3p_lit 16, \vdst, 255, \src1, 0, \lit, \opsel, \opsel_hi, 0, 0, 0
+.macro _v_pk_mul_f16__vop3p_lit arg_vdst:req, arg_lit:req, arg_src1:req, arg_opsel:req, arg_opsel_hi:req
+    _vop3p_lit 16, \arg_vdst, 255, \arg_src1, 0, \arg_lit, \arg_opsel, \arg_opsel_hi, 0, 0, 0
 .endm
 
-.macro _v_pk_min_f16__vop3p vdst:req, src0:req, src1:req, opsel:req, opsel_hi:req, neg:req, neg_hi:req
-    _vop3p 17, \vdst, \src0, \src1, 0, \opsel, \opsel_hi, 0, \neg, \neg_hi
+.macro _v_pk_min_f16__vop3p arg_vdst:req, arg_src0:req, arg_src1:req, arg_opsel:req, arg_opsel_hi:req, arg_neg:req, arg_neg_hi:req
+    _vop3p 17, \arg_vdst, \arg_src0, \arg_src1, 0, \arg_opsel, \arg_opsel_hi, 0, \arg_neg, \arg_neg_hi
 .endm
 
-.macro _v_pk_max_f16__vop3p vdst:req, src0:req, src1:req, opsel:req, opsel_hi:req, neg:req, neg_hi:req
-    _vop3p 18, \vdst, \src0, \src1, 0, \opsel, \opsel_hi, 0, \neg, \neg_hi
+.macro _v_pk_max_f16__vop3p arg_vdst:req, arg_src0:req, arg_src1:req, arg_opsel:req, arg_opsel_hi:req, arg_neg:req, arg_neg_hi:req
+    _vop3p 18, \arg_vdst, \arg_src0, \arg_src1, 0, \arg_opsel, \arg_opsel_hi, 0, \arg_neg, \arg_neg_hi
 .endm
 
 s_version 0x2006
