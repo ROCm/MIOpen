@@ -28,6 +28,7 @@
 #include <miopen/graphapi/graphapi.hpp>
 #include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/tensor.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <cstdint>
 
@@ -92,6 +93,20 @@ public:
     const std::vector<int64_t>& getFilterStrides() const noexcept { return mFilterStrides; }
     const std::vector<int64_t>& getPrePaddings() const noexcept { return mPrePaddings; }
     const std::vector<int64_t>& getPostPaddings() const noexcept { return mPostPaddings; }
+
+    friend void to_json(nlohmann::json& json, const Convolution& conv);
+    friend void from_json(const nlohmann::json& json, Convolution& conv);
+
+    struct JsonFields
+    {
+        static constexpr const char* SpatialDims   = "spatial_dims";
+        static constexpr const char* Dilations     = "dilations";
+        static constexpr const char* FilterStrides = "filter_dtrides";
+        static constexpr const char* PrePaddings   = "pre_paddings";
+        static constexpr const char* PostPaddings  = "post_paddings";
+        static constexpr const char* CompType      = "comp_type";
+        static constexpr const char* Mode          = "mode";
+    };
 
 private:
     friend class ConvolutionBuilder;

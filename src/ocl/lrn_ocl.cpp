@@ -30,7 +30,7 @@
 
 namespace miopen {
 
-miopenStatus_t LRNDescriptor::Forward(Handle& handle,
+miopenStatus_t LRNDescriptor::Forward(const Handle& handle,
                                       const void* /*alpha*/,
                                       const TensorDescriptor& xDesc,
                                       ConstData_t x,
@@ -177,7 +177,7 @@ miopenStatus_t LRNDescriptor::Forward(Handle& handle,
     return (status);
 }
 
-miopenStatus_t LRNDescriptor::Backward(Handle& handle,
+miopenStatus_t LRNDescriptor::Backward(const Handle& handle,
                                        const void* /*alpha*/,
                                        const TensorDescriptor& yDesc,
                                        ConstData_t y,

@@ -34,7 +34,7 @@
 
 namespace miopen {
 
-miopenStatus_t LayerNormForward(Handle& handle,
+miopenStatus_t LayerNormForward(const Handle& handle,
                                 const TensorDescriptor& xDesc,
                                 ConstData_t x,
                                 const TensorDescriptor& weightDesc,

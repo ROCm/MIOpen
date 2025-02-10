@@ -546,7 +546,7 @@ bool LogBuildMessage()
 
 void BuildKernel(const fs::path& program_file,
                  const std::string& program_args,
-                 [[maybe_unused]] miopen::Handle& handle)
+                 [[maybe_unused]] const miopen::Handle& handle)
 {
     // Build the code object entry
     // This will write the code object in the user kdb which Jenkins can archive
