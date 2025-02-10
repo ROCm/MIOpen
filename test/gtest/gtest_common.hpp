@@ -108,7 +108,9 @@ struct DevDescription
 class MockTargetProperties final : public miopen::TargetProperties
 {
 public:
-    MockTargetProperties(const TargetProperties& target_properties, const DevDescription& dev_description, bool disable_xnack);
+    MockTargetProperties(const TargetProperties& target_properties,
+                         const DevDescription& dev_description,
+                         bool disable_xnack);
 
     // Add additional methods here if needed
     const std::string& Name() const override;

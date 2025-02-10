@@ -31,19 +31,25 @@ std::ostream& operator<<(std::ostream& os, const DevDescription& dd)
     return os << dd.name << "(" << dd.cu_cnt << ")";
 }
 
-MockTargetProperties::MockTargetProperties(const TargetProperties& target_properties, const DevDescription& dev_description, bool disable_xnack) : TargetProperties{target_properties}, name{dev_description.name}, xnack_disabled{disable_xnack} {}
-
-const std::string& MockTargetProperties::Name() const
+MockTargetProperties::MockTargetProperties(const TargetProperties& target_properties,
+                                           const DevDescription& dev_description,
+                                           bool disable_xnack)
+    : TargetProperties{target_properties}, name{dev_description.name}, xnack_disabled{disable_xnack}
 {
-    return name;
 }
+
+const std::string& MockTargetProperties::Name() const { return name; }
 
 boost::optional<bool> MockTargetProperties::Xnack() const
 {
     return xnack_disabled ? boost::none : TargetProperties::Xnack();
 }
 
-MockHandle::MockHandle(const DevDescription& dev_description, bool disable_xnack) : dev_descr{dev_description}, target_properties{Handle::GetTargetProperties(), dev_description, disable_xnack} {}
+MockHandle::MockHandle(const DevDescription& dev_description, bool disable_xnack)
+    : dev_descr{dev_description},
+      target_properties{Handle::GetTargetProperties(), dev_description, disable_xnack}
+{
+}
 
 const miopen::TargetProperties& MockHandle::GetTargetProperties() const
 {
