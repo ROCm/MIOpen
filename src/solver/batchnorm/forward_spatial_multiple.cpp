@@ -62,7 +62,7 @@ bool BNFwdTrainIsCaseVariant2(const miopen::batchnorm::ProblemDescription& probl
     }
     else
     {
-        return problem.IsLayoutNHWC() && problem.GetXDesc().GetType() == miopenFloat;
+        return problem.IsLayoutNHWC();
     }
 }
 

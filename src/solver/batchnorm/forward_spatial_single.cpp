@@ -56,13 +56,16 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
     unsigned int in_cstride = h * w;
     unsigned int in_nhw     = n * in_cstride;
 
-    if (bn_problem.IsLayoutNHWC() && bn_problem.GetXDesc().GetType() == miopenFloat)
+    if (bn_problem.IsLayoutNHWC())
     {
         // Variant 2 needs to have at least 4 elements in the y direction (in_cstride)
         // for each workgroup to write intermediate mean and variance results
         unsigned int xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
         unsigned int ylocalsize = 1024 / xlocalsize;
-        if (in_cstride % ylocalsize == 0 || in_cstride % ylocalsize >= 4)
+        unsigned int memory_needed = bn_problem.GetXDesc().GetType() == miopenFloat ?
+            4 : 8;
+        if ( in_cstride >= memory_needed && ylocalsize >= memory_needed &&
+             (in_cstride % ylocalsize == 0 || in_cstride % ylocalsize >= memory_needed) )
             return false;
     }
 
