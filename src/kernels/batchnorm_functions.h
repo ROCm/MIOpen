@@ -208,6 +208,61 @@
 
 #define UNUSED __attribute__((__unused__))
 
+#if(MIO_BN_VARIANT == 2)
+inline _FLOAT_PREC loadFromStash(const __global _FLOAT* stash,
+                                 unsigned int vindex,
+                                 unsigned int ygroupoffset,
+                                 unsigned int ystride,
+                                 unsigned int xgrp_sz,
+                                 unsigned int xgrp_id,
+                                 unsigned int xlid,
+                                 unsigned int xstride)
+{
+#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
+    // 2 _FLOAT values are used to store 1 _FLOAT_PREC value.
+#if MIO_LAYOUT_NHWC
+    // xgrp_sz values are stpit in halves: the first half is stored at even rows, the second half
+    // is stored at odd rows.
+    unsigned int index = (ygroupoffset + vindex * 2 + xlid / (xgrp_sz / 2)) * ystride +
+                         (xgrp_sz * xgrp_id + xlid % (xgrp_sz / 2) * 2) * xstride;
+#else
+    // Values are stored consecutively in y dim.
+    unsigned int index =
+        (ygroupoffset + vindex * 2) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+#endif
+    return *((const __global _FLOAT_PREC*)(stash + index));
+#else
+    unsigned int index = (ygroupoffset + vindex) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+    return FLOAT2FLOATPREC(*(stash + index));
+#endif
+}
+
+inline void storeToStash(_FLOAT_PREC value,
+                         __global _FLOAT* stash,
+                         unsigned int vindex,
+                         unsigned int ygroupoffset,
+                         unsigned int ystride,
+                         unsigned int xgrp_sz,
+                         unsigned int xgrp_id,
+                         unsigned int xlid,
+                         unsigned int xstride)
+{
+#if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
+#if MIO_LAYOUT_NHWC
+    unsigned int index = (ygroupoffset + vindex * 2 + xlid / (xgrp_sz / 2)) * ystride +
+                         (xgrp_sz * xgrp_id + xlid % (xgrp_sz / 2) * 2) * xstride;
+#else
+    unsigned int index =
+        (ygroupoffset + vindex * 2) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+#endif
+    *((__global _FLOAT_PREC*)(stash + index)) = value;
+#else
+    unsigned int index = (ygroupoffset + vindex) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+    *(stash + index)   = FLOATPREC2FLOAT(value);
+#endif
+}
+#endif
+
 #if(MIO_BN_VARIANT != 4)
 static inline void running_stash(global _FLOAT_PREC* resultRunningMean,
                                  global _FLOAT_PREC* resultRunningVariance,
