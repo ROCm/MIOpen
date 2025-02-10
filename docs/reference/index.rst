@@ -39,4 +39,4 @@ The MIOpen API library is structured as follows:
   * :doc:`ReLU <../doxygen/html/group___re_l_u>` (experimental)
   * :doc:`Kthvalue <../doxygen/html/group__kthvalue>` (experimental)
   * :doc:`GLU <../doxygen/html/group__glu>` (experimental)
-  * :doc:`GenerateRandomBitMask <../doxygen/html/group__GenerateRandomBitMask>` (experimental)
+  * :doc:`GenerateRandomBitMask <../doxygen/html/group___generate_random_bit_mask>` (experimental)

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,9 +35,10 @@ struct NetworkConfig;
 
 namespace generate_random_bit_mask {
 
-struct PStateProblemDescription : ProblemDescriptionBase
+struct InitPRNGStateProblemDescription : ProblemDescriptionBase
 {
-    PStateProblemDescription(const size_t stateSizeInBytes_) : stateSizeInBytes(stateSizeInBytes_)
+    InitPRNGStateProblemDescription(const size_t stateSizeInBytes_)
+        : stateSizeInBytes(stateSizeInBytes_)
     {
         if(stateSizeInBytes == 0)
         {
@@ -61,13 +62,12 @@ struct ProblemDescription : ProblemDescriptionBase
                        const float p_)
         : stateSizeInBytes(stateSizeInBytes_), maskDesc(maskDesc_), p(p_)
     {
-        if(stateSizeInBytes <= 0)
+        if(stateSizeInBytes == 0)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "GenerateRandomBitMask: State size in bytes must be greater than 0");
         }
         IsValidProbValue();
-        IsRightType();
     }
 
     const TensorDescriptor& GetMaskDesc() const { return maskDesc; }
@@ -82,17 +82,6 @@ struct ProblemDescription : ProblemDescriptionBase
                 miopenStatusBadParm,
                 "GenerateRandomBitMask: Probability value must be in the range [0, 1], but got " +
                     std::to_string(p));
-        }
-
-        return true;
-    }
-
-    bool IsRightType() const
-    {
-        if(maskDesc.GetType() != miopenInt8)
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "GenerateRandomBitMask: Mask tensor must be of type byte/uint8/int8");
         }
 
         return true;

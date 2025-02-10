@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -46,27 +46,26 @@ extern "C" miopenStatus_t miopenGetGenerateRandomBitMaskStatesSize(miopenHandle_
     });
 }
 
-extern "C" miopenStatus_t miopenInitGenerateRandomBitMaskStates(miopenHandle_t handle,
-                                                                void* pstate,
-                                                                size_t stateSizeInBytes,
-                                                                const uint64_t seed)
+extern "C" miopenStatus_t miopenInitPRNGState(miopenHandle_t handle,
+                                              void* pstate,
+                                              const size_t stateSizeInBytes,
+                                              const uint64_t seed)
 {
     MIOPEN_LOG_FUNCTION(handle, pstate, stateSizeInBytes, seed);
 
     return miopen::try_([&] {
-        miopen::generate_random_bit_mask::InitGenerateRandomBitMaskStates(
+        miopen::generate_random_bit_mask::InitPRNGState(
             miopen::deref(handle), DataCast(pstate), stateSizeInBytes, seed);
     });
 }
 
 extern "C" miopenStatus_t miopenGenerateRandomBitMask(miopenHandle_t handle,
-                                                      void* pstate,
+                                                      const void* pstate,
                                                       const size_t stateSizeInBytes,
                                                       const miopenTensorDescriptor_t maskDesc,
                                                       void* mask,
                                                       const float p)
 {
-    // MIOPEN_LOG_FUNCTION(handle, pstate, maskDesc, mask, p);
     MIOPEN_LOG_FUNCTION(handle, pstate, stateSizeInBytes, maskDesc, mask, p);
 
     return miopen::try_([&] {

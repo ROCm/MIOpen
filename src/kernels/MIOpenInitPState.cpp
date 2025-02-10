@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-// #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-// #include <hip/hip_fp16.h>
-// #include <hip/hip_runtime.h>
-// #endif
 
 // Workaround to overcome redefinition errors while including rocrand header files directly
 #include "miopen_rocrand.hpp"

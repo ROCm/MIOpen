@@ -128,8 +128,8 @@ set( MIOpen_Source
     fusion.cpp
     fusion/problem_description.cpp
     generic_search.cpp
-    generate_random_bit_mask_api.cpp
     generate_random_bit_mask/problem_description.cpp
+    generate_random_bit_mask_api.cpp
     getitem_api.cpp
     glu/problem_description.cpp
     glu_api.cpp
@@ -303,8 +303,8 @@ set( MIOpen_Source
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
-    solver/generate_random_bit_mask/init_prng_state.cpp
     solver/generate_random_bit_mask/generate_random_bit_mask.cpp
+    solver/generate_random_bit_mask/init_prng_state.cpp
     solver/glu/backward_glu.cpp
     solver/glu/forward_glu.cpp
     solver/groupnorm/forward_groupnorm.cpp
@@ -534,9 +534,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConvDirUni.cl
         kernels/MIOpenConvDirBatchNormActiv.cl
         kernels/MIOpenConvDirGenFwd.cl
-        kernels/MIOpenFill.cpp
-        kernels/MIOpenInitPState.cpp
         kernels/MIOpenGenerateRandomBitMask.cpp
+        kernels/MIOpenInitPState.cpp
         kernels/MIOpenGLU.cpp
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenGetitem.cpp
@@ -676,9 +675,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         addlayernorm.cpp
         cat.cpp
         exec_utils.cpp
-        groupnorm.cpp
         generate_random_bit_mask.cpp
         getitem.cpp
+        groupnorm.cpp
         glu.cpp
         kernel_cache.cpp
         kthvalue.cpp

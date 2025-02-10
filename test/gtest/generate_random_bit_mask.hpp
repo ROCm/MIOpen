@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -98,7 +98,7 @@ protected:
 
         pstate_dev = handle.Create<rocrand_state_xorwow>(stateSizeInBytes);
 
-        status = miopen::generate_random_bit_mask::InitGenerateRandomBitMaskStates(
+        status = miopen::generate_random_bit_mask::InitPRNGState(
             handle, pstate_dev.get(), stateSizeInBytes, 0);
 
         ASSERT_EQ(status, miopenStatusSuccess);

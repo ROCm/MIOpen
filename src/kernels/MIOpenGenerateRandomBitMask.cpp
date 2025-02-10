@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
@@ -43,7 +44,7 @@ __device__ uchar vec_merge_bits(int* comp, int size)
 
 template <uint32_t VEC_SZ>
 __device__ void
-generate_random_bit_mask(rocrand_state_xorwow* states_in, uchar* mask, long N, float prob)
+generate_random_bit_mask(rocrand_state_xorwow* states_in, uchar* mask, uint64_t N, float prob)
 {
     auto gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
@@ -68,7 +69,7 @@ generate_random_bit_mask(rocrand_state_xorwow* states_in, uchar* mask, long N, f
 }
 
 extern "C" __global__ void
-GenerateRandomBitMask(rocrand_state_xorwow* states_in, uchar* mask, long N, float prob)
+GenerateRandomBitMask(rocrand_state_xorwow* states_in, uchar* mask, uint64_t N, float prob)
 {
     generate_random_bit_mask<VEC_SIZE>(states_in, mask, N, prob);
 }

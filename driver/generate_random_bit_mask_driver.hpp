@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -92,13 +92,12 @@ private:
 int GenerateRandomBitMaskDriver::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Only run forward pass (Default=1)", "int");
-    inflags.AddInputFlag(
-        "state-size-in-bytes",
-        'S',
-        "0",
-        "Size of the prng_state in bytes. If size=0, auto run "
-        "`miopenInitGenerateRandomBitMaskStates` to init inital states (Default=0)",
-        "int");
+    inflags.AddInputFlag("state-size-in-bytes",
+                         'S',
+                         "0",
+                         "Size of the prng_state in bytes. If size=0, initialize the PRNG states "
+                         "using `miopenInitPRNGState` (Default=0)",
+                         "int");
     inflags.AddInputFlag(
         "mask-dims", 'M', "4x1", "Mask tensor dimensions (Default=4x1)", "tensor descriptor");
     inflags.AddInputFlag(
@@ -134,7 +133,7 @@ int GenerateRandomBitMaskDriver::GetandSetData()
     {
         auto status = miopenGetGenerateRandomBitMaskStatesSize(GetHandle(), &statesSizeInBytes);
 
-        MIOPEN_THROW_IF(status != miopenStatusSuccess || statesSizeInBytes <= 0,
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
                         "Error in miopenGetGenerateRandomBitMaskStatesSize");
     }
 
@@ -156,27 +155,17 @@ int GenerateRandomBitMaskDriver::AllocateBuffersAndCopy()
     pstate_dev = std::make_unique<GPUMem>(ctx, num_states, sizeof(rocrand_state_xorwow));
 
     // Initialize the random states
-    auto status = miopenInitGenerateRandomBitMaskStates(
-        GetHandle(), pstate_dev->GetMem(), statesSizeInBytes, 0);
+    auto status = miopenInitPRNGState(GetHandle(), pstate_dev->GetMem(), statesSizeInBytes, 0);
 
-    MIOPEN_THROW_IF(status != miopenStatusSuccess,
-                    "Error in miopenInitGenerateRandomBitMaskStates");
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenInitPRNGState");
 
     mask_dev = std::make_unique<GPUMem>(ctx, mask_size, sizeof(unsigned char));
 
     // GPU host allocation
     mask = std::vector<unsigned char>(mask_size);
-    std::fill(mask.begin(), mask.end(), 0);
 
     // CPU allocation
     mask_host = std::vector<unsigned char>(mask_size);
-    std::fill(mask_host.begin(), mask_host.end(), 0);
-
-    if(mask_dev->ToGPU(GetStream(), mask.data()) != 0)
-    {
-        std::cerr << "Error copying (mask) to GPU, size: " << mask_dev->GetSize() << std::endl;
-        return miopenStatusInternalError;
-    }
 
     return miopenStatusSuccess;
 }

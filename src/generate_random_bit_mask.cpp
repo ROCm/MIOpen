@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,23 +24,23 @@
  *
  *******************************************************************************/
 
+#include <miopen/common.hpp>
 #include <miopen/find_solution.hpp>
-#include <miopen/kernel_cache.hpp>
 #include <miopen/generate_random_bit_mask.hpp>
 #include <miopen/generate_random_bit_mask/invoke_params.hpp>
 #include <miopen/generate_random_bit_mask/solvers.hpp>
 #include <miopen/generate_random_bit_mask/problem_description.hpp>
+#include <miopen/kernel_cache.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
 namespace generate_random_bit_mask {
 
-miopenStatus_t InitGenerateRandomBitMaskStates(Handle& handle,
-                                               Data_t pstate,
-                                               size_t stateSizeInBytes,
-                                               uint64_t seed)
+miopenStatus_t
+InitPRNGState(Handle& handle, Data_t pstate, const size_t stateSizeInBytes, const uint64_t seed)
 {
-    const auto problem = generate_random_bit_mask::PStateProblemDescription{stateSizeInBytes};
+    const auto problem =
+        generate_random_bit_mask::InitPRNGStateProblemDescription{stateSizeInBytes};
 
     const auto invoke_params = [&]() {
         auto tmp = miopen::generate_random_bit_mask::PStateInvokeParams{};
@@ -61,11 +61,11 @@ miopenStatus_t InitGenerateRandomBitMaskStates(Handle& handle,
 }
 
 miopenStatus_t GenerateRandomBitMask(Handle& handle,
-                                     Data_t pstate,
+                                     ConstData_t pstate,
                                      const size_t stateSizeInBytes,
                                      const TensorDescriptor& maskDesc,
                                      Data_t mask,
-                                     float p)
+                                     const float p)
 {
     const auto problem =
         generate_random_bit_mask::ProblemDescription{stateSizeInBytes, maskDesc, p};

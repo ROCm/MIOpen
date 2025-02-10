@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,24 +26,9 @@
 
 #pragma once
 
-#define MAX_PRNG_STATE (256 * 64)
-
-struct xorwowStates
-{
-    // Xorshift values (160 bits)
-    unsigned int x;
-    unsigned int y;
-    unsigned int z;
-    unsigned int w;
-    unsigned int v;
-
-    // Weyl sequence value
-    unsigned int d;
-};
-
-using prngStates = xorwowStates;
-
 #include <miopen/common.hpp>
+
+#include "dropout.hpp"
 
 namespace miopen {
 
@@ -52,13 +37,13 @@ struct TensorDescriptor;
 
 namespace generate_random_bit_mask {
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t InitGenerateRandomBitMaskStates(Handle& handle,
-                                                                       Data_t pstate,
-                                                                       size_t stateSizeInBytes,
-                                                                       uint64_t seed);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t InitPRNGState(Handle& handle,
+                                                     Data_t pstate,
+                                                     size_t stateSizeInBytes,
+                                                     uint64_t seed);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t GenerateRandomBitMask(Handle& handle,
-                                                             Data_t pstate,
+                                                             ConstData_t pstate,
                                                              size_t stateSizeInBytes,
                                                              const TensorDescriptor& maskDesc,
                                                              Data_t mask,

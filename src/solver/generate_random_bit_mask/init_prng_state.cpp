@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@
 #include <miopen/generate_random_bit_mask/problem_description.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
-#include "rocrand/rocrand_uniform.h"
+#include <rocrand/rocrand_uniform.h>
 
 #include <algorithm>
 
@@ -49,7 +49,7 @@ namespace generate_random_bit_mask {
 
 bool InitPRNGState::IsApplicable(
     const ExecutionContext& context,
-    const miopen::generate_random_bit_mask::PStateProblemDescription& problem) const
+    const miopen::generate_random_bit_mask::InitPRNGStateProblemDescription& problem) const
 {
     auto& handle = context.GetStream();
 
@@ -63,7 +63,7 @@ bool InitPRNGState::IsApplicable(
 
 ConvSolution InitPRNGState::GetSolution(
     const ExecutionContext& context,
-    const miopen::generate_random_bit_mask::PStateProblemDescription& problem) const
+    const miopen::generate_random_bit_mask::InitPRNGStateProblemDescription& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 

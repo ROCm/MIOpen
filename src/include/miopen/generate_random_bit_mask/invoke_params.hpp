@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -54,12 +54,12 @@ struct InvokeParams : public miopen::InvokeParams
     const TensorDescriptor* pstateDesc = nullptr;
     const TensorDescriptor* maskDesc   = nullptr;
 
-    Data_t pstates = nullptr;
-    Data_t mask    = nullptr;
+    ConstData_t pstates = nullptr;
+    Data_t mask         = nullptr;
 
     size_t stateSizeInBytes = 0;
 
-    float p = 0.5f;
+    float p = 0.0f;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

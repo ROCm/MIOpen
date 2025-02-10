@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -37,26 +37,20 @@ namespace generate_random_bit_mask {
 
 using InitPRNGStateSolver =
     NonTunableSolverBase<ExecutionContext,
-                         miopen::generate_random_bit_mask::PStateProblemDescription>;
+                         miopen::generate_random_bit_mask::InitPRNGStateProblemDescription>;
 using GenerateRandomBitMaskSolver =
     NonTunableSolverBase<ExecutionContext, miopen::generate_random_bit_mask::ProblemDescription>;
 
 struct InitPRNGState : InitPRNGStateSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<InitPRNGStateSolver>(); }
-    bool IsApplicable(
-        const ExecutionContext& context,
-        const miopen::generate_random_bit_mask::PStateProblemDescription& problem) const override;
-    ConvSolution GetSolution(
-        const ExecutionContext& context,
-        const miopen::generate_random_bit_mask::PStateProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(
-        const ExecutionContext& context,
-        const miopen::generate_random_bit_mask::PStateProblemDescription& problem) const override
-    {
-        return 0;
-    }
-    bool MayNeedWorkspace() const override { return false; }
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::generate_random_bit_mask::InitPRNGStateProblemDescription&
+                          problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::generate_random_bit_mask::InitPRNGStateProblemDescription& problem)
+        const override;
 };
 
 struct GenerateRandomBitMask : GenerateRandomBitMaskSolver
@@ -71,13 +65,6 @@ struct GenerateRandomBitMask : GenerateRandomBitMaskSolver
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::generate_random_bit_mask::ProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(
-        const ExecutionContext& context,
-        const miopen::generate_random_bit_mask::ProblemDescription& problem) const override
-    {
-        return 0;
-    }
-    bool MayNeedWorkspace() const override { return false; }
 };
 
 } // namespace generate_random_bit_mask
