@@ -44,7 +44,7 @@ const auto& GetTestParams()
     static const auto params = [] {
         // gfx90A is not enabled because of WORKAROUND_ISSUE_1146
         Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908;
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.CheckXnackDisabled();
         return p;
     }();
@@ -53,7 +53,7 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverAsm5x10u2v2b1Bwd_FP32  = GPU_UnitTestConvSolverBwd_FP32;
+using GPU_UnitTestConvSolverAsm5x10u2v2b1Bwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
 
 using CPU_UnitTestConvSolverAsm5x10u2v2b1DevApplicabilityBwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityBwd_NONE;

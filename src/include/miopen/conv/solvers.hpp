@@ -335,16 +335,20 @@ struct MIOPEN_INTERNALS_EXPORT ConvAsm5x10u2v2f1 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2f1>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct MIOPEN_INTERNALS_EXPORT ConvAsm5x10u2v2b1 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2b1>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct MIOPEN_INTERNALS_EXPORT ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
@@ -354,8 +358,10 @@ struct MIOPEN_INTERNALS_EXPORT ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSol
         return GetSolverDbId<ConvAsm7x7c3h224w224k64u2v2p3q3f1>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvOclDirectFwd11x11 final : ConvSolver
