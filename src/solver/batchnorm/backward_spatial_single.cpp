@@ -40,8 +40,11 @@ namespace solver {
 namespace batchnorm {
 
 bool BnBwdTrainingSpatialSingle::IsApplicable(
-    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& bn_problem) const
+    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
+    if(BnBwdTrainingSpatialMultiple{}.IsApplicable(context, bn_problem))
+        return false;
+
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
        bn_problem.GetMode() != miopenBNSpatial)
         return false;
@@ -61,21 +64,7 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
     if(!IsOCLBwdTypeValid(bn_problem))
         return false;
 
-    int n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(bn_problem.GetXDesc().GetLengths());
-
-    unsigned int in_cstride = h * w;
-    unsigned int in_nhw     = n * in_cstride;
-
-    // TODO: For now enable variant 2 for NHWC because other variants are slower.
-    // Remove when other variants are optimized
-    if(bn_problem.IsLayoutNHWC())
-    {
-        return false;
-    }
-
-    return (in_cstride > 1024 && in_nhw < (32 * 1024 * 1024)) ||
-           (in_cstride > 512 && in_nhw < (32 * 1024 * 1024)) || in_cstride <= 512;
+    return true;
 }
 
 ConvSolution
@@ -184,20 +173,6 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
                 ldsgcn     = xlocalsize / wavesize;
                 ldsnogcn   = xlocalsize;
             }
-        }
-        //*************************************************************************************************
-        // N*H*W > 32M, use batchnorm variant#2 implementation which parallelize
-        // work groups over channels and data segments.
-        //*************************************************************************************************
-        else
-        {
-            variant      = 2;
-            ylocalsize   = 1024;
-            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
-            ldsgcn       = ylocalsize / wavesize;
-            ldsnogcn     = ylocalsize;
         }
         if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
         {

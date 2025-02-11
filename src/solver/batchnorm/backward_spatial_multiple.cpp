@@ -38,38 +38,9 @@ namespace solver {
 
 namespace batchnorm {
 
-bool BNBwdIsCaseVariant2(const miopen::batchnorm::ProblemDescription& problem)
-{
-    size_t n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
-
-    size_t in_cstride = h * w;
-    size_t in_nhw     = n * in_cstride;
-
-    // TODO: check restrictions of how stash is used.
-    // for example, for fp16: H * W >= 6 * 2, ylocalsize >= 6 * 2 etc.
-
-    if((in_nhw >= static_cast<size_t>(32 * 1024 * 1024) || in_cstride <= 1024) && in_cstride > 512)
-    {
-        return true;
-    }
-    else
-    {
-        // TODO: For now enable variant 2 for NHWC because other variants are slower
-        // Return false when other variants are optimized
-        return problem.IsLayoutNHWC();
-    }
-}
-
 bool BnBwdTrainingSpatialMultiple::IsApplicable(
-    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& problem) const
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
 {
-    // NCHW is Applicable for variant = 2 only
-    if(!BNBwdIsCaseVariant2(problem))
-    {
-        return false;
-    }
-
     if(problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
        problem.GetMode() != miopenBNSpatial)
         return false;
@@ -80,7 +51,50 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
     if(!IsOCLBwdTypeValid(problem))
         return false;
 
-    return !BnBwdTrainingSpatialSingle{}.IsApplicable(context, problem);
+    size_t n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
+
+    unsigned int in_cstride = h * w;
+    unsigned int in_nhw     = n * in_cstride;
+
+    // Variant 2 needs space for 6 fp32 elements per each x thread (including the last workgroup)
+    // to stash intermediate mean and variance
+    unsigned int stash_values = 6;
+    if(problem.IsLayoutNHWC())
+    {
+        // TODO: For now enable variant 2 for NHWC because other variants are slower.
+        // Remove when other variants are optimized
+
+        unsigned int xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
+        unsigned int ylocalsize = 1024 / xlocalsize;
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+        if(problem.GetXDesc().GetType() == miopenFloat)
+        {
+            if(last_ylocalsize < stash_values)
+                return false;
+        }
+        else
+        {
+            // Even threads use 2 values at even rows, odd threads - at odd rows.
+            if(c % 2 != 0 || last_ylocalsize < stash_values * 2)
+                return false;
+        }
+    }
+    else
+    {
+        if(!((in_nhw >= static_cast<size_t>(32 * 1024 * 1024) || in_cstride <= 1024) &&
+             in_cstride > 512))
+            return false;
+
+        unsigned int ylocalsize = 1024;
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+            return false;
+    }
+
+    return true;
 }
 
 ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
@@ -124,21 +138,20 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
     int variant = 2;
 
     size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize;
-    size_t max_localsize = 1024;
     if(problem.IsLayoutNHWC())
     {
         // ylocalsize must be power of 2 as reductions in the kernels rely on it, here c is rounded
         // up to next power of 2.
         xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
         xgridsize  = xlocalsize * ((c + xlocalsize - 1) / xlocalsize);
-        ylocalsize = max_localsize / xlocalsize;
+        ylocalsize = 1024 / xlocalsize;
         ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
     }
     else
     {
         xlocalsize = 1;
         xgridsize  = c;
-        ylocalsize = max_localsize;
+        ylocalsize = 1024;
         ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
     }
     zlocalsize = 1;

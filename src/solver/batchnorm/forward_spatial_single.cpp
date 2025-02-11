@@ -56,30 +56,26 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
     unsigned int in_cstride = h * w;
     unsigned int in_nhw     = n * in_cstride;
 
-    if (bn_problem.IsLayoutNHWC() && bn_problem.GetXDesc().GetType() == miopenFloat)
+    if (bn_problem.IsLayoutNHWC())
     {
         // Variant 2 needs to have at least 4 elements in the y direction (in_cstride)
         // for each workgroup to write intermediate mean and variance results
         unsigned int xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
         unsigned int ylocalsize = 1024 / xlocalsize;
-        if (in_cstride % ylocalsize == 0 || in_cstride % ylocalsize >= 4)
+        unsigned int memory_needed = bn_problem.GetXDesc().GetType() == miopenFloat ?
+            4 : 8;
+        if ( in_cstride >= memory_needed && ylocalsize >= memory_needed &&
+             (in_cstride % ylocalsize == 0 || in_cstride % ylocalsize >= memory_needed) )
             return false;
     }
 
     bool bfpmixparm = false;
-    bool bfp32parm  = true;
 
-    if(bn_problem.GetXDesc().GetType() == miopenHalf &&
-       bn_problem.GetBnScale().GetType() == miopenHalf)
-    {
-        bfp32parm = false;
-    }
-    else if((bn_problem.GetXDesc().GetType() == miopenHalf ||
-             bn_problem.GetXDesc().GetType() == miopenBFloat16) &&
-            bn_problem.GetBnScale().GetType() == miopenFloat)
+    if((bn_problem.GetXDesc().GetType() == miopenHalf ||
+        bn_problem.GetXDesc().GetType() == miopenBFloat16) &&
+        bn_problem.GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
-        bfp32parm  = false;
     }
 
     // clang-format off
@@ -91,7 +87,7 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
         return false;
     // clang-format on
 
-    if((n > 768) && (in_cstride > 150) && bfp32parm)
+    if((n > 768) && (in_cstride > 150))
     {
         return false;
     }
@@ -150,6 +146,8 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     unsigned int ldsgcn   = xlocalsize / 64;
     unsigned int ldsnogcn = xlocalsize;
 
+    // forward_spatial_single supports variant 0, 1, 3, and 4
+    // forward_spatial_multiple supports variant 2 with multiple kernel launches
     if(!problem.IsLayoutNHWC())
     {
 #if(WORKAROUND_SWDEV_253606 == 0)
@@ -176,30 +174,6 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             else if(in_cstride <= 512)
             {
                 variant = 0;
-            }
-            else
-            {
-                variant      = 2;
-                xlocalsize   = 1;
-                ylocalsize   = 1024;
-                auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-                xgridsize    = c;
-                ygridsize    = segment * ylocalsize;
-                ldsgcn       = ylocalsize / 64;
-                ldsnogcn     = ylocalsize;
-            }
-            // clang-format on
-
-            if((n > 768) && (in_cstride > 150) && bfp32parm)
-            {
-                variant      = 2;
-                xlocalsize   = 1;
-                ylocalsize   = 1024;
-                auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-                xgridsize    = c;
-                ygridsize    = segment * ylocalsize;
-                ldsgcn       = ylocalsize / 64;
-                ldsnogcn     = ylocalsize;
             }
         }
     }
