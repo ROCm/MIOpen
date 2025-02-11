@@ -48,10 +48,6 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-template <typename DataType>
-using DeviceOpGWrwPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrw<DataType>>;
-
 namespace {
 
 struct CKArgs
@@ -101,10 +97,8 @@ struct CKArgs
         else
         {
             assert(problem.IsLayoutDefault()); // already checked in IsApplicable
-            // for default layout, we produce packed strides for NHWC layout
-            // because we transpose to NHWC layout before calling CK kernel
-            in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-            out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
+            in_strides  = {Hi * Wi * C, Hi * Wi * G * C, Hi * Wi, Wi, 1};
+            out_strides = {Ho * Wo * K, Ho * Wo * G * K, Ho * Wo, Wo, 1};
             wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
         }
 
@@ -157,6 +151,7 @@ struct CKArgs
                     float alpha,
                     float beta,
                     int split_k) const
+
     {
         return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta, split_k);
     }
@@ -178,12 +173,9 @@ struct CKArgs
     {
         auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
 
-        if(CKWrwRequireWorkspace(G, C1, K1, data_type, alpha_beta_case))
-        {
-            // Creat dummy workspace to pass the ck IsSupportedArgument check.
-            int dummy_var = 1;
-            conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
-        }
+        // wrw solver with CK NCHW instances always require set workspace
+        int dummy_var = 1;
+        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -218,7 +210,7 @@ struct CKArgs
 template <typename DataType>
 void PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops::Init(const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOpGWrwNCHWPtrs<DataType>, CKArgs>(problem);
     index         = 0;
     split_k       = 1;
     kernel_id     = valid_kernels[index] + "+" + std::to_string(split_k);
@@ -228,14 +220,14 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGWrwNCHWPtrs<DataType>, CKArgs>(problem, kernel_id);
 }
 
 template <typename DataType>
 bool ConvHipImplicitGemmGroupWrwCKNCHWXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGWrwPtrs<DataType>, CKArgs>(problem);
+    return IsCKApplicable<DeviceOpGWrwNCHWPtrs<DataType>, CKArgs>(problem);
 }
 
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
@@ -393,7 +385,7 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops::RunParameterPredictionModel(
     const ExecutionContext& ctx, const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGWrwPtrs<DataType>, CKArgs>(
+    valid_kernels = FillValidKernelsIDs<DeviceOpGWrwNCHWPtrs<DataType>, CKArgs>(
         problem); // filter valid_kernel ID's
     static const std::string& arch = ctx.GetStream().GetDeviceName();
     if(arch == "gfx90a")
@@ -597,7 +589,7 @@ bool ConvHipImplicitGemmGroupWrwCKNCHWXdlops::IsApplicable(
         return false;
     if(!problem.Is2d())
         return false;
-    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
+    if(!problem.IsLayoutDefault())
         return false;
     // needed because layout transpose kernel does not support non-packed tensors
     if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
@@ -628,19 +620,11 @@ ConvSolution ConvHipImplicitGemmGroupWrwCKNCHWXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeSolutionGroupConvImplicitGemmXdlops(
+    return MakeSolutionGroupConvImplicitGemmNCHWXdlops(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryWrwNCHW<2,
-                                             DeviceOpGWrwPtrs<T>,
-                                             CKArgs,
-                                             miopen::conv::WrWInvokeParams>(
-                ctx, problem, config.kernel_id);
-        },
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>,
+            return InitInvokerFactoryNHWC<DeviceOpGWrwNCHWPtrs<T>,
                                           CKArgs,
                                           miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);

@@ -65,6 +65,22 @@ template <typename DataType>
 using DeviceOpGWrwPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrw<DataType>>;
 
+template <typename DataType>
+using DeviceOpGWrwNCHW = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
+    2,
+    ck::tensor_layout::convolution::NGCHW,
+    ck::tensor_layout::convolution::GKYXC,
+    ck::tensor_layout::convolution::NGKHW,
+    DataType,
+    DataType,
+    DataType,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough>;
+template <typename DataType>
+using DeviceOpGWrwNCHWPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrwNCHW<DataType>>;
+
 using InLayout    = ck::tensor_layout::convolution::NDHWGC;
 using WeiLayout   = ck::tensor_layout::convolution::GKZYXC;
 using OutLayout   = ck::tensor_layout::convolution::NDHWGK;
@@ -201,6 +217,10 @@ inline constexpr bool IsSplitKNeeded()
            std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGWrwNCHWPtrs<ck::half_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGWrwNCHWPtrs<float>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGWrwNCHWPtrs<int8_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGWrwNCHWPtrs<ck::bhalf_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<ck::half_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<float>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<int8_t>> ||
@@ -1185,6 +1205,43 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         MIOPEN_THROW(
             miopenStatusInternalError,
             "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this data type");
+    }
+#else
+    return {};
+#endif
+}
+
+template <typename InvokerFactoryMakerNHWC>
+ConvSolution
+MakeSolutionGroupConvImplicitGemmNCHWXdlops(const miopen::conv::ProblemDescription& problem,
+                                        InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
+{
+
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    if(problem.IsLayoutDefault())
+    {
+        switch(problem.GetInDataType())
+        {
+        case miopenInt8: return invoker_factory_maker_ndhwc(int8_t{});
+        case miopenHalf: return invoker_factory_maker_ndhwc(ck::half_t{});
+        case miopenFloat: return invoker_factory_maker_ndhwc(float{});
+        case miopenBFloat16: return invoker_factory_maker_ndhwc(ck::bhalf_t{});
+        case miopenInt64:
+        case miopenInt32:
+        case miopenDouble:
+        case miopenFloat8:
+        case miopenBFloat8:
+        default:
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Convolution operation not implemented for this "
+                         "data type");
+        }
+    }
+    else
+    {
+        MIOPEN_THROW(
+            miopenStatusInternalError,
+            "Convolution operation not implemented for this data type");
     }
 #else
     return {};
