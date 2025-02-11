@@ -42,7 +42,7 @@ __device__ uchar vec_merge_bits(int* comp, int size)
     return result;
 }
 
-template <uint32_t VEC_SZ>
+template <uint32_t VLEN>
 __device__ void
 generate_random_bit_mask(rocrand_state_xorwow* states_in, uchar* mask, uint64_t N, float prob)
 {
@@ -55,21 +55,21 @@ generate_random_bit_mask(rocrand_state_xorwow* states_in, uchar* mask, uint64_t 
 
     for(auto i = gid; i < N; i += blockDim.x * gridDim.x)
     {
-        int rvals[VEC_SZ];
+        int rvals[VLEN];
 
 #pragma unroll
-        for(int j = 0; j < VEC_SZ; j++)
+        for(int j = 0; j < VLEN; j++)
         {
             auto random_fval = prng::xorwow_uniform(&cur_state);
             rvals[j]         = static_cast<int>(random_fval > prob);
         }
 
-        mask[i] = vec_merge_bits(rvals, VEC_SZ);
+        mask[i] = vec_merge_bits(rvals, VLEN);
     }
 }
 
 extern "C" __global__ void
 GenerateRandomBitMask(rocrand_state_xorwow* states_in, uchar* mask, uint64_t N, float prob)
 {
-    generate_random_bit_mask<VEC_SIZE>(states_in, mask, N, prob);
+    generate_random_bit_mask<VEC_LENGTH>(states_in, mask, N, prob);
 }

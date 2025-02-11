@@ -28,13 +28,14 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/execution_context.hpp>
-#include <miopen/miopen.h>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/kernel_build_params.hpp>
 #include <miopen/generate_random_bit_mask.hpp>
 #include <miopen/generate_random_bit_mask/solvers.hpp>
 #include <miopen/generate_random_bit_mask/invoke_params.hpp>
 #include <miopen/generate_random_bit_mask/problem_description.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/miopen.h>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/tensor.hpp>
 
 #define LOCAL_SIZE 256
 
@@ -66,7 +67,7 @@ ConvSolution GenerateRandomBitMask::GetSolution(
     auto p             = problem.GetProb();
     auto bitmask_numel = problem.GetMaskDesc().GetElementSize();
 
-    size_t RD_BLCK = 8;
+    size_t PACKED_SIZE = GetTypeSize(problem.GetMaskDesc().GetType()) * CHAR_BIT;
 
     if(p != 0 && p != 1)
     {
@@ -84,7 +85,7 @@ ConvSolution GenerateRandomBitMask::GetSolution(
         kernel.kernel_file = "MIOpenGenerateRandomBitMask.cpp";
         kernel.kernel_name = "GenerateRandomBitMask";
 
-        const auto build_params = KernelBuildParameters{{"VEC_SIZE", RD_BLCK}};
+        const auto build_params = KernelBuildParameters{{"VEC_LENGTH", PACKED_SIZE}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 

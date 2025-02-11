@@ -84,20 +84,14 @@ private:
 
     std::vector<unsigned char> mask_host;
 
-    size_t statesSizeInBytes;
+    size_t statesSizeInBytes = 0;
 
-    float p;
+    float p = 0;
 };
 
 int GenerateRandomBitMaskDriver::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Only run forward pass (Default=1)", "int");
-    inflags.AddInputFlag("state-size-in-bytes",
-                         'S',
-                         "0",
-                         "Size of the prng_state in bytes. If size=0, initialize the PRNG states "
-                         "using `miopenInitPRNGState` (Default=0)",
-                         "int");
     inflags.AddInputFlag(
         "mask-dims", 'M', "4x1", "Mask tensor dimensions (Default=4x1)", "tensor descriptor");
     inflags.AddInputFlag(
@@ -115,8 +109,7 @@ int GenerateRandomBitMaskDriver::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
-    p                 = inflags.GetValueDouble("probability");
-    statesSizeInBytes = inflags.GetValueInt("state-size-in-bytes");
+    p = inflags.GetValueDouble("probability");
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -129,14 +122,6 @@ int GenerateRandomBitMaskDriver::GetandSetData()
 {
     auto mask_dims = inflags.GetValueTensor("mask-dims").lengths;
 
-    if(statesSizeInBytes == 0)
-    {
-        auto status = miopenGetGenerateRandomBitMaskStatesSize(GetHandle(), &statesSizeInBytes);
-
-        MIOPEN_THROW_IF(status != miopenStatusSuccess,
-                        "Error in miopenGetGenerateRandomBitMaskStatesSize");
-    }
-
     if(SetTensorNd(maskDesc, mask_dims, miopenInt8) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing mask tensor.");
 
@@ -147,6 +132,12 @@ int GenerateRandomBitMaskDriver::AllocateBuffersAndCopy()
 {
     auto mask_size = GetTensorSize(maskDesc);
 
+    // Get the size of the random states
+    auto status = miopenGetGenerateRandomBitMaskStatesSize(GetHandle(), &statesSizeInBytes);
+
+    MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                    "Error in miopenGetGenerateRandomBitMaskStatesSize");
+
     size_t num_states = statesSizeInBytes / sizeof(rocrand_state_xorwow);
 
     uint32_t ctx = 0;
@@ -155,8 +146,7 @@ int GenerateRandomBitMaskDriver::AllocateBuffersAndCopy()
     pstate_dev = std::make_unique<GPUMem>(ctx, num_states, sizeof(rocrand_state_xorwow));
 
     // Initialize the random states
-    auto status = miopenInitPRNGState(GetHandle(), pstate_dev->GetMem(), statesSizeInBytes, 0);
-
+    status = miopenInitPRNGState(GetHandle(), pstate_dev->GetMem(), statesSizeInBytes, 0);
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenInitPRNGState");
 
     mask_dev = std::make_unique<GPUMem>(ctx, mask_size, sizeof(unsigned char));

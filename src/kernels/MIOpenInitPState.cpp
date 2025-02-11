@@ -27,6 +27,10 @@
 // Workaround to overcome redefinition errors while including rocrand header files directly
 #include "miopen_rocrand.hpp"
 
+// NOTE: This function is identical to `InitKernelStateHIP` in src/kernels/MIOpenDropoutHIP.cpp.
+// In the future, these should be refactored to retain only one implementation.
+// For now, both are kept to minimize changes, as this PR only introduces `GenerateRandomBitMask`
+// without refactoring Dropout.
 extern "C" __global__ void
 InitKernelStateHIP(rocrand_state_xorwow* state, ulong prng_seed, ulong states_num)
 {

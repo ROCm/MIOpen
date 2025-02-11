@@ -168,8 +168,6 @@ protected:
     miopen::Allocator::ManageDataPtr pstate_dev;
     miopen::Allocator::ManageDataPtr mask_dev;
 
-    float p;
-    int rng_mode_cmd = 0;
-
-    size_t stateSizeInBytes;
+    float p                 = 0.0f;
+    size_t stateSizeInBytes = 0;
 };
