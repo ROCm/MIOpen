@@ -779,14 +779,6 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
         // std::cout << "IsApplicable: " << is_applicable << std::endl;
         if(is_applicable != supported)
         {
-#if 1       /// \todo remove
-            // clang-format off
-            {
-                const std::string name = ctx.GetStream().GetDeviceName();
-                std::cout << "device_name: " << name << std::endl;
-            }
-            // clang-format on
-#endif
             GTEST_FAIL() << dev_descr << " is" << (is_applicable ? "" : " not")
                          << " applicable for " << solver.SolverDbId() << " but "
                          << (supported ? "" : "not ") << "marked as supported";
