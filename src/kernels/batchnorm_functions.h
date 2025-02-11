@@ -221,10 +221,11 @@ inline _FLOAT_PREC loadFromStash(const __global _FLOAT* stash,
 #if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
     // 2 _FLOAT values are used to store 1 _FLOAT_PREC value.
 #if MIO_LAYOUT_NHWC
-    // xgrp_sz values are stpit in halves: the first half is stored at even rows, the second half
-    // is stored at odd rows.
-    unsigned int index = (ygroupoffset + vindex * 2 + xlid / (xgrp_sz / 2)) * ystride +
-                         (xgrp_sz * xgrp_id + xlid % (xgrp_sz / 2) * 2) * xstride;
+    // xgrp_sz values are stpit in two parts: even threads use 2 values at even rows, odd threads -
+    // at odd rows.
+    // The only restriction for C and xgrp_sz is that they must be even.
+    unsigned int index = (ygroupoffset + vindex * 2 + xlid % 2) * ystride +
+                         (xgrp_sz * xgrp_id + xlid / 2 * 2) * xstride;
 #else
     // Values are stored consecutively in y dim.
     unsigned int index =
@@ -249,8 +250,8 @@ inline void storeToStash(_FLOAT_PREC value,
 {
 #if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
 #if MIO_LAYOUT_NHWC
-    unsigned int index = (ygroupoffset + vindex * 2 + xlid / (xgrp_sz / 2)) * ystride +
-                         (xgrp_sz * xgrp_id + xlid % (xgrp_sz / 2) * 2) * xstride;
+    unsigned int index = (ygroupoffset + vindex * 2 + xlid % 2) * ystride +
+                         (xgrp_sz * xgrp_id + xlid / 2 * 2) * xstride;
 #else
     unsigned int index =
         (ygroupoffset + vindex * 2) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
