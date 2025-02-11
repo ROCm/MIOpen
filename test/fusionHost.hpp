@@ -626,7 +626,7 @@ void batchNormPerActHostBwdTrain(const tensor<XDataType>& x_input,
                         n_batch * scale(0, cidx, row, column) * dy_input(bidx, cidx, row, column) -
                         tmp1;
                     double tmp3                     = elemInvVar / (double(n));
-                    dx_out(bidx, cidx, row, column) = static_cast<XDataType>(tmp3 * tmp2);
+                    dx_out(bidx, cidx, row, column) = static_cast<DxDataType>(tmp3 * tmp2);
                 } // end for(n_batchs)
             }     // for (column)
         }         // for (row)
