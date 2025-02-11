@@ -45,13 +45,31 @@ void ComputeCPUBNInference(DLModule& dl_module)
     ReshapeIfNeeded(dl_module.estMean.desc);
     ReshapeIfNeeded(dl_module.estVariance.desc);
 
-    batchNormSpatialHostInference(dl_module.input,
-                                  dl_module.ref_out,
-                                  dl_module.scale,
-                                  dl_module.shift,
-                                  dl_module.epsilon,
-                                  dl_module.estMean,
-                                  dl_module.estVariance);
+    if(dl_module.bn_mode == miopenBNSpatial)
+    {
+        batchNormSpatialHostInference(dl_module.input,
+                                      dl_module.ref_out,
+                                      dl_module.scale,
+                                      dl_module.shift,
+                                      dl_module.epsilon,
+                                      dl_module.estMean,
+                                      dl_module.estVariance);
+    }
+    else if(dl_module.bn_mode == miopenBNPerActivation)
+    {
+        batchNormPerActivHostInference(dl_module.input,
+                                       dl_module.ref_out,
+                                       dl_module.scale,
+                                       dl_module.shift,
+                                       dl_module.epsilon,
+                                       dl_module.estMean,
+                                       dl_module.estVariance);
+    }
+    else
+    {
+        std::cout << "\nUnknown inference batch miopenBatchNormMode_t\n";
+        exit(EXIT_FAILURE);
+    }
 }
 
 template <typename DLModule>
@@ -106,16 +124,37 @@ void ComputeCPUBNFwdTrain(DLModule& dl_module)
     ReshapeIfNeeded(dl_module.runMean_ref.desc);
     ReshapeIfNeeded(dl_module.runVariance_ref.desc);
 
-    batchNormSpatialHostFwdTrain(dl_module.input,
-                                 dl_module.ref_out,
-                                 dl_module.scale,
-                                 dl_module.shift,
-                                 dl_module.epsilon,
-                                 dl_module.averageFactor,
-                                 dl_module.saveMean_ref,
-                                 dl_module.saveVariance_ref,
-                                 dl_module.runMean_ref,
-                                 dl_module.runVariance_ref);
+    if(dl_module.bn_mode == miopenBNSpatial)
+    {
+        batchNormSpatialHostFwdTrain(dl_module.input,
+                                     dl_module.ref_out,
+                                     dl_module.scale,
+                                     dl_module.shift,
+                                     dl_module.epsilon,
+                                     dl_module.averageFactor,
+                                     dl_module.saveMean_ref,
+                                     dl_module.saveVariance_ref,
+                                     dl_module.runMean_ref,
+                                     dl_module.runVariance_ref);
+    }
+    else if(dl_module.bn_mode == miopenBNPerActivation)
+    {
+        batchNormPerActHostFwdTrain(dl_module.input,
+                                    dl_module.ref_out,
+                                    dl_module.scale,
+                                    dl_module.shift,
+                                    dl_module.epsilon,
+                                    dl_module.averageFactor,
+                                    dl_module.saveMean_ref,
+                                    dl_module.saveVariance_ref,
+                                    dl_module.runMean_ref,
+                                    dl_module.runVariance_ref);
+    }
+    else
+    {
+        std::cout << "\nUnknown FwdTrain batch miopenBatchNormMode_t\n";
+        exit(EXIT_FAILURE);
+    }
 }
 
 template <typename T>
