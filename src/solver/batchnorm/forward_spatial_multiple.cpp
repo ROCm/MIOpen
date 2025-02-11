@@ -83,13 +83,14 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
 
         if((problem.GetXDesc().GetType() == miopenHalf ||
             problem.GetXDesc().GetType() == miopenBFloat16) &&
-            problem.GetBnScale().GetType() == miopenFloat)
+           problem.GetBnScale().GetType() == miopenFloat)
         {
             bfpmixparm = true;
         }
         if(!((n >= 3 && in_cstride > 512 && (in_nhw >= 33554432 || in_cstride <= 1024) &&
-            ((n < 256) || (in_cstride <= 60) || !bfpmixparm) && (!bfpmixparm || in_cstride <= 512)) ||
-            ((n > 768) && (in_cstride > 150))))
+              ((n < 256) || (in_cstride <= 60) || !bfpmixparm) &&
+              (!bfpmixparm || in_cstride <= 512)) ||
+             ((n > 768) && (in_cstride > 150))))
         {
             return false;
         }
