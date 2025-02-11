@@ -40,8 +40,10 @@ namespace solver {
 namespace batchnorm {
 
 bool BnFwdTrainingSpatialSingle::IsApplicable(
-    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& bn_problem) const
+    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
+    if(BnFwdTrainingSpatialMultiple{}.IsApplicable(context, bn_problem))
+        return false;
 
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
        bn_problem.GetMode() != miopenBNSpatial)
@@ -49,47 +51,6 @@ bool BnFwdTrainingSpatialSingle::IsApplicable(
 
     if(!IsOCLFwdTrainTypeValid(bn_problem))
         return false;
-
-    int n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(bn_problem.GetXDesc().GetLengths());
-
-    unsigned int in_cstride = h * w;
-    unsigned int in_nhw     = n * in_cstride;
-
-    if(bn_problem.IsLayoutNHWC())
-    {
-        // Variant 2 needs to have at least 4 elements in the y direction (in_cstride)
-        // for each workgroup to write intermediate mean and variance results
-        unsigned int xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
-        unsigned int ylocalsize = 1024 / xlocalsize;
-        unsigned int memory_needed = bn_problem.GetXDesc().GetType() == miopenFloat ? 4 : 8;
-        if(in_cstride >= memory_needed && ylocalsize >= memory_needed &&
-           (in_cstride % ylocalsize == 0 || in_cstride % ylocalsize >= memory_needed))
-            return false;
-    }
-
-    bool bfpmixparm = false;
-
-    if((bn_problem.GetXDesc().GetType() == miopenHalf ||
-        bn_problem.GetXDesc().GetType() == miopenBFloat16) &&
-       bn_problem.GetBnScale().GetType() == miopenFloat)
-    {
-        bfpmixparm = true;
-    }
-
-    // clang-format off
-    if(!(WORKAROUND_SWDEV_253606 == 0 && n < 3) &&
-        !((in_nhw < 33554432 && in_cstride > 1024) ||
-          ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
-          ((in_cstride > 512) && bfpmixparm) ||
-          in_cstride <= 512))
-        return false;
-    // clang-format on
-
-    if((n > 768) && (in_cstride > 150))
-    {
-        return false;
-    }
 
     return true;
 }

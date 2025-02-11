@@ -38,41 +38,9 @@ namespace solver {
 
 namespace batchnorm {
 
-bool BNFwdTrainIsCaseVariant2(const miopen::batchnorm::ProblemDescription& problem)
-{
-    const auto& xDesc = problem.GetXDesc();
-    size_t n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
-    size_t in_cstride    = h * w;
-    size_t in_nhw        = n * in_cstride;
-    bool bfpmixparm      = (xDesc.GetType() == miopenHalf || xDesc.GetType() == miopenBFloat16) &&
-                      problem.GetBnScale().GetType() == miopenFloat;
-
-    // NCHW is Applicable for variant = 2 only
-    // these number comes from BnFwdTrainingSpatialMultiple::GetSolution of
-    // forward_spatial_multiple.cpp
-    if((n >= 3 && in_cstride > 512 && (in_nhw >= 33554432 || in_cstride <= 1024) &&
-        ((n < 256) || (in_cstride <= 60) || !bfpmixparm) && (!bfpmixparm || in_cstride <= 512)) ||
-       ((n > 768) && (in_cstride > 150)))
-    {
-        return true;
-    }
-    else
-    {
-        return problem.IsLayoutNHWC();
-    }
-}
-
 bool BnFwdTrainingSpatialMultiple::IsApplicable(
-    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& problem) const
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
 {
-    // if NCHW check if variant is 2 else false (for all data type)
-    // update get solution to not change variant
-    if(!BNFwdTrainIsCaseVariant2(problem))
-    {
-        return false;
-    }
-
     if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
        problem.GetMode() != miopenBNSpatial)
         return false;
@@ -80,7 +48,53 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
     if(!IsOCLFwdTrainTypeValid(problem))
         return false;
 
-    return !BnFwdTrainingSpatialSingle{}.IsApplicable(context, problem);
+    size_t n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
+
+    unsigned int in_cstride = h * w;
+    unsigned int in_nhw     = n * in_cstride;
+
+    // Variant 2 needs space for 4 fp32 elements per each x thread (including the last workgroup)
+    // to stash intermediate mean and variance
+    unsigned int stash_values = 4;
+    if(problem.IsLayoutNHWC())
+    {
+        // TODO: For now enable variant 2 for NHWC because other variants are slower.
+        // Remove when other variants are optimized
+        unsigned int xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
+        unsigned int ylocalsize = 1024 / xlocalsize;
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+        if(problem.GetXDesc().GetType() == miopenFloat)
+        {
+            if(last_ylocalsize < stash_values)
+                return false;
+        }
+        else
+        {
+            // Even threads use 2 values at even rows, odd threads - at odd rows.
+            if(c % 2 != 0 || last_ylocalsize < stash_values * 2)
+                return false;
+        }
+    }
+    else
+    {
+        bool bfpmixparm = false;
+
+        if((problem.GetXDesc().GetType() == miopenHalf ||
+            problem.GetXDesc().GetType() == miopenBFloat16) &&
+            problem.GetBnScale().GetType() == miopenFloat)
+        {
+            bfpmixparm = true;
+        }
+        if(!((n >= 3 && in_cstride > 512 && (in_nhw >= 33554432 || in_cstride <= 1024) &&
+            ((n < 256) || (in_cstride <= 60) || !bfpmixparm) && (!bfpmixparm || in_cstride <= 512)) ||
+            ((n > 768) && (in_cstride > 150))))
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
