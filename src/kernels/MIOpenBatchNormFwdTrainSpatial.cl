@@ -537,8 +537,6 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
     unsigned int xstride    = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
     unsigned int ystride    = MIO_LAYOUT_NHWC ? MIO_BN_C : 1;
     unsigned int commitID   = 0;
-    unsigned int meanindex;
-    unsigned int varindex;
 
     if(xgid >= MIO_BN_C)
         return;
