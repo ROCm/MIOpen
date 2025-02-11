@@ -736,7 +736,7 @@ public:
         //[layer][dir][param_id][vector]
         const std::array<size_t, 4> bias_lens{layers_cnt, directions_num, gates, hidden_vec_sz};
         const std::array<size_t, 4> bias_strides = [](const auto& lens, size_t bias_cnt) {
-            std::array<size_t, 4> strides = {0, 0, 0, 1};
+            std::array<size_t, 4> strides = {1, 1, 1, 1};
             std::partial_sum(lens.crbegin(),
                              std::prev(lens.crend()),
                              std::next(strides.rbegin()),

@@ -36,6 +36,8 @@
 
 #include <thread>
 
+#define WORKAROUND_SWDEV_511223 1
+
 struct handle_fixture
 {
     miopenHandle_t handle{};
@@ -206,7 +208,7 @@ struct conv_forward : output_tensor_fixture
             int ret_algo_count;
             miopenConvAlgoPerf_t perf;
 
-#if MIOPEN_BUILD_DEV
+#if MIOPEN_BUILD_DEV && !WORKAROUND_SWDEV_511223
             miopenHandle_t handle2{};
             STATUS(miopenCreate(&handle2));
 
@@ -249,7 +251,7 @@ struct conv_forward : output_tensor_fixture
 
             STATUS(miopenGetKernelTime(used_handle, &time));
 
-#if MIOPEN_BUILD_DEV
+#if MIOPEN_BUILD_DEV && !WORKAROUND_SWDEV_511223
             STATUS(miopenDestroy(handle2));
 #endif
         }).join();

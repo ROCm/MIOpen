@@ -145,6 +145,7 @@ struct GenConvData
             // Limit the range of FP
             constexpr auto limit = static_cast<float>(std::numeric_limits<uint32_t>::max());
             if(B > limit)
+                // cppcheck-suppress floatConversionOverflow
                 B = limit;
         }
 
