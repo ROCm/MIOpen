@@ -38,6 +38,7 @@
 #include <miopen/tensor.hpp>
 
 #define LOCAL_SIZE 256
+#define MASK_DTYPE uchar
 
 namespace miopen {
 namespace solver {
@@ -65,9 +66,10 @@ ConvSolution GenerateRandomBitMask::GetSolution(
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto p             = problem.GetProb();
-    auto bitmask_numel = problem.GetMaskDesc().GetElementSize();
+    auto bitmask_numel = problem.GetMaskSizeInBytes() / sizeof(MASK_DTYPE);
 
-    size_t PACKED_SIZE = GetTypeSize(problem.GetMaskDesc().GetType()) * CHAR_BIT;
+    // NOTE: mask output is fixed to be uchar type
+    size_t PACKED_SIZE = sizeof(MASK_DTYPE) * CHAR_BIT;
 
     if(p != 0 && p != 1)
     {

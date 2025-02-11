@@ -62,17 +62,17 @@ extern "C" miopenStatus_t miopenInitPRNGState(miopenHandle_t handle,
 extern "C" miopenStatus_t miopenGenerateRandomBitMask(miopenHandle_t handle,
                                                       const void* pstate,
                                                       const size_t stateSizeInBytes,
-                                                      const miopenTensorDescriptor_t maskDesc,
+                                                      const size_t maskSizeInBytes,
                                                       void* mask,
                                                       const float p)
 {
-    MIOPEN_LOG_FUNCTION(handle, pstate, stateSizeInBytes, maskDesc, mask, p);
+    MIOPEN_LOG_FUNCTION(handle, pstate, stateSizeInBytes, maskSizeInBytes, mask, p);
 
     return miopen::try_([&] {
         miopen::generate_random_bit_mask::GenerateRandomBitMask(miopen::deref(handle),
                                                                 DataCast(pstate),
                                                                 stateSizeInBytes,
-                                                                miopen::deref(maskDesc),
+                                                                maskSizeInBytes,
                                                                 DataCast(mask),
                                                                 p);
     });

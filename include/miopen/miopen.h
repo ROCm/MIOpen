@@ -8215,7 +8215,8 @@ MIOPEN_EXPORT miopenStatus_t miopenInitPRNGState(miopenHandle_t handle,
  * @param pstate                   Random prng_state tensor. This state should be initialized before
                                    running `miopenGenerateRandomBitMask`
  * @param stateSizeInBytes         Number of bytes to store random generator states (input)
- * @param maskDesc                 Tensor descriptor for output random bit mask tensor (input)
+ * @param maskSizeInBytes          Number of bytes to store mask tensor. Mask's type is fixed to be
+ uchar (input)
  * @param mask                     Random bit mask tensor output (output)
  * @param p                        probability of an element to be zeroed. Default: 0.5 (input)
  * @return                         miopenStatus_t
@@ -8223,7 +8224,7 @@ MIOPEN_EXPORT miopenStatus_t miopenInitPRNGState(miopenHandle_t handle,
 MIOPEN_EXPORT miopenStatus_t miopenGenerateRandomBitMask(miopenHandle_t handle,
                                                          const void* pstate,
                                                          const size_t stateSizeInBytes,
-                                                         const miopenTensorDescriptor_t maskDesc,
+                                                         const size_t maskSizeInBytes,
                                                          void* mask,
                                                          const float p = 0.5f);
 

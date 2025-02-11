@@ -43,7 +43,8 @@ struct InitPRNGStateProblemDescription : ProblemDescriptionBase
         if(stateSizeInBytes == 0)
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "GenerateRandomBitMask: State size in bytes must be greater than 0");
+                         "GenerateRandomBitMask (InitPRNGState): State size in bytes must be "
+                         "greater than 0");
         }
     }
 
@@ -58,21 +59,28 @@ private:
 struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const size_t stateSizeInBytes_,
-                       const TensorDescriptor& maskDesc_,
+                       const size_t maskSizeInBytes_,
                        const float p_)
-        : stateSizeInBytes(stateSizeInBytes_), maskDesc(maskDesc_), p(p_)
+        : stateSizeInBytes(stateSizeInBytes_), maskSizeInBytes(maskSizeInBytes_), p(p_)
     {
         if(stateSizeInBytes == 0)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "GenerateRandomBitMask: State size in bytes must be greater than 0");
         }
+
+        if(maskSizeInBytes == 0)
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "GenerateRandomBitMask: Mask size in bytes must be greater than 0");
+        }
+
         IsValidProbValue();
     }
 
-    const TensorDescriptor& GetMaskDesc() const { return maskDesc; }
     float GetProb() const { return p; }
     size_t GetStateSizeInBytes() const { return stateSizeInBytes; }
+    size_t GetMaskSizeInBytes() const { return maskSizeInBytes; }
 
     bool IsValidProbValue() const
     {
@@ -91,7 +99,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
 private:
     const size_t stateSizeInBytes;
-    const TensorDescriptor& maskDesc;
+    const size_t maskSizeInBytes;
     float p;
 };
 

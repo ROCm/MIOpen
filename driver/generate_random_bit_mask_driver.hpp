@@ -48,7 +48,7 @@
 class GenerateRandomBitMaskDriver : public Driver
 {
 public:
-    GenerateRandomBitMaskDriver() : Driver() { miopenCreateTensorDescriptor(&maskDesc); }
+    GenerateRandomBitMaskDriver() : Driver() {}
 
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
@@ -67,7 +67,7 @@ public:
     int VerifyForward() override;
     int VerifyBackward() override;
 
-    ~GenerateRandomBitMaskDriver() override { miopenDestroyTensorDescriptor(maskDesc); }
+    ~GenerateRandomBitMaskDriver() override {}
 
 private:
     InputFlags inflags;
@@ -75,7 +75,6 @@ private:
     int forw;
 
     std::vector<int> input_shape;
-    miopenTensorDescriptor_t maskDesc;
 
     std::unique_ptr<GPUMem> pstate_dev;
     std::unique_ptr<GPUMem> mask_dev;
@@ -85,6 +84,7 @@ private:
     std::vector<unsigned char> mask_host;
 
     size_t statesSizeInBytes = 0;
+    size_t maskSizeInBytes   = 0;
 
     float p = 0;
 };
@@ -94,6 +94,8 @@ int GenerateRandomBitMaskDriver::AddCmdLineArgs()
     inflags.AddInputFlag("forw", 'F', "1", "Only run forward pass (Default=1)", "int");
     inflags.AddInputFlag(
         "mask-dims", 'M', "4x1", "Mask tensor dimensions (Default=4x1)", "tensor descriptor");
+    inflags.AddInputFlag(
+        "mask-size-in-bytes", 'm', "4", "Size of the mask tensor in bytes...", "int");
     inflags.AddInputFlag(
         "probability", 'p', "0.5", "Probability of an element to be zeroed (Default=0.5)", "float");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -109,7 +111,8 @@ int GenerateRandomBitMaskDriver::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
-    p = inflags.GetValueDouble("probability");
+    p               = inflags.GetValueDouble("probability");
+    maskSizeInBytes = inflags.GetValueInt("mask-size-in-bytes");
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -118,19 +121,11 @@ int GenerateRandomBitMaskDriver::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-int GenerateRandomBitMaskDriver::GetandSetData()
-{
-    auto mask_dims = inflags.GetValueTensor("mask-dims").lengths;
-
-    if(SetTensorNd(maskDesc, mask_dims, miopenInt8) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing mask tensor.");
-
-    return miopenStatusSuccess;
-}
+int GenerateRandomBitMaskDriver::GetandSetData() { return miopenStatusSuccess; }
 
 int GenerateRandomBitMaskDriver::AllocateBuffersAndCopy()
 {
-    auto mask_size = GetTensorSize(maskDesc);
+    auto mask_size = maskSizeInBytes / sizeof(unsigned char);
 
     // Get the size of the random states
     auto status = miopenGetGenerateRandomBitMaskStatesSize(GetHandle(), &statesSizeInBytes);
@@ -170,8 +165,12 @@ int GenerateRandomBitMaskDriver::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        auto status = miopenGenerateRandomBitMask(
-            GetHandle(), pstate_dev->GetMem(), statesSizeInBytes, maskDesc, mask_dev->GetMem(), p);
+        auto status = miopenGenerateRandomBitMask(GetHandle(),
+                                                  pstate_dev->GetMem(),
+                                                  statesSizeInBytes,
+                                                  maskSizeInBytes,
+                                                  mask_dev->GetMem(),
+                                                  p);
 
         MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenGenerateRandomBitMask");
 
@@ -221,7 +220,7 @@ int GenerateRandomBitMaskDriver::VerifyForward()
         }
     }
 
-    auto numel = GetTensorSize(maskDesc) * 8;
+    auto numel = (maskSizeInBytes / sizeof(unsigned char)) * 8;
 
     double min_expected = (1 - p) * 0.95;
     double max_expected = (1 - p) * 1.05;

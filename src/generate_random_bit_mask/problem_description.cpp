@@ -36,23 +36,17 @@ NetworkConfig InitPRNGStateProblemDescription::MakeNetworkConfig() const
     std::ostringstream ss;
     ss << "init_prng_state";
 
-    ss << "state_size: " << stateSizeInBytes;
+    ss << "state_size_in_bytes: " << stateSizeInBytes;
 
     return NetworkConfig{ss.str()};
 }
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto mask_lengths = maskDesc.GetLengths();
-
     std::ostringstream ss;
     ss << "generate_random_bit_mask";
-    ss << "mask_lengths: ";
-    for(auto i : mask_lengths)
-    {
-        ss << i << ",";
-    }
-    ss << "state_size: " << stateSizeInBytes;
+    ss << "state_size_in_bytes: " << stateSizeInBytes;
+    ss << "mask_size_in_bytes: " << maskSizeInBytes;
     ss << "p: " << p;
 
     return NetworkConfig{ss.str()};

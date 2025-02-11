@@ -45,7 +45,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t InitPRNGState(Handle& handle,
 MIOPEN_INTERNALS_EXPORT miopenStatus_t GenerateRandomBitMask(Handle& handle,
                                                              ConstData_t pstate,
                                                              size_t stateSizeInBytes,
-                                                             const TensorDescriptor& maskDesc,
+                                                             size_t maskSizeInBytes,
                                                              Data_t mask,
                                                              float p);
 

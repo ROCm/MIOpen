@@ -52,12 +52,12 @@ struct InvokeParams : public miopen::InvokeParams
     InvokeParams() = default;
 
     const TensorDescriptor* pstateDesc = nullptr;
-    const TensorDescriptor* maskDesc   = nullptr;
 
     ConstData_t pstates = nullptr;
     Data_t mask         = nullptr;
 
     size_t stateSizeInBytes = 0;
+    size_t maskSizeInBytes  = 0;
 
     float p = 0.0f;
 

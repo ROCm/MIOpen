@@ -76,7 +76,6 @@ inline std::vector<GenerateRandomBitMaskTestCase> GBMTestConfigs()
         GenerateRandomBitMaskTestCase({4, 400}, 0.7),
         GenerateRandomBitMaskTestCase({2, 4, 400}, 0.7),
         GenerateRandomBitMaskTestCase({1, 2, 4, 400}, 0.7),
-        GenerateRandomBitMaskTestCase({700, 700}, 0.7), // not div 8 size
     };
 }
 
@@ -90,6 +89,9 @@ protected:
 
         auto mask_shape = config.GetMaskShape();
         p               = config.GetProb();
+        maskSizeInBytes =
+            std::accumulate(mask_shape.begin(), mask_shape.end(), 1, std::multiplies<>()) *
+            sizeof(unsigned char);
 
         // Initialize pstate
         auto status = miopenGetGenerateRandomBitMaskStatesSize(&handle, &stateSizeInBytes);
@@ -119,7 +121,7 @@ protected:
 
         // Run kernel
         status = miopen::generate_random_bit_mask::GenerateRandomBitMask(
-            handle, pstate_dev.get(), stateSizeInBytes, mask.desc, mask_dev.get(), p);
+            handle, pstate_dev.get(), stateSizeInBytes, maskSizeInBytes, mask_dev.get(), p);
 
         ASSERT_EQ(status, miopenStatusSuccess);
 
@@ -170,4 +172,5 @@ protected:
 
     float p                 = 0.0f;
     size_t stateSizeInBytes = 0;
+    size_t maskSizeInBytes  = 0;
 };

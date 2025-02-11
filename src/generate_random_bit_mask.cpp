@@ -63,21 +63,22 @@ InitPRNGState(Handle& handle, Data_t pstate, const size_t stateSizeInBytes, cons
 miopenStatus_t GenerateRandomBitMask(Handle& handle,
                                      ConstData_t pstate,
                                      const size_t stateSizeInBytes,
-                                     const TensorDescriptor& maskDesc,
+                                     const size_t maskSizeInBytes,
+                                     //  const TensorDescriptor& maskDesc,
                                      Data_t mask,
                                      const float p)
 {
     const auto problem =
-        generate_random_bit_mask::ProblemDescription{stateSizeInBytes, maskDesc, p};
+        generate_random_bit_mask::ProblemDescription{stateSizeInBytes, maskSizeInBytes, p};
 
     const auto invoke_params = [&]() {
-        auto tmp     = miopen::generate_random_bit_mask::InvokeParams{};
-        tmp.maskDesc = &maskDesc;
+        auto tmp = miopen::generate_random_bit_mask::InvokeParams{};
 
         tmp.pstates = pstate;
         tmp.mask    = mask;
 
         tmp.stateSizeInBytes = stateSizeInBytes;
+        tmp.maskSizeInBytes  = maskSizeInBytes;
 
         tmp.p = p;
 
