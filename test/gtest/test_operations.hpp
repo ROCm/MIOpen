@@ -93,14 +93,33 @@ void ComputeCPUBNBwd(DLModule& dl_module)
     ReshapeIfNeeded(dl_module.savedMean.desc);
     ReshapeIfNeeded(dl_module.savedInvVar.desc);
 
-    batchNormSpatialHostBwdTrain(dl_module.input,
-                                 dl_module.dy,
-                                 dl_module.ref_out,
-                                 dl_module.bnScale,
-                                 dl_module.dScale_ref,
-                                 dl_module.dBias_ref,
-                                 dl_module.savedMean,
-                                 dl_module.savedInvVar);
+    if(dl_module.bn_mode == miopenBNSpatial)
+    {
+        batchNormSpatialHostBwdTrain(dl_module.input,
+                                     dl_module.dy,
+                                     dl_module.ref_out,
+                                     dl_module.bnScale,
+                                     dl_module.dScale_ref,
+                                     dl_module.dBias_ref,
+                                     dl_module.savedMean,
+                                     dl_module.savedInvVar);
+    }
+    else if(dl_module.bn_mode == miopenBNPerActivation)
+    {
+        batchNormPerActHostBwdTrain(dl_module.input,
+                                    dl_module.dy,
+                                    dl_module.ref_out,
+                                    dl_module.bnScale,
+                                    dl_module.dScale_ref,
+                                    dl_module.dBias_ref,
+                                    dl_module.savedMean,
+                                    dl_module.savedInvVar);
+    }
+    else
+    {
+        std::cout << "\nUnknown BwdTrain batch miopenBatchNormMode_t\n";
+        exit(EXIT_FAILURE);
+    }
 }
 
 template <typename DLModule>
