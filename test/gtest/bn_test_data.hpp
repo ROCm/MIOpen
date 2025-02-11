@@ -41,7 +41,6 @@ struct BN2DTestCase
     size_t C;
     size_t H;
     size_t W;
-    miopenBatchNormMode_t mode;
     miopen::batchnorm::Direction Direction;
     bool save;
     bool keepRunning;
@@ -49,8 +48,8 @@ struct BN2DTestCase
     friend std::ostream& operator<<(std::ostream& ss, const BN2DTestCase& tc)
     {
         return ss << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
-                  << " mode: " << tc.mode << " Direction: " << static_cast<int>(tc.Direction)
-                  << " save: " << tc.save << " keepRunning: " << tc.keepRunning;
+                  << " Direction: " << static_cast<int>(tc.Direction) << " save: " << tc.save
+                  << " keepRunning: " << tc.keepRunning;
     }
     std::vector<size_t> GetInput() const { return {N, C, H, W}; }
 };
@@ -62,7 +61,6 @@ struct BN3DTestCase
     size_t D;
     size_t H;
     size_t W;
-    miopenBatchNormMode_t mode;
     miopen::batchnorm::Direction Direction;
     bool save;
     bool keepRunning;
@@ -70,9 +68,8 @@ struct BN3DTestCase
     friend std::ostream& operator<<(std::ostream& ss, const BN3DTestCase& tc)
     {
         return ss << "(N: " << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
-                  << " W:" << tc.W << " mode: " << tc.mode
-                  << " Direction: " << static_cast<int>(tc.Direction) << " save: " << tc.save
-                  << " keepRunning: " << tc.keepRunning;
+                  << " W:" << tc.W << " Direction: " << static_cast<int>(tc.Direction)
+                  << " save: " << tc.save << " keepRunning: " << tc.keepRunning;
     }
     std::vector<size_t> GetInput() const { return {N, C, D, H, W}; }
 };
@@ -90,84 +87,90 @@ template <>
 inline std::vector<BN2DTestCase> Network2DLarge()
 {
     // pyt_mlperf_resnet50v1.5
+    // clang-format off
     return {
-        {64, 1, 1024, 1024, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {192, 1, 8, 8, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {12, 40, 122, 122, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        {64, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        {64, 256, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 256, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 256, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        {64, 256, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 256, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 256, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        {64, 512, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 512, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 512, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        {64, 512, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 512, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 512, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        {64, 512, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 512, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 512, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        {128, 256, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {128, 256, 16, 16, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {670, 1, 224, 224, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-        {768, 1, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {768, 1, 23, 23, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {832, 1, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {832, 1, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1}};
+        {64, 1, 1024, 1024, miopen::batchnorm::Direction::Backward, 1, 0},
+        {192, 1, 8, 8, miopen::batchnorm::Direction::Backward, 1, 0},
+        {12, 40, 122, 122, miopen::batchnorm::Direction::Backward, 1, 0},
+        {64, 2048, 7, 7, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 2048, 7, 7, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 2048, 7, 7, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 256, 14, 14, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 256, 14, 14, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 256, 14, 14, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 256, 28, 28, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 256, 28, 28, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 256, 28, 28, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 256, 56, 56, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 256, 56, 56, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 256, 56, 56, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 512, 14, 14, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 512, 14, 14, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 512, 14, 14, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 512, 28, 28, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 512, 28, 28, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 512, 28, 28, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 512, 7, 7, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 512, 7, 7, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 512, 7, 7, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 64, 112, 112, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 64, 112, 112, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 64, 112, 112, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 64, 56, 56, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 64, 56, 56, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {64, 64, 56, 56, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {128, 256, 14, 14, miopen::batchnorm::Direction::Backward, 0, 1},
+        {128, 256, 16, 16, miopen::batchnorm::Direction::Backward, 0, 1},
+        {670, 1, 224, 224, miopen::batchnorm::Direction::Backward, 0, 1},
+        {768, 1, 14, 14, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {768, 1, 23, 23, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {832, 1, 14, 14, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {832, 1, 28, 28, miopen::batchnorm::Direction::ForwardTraining, 1, 1}
+        };
+    // clang-format on
 }
 
 template <>
 inline std::vector<BN2DTestCase> Network2DSmall()
 {
     // pyt_mlperf_resnet50v1.5
+    // clang-format off
     return {
-        {12, 40, 122, 122, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 132, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {192, 2, 8, 8, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
-        {64, 2048, 17, 17, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-
+        {12, 40, 122, 122, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 132, 28, miopen::batchnorm::Direction::Backward, 1, 0},
+        {192, 2, 8, 8, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 56, 56, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 128, 256, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
+        {64, 2048, 17, 17, miopen::batchnorm::Direction::Backward, 0, 1}
     };
+    // clang-format on
 }
 
 template <>
 inline std::vector<BN3DTestCase> Network3DBN()
 {
+    // clang-format off
     return {
-        {2, 2, 3, 224, 224, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 132, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 16, 128, 128, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
-        {2, 2048, 16, 128, 128, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-
+        {2, 2, 3, 224, 224, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 132, 28, 28, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 16, 128, 128, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
+        {2, 2048, 16, 128, 128, miopen::batchnorm::Direction::Backward, 0, 1}
     };
+    // clang-format on
 }
 
 template <typename XDataType, typename YDataType, typename TConfig>
 struct BNTestData
 {
-    void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
+    void
+    SetUpImpl(const TConfig& config, miopenBatchNormMode_t t_bnmode, miopenTensorLayout_t t_layout)
     {
         bn_config     = config;
         tensor_layout = t_layout;
+        bn_mode       = t_bnmode;
         CreateTensors();
         InitTensorsWithRandValue();
         SetDirection();
-        SetBNMode();
         WriteToGPU();
     }
     const miopen::TensorDescriptor& GetInputDesc() const { return input.desc; }
@@ -203,7 +206,6 @@ private:
     }
 
     void SetDirection() { direction = bn_config.Direction; }
-    void SetBNMode() { bn_mode = bn_config.mode; }
     void WriteToGPU()
     {
         auto&& handle = get_handle();
@@ -220,9 +222,10 @@ template <typename XDataType,
           typename TConfig>
 struct BNInferTestData : public BNTestData<XDataType, YDataType, TConfig>
 {
-    void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
+    void
+    SetUpImpl(const TConfig& config, miopenBatchNormMode_t t_bnmode, miopenTensorLayout_t t_layout)
     {
-        BNTestData<XDataType, YDataType, TConfig>::SetUpImpl(config, t_layout);
+        BNTestData<XDataType, YDataType, TConfig>::SetUpImpl(config, t_bnmode, t_layout);
         CreateTensors();
         InitTensorsWithRandValue();
         WriteToGPU();
@@ -296,9 +299,10 @@ template <typename XDataType,
           typename TConfig>
 struct BNBwdTestData : public BNTestData<XDataType, DyDataType, TConfig>
 {
-    void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
+    void
+    SetUpImpl(const TConfig& config, miopenBatchNormMode_t t_bnmode, miopenTensorLayout_t t_layout)
     {
-        BNTestData<XDataType, DxDataType, TConfig>::SetUpImpl(config, t_layout);
+        BNTestData<XDataType, DxDataType, TConfig>::SetUpImpl(config, t_bnmode, t_layout);
         CreateTensors();
         InitTensorsWithRandValue();
         WriteToGPU();
@@ -395,9 +399,10 @@ template <typename XDataType,
           typename TConfig>
 struct BNFwdTrainTestData : public BNTestData<XDataType, YDataType, TConfig>
 {
-    void SetUpImpl(const TConfig& config, miopenTensorLayout_t t_layout)
+    void
+    SetUpImpl(const TConfig& config, miopenBatchNormMode_t t_bnmode, miopenTensorLayout_t t_layout)
     {
-        BNTestData<XDataType, YDataType, TConfig>::SetUpImpl(config, t_layout);
+        BNTestData<XDataType, YDataType, TConfig>::SetUpImpl(config, t_bnmode, t_layout);
         CreateTensors();
         InitTensorsWithRandValue();
         WriteToGPU();

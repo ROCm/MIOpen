@@ -559,15 +559,20 @@ void batchNormPerActHostFwdTrain(const tensor<T>& input,
     });
 }
 
-template <class T, class U, class Tref>
-void batchNormPerActHostBwdTrain(const tensor<T>& x_input,
-                                 const tensor<T>& dy_input,
-                                 const tensor<U>& scale,
-                                 tensor<Tref>& dscale,
-                                 tensor<Tref>& dbias,
-                                 tensor<Tref>& dx_out,
-                                 const tensor<U>& savedMean,
-                                 const tensor<U>& savedInvVar)
+template <typename XDataType,
+          typename DxDataType,
+          typename DyDataType = XDataType,
+          typename ScaleDataType,
+          typename AccDataType = ScaleDataType,
+          typename RefDataType = DxDataType>
+void batchNormPerActHostBwdTrain(const tensor<XDataType>& x_input,
+                                 const tensor<DyDataType>& dy_input,
+                                 tensor<DxDataType>& dx_out,
+                                 const tensor<ScaleDataType>& scale,
+                                 tensor<RefDataType>& dscale,
+                                 tensor<RefDataType>& dbias,
+                                 const tensor<AccDataType>& savedMean,
+                                 const tensor<AccDataType>& savedInvVar)
 {
 
     int height, width, n_batch, channels;
@@ -621,7 +626,7 @@ void batchNormPerActHostBwdTrain(const tensor<T>& x_input,
                         n_batch * scale(0, cidx, row, column) * dy_input(bidx, cidx, row, column) -
                         tmp1;
                     double tmp3                     = elemInvVar / (double(n));
-                    dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * tmp2);
+                    dx_out(bidx, cidx, row, column) = static_cast<DxDataType>(tmp3 * tmp2);
                 } // end for(n_batchs)
             }     // for (column)
         }         // for (row)
