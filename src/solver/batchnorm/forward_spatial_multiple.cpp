@@ -32,8 +32,6 @@
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
 
-#define WORKAROUND_SWDEV_253606 1
-
 namespace miopen {
 
 namespace solver {
