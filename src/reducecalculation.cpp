@@ -35,7 +35,7 @@
 
 namespace miopen {
 
-std::size_t GetReduceCalculationWorkspaceSize(Handle& handle,
+std::size_t GetReduceCalculationWorkspaceSize(const Handle& handle,
                                               const TensorDescriptor& xDesc,
                                               const TensorDescriptor& yDesc,
                                               int32_t dim,
@@ -71,7 +71,7 @@ std::size_t GetReduceCalculationWorkspaceSize(Handle& handle,
     return static_cast<size_t>(-1);
 }
 
-miopenStatus_t ReduceCalculationForward(Handle& handle,
+miopenStatus_t ReduceCalculationForward(const Handle& handle,
                                         Data_t workspace,
                                         size_t workspaceSizeInBytes,
                                         const TensorDescriptor& xDesc,

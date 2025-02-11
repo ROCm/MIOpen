@@ -36,7 +36,6 @@
 #include <miopen/invoke_params.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/timer.hpp>
-#include <miopen/type_traits.hpp>
 #include <miopen/mt_queue.hpp>
 #include <miopen/generic_search_controls.hpp>
 
@@ -55,6 +54,7 @@ namespace solver {
 namespace debug {
 // This struct is not MT-safe, meaning one should use it before starting threads, thus avoiding
 // constructing it inside a worker thread.
+/// \todo This class should be moved out of the library
 struct MIOPEN_INTERNALS_EXPORT TuningIterationScopedLimiter
 {
     TuningIterationScopedLimiter(std::size_t new_limit);
@@ -227,7 +227,7 @@ public:
                 n_recent != 0u ? (static_cast<float>(n_total - n_recent) *
                                   (elapsed_cumulative / static_cast<float>(n_recent)) / 1000.0f)
                                : 0.0f; // paraniod
-            MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
+            MIOPEN_LOG_I(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
                                   << ", best within recent " << n_within_beat << ": " << best_time
                                   << " #" << n_best << ' ' << best_config << ", ETA:" << eta_sec
                                   << " sec.");
@@ -241,7 +241,6 @@ public:
 ///   - Its return type shall be suitable for instantiation of the ComputedContainer.
 /// * GetSolution shall be implemented.
 /// * Solution should provide invoker
-/// * RunAndMeasureSolution must NOT be implemented. Invoker will be used instead.
 ///
 /// clang-format-off
 /// -----------------------------------------------
@@ -263,17 +262,6 @@ public:
 /// ------------------------------------------------
 /// clang-format-on
 
-template <class Solver, class Top, class Bottom>
-using RunAndMeasure_t =
-    decltype(std::declval<Solver>().RunAndMeasureSolution(std::declval<miopen::Handle&>(),
-                                                          std::declval<Bottom>(),
-                                                          std::declval<Top>(),
-                                                          std::declval<ConstData_t>(),
-                                                          std::declval<ConstData_t>(),
-                                                          std::declval<ExecutionContext>(),
-                                                          std::declval<ConvSolution>(),
-                                                          std::declval<float&>()));
-
 template <class Solver, class Context, class Problem>
 auto GetAllConfigs(const Solver s, const Context& context, const Problem& problem)
     -> ComputedContainer<decltype(s.GetDefaultPerformanceConfig(context, problem)),
@@ -290,7 +278,7 @@ auto GetAllConfigs(const Solver s, const Context& context, const Problem& proble
 
     ComputedContainer<PerformanceConfig, Context, Problem> all_configs = useSpare ? spare : primary;
     const int n_runs_total = useSpare ? spare_size : primary_size;
-    MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
+    MIOPEN_LOG_I(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
                                 << (useSpare ? " (spare)" : "") << "...");
 
     return all_configs;
@@ -367,11 +355,6 @@ auto GenericSearch(const Solver s,
                    const AnyInvokeParams& invoke_ctx_)
     -> decltype(s.GetDefaultPerformanceConfig(context_, problem))
 {
-    static_assert(
-        !(HasMember<RunAndMeasure_t, Solver, ConstData_t, Data_t>{} ||
-          HasMember<RunAndMeasure_t, Solver, Data_t, ConstData_t>{}),
-        "RunAndMeasure is obsolete. Solvers should implement auto-tune evaluation in invoker");
-
     auto context                  = context_;
     context.is_for_generic_search = true;
 
@@ -596,7 +579,7 @@ auto GenericSearch(const Solver s,
     for(auto& agent : compile_agents)
         agent.join();
 
-    MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
+    MIOPEN_LOG_I("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best << ' ' << best_time << ' ' << best_config);
 
     if(!is_passed)
@@ -608,7 +591,7 @@ auto GenericSearch(const Solver s,
     invoker(profile_h, invoke_ctx);
     const auto default_time = profile_h.GetKernelTime();
     const auto score        = (best_time > 0.0f) ? default_time / best_time : 0.0f;
-    MIOPEN_LOG_W("...Score: " << score << " (default time " << default_time << ')');
+    MIOPEN_LOG_I("...Score: " << score << " (default time " << default_time << ')');
 
     return best_config;
 }
