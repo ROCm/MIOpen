@@ -219,7 +219,6 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
 
             float ctime = 0.;
             visit_float(dtype, [&](auto as_float) {
-
                 handle_.Run(kernels[0])(params.x, params.y);
                 profileSequence(handle_, 0, &ctime);
 

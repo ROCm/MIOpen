@@ -634,7 +634,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #elif(MIO_BN_VARIANT == 2)
 
-#if (MIO_BN_USESAVED == 0)
+#if(MIO_BN_USESAVED == 0)
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbuff,
