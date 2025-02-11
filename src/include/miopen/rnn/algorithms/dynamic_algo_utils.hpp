@@ -145,7 +145,7 @@ private:
 
 } // namespace rnn_dynamic
 
-inline std::vector<size_t> roundedDynamicLengths(const SeqTensorDescriptor& desc)
+inline miopen::InlineVector<std::size_t, 5> roundedDynamicLengths(const SeqTensorDescriptor& desc)
 {
     auto src_lens     = desc.GetLengths();
     auto real_seq_len = src_lens[1];
