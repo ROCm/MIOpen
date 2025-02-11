@@ -418,7 +418,8 @@ public:
                                                      convInvalidCWeightTensorDesc.GetLengths(),
                                                      convInvalidCWeightTensorDesc.GetStrides()));
 
-        std::vector<size_t> allOnes{size_t{1}, size_t{1}, size_t{1}, size_t{1}, size_t{1}};
+        miopen::InlineVector<size_t, 5> allOnes{
+            size_t{1}, size_t{1}, size_t{1}, size_t{1}, size_t{1}};
         auto convOutput =
             allocator.allocate(gr::makeTensor<true>(convOutputName, dataType, allOnes, allOnes));
 

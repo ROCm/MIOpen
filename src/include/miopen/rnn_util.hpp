@@ -351,13 +351,14 @@ inline size_t ReductionWorkspaceSize(const Handle& handle,
 
         size_t bias_total_cnt = hsize * bidirect_mp * nHiddenTensorsPerLayer;
 
-        const std::vector<size_t> ws_bias_strides{
+        const miopen::InlineVector<std::size_t, 5> ws_bias_strides{
             batchLenSum * workspaceScale * hsize * bidirect_mp, hy_stride, 1};
 
         const miopen::TensorDescriptor ws_desc{
             rnn_data_t, {1, batchLenSum, bias_total_cnt}, ws_bias_strides};
 
-        const std::vector<size_t> dw_bias_strides{bias_total_cnt, bias_total_cnt, 1};
+        const miopen::InlineVector<std::size_t, 5> dw_bias_strides{
+            bias_total_cnt, bias_total_cnt, 1};
         const miopen::TensorDescriptor dw_desc{rnn_data_t, {1, 1, bias_total_cnt}, dw_bias_strides};
 
         reduction_ws = red_add.GetWorkspaceSize(handle, ws_desc, dw_desc) + // WA CK bug

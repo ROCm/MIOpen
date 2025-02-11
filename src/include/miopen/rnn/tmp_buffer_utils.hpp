@@ -901,8 +901,9 @@ public:
     static IOBufferDescriptor build(const SeqTensorDescriptor& xyDesc)
     {
         //{batch, seq_cnt, vector}
-        auto lens    = xyDesc.GetLengths();
-        auto strides = xyDesc.GetPaddedStrides();
+        auto lens = std::vector<size_t>(xyDesc.GetLengths().begin(), xyDesc.GetLengths().end());
+        auto strides =
+            std::vector<size_t>(xyDesc.GetPaddedStrides().begin(), xyDesc.GetPaddedStrides().end());
 
         //{ combine(batch, seq_cnt), vector}
         std::vector<size_t> packed_lens{xyDesc.GetTotalSequenceLen(), lens[2]};

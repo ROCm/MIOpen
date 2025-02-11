@@ -39,7 +39,7 @@ namespace solver {
 
 namespace reduce {
 
-size_t ArgmaxForward::XGridSize(std::vector<size_t> indicedims) const
+size_t ArgmaxForward::XGridSize(miopen::InlineVector<std::size_t, 5> indicedims) const
 {
     size_t indice_numel =
         std::accumulate(indicedims.begin(), indicedims.end(), 1ULL, std::multiplies<size_t>());

@@ -75,8 +75,8 @@ struct GroupConvTestConfig<2u>
                   << " dilation.y:" << tc.dilation.y << " dilation.x" << tc.dilation.x;
     }
 
-    std::vector<size_t> GetInput() { return {N, C, img.y, img.x}; }
-    std::vector<size_t> GetWeights()
+    miopen::InlineVector<size_t, 5> GetInput() { return {N, C, img.y, img.x}; }
+    miopen::InlineVector<size_t, 5> GetWeights()
     {
         EXPECT_EQUAL(C % G, 0);
         return {K, C / G, filter.y, filter.x};

@@ -134,7 +134,8 @@ protected:
         std::fill(outputHost.begin(), outputHost.end(), 0);
 
         // miopenDataType_t doesn't support size_t, I use double instead (both types use 64 bits)
-        indicesDesc       = miopen::TensorDescriptor(miopenDouble, outDims);
+        indicesDesc = miopen::TensorDescriptor(
+            miopenDouble, miopen::InlineVector<size_t, 5>(outDims.begin(), outDims.end()));
         size_t outputSize = indicesDesc.GetElementSize();
         indices.resize(outputSize);
         indicesHost.resize(outputSize);

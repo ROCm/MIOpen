@@ -171,7 +171,7 @@ struct MIOPEN_INTERNALS_EXPORT BatchNormFwdTrainFusionOpDescriptor : FusionOpDes
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormFwdTrain; };
     std::vector<size_t> GetLocalWGSz();
     std::vector<size_t> GetGlobalWGSz();
-    void calcBNParams(std::vector<size_t> in_lens,
+    void calcBNParams(miopen::InlineVector<std::size_t, 5> in_lens,
                       int& variant,
                       size_t& in_cstride,
                       size_t& in_nstride,
@@ -204,7 +204,7 @@ struct MIOPEN_INTERNALS_EXPORT BatchNormBwdTrainFusionOpDescriptor : FusionOpDes
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormBwdTrain; };
     std::vector<size_t> GetLocalWGSz();
     std::vector<size_t> GetGlobalWGSz();
-    void calcBNParams(std::vector<size_t> in_lens,
+    void calcBNParams(miopen::InlineVector<std::size_t, 5> in_lens,
                       int& variant,
                       size_t& in_cstride,
                       size_t& in_nstride,

@@ -60,12 +60,13 @@ protected:
         const auto& [lens, offset] = GetParam();
         ASSERT_GE(superTensor.desc.GetNumDims(), lens.size());
 
-        const std::vector<size_t>& superStrides = superTensor.desc.GetStrides();
-        std::vector<size_t> strides(superStrides.begin() +
-                                        (superTensor.desc.GetNumDims() - lens.size()),
-                                    superStrides.end());
+        const miopen::InlineVector<size_t, 5>& superStrides = superTensor.desc.GetStrides();
+        miopen::InlineVector<size_t, 5> strides(superStrides.begin() +
+                                                    (superTensor.desc.GetNumDims() - lens.size()),
+                                                superStrides.end());
 
-        subDesc  = miopen::TensorDescriptor(miopen_type<T>{}, lens, strides);
+        subDesc = miopen::TensorDescriptor(
+            miopen_type<T>{}, miopen::InlineVector<size_t, 5>(lens.begin(), lens.end()), strides);
         dataSize = subDesc.GetElementSpace() + offset;
         ASSERT_GE(superTensor.desc.GetElementSpace(), dataSize);
     }

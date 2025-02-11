@@ -29,6 +29,8 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/datatype.hpp>
 
+#include <miopen/inline_vector.hpp>
+
 #include <tuple>
 
 namespace miopen {
@@ -71,8 +73,9 @@ inline std::tuple<size_t, std::string> GetRDBLCKandREADTYPE(size_t len, miopenDa
                            (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK));
 }
 
-inline std::tuple<int, int, unsigned int> GetBitmapAndWgInfo(const std::vector<size_t>& blens,
-                                                             const std::vector<size_t>& clens)
+inline std::tuple<int, int, unsigned int>
+GetBitmapAndWgInfo(const miopen::InlineVector<std::size_t, 5>& blens,
+                   const miopen::InlineVector<std::size_t, 5>& clens)
 {
     // first_not_one is incorrect if btensor size equal to 1
     auto first_not_one = std::find_if(blens.rbegin(), blens.rend(), [](int i) { return i != 1; });

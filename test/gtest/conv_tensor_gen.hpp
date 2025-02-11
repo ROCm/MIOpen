@@ -107,7 +107,7 @@ template <typename T, typename Tacc>
 struct GenConvData
 {
     /// \note CHWNc filter layout is not supported (different storage layout)
-    GenConvData(const std::vector<std::size_t>& filter, unsigned group_count = 1)
+    GenConvData(const miopen::InlineVector<size_t, 5>& filter, unsigned group_count = 1)
     {
         static_assert(std::is_integral_v<T> == std::is_integral_v<Tacc>);
         static_assert(sizeof(Tacc) >= sizeof(T));

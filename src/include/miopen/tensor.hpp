@@ -34,6 +34,7 @@
 #include <miopen/functional.hpp>
 #include <miopen/object.hpp>
 #include <miopen/returns.hpp>
+#include <miopen/inline_vector.hpp>
 
 #include <nlohmann/json_fwd.hpp>
 
@@ -152,45 +153,45 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     // code for better dependency tracking
 
     TensorDescriptor(miopenDataType_t t, const std::initializer_list<int>& lens_in);
-    TensorDescriptor(miopenDataType_t t, const std::vector<int>& lens_in);
+    TensorDescriptor(miopenDataType_t t, const miopen::InlineVector<int, 5>& lens_in);
     TensorDescriptor(miopenDataType_t t, const std::initializer_list<std::size_t>& lens_in);
-    TensorDescriptor(miopenDataType_t t, const std::vector<std::size_t>& lens_in);
-    TensorDescriptor(miopenDataType_t t, std::vector<std::size_t>&& lens_in);
+    TensorDescriptor(miopenDataType_t t, const miopen::InlineVector<std::size_t, 5>& lens_in);
+    TensorDescriptor(miopenDataType_t t, miopen::InlineVector<std::size_t, 5>&& lens_in);
 
     TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t layout_in,
-                     const std::vector<int>& lens_in);
+                     const miopen::InlineVector<int, 5>& lens_in);
     TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t layout_in,
                      const std::initializer_list<std::size_t>& lens_in);
     TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t layout_in,
-                     const std::vector<std::size_t>& lens_in);
+                     const miopen::InlineVector<std::size_t, 5>& lens_in);
     TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t layout_in,
-                     std::vector<std::size_t>&& lens_in);
+                     miopen::InlineVector<std::size_t, 5>&& lens_in);
 
     TensorDescriptor(miopenDataType_t t,
-                     const std::vector<int>& lens_in,
-                     const std::vector<int>& strides_in);
+                     const miopen::InlineVector<int, 5>& lens_in,
+                     const miopen::InlineVector<int, 5>& strides_in);
     TensorDescriptor(miopenDataType_t t,
                      const std::initializer_list<std::size_t>& lens_in,
                      const std::initializer_list<std::size_t>& strides_in);
     TensorDescriptor(miopenDataType_t t,
-                     const std::vector<std::size_t>& lens_in,
-                     const std::vector<std::size_t>& strides_in);
+                     const miopen::InlineVector<std::size_t, 5>& lens_in,
+                     const miopen::InlineVector<std::size_t, 5>& strides_in);
     TensorDescriptor(miopenDataType_t t,
-                     std::vector<std::size_t>&& lens_in,
-                     std::vector<std::size_t>&& strides_in);
+                     miopen::InlineVector<std::size_t, 5>&& lens_in,
+                     miopen::InlineVector<std::size_t, 5>&& strides_in);
 
     TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t layout_in,
-                     const std::vector<std::size_t>& lens_in,
-                     const std::vector<std::size_t>& strides_in);
+                     const miopen::InlineVector<std::size_t, 5>& lens_in,
+                     const miopen::InlineVector<std::size_t, 5>& strides_in);
     TensorDescriptor(miopenDataType_t t,
                      miopenTensorLayout_t layout_in,
-                     std::vector<std::size_t>&& lens_in,
-                     std::vector<std::size_t>&& strides_in);
+                     miopen::InlineVector<std::size_t, 5>&& lens_in,
+                     miopen::InlineVector<std::size_t, 5>&& strides_in);
 
     // Use only for external API
     static TensorDescriptor MakeDescriptor(miopenDataType_t t, const int* plens, int size);
@@ -210,8 +211,8 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     bool IsVectorized() const;
 
-    const std::vector<std::size_t>& GetLengths() const;
-    const std::vector<std::size_t>& GetStrides() const;
+    const miopen::InlineVector<std::size_t, 5>& GetLengths() const;
+    const miopen::InlineVector<std::size_t, 5>& GetStrides() const;
     unsigned GetNumDims() const;
 
     miopenDataType_t GetType() const;
@@ -261,8 +262,9 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
     bool IsPossibleLayout4D5D(const std::string& layout) const;
 
-    static std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
-                                                 const std::vector<std::size_t>& strides);
+    static miopen::InlineVector<std::size_t, 5>
+    find_permutation(const miopen::InlineVector<std::size_t, 5>& lens,
+                     const miopen::InlineVector<std::size_t, 5>& strides);
 
     // storage_layout must be NCHW or NCHWc for NCHWc, CHWN or CHWNc for CHWNc, NCHW for other 4D
     // layouts, NCDHW for 5D layouts
@@ -277,20 +279,20 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
 private:
     TensorDescriptor(miopenDataType_t t,
                      const std::optional<miopenTensorLayout_t>& layout_in,
-                     const std::vector<std::size_t>& lens_in,
-                     const std::vector<std::size_t>& strides_in,
+                     const miopen::InlineVector<std::size_t, 5>& lens_in,
+                     const miopen::InlineVector<std::size_t, 5>& strides_in,
                      bool use_strides);
 
     TensorDescriptor(miopenDataType_t t,
                      const std::optional<miopenTensorLayout_t>& layout_in,
-                     std::vector<std::size_t>&& lens_in,
-                     std::vector<std::size_t>&& strides_in,
+                     miopen::InlineVector<std::size_t, 5>&& lens_in,
+                     miopen::InlineVector<std::size_t, 5>&& strides_in,
                      bool use_strides);
 
     void CheckArgsAndInit(bool use_strides);
 
-    std::vector<std::size_t> lens;
-    std::vector<std::size_t> strides;
+    miopen::InlineVector<std::size_t, 5> lens;
+    miopen::InlineVector<std::size_t, 5> strides;
 
     bool packed;
     std::size_t vector_length = 1;
@@ -307,7 +309,7 @@ private:
     mutable std::string cached_layout_str;
 
     // For GetLayout
-    mutable std::vector<int64_t> cached_permutation;
+    mutable miopen::InlineVector<std::size_t, 5> cached_permutation;
 
     // For AllLengthsFitIntoInt()
     mutable std::optional<bool> cached_lengths_fit_into_int;
@@ -316,7 +318,7 @@ private:
 };
 
 template <class TElement>
-constexpr auto GetNCDHW(unsigned spatial_dims, const std::vector<TElement>& data)
+constexpr auto GetNCDHW(unsigned spatial_dims, const miopen::InlineVector<TElement, 5>& data)
 {
     if(spatial_dims == 3)
         return miopen::tien<5>(data, 1);

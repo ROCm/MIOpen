@@ -81,8 +81,8 @@ bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
 
 ConvTestCase::ConvTestCase() : x(miopenHalf, {}), w(miopenHalf, {}), conv({}, {}, {}){};
 
-ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
-                           std::vector<size_t>&& w_,
+ConvTestCase::ConvTestCase(miopen::InlineVector<size_t, 5>&& x_,
+                           miopen::InlineVector<size_t, 5>&& w_,
                            std::vector<int>&& pad_,
                            std::vector<int>&& stride_,
                            std::vector<int>&& dilation_,
@@ -98,8 +98,8 @@ ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
 {
 }
 
-ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
-                           std::vector<size_t>&& w_,
+ConvTestCase::ConvTestCase(miopen::InlineVector<size_t, 5>&& x_,
+                           miopen::InlineVector<size_t, 5>&& w_,
                            std::vector<int>&& pad_,
                            std::vector<int>&& stride_,
                            std::vector<int>&& dilation_,

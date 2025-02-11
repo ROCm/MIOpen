@@ -26,6 +26,7 @@
 
 #include <miopen/reduce/problem_description.hpp>
 #include <miopen/names.hpp>
+#include <miopen/inline_vector.hpp>
 
 #include <sstream>
 
@@ -36,7 +37,7 @@ namespace reduce {
 NetworkConfig ProblemDescriptionExtreme::MakeNetworkConfig() const
 {
     auto xlength = xDesc.GetLengths();
-    std::vector<std::size_t> outputlength;
+    InlineVector<std::size_t, 5> outputlength;
     if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
        (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
         outputlength = yDesc.GetLengths();
@@ -73,7 +74,7 @@ NetworkConfig ProblemDescriptionExtreme::MakeNetworkConfig() const
 NetworkConfig ProblemDescriptionCalculation::MakeNetworkConfig() const
 {
     auto xlength = xDesc.GetLengths();
-    std::vector<std::size_t> outputlength;
+    InlineVector<std::size_t, 5> outputlength;
     outputlength = yDesc.GetLengths();
 
     auto size         = xlength[dim];

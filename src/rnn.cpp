@@ -216,9 +216,9 @@ size_t RNNDescriptor::paramsOffsetCalculation(const TensorDescriptor& xDesc,
     return layerJump;
 }
 
-std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor& xDesc,
-                                                          const int layer,
-                                                          const int paramID) const
+miopen::InlineVector<int, 5> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor& xDesc,
+                                                                      const int layer,
+                                                                      const int paramID) const
 {
     auto inputVectorLen = xDesc.GetLengths()[1];
     if(inputMode == miopenRNNskip)
@@ -226,7 +226,7 @@ std::vector<int> RNNDescriptor::pTensorLengthsCalculation(const TensorDescriptor
         inputVectorLen = 0;
     }
 
-    std::vector<int> tdim(2, 0);
+    miopen::InlineVector<int, 5> tdim(2, 0);
 
     if(dirMode != 0u)
     {
@@ -749,7 +749,7 @@ void RNNDescriptor::GetParamsDescriptor(const Handle& /* handle */,
 
     // Create weight super tensor descriptor
     int bi = (dirMode == miopenRNNbidirection) ? 2 : 1;
-    std::vector<int> weight_lens(2, 0);
+    miopen::InlineVector<int, 5> weight_lens(2, 0);
     weight_lens[0] = inputVectorLen + ((nLayers - 1) * (bi + 1) + 1) * hsize;
     weight_lens[1] = bi * hsize * nHiddenTensorsPerLayer;
     if(biasMode == miopenRNNwithBias)
@@ -905,11 +905,12 @@ void RNNDescriptor::SetLayerParam(const Handle& handle,
     auto poffset = paramsOffsetCalculation(xDesc, layer, paramID);
 
     // 2. Calculate the strides for the matrix
-    std::vector<int> pstride(2, 1);
+    miopen::InlineVector<int, 5> pstride(2, 1);
 
     pstride[1] = paramDesc.GetLengths()[0];
 
-    std::vector<int> intLens(paramDesc.GetLengths().begin(), paramDesc.GetLengths().end());
+    miopen::InlineVector<int, 5> intLens(paramDesc.GetLengths().begin(),
+                                         paramDesc.GetLengths().end());
 
     // 3. Construct descriptor to access into w
     auto paramSrc = miopen::TensorDescriptor(dataType, intLens, pstride);
@@ -958,9 +959,10 @@ void RNNDescriptor::SetLayerBias(const Handle& handle,
     auto boffset = biasOffsetCalculation(xDesc, layer, biasID) + poffset;
 
     // 2. Calculate the strides for the matrix
-    std::vector<int> bstride(1, 1);
+    miopen::InlineVector<int, 5> bstride(1, 1);
 
-    std::vector<int> intLens(biasDesc.GetLengths().begin(), biasDesc.GetLengths().end());
+    miopen::InlineVector<int, 5> intLens(biasDesc.GetLengths().begin(),
+                                         biasDesc.GetLengths().end());
 
     // 3. Construct descriptor to access into w
     auto biasSrc = miopen::TensorDescriptor(dataType, intLens, bstride);
@@ -1127,7 +1129,7 @@ SeqTensorDescriptor RNNDescriptor::makeSeqTensorDescriptor(miopenDataType_t t,
                                                            const int* lensPerSeq,
                                                            const void* padding_marker_ptr)
 {
-    const std::vector<int> lens = {batchSize, maxSeqLength, vectorSize};
+    const miopen::InlineVector<int, 5> lens = {batchSize, maxSeqLength, vectorSize};
 
     const auto [dim_order, padded_sequences] = convertRNNBaseLayout(layout);
 
@@ -1190,7 +1192,7 @@ RNNDescriptor::makeSeqTensorDescriptor(c_array_view<const miopenTensorDescriptor
         it       = std::lower_bound(it, batch_cache.rend(), *it, std::less_equal<size_t>{});
     }
 
-    const std::vector<size_t> lens = {max_batch, seq_len, vec_size};
+    const miopen::InlineVector<std::size_t, 5> lens = {max_batch, seq_len, vec_size};
 
     const auto [dim_order, padded_sequences] = convertRNNBaseLayout(layout);
 

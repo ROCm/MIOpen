@@ -66,8 +66,8 @@ struct Conv3DTestCase
                   << " conv_mode:" << tc.conv_mode;
     }
 
-    std::vector<size_t> GetInput() { return {N, C, img.z, img.y, img.x}; }
-    std::vector<size_t> GetWeights()
+    miopen::InlineVector<size_t, 5> GetInput() { return {N, C, img.z, img.y, img.x}; }
+    miopen::InlineVector<size_t, 5> GetWeights()
     {
         EXPECT_EQUAL(C % G, 0);
         return {K, C / G, filter.z, filter.y, filter.x};

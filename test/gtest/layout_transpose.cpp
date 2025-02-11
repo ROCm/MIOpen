@@ -260,12 +260,12 @@ protected:
         {
             for(auto w : W)
             {
-                std::vector<int> tensor_len = {static_cast<int>(n),
-                                               static_cast<int>(c),
-                                               static_cast<int>(h),
-                                               static_cast<int>(w)};
+                miopen::InlineVector<int, 5> tensor_len = {static_cast<int>(n),
+                                                           static_cast<int>(c),
+                                                           static_cast<int>(h),
+                                                           static_cast<int>(w)};
 
-                std::vector<int> tensor_strides;
+                miopen::InlineVector<int, 5> tensor_strides;
 
                 std::string layout_default = miopen::tensor_layout_get_default(tensor_len.size());
                 std::string layout_string =
@@ -348,13 +348,13 @@ protected:
             {
                 for(auto d : D)
                 {
-                    std::vector<int> tensor_len = {static_cast<int>(n),
-                                                   static_cast<int>(c),
-                                                   static_cast<int>(d),
-                                                   static_cast<int>(h),
-                                                   static_cast<int>(w)};
+                    miopen::InlineVector<int, 5> tensor_len = {static_cast<int>(n),
+                                                               static_cast<int>(c),
+                                                               static_cast<int>(d),
+                                                               static_cast<int>(h),
+                                                               static_cast<int>(w)};
 
-                    std::vector<int> tensor_strides;
+                    miopen::InlineVector<int, 5> tensor_strides;
                     std::string layout_default =
                         miopen::tensor_layout_get_default(tensor_len.size());
                     std::string layout_string =

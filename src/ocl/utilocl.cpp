@@ -28,6 +28,7 @@
 #include <miopen/kernel_cache.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/util.hpp>
+#include <miopen/inline_vector.hpp>
 
 #include <boost/range/adaptors.hpp>
 
@@ -1030,7 +1031,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
 
 // NCHW (or NCDHW) to NCHW_C4 (or NCDHW_C4)
 float transpose_NCHW2Vec(const Handle& handle,
-                         const std::vector<std::size_t>& lens,
+                         const miopen::InlineVector<size_t, 5>& lens,
                          ConstData_t in,
                          Data_t out,
                          std::size_t vec_size,

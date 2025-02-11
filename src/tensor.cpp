@@ -99,7 +99,7 @@ std::optional<miopenTensorLayout_t> GetDefaultLayout(unsigned num_dims)
 }
 
 template <class T>
-bool CheckLengths(const std::vector<T>& lens, T maxval = 0)
+bool CheckLengths(const miopen::InlineVector<T, 5>& lens, T maxval = 0)
 {
     if(lens.empty())
         return false;
@@ -113,13 +113,14 @@ bool CheckLengths(const std::vector<T>& lens, T maxval = 0)
     return true;
 }
 
-std::vector<std::size_t> ConvertLengthsOrThrow(const std::vector<int>& lens_in,
-                                               [[maybe_unused]] const std::string& err_msg)
+miopen::InlineVector<std::size_t, 5>
+ConvertLengthsOrThrow(const miopen::InlineVector<int, 5>& lens_in,
+                      [[maybe_unused]] const std::string& err_msg)
 {
     if(!CheckLengths(lens_in))
         MIOPEN_THROW(miopenStatusBadParm, err_msg);
 
-    std::vector<std::size_t> lens(lens_in.cbegin(), lens_in.cend());
+    miopen::InlineVector<std::size_t, 5> lens(lens_in.cbegin(), lens_in.cend());
     return lens;
 }
 
@@ -157,10 +158,10 @@ std::size_t GetVectorLengthForLayout(const std::optional<miopenTensorLayout_t>& 
     return vector_length;
 }
 
-void ReorderVector(std::vector<size_t>& lens, const std::initializer_list<size_t>& indices)
+void ReorderVector(miopen::InlineVector<size_t, 5>& lens,
+                   const std::initializer_list<size_t>& indices)
 {
-    std::vector<size_t> out_lens;
-    out_lens.reserve(indices.size());
+    miopen::InlineVector<size_t, 5> out_lens(indices.size());
     for(size_t index : indices)
     {
         assert(index < lens.size());
@@ -170,7 +171,7 @@ void ReorderVector(std::vector<size_t>& lens, const std::initializer_list<size_t
 }
 
 // Relevant for NCHWc and CHWNc
-void VectLensReorder(miopenTensorLayout_t layout, std::vector<size_t>& lens)
+void VectLensReorder(miopenTensorLayout_t layout, miopen::InlineVector<size_t, 5>& lens)
 {
     switch(layout)
     {
@@ -190,7 +191,7 @@ void VectLensReorder(miopenTensorLayout_t layout, std::vector<size_t>& lens)
 // Relevant for NCHWc and CHWNc
 void VectLensRecalc(miopenTensorLayout_t layout,
                     std::size_t vector_length,
-                    std::vector<size_t>& lens)
+                    miopen::InlineVector<size_t, 5>& lens)
 {
     unsigned c_pos;
 
@@ -212,8 +213,8 @@ void VectLensRecalc(miopenTensorLayout_t layout,
 }
 
 void CalculateStrides(std::size_t vector_length,
-                      const std::vector<size_t>& lens,
-                      std::vector<size_t>& strides)
+                      const miopen::InlineVector<size_t, 5>& lens,
+                      miopen::InlineVector<size_t, 5>& strides)
 {
     if(lens.empty())
         MIOPEN_THROW(miopenStatusInternalError);
@@ -228,8 +229,8 @@ void CalculateStrides(std::size_t vector_length,
 
 void SetStrides(const std::optional<miopenTensorLayout_t>& layout,
                 std::size_t vector_length,
-                const std::vector<size_t>& lens,
-                std::vector<size_t>& strides)
+                const miopen::InlineVector<size_t, 5>& lens,
+                miopen::InlineVector<size_t, 5>& strides)
 {
     const bool is_vectorized = vector_length > 1;
     if(!layout || layout == miopenTensorNCHW || layout == miopenTensorNCDHW || is_vectorized)
@@ -245,7 +246,7 @@ void SetStrides(const std::optional<miopenTensorLayout_t>& layout,
     }
 }
 
-bool CheckDimsFitIntoInt(const std::vector<std::size_t>& v)
+bool CheckDimsFitIntoInt(const miopen::InlineVector<std::size_t, 5>& v)
 {
     if(std::any_of(
            v.cbegin(), v.cend(), [](std::size_t x) { return x > std::numeric_limits<int>::max(); }))
@@ -265,11 +266,12 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t) : packed(true), type(t) {
 // code for better dependency tracking
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::initializer_list<int>& lens_in)
-    : TensorDescriptor(t, std::vector<int>(lens_in))
+    : TensorDescriptor(t, miopen::InlineVector<int, 5>(lens_in))
 {
 }
 
-TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::vector<int>& lens_in)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t, const miopen::InlineVector<int, 5>&
+lens_in)
     : TensorDescriptor(t,
                        GetDefaultLayout(lens_in.size()),
                        ConvertLengthsOrThrow(lens_in, "Lengths must be > 0"),
@@ -280,23 +282,25 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::vector<int>& l
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    const std::initializer_list<std::size_t>& lens_in)
-    : TensorDescriptor(t, std::vector<std::size_t>(lens_in))
+    : TensorDescriptor(t, miopen::InlineVector<std::size_t, 5>(lens_in))
 {
 }
 
-TensorDescriptor::TensorDescriptor(miopenDataType_t t, const std::vector<std::size_t>& lens_in)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   const miopen::InlineVector<std::size_t, 5>& lens_in)
     : TensorDescriptor(t, GetDefaultLayout(lens_in.size()), lens_in, {}, false)
 {
 }
 
-TensorDescriptor::TensorDescriptor(miopenDataType_t t, std::vector<std::size_t>&& lens_in)
+TensorDescriptor::TensorDescriptor(miopenDataType_t t,
+                                   miopen::InlineVector<std::size_t, 5>&& lens_in)
     : TensorDescriptor(t, GetDefaultLayout(lens_in.size()), std::move(lens_in), {}, false)
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t layout_in,
-                                   const std::vector<int>& lens_in)
+                                   const miopen::InlineVector<int, 5>& lens_in)
     : TensorDescriptor(t, layout_in, ConvertLengthsOrThrow(lens_in, "Lengths must be > 0"))
 {
 }
@@ -304,27 +308,27 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t layout_in,
                                    const std::initializer_list<std::size_t>& lens_in)
-    : TensorDescriptor(t, layout_in, std::vector<std::size_t>(lens_in))
+    : TensorDescriptor(t, layout_in, miopen::InlineVector<std::size_t, 5>(lens_in))
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t layout_in,
-                                   const std::vector<std::size_t>& lens_in)
+                                   const miopen::InlineVector<std::size_t, 5>& lens_in)
     : TensorDescriptor(t, layout_in, lens_in, {}, false)
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t layout_in,
-                                   std::vector<std::size_t>&& lens_in)
+                                   miopen::InlineVector<std::size_t, 5>&& lens_in)
     : TensorDescriptor(t, layout_in, std::move(lens_in), {}, false)
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
-                                   const std::vector<int>& lens_in,
-                                   const std::vector<int>& strides_in)
+                                   const miopen::InlineVector<int, 5>& lens_in,
+                                   const miopen::InlineVector<int, 5>& strides_in)
     : TensorDescriptor(t,
                        ConvertLengthsOrThrow(lens_in, "Lengths must be > 0"),
                        ConvertLengthsOrThrow(strides_in, "Strides must be > 0"))
@@ -334,36 +338,38 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    const std::initializer_list<std::size_t>& lens_in,
                                    const std::initializer_list<std::size_t>& strides_in)
-    : TensorDescriptor(t, std::vector<std::size_t>(lens_in), std::vector<std::size_t>(strides_in))
+    : TensorDescriptor(t,
+                       miopen::InlineVector<std::size_t, 5>(lens_in),
+                       miopen::InlineVector<std::size_t, 5>(strides_in))
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
-                                   const std::vector<std::size_t>& lens_in,
-                                   const std::vector<std::size_t>& strides_in)
+                                   const miopen::InlineVector<std::size_t, 5>& lens_in,
+                                   const miopen::InlineVector<std::size_t, 5>& strides_in)
     : TensorDescriptor(t, std::nullopt, lens_in, strides_in, true)
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
-                                   std::vector<std::size_t>&& lens_in,
-                                   std::vector<std::size_t>&& strides_in)
+                                   miopen::InlineVector<std::size_t, 5>&& lens_in,
+                                   miopen::InlineVector<std::size_t, 5>&& strides_in)
     : TensorDescriptor(t, std::nullopt, std::move(lens_in), std::move(strides_in), true)
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t layout_in,
-                                   const std::vector<std::size_t>& lens_in,
-                                   const std::vector<std::size_t>& strides_in)
+                                   const miopen::InlineVector<std::size_t, 5>& lens_in,
+                                   const miopen::InlineVector<std::size_t, 5>& strides_in)
     : TensorDescriptor(t, layout_in, lens_in, strides_in, true)
 {
 }
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    miopenTensorLayout_t layout_in,
-                                   std::vector<std::size_t>&& lens_in,
-                                   std::vector<std::size_t>&& strides_in)
+                                   miopen::InlineVector<std::size_t, 5>&& lens_in,
+                                   miopen::InlineVector<std::size_t, 5>&& strides_in)
     : TensorDescriptor(t, layout_in, std::move(lens_in), std::move(strides_in), true)
 {
 }
@@ -371,11 +377,11 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 // Main private constructor
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    const std::optional<miopenTensorLayout_t>& layout_in,
-                                   const std::vector<std::size_t>& lens_in,
-                                   const std::vector<std::size_t>& strides_in,
+                                   const miopen::InlineVector<std::size_t, 5>& lens_in,
+                                   const miopen::InlineVector<std::size_t, 5>& strides_in,
                                    bool use_strides)
     : lens(lens_in),
-      strides(use_strides ? strides_in : std::vector<std::size_t>()),
+      strides(use_strides ? strides_in : miopen::InlineVector<std::size_t, 5>()),
       type(t),
       tensorLayout(layout_in)
 {
@@ -384,11 +390,11 @@ TensorDescriptor::TensorDescriptor(miopenDataType_t t,
 
 TensorDescriptor::TensorDescriptor(miopenDataType_t t,
                                    const std::optional<miopenTensorLayout_t>& layout_in,
-                                   std::vector<std::size_t>&& lens_in,
-                                   std::vector<std::size_t>&& strides_in,
+                                   miopen::InlineVector<std::size_t, 5>&& lens_in,
+                                   miopen::InlineVector<std::size_t, 5>&& strides_in,
                                    bool use_strides)
     : lens(std::move(lens_in)),
-      strides(use_strides ? std::move(strides_in) : std::vector<std::size_t>()),
+      strides(use_strides ? std::move(strides_in) : miopen::InlineVector<std::size_t, 5>()),
       type(t),
       tensorLayout(layout_in)
 {
@@ -449,7 +455,9 @@ TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t, const int*
     if(plens == nullptr || size <= 0)
         MIOPEN_THROW(miopenStatusInvalidValue);
 
-    return {t, std::vector<int>(plens, plens + size)};
+    return {t,
+            ConvertLengthsOrThrow(miopen::InlineVector<int, 5>(plens, plens + size),
+                                  "Lengths must be > 0")};
 }
 
 TensorDescriptor
@@ -458,7 +466,7 @@ TensorDescriptor::MakeDescriptor(miopenDataType_t t, const std::size_t* plens, i
     if(plens == nullptr || size <= 0)
         MIOPEN_THROW(miopenStatusInvalidValue);
 
-    return {t, std::vector<std::size_t>(plens, plens + size)};
+    return {t, miopen::InlineVector<std::size_t, 5>(plens, plens + size)};
 }
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
@@ -469,7 +477,10 @@ TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
     if(plens == nullptr || size <= 0)
         MIOPEN_THROW(miopenStatusInvalidValue);
 
-    return {t, layout, std::vector<int>(plens, plens + size)};
+    return {t,
+            layout,
+            ConvertLengthsOrThrow(miopen::InlineVector<int, 5>(plens, plens + size),
+                                  "Lengths must be > 0")};
 }
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
@@ -480,7 +491,7 @@ TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
     if(plens == nullptr || size <= 0)
         MIOPEN_THROW(miopenStatusInvalidValue);
 
-    return {t, layout, std::vector<std::size_t>(plens, plens + size)};
+    return {t, layout, miopen::InlineVector<std::size_t, 5>(plens, plens + size)};
 }
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
@@ -491,7 +502,11 @@ TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
     if(plens == nullptr || pstrides == nullptr || size <= 0)
         MIOPEN_THROW(miopenStatusInvalidValue);
 
-    return {t, std::vector<int>(plens, plens + size), std::vector<int>(pstrides, pstrides + size)};
+    return {t,
+            ConvertLengthsOrThrow(miopen::InlineVector<int, 5>(plens, plens + size),
+                                  "Lengths must be > 0"),
+            ConvertLengthsOrThrow(miopen::InlineVector<int, 5>(pstrides, pstrides + size),
+                                  "Lengths must be > 0")};
 }
 
 TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
@@ -503,15 +518,15 @@ TensorDescriptor TensorDescriptor::MakeDescriptor(miopenDataType_t t,
         MIOPEN_THROW(miopenStatusInvalidValue);
 
     return {t,
-            std::vector<std::size_t>(plens, plens + size),
-            std::vector<std::size_t>(pstrides, pstrides + size)};
+            miopen::InlineVector<std::size_t, 5>(plens, plens + size),
+            miopen::InlineVector<std::size_t, 5>(pstrides, pstrides + size)};
 }
 
 bool TensorDescriptor::IsVectorized() const { return vector_length > 1; }
 
-const std::vector<std::size_t>& TensorDescriptor::GetLengths() const { return lens; }
+const miopen::InlineVector<std::size_t, 5>& TensorDescriptor::GetLengths() const { return lens; }
 
-const std::vector<std::size_t>& TensorDescriptor::GetStrides() const { return strides; }
+const miopen::InlineVector<std::size_t, 5>& TensorDescriptor::GetStrides() const { return strides; }
 
 unsigned TensorDescriptor::GetNumDims() const { return lens.size(); }
 
@@ -712,10 +727,11 @@ bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
 }
 
 // See https://github.com/ROCm/MIOpen/pull/765#discussion_r596465551
-std::vector<int64_t> TensorDescriptor::find_permutation(const std::vector<std::size_t>& lens,
-                                                        const std::vector<std::size_t>& strides)
+miopen::InlineVector<std::size_t, 5>
+TensorDescriptor::find_permutation(const miopen::InlineVector<std::size_t, 5>& lens,
+                                   const miopen::InlineVector<std::size_t, 5>& strides)
 {
-    std::vector<int64_t> result(lens.size());
+    miopen::InlineVector<std::size_t, 5> result(lens.size());
     std::iota(result.begin(), result.end(), 0);
     std::stable_sort(result.begin(), result.end(), by(std::greater<>{}, [&](auto x) {
                          return std::make_tuple(strides[x], lens[x]);
@@ -883,8 +899,8 @@ TensorDescriptor GetFlattenedTensorDescriptor(const TensorDescriptor& desc)
         return {desc.GetType(), {desc.GetElementSize()}, {static_cast<std::size_t>(1)}};
 
     // start flattening tensor
-    std::vector<std::size_t> flat_lengths;
-    std::vector<std::size_t> flat_strides;
+    miopen::InlineVector<std::size_t, 5> flat_lengths;
+    miopen::InlineVector<std::size_t, 5> flat_strides;
 
     auto non1_length_strides = boost::combine(desc.GetLengths(), desc.GetStrides()) |
                                boost::adaptors::filtered(f_length_is_not_1_t());
@@ -938,7 +954,8 @@ struct two_exp_ceiling_t
     }
 };
 
-static std::vector<std::size_t> get_worker_sizes(const std::vector<std::size_t>& data_sizes)
+static std::vector<std::size_t>
+get_worker_sizes(const miopen::InlineVector<std::size_t, 5>& data_sizes)
 {
     const std::size_t dim = data_sizes.size();
 
@@ -1156,7 +1173,7 @@ void ScaleTensor(const Handle& handle,
 
     std::string kernel_name = "SubTensorOpWithScalar" + std::to_string(yDim_flat) + "d";
 
-    const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
+    const miopen::InlineVector<std::size_t, 5>& lens = yDesc_flat.GetLengths();
 
     std::string network_config = "scale " + std::to_string(yDesc_flat.GetType());
     for(auto& len : lens)
@@ -1332,7 +1349,7 @@ void CopyTensor(const Handle& handle,
     {
         std::string kernel_name = "SubTensorOpWithSubTensor" + std::to_string(srcDim_flat) + "d";
 
-        const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
+        const miopen::InlineVector<std::size_t, 5>& lens = srcDesc_flat.GetLengths();
 
         std::string network_config = "copy " + std::to_string(srcDesc_flat.GetType());
         for(auto& len : lens)
@@ -1549,7 +1566,7 @@ void CastTensor(const Handle& handle,
     {
         std::string kernel_name = "SubTensorOpWithCastTensor" + std::to_string(srcDim_flat) + "d";
 
-        const std::vector<std::size_t>& lens = srcDesc_flat.GetLengths();
+        const miopen::InlineVector<std::size_t, 5>& lens = srcDesc_flat.GetLengths();
 
         // TODO: make proper network config
         std::string network_config = "cast " + std::to_string(srcDesc_flat.GetType()) +
@@ -1853,7 +1870,7 @@ void TransformTensor(const Handle& handle,
 
         std::string kernel_name = "SubTensorOpWithTransform" + std::to_string(yDim_flat) + "d";
 
-        const std::vector<std::size_t>& lens = yDesc_flat.GetLengths();
+        const miopen::InlineVector<std::size_t, 5>& lens = yDesc_flat.GetLengths();
 
         std::string network_config = "transform " + std::to_string(yDesc_flat.GetType());
         for(auto& len : lens)

@@ -60,16 +60,16 @@ public:
     {
     }
     Tensor(miopenDataType_t dataType,
-           const std::vector<std::size_t>& dimensions,
-           const std::vector<std::size_t>& strides,
+           const miopen::InlineVector<std::size_t, 5>& dimensions,
+           const miopen::InlineVector<std::size_t, 5>& strides,
            int64_t id,
            bool isVirtual)
         : TensorDescriptor(dataType, dimensions, strides), mId(id), mVirtual(isVirtual)
     {
     }
     Tensor(miopenDataType_t dataType,
-           std::vector<std::size_t>&& dimensions,
-           std::vector<std::size_t>&& strides,
+           miopen::InlineVector<std::size_t, 5>&& dimensions,
+           miopen::InlineVector<std::size_t, 5>&& strides,
            int64_t id,
            bool isVirtual) noexcept
         : TensorDescriptor(dataType, std::move(dimensions), std::move(strides)),
@@ -94,8 +94,8 @@ public:
 class MIOPEN_INTERNALS_EXPORT TensorBuilder
 {
 private:
-    std::vector<std::size_t> mDimensions;
-    std::vector<std::size_t> mStrides;
+    miopen::InlineVector<std::size_t, 5> mDimensions;
+    miopen::InlineVector<std::size_t, 5> mStrides;
     int64_t mId                = 0;
     miopenDataType_t mDataType = miopenFloat;
     bool mVirtual              = false;
@@ -106,10 +106,10 @@ private:
 
 public:
     TensorBuilder& setDataType(miopenDataType_t dataType) &;
-    TensorBuilder& setDim(const std::vector<std::size_t>& dimensions) &;
-    TensorBuilder& setDim(std::vector<std::size_t>&& dimensions) &;
-    TensorBuilder& setStride(const std::vector<std::size_t>& strides) &;
-    TensorBuilder& setStride(std::vector<std::size_t>&& strides) &;
+    TensorBuilder& setDim(const miopen::InlineVector<std::size_t, 5>& dimensions) &;
+    TensorBuilder& setDim(miopen::InlineVector<std::size_t, 5>&& dimensions) &;
+    TensorBuilder& setStride(const miopen::InlineVector<std::size_t, 5>& strides) &;
+    TensorBuilder& setStride(miopen::InlineVector<std::size_t, 5>&& strides) &;
     TensorBuilder& setId(int64_t id) &;
     TensorBuilder& setVirtual(bool isVirtual) &;
 
@@ -117,19 +117,19 @@ public:
     {
         return std::move(setDataType(dataType));
     }
-    TensorBuilder&& setDim(const std::vector<std::size_t>& dimensions) &&
+    TensorBuilder&& setDim(const miopen::InlineVector<std::size_t, 5>& dimensions) &&
     {
         return std::move(setDim(dimensions));
     }
-    TensorBuilder&& setDim(std::vector<std::size_t>&& dimensions) &&
+    TensorBuilder&& setDim(miopen::InlineVector<std::size_t, 5>&& dimensions) &&
     {
         return std::move(setDim(std::move(dimensions)));
     }
-    TensorBuilder&& setStride(const std::vector<std::size_t>& strides) &&
+    TensorBuilder&& setStride(const miopen::InlineVector<std::size_t, 5>& strides) &&
     {
         return std::move(setStride(strides));
     }
-    TensorBuilder&& setStride(std::vector<std::size_t>&& strides) &&
+    TensorBuilder&& setStride(miopen::InlineVector<std::size_t, 5>&& strides) &&
     {
         return std::move(setStride(std::move(strides)));
     }

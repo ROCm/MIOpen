@@ -47,6 +47,17 @@ std::string get_vect_config(const std::vector<T>& v)
     return str;
 }
 
+template <typename T>
+std::string get_vect_config(const miopen::InlineVector<T, 5>& v)
+{
+    std::string str;
+    for(auto itr = v.begin(); itr < v.end(); itr++)
+    {
+        str += (std::to_string(*itr) + (itr == v.end() - 1 ? "" : "x"));
+    }
+    return str;
+}
+
 } // namespace
 
 NetworkConfig ProblemDescription::MakeNetworkConfig() const

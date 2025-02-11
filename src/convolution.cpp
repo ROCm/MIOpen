@@ -291,7 +291,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     }
 
     std::size_t out_c = 0;
-    std::vector<std::size_t> out_lens(spatial_dim + 2);
+    miopen::InlineVector<std::size_t, 5> out_lens(spatial_dim + 2);
 
     auto out_spatial = boost::adaptors::slice(out_lens, 2, 2 + spatial_dim);
 
@@ -356,7 +356,7 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
     out_lens[1] = out_c;
 
     const std::string default_layout = tensor_layout_get_default(xDesc.GetNumDims());
-    std::vector<std::size_t> out_strides;
+    miopen::InlineVector<std::size_t, 5> out_strides;
     tensor_layout_to_strides(
         out_lens, default_layout, yLayout, xDesc.GetVectorLength(), out_strides);
     return {(xDesc.GetType() == miopenInt8

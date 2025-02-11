@@ -73,24 +73,30 @@ protected:
 
         ASSERT_GE(dstSuperTensor.desc.GetNumDims(), lens.size());
 
-        const std::vector<size_t>& dstSuperStrides = dstSuperTensor.desc.GetStrides();
-        std::vector<size_t> dstStrides(dstSuperStrides.begin() +
-                                           (dstSuperTensor.desc.GetNumDims() - lens.size()),
-                                       dstSuperStrides.end());
+        const miopen::InlineVector<size_t, 5>& dstSuperStrides = dstSuperTensor.desc.GetStrides();
+        miopen::InlineVector<size_t, 5> dstStrides(
+            dstSuperStrides.begin() + (dstSuperTensor.desc.GetNumDims() - lens.size()),
+            dstSuperStrides.end());
 
-        dstDesc     = miopen::TensorDescriptor(miopen_type<DstType>{}, lens, dstStrides);
+        dstDesc =
+            miopen::TensorDescriptor(miopen_type<DstType>{},
+                                     miopen::InlineVector<std::size_t, 5>(lens.begin(), lens.end()),
+                                     dstStrides);
         dstDataSize = dstDesc.GetElementSpace() + offsets[1];
 
         ASSERT_GE(srcSuperTensor.desc.GetElementSpace(), dstDataSize);
 
         ASSERT_GE(srcSuperTensor.desc.GetNumDims(), lens.size());
 
-        const std::vector<size_t>& srcSuperStrides = srcSuperTensor.desc.GetStrides();
-        std::vector<size_t> srcStrides(srcSuperStrides.begin() +
-                                           (srcSuperTensor.desc.GetNumDims() - lens.size()),
-                                       srcSuperStrides.end());
+        const miopen::InlineVector<size_t, 5>& srcSuperStrides = srcSuperTensor.desc.GetStrides();
+        miopen::InlineVector<size_t, 5> srcStrides(
+            srcSuperStrides.begin() + (srcSuperTensor.desc.GetNumDims() - lens.size()),
+            srcSuperStrides.end());
 
-        srcDesc     = miopen::TensorDescriptor(miopen_type<SrcType>{}, lens, srcStrides);
+        srcDesc =
+            miopen::TensorDescriptor(miopen_type<SrcType>{},
+                                     miopen::InlineVector<std::size_t, 5>(lens.begin(), lens.end()),
+                                     srcStrides);
         srcDataSize = srcDesc.GetElementSpace() + offsets[0];
 
         ASSERT_GE(srcSuperTensor.desc.GetElementSpace(), srcDataSize);

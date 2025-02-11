@@ -177,7 +177,10 @@ void RNNBackwardWeightsModularAlgo::PhisXInputWeights(const Handle& handle,
                 const auto& ht_size   = buf_info.getFullSeqMajorSize();
 
                 // batch, vec_elements
-                return miopen::TensorDescriptor{dType, {batch_size, ht_size[1]}, ht_stride};
+                return miopen::TensorDescriptor{
+                    dType,
+                    {batch_size, ht_size[1]},
+                    miopen::InlineVector<size_t, 5>(ht_stride.begin(), ht_stride.end())};
             }(rnnDesc.dataType, xInfo, gemm_batch_size);
 
         RnnBaseFunctions::BWWei_GEMM(handle,

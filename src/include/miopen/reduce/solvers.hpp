@@ -43,7 +43,7 @@ using ReduceCalculationSolver =
 struct ArgmaxForward final : ReduceExtremeSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ArgmaxForward>(); }
-    size_t XGridSize(std::vector<size_t> indicedims) const;
+    size_t XGridSize(miopen::InlineVector<std::size_t, 5> indicedims) const;
     bool OverMaxGridSize(const ExecutionContext& context,
                          const miopen::reduce::ProblemDescriptionExtreme& problem) const;
 
@@ -57,7 +57,7 @@ struct ArgmaxForward final : ReduceExtremeSolver
 struct ArgminForward final : ReduceExtremeSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ArgminForward>(); }
-    size_t XGridSize(std::vector<size_t> indicedims) const;
+    size_t XGridSize(miopen::InlineVector<std::size_t, 5> indicedims) const;
     bool OverMaxGridSize(const ExecutionContext& context,
                          const miopen::reduce::ProblemDescriptionExtreme& problem) const;
 
@@ -71,7 +71,7 @@ struct ArgminForward final : ReduceExtremeSolver
 struct MaxForward final : ReduceExtremeSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<MaxForward>(); }
-    size_t XGridSize(std::vector<size_t> ydims) const;
+    size_t XGridSize(miopen::InlineVector<std::size_t, 5> ydims) const;
     bool OverMaxGridSize(const ExecutionContext& context,
                          const miopen::reduce::ProblemDescriptionExtreme& problem) const;
 
@@ -85,7 +85,7 @@ struct MaxForward final : ReduceExtremeSolver
 struct MinForward final : ReduceExtremeSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<MinForward>(); }
-    size_t XGridSize(std::vector<size_t> ydims) const;
+    size_t XGridSize(miopen::InlineVector<std::size_t, 5> ydims) const;
     bool OverMaxGridSize(const ExecutionContext& context,
                          const miopen::reduce::ProblemDescriptionExtreme& problem) const;
 

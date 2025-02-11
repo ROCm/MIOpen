@@ -33,7 +33,7 @@ namespace miopen {
 
 namespace rnn_base {
 
-inline std::vector<size_t> roundedDynamicLengths(const SeqTensorDescriptor& desc)
+inline miopen::InlineVector<std::size_t, 5> roundedDynamicLengths(const SeqTensorDescriptor& desc)
 {
     auto src_lens = desc.GetLengths();
     src_lens[1]   = [](size_t v) {
@@ -141,7 +141,7 @@ public:
     static auto getTempBuffersSize(const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc)
     {
         auto y_desc = [](const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc) {
-            std::vector<size_t> y_lenghts{xDesc.GetLengths()};
+            miopen::InlineVector<std::size_t, 5> y_lenghts{xDesc.GetLengths()};
             y_lenghts[2] = rnnD.hsize * (rnnD.dirMode == miopenRNNbidirection ? 2 : 1);
             return SeqTensorDescriptor{xDesc.GetType(), y_lenghts};
         }(rnnD, xDesc);
@@ -253,7 +253,7 @@ public:
     static auto getTempBuffersSize(const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc)
     {
         auto y_desc = [](const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc) {
-            std::vector<size_t> y_lenghts{xDesc.GetLengths()};
+            miopen::InlineVector<std::size_t, 5> y_lenghts{xDesc.GetLengths()};
             y_lenghts[2] = rnnD.hsize * (rnnD.dirMode == miopenRNNbidirection ? 2 : 1);
             return SeqTensorDescriptor{xDesc.GetType(), y_lenghts};
         }(rnnD, xDesc);
@@ -368,7 +368,7 @@ public:
     static auto getTempBuffersSize(const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc)
     {
         auto y_desc = [](const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc) {
-            std::vector<size_t> y_lenghts{xDesc.GetLengths()};
+            miopen::InlineVector<std::size_t, 5> y_lenghts{xDesc.GetLengths()};
             y_lenghts[2] = rnnD.hsize * (rnnD.dirMode == miopenRNNbidirection ? 2 : 1);
             return SeqTensorDescriptor{xDesc.GetType(), y_lenghts};
         }(rnnD, xDesc);

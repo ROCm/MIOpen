@@ -59,8 +59,8 @@ struct ConvTestCaseFusion
                   << " stride_x:" << tc.stride_x << " dilation_y:" << tc.dilation_y
                   << " dilation_x:" << tc.dilation_x << " )";
     }
-    std::vector<size_t> GetInput() const { return {N, C, H, W}; }
-    std::vector<size_t> GetWeights() const { return {k, C, y, x}; }
+    miopen::InlineVector<size_t, 5> GetInput() const { return {N, C, H, W}; }
+    miopen::InlineVector<size_t, 5> GetWeights() const { return {k, C, y, x}; }
     miopen::ConvolutionDescriptor GetConv() const
     {
         return miopen::ConvolutionDescriptor{

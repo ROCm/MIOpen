@@ -26,6 +26,7 @@
 
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/miopen.h>
+#include <miopen/inline_vector.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -703,9 +704,9 @@ protected:
         std::vector<int64_t> dims = {n, h, s, d};
 
         miopen::TensorDescriptor td(dtype, {n, h, s, d});
-        const std::vector<std::size_t>& tdStrides = td.GetStrides();
+        const miopen::InlineVector<size_t, 5>& tdStrides = td.GetStrides();
 
-        std::vector<int64_t> strides(tdStrides.size());
+        miopen::InlineVector<size_t, 5> strides(tdStrides.size());
         std::copy_n(tdStrides.begin(), tdStrides.size(), strides.begin());
 
         if(transpose)

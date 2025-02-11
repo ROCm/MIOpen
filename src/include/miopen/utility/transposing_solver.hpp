@@ -49,6 +49,22 @@ inline static std::array<Element, 5> GetNCDHW(const std::vector<std::size_t>& va
     return {cast(n), cast(c), cast(d), cast(h), cast(w)};
 }
 
+template <class Element = std::size_t>
+inline static std::array<Element, 5> GetNCDHW(const miopen::InlineVector<std::size_t, 5>& values)
+{
+    const auto cast = [](auto v) { return static_cast<Element>(v); };
+    std::size_t n = 1, c = 1, d = 1, h = 1, w = 1;
+
+    switch(values.size())
+    {
+    case 5: std::tie(n, c, d, h, w) = tien<5>(values); break;
+    case 4: std::tie(n, c, h, w) = tien<4>(values); break;
+    default: MIOPEN_THROW(miopenStatusBadParm);
+    }
+
+    return {cast(n), cast(c), cast(d), cast(h), cast(w)};
+}
+
 struct TransposeProblem
 {
     TensorDescriptor input;
@@ -291,7 +307,7 @@ struct ProblemTensorTransposeDescriptor
     inline TensorDescriptor Transpose(const TensorDescriptor& in) const
     {
         const auto labels    = tensor_layout_get_default(in.GetNumDims());
-        auto derived_strides = std::vector<size_t>{};
+        miopen::InlineVector<std::size_t, 5> derived_strides{};
         tensor_layout_to_strides(
             in.GetLengths(), labels, SyncLayoutDims(labels.c_str(), to), derived_strides);
         return {in.GetType(), in.GetLengths(), derived_strides};

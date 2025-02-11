@@ -71,7 +71,7 @@ template <typename Tgpu>
 inline void HiddenTensorReorder(const std::vector<Tgpu>& src_array,
                                 std::vector<Tgpu>& dst_array,
                                 const std::vector<int>& batch_order,
-                                const std::vector<size_t> hid_len,
+                                const miopen::InlineVector<std::size_t, 5> hid_len,
                                 bool is_dst_direct_order)
 {
     const size_t copy_size = hid_len[2];

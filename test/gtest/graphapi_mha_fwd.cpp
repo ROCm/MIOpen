@@ -36,10 +36,10 @@ protected:
 
         mGraphBuilder = std::make_unique<gr::OpGraphBuilder>();
 
-        std::vector<size_t> nhsd  = {n, h, s, d};
-        std::vector<size_t> nhss  = {n, h, s, s};
-        std::vector<size_t> nhs1  = {n, h, s, 1};
-        std::vector<size_t> all1s = {1, 1, 1, 1};
+        miopen::InlineVector<size_t, 5> nhsd  = {n, h, s, d};
+        miopen::InlineVector<size_t, 5> nhss  = {n, h, s, s};
+        miopen::InlineVector<size_t, 5> nhs1  = {n, h, s, 1};
+        miopen::InlineVector<size_t, 5> all1s = {1, 1, 1, 1};
 
         MAKE_TENSOR_F(Q, nhsd, false);
         MAKE_TENSOR_F(K, nhsd, false);

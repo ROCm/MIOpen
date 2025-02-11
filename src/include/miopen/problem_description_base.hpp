@@ -54,6 +54,36 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
 }
 
 template <class TElement>
+constexpr TElement GetN5(unsigned spatial_dims, const miopen::InlineVector<TElement, 5>& data)
+{
+    return std::get<0>(GetNCDHW(spatial_dims, data));
+}
+
+template <class TElement>
+constexpr TElement GetC5(unsigned spatial_dims, const miopen::InlineVector<TElement, 5>& data)
+{
+    return std::get<1>(GetNCDHW(spatial_dims, data));
+}
+
+template <class TElement>
+constexpr TElement GetD5(unsigned spatial_dims, const miopen::InlineVector<TElement, 5>& data)
+{
+    return std::get<2>(GetNCDHW(spatial_dims, data));
+}
+
+template <class TElement>
+constexpr TElement GetH5(unsigned spatial_dims, const miopen::InlineVector<TElement, 5>& data)
+{
+    return std::get<3>(GetNCDHW(spatial_dims, data));
+}
+
+template <class TElement>
+constexpr TElement GetW5(unsigned spatial_dims, const miopen::InlineVector<TElement, 5>& data)
+{
+    return std::get<4>(GetNCDHW(spatial_dims, data));
+}
+
+template <class TElement>
 constexpr TElement GetN5(unsigned spatial_dims, const std::vector<TElement>& data)
 {
     return std::get<0>(GetNCDHW(spatial_dims, data));

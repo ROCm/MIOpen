@@ -30,6 +30,8 @@
 #include <miopen/config.h>
 #include <miopen/errors.hpp>
 
+#include <cassert>
+
 namespace miopen {
 
 template <typename T, std::size_t N>
@@ -56,7 +58,45 @@ public:
     InlineVector(const InlineVector& inline_vec)     = default;
     InlineVector(InlineVector&& inline_vec) noexcept = default;
 
-    InlineVector(std::initializer_list<T> data) : real_size(data.size())
+    InlineVector(size_type sz) : real_size(sz)
+    {
+        if(real_size > N)
+        {
+            MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
+        }
+    }
+
+    InlineVector(const size_type& cnt, const T& val) : real_size(cnt)
+    {
+        if(real_size > N)
+        {
+            MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
+        }
+
+        std::fill(storage.begin(), storage.begin() + cnt, val);
+    }
+
+    InlineVector(size_type&& cnt, T&& val) : real_size(cnt)
+    {
+        if(real_size > N)
+        {
+            MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
+        }
+
+        std::fill(storage.begin(), storage.begin() + cnt, val);
+    }
+
+    InlineVector(const std::initializer_list<T>& data) : real_size(data.size())
+    {
+        if(real_size > N)
+        {
+            MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
+        }
+
+        std::copy(data.begin(), data.end(), storage.begin());
+    }
+
+    InlineVector(std::initializer_list<T>&& data) : real_size(data.size())
     {
         if(real_size > N)
         {
@@ -67,19 +107,32 @@ public:
     }
 
     template <typename InputIterator>
-    InlineVector(InputIterator first, InputIterator last) : real_size(std::distance(first, last))
+    InlineVector(InputIterator first, InputIterator last)
     {
-        if(real_size > N)
+        if constexpr(std::is_integral<InputIterator>::value)
         {
-            MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
+            InlineVector(size_t(first), T(last));
         }
-
-        std::copy(first, last, storage.begin());
+        else
+        {
+            real_size = std::distance(first, last);
+            if(real_size > N)
+            {
+                MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
+            }
+            std::copy(first, last, storage.begin());
+        }
     }
 
     // Copy/move operator
     InlineVector& operator=(const InlineVector& inline_vec) = default;
     InlineVector& operator=(InlineVector&& inline_vec) noexcept = default;
+
+    // Compare operators
+    bool operator==(const InlineVector& riv) const { return storage == riv.storage; }
+    bool operator!=(const InlineVector& riv) const { return storage != riv.storage; }
+    bool operator<(const InlineVector& riv) const { return storage < riv.storage; }
+    bool operator>(const InlineVector& riv) const { return storage > riv.storage; }
 
     // Iterators
     iterator begin() noexcept { return iterator(data()); }
@@ -202,6 +255,36 @@ public:
         real_size = n;
     }
 
+    // Insert
+    // Insert 'value' before 'pos'
+    iterator insert(iterator pos, const T& value)
+    {
+        if(real_size == N)
+        {
+            MIOPEN_THROW("InlineVector already full");
+        }
+        int idx = std::distance(begin(), pos);
+        if(idx < 0 || idx > real_size)
+        {
+            std::cout << idx << " " << real_size << std::endl;
+            MIOPEN_THROW("Cannot insert data at this position");
+        }
+        real_size += 1;
+        for(int i = real_size - 1; i > 0; i--)
+        {
+            if(i > idx)
+            {
+                storage[i] = storage[i - 1];
+            }
+            else
+            {
+                break;
+            }
+        }
+        storage[idx] = value;
+        return iterator(data() + idx);
+    }
+
     // Add element to the back
     void push_back(const T& e)
     {
@@ -245,6 +328,20 @@ private:
     storage_type storage{};
     size_type real_size = 0;
 };
+
+template <typename T, std::size_t N>
+std::ostream& operator<<(std::ostream& os, const InlineVector<T, N>& iv)
+{
+    // TODO: check if this function is correct
+    os << "{";
+    for(int i = 0; i < iv.size() - 1; i++)
+    {
+        os << iv[i] << ", ";
+    }
+    os << iv.back();
+    os << "}";
+    return os;
+}
 
 } // namespace miopen
 

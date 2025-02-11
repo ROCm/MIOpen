@@ -161,25 +161,63 @@ struct tensor
 #endif
 
     template <class X>
-    tensor(const std::vector<X>& dims) : desc(miopen_type<T>{}, dims), data(desc.GetElementSpace())
+    tensor(const std::vector<X>& dims)
+        : desc(miopen_type<T>{}, miopen::InlineVector<X, 5>(dims.begin(), dims.end())),
+          data(desc.GetElementSpace())
     {
     }
 
     template <class X>
     tensor(const std::vector<X>& dims, const std::vector<X>& strides)
-        : desc(miopen_type<T>{}, dims, strides), data(desc.GetElementSpace())
+        : desc(miopen_type<T>{},
+               miopen::InlineVector<X, 5>(dims.begin(), dims.end()),
+               miopen::InlineVector<X, 5>(strides.begin(), strides.end())),
+          data(desc.GetElementSpace())
     {
         assert(dims.size() == strides.size());
     }
 
     template <class X>
     tensor(miopenTensorLayout_t layout, const std::vector<X>& dims)
-        : desc(miopen_type<T>{}, layout, dims), data(desc.GetElementSpace())
+        : desc(miopen_type<T>{}, layout, miopen::InlineVector<X, 5>(dims.begin(), dims.end())),
+          data(desc.GetElementSpace())
     {
     }
 
     template <class X>
     tensor(miopenTensorLayout_t layout, const std::vector<X>& dims, const std::vector<X>& strides)
+        : desc(miopen_type<T>{},
+               layout,
+               miopen::InlineVector<X, 5>(dims.begin(), dims.end()),
+               miopen::InlineVector<X, 5>(strides.begin(), strides.end())),
+          data(desc.GetElementSpace())
+    {
+        assert(dims.size() == strides.size());
+    }
+
+    template <class X>
+    tensor(const miopen::InlineVector<X, 5>& dims)
+        : desc(miopen_type<T>{}, dims), data(desc.GetElementSpace())
+    {
+    }
+
+    template <class X>
+    tensor(const miopen::InlineVector<X, 5>& dims, const miopen::InlineVector<X, 5>& strides)
+        : desc(miopen_type<T>{}, dims, strides), data(desc.GetElementSpace())
+    {
+        assert(dims.size() == strides.size());
+    }
+
+    template <class X>
+    tensor(miopenTensorLayout_t layout, const miopen::InlineVector<X, 5>& dims)
+        : desc(miopen_type<T>{}, layout, dims), data(desc.GetElementSpace())
+    {
+    }
+
+    template <class X>
+    tensor(miopenTensorLayout_t layout,
+           const miopen::InlineVector<X, 5>& dims,
+           const miopen::InlineVector<X, 5>& strides)
         : desc(miopen_type<T>{}, layout, dims, strides), data(desc.GetElementSpace())
     {
         assert(dims.size() == strides.size());
@@ -396,15 +434,19 @@ void serialize(std::istream& s, tensor<T>& x)
     serialize(s, lens);
     std::vector<std::size_t> strides;
     serialize(s, strides);
-    x.desc = miopen::TensorDescriptor{miopen_type<T>{}, lens, strides};
+    x.desc =
+        miopen::TensorDescriptor{miopen_type<T>{},
+                                 miopen::InlineVector<size_t, 5>(lens.begin(), lens.end()),
+                                 miopen::InlineVector<size_t, 5>(strides.begin(), strides.end())};
     serialize(s, x.data);
 }
 
 template <class T>
 void serialize(std::ostream& s, const tensor<T>& x)
 {
-    const auto& lens    = x.desc.GetLengths();
-    const auto& strides = x.desc.GetStrides();
+    const std::vector<size_t> lens(x.desc.GetLengths().begin(), x.desc.GetLengths().end());
+    const std::vector<size_t> strides(x.desc.GetStrides().begin(), x.desc.GetStrides().end());
+    // how to make InlineVector serializable?
     serialize(s, lens);
     serialize(s, strides);
     serialize(s, x.data);

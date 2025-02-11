@@ -55,10 +55,10 @@ inline miopenTensorLayout_t StringToLayoutType(std::string layout)
     }
 }
 
-inline void LengthReorder(std::vector<int>& lens, const std::initializer_list<int>& indices)
+inline void LengthReorder(miopen::InlineVector<int, 5>& lens,
+                          const std::initializer_list<int>& indices)
 {
-    std::vector<int> out_lens;
-    out_lens.reserve(indices.size());
+    miopen::InlineVector<int, 5> out_lens(indices.size());
     for(int index : indices)
     {
         assert(0 <= index && index < lens.size());
@@ -78,7 +78,7 @@ inline std::size_t GetTensorVectorLength(const miopenTensorDescriptor_t& tensor)
     return vectorLength;
 }
 
-inline std::vector<int> GetTensorLengths(const miopenTensorDescriptor_t& tensor)
+inline miopen::InlineVector<int, 5> GetTensorLengths(const miopenTensorDescriptor_t& tensor)
 {
     int n;
     int c;
@@ -92,22 +92,21 @@ inline std::vector<int> GetTensorLengths(const miopenTensorDescriptor_t& tensor)
     if(size == 5)
     {
         miopenGet5dTensorDescriptorLengths(tensor, &n, &c, &d, &h, &w);
-        return std::vector<int>({n, c, d, h, w});
+        return miopen::InlineVector<int, 5>({n, c, d, h, w});
     }
     else if(size == 4)
     {
         miopenGet4dTensorDescriptorLengths(tensor, &n, &c, &h, &w);
-        return std::vector<int>({n, c, h, w});
+        return miopen::InlineVector<int, 5>({n, c, h, w});
     }
 
-    std::vector<int> tensor_len;
-    tensor_len.resize(miopen::deref(tensor).GetNumDims());
+    miopen::InlineVector<int, 5> tensor_len(miopen::deref(tensor).GetNumDims());
     miopenGetTensorDescriptor(tensor, nullptr, tensor_len.data(), nullptr);
 
     return tensor_len;
 }
 
-inline std::vector<int> GetTensorStrides(const miopenTensorDescriptor_t& tensor)
+inline miopen::InlineVector<int, 5> GetTensorStrides(const miopenTensorDescriptor_t& tensor)
 {
     int nstride;
     int cstride;
@@ -122,16 +121,15 @@ inline std::vector<int> GetTensorStrides(const miopenTensorDescriptor_t& tensor)
     {
         miopenGet5dTensorDescriptorStrides(
             tensor, &nstride, &cstride, &dstride, &hstride, &wstride);
-        return std::vector<int>({nstride, cstride, dstride, hstride, wstride});
+        return miopen::InlineVector<int, 5>({nstride, cstride, dstride, hstride, wstride});
     }
     else if(size == 4)
     {
         miopenGet4dTensorDescriptorStrides(tensor, &nstride, &cstride, &hstride, &wstride);
-        return std::vector<int>({nstride, cstride, hstride, wstride});
+        return miopen::InlineVector<int, 5>({nstride, cstride, hstride, wstride});
     }
 
-    std::vector<int> tensor_strides;
-    tensor_strides.resize(miopen::deref(tensor).GetNumDims());
+    miopen::InlineVector<int, 5> tensor_strides(miopen::deref(tensor).GetNumDims());
 
     miopenGetTensorDescriptor(tensor, nullptr, nullptr, tensor_strides.data());
 
@@ -139,14 +137,14 @@ inline std::vector<int> GetTensorStrides(const miopenTensorDescriptor_t& tensor)
 }
 
 inline int SetTensor4d(miopenTensorDescriptor_t t,
-                       std::vector<int>& len,
+                       miopen::InlineVector<int, 5>& len,
                        miopenDataType_t data_type = miopenFloat)
 {
     return miopenSet4dTensorDescriptor(t, data_type, UNPACK_VEC4(len));
 }
 
 inline int SetTensorNdVector(miopenTensorDescriptor_t t,
-                             std::vector<int>& len,
+                             miopen::InlineVector<int, 5>& len,
                              miopenTensorLayout_t layout,
                              miopenDataType_t data_type = miopenFloat)
 {
@@ -167,37 +165,37 @@ inline int SetTensorNdVector(miopenTensorDescriptor_t t,
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                       std::vector<int>& len,
+                       miopen::InlineVector<int, 5>& len,
                        miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), nullptr);
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                       std::vector<std::size_t>& len,
+                       miopen::InlineVector<std::size_t, 5>& len,
                        miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptorV2(t, data_type, len.size(), len.data(), nullptr);
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                       std::vector<int>& len,
-                       std::vector<int>& strides,
+                       miopen::InlineVector<int, 5>& len,
+                       miopen::InlineVector<int, 5>& strides,
                        miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                       std::vector<std::size_t>& len,
-                       std::vector<std::size_t>& strides,
+                       miopen::InlineVector<std::size_t, 5>& len,
+                       miopen::InlineVector<std::size_t, 5>& strides,
                        miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptorV2(t, data_type, len.size(), len.data(), strides.data());
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                       std::vector<int>& len,
+                       miopen::InlineVector<int, 5>& len,
                        const std::string& layout,
                        miopenDataType_t data_type = miopenFloat)
 {
@@ -223,8 +221,8 @@ inline int SetTensorNd(miopenTensorDescriptor_t t,
         return SetTensorNd(t, len, data_type);
     }
 
-    std::vector<std::size_t> strides2;
-    std::vector<std::size_t> len2(len.cbegin(), len.cend());
+    miopen::InlineVector<std::size_t, 5> strides2;
+    miopen::InlineVector<std::size_t, 5> len2(len.cbegin(), len.cend());
     miopen::tensor_layout_to_strides(len2, len_layout, layout, strides2);
     return SetTensorNd(t, len2, strides2, data_type);
 }

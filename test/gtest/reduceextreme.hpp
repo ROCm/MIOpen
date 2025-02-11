@@ -48,7 +48,7 @@ void cpu_extreme_forward(tensor<T> input,
                          miopenReduceExtremeOp_t reduceExtremeOp)
 {
     auto input_dims = input.desc.GetLengths();
-    std::vector<std::size_t> output_dims;
+    miopen::InlineVector<size_t, 5> output_dims;
 
     if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX) ||
        reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN)

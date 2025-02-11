@@ -692,7 +692,8 @@ struct pooling_driver : test_driver
         }
         }
 
-        auto input_desc = miopen::TensorDescriptor(this->type, in_shape);
+        auto input_desc = miopen::TensorDescriptor(
+            this->type, miopen::InlineVector<int, 5>(in_shape.begin(), in_shape.end()));
 
         if(spt_dim != 2 && spt_dim != 3)
         {

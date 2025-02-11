@@ -27,6 +27,7 @@
 #include <gtest/gtest.h>
 #include <numeric>
 
+#include <miopen/tensor_layout.hpp>
 #include <miopen/inline_vector.hpp>
 #include <miopen/tensor.hpp>
 
@@ -199,4 +200,189 @@ TEST(CPU_InlineVectorClear_NONE, Test)
     miopen::InlineVector<size_t, 5> in_v12{1, 2, 3, 4, 5};
     in_v12.clear();
     EXPECT_EQ(in_v12.size(), 0);
+}
+
+TEST(CPU_InlineVectorInsert_NONE, Test)
+{
+    miopen::InlineVector<size_t, 5> iv13_1{1, 2, 3};
+    std::vector<size_t> v13_1{1, 2, 3};
+    iv13_1.insert(iv13_1.begin(), 0);
+    v13_1.insert(v13_1.begin(), 0);
+    for(int i = 0; i < iv13_1.size(); i++)
+    {
+        EXPECT_EQ(iv13_1[i], v13_1[i]);
+    }
+
+    miopen::InlineVector<size_t, 5> iv13_2{1, 2, 3};
+    std::vector<size_t> v13_2{1, 2, 3};
+    iv13_2.insert(iv13_2.end(), 4);
+    v13_2.insert(v13_2.end(), 4);
+    for(int i = 0; i < iv13_2.size(); i++)
+    {
+        EXPECT_EQ(iv13_2[i], v13_2[i]);
+    }
+
+    miopen::InlineVector<size_t, 5> iv13_3{1, 2, 3, 4};
+    std::vector<size_t> v13_3{1, 2, 3, 4};
+    iv13_3.insert(iv13_3.begin() + 2, 0);
+    v13_3.insert(v13_3.begin() + 2, 0);
+    for(int i = 0; i < iv13_3.size(); i++)
+    {
+        EXPECT_EQ(iv13_3[i], v13_3[i]);
+    }
+
+    miopen::InlineVector<size_t, 5> iv13_4{1, 2, 3};
+    std::vector<size_t> v13_4{1, 2, 3};
+    iv13_4.insert(iv13_4.begin() + iv13_4.size(), 4);
+    v13_4.insert(v13_4.begin() + v13_4.size(), 4);
+    for(int i = 0; i < iv13_4.size(); i++)
+    {
+        EXPECT_EQ(iv13_4[i], v13_4[i]);
+    }
+}
+
+#include <chrono>
+
+TEST(CPU_InlineVectorPerf1_NONE, Test)
+{
+    std::vector<float> iv_times;
+    std::vector<float> v_times;
+
+    for(int i = 0; i < 1000; i++)
+    {
+        auto start = std::chrono::steady_clock::now();
+        miopen::InlineVector<size_t, 5> iv{1, 2, 3, 4, 5};
+        auto end = std::chrono::steady_clock::now();
+        auto elapsed =
+            std::chrono::duration_cast<std::chrono::duration<float, std::nano>>(end - start)
+                .count();
+        iv_times.push_back(elapsed);
+
+        auto start1 = std::chrono::steady_clock::now();
+        std::vector<size_t> v{1, 2, 3, 4, 5};
+        auto end1 = std::chrono::steady_clock::now();
+        auto elapsed1 =
+            std::chrono::duration_cast<std::chrono::duration<float, std::nano>>(end1 - start1)
+                .count();
+        v_times.push_back(elapsed1);
+    }
+
+    std::cout << "IV min: " << *(std::min_element(iv_times.begin(), iv_times.end()))
+              << " avg: " << std::reduce(iv_times.begin(), iv_times.end()) / 1000.0 << std::endl;
+    std::cout << "VE min: " << *(std::min_element(v_times.begin(), v_times.end()))
+              << " avg: " << std::reduce(v_times.begin(), v_times.end()) / 1000.0 << std::endl;
+}
+
+TEST(CPU_InlineVectorPerf2_NONE, Test)
+{
+    std::vector<float> iv_times;
+    std::vector<float> v_times;
+
+    std::initializer_list<size_t> il{1, 2, 3, 4, 5};
+
+    for(int i = 0; i < 1000; i++)
+    {
+        auto start = std::chrono::steady_clock::now();
+        miopen::InlineVector<size_t, 5> iv(il);
+        auto end = std::chrono::steady_clock::now();
+        auto elapsed =
+            std::chrono::duration_cast<std::chrono::duration<float, std::nano>>(end - start)
+                .count();
+        iv_times.push_back(elapsed);
+
+        auto start1 = std::chrono::steady_clock::now();
+        std::vector<size_t> v(il);
+        auto end1 = std::chrono::steady_clock::now();
+        auto elapsed1 =
+            std::chrono::duration_cast<std::chrono::duration<float, std::nano>>(end1 - start1)
+                .count();
+        v_times.push_back(elapsed1);
+    }
+
+    std::cout << "IV min: " << *(std::min_element(iv_times.begin(), iv_times.end()))
+              << " avg: " << std::reduce(iv_times.begin(), iv_times.end()) / 1000.0 << std::endl;
+    std::cout << "VE min: " << *(std::min_element(v_times.begin(), v_times.end()))
+              << " avg: " << std::reduce(v_times.begin(), v_times.end()) / 1000.0 << std::endl;
+}
+
+TEST(CPU_InlineVectorPerf3_NONE, Test)
+{
+    std::vector<float> iv_times;
+    std::vector<float> v_times;
+
+    std::initializer_list<size_t> il{1, 2, 3, 4, 5};
+    size_t sum = 0;
+
+    for(int i = 0; i < 1000; i++)
+    {
+        sum        = 0;
+        auto start = std::chrono::steady_clock::now();
+        miopen::InlineVector<size_t, 5> iv(il.begin(), il.end());
+        for(int j = 0; j < iv.size(); j++)
+        {
+            sum += iv[j];
+        }
+        auto end = std::chrono::steady_clock::now();
+        auto elapsed =
+            std::chrono::duration_cast<std::chrono::duration<float, std::nano>>(end - start)
+                .count();
+        iv_times.push_back(elapsed);
+        sum         = 0;
+        auto start1 = std::chrono::steady_clock::now();
+        std::vector<size_t> v(il.begin(), il.end());
+        for(int j = 0; j < v.size(); j++)
+        {
+            sum += v[j];
+        }
+        auto end1 = std::chrono::steady_clock::now();
+        auto elapsed1 =
+            std::chrono::duration_cast<std::chrono::duration<float, std::nano>>(end1 - start1)
+                .count();
+        v_times.push_back(elapsed1);
+    }
+
+    std::cout << "IV min: " << *(std::min_element(iv_times.begin(), iv_times.end()))
+              << " avg: " << std::reduce(iv_times.begin(), iv_times.end()) / 1000.0 << std::endl;
+    std::cout << "VE min: " << *(std::min_element(v_times.begin(), v_times.end()))
+              << " avg: " << std::reduce(v_times.begin(), v_times.end()) / 1000.0 << std::endl;
+}
+
+TEST(CPU_InlineVectorPerf4_NONE, Test)
+{
+    std::vector<float> iv_times;
+    std::vector<float> v_times;
+
+    std::initializer_list<size_t> il{1, 2, 3, 4, 5};
+    size_t sum = 0;
+
+    for(int i = 0; i < 1000; i++)
+    {
+        sum        = 0;
+        auto start = std::chrono::steady_clock::now();
+        miopen::InlineVector<size_t, 5> iv(il);
+        auto first_not_one = std::find_if(iv.rbegin(), iv.rend(), [](int j) { return j != 1; });
+        auto d             = std::distance(iv.begin(), first_not_one.base());
+        int work_per_wg    = std::accumulate(iv.begin() + d, iv.end(), 1, std::multiplies<int>());
+        auto end           = std::chrono::steady_clock::now();
+        auto elapsed =
+            std::chrono::duration_cast<std::chrono::duration<float, std::nano>>(end - start)
+                .count();
+        iv_times.push_back(elapsed);
+        sum         = 0;
+        auto start1 = std::chrono::steady_clock::now();
+        std::vector<size_t> v(il);
+        auto first_not_one1 = std::find_if(v.rbegin(), v.rend(), [](int j) { return j != 1; });
+        auto d1             = std::distance(v.begin(), first_not_one1.base());
+        int work_per_wg1    = std::accumulate(v.begin() + d1, v.end(), 1, std::multiplies<int>());
+        auto end1           = std::chrono::steady_clock::now();
+        auto elapsed1 =
+            std::chrono::duration_cast<std::chrono::duration<float, std::nano>>(end1 - start1)
+                .count();
+        v_times.push_back(elapsed1);
+    }
+
+    std::cout << "IV min: " << *(std::min_element(iv_times.begin(), iv_times.end()))
+              << " avg: " << std::reduce(iv_times.begin(), iv_times.end()) / 1000.0 << std::endl;
+    std::cout << "VE min: " << *(std::min_element(v_times.begin(), v_times.end()))
+              << " avg: " << std::reduce(v_times.begin(), v_times.end()) / 1000.0 << std::endl;
 }

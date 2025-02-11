@@ -28,43 +28,44 @@
 #include "gtest_common.hpp"
 
 namespace {
-std::vector<std::vector<size_t>> tensorALensArr = {{32, 16, 8, 4, 4}, // tensor A
-                                                   {16, 20, 16, 8},
-                                                   {20, 16, 8},
-                                                   {1, 16, 8},
-                                                   {16, 8},
-                                                   {8}};
+std::vector<miopen::InlineVector<size_t, 5>> tensorALensArr = {{32, 16, 8, 4, 4}, // tensor A
+                                                               {16, 20, 16, 8},
+                                                               {20, 16, 8},
+                                                               {1, 16, 8},
+                                                               {16, 8},
+                                                               {8}};
 
-std::vector<std::vector<size_t>> tensorBLensArr = {{32, 16, 8, 4, 4}, // tensor B
-                                                   {32, 16, 1, 1, 1},
-                                                   {1, 16, 8, 1, 1},
-                                                   {1, 1, 8, 4, 1},
-                                                   {16, 20, 16, 8},
-                                                   {16, 20, 16, 1},
-                                                   {16, 20, 1, 1},
-                                                   {16, 1, 1, 1},
-                                                   {1, 20, 16, 8},
-                                                   {1, 20, 16, 1},
-                                                   {1, 20, 1, 1},
-                                                   {1, 1, 16, 8},
-                                                   {1, 1, 1, 8},
-                                                   {20, 16, 8},
-                                                   {20, 16, 1},
-                                                   {1, 16, 8},
-                                                   {1, 16, 1},
-                                                   {20, 1, 1},
-                                                   {16, 8},
-                                                   {16, 1},
-                                                   {1, 8},
-                                                   {8},
-                                                   {1}};
+std::vector<miopen::InlineVector<size_t, 5>> tensorBLensArr = {{32, 16, 8, 4, 4}, // tensor B
+                                                               {32, 16, 1, 1, 1},
+                                                               {1, 16, 8, 1, 1},
+                                                               {1, 1, 8, 4, 1},
+                                                               {16, 20, 16, 8},
+                                                               {16, 20, 16, 1},
+                                                               {16, 20, 1, 1},
+                                                               {16, 1, 1, 1},
+                                                               {1, 20, 16, 8},
+                                                               {1, 20, 16, 1},
+                                                               {1, 20, 1, 1},
+                                                               {1, 1, 16, 8},
+                                                               {1, 1, 1, 8},
+                                                               {20, 16, 8},
+                                                               {20, 16, 1},
+                                                               {1, 16, 8},
+                                                               {1, 16, 1},
+                                                               {20, 1, 1},
+                                                               {16, 8},
+                                                               {16, 1},
+                                                               {1, 8},
+                                                               {8},
+                                                               {1}};
 
 std::vector<std::vector<int64_t>> offsetsArr = {
     {0, 0, 0}, {64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
 
 std::vector<std::vector<float>> alphabetaArr = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
 
-std::vector<std::vector<size_t>> stridesArr = {{8 * 16 * 20 * 16, 8 * 16 * 20, 8 * 16, 8, 1}};
+std::vector<miopen::InlineVector<size_t, 5>> stridesArr = {
+    {8 * 16 * 20 * 16, 8 * 16 * 20, 8 * 16, 8, 1}};
 
 std::vector<bool> packedArr = {true, false};
 
@@ -74,12 +75,12 @@ std::vector<miopenTensorOp_t> operationArr = {
 
 struct TestCase
 {
-    std::vector<size_t> tensorlens_ac;
-    std::vector<size_t> tensorlens_b;
+    miopen::InlineVector<size_t, 5> tensorlens_ac;
+    miopen::InlineVector<size_t, 5> tensorlens_b;
     std::vector<int64_t> offsets;
-    std::vector<size_t> stride_a;
-    std::vector<size_t> stride_b;
-    std::vector<size_t> stride_c;
+    miopen::InlineVector<size_t, 5> stride_a;
+    miopen::InlineVector<size_t, 5> stride_b;
+    miopen::InlineVector<size_t, 5> stride_c;
     std::vector<float> alphabeta;
     bool packed;
     miopenTensorOp_t operation;
@@ -113,8 +114,8 @@ private:
             testCase.tensorlens_ac, testCase.stride_c, testCase.offsets[2], testCase.packed);
     }
 
-    tensor<T> CreateTensor(const std::vector<size_t>& lens,
-                           const std::vector<size_t>& strides,
+    tensor<T> CreateTensor(const miopen::InlineVector<size_t, 5>& lens,
+                           const miopen::InlineVector<size_t, 5>& strides,
                            int64_t offset,
                            bool isPacked)
     {
@@ -122,8 +123,8 @@ private:
 
         if(!isPacked)
         {
-            std::vector<size_t> real_strides(strides.begin() + (strides.size() - lens.size()),
-                                             strides.end());
+            miopen::InlineVector<size_t, 5> real_strides(
+                strides.begin() + (strides.size() - lens.size()), strides.end());
             auto r = tensor<T>{lens, real_strides}.generate(tensor_elem_gen_integer{max_value});
             r.data.resize(r.data.size() + offset);
             return r;
@@ -253,8 +254,8 @@ using GPU_TernaryTensorOps_FP16 = TensorOpsCommon<half_float::half>;
 using GPU_TernaryTensorOps_FP64 = TensorOpsCommon<double>;
 
 namespace {
-bool checkTensorsCompatibility(const std::vector<size_t>& tensorALens,
-                               const std::vector<size_t>& tensorBLens)
+bool checkTensorsCompatibility(const miopen::InlineVector<size_t, 5>& tensorALens,
+                               const miopen::InlineVector<size_t, 5>& tensorBLens)
 {
     if(tensorALens.size() != tensorBLens.size())
     {
@@ -273,8 +274,8 @@ bool checkTensorsCompatibility(const std::vector<size_t>& tensorALens,
 }
 
 void AddTestCases(std::vector<TestCase>& testCases,
-                  const std::vector<size_t>& tensorALens,
-                  const std::vector<size_t>& tensorBLens)
+                  const miopen::InlineVector<size_t, 5> tensorALens,
+                  const miopen::InlineVector<size_t, 5>& tensorBLens)
 {
     const auto& stride_a = stridesArr[0];
     const auto& stride_b = stridesArr[0];
@@ -292,8 +293,8 @@ void AddTestCases(std::vector<TestCase>& testCases,
                 final_offsets = offsets;
             }
 
-            auto checkStride = [p = packed](const std::vector<size_t>& lens,
-                                            const std::vector<size_t>& strides) {
+            auto checkStride = [p = packed](const miopen::InlineVector<size_t, 5>& lens,
+                                            const miopen::InlineVector<size_t, 5>& strides) {
                 if(p)
                     return true;
 

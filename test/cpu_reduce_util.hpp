@@ -310,7 +310,51 @@ get_all_indexes(const std::vector<T>& dimLengths, int dim, std::vector<std::vect
 };
 
 template <typename T>
-static T get_offset_from_index(const std::vector<T>& strides, const std::vector<T>& index)
+static void get_all_indexes(const miopen::InlineVector<T, 5>& dimLengths,
+                            int dim,
+                            std::vector<std::vector<T>>& indexes)
+{
+    if(dim < dimLengths.size())
+    {
+        std::vector<std::vector<T>> updated_indexes;
+
+        if(dim == 0)
+        {
+            assert(indexes.empty());
+            assert(dimLengths[dim] > 0);
+            for(T i = 0; i < dimLengths[dim]; i++)
+            {
+                std::vector<T> index = {i};
+
+                updated_indexes.push_back(index);
+            };
+        }
+        else
+        {
+            // go through all the current indexes
+            for(const auto& index : indexes)
+            {
+                for(T i = 0; i < dimLengths[dim]; i++)
+                {
+                    auto index_new = index;
+                    index_new.push_back(i);
+
+                    updated_indexes.push_back(index_new);
+                };
+            }
+        };
+
+        // update to the indexes (output)
+        indexes = updated_indexes;
+
+        // further to construct the indexes from the updated status
+        get_all_indexes(dimLengths, dim + 1, indexes);
+    };
+};
+
+template <typename T>
+static T get_offset_from_index(const miopen::InlineVector<T, 5>& strides,
+                               const std::vector<T>& index)
 {
     T offset = 0;
 
@@ -324,6 +368,29 @@ static T get_offset_from_index(const std::vector<T>& strides, const std::vector<
 
 template <typename T>
 static T get_flatten_offset(const std::vector<T>& lengths, const std::vector<T>& index)
+{
+    T offset = 0;
+
+    assert(lengths.size() == index.size() && !lengths.empty());
+
+    int len  = lengths.size();
+    T stride = 1;
+
+    // for len==1, the loop is not executed
+    for(int i = len - 1; i > 0; i--)
+    {
+        offset += stride * index[i];
+
+        stride *= lengths[i];
+    };
+
+    offset += stride * index[0];
+
+    return (offset);
+};
+
+template <typename T>
+static T get_flatten_offset(const miopen::InlineVector<T, 5>& lengths, const std::vector<T>& index)
 {
     T offset = 0;
 

@@ -318,14 +318,14 @@ void RNNBackwardDataModularAlgo::PropDy(const Handle& handle,
 
             size_t direc_scale = rnnD.dirMode == miopenRNNbidirection ? 2 : 1;
 
-            const auto dy_normalized_size =
-                std::vector<size_t>{1, dy_raw_size[0], direc_scale, dy_raw_size[1] / direc_scale};
+            const auto dy_normalized_size = miopen::InlineVector<size_t, 5>{
+                1, dy_raw_size[0], direc_scale, dy_raw_size[1] / direc_scale};
 
             const auto dy_normalized_stride =
-                std::vector<size_t>{dy_normalized_size[1] * dy_raw_stride[0] /*unused*/,
-                                    dy_raw_stride[0],
-                                    dy_normalized_size[3] * dy_raw_stride[1],
-                                    dy_raw_stride[1]};
+                miopen::InlineVector<size_t, 5>{dy_normalized_size[1] * dy_raw_stride[0] /*unused*/,
+                                                dy_raw_stride[0],
+                                                dy_normalized_size[3] * dy_raw_stride[1],
+                                                dy_raw_stride[1]};
 
             auto dy_desc =
                 miopen::TensorDescriptor(rnnD.dataType, dy_normalized_size, dy_normalized_stride);
@@ -333,12 +333,13 @@ void RNNBackwardDataModularAlgo::PropDy(const Handle& handle,
             return std::make_tuple(dy_desc, dy);
         }(yInfo, rnnDesc, dy);
 
-    const std::vector<size_t> ws_dst_strides = [](const auto& full_stride_ref) {
-        return std::vector<size_t>(full_stride_ref.begin(), full_stride_ref.end());
+    const miopen::InlineVector<size_t, 5> ws_dst_strides = [](const auto& full_stride_ref) {
+        return miopen::InlineVector<size_t, 5>(full_stride_ref.begin(), full_stride_ref.end());
     }(workspaceInfo.getHiddenStateStride());
 
-    const std::vector<size_t> ws_dst_size = [](const auto& full_size_ref) {
-        std::vector<size_t> ws_ht_layer_size(full_size_ref.begin(), full_size_ref.end());
+    const miopen::InlineVector<size_t, 5> ws_dst_size = [](const auto& full_size_ref) {
+        miopen::InlineVector<size_t, 5> ws_ht_layer_size(full_size_ref.begin(),
+                                                         full_size_ref.end());
 
         ws_ht_layer_size[0] = 1;
 
@@ -464,7 +465,7 @@ void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
         auto h_state_sizes = reservLayout.hStateSizes;
 
         // TODO 3 dim vec, add direction as dim
-        std::vector<size_t> drop_size(2), drop_in_str(2, 1);
+        miopen::InlineVector<size_t, 5> drop_size(2), drop_in_str(2, 1);
         drop_size[0] = h_state_sizes[1];                    // batch_n;
         drop_size[1] = h_state_sizes[2] * h_state_sizes[3]; // hy_h* direction_mult;
 
@@ -561,7 +562,10 @@ void RNNBackwardDataModularAlgo::PropDx(const Handle& handle,
             const auto& ht_size   = buf_info.getFullSeqMajorSize();
 
             // batch, vec_elements
-            return miopen::TensorDescriptor{dType, {batch_size, ht_size[1]}, ht_stride};
+            return miopen::TensorDescriptor{
+                dType,
+                {batch_size, ht_size[1]},
+                miopen::InlineVector<size_t, 5>(ht_stride.begin(), ht_stride.end())};
         }(rnnDesc.dataType, xInfo, gemm_batch_size);
 
     RnnBaseFunctions::BWD_GEMM_Hidden_Prop(handle,

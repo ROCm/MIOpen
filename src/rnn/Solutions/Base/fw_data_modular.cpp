@@ -86,7 +86,10 @@ void RNNForwardDataModularAlgo::PropX(const Handle& handle,
             const auto& ht_size   = buf_info.getFullSeqMajorSize();
 
             // batch, vec_elements
-            return miopen::TensorDescriptor{dType, {batch_size, ht_size[1]}, ht_stride};
+            return miopen::TensorDescriptor{
+                dType,
+                {batch_size, ht_size[1]},
+                miopen::InlineVector<size_t, 5>(ht_stride.begin(), ht_stride.end())};
         }(rnnDesc.dataType, xInfo, gemm_batch_size);
 
     if(rnnDesc.inputMode == miopenRNNskip)
@@ -204,18 +207,19 @@ void RNNForwardDataModularAlgo::AddBias(const Handle& handle,
     // single layer, single direction
     const auto bias_desc = miopen::TensorDescriptor(
         rnnDesc.dataType,
-        std::vector<size_t>{1, 1, weightsLayout.getBiasSize()[2] * weightsLayout.getBiasSize()[3]},
-        std::vector<size_t>{weightsLayout.getBiasStride()[1],
-                            weightsLayout.getBiasStride()[1],
-                            weightsLayout.getBiasStride()[3]});
+        miopen::InlineVector<size_t, 5>{
+            1, 1, weightsLayout.getBiasSize()[2] * weightsLayout.getBiasSize()[3]},
+        miopen::InlineVector<size_t, 5>{weightsLayout.getBiasStride()[1],
+                                        weightsLayout.getBiasStride()[1],
+                                        weightsLayout.getBiasStride()[3]});
 
     const auto hidden_interim_desc = miopen::TensorDescriptor(
         rnnDesc.dataType,
-        std::vector<size_t>{
+        miopen::InlineVector<size_t, 5>{
             1, reservLayout.getGateBlockSizeImpl()[1], reservLayout.getGateBlockSizeImpl()[3]},
-        std::vector<size_t>{reservLayout.getGateBlockStride()[0],
-                            reservLayout.getGateBlockStride()[1],
-                            reservLayout.getGateBlockStride()[3]});
+        miopen::InlineVector<size_t, 5>{reservLayout.getGateBlockStride()[0],
+                                        reservLayout.getGateBlockStride()[1],
+                                        reservLayout.getGateBlockStride()[3]});
 
     for(int layer = 0; layer < rnnDesc.nLayers; layer++)
     {
@@ -481,14 +485,14 @@ void RNNForwardDataModularAlgo::PropY(const Handle& handle, const runtimeArgsFwd
 
         size_t direc_scale = rnnD.dirMode == miopenRNNbidirection ? 2 : 1;
 
-        const auto dy_normalized_size =
-            std::vector<size_t>{1, dy_raw_size[0], direc_scale, dy_raw_size[1] / direc_scale};
+        const auto dy_normalized_size = miopen::InlineVector<size_t, 5>{
+            1, dy_raw_size[0], direc_scale, dy_raw_size[1] / direc_scale};
 
         const auto dy_normalized_stride =
-            std::vector<size_t>{dy_normalized_size[1] * dy_raw_stride[0] /*unused*/,
-                                dy_raw_stride[0],
-                                dy_normalized_size[3] * dy_raw_stride[1],
-                                dy_raw_stride[1]};
+            miopen::InlineVector<size_t, 5>{dy_normalized_size[1] * dy_raw_stride[0] /*unused*/,
+                                            dy_raw_stride[0],
+                                            dy_normalized_size[3] * dy_raw_stride[1],
+                                            dy_raw_stride[1]};
 
         auto dy_desc =
             miopen::TensorDescriptor(rnnD.dataType, dy_normalized_size, dy_normalized_stride);
@@ -496,12 +500,13 @@ void RNNForwardDataModularAlgo::PropY(const Handle& handle, const runtimeArgsFwd
         return std::make_tuple(dy_desc, y);
     }(yInfo, rnnDesc, runtimeArgs.y);
 
-    const std::vector<size_t> tmp_y_strides = [](const auto& full_stride_ref) {
-        return std::vector<size_t>(full_stride_ref.begin(), full_stride_ref.end());
+    const miopen::InlineVector<size_t, 5> tmp_y_strides = [](const auto& full_stride_ref) {
+        return miopen::InlineVector<size_t, 5>(full_stride_ref.begin(), full_stride_ref.end());
     }(reservLayout.getHiddenStateStride());
 
-    const std::vector<size_t> tmp_y_size = [](const auto& full_size_ref) {
-        std::vector<size_t> ws_ht_layer_size(full_size_ref.begin(), full_size_ref.end());
+    const miopen::InlineVector<size_t, 5> tmp_y_size = [](const auto& full_size_ref) {
+        miopen::InlineVector<size_t, 5> ws_ht_layer_size(full_size_ref.begin(),
+                                                         full_size_ref.end());
 
         ws_ht_layer_size[0] = 1;
 

@@ -193,7 +193,7 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
     float time = 0.;
     if(apply_softmax_layer)
     {
-        std::vector<int> sfm_size(4, 1);
+        miopen::InlineVector<int, 5> sfm_size(4, 1);
         sfm_size[0]   = max_time_step * batch_size;
         sfm_size[1]   = class_sz;
         auto sfm_desc = miopen::TensorDescriptor(probsDesc.GetType(), sfm_size);
