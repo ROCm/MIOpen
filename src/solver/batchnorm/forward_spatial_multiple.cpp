@@ -47,7 +47,6 @@ bool BNFwdTrainIsCaseVariant2(const miopen::batchnorm::ProblemDescription& probl
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
     size_t in_cstride    = h * w;
     size_t in_nhw        = n * in_cstride;
-    bool bfp32parm       = xDesc.GetType() == miopenFloat;
     bool bfpmixparm      = (xDesc.GetType() == miopenHalf || xDesc.GetType() == miopenBFloat16) &&
                       problem.GetBnScale().GetType() == miopenFloat;
 
@@ -56,7 +55,7 @@ bool BNFwdTrainIsCaseVariant2(const miopen::batchnorm::ProblemDescription& probl
     // forward_spatial_multiple.cpp
     if((n >= 3 && in_cstride > 512 && (in_nhw >= 33554432 || in_cstride <= 1024) &&
         ((n < 256) || (in_cstride <= 60) || !bfpmixparm) && (!bfpmixparm || in_cstride <= 512)) ||
-       (n <= 768 || in_cstride <= 150 || !bfp32parm))
+       ((n > 768) && (in_cstride > 150)))
     {
         return true;
     }
@@ -148,19 +147,6 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
         ylocalsize = max_localsize;
         ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
     }
-
-#if(WORKAROUND_SWDEV_253606 == 0)
-    if(n < 3 && !problem.IsLayoutNHWC())
-    {
-        variant    = 4;
-        xlocalsize = 256;
-        xgridsize  = c * xlocalsize;
-        ylocalsize = 1;
-        ygridsize  = 1;
-        ldsgcn     = xlocalsize / 64;
-        ldsnogcn   = xlocalsize;
-    }
-#endif
 
     auto result = ConvSolution{miopenStatusSuccess};
 
