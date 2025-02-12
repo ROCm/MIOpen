@@ -27,8 +27,11 @@
 
 #include <miopen/miopen.h>
 #include <miopen/graphapi/graphapi.hpp>
+#include <miopen/graphapi/opgraph.hpp>
+#include <miopen/graphapi/tensor.hpp>
 
 #include <cstdint>
+#include <variant>
 
 namespace miopen {
 
@@ -72,7 +75,7 @@ private:
     friend class RngBuilder;
 };
 
-class RngBuilder
+class MIOPEN_INTERNALS_EXPORT RngBuilder
 {
 private:
     Rng mRng;
@@ -107,7 +110,7 @@ public:
     Rng build() const;
 };
 
-class BackendRngDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendRngDescriptor : public BackendDescriptor
 {
 private:
     RngBuilder mBuilder;
@@ -127,6 +130,80 @@ public:
 
     const Rng* getRng() const noexcept { return &mRng; }
     Rng* getRng() noexcept { return &mRng; }
+};
+
+class MIOPEN_INTERNALS_EXPORT OperationRng : public OpNode
+{
+private:
+    Rng* mRng                            = nullptr;
+    Tensor* mOutput                      = nullptr;
+    std::variant<int64_t, Tensor*> mSeed = 0; // Don't change the order of variant alternatives
+    Tensor* mOffset                      = nullptr;
+
+    friend class OperationRngBuilder;
+
+public:
+    OperationRng() noexcept = default;
+    OperationRng(Rng* rng, Tensor* output, int64_t seed, Tensor* offset) noexcept
+        : mRng(rng), mOutput(output), mSeed(seed), mOffset(offset)
+    {
+    }
+    OperationRng(Rng* rng, Tensor* output, Tensor* seed, Tensor* offset) noexcept
+        : mRng(rng), mOutput(output), mSeed(seed), mOffset(offset)
+    {
+    }
+
+    Rng* getRng() const noexcept { return mRng; }
+    Tensor* getOutput() const noexcept { return mOutput; }
+    std::variant<int64_t, Tensor*> getSeed() const noexcept { return mSeed; }
+    Tensor* getOffset() const noexcept { return mOffset; }
+
+    virtual const std::string& signName() const override;
+    virtual std::vector<Tensor*> getInTensors() const override;
+    virtual std::vector<Tensor*> getOutTensors() const override;
+};
+
+class MIOPEN_INTERNALS_EXPORT OperationRngBuilder
+{
+private:
+    OperationRng mOperationRng;
+
+public:
+    OperationRngBuilder& setRng(Rng* rng);
+    OperationRngBuilder& setOutput(Tensor* output);
+    OperationRngBuilder& setSeed(int64_t seed) noexcept;
+    OperationRngBuilder& setSeed(Tensor* seed);
+    OperationRngBuilder& setOffset(Tensor* offset);
+
+    OperationRng build();
+};
+
+class MIOPEN_INTERNALS_EXPORT BackendOperationRngDescriptor : public BackendDescriptor
+{
+private:
+    OperationRngBuilder mBuilder;
+    OperationRng mOperationRng;
+    miopenBackendDescriptor_t mRngDescriptor    = nullptr;
+    miopenBackendDescriptor_t mOutputDescriptor = nullptr; // sometimes called Y
+    miopenBackendDescriptor_t mSeedDescriptor   = nullptr;
+    miopenBackendDescriptor_t mOffsetDescriptor = nullptr;
+
+public:
+    void setAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t elementCount,
+                      void* arrayOfElements) override;
+    void finalize() override;
+    void getAttribute(miopenBackendAttributeName_t attributeName,
+                      miopenBackendAttributeType_t attributeType,
+                      int64_t requestedElementCount,
+                      int64_t* elementCount,
+                      void* arrayOfElements) override;
+
+    OpNode* getOperation() override;
+
+    const OperationRng* getRng() const { return &mOperationRng; }
+    OperationRng* getRng() { return &mOperationRng; }
 };
 
 } // namespace graphapi

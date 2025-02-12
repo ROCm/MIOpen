@@ -52,15 +52,13 @@ static inline std::string GetKernelNameType(std::size_t type_size)
     MIOPEN_THROW("data type not supported");
 }
 
-static inline std::string GetKernelFileName(std::size_t data_size,
-                                            const GeneralReorderParam* kparam)
+static inline fs::path GetKernelFileName(std::size_t data_size, const GeneralReorderParam* kparam)
 {
     if(kparam == nullptr)
         MIOPEN_THROW("Memory access fault, kparam is a nullptr");
-    std::ostringstream kernel_file_name;
-    kernel_file_name << "general_tensor_reorder_" << kparam->tile_x << "x" << kparam->tile_y << "_";
-    kernel_file_name << GetKernelNameType(data_size) << ".cpp";
-    return kernel_file_name.str();
+
+    return "general_tensor_reorder_" + std::to_string(kparam->tile_x) + "x" +
+           std::to_string(kparam->tile_y) + "_" + GetKernelNameType(data_size) + ".cpp";
 }
 
 static inline std::string GetKernelName(std::size_t data_size,
@@ -149,8 +147,8 @@ solver::KernelInfo GenericReorderSolutionImpl::GetKernelInfo() const
                          (block_size * kernel_param_heuristic.tile_x);
     std::size_t grid_size = dim_total;
 
-    std::string kernel_name      = GetKernelName();
-    std::string kernel_file_name = GetKernelFileName();
+    std::string kernel_name   = GetKernelName();
+    fs::path kernel_file_name = GetKernelFileName();
     solver::KernelInfo kernel;
     kernel.kernel_file = kernel_file_name;
     kernel.kernel_name = kernel_name;
@@ -201,7 +199,7 @@ std::vector<OpKernelArg> GenericReorderSolutionImpl::GetKernelArg() const
     return opArgs;
 }
 
-std::string GenericReorderSolutionImpl::GetKernelFileName() const
+fs::path GenericReorderSolutionImpl::GetKernelFileName() const
 {
     return tensor_reorder::GetKernelFileName(miopen::GetTypeSize(data_type),
                                              &kernel_param_heuristic);

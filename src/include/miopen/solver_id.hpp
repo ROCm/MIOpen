@@ -27,11 +27,11 @@
 #ifndef MIOPEN_GUARD_MLOPEN_SOLVER_ID_HPP
 #define MIOPEN_GUARD_MLOPEN_SOLVER_ID_HPP
 
+#include <miopen/config.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/conv_algo_name.hpp>
 
 #include <cstdint>
-#include <unordered_map>
 
 namespace miopen {
 
@@ -42,6 +42,7 @@ struct ForceInit
 namespace solver {
 
 struct AnySolver;
+struct SolverBase;
 
 enum class Primitive
 {
@@ -57,11 +58,18 @@ enum class Primitive
     Cat,
     Mha,
     Softmax,
+    Adam,
+    Item,
+    RoPE,
+    ReLU,
+    Kthvalue,
+    SoftMarginLoss,
+    MultiMarginLoss,
     PadConstantFwd,
     PadConstantBwd
 };
 
-struct MIOPEN_EXPORT Id
+struct MIOPEN_INTERNALS_EXPORT Id
 {
     static constexpr uint64_t invalid_value = 0;
 
@@ -73,6 +81,7 @@ struct MIOPEN_EXPORT Id
 
     std::string ToString() const;
     AnySolver GetSolver() const;
+    const SolverBase* GetSolverBase() const;
     std::string GetAlgo(conv::Direction dir) const;
     miopenConvAlgorithm_t GetAlgo() const;
     Primitive GetPrimitive() const;
@@ -92,7 +101,7 @@ private:
     bool is_valid  = false;
 };
 
-const std::vector<Id>& GetSolversByPrimitive(Primitive primitive);
+MIOPEN_INTERNALS_EXPORT const std::vector<Id>& GetSolversByPrimitive(Primitive primitive);
 
 } // namespace solver
 } // namespace miopen

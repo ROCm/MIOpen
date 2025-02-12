@@ -95,7 +95,7 @@ std::string Write2s(kernel_type_t kern_type)
     }
 }
 
-void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
+void run2s(const miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
 {
     std::vector<int> data_in(n, 1);
     auto data_dev = h.Write(data_in);
@@ -310,7 +310,9 @@ void test_arch_name()
                        "gfx1031",
                        "gfx1100",
                        "gfx1101",
-                       "gfx1102"};
+                       "gfx1102",
+                       "gfx1200",
+                       "gfx1201"};
     auto this_arch  = h.GetDeviceName();
     EXPECT(std::any_of(
         known_arch.begin(), known_arch.end(), [&](std::string arch) { return arch == this_arch; }));

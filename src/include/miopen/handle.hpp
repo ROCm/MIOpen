@@ -63,12 +63,23 @@
 #endif
 #endif
 
+#if MIOPEN_USE_HIPBLASLT
+#include <hipblas/hipblas.h>
+
+using hipblasLtHandle_t = void*;
+extern "C" hipblasStatus_t hipblasLtDestroy(hipblasLtHandle_t handle);
+#endif
+
 namespace miopen {
 
 struct HandleImpl;
 
 #if MIOPEN_USE_ROCBLAS
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
+#endif
+
+#if MIOPEN_USE_HIPBLASLT
+using hipblasLt_handle_ptr = MIOPEN_MANAGE_PTR(hipblasLtHandle_t, hipblasLtDestroy);
 #endif
 
 struct MIOPEN_EXPORT Handle : miopenHandle
@@ -78,7 +89,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     Handle();
     Handle(miopenAcceleratorQueue_t stream);
     Handle(Handle&&) noexcept;
-    ~Handle();
+    virtual ~Handle();
 
     miopenAcceleratorQueue_t GetStream() const;
     void SetStream(miopenAcceleratorQueue_t streamID) const;
@@ -99,7 +110,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
 
     KernelInvoke AddKernel(const std::string& algorithm,
                            const std::string& network_config,
-                           const std::string& program_name,
+                           const fs::path& program_name,
                            const std::string& kernel_name,
                            const std::vector<size_t>& vld,
                            const std::vector<size_t>& vgd,
@@ -111,9 +122,18 @@ struct MIOPEN_EXPORT Handle : miopenHandle
 
     auto GetKernels(const std::string& algorithm, const std::string& network_config) const
     {
-        return this->GetKernelsImpl(algorithm, network_config) |
-               boost::adaptors::transformed([this](Kernel k) { return this->Run(k); });
+        auto kernels = this->GetKernelsImpl(algorithm, network_config);
+
+        std::vector<KernelInvoke> kernelInvokers;
+        kernelInvokers.resize(kernels.size());
+        std::transform(kernels.begin(),
+                       kernels.end(),
+                       kernelInvokers.begin(),
+                       [this](const Kernel& k) { return this->Run(k); });
+
+        return kernelInvokers;
     }
+
     KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config) const
     {
         auto ks = this->GetKernelsImpl(algorithm, network_config);
@@ -125,17 +145,18 @@ struct MIOPEN_EXPORT Handle : miopenHandle
         return this->Run(ks.front());
     }
 
-    KernelInvoke Run(Kernel k) const;
-    const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
-                                              const std::string& network_config) const;
+    KernelInvoke Run(Kernel k, bool coop_launch = false) const;
+    std::vector<Kernel> GetKernelsImpl(const std::string& algorithm,
+                                       const std::string& network_config) const;
 
-    Program LoadProgram(const std::string& program_name,
+    Program LoadProgram(const fs::path& program_name,
                         std::string params,
-                        const std::string& kernel_src) const;
+                        const std::string& kernel_src,
+                        bool force_attach_binary = false) const;
 
-    bool HasProgram(const std::string& program_name, const std::string& params) const;
-    void ClearProgram(const std::string& program_name, const std::string& params) const;
-    void AddProgram(Program prog, const std::string& program_name, const std::string& params) const;
+    bool HasProgram(const fs::path& program_name, const std::string& params) const;
+    void ClearProgram(const fs::path& program_name, const std::string& params) const;
+    void AddProgram(Program prog, const fs::path& program_name, const std::string& params) const;
 
     void Finish() const;
     void Flush() const;
@@ -144,7 +165,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     std::size_t GetGlobalMemorySize() const;
     std::size_t GetImage3dMaxWidth() const;
     std::size_t GetWavefrontWidth() const;
-    std::size_t GetMaxComputeUnits() const;
+    virtual std::size_t GetMaxComputeUnits() const;
     std::size_t GetMaxHardwareComputeUnits() const
     {
         const std::size_t num_cu = this->GetMaxComputeUnits();
@@ -152,10 +173,11 @@ struct MIOPEN_EXPORT Handle : miopenHandle
         return StartsWith(name, "gfx1") ? num_cu * 2 /* CUs per WGP */ : num_cu;
     }
 
-    std::size_t m_MaxMemoryAllocSizeCached = 0;
-    std::size_t GetMaxMemoryAllocSize();
+    mutable std::size_t m_MaxMemoryAllocSizeCached = 0;
+    virtual std::size_t GetMaxMemoryAllocSize() const;
+    virtual bool CooperativeLaunchSupported() const;
 
-    std::string GetDeviceName() const;
+    virtual std::string GetDeviceName() const;
     const TargetProperties& GetTargetProperties() const;
 
 private:
@@ -177,13 +199,13 @@ public:
 #endif
 
     template <class T>
-    Allocator::ManageDataPtr Create(std::size_t sz)
+    Allocator::ManageDataPtr Create(std::size_t sz) const
     {
         return this->Create(sz * sizeof(T));
     }
 
     template <class Container>
-    Allocator::ManageDataPtr Write(const Container& c)
+    Allocator::ManageDataPtr Write(const Container& c) const
     {
         assert(!c.empty());
         using type = typename Container::value_type;
@@ -193,7 +215,7 @@ public:
     }
 
     template <class T>
-    std::vector<T> Read(const Allocator::ManageDataPtr& ddata, std::size_t sz)
+    std::vector<T> Read(const Allocator::ManageDataPtr& ddata, std::size_t sz) const
     {
         std::vector<T> result(sz);
         this->ReadTo(result.data(), ddata, sz * sizeof(T));
@@ -201,7 +223,7 @@ public:
     }
 
     template <class V>
-    void ReadToVec(const Allocator::ManageDataPtr& ddata, V& output_vec)
+    void ReadToVec(const Allocator::ManageDataPtr& ddata, V& output_vec) const
     {
         using T = typename V::value_type;
         assert(ddata);
@@ -231,22 +253,29 @@ public:
     std::unordered_map<std::string, std::vector<miopenConvSolution_t>> find_map;
 
     Invoker PrepareInvoker(const InvokerFactory& factory,
-                           const std::vector<solver::KernelInfo>& kernels) const;
+                           const std::vector<solver::KernelInfo>& kernels,
+                           std::vector<Program>* programs_out = nullptr) const;
 
     void RegisterInvoker(const Invoker& invoker,
                          const NetworkConfig& config,
                          const std::string& solver,
-                         const boost::optional<AlgorithmName>& algo = boost::none)
+                         const std::optional<AlgorithmName>& algo = std::nullopt) const
     {
         invokers.Register({config, solver}, invoker);
         if(algo.has_value())
-            invokers.SetAsFound1_0(config, *algo, solver);
+            SetAsFound1_0(config, *algo, solver);
     }
 
-    boost::optional<const Invoker&>
-    GetInvoker(const NetworkConfig& config,
-               const boost::optional<solver::Id>& solver,
-               const boost::optional<AlgorithmName>& algo = boost::none) const
+    void SetAsFound1_0(const NetworkConfig& config,
+                       const AlgorithmName& algo,
+                       const std::string& solver) const
+    {
+        invokers.SetAsFound1_0(config, algo, solver);
+    }
+
+    std::optional<Invoker> GetInvoker(const NetworkConfig& config,
+                                      const std::optional<solver::Id>& solver,
+                                      const std::optional<AlgorithmName>& algo = std::nullopt) const
     {
         assert(solver || algo);
         assert(!(solver && algo));
@@ -256,26 +285,37 @@ public:
                                                               << solver->ToString());
             return invokers[std::make_pair(config.ToString(), solver->ToString())];
         }
+
+        if(!algo)
+            MIOPEN_THROW(miopenStatusInternalError);
+
         MIOPEN_LOG_I2("Returning an invoker for problem " << config.ToString() << " and algorithm "
                                                           << algo->ToString());
         return invokers.GetFound1_0(config, *algo);
     }
 
-    boost::optional<const std::string&> GetFound1_0SolverId(const NetworkConfig& config,
-                                                            const AlgorithmName& algo) const
+    std::optional<std::string> GetFound1_0SolverId(const NetworkConfig& config,
+                                                   const AlgorithmName& algo) const
     {
         return invokers.GetFound1_0SolverId(config, algo);
     }
 
 #if MIOPEN_USE_ROCBLAS
     const rocblas_handle_ptr& rhandle() const;
+#endif
+#if MIOPEN_USE_HIPBLASLT
+    const hipblasLt_handle_ptr& HipblasLtHandle() const;
+#endif
 
 private:
+#if MIOPEN_USE_ROCBLAS
     rocblas_handle_ptr CreateRocblasHandle(miopenAcceleratorQueue_t streamID) const;
-#else
-private:
 #endif
-    InvokerCache invokers;
+#if MIOPEN_USE_HIPBLASLT
+    hipblasLt_handle_ptr CreateHipblasLtHandle() const;
+#endif
+
+    mutable InvokerCache invokers;
 };
 
 inline std::ostream& operator<<(std::ostream& os, const Handle& handle) { return handle.Print(os); }

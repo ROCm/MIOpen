@@ -1,4 +1,5 @@
 
+#include "bfloat16_dev.hpp"
 
 #define PPCAT_NX(A, B) A##B
 #define PPCAT(A, B) PPCAT_NX(A, B)
@@ -8,6 +9,10 @@
 
 #ifndef MIOPEN_USE_FPMIX
 #define MIOPEN_USE_FPMIX 0
+#endif
+
+#ifndef MIOPEN_USE_BFPMIX
+#define MIOPEN_USE_BFPMIX 0
 #endif
 
 #define _FLOAT_ACCUM float
@@ -52,6 +57,37 @@
 #endif
 #define EPSILON (_FLOAT)0.000001
 
+#endif
+
+#if MIOPEN_USE_BFPMIX == 1
+#define _FLOAT ushort
+
+#ifdef MIO_BN_NODPP
+#undef MIO_BN_NODPP
+#define MIO_BN_NODPP 0
+#endif
+
+#ifdef _FLOAT_PREC
+#undef _FLOAT_PREC
+#endif
+#define _FLOAT_PREC float
+
+#ifdef EPSILON
+#undef EPSILON
+#endif
+#define EPSILON (_FLOAT_PREC)0.000001
+
+#define FLOAT2FLOATPREC(x) (bfloat16_to_float(x))
+#define FLOATPREC2FLOAT(x) (float_to_bfloat16(x))
+#define FLOAT2ACCUM(x) (FLOAT2FLOATPREC(x))
+#define ACCUM2FLOAT(x) (FLOATPREC2FLOAT(x))
+
+#else
+
+#define FLOAT2FLOATPREC(x) ((_FLOAT_PREC)(x))
+#define FLOATPREC2FLOAT(x) ((_FLOAT)(x))
+#define FLOAT2ACCUM(x) ((_FLOAT_ACCUM)(x))
+#define ACCUM2FLOAT(x) ((_FLOAT)(x))
 #endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)
@@ -132,8 +168,9 @@
 // TODO: Spaghetti code!!!
 // MIOPEN_USE_AMDGCN may be defined before this header.
 #ifndef MIOPEN_USE_AMDGCN
-#if defined(__AMDGCN__) && \
-    !((defined(MIO_BN_GFX103X) && MIO_BN_GFX103X) || (defined(MIO_BN_GFX110X) && MIO_BN_GFX110X))
+#if defined(__AMDGCN__) &&                           \
+    !((defined(MIO_BN_GFX103X) && MIO_BN_GFX103X) || \
+      (defined(MIO_BN_GFX110X) && MIO_BN_GFX110X) || (defined(MIO_BN_GFX120X) && MIO_BN_GFX120X))
 #define MIOPEN_USE_AMDGCN 1
 #else
 #define MIOPEN_USE_AMDGCN 0
@@ -163,6 +200,10 @@
 
 #ifndef MIO_BN_GFX110X
 #define MIO_BN_GFX110X 0
+#endif
+
+#ifndef MIO_BN_GFX120X
+#define MIO_BN_GFX120X 0
 #endif
 
 #define UNUSED __attribute__((__unused__))

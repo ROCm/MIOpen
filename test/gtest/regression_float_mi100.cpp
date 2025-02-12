@@ -31,20 +31,17 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace regression_float_mi100 {
 
 auto GetTestCases()
 {
     // Regression test for SWDEV-305815 (issue 1206)
-    const auto env =
-        std::tuple{std::pair{ENV(MIOPEN_DEBUG_CONV_WINOGRAD), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_FFT), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_DIRECT), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_GEMM), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM), std::string_view("0")},
-                   std::pair{ENV(MIOPEN_LOG_LEVEL), std::string_view("1")}};
+    const auto env = std::tuple{std::pair{MIOPEN_DEBUG_CONV_WINOGRAD, false},
+                                std::pair{MIOPEN_DEBUG_CONV_FFT, false},
+                                std::pair{MIOPEN_DEBUG_CONV_DIRECT, false},
+                                std::pair{MIOPEN_DEBUG_CONV_GEMM, false},
+                                std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM, false},
+                                std::pair{MIOPEN_LOG_LEVEL, 1}};
 
     const std::string v          = " --verbose";
     const std::string dis_fwd    = " --disable-forward";
@@ -59,9 +56,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return miopen::IsDisabled(ENV(MIOPEN_TEST_ALL)); }
-
-class Conv2dFloat_regression_float_mi100 : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2d_regression_mi100_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
@@ -75,11 +70,11 @@ bool IsTestSupportedForDevice()
 } // namespace regression_float_mi100
 using namespace regression_float_mi100;
 
-TEST_P(Conv2dFloat_regression_float_mi100, FloatTest)
+TEST_P(GPU_Conv2d_regression_mi100_FP32, FloatTest)
 {
-    if(IsTestSupportedForDevice() && !SkipTest())
+    if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloat_regression_float_mi100>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2d_regression_mi100_FP32>(default_check);
     }
     else
     {
@@ -87,6 +82,4 @@ TEST_P(Conv2dFloat_regression_float_mi100, FloatTest)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(RegressionMi100,
-                         Conv2dFloat_regression_float_mi100,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2d_regression_mi100_FP32, testing::Values(GetTestCases()));

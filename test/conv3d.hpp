@@ -56,5 +56,11 @@ struct conv3d_driver : conv_driver<T>
         this->add(this->in_layout, "in_layout", this->generate_data({"NCDHW"}));
         this->add(this->fil_layout, "fil_layout", this->generate_data({"NCDHW"}));
         this->add(this->out_layout, "out_layout", this->generate_data({"NCDHW"}));
+        this->add(this->deterministic, "deterministic", this->generate_data({false}));
+        this->add(this->tensor_vect, "tensor_vect", this->generate_data({0}));
+        this->add(this->vector_length, "vector_length", this->generate_data({1}));
+        // Only valid for int8 input and weights
+        this->add(this->output_type, "output_type", this->generate_data({"int32"}));
+        this->add(this->int8_vectorize, "int8_vectorize", this->generate_data({false}));
     }
 };
