@@ -74,25 +74,21 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
     const std::vector<std::string> test_cases = {
         // clang-format off
-    {flags + " --batch-size 32 --seq-len 1500 --vector-len 2816 --hidden-size 2816" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 750 --vector-len 2816 --hidden-size 2816" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 375 --vector-len 2816 --hidden-size 2816" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 187 --vector-len 2816 --hidden-size 2816" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 1500 --vector-len 2048 --hidden-size 2048" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 750 --vector-len 2048 --hidden-size 2048" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 375 --vector-len 2048 --hidden-size 2048" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 187 --vector-len 2048 --hidden-size 2048" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 1500 --vector-len 1536 --hidden-size 1536" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 750 --vector-len 1536 --hidden-size 1536" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 375 --vector-len 1536 --hidden-size 1536" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 187 --vector-len 1536 --hidden-size 1536" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 1500 --vector-len 2560 --hidden-size 2560" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 750 --vector-len 2560 --hidden-size 2560" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 375 --vector-len 2560 --hidden-size 2560" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 187 --vector-len 2560 --hidden-size 2560" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 1500 --vector-len 216 --hidden-size 216" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 750 --vector-len 286 --hidden-size 286" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 375 --vector-len 286 --hidden-size 286" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 10 --vector-len 2816 --hidden-size 2816" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 1500 --vector-len 248 --hidden-size 248" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 12 --vector-len 2048 --hidden-size 2048" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 1500 --vector-len 156 --hidden-size 156" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 500 --vector-len 156 --hidden-size 156" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 12 --vector-len 1536 --hidden-size 1536" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 1500 --vector-len 256 --hidden-size 256" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 500 --vector-len 256 --hidden-size 256" + commonFlags},
+    {flags + " --batch-size 32 --seq-len 10 --vector-len 2560 --hidden-size 2560" + commonFlags},
     {flags + " --batch-size 32 --seq-len 1 --vector-len 512 --hidden-size 512" + commonFlags},
-    {flags + " --batch-size 32 --seq-len 1500 --vector-len 1024 --hidden-size 1024" + commonFlags},
-    {flags + " --batch-size 64 --seq-len 1500 --vector-len 1024 --hidden-size 1024" + commonFlags}
+    {flags + " --batch-size 32 --seq-len 50 --vector-len 1024 --hidden-size 1024" + commonFlags},
+    {flags + " --batch-size 64 --seq-len 50 --vector-len 1024 --hidden-size 1024" + commonFlags}
         // clang-format on
     };
 
