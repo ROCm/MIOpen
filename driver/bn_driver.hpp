@@ -187,6 +187,16 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::ParseCmdLineArgs(int 
     return miopenStatusSuccess;
 }
 
+// initializes with  of -ve and +ve value
+template <typename T, typename ScaleT, typename RangeT>
+auto uniform_signed_initializer(ScaleT scale_arg, RangeT range_arg)
+{
+    return [=]() -> T {
+        // uniform sign give balance of both negative and positive values
+        return prng::gen_descreet_uniform_sign<T>(scale_arg, range_arg);
+    };
+}
+
 template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
 int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
 {
@@ -195,10 +205,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
     SetBNParametersFromCmdLineArgs();
 
     in.AllocOnHost(tensor<TInput>{bn_layout, in_len});
-    // 0.0 to 2.0 (since unsigned)
-    in.GetTensor().generate([](auto...) {
-        return prng::gen_descreet_unsigned<TInput>(2e-3 /*scale*/, 1000 /*range*/);
-    });
+    // -2.0 to 2.0
+    in.GetTensor().generate(uniform_signed_initializer<TInput>(2e-3 /*scale*/, 1000 /*range*/));
 
     auto derivedBnDesc = miopen::TensorDescriptor{};
     miopen::DeriveBNTensorDescriptor(derivedBnDesc, in.GetTensor().desc, bn_mode);
@@ -209,24 +217,22 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         scale.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
         bias.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
         // -2.0 to 2.0
-        scale.GetTensor().generate([](auto...) {
-            return prng::gen_descreet_uniform_sign<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/);
-        });
-        bias.GetTensor().generate([](auto...) {
-            return prng::gen_descreet_uniform_sign<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/);
-        });
+        scale.GetTensor().generate(
+            uniform_signed_initializer<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/));
+        bias.GetTensor().generate(
+            uniform_signed_initializer<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/));
     }
     if(isFwdInfer)
     {
         estMean.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
         estVariance.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
 
-        // 0.0 to 1.0
-        estMean.InitHostData(estMean.GetTensor().desc.GetElementSize(), true, [](auto...) {
-            return prng::gen_descreet_uniform_sign<TAcc>(2e-3 /*scale*/, 1000 /*range*/);
-        });
+        // -2.0 to 2.0
+        estMean.InitHostData(estMean.GetTensor().desc.GetElementSize(),
+                             true,
+                             uniform_signed_initializer<TAcc>(2e-3 /*scale*/, 1000 /*range*/));
         estVariance.GetTensor().generate(
-            [](auto...) { return static_cast<TAcc>(2e-3 * (prng::gen_0_to_B(1000) + 1)); });
+            uniform_signed_initializer<TAcc>(2e-3 /*scale*/, 1000 /*range*/));
     }
     else if(isFwdTrain)
     {
@@ -236,12 +242,10 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         runVariance.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
 
         // -2.0 to 2.0
-        runMean.GetTensor().generate([](auto...) {
-            return prng::gen_descreet_uniform_sign<TAcc>(2e-3 /*scale*/, 1000 /*range*/);
-        });
-        runVariance.GetTensor().generate([](auto...) {
-            return prng::gen_descreet_uniform_sign<TAcc>(2e-3 /*scale*/, 1000 /*range*/);
-        });
+        runMean.GetTensor().generate(
+            uniform_signed_initializer<TAcc>(2e-3 /*scale*/, 1000 /*range*/));
+        runVariance.GetTensor().generate(
+            uniform_signed_initializer<TAcc>(2e-3 /*scale*/, 1000 /*range*/));
     }
     else if(isBwd)
     {
@@ -250,26 +254,26 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         bnScale.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
         dy.AllocOnHost(tensor<TOut>{bn_layout, in_len});
         // -2.0 to 2.0
-        dy.InitHostData(dy.GetTensor().desc.GetElementSize(), true, [](auto...) {
-            return prng::gen_descreet_uniform_sign<TOut>(2e-3, 1000);
-        });
+        dy.InitHostData(dy.GetTensor().desc.GetElementSize(),
+                        true,
+                        uniform_signed_initializer<TOut>(2e-3 /*scale*/, 1000 /*range*/));
 
         dScale.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
         dBias.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
         savedMean.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
         savedInvVar.AllocOnHost(tensor<TAcc>{bn_layout, derivedBnDesc.GetLengths()});
 
-        auto gen_value_bnScale = [](auto...) {
-            return prng::gen_descreet_uniform_sign<TScaleBias>(2e-3, 1000);
-        };
-        bnScale.InitHostData(bnScale.GetTensor().desc.GetElementSize(), true, gen_value_bnScale);
+        bnScale.InitHostData(
+            bnScale.GetTensor().desc.GetElementSize(),
+            true,
+            uniform_signed_initializer<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/));
         // -2.0 to 2.0
-        savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(), true, [](auto...) {
-            return prng::gen_descreet_uniform_sign<TAcc>(2e-3, 1000);
-        });
-        savedInvVar.InitHostData(savedInvVar.GetTensor().desc.GetElementSize(), true, [](auto...) {
-            return prng::gen_descreet_uniform_sign<TAcc>(2e-3, 1000);
-        });
+        savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(),
+                               true,
+                               uniform_signed_initializer<TAcc>(2e-3 /*scale*/, 1000 /*range*/));
+        savedInvVar.InitHostData(savedInvVar.GetTensor().desc.GetElementSize(),
+                                 true,
+                                 uniform_signed_initializer<TAcc>(2e-3 /*scale*/, 1000 /*range*/));
     }
     else
     {
