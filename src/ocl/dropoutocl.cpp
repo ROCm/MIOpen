@@ -240,10 +240,10 @@ void DropoutDescriptor::Dropout(const Handle& handle,
     }
 
     // support up to 5D tensor
-    miopen::InlineVector<std::size_t, 5> in_len{1, 1, 1, 1, 1};
-    miopen::InlineVector<std::size_t, 5> in_str{1, 1, 1, 1, 1};
-    miopen::InlineVector<std::size_t, 5> out_len{1, 1, 1, 1, 1};
-    miopen::InlineVector<std::size_t, 5> out_str{1, 1, 1, 1, 1};
+    miopen::InlineVector<std::size_t, 5> in_len(5, 1);
+    miopen::InlineVector<std::size_t, 5> in_str(5, 1);
+    miopen::InlineVector<std::size_t, 5> out_len(5, 1);
+    miopen::InlineVector<std::size_t, 5> out_str(5, 1);
 
     SquashPairedTensor(xDesc.GetLengths(),
                        xDesc.GetStrides(),

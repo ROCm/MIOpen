@@ -331,14 +331,21 @@ private:
 template <typename T, std::size_t N>
 std::ostream& operator<<(std::ostream& os, const InlineVector<T, N>& iv)
 {
-    // TODO: check if this function is correct
-    os << "{";
-    for(int i = 0; i < iv.size() - 1; i++)
+    if(iv.empty())
     {
-        os << iv[i] << ", ";
+        os << "{}";
     }
-    os << iv.back();
-    os << "}";
+    else
+    {
+        os << "{";
+        for(int i = 0; i < iv.size() - 1; i++)
+        {
+            os << iv[i] << ", ";
+        }
+        os << iv.back();
+        os << "}";
+    }
+
     return os;
 }
 

@@ -1459,7 +1459,7 @@ std::vector<T> verify_backward_weights_lstm<T>::gpu() const
     auto dweights_dev = handle.Write(dweights);
     miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, {weightSize});
 
-    miopen::InlineVector<int, 5> hlens(1, 0);
+    miopen::InlineVector<int, 5> hlens(3, 0);
     hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
     hlens[1] = batch_seq[0];
     hlens[2] = hiddenSize;

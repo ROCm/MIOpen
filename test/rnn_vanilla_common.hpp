@@ -2017,7 +2017,7 @@ struct verify_backward_data_rnn
         auto weights_dev = handle.Write(weights);
         // auto hx_dev           = handle.Write(initHidden);
 
-        miopen::InlineVector<int, 5> hlens(1, 0);
+        miopen::InlineVector<int, 5> hlens(3, 0);
         hlens[0] = nLayers * ((dirMode != 0) ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
