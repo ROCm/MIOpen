@@ -63,7 +63,9 @@ extern "C" __global__ void NormalizeReduceContiguous(const FLOAT* __restrict__ i
 
 __device__ HIP_FLOAT custom_pow(HIP_FLOAT x, HIP_FLOAT y)
 {
-    if(y == __float2T(1.0f))
+    if(y == __float2T(0.0f))
+        return __float2T(1.0f);
+    else if(y == __float2T(1.0f))
         return x;
     else if(y == __float2T(2.0f))
         return x * x;

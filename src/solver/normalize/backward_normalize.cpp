@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
 #include "miopen/mlo_internal.hpp"
 #include "miopen/tensor.hpp"
 #include <miopen/datatype.hpp>

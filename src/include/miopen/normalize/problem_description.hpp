@@ -96,9 +96,6 @@ struct BackwardProblemDescription : ProblemDescriptionBase
                          "NormalizeBackward: Dim need to be less than the number of dimensions of "
                          "input tensor.");
         }
-        last_dim    = (dim + 1) == inputDesc.GetNumDims();
-        is_all_cont = inputDesc.IsContiguous() && divisorDesc.IsContiguous() &&
-                      outputGradDesc.IsContiguous() && inputGradDesc.IsContiguous();
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
@@ -106,9 +103,13 @@ struct BackwardProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
     uint32_t GetDim() const { return dim; }
-    bool IsLastDim() const { return last_dim; }
+    bool IsLastDim() const { return (dim + 1) == inputDesc.GetNumDims(); }
     auto GetInnerSize() const { return inputDesc.GetLengths()[dim]; }
-    bool IsAllContiguous() const { return is_all_cont; }
+    bool IsAllContiguous() const
+    {
+        return inputDesc.IsContiguous() && divisorDesc.IsContiguous() &&
+               outputGradDesc.IsContiguous() && inputGradDesc.IsContiguous();
+    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -118,10 +119,6 @@ private:
     TensorDescriptor outputGradDesc;
     TensorDescriptor inputGradDesc;
     uint32_t dim;
-    // Is dim the last dimension of inputDesc?
-    bool last_dim;
-    // Is all tensor contiguous?
-    bool is_all_cont;
 };
 
 } // namespace normalize

@@ -40,13 +40,13 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloSoftMarginLossForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                                        miopenTensorDescriptor_t targetDesc,
-                                        miopenTensorDescriptor_t outputDesc,
-                                        Tgpu* input,
-                                        Tgpu* target,
+int32_t mloSoftMarginLossForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                        const miopenTensorDescriptor_t targetDesc,
+                                        const miopenTensorDescriptor_t outputDesc,
+                                        const Tgpu* input,
+                                        const Tgpu* target,
                                         Tcheck* outputhost,
-                                        miopenLossReductionMode_t reduction_mode)
+                                        const miopenLossReductionMode_t reduction_mode)
 {
     auto input_numel = miopen::deref(inputDesc).GetElementSize();
     auto i_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
@@ -76,15 +76,15 @@ int32_t mloSoftMarginLossForwardRunHost(miopenTensorDescriptor_t inputDesc,
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloSoftMarginLossBackwardRunHost(miopenTensorDescriptor_t inputDesc,
-                                         miopenTensorDescriptor_t targetDesc,
-                                         miopenTensorDescriptor_t dODesc,
-                                         miopenTensorDescriptor_t dIDesc,
-                                         Tgpu* input,
-                                         Tgpu* target,
-                                         Tgpu* dO,
+int32_t mloSoftMarginLossBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                         const miopenTensorDescriptor_t targetDesc,
+                                         const miopenTensorDescriptor_t dODesc,
+                                         const miopenTensorDescriptor_t dIDesc,
+                                         const Tgpu* input,
+                                         const Tgpu* target,
+                                         const Tgpu* dO,
                                          Tcheck* dIhost,
-                                         miopenLossReductionMode_t reduction_mode)
+                                         const miopenLossReductionMode_t reduction_mode)
 {
     auto input_numel = miopen::deref(inputDesc).GetElementSize();
     auto i_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));

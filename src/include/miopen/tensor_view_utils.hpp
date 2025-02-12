@@ -107,7 +107,7 @@ tensor_view_t<N> move_dims_back(const tensor_view_t<N>& input_tv, uint32_t dim)
 {
     tensor_view_t<N> res{};
     int cnt = 0;
-    for(int i = 0; i < N; ++i)
+    for(uint32_t i = 0; i < N; ++i)
         if(i != dim)
         {
             res.size[cnt]     = input_tv.size[i];

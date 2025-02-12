@@ -32,9 +32,9 @@
 #include "../src/include/miopen/tensor_view_utils.hpp"
 
 template <class T>
-void cpu_normalize_backward(tensor<T> input,
-                            tensor<T> divisor,
-                            tensor<T> output_grad,
+void cpu_normalize_backward(const tensor<T> input,
+                            const tensor<T> divisor,
+                            const tensor<T> output_grad,
                             tensor<T>& input_grad,
                             tensor<float>& reduce,
                             const float p,
@@ -91,7 +91,7 @@ void cpu_normalize_backward(tensor<T> input,
 
 template <class T>
 void cpu_norm_forward(
-    tensor<T> input, tensor<T>& divisor, const float p, const float eps, const uint32_t dim)
+    const tensor<T> input, tensor<T>& divisor, const float p, const float eps, const uint32_t dim)
 {
     auto input_numel          = input.desc.GetElementSize();
     auto inner_size           = input.desc.GetLengths()[dim];
@@ -113,6 +113,6 @@ void cpu_norm_forward(
         }
         tensor_layout_t<5> idx(transpose_divisor_tv, outer);
         divisor[transpose_divisor_tv.get_tensor_view_idx(idx)] =
-            std::max(eps, (float)pow(norm, 1.0f / p));
+            std::max(eps, std::pow(norm, 1.0f / p));
     }
 }

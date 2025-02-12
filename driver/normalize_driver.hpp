@@ -27,6 +27,7 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "miopen/errors.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "random.hpp"
@@ -42,13 +43,13 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <typename Tgpu>
-int32_t mloNormForward(miopenTensorDescriptor_t inputDesc,
-                       miopenTensorDescriptor_t divisorDesc,
-                       Tgpu* input,
+int32_t mloNormForward(const miopenTensorDescriptor_t inputDesc,
+                       const miopenTensorDescriptor_t divisorDesc,
+                       const Tgpu* input,
                        Tgpu* divisor,
-                       float p,
-                       float eps,
-                       int32_t dim)
+                       const float p,
+                       const float eps,
+                       const int32_t dim)
 {
     auto input_numel          = miopen::deref(inputDesc).GetElementSize();
     auto inner_size           = miopen::deref(inputDesc).GetLengths()[dim];
@@ -69,26 +70,25 @@ int32_t mloNormForward(miopenTensorDescriptor_t inputDesc,
             norm += std::pow(abs(i), p);
         }
         tensor_layout_t<5> idx(transpose_divisor_tv, outer);
-        divisor[transpose_divisor_tv.get_tensor_view_idx(idx)] =
-            std::max(eps, (float)pow(norm, 1.0f / p));
+        divisor[transpose_divisor_tv.get_tensor_view_idx(idx)] = std::max(eps, pow(norm, 1.0f / p));
     }
     return miopenStatusSuccess;
 };
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloNormalizeBackwardRunHost(miopenTensorDescriptor_t inputDesc,
-                                    miopenTensorDescriptor_t divisorDesc,
-                                    miopenTensorDescriptor_t outputGradDesc,
-                                    miopenTensorDescriptor_t inputGradDesc,
-                                    miopenTensorDescriptor_t reduceDesc,
-                                    Tgpu* input,
-                                    Tgpu* divisor,
-                                    Tgpu* output_grad,
+int32_t mloNormalizeBackwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                    const miopenTensorDescriptor_t divisorDesc,
+                                    const miopenTensorDescriptor_t outputGradDesc,
+                                    const miopenTensorDescriptor_t inputGradDesc,
+                                    const miopenTensorDescriptor_t reduceDesc,
+                                    const Tgpu* input,
+                                    const Tgpu* divisor,
+                                    const Tgpu* output_grad,
                                     Tcheck* input_grad,
                                     Tcheck* reduce,
-                                    float p,
-                                    float eps,
-                                    int32_t dim)
+                                    const float p,
+                                    const float eps,
+                                    const int32_t dim)
 {
     // Calculate reduce tensor
     auto input_numel              = miopen::deref(inputDesc).GetElementSize();
@@ -260,9 +260,11 @@ int NormalizeDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> in_len = inflags.GetValueTensor("shape").lengths;
     std::vector<int> div_len(in_len);
     div_len[reduce_dim] = 1;
+
     if(inflags.GetValueInt("contiguous") == 1)
     {
-        SetTensorNd(inputDesc, in_len, data_type);
+        if(SetTensorNd(inputDesc, in_len, data_type) != miopenStatusSuccess)
+            MIOPEN_THROW("SetTensorNd: Invalid input tensor shape.");
     }
     else
     {
@@ -271,12 +273,18 @@ int NormalizeDriver<Tgpu, Tref>::GetandSetData()
         for(int i = in_len.size() - 2; i >= 0; --i)
             in_strides[i] = in_strides[i + 1] * in_len[i + 1];
         in_strides[0] *= 2;
-        SetTensorNd(inputDesc, in_len, in_strides, data_type);
+        if(SetTensorNd(inputDesc, in_len, in_strides, data_type) != miopenStatusSuccess)
+            MIOPEN_THROW("SetTensorNd: Invalid input tensor shape or stride.");
     }
-    SetTensorNd(divisorDesc, div_len, data_type);
-    SetTensorNd(outputGradDesc, in_len, data_type);
-    SetTensorNd(inputGradDesc, in_len, data_type);
-    SetTensorNd(reduceDesc, div_len, miopen_type<Tref>{});
+    if(SetTensorNd(divisorDesc, div_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("SetTensorNd: Invalid divisor tensor shape.");
+    if(SetTensorNd(outputGradDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("SetTensorNd: Invalid output gradient tensor shape.");
+    ;
+    if(SetTensorNd(inputGradDesc, in_len, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("SetTensorNd: Invalid input gradient tensor shape.");
+    if(SetTensorNd(reduceDesc, div_len, miopen_type<Tref>{}) != miopenStatusSuccess)
+        MIOPEN_THROW("SetTensorNd: Invalid reduce tensor shape.");
     return miopenStatusSuccess;
 }
 
@@ -294,27 +302,36 @@ int NormalizeDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     input           = std::vector<Tgpu>(i_sz);
     divisor         = std::vector<Tgpu>(d_sz);
     output_grad     = std::vector<Tgpu>(o_sz);
-    for(int i = 0; i < i_sz; i++)
+    for(size_t i = 0; i < i_sz; i++)
     {
         input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1), static_cast<Tgpu>(1));
     }
     // Generate divisor tensor
     mloNormForward<Tgpu>(inputDesc, divisorDesc, input.data(), divisor.data(), p, eps, reduce_dim);
-    for(int i = 0; i < o_sz; i++)
+    for(size_t i = 0; i < o_sz; i++)
     {
         output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1), static_cast<Tgpu>(1));
     }
 
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
+    {
         std::cerr << "Error copying (input) to GPU, size: " << input_dev->GetSize() << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(divisor_dev->ToGPU(GetStream(), divisor.data()) != 0)
+    {
         std::cerr << "Error copying (divisor) to GPU, size: " << divisor_dev->GetSize()
                   << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     if(output_grad_dev->ToGPU(GetStream(), output_grad.data()) != 0)
+    {
         std::cerr << "Error copying (output_grad) to GPU, size: " << output_grad_dev->GetSize()
                   << std::endl;
+        return miopenStatusAllocFailed;
+    }
 
     miopenGetNormalizeBackwardWorkspaceSize(GetHandle(),
                                             inputDesc,
@@ -389,8 +406,11 @@ int NormalizeDriver<Tgpu, Tref>::RunBackwardGPU()
     }
 
     if(input_grad_dev->FromGPU(GetStream(), input_grad.data()) != 0)
+    {
         std::cerr << "Error copying (input_grad) from GPU, size: " << input_grad_dev->GetSize()
                   << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -442,7 +462,7 @@ int NormalizeDriver<Tgpu, Tref>::VerifyBackward()
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Backward Normalize FAILED: " << error << " > " << tolerance << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {
