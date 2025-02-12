@@ -84,8 +84,8 @@ TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor&
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
-    // NxCxDxHxW -> NxCx(D*H)xW
-    // NxDxHxWxC -> Nx(D*H)xWxC
+    // Both NCDHW and NDHWC layout store the lens in NCHDW form
+    // hence : NxCxDxHxW -> NxCx(D*H)xW
     dims[2] *= dims[3];
     dims[3] = dims[4];
     dims.pop_back();
