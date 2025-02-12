@@ -24,29 +24,29 @@
  *
  *******************************************************************************/
 
-.macro PROLOG_KERNEL_DESCRIPTOR arg_kernel_name:req
+.macro PROLOG_KERNEL_DESCRIPTOR kernel_name:req
 .text
-.globl \arg_kernel_name
+.globl \kernel_name
 .p2align 8
-.type \arg_kernel_name,@function
-\arg_kernel_name:
+.type \kernel_name,@function
+\kernel_name:
 .endm
 
-.macro METADATA arg_sc:req, arg_wc:req, arg_wg_x:req, arg_kernel_name:req
+.macro METADATA sc:req, wc:req, wg_x:req, kernel_name:req
 .amdgpu_metadata
 ---
 amdhsa.version: [ 1, 2 ]
 amdhsa.kernels:
-  - .name: \arg_kernel_name
-    .symbol: \arg_kernel_name\().kd
-    .sgpr_count: \arg_sc
-    .vgpr_count: \arg_wc // Unused in the kernel descriptor
+  - .name: \kernel_name
+    .symbol: \kernel_name\().kd
+    .sgpr_count: \sc
+    .vgpr_count: \wc // Unused in the kernel descriptor
     .group_segment_fixed_size: 65536
     .private_segment_fixed_size: 0
     .kernarg_segment_size: 232
     .kernarg_segment_align: 8
-    .reqd_workgroup_size: [ \arg_wg_x, 1, 1 ]
-    .max_flat_workgroup_size: \arg_wg_x
+    .reqd_workgroup_size: [ \wg_x, 1, 1 ]
+    .max_flat_workgroup_size: \wg_x
     .wavefront_size: 64
     .workgroup_processor_mode: 0
     .args:
@@ -116,18 +116,18 @@ amdhsa.kernels:
 .endm // METADATA
 
 .altmacro
-.macro METADATA_WRAPPER arg_sc:req, arg_wc:req, arg_wg_x:req, arg_kernel_name:req
-    METADATA %\arg_sc, %\arg_wc, %\arg_wg_x, \arg_kernel_name
+.macro METADATA_WRAPPER sc:req, wc:req, wg_x:req, kernel_name:req
+    METADATA %\sc, %\wc, %\wg_x, \kernel_name
 .endm
 
-.macro kernel_end arg_kernel_name:req
+.macro kernel_end kernel_name:req
 .Lfunc_end0:
-   .size \arg_kernel_name, .Lfunc_end0 - \arg_kernel_name
+   .size \kernel_name, .Lfunc_end0 - \kernel_name
 .endm
 
-.macro EPILOG_KERNEL_DESCRIPTOR arg_kernel_name:req
+.macro EPILOG_KERNEL_DESCRIPTOR kernel_name:req
 
-kernel_end \arg_kernel_name
+kernel_end \kernel_name
 
 .if (.amdgcn.gfx_generation_number == 11)
     .if ((.amdgcn.gfx_generation_minor == 0 && (.amdgcn.gfx_generation_stepping == 0 || .amdgcn.gfx_generation_stepping == 1)) || (.amdgcn.gfx_generation_minor == 5 && .amdgcn.gfx_generation_stepping == 1))
@@ -153,7 +153,7 @@ __dx10_clamp = 0
 .rodata
 .p2align 6
 .if (.amdgcn.gfx_generation_number == 11)
-.amdhsa_kernel \arg_kernel_name
+.amdhsa_kernel \kernel_name
     .amdhsa_group_segment_fixed_size         __group_segment_fixed_size
     .amdhsa_user_sgpr_dispatch_ptr           __sgpr_dispatch_ptr // s[0:1]
     .amdhsa_user_sgpr_kernarg_segment_ptr    __sgpr_kernarg_segment_ptr // s[2:3]
@@ -166,24 +166,24 @@ __dx10_clamp = 0
 .end_amdhsa_kernel
 .endif
 
-METADATA_WRAPPER sgpr_cnt, 0, workgroup_size_x, <\arg_kernel_name>
+METADATA_WRAPPER sgpr_cnt, 0, workgroup_size_x, <\kernel_name>
 
 .endm
 
-.macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER arg_machine_version:req, arg_kernel_name_postfix:req
-    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_4_1_gfx\arg_machine_version\()\arg_kernel_name_postfix
+.macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version:req, kernel_name_postfix:req
+    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_4_1_gfx\machine_version\()\kernel_name_postfix
 .endm
 
-.macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER arg_machine_version:req, arg_kernel_name_postfix:req
-    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_4_1_gfx\arg_machine_version\()\arg_kernel_name_postfix
+.macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER machine_version:req, kernel_name_postfix:req
+    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConvFury_v2_4_1_gfx\machine_version\()\kernel_name_postfix
 .endm
 
-.macro KERNEL_PROLOG arg_kernel_name_postfix:req
-	PROLOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \arg_kernel_name_postfix
+.macro KERNEL_PROLOG kernel_name_postfix:req
+	PROLOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
 .endm
 
-.macro KERNEL_EPILOG arg_kernel_name_postfix:req
-	EPILOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \arg_kernel_name_postfix
+.macro KERNEL_EPILOG kernel_name_postfix:req
+	EPILOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
 .endm
 
 .if (.amdgcn.gfx_generation_number != 11)
