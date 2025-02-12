@@ -255,21 +255,21 @@ lds_buf_size = xformy_d_size * lds_hstride
 .GPR_ALLOC_END
 
 
-.macro kernel_begin arg_x_o_size, arg_y_o_size, arg_x_f_size, arg_y_f_size
+.macro kernel_begin  x_o_size, y_o_size, x_f_size, y_f_size
     .if xform_filter
-        .globl miopenGcnAsmWinogradXformFilter_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size
-        .type miopenGcnAsmWinogradXformFilter_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size,@function
+        .globl miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+        .type miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size,@function
         .if ROCM_METADATA_VERSION == 4
-            .amdgpu_hsa_kernel miopenGcnAsmWinogradXformFilter_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size
+            .amdgpu_hsa_kernel miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
         .endif
-        miopenGcnAsmWinogradXformFilter_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size:
+        miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size:
     .else
-        .globl miopenGcnAsmWinogradXformData_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size
-        .type miopenGcnAsmWinogradXformData_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size,@function
+        .globl miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
+        .type miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size,@function
         .if ROCM_METADATA_VERSION == 4
-            .amdgpu_hsa_kernel miopenGcnAsmWinogradXformData_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size
+            .amdgpu_hsa_kernel miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
         .endif
-        miopenGcnAsmWinogradXformData_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size:
+        miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size:
     .endif
 .endm
 
@@ -389,32 +389,32 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
     disable_srd o_desc
     s_branch loop_entrance
 
-    .macro data_convert arg_base_gpr, arg_reg_cnt, arg_vtmp, arg_s2_temp, arg_dst_type, arg_src_type
-        i_\@ = \arg_base_gpr
-        .rept \arg_reg_cnt
-            .if(\arg_dst_type != \arg_src_type)
-                v_reg_data_type_convert v[i_\@], \arg_dst_type, v[i_\@], \arg_src_type, v[\arg_vtmp], s[\arg_s2_temp:\arg_s2_temp+1]
+    .macro data_convert base_gpr, reg_cnt, vtmp, s2_temp, dst_type, src_type
+        i_\@ = \base_gpr
+        .rept \reg_cnt
+            .if(\dst_type != \src_type)
+                v_reg_data_type_convert v[i_\@], \dst_type, v[i_\@], \src_type, v[\vtmp], s[\s2_temp:\s2_temp+1]
             .endif
             i_\@ = i_\@ + 1
         .endr
     .endm
 
-    .macro winograd_xform arg_o_size, arg_f_size, arg_d_size, arg_fdil, arg_base_gpr, arg_vtmp
+    .macro winograd_xform o_size, f_size, d_size, fdil, base_gpr, vtmp
         .irp i,0,1,2,3,4,5,6,7,8,9,10,11,12
-            .if \i < (\arg_d_size)
-                d\i = \arg_base_gpr + \i
+            .if \i < (\d_size)
+                d\i = \base_gpr + \i
             .endif
             .if \i < vtmp_size
-                t\i = \arg_vtmp + \i
+                t\i = \vtmp + \i
             .endif
         .endr
         .if xform_filter
-            .if \arg_o_size == 3 && \arg_f_size == 2 && \arg_fdil == 1
+            .if \o_size == 3 && \f_size == 2 && \fdil == 1
                 v_mov_b32 v[d3], v[d1]
                 v_sub_f32 v[d2], v[d0], v[d1] div:2
                 v_add_f32 v[d1], v[d0], v[d1] div:2
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 3 && \arg_fdil == 1
+            .elseif \o_size == 3 && \f_size == 3 && \fdil == 1
                 v_mov_b32 v[d4], v[d2]
                 v_fma_f32 v[d3], 2.0, v[d1], v[d0]
                 v_mac_f32 v[d3], 4.0, v[d2]
@@ -426,7 +426,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d1], v[d1], v[t0]
                 v_mul_f32 v[d1], -0.5, v[d1]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 4 && \arg_fdil == 1
+            .elseif \o_size == 3 && \f_size == 4 && \fdil == 1
                     v_fma_f32 v[t0], 4.0, v[d2], v[d0]
                     v_fma_f32 v[t1], 4.0, v[d3], v[d1]
                     v_add_f32 v[d4], v[d0], v[d2]
@@ -442,7 +442,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                     v_mul_f32 v[d3], 0.04166666667, v[d3] // 1/24
                     v_mul_f32 v[d4], 0.04166666667, v[d4] // 1/24
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 5 && \arg_fdil == 1
+            .elseif \o_size == 3 && \f_size == 5 && \fdil == 1
                 v_mov_b32 v[d6], v[d4] //d[6]
 
                 v_mul_f32 v[d5], 2.0, v[d4]
@@ -477,7 +477,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_sub_f32 v[d4], v[t3], v[t2]
                 v_mul_f32 v[d4], 0.01666666667, v[d4]     //d[4]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 6 && \arg_fdil == 1
+            .elseif \o_size == 3 && \f_size == 6 && \fdil == 1
                 v_mov_b32 v[d7], v[d5]   //d[7]]
                 //------------------------------
                 v_add_f32 v[t0], v[d0], v[d2]
@@ -523,13 +523,13 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_sub_f32 v[d6], v[t4], v[t5]
                 v_mul_f32 v[d6], 0.02222222222, v[d6]  //d[6]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 2 && \arg_fdil == 2
+            .elseif \o_size == 3 && \f_size == 2 && \fdil == 2
                 v_add_f32 v[d2], v[d0], v[d1]
                 v_mov_b32 v[d3], v[d1]
                 v_mov_b32 v[d4], v[d1]
                 v_mov_b32 v[d1], v[d0]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 3 && \arg_fdil == 2
+            .elseif \o_size == 3 && \f_size == 3 && \fdil == 2
                 v_mov_b32 v[d5], v[d2]
                 v_mov_b32 v[d6], v[d2]
                 v_mov_b32 v[d3], v[d1]
@@ -538,7 +538,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_sub_f32 v[d4], v[d2], v[d3] div:2
                 v_add_f32 v[d2], v[d2], v[d3] div:2
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 4 && \arg_fdil == 2
+            .elseif \o_size == 3 && \f_size == 4 && \fdil == 2
                 v_add_f32 v[d6], v[d0], v[d2]
                 v_add_f32 v[d8], v[d1], v[d3]
                 v_mov_b32 v[d7], v[d3]
@@ -556,7 +556,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mac_f32 v[d6], 4.0, v[d7]
                 v_mul_f32 v[d6], 0.33333333333, v[d6] // 2/3
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 5 && \arg_fdil == 2
+            .elseif \o_size == 3 && \f_size == 5 && \fdil == 2
                 v_mov_b32 v[d9], v[d4]
                 v_mov_b32 v[d7], v[d3]
                 v_mov_b32 v[d5], v[d2]
@@ -581,7 +581,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mul_f32 v[d8], -0.083333333333, v[d8] // -1/12
                 v_mul_f32 v[d0], 0.25, v[d1]
                 v_mov_b32 v[d10], v[d9]
-            .elseif \arg_o_size == 3 && \arg_f_size == 6 && \arg_fdil == 2
+            .elseif \o_size == 3 && \f_size == 6 && \fdil == 2
                 v_mov_b32 v[d11], v[d5]
                 v_mov_b32 v[d9], v[d4]
                 v_mov_b32 v[d7], v[d3]
@@ -616,7 +616,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
                 v_mul_f32 v[d0], 0.5, v[d1]
                 v_mov_b32 v[d12], v[d11]
-            .elseif \arg_o_size == 7 && \arg_f_size == 2 && \arg_fdil == 1
+            .elseif \o_size == 7 && \f_size == 2 && \fdil == 1
                 v_mov_b32 v[d5], v[d0]
                 v_mov_b32 v[d4], v[d1]
                 v_mov_b32 v[d8], v[d1]
@@ -628,7 +628,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mul_f32 v[d2], -0.333333333333, v[d7]
                 v_mul_f32 v[d3], 0.333333333333, v[d8]
                 v_mac_f32 v[d3], 0.166666666666, v[d5]
-            .elseif \arg_o_size == 7 && \arg_f_size == 3 && \arg_fdil == 1
+            .elseif \o_size == 7 && \f_size == 3 && \fdil == 1
                 v_mul_f32 v[d9], 0.333333333333, v[d1]
                 v_mov_b32 v[d10], v[d2]
                 v_mov_b32 v[d5], v[d1]
@@ -660,7 +660,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
                 v_mul_f32 v[d6], 0.5, v[d0]
                 v_mul_f32 v[d0], 0.25, v[d0]
-            .elseif \arg_o_size == 5 && \arg_f_size == 3 && \arg_fdil == 1
+            .elseif \o_size == 5 && \f_size == 3 && \fdil == 1
 
                 v_mul_f32 v[d3], 0.0277777778, v[d0]
                 v_mul_f32 v[d4], 0.0555555556, v[d1]
@@ -687,7 +687,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mul_f32 v[d1], -0.333333333333, v[d1]
                 v_mul_f32 v[d0], 0.5, v[d0]
 
-            .elseif \arg_o_size == 5 && \arg_f_size == 4 && \arg_fdil == 1
+            .elseif \o_size == 5 && \f_size == 4 && \fdil == 1
 
                 v_add_f32 v[t0], v[d0], v[d2]
                 v_mul_f32 v[t0], -0.2222222222222, v[t0]
@@ -718,20 +718,20 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d3], v[t2], v[t3]
                 v_sub_f32 v[d2], v[t0], v[t1]
                 v_add_f32 v[d1], v[t0], v[t1]
-            .elseif \arg_o_size == 1 || \arg_f_size == 1
+            .elseif \o_size == 1 || \f_size == 1
                 //nop
             .else
                 static_assert(0)
             .endif
         .else
-            .if \arg_o_size == 3 && \arg_f_size == 2 && \arg_fdil == 1
+            .if \o_size == 3 && \f_size == 2 && \fdil == 1
                 v_sub_f32 v[d0], v[d0], v[d2]
                 v_sub_f32 v[d3], v[d3], v[d1]
                 v_sub_f32 v[t0], v[d2], v[d1]
                 v_add_f32 v[d1], v[d1], v[d2]
                 v_mov_b32 v[d2], v[t0]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 3 && \arg_fdil == 1
+            .elseif \o_size == 3 && \f_size == 3 && \fdil == 1
                 v_sub_f32 v[d0], v[d0], v[d2] mul:2
                 v_sub_f32 v[d4], v[d4], v[d2]
                 v_fma_f32 v[t0], -2.0, v[d1], v[d3]
@@ -743,7 +743,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mul_f32 v[t0], -3.0, v[d2]
                 v_add_f32 v[d2], v[t0], v[t1]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 4 && \arg_fdil == 1
+            .elseif \o_size == 3 && \f_size == 4 && \fdil == 1
                 v_fma_f32 v[d0], 4.0, v[d0], v[d4]
                 v_mac_f32 v[d0], -5.0, v[d2]
                 v_fma_f32 v[d5], 4.0, v[d1], v[d5]
@@ -759,7 +759,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d3], v[t1], v[t0]
                 v_sub_f32 v[d4], v[t1], v[t0]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 5 && \arg_fdil == 1
+            .elseif \o_size == 3 && \f_size == 5 && \fdil == 1
                 v_sub_f32 v[t0], v[d4], v[d2]  //f
 
                 v_mul_f32 v[d0], 2.0, v[d0]
@@ -817,7 +817,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mov_b32 v[d1], v[t1] //d[1]
                 v_mov_b32 v[d3], v[t2] //d[3]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 6 && \arg_fdil == 1
+            .elseif \o_size == 3 && \f_size == 6 && \fdil == 1
 
                 v_sub_f32 v[t0], v[d4], v[d2]
                 v_mul_f32 v[t0], 5.25, v[t0]
@@ -863,18 +863,18 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d5], v[t6], v[t5]
                 v_sub_f32 v[d6], v[t6], v[t5]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 2 && \arg_fdil == 2
+            .elseif \o_size == 3 && \f_size == 2 && \fdil == 2
                 v_sub_f32 v[d0], v[d0], v[d2]
                 v_sub_f32 v[d4], v[d4], v[d2]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 3 && \arg_fdil == 2
+            .elseif \o_size == 3 && \f_size == 3 && \fdil == 2
                 v_sub_f32 v[d0], v[d0], v[d4]
                 v_sub_f32 v[d6], v[d6], v[d2]
                 v_add_f32 v[t0], v[d2], v[d4]
                 v_sub_f32 v[d4], v[d4], v[d2]
                 v_mov_b32 v[d2], v[t0]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 4 && \arg_fdil == 2
+            .elseif \o_size == 3 && \f_size == 4 && \fdil == 2
                 v_sub_f32 v[d0], v[d0], v[d4]
                 v_sub_f32 v[d8], v[d8], v[d4]
                 v_fma_f32 v[t0],-2.0, v[d2], v[d6]
@@ -886,7 +886,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_mul_f32 v[d4], -3.0, v[d4]
                 v_add_f32 v[d4], v[d4], v[t1]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 5 && \arg_fdil == 2
+            .elseif \o_size == 3 && \f_size == 5 && \fdil == 2
                 v_fma_f32 v[d0],  4.0, v[d0], v[d8]
                 v_mac_f32 v[d0], -5.0, v[d4]
                 v_mac_f32 v[d10], 4.0, v[d2]
@@ -902,7 +902,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_fma_f32 v[d2], -4.0, v[t2], v[t0]
                 v_fma_f32 v[d4],  4.0, v[t3], v[t1]
 
-            .elseif \arg_o_size == 3 && \arg_f_size == 6 && \arg_fdil == 2
+            .elseif \o_size == 3 && \f_size == 6 && \fdil == 2
                 v_mac_f32 v[d12],  4.0, v[d4]
                 v_mac_f32 v[d12], -5.0, v[d8]
                 v_mul_f32 v[d0],   2.0, v[d0]
@@ -937,7 +937,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d4], v[t1], v[d4]
                 v_fma_f32 v[d2], 2.0, v[d2], v[t0]
 
-            .elseif \arg_o_size == 7 && \arg_f_size == 2 && \arg_fdil == 1
+            .elseif \o_size == 7 && \f_size == 2 && \fdil == 1
                 v_sub_f32 v[d8], v[d7], v[d5]
                 v_sub_f32 v[d7], v[d6], v[d5]
                 v_add_f32 v[t0], v[d6], v[d5]
@@ -954,7 +954,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_sub_f32 v[d1], v[t0], v[d2]
                 v_mul_f32 v[d2],-3.0, v[d2]
                 v_add_f32 v[d2], v[d2], v[t1]
-            .elseif \arg_o_size == 7 && \arg_f_size == 3 && \arg_fdil == 1
+            .elseif \o_size == 7 && \f_size == 3 && \fdil == 1
 
                 v_mov_b32 v[t3], -5.0
                 v_sub_f32 v[d9], v[d7], v[d5]
@@ -984,7 +984,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d8], v[d8], v[t2]
                 v_sub_f32 v[d7], v[t1], v[d6]
                 v_fma_f32 v[d6], -2.0, v[d6], v[t0]
-            .elseif \arg_o_size == 5 && \arg_f_size == 3 && \arg_fdil == 1
+            .elseif \o_size == 5 && \f_size == 3 && \fdil == 1
 
                 v_sub_f32 v[t0], 0, v[d5]
                 v_fma_f32 v[d0], 2.0, v[d0], v[t0]
@@ -1038,7 +1038,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
 
                 v_mov_b32 v[d3], v[t0]
                 v_mov_b32 v[d4], v[t1]
-            .elseif \arg_o_size == 5 && \arg_f_size == 4 && \arg_fdil == 1
+            .elseif \o_size == 5 && \f_size == 4 && \fdil == 1
                 v_sub_f32 v[t0], v[d3], v[d5]
                 v_mul_f32 v[t0], 5.25, v[t0]
                 v_sub_f32 v[d7], v[d7], v[d1]
@@ -1075,7 +1075,7 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 v_add_f32 v[d5], v[t1], v[t0]
                 v_sub_f32 v[d6], v[t1], v[t0]
 
-            .elseif \arg_o_size == 1 || \arg_f_size == 1
+            .elseif \o_size == 1 || \f_size == 1
                 //nop
             .else
                 static_assert(0)
@@ -1083,52 +1083,52 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
         .endif
     .endm
 
-    .macro single_load arg_vgpr, arg_dwords, arg_dwords_left, arg_count, arg_soffset, arg_reads, arg_short = 0
-        .if(\arg_dwords != 0 && \arg_short != 0)
+    .macro single_load vgpr, dwords, dwords_left, count, soffset, reads, short = 0
+        .if(\dwords != 0 && \short != 0)
             .error "wrong single_load args"
         .endif
-        .rept \arg_count
-            .if (\arg_short == 1)
-                buffer_load_short_d16 v[\arg_vgpr], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\arg_soffset
-            .elseif \arg_dwords == 1
-                buffer_load_dword v[\arg_vgpr], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\arg_soffset
-            .elseif( \arg_dwords > 1)
-                buffer_load_dwordx\arg_dwords v[\arg_vgpr:\arg_vgpr+\arg_dwords-1], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\arg_soffset
+        .rept \count
+            .if (\short == 1)
+                buffer_load_short_d16 v[\vgpr], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset
+            .elseif \dwords == 1
+                buffer_load_dword v[\vgpr], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset
+            .elseif( \dwords > 1)
+                buffer_load_dwordx\dwords v[\vgpr:\vgpr+\dwords-1], v[voff_d], s[d_desc:d_desc+3], 0, offen offset:0+\soffset
             .endif
-            \arg_dwords_left = \arg_dwords_left - \arg_dwords - \arg_short
-            \arg_soffset = \arg_soffset + 4 * \arg_dwords + (\arg_short) * 2
-            \arg_reads = \arg_reads + 1
-            \arg_vgpr = \arg_vgpr + \arg_dwords + \arg_short
+            \dwords_left = \dwords_left - \dwords - \short
+            \soffset = \soffset + 4 * \dwords + (\short) * 2
+            \reads = \reads + 1
+            \vgpr = \vgpr + \dwords + \short
         .endr
     .endm
 
-    .macro read_data arg_buf, arg_reads
-        vgpr = \arg_buf
+    .macro read_data buf, reads
+        vgpr = \buf
         soffset = 0
         dwords_left = in_tile_width
         .if( elem_size == 4 )
             .if !xform_filter
                 // first single dword load required because of possible padding
-                single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \arg_reads
-                single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \arg_reads
-                single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \arg_reads
+                single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \reads
+                single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \reads
+                single_load vgpr, 1, dwords_left, (dwords_left/1), soffset, \reads
             .endif
 
             .if tuple_alignment && (vgpr % 2) && (dwords_left > 0)
-                single_load vgpr, 1, dwords_left, 1, soffset, \arg_reads
+                single_load vgpr, 1, dwords_left, 1, soffset, \reads
             .endif
 
-            single_load vgpr, 4, dwords_left, (dwords_left / 4), soffset, \arg_reads
-            single_load vgpr, 3, dwords_left, (dwords_left / 3), soffset, \arg_reads
-            single_load vgpr, 2, dwords_left, (dwords_left / 2), soffset, \arg_reads
-            single_load vgpr, 1, dwords_left, (dwords_left / 1), soffset, \arg_reads
+            single_load vgpr, 4, dwords_left, (dwords_left / 4), soffset, \reads
+            single_load vgpr, 3, dwords_left, (dwords_left / 3), soffset, \reads
+            single_load vgpr, 2, dwords_left, (dwords_left / 2), soffset, \reads
+            single_load vgpr, 1, dwords_left, (dwords_left / 1), soffset, \reads
         .endif
         .if( elem_size == 2 && dwords_left > 0)
-            single_load vgpr, 0, dwords_left, dwords_left, soffset, \arg_reads, 1
+            single_load vgpr, 0, dwords_left, dwords_left, soffset, \reads, 1
         .endif
     .endm
 
-    .macro write_data arg_buf, arg_voff
+    .macro write_data buf, voff
         i\@ = 0
         .rept xformy_d_size
             .if i\@ == 0
@@ -1137,71 +1137,71 @@ kernel_begin  %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
                 s_add_u32 s[soff_o], s[soff_o], s[o_H_stride]
             .endif
             .if(elem_size == 4)
-                buffer_store_dword v[\arg_buf+i\@], v[\arg_voff], s[o_desc:o_desc+3], s[soff_o], offen
+                buffer_store_dword v[\buf+i\@], v[\voff], s[o_desc:o_desc+3], s[soff_o], offen
             .else
-                buffer_store_short v[\arg_buf+i\@], v[\arg_voff], s[o_desc:o_desc+3], s[soff_o], offen
+                buffer_store_short v[\buf+i\@], v[\voff], s[o_desc:o_desc+3], s[soff_o], offen
             .endif
             i\@ = i\@ + 1
         .endr
     .endm
 
-    .macro normalize_nchw_idx_u16 arg_n, arg_c, arg_th, arg_tw, arg_tmp
-        v_mul_hi_u32 \arg_tmp, s[div_tw], \arg_tw
+    .macro normalize_nchw_idx_u16 n, c, th, tw, tmp
+        v_mul_hi_u32 \tmp, s[div_tw], \tw
         v_cmp_eq_u32 vcc, 1, s[tiles_w]
-        v_cndmask_b32 \arg_tmp, \arg_tmp, \arg_tw, vcc
-        v_mad_i32_i24 \arg_tw, \arg_tmp, s[neg_tiles_w], \arg_tw
+        v_cndmask_b32 \tmp, \tmp, \tw, vcc
+        v_mad_i32_i24 \tw, \tmp, s[neg_tiles_w], \tw
 
-        v_add_u32 \arg_th, \arg_tmp, \arg_th
-        v_mul_hi_u32 \arg_tmp, s[div_th], \arg_th
+        v_add_u32 \th, \tmp, \th
+        v_mul_hi_u32 \tmp, s[div_th], \th
         v_cmp_eq_u32 vcc, 1, s[tiles_h]
-        v_cndmask_b32 \arg_tmp, \arg_tmp, \arg_th, vcc
-        v_mad_i32_i24 \arg_th, \arg_tmp, s[neg_tiles_h], \arg_th
+        v_cndmask_b32 \tmp, \tmp, \th, vcc
+        v_mad_i32_i24 \th, \tmp, s[neg_tiles_h], \th
 
-        v_add_u32 \arg_c, \arg_tmp, \arg_c
-        v_mul_hi_u32 \arg_tmp, s[div_c], \arg_c
+        v_add_u32 \c, \tmp, \c
+        v_mul_hi_u32 \tmp, s[div_c], \c
         v_cmp_eq_u32 vcc, 1, s[C]
-        v_cndmask_b32 \arg_tmp, \arg_tmp, \arg_c, vcc
-        v_mad_i32_i24 \arg_c, \arg_tmp, s[neg_c], \arg_c
+        v_cndmask_b32 \tmp, \tmp, \c, vcc
+        v_mad_i32_i24 \c, \tmp, s[neg_c], \c
 
-        v_add_u32 \arg_n, \arg_tmp, \arg_n
+        v_add_u32 \n, \tmp, \n
     .endm
 
-    .macro compute_voff arg_off_d, arg_off_o, arg_w, arg_n, arg_c, arg_th, arg_tw, arg_vtmp
-        v_mul_lo_u32 \arg_off_o, s[o_W_stride], v[vlocal_h]
-        v_mad_u32_u24 \arg_vtmp, s[tiles_h], \arg_c, \arg_th
-        v_mad_u32_u24 \arg_vtmp, s[tiles_w], \arg_vtmp, \arg_tw
-        v_mul_lo_u32 \arg_vtmp, s[o_C_stride], \arg_vtmp
-        v_add_u32 \arg_off_o, \arg_off_o, \arg_vtmp
-        v_mul_lo_u32 \arg_vtmp, s[o_N_stride], \arg_n
-        v_add_u32 \arg_off_o, \arg_off_o, \arg_vtmp
+    .macro compute_voff off_d, off_o, w, n, c, th, tw, vtmp
+        v_mul_lo_u32 \off_o, s[o_W_stride], v[vlocal_h]
+        v_mad_u32_u24 \vtmp, s[tiles_h], \c, \th
+        v_mad_u32_u24 \vtmp, s[tiles_w], \vtmp, \tw
+        v_mul_lo_u32 \vtmp, s[o_C_stride], \vtmp
+        v_add_u32 \off_o, \off_o, \vtmp
+        v_mul_lo_u32 \vtmp, s[o_N_stride], \n
+        v_add_u32 \off_o, \off_o, \vtmp
 
-        v_mov_b32 \arg_vtmp, 0x80000000
-        v_cmp_lt_u32 s[valid_mask:valid_mask+1], \arg_n, s[NK]
-        v_cndmask_b32 \arg_off_o, \arg_vtmp, \arg_off_o, s[valid_mask:valid_mask+1]
+        v_mov_b32 \vtmp, 0x80000000
+        v_cmp_lt_u32 s[valid_mask:valid_mask+1], \n, s[NK]
+        v_cndmask_b32 \off_o, \vtmp, \off_o, s[valid_mask:valid_mask+1]
 
-        v_mul_u32_u24 \arg_w, 0 + tile_step_x, \arg_tw
-        v_mad_u32_u24 \arg_vtmp, 0 + tile_step_y, \arg_th, v[vlocal_h]
+        v_mul_u32_u24 \w, 0 + tile_step_x, \tw
+        v_mad_u32_u24 \vtmp, 0 + tile_step_y, \th, v[vlocal_h]
         v_cmp_gt_i32 vcc, 0 + tiles_per_wave * in_tile_height, v[tid]
         s_and_b64 s[valid_mask:valid_mask+1], vcc, s[valid_mask:valid_mask+1]
         .if !xform_filter
-            v_subrev_u32 \arg_w, s[pad_w], \arg_w
-            v_subrev_u32 \arg_vtmp, s[pad_h], \arg_vtmp
-            v_cmp_ge_i32 vcc, \arg_vtmp, 0
+            v_subrev_u32 \w, s[pad_w], \w
+            v_subrev_u32 \vtmp, s[pad_h], \vtmp
+            v_cmp_ge_i32 vcc, \vtmp, 0
             s_and_b64 s[valid_mask:valid_mask+1], vcc, s[valid_mask:valid_mask+1]
         .endif
-        v_cmp_lt_i32 vcc, \arg_vtmp, s[HR]
+        v_cmp_lt_i32 vcc, \vtmp, s[HR]
         s_and_b64 s[valid_mask:valid_mask+1], vcc, s[valid_mask:valid_mask+1]
 
-        v_mul_lo_i32 \arg_off_d, s[d_W_stride], \arg_w
-        v_mul_lo_u32 \arg_vtmp, s[d_H_stride], \arg_vtmp
-        v_add_u32 \arg_off_d, \arg_off_d, \arg_vtmp
-        v_mul_lo_u32 \arg_vtmp, s[d_C_stride], \arg_c
-        v_add_u32 \arg_off_d, \arg_off_d, \arg_vtmp
-        v_mul_lo_u32 \arg_vtmp, s[d_N_stride], \arg_n
-        v_add_u32 \arg_off_d, \arg_off_d, \arg_vtmp
+        v_mul_lo_i32 \off_d, s[d_W_stride], \w
+        v_mul_lo_u32 \vtmp, s[d_H_stride], \vtmp
+        v_add_u32 \off_d, \off_d, \vtmp
+        v_mul_lo_u32 \vtmp, s[d_C_stride], \c
+        v_add_u32 \off_d, \off_d, \vtmp
+        v_mul_lo_u32 \vtmp, s[d_N_stride], \n
+        v_add_u32 \off_d, \off_d, \vtmp
 
-        v_mov_b32 \arg_vtmp, 0x80000000
-        v_cndmask_b32 \arg_off_d, \arg_vtmp, \arg_off_d, s[valid_mask:valid_mask+1]
+        v_mov_b32 \vtmp, 0x80000000
+        v_cndmask_b32 \off_d, \vtmp, \off_d, s[valid_mask:valid_mask+1]
     .endm
 
 main_loop:
@@ -1232,10 +1232,14 @@ main_loop:
         .if slot == 0
             loop_entrance:
         .endif
+        .noaltmacro
         normalize_nchw_idx_u16 v[vcur_n], v[vcur_c], v[vcur_th], v[vcur_tw], v[vtmp]
+        .altmacro
         v_cmp_lt_u32 vcc, v[vcur_n], s[NK]
         _s_cbranch vccz, set_epilogue_state, %slot
+        .noaltmacro
         compute_voff v[voff_d], v[voff_o], v[vcur_w], v[vcur_n], v[vcur_c], v[vcur_th], v[vcur_tw], v[vtmp]
+        .altmacro
         _s_branch skip_frontend, %slot
 
 label set_epilogue_state, %slot
@@ -1305,23 +1309,23 @@ endpgm:
 .include "xform_metadata.inc"
 
 .altmacro
-.macro METADATA_WRAPPER arg_sc, arg_vc, arg_wg_x, arg_lds_size, arg_kernarg_size, arg_kernel_suf
+.macro METADATA_WRAPPER sc, vc, wg_x, lds_size, kernarg_size, kernel_suf
     .if (xform_filter)
-        KERNEL_DESCRIPTOR_COV3 <miopenGcnAsmWinogradXformFilter\arg_kernel_suf>
-        METADATA \arg_sc, \arg_vc, \arg_wg_x, \arg_lds_size, \arg_kernarg_size, <miopenGcnAsmWinogradXformFilter\arg_kernel_suf>
+        KERNEL_DESCRIPTOR_COV3 <miopenGcnAsmWinogradXformFilter\kernel_suf>
+        METADATA \sc, \vc, \wg_x, \lds_size, \kernarg_size, <miopenGcnAsmWinogradXformFilter\kernel_suf>
     .else
-        KERNEL_DESCRIPTOR_COV3 <miopenGcnAsmWinogradXformData\arg_kernel_suf>
-        METADATA \arg_sc, \arg_vc, \arg_wg_x, \arg_lds_size, \arg_kernarg_size, <miopenGcnAsmWinogradXformData\arg_kernel_suf>
+        KERNEL_DESCRIPTOR_COV3 <miopenGcnAsmWinogradXformData\kernel_suf>
+        METADATA \sc, \vc, \wg_x, \lds_size, \kernarg_size, <miopenGcnAsmWinogradXformData\kernel_suf>
     .endif
 .endm
 
-.macro kernel_end arg_x_o_size, arg_y_o_size, arg_x_f_size, arg_y_f_size
+.macro kernel_end x_o_size, y_o_size, x_f_size, y_f_size
     .if (xform_filter)
-        .size miopenGcnAsmWinogradXformFilter_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size, .Lfunc_end0 - miopenGcnAsmWinogradXformFilter_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size
+        .size miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size, .Lfunc_end0 - miopenGcnAsmWinogradXformFilter_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
     .else
-        .size miopenGcnAsmWinogradXformData_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size, .Lfunc_end0 - miopenGcnAsmWinogradXformData_\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size
+        .size miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size, .Lfunc_end0 - miopenGcnAsmWinogradXformData_\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
     .endif
-    METADATA_WRAPPER %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %(64), %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE, _\arg_y_o_size\()_\arg_x_o_size\()_\arg_y_f_size\()_\arg_x_f_size
+    METADATA_WRAPPER %.AUTO_SGPR_COUNT, %.AUTO_VGPR_COUNT, %(64), %.AUTO_LDS_BYTE_SIZE, %KERNEL_ARGUMENTS_SIZE, _\y_o_size\()_\x_o_size\()_\y_f_size\()_\x_f_size
 .endm
 
 kernel_end %xformx_o_size, %xformy_o_size, %xformx_f_size, %xformy_f_size
