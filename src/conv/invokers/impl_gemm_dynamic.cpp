@@ -536,7 +536,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
         if(problem.GetOut().GetType() == miopenHalf)
             return use_fp32_global_split_on_fp16;
         if(problem.GetOut().GetType() == miopenBFloat16)
-            return need_set_zero;
+            return config.gemm_k_global_split > 0;
         return false;
     }();
     const auto is_nchw = problem.IsLayoutDefault();
@@ -849,7 +849,9 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
         if(problem.GetOut().GetType() == miopenHalf)
             return use_fp32_global_split_on_fp16;
         if(problem.GetOut().GetType() == miopenBFloat16)
-            return need_set_zero;
+        {
+            return config.gemm_k_global_split > 0;
+        }
         return false;
     }();
     const auto is_nchw = problem.IsLayoutDefault();

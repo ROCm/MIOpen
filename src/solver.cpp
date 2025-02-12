@@ -60,14 +60,6 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
 
 namespace miopen {
-
-namespace debug {
-
-// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-bool enable_deprecated_solvers = false;
-
-} // namespace debug
-
 namespace solver {
 
 std::ostream& operator<<(std::ostream& os, const KernelInfo& k)
@@ -142,6 +134,7 @@ struct IdRegistryEntry
     Primitive primitive            = Primitive::Convolution;
     miopenConvAlgorithm_t convAlgo = miopenConvolutionAlgoDirect;
     AnySolver solver;
+    const SolverBase* solver_base = nullptr;
 };
 
 struct IdRegistryData
@@ -197,6 +190,16 @@ AnySolver Id::GetSolver() const
 {
     const auto it = IdRegistry().value_to_entry.find(value);
     return it != IdRegistry().value_to_entry.end() ? it->second.solver : AnySolver{};
+}
+
+const SolverBase* Id::GetSolverBase() const
+{
+    if(!IsValid())
+        return nullptr;
+    const auto it = IdRegistry().value_to_entry.find(value);
+    if(it == IdRegistry().value_to_entry.end())
+        return nullptr;
+    return it->second.solver_base;
 }
 
 std::string Id::GetAlgo(miopen::conv::Direction dir) const
@@ -284,9 +287,21 @@ template <class TSolver>
 inline void
 RegisterWithSolver(IdRegistryData& registry, uint64_t value, TSolver, miopenConvAlgorithm_t algo)
 {
-    if(!Register(registry, value, TSolver{}.SolverDbId(), algo))
+    static const TSolver solver_base;
+    if(!Register(registry, value, solver_base.SolverDbId(), algo))
         return;
-    registry.value_to_entry.at(value).solver = TSolver{};
+    auto& entry       = registry.value_to_entry.at(value);
+    entry.solver      = TSolver{};
+    entry.solver_base = &solver_base;
+}
+
+template <class Solver>
+void RegisterWithSolver(IdRegistryData& registry, uint64_t value, Primitive primitive)
+{
+    static const Solver solver_base;
+    if(!Register(registry, value, primitive, solver_base.SolverDbId()))
+        return;
+    registry.value_to_entry.at(value).solver_base = &solver_base;
 }
 
 inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
@@ -548,30 +563,22 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Activation, activ::ActivBwdSolver0{}.SolverDbId());
     Register(registry, ++id, Primitive::Activation, activ::ActivBwdSolver1{}.SolverDbId());
 
-    Register(
-        registry, ++id, Primitive::Batchnorm, batchnorm::BnFwdTrainingSpatialSingle{}.SolverDbId());
+    RegisterWithSolver<batchnorm::BnFwdTrainingSpatialSingle>(registry, ++id, Primitive::Batchnorm);
 
     RegisterWithSolver(
         registry, ++id, conv::ConvCkIgemmFwdV6r1DlopsNchw{}, miopenConvolutionAlgoImplicitGEMM);
 
-    Register(registry,
-             ++id,
-             Primitive::Batchnorm,
-             batchnorm::BnFwdTrainingSpatialMultiple{}.SolverDbId());
+    RegisterWithSolver<batchnorm::BnFwdTrainingSpatialMultiple>(
+        registry, ++id, Primitive::Batchnorm);
 
-    Register(
-        registry, ++id, Primitive::Batchnorm, batchnorm::BnFwdTrainingPerActivation{}.SolverDbId());
+    RegisterWithSolver<batchnorm::BnFwdTrainingPerActivation>(registry, ++id, Primitive::Batchnorm);
 
-    Register(
-        registry, ++id, Primitive::Batchnorm, batchnorm::BnBwdTrainingSpatialSingle{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::Batchnorm,
-             batchnorm::BnBwdTrainingSpatialMultiple{}.SolverDbId());
-    Register(
-        registry, ++id, Primitive::Batchnorm, batchnorm::BnBwdTrainingPerActivation{}.SolverDbId());
+    RegisterWithSolver<batchnorm::BnBwdTrainingSpatialSingle>(registry, ++id, Primitive::Batchnorm);
+    RegisterWithSolver<batchnorm::BnBwdTrainingSpatialMultiple>(
+        registry, ++id, Primitive::Batchnorm);
+    RegisterWithSolver<batchnorm::BnBwdTrainingPerActivation>(registry, ++id, Primitive::Batchnorm);
 
-    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnFwdInference{}.SolverDbId());
+    RegisterWithSolver<batchnorm::BnFwdInference>(registry, ++id, Primitive::Batchnorm);
 
     Register(registry, ++id, Primitive::Pooling, pooling::PoolingForward2d{}.SolverDbId());
     Register(registry, ++id, Primitive::Pooling, pooling::PoolingForwardNd{}.SolverDbId());
@@ -627,9 +634,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemm3DGroupBwdXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
-    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdInference{}.SolverDbId());
-    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKBwdBackward{}.SolverDbId());
-    Register(registry, ++id, Primitive::Batchnorm, batchnorm::BnCKFwdTraining{}.SolverDbId());
+    RegisterWithSolver<batchnorm::BnCKFwdInference>(registry, ++id, Primitive::Batchnorm);
+    RegisterWithSolver<batchnorm::BnCKBwdBackward>(registry, ++id, Primitive::Batchnorm);
+    RegisterWithSolver<batchnorm::BnCKFwdTraining>(registry, ++id, Primitive::Batchnorm);
     Register(
         registry, ++id, Primitive::Normalization, layernorm::Layernorm2DCKForward{}.SolverDbId());
     Register(
@@ -711,8 +718,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
     static const bool device_is_allowed = [&]() {
-        if(miopen::debug::enable_deprecated_solvers)
-            return true;
         if(env::enabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS))
             return true;
         const auto device = ctx.GetStream().GetTargetProperties().Name();

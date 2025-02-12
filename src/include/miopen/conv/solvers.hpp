@@ -52,12 +52,6 @@ namespace debug {
 MIOPEN_EXPORT extern bool
     AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
-/// WORKAROUND_SWDEV_271887 disables ConvOclDirectFwd1x1 solver on gfx10 due to precision issues.
-/// However we still want to check that the solver is not broken and therefore use
-/// disable_wa_swdev_271887 = true to enable it.
-// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-MIOPEN_INTERNALS_EXPORT extern bool disable_wa_swdev_271887;
-
 } // namespace debug
 
 struct AnyInvokeParams;
@@ -2807,7 +2801,6 @@ struct ConvCkIgemmFwdV6r1DlopsNchw final : ConvTunableSolver<PerformanceConvCkIg
     MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
         const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    bool IsDynamic() const override { return false; }
     MIOPEN_INTERNALS_EXPORT PerformanceConvCkIgemmFwdV6r1DlopsNchw GetDefaultPerformanceConfig(
         const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
     MIOPEN_INTERNALS_EXPORT bool
@@ -4769,7 +4762,10 @@ private:
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
     void InitHeuristicKernelIDs();
-    bool ModelApplyToken(int idx, std::string value);
+    bool ModelApplyToken(int idx,
+                         std::string value,
+                         const std::string& arch,
+                         const miopen::conv::ProblemDescription& problem);
 #endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);
