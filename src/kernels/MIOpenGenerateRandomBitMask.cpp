@@ -57,7 +57,7 @@ generate_random_bit_mask(rocrand_state_xorwow* states_in, uchar* mask, uint64_t 
     {
         int rvals[VLEN];
 
-#pragma unroll
+#pragma unroll VLEN
         for(int j = 0; j < VLEN; j++)
         {
             auto random_fval = prng::xorwow_uniform(&cur_state);

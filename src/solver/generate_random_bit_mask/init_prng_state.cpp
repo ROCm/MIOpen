@@ -72,7 +72,7 @@ ConvSolution InitPRNGState::GetSolution(
     auto states_num = prng_stateSizeInBytes / sizeof(rocrand_state_xorwow);
 
     size_t wk_grp_num =
-        std::min(static_cast<size_t>(MAX_PRNG_STATE) / 256, (states_num + 255) / 256);
+        std::min(static_cast<size_t>(GRBM_MAX_PRNG_STATE) / 256, (states_num + 255) / 256);
 
     size_t xlocalsize = LOCAL_SIZE;
     size_t xgridsize  = wk_grp_num * xlocalsize;

@@ -30,6 +30,8 @@
 
 #include "dropout.hpp"
 
+#define GRBM_MAX_PRNG_STATE (512 * 512)
+
 namespace miopen {
 
 struct Handle;

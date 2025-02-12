@@ -38,7 +38,7 @@
 #include <miopen/tensor.hpp>
 
 #define LOCAL_SIZE 256
-#define MASK_DTYPE uchar
+#define MASK_DTYPE uchar // Fix the mask output to be uchar type
 
 namespace miopen {
 namespace solver {
@@ -73,8 +73,8 @@ ConvSolution GenerateRandomBitMask::GetSolution(
 
     if(p != 0 && p != 1)
     {
-        size_t wk_grp_num =
-            std::min(size_t(MAX_PRNG_STATE) / LOCAL_SIZE, ((bitmask_numel + 255) / 256));
+        size_t wk_grp_num = std::min(size_t(GRBM_MAX_PRNG_STATE) / LOCAL_SIZE,
+                                     ((bitmask_numel + LOCAL_SIZE - 1) / LOCAL_SIZE));
 
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = wk_grp_num * xlocalsize;

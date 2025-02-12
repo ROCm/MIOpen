@@ -45,6 +45,8 @@
 #include <numeric>
 #include <rocrand_xorwow.h>
 
+#define SEED 0
+
 class GenerateRandomBitMaskDriver : public Driver
 {
 public:
@@ -93,9 +95,7 @@ int GenerateRandomBitMaskDriver::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Only run forward pass (Default=1)", "int");
     inflags.AddInputFlag(
-        "mask-dims", 'M', "4x1", "Mask tensor dimensions (Default=4x1)", "tensor descriptor");
-    inflags.AddInputFlag(
-        "mask-size-in-bytes", 'm', "4", "Size of the mask tensor in bytes...", "int");
+        "mask-size-in-bytes", 'm', "400", "Size of the mask tensor in bytes (Default=400)", "int");
     inflags.AddInputFlag(
         "probability", 'p', "0.5", "Probability of an element to be zeroed (Default=0.5)", "float");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
@@ -141,7 +141,7 @@ int GenerateRandomBitMaskDriver::AllocateBuffersAndCopy()
     pstate_dev = std::make_unique<GPUMem>(ctx, num_states, sizeof(rocrand_state_xorwow));
 
     // Initialize the random states
-    status = miopenInitPRNGState(GetHandle(), pstate_dev->GetMem(), statesSizeInBytes, 0);
+    status = miopenInitPRNGState(GetHandle(), pstate_dev->GetMem(), statesSizeInBytes, SEED);
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenInitPRNGState");
 
     mask_dev = std::make_unique<GPUMem>(ctx, mask_size, sizeof(unsigned char));
@@ -186,13 +186,13 @@ int GenerateRandomBitMaskDriver::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            std::cout << "Wall-clock Time Backward Pdist Elapsed: " << t.gettime_ms() / iter
+            std::cout << "Wall-clock Time GenerateRandomBitMask Elapsed: " << t.gettime_ms() / iter
                       << " ms" << std::endl;
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        std::cout << "GPU Kernel Time Backward Pdist Elapsed: " << kernel_average_time << " ms"
-                  << std::endl;
+        std::cout << "GPU Kernel Time GenerateRandomBitMask Elapsed: " << kernel_average_time
+                  << " ms" << std::endl;
     }
 
     if(mask_dev->FromGPU(GetStream(), mask.data()) != 0)
@@ -210,9 +210,8 @@ int GenerateRandomBitMaskDriver::VerifyForward()
 {
     // counting number bit 1 in mask
     int64_t count_1 = 0;
-    for(size_t i = 0; i < mask.size(); i++)
+    for(unsigned char val : mask)
     {
-        unsigned char val = mask[i];
         for(int j = 0; j < 8; j++)
         {
             count_1 += val & 1; // Add the least significant bit
