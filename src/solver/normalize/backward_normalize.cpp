@@ -24,14 +24,12 @@
  *
  *******************************************************************************/
 
-#include "miopen/mlo_internal.hpp"
-#include "miopen/tensor.hpp"
+#include <miopen/mlo_internal.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/normalize/invoke_params.hpp>
 #include <miopen/normalize/solvers.hpp>
 #include <miopen/normalize.hpp>
-#include <miopen/target_properties.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE 256
@@ -42,8 +40,9 @@ namespace solver {
 
 namespace normalize {
 
-bool IsImprovementOverROCm(const ExecutionContext& context,
-                           const miopen::normalize::BackwardProblemDescription& problem)
+bool NormalizeBackward::IsImprovementOverROCm(
+    const ExecutionContext& context,
+    const miopen::normalize::BackwardProblemDescription& problem) const
 {
     auto outer_size = problem.GetInputDesc().GetElementSize() / problem.GetInnerSize();
     return (problem.IsLastDim() && (problem.GetInnerSize() % LOCAL_SIZE == 0) &&

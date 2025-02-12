@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include "normalize.hpp"
-#include <miopen/env.hpp>
 
 namespace normalize {
 

@@ -29,7 +29,6 @@
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
 #include <miopen/normalize.hpp>
 
 struct NormalizeTestCase

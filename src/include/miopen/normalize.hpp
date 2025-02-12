@@ -25,7 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/miopen.h"
 #include <miopen/common.hpp>
 
 namespace miopen {

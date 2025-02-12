@@ -41,6 +41,8 @@ using BackwardNormalizeSolver =
 struct NormalizeBackward final : BackwardNormalizeSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<NormalizeBackward>(); }
+    bool IsImprovementOverROCm(const ExecutionContext& context,
+                               const miopen::normalize::BackwardProblemDescription& problem) const;
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::normalize::BackwardProblemDescription& problem) const override;
     ConvSolution

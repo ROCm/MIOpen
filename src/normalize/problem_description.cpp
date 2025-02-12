@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <miopen/normalize/problem_description.hpp>
 #include <miopen/names.hpp>
-
 #include <sstream>
 
 namespace miopen {

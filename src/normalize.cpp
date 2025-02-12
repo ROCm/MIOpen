@@ -24,14 +24,10 @@
  *
  *******************************************************************************/
 
-#include <miopen/datatype.hpp>
+#include <miopen/normalize.hpp>
 #include <miopen/find_solution.hpp>
-#include <miopen/float_equal.hpp>
-#include <miopen/kernel_cache.hpp>
 #include <miopen/normalize/invoke_params.hpp>
 #include <miopen/normalize/solvers.hpp>
-#include <miopen/normalize.hpp>
-#include <miopen/tensor.hpp>
 
 namespace miopen {
 
