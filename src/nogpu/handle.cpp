@@ -274,7 +274,7 @@ const TargetProperties& Handle::GetTargetProperties() const
 }
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->device_name; }
-std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
+std::string Handle::GetDeviceName() const { return this->GetTargetProperties().Name(); }
 
 std::ostream& Handle::Print(std::ostream& os) const
 {
