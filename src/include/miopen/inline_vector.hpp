@@ -266,7 +266,6 @@ public:
         int idx = std::distance(begin(), pos);
         if(idx < 0 || idx > real_size)
         {
-            std::cout << idx << " " << real_size << std::endl;
             MIOPEN_THROW("Cannot insert data at this position");
         }
         real_size += 1;
