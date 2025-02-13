@@ -25,78 +25,31 @@
  *******************************************************************************/
 
 #include "pad_constant.hpp"
-#include <gtest/gtest-param-test.h>
-#include <miopen/env.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+using float16 = half_float::half;
 
-namespace pad_constant {
-std::string GetFloatArg()
+using GPU_ConstantPad_FP32  = PadConstantTest<float>;
+using GPU_ConstantPad_FP16  = PadConstantTest<float16>;
+using GPU_ConstantPad_BFP16 = PadConstantTest<bfloat16>;
+
+TEST_P(GPU_ConstantPad_FP32, Test)
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
+    RunTest();
+    Verify();
 }
 
-struct PadConstantTestFloat : PadConstantTest<float>
+TEST_P(GPU_ConstantPad_FP16, Test)
 {
-};
-
-struct PadConstantTestHalf : PadConstantTest<half>
-{
-};
-
-struct PadConstantTestBfloat16 : PadConstantTest<bfloat16>
-{
-};
-} // namespace pad_constant
-
-using namespace pad_constant;
-TEST_P(PadConstantTestFloat, PadConstantTestFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-        GTEST_SKIP();
+    RunTest();
+    Verify();
 }
 
-TEST_P(PadConstantTestHalf, PadConstantTestFw)
+TEST_P(GPU_ConstantPad_BFP16, Test)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-        GTEST_SKIP();
+    RunTest();
+    Verify();
 }
 
-TEST_P(PadConstantTestBfloat16, PadConstantTestFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-        GTEST_SKIP();
-}
-
-INSTANTIATE_TEST_CASE_P(PadConstantTest,
-                        PadConstantTestFloat,
-                        testing::ValuesIn(PadConstantTestConfigs()));
-
-INSTANTIATE_TEST_CASE_P(PadConstantTest,
-                        PadConstantTestHalf,
-                        testing::ValuesIn(PadConstantTestConfigs()));
-
-INSTANTIATE_TEST_CASE_P(PadConstantTest,
-                        PadConstantTestBfloat16,
-                        testing::ValuesIn(PadConstantTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_ConstantPad_FP32, testing::ValuesIn(PadConstantTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_ConstantPad_FP16, testing::ValuesIn(PadConstantTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_ConstantPad_BFP16, testing::ValuesIn(PadConstantTestConfigs()));

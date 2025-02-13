@@ -24,15 +24,16 @@
  *
  *******************************************************************************/
 
-#include "get_handle.hpp"
-#include "miopen/allocator.hpp"
-#include "random.hpp"
-#include "verify.hpp"
-#include "tensor_holder.hpp"
-#include "cpu_pad_constant.hpp"
-#include <cstdio>
-#include <gtest/gtest.h>
+#include <miopen/miopen.h>
 #include <miopen/pad_constant.hpp>
+
+#include <gtest/gtest.h>
+
+#include "cpu_pad_constant.hpp"
+#include "get_handle.hpp"
+#include "random.hpp"
+#include "tensor_holder.hpp"
+#include "verify.hpp"
 
 struct PadConstantTestCase
 {
@@ -80,15 +81,23 @@ struct PadConstantTestCase
 
 std::vector<PadConstantTestCase> PadConstantTestConfigs()
 {
-    return {{8, 512, 0, 0, 384},
-            {8, 511, 0, 0, 1},
-            {8, 512, 0, 0, 384},
-            {16, 512, 0, 0, 384},
-            {16, 512, 0, 0, 8},
-            {48, 8, 0, 512, 512},
-            {48, 8, 0, 512, 512},
-            {16, 311, 1, 98, 512},
-            {16, 311, 1, 98, 512}};
+    return {
+        // 2D
+        {8, 0, 0, 0, 8},
+
+        // 3D
+        {8, 512, 0, 0, 384},
+        {8, 511, 0, 0, 1},
+        {8, 512, 0, 0, 384},
+        {16, 512, 0, 0, 384},
+        {16, 512, 0, 0, 8},
+
+        // 4D
+        {8, 16, 0, 32, 32},
+
+        // 5D
+        {8, 4, 16, 32, 32},
+    };
 }
 
 inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous)
