@@ -477,9 +477,9 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
         lcl_scale[xlid] = *(scale + xgid);
         lcl_bias[xlid]  = *(bias + xgid);
         lcl_mean[xlid]  = 
-            loadFromStash(out, 2, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            loadFromStash(out, 0, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
         lcl_ivar[xlid]  = 
-            loadFromStash(out, 3, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            loadFromStash(out, 1, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -580,10 +580,10 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
     for(unsigned int yoffset = ylid; yoffset < MIO_BN_NGRPS; yoffset += ygrp_sz)
     {
         storeToStash(
-            mean, meanvarbuff, 2, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            mean, meanvarbuff, 0, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
         storeToStash(invVariance,
                      meanvarbuff,
-                     3,
+                     1,
                      ygrp_sz * yoffset,
                      ystride,
                      xgrp_sz,

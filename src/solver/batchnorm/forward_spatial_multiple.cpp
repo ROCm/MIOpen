@@ -54,9 +54,9 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
     unsigned int in_cstride = h * w;
     unsigned int in_nhw     = n * in_cstride;
 
-    // Variant 2 needs space for 4 fp32 elements per each x thread (including the last workgroup)
+    // Variant 2 needs space for 2 fp32 elements per each x thread (including the last workgroup)
     // to stash intermediate mean and variance
-    unsigned int stash_values = 4;
+    unsigned int stash_values = 2;
     if(problem.IsLayoutNHWC())
     {
         // TODO: For now enable variant 2 for NHWC because other variants are slower.
@@ -93,6 +93,12 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
         {
             return false;
         }
+
+        unsigned int ylocalsize = 1024;
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+            return false;
     }
     return true;
 }

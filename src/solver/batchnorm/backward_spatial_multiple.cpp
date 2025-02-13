@@ -57,9 +57,9 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
     unsigned int in_cstride = h * w;
     unsigned int in_nhw     = n * in_cstride;
 
-    // Variant 2 needs space for 6 fp32 elements per each x thread (including the last workgroup)
-    // to stash intermediate mean and variance
-    unsigned int stash_values = 6;
+    // Variant 2 needs space for 4 fp32 elements per each x thread (including the last workgroup)
+    // to stash intermediate mean, variance and scales
+    unsigned int stash_values = 4;
     if(problem.IsLayoutNHWC())
     {
         // TODO: For now enable variant 2 for NHWC because other variants are slower.

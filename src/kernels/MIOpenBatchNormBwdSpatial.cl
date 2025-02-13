@@ -695,10 +695,10 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
         // Replicate mean and variance for all y groups because stash == dx_out and
         // MIOpenBatchNormBwdSpatialDX will read them and rewrite the buffer entirely.
         storeToStash(
-            mean, meanvarbuff, 2, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            mean, meanvarbuff, 0, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
         storeToStash(invVariance,
                      meanvarbuff,
-                     3,
+                     1,
                      ygrp_sz * yoffset,
                      ystride,
                      xgrp_sz,
@@ -809,9 +809,9 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
     {
 #if MIO_BN_USESAVED == 0
         lmean[xlid] =
-            loadFromStash(buff, 2, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            loadFromStash(buff, 0, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
         livar[xlid] =
-            loadFromStash(buff, 3, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            loadFromStash(buff, 1, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
 #else
         lmean[xlid] = *(savedMean + xgid);
         livar[xlid] = *(savedInvVariance + xgid);
@@ -852,8 +852,8 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
 
     if(ylid == 0)
     {
-        storeToStash(dscale, buff, 4, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-        storeToStash(dbias, buff, 5, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        storeToStash(dscale, buff, 2, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        storeToStash(dbias, buff, 3, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
     }
 }
 
@@ -882,9 +882,9 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(const __global _FLOAT* __restrict buff
     for(unsigned int yoffset = ylid; yoffset < MIO_BN_NGRPS; yoffset += ygrp_sz)
     {
         dscale +=
-            loadFromStash(buff, 4, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            loadFromStash(buff, 2, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
         dbias +=
-            loadFromStash(buff, 5, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            loadFromStash(buff, 3, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
     }
 
 #if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
@@ -954,9 +954,9 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
         unsigned int ygrp_sz = get_local_size(1);
 
         lmean[xlid] =
-            loadFromStash(dx_out, 2, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            loadFromStash(dx_out, 0, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
         livar[xlid] =
-            loadFromStash(dx_out, 3, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            loadFromStash(dx_out, 1, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
 #else
         lmean[xlid] = *(savedMean + xgid);
         livar[xlid] = *(savedInvVariance + xgid);
