@@ -96,6 +96,7 @@
 #define _AS_FLOAT PPCAT(as_, _FLOAT)
 
 #define _FLOAT_PREC4 PPCAT(_FLOAT_PREC, FOUR)
+#define _FLOAT_ACCUM4 PPCAT(_FLOAT_ACCUM, FOUR)
 
 #ifndef MIO_BN_LDSGCN_SIZE
 #define MIO_BN_LDSGCN_SIZE 16
@@ -206,6 +207,94 @@
 #define MIO_BN_GFX120X 0
 #endif
 
+#ifndef MIO_BN_VECTORIZE
+#define MIO_BN_VECTORIZE 0
+#endif
+
+#define FLOATPREC4_2_FLOAT4(val)       \
+    ((_FLOAT4)(FLOATPREC2FLOAT(val.x), \
+               FLOATPREC2FLOAT(val.y), \
+               FLOATPREC2FLOAT(val.z), \
+               FLOATPREC2FLOAT(val.w)))
+
+#define FLOAT4_2_FLOATPREC4(val)            \
+    ((_FLOAT_PREC4)(FLOAT2FLOATPREC(val.x), \
+                    FLOAT2FLOATPREC(val.y), \
+                    FLOAT2FLOATPREC(val.z), \
+                    FLOAT2FLOATPREC(val.w)))
+
+#define _ACCUMULATE1(a, b) a += b;
+
+#define _ACCUMULATE_MAD1(a, b) a = mad(b, b, a);
+
+#define _ACCUMULATE4(a, b) \
+    a += b.x;              \
+    a += b.y;              \
+    a += b.z;              \
+    a += b.w;
+
+#define _ACCUMULATE_MAD4(a, b) \
+    a = mad(b.x, b.x, a);      \
+    a = mad(b.y, b.y, a);      \
+    a = mad(b.z, b.z, a);      \
+    a = mad(b.w, b.w, a);
+
+#if MIO_BN_VECTORIZE
+#define VEC_SIZE 4
+
+#if MIO_LAYOUT_NHWC
+// NHWC vectorize in X direction which corresponds
+// to channels
+#define VEC_SIZE_X VEC_SIZE
+#define VEC_SIZE_Y 1
+// _C suffix means used for computation
+// _LS suffix means used for loading / storing
+#define _FLOAT_PREC_C _FLOAT_PREC4
+#define _FLOAT_PREC_LS _FLOAT_PREC4
+#define _FLOAT_C _FLOAT4
+#define _FLOAT_LS _FLOAT4
+#define _FLOAT_ACCUM_C _FLOAT_ACCUM4
+#define _FLOAT_ACCUM_LS _FLOAT_ACCUM4
+#define _ACCUMULATE _ACCUMULATE1
+#define _ACCUMULATE_MAD _ACCUMULATE_MAD1
+#else
+// NCHW vectorize in Y direction which corresponds
+// to HW
+#define VEC_SIZE_X 1
+#define VEC_SIZE_Y VEC_SIZE
+#define _FLOAT_PREC_C _FLOAT_PREC
+#define _FLOAT_PREC_LS _FLOAT_PREC4
+// _C suffix means used for computation
+// _LS suffix means used for loading / storing
+#define _FLOAT_C _FLOAT
+#define _FLOAT_LS _FLOAT4
+#define _FLOAT_ACCUM_C _FLOAT_ACCUM
+#define _FLOAT_ACCUM_LS _FLOAT_ACCUM4
+#define _ACCUMULATE _ACCUMULATE4
+#define _ACCUMULATE_MAD _ACCUMULATE_MAD4
+#endif
+
+#define FLOAT2FLOATPREC_VEC FLOAT4_2_FLOATPREC4
+#define FLOATPREC2FLOAT_VEC FLOATPREC4_2_FLOAT4
+
+#else
+
+#define VEC_SIZE 1
+#define VEC_SIZE_X 1
+#define VEC_SIZE_Y 1
+#define _FLOAT_PREC_C _FLOAT_PREC
+#define _FLOAT_PREC_LS _FLOAT_PREC
+#define _FLOAT_C _FLOAT
+#define _FLOAT_LS _FLOAT
+#define _FLOAT_ACCUM_C _FLOAT_ACCUM
+#define _FLOAT_ACCUM_LS _FLOAT_ACCUM
+#define FLOAT2FLOATPREC_VEC FLOAT2FLOATPREC
+#define FLOATPREC2FLOAT_VEC FLOATPREC2FLOAT
+#define _ACCUMULATE _ACCUMULATE1
+#define _ACCUMULATE_MAD _ACCUMULATE_MAD1
+
+#endif
+
 #define UNUSED __attribute__((__unused__))
 
 #if(MIO_BN_VARIANT == 2)
@@ -234,22 +323,22 @@ inline unsigned int getStashIndex(unsigned int vindex,
 #endif
 }
 
-inline _FLOAT_PREC loadFromStash(const __global _FLOAT* stash,
-                                 unsigned int vindex,
-                                 unsigned int ygroupoffset,
-                                 unsigned int ystride,
-                                 unsigned int xgrp_sz,
-                                 unsigned int xgrp_id,
-                                 unsigned int xlid,
-                                 unsigned int xstride)
+inline _FLOAT_PREC_C loadFromStash(const __global _FLOAT_C* stash,
+                                   unsigned int vindex,
+                                   unsigned int ygroupoffset,
+                                   unsigned int ystride,
+                                   unsigned int xgrp_sz,
+                                   unsigned int xgrp_id,
+                                   unsigned int xlid,
+                                   unsigned int xstride)
 {
     unsigned int index =
         getStashIndex(vindex, ygroupoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-    return *((const __global _FLOAT_PREC*)(stash + index));
+    return *((const __global _FLOAT_PREC_C*)(stash + index));
 }
 
-inline void storeToStash(_FLOAT_PREC value,
-                         __global _FLOAT* stash,
+inline void storeToStash(_FLOAT_PREC_C value,
+                         __global _FLOAT_C* stash,
                          unsigned int vindex,
                          unsigned int ygroupoffset,
                          unsigned int ystride,
@@ -260,32 +349,32 @@ inline void storeToStash(_FLOAT_PREC value,
 {
     unsigned int index =
         getStashIndex(vindex, ygroupoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-    *((__global _FLOAT_PREC*)(stash + index)) = value;
+    *((__global _FLOAT_PREC_C*)(stash + index)) = value;
 }
 #endif
 
 #if(MIO_BN_VARIANT != 4)
-static inline void running_stash(global _FLOAT_PREC* resultRunningMean,
-                                 global _FLOAT_PREC* resultRunningVariance,
+static inline void running_stash(global _FLOAT_PREC_C* resultRunningMean,
+                                 global _FLOAT_PREC_C* resultRunningVariance,
                                  double expAvgFactor,
-                                 _FLOAT_ACCUM mean,
-                                 _FLOAT_ACCUM variance,
+                                 _FLOAT_ACCUM_C mean,
+                                 _FLOAT_ACCUM_C variance,
                                  uint channel)
 {
-    _FLOAT_ACCUM pvt_runMean = (_FLOAT_ACCUM)(*(resultRunningMean + channel));
-    _FLOAT_ACCUM pvt_newRunMean =
+    _FLOAT_ACCUM_C pvt_runMean = (_FLOAT_ACCUM_C)(*(resultRunningMean + channel));
+    _FLOAT_ACCUM_C pvt_newRunMean =
         mad((_FLOAT_ACCUM)-expAvgFactor, pvt_runMean, pvt_runMean); // tmp = oldRunMean*(1-factor)
-    resultRunningMean[channel] =
-        (_FLOAT_PREC)mad(mean, (_FLOAT_ACCUM)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
-    const _FLOAT_ACCUM adjust =
-        (_FLOAT_ACCUM)((MIO_BN_NHW == 1)
-                           ? variance
-                           : variance * ((_FLOAT_ACCUM)MIO_BN_NHW /
-                                         ((_FLOAT_ACCUM)MIO_BN_NHW - (_FLOAT_ACCUM)1.0)));
+    resultRunningMean[channel] = (_FLOAT_PREC_C)mad(
+        mean, (_FLOAT_ACCUM)expAvgFactor, pvt_newRunMean); // newMean*factor + tmp
+    const _FLOAT_ACCUM_C adjust =
+        (_FLOAT_ACCUM_C)((MIO_BN_NHW == 1)
+                             ? variance
+                             : variance * ((_FLOAT_ACCUM)MIO_BN_NHW /
+                                           ((_FLOAT_ACCUM)MIO_BN_NHW - (_FLOAT_ACCUM)1.0)));
     resultRunningVariance[channel] =
-        (_FLOAT_PREC)((1 - (_FLOAT_ACCUM)expAvgFactor) *
-                          (_FLOAT_ACCUM)(*(resultRunningVariance + channel)) +
-                      (_FLOAT_ACCUM)expAvgFactor * adjust);
+        (_FLOAT_PREC_C)((1 - (_FLOAT_ACCUM)expAvgFactor) *
+                            (_FLOAT_ACCUM_C)(*(resultRunningVariance + channel)) +
+                        (_FLOAT_ACCUM)expAvgFactor * adjust);
 }
 
 static inline void running_stash_pa(global _FLOAT_PREC* resultRunningMean,
@@ -335,12 +424,12 @@ static inline void running_stash_dyn(global _FLOAT_PREC* resultRunningMean,
 }
 #endif
 
-static inline void saved_stash(global _FLOAT_PREC* resultSaveMean,
-                               global _FLOAT_PREC* resultSaveInvVariance,
-                               _FLOAT_ACCUM mean,
-                               _FLOAT_ACCUM invVariance,
+static inline void saved_stash(global _FLOAT_PREC_C* resultSaveMean,
+                               global _FLOAT_PREC_C* resultSaveInvVariance,
+                               _FLOAT_ACCUM_C mean,
+                               _FLOAT_ACCUM_C invVariance,
                                uint channel)
 {
-    *(resultSaveMean + channel)        = (_FLOAT_PREC)mean;
-    *(resultSaveInvVariance + channel) = (_FLOAT_PREC)invVariance;
+    *(resultSaveMean + channel)        = (_FLOAT_PREC_C)mean;
+    *(resultSaveInvVariance + channel) = (_FLOAT_PREC_C)invVariance;
 }
