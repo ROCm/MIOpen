@@ -51,7 +51,8 @@ GetOffset(int64_t max_diag_len, int64_t d, int64_t M, int64_t N, MatrixAlignMode
        ((align == MatrixAlignMode_t::LEFT_RIGHT || align == MatrixAlignMode_t::RIGHT_RIGHT) &&
         d <= 0))
     {
-        return max_diag_len - min(N - max(d, 0LL), M + min(d, 0LL));
+        return max_diag_len -
+               min(N - max(d, static_cast<int64_t>(0)), M + min(d, static_cast<int64_t>(0)));
     }
     return 0;
 }
@@ -72,10 +73,11 @@ __device__ void MatrixSetDiag(const TIO* input,
     if(gid >= numel)
         return;
 
-    int64_t batch_id     = gid / M / N;
-    int64_t m            = (gid / N) % M;
-    int64_t n            = gid % N;
-    int64_t max_diag_len = min(M + min(k1, 0L), N + min(-k0, 0L));
+    int64_t batch_id = gid / M / N;
+    int64_t m        = (gid / N) % M;
+    int64_t n        = gid % N;
+    int64_t max_diag_len =
+        min(M + min(k1, static_cast<int64_t>(0)), N + min(-k0, static_cast<int64_t>(0)));
 
     __shared__ TIO input_val;
     if(is_input_padding)
@@ -93,13 +95,13 @@ __device__ void MatrixSetDiag(const TIO* input,
     if(k0 <= d && d <= k1)
     {
         if(k0 == k1)
-            diag_id = batch_id * max_diag_len + n - max(k1, 0LL);
+            diag_id = batch_id * max_diag_len + n - max(k1, static_cast<int64_t>(0));
         else
         {
             int64_t num_diags     = k1 - k0 + 1;
             int64_t diag_index    = k1 - d;
             int64_t offset        = GetOffset(max_diag_len, d, M, N, ALIGN_T);
-            int64_t index_in_diag = n - max(d, 0LL) + offset;
+            int64_t index_in_diag = n - max(d, static_cast<int64_t>(0)) + offset;
             diag_id =
                 batch_id * num_diags * max_diag_len + diag_index * max_diag_len + index_in_diag;
         }
@@ -152,7 +154,8 @@ __device__ void MatrixDiagPart(const TIO* input,
     if(gid >= numel)
         return;
 
-    int max_diag_len = min(M + min(k1, 0L), N + min(-k0, 0L));
+    int max_diag_len =
+        min(M + min(k1, static_cast<int64_t>(0)), N + min(-k0, static_cast<int64_t>(0)));
 
     __shared__ TIO padding_val;
     if(is_single_padding)
@@ -170,8 +173,8 @@ __device__ void MatrixDiagPart(const TIO* input,
     if(k0 == k1)
     {
         batch_id = gid / max_diag_len;
-        x        = max(k1, 0L);
-        y        = max(-k1, 0L);
+        x        = max(k1, static_cast<int64_t>(0));
+        y        = max(-k1, static_cast<int64_t>(0));
     }
     else
     {
@@ -180,8 +183,8 @@ __device__ void MatrixDiagPart(const TIO* input,
         int64_t m         = (gid / max_diag_len) % num_diags;
         int64_t d         = k1 - m;
         int64_t offset    = GetOffset(max_diag_len, d, M, N, ALIGN_T);
-        y                 = max(-d, 0L) - offset;
-        x                 = max(d, 0L) - offset;
+        y                 = max(-d, static_cast<int64_t>(0)) - offset;
+        x                 = max(d, static_cast<int64_t>(0)) - offset;
     }
 
     if(0 <= n + y && n + y < M && 0 <= n + x && n + x < N)

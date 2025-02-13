@@ -91,7 +91,7 @@ inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagFwdSmokeTestConfigs()
 
 inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagFwdPerfTestConfigs()
 {
-    return MatrixSetDiagConfigs({});
+    return MatrixSetDiagConfigs({{{1024, 1024, 1024}, {1024, 201, 1024}, -100, 100}});
 }
 
 inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagFwdFullTestConfigs()
@@ -112,7 +112,7 @@ inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagBwdSmokeTestConfigs()
 
 inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagBwdPerfTestConfigs()
 {
-    return MatrixSetDiagConfigs({});
+    return MatrixSetDiagConfigs({{{1024, 1024, 1024}, {1024, 201, 1024}, -100, 100}});
 }
 
 inline std::vector<MatrixSetDiagTestcase> MatrixSetDiagBwdFullTestConfigs()

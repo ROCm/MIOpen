@@ -68,9 +68,9 @@ ConvSolution MatrixSetDiagBackwardContiguous::GetSolution(
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype         = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
-    auto inputGradSize = problem.GetInputGradDesc().GetElementSize();
-    auto diagGradSize  = problem.GetDiagGradDesc().GetElementSize();
+    std::string dtype    = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
+    size_t inputGradSize = problem.GetInputGradDesc().GetElementSize();
+    size_t diagGradSize  = problem.GetDiagGradDesc().GetElementSize();
 
     const auto build_params = KernelBuildParameters{
         {"MIOPEN_MATRIX_ALIGN_LEFT_RIGHT", static_cast<int>(MIOPEN_MATRIX_ALIGN_LEFT_RIGHT)},
