@@ -202,7 +202,7 @@ protected:
     miopen::Allocator::ManageDataPtr dout_dev; // dy
 };
 
-miopenStatus_t RunFwdActivation(miopen::Handle& handle,
+miopenStatus_t RunFwdActivation(const miopen::Handle& handle,
                                 miopenActivationDescriptor_t activationDesc,
                                 const void* alpha,
                                 const miopen::TensorDescriptor& xDesc,
@@ -226,7 +226,7 @@ miopenStatus_t RunFwdActivation(miopen::Handle& handle,
     return status;
 }
 
-miopenStatus_t RunFwdBwdActivation(miopen::Handle& handle,
+miopenStatus_t RunFwdBwdActivation(const miopen::Handle& handle,
                                    miopenActivationDescriptor_t activationDesc,
                                    const void* alpha,
                                    const miopen::TensorDescriptor& xDesc,
