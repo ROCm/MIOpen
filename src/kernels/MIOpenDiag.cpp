@@ -34,7 +34,7 @@
 template <typename TIO>
 __device__ void Diag2dForwardKernel(const TIO* input,
                                     TIO* output,
-                                    long N,
+                                    size_t N,
                                     long offset,
                                     tensor_view_t<2> input_tv,
                                     tensor_view_t<1> output_tv)
@@ -52,7 +52,7 @@ __device__ void Diag2dForwardKernel(const TIO* input,
 
 extern "C" __global__ void Diag2dForward(const IN_OUT_TYPE* input,
                                          IN_OUT_TYPE* output,
-                                         long N,
+                                         size_t N,
                                          long offset,
                                          tensor_view_t<2> input_tv,
                                          tensor_view_t<1> output_tv)

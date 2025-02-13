@@ -39,7 +39,6 @@ namespace miopen {
 enum class InvokeType
 {
     Run,
-    Evaluate,
     AutoTune,
 };
 

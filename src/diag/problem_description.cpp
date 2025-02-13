@@ -36,7 +36,7 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
     std::ostringstream ss;
 
     ss << "diagonal" << diagonal;
-    ss << "numDim" << inputDesc.GetSize();
+    ss << "numDim" << inputDesc.GetNumDims();
     ss << "input_numel" << inputDesc.GetElementSize();
 
     return NetworkConfig{ss.str()};

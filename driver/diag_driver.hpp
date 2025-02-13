@@ -224,7 +224,7 @@ int DiagDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward (1) (Default = 1)", "int");
     inflags.AddTensorFlag(
-        "dim-lengths", 'D', "256x512", "The dimensional lengths of the input tensor");
+        "dim-lengths", 'D', "2048x2048", "The dimensional lengths of the input tensor");
     inflags.AddInputFlag(
         "Diagonal", 'R', "0", "Control which diagonal to consider (Default=0)", "int");
     inflags.AddInputFlag("contiguous", 'C', "1", "Tensor is contiguous or not", "int");

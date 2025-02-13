@@ -36,6 +36,7 @@
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
+#include "gtest_common.hpp"
 
 struct CBATestCase
 {
@@ -64,13 +65,29 @@ struct CBATestCase
     }
 };
 
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(ConvBiasActivFwdTest);
-struct ConvBiasActivFwdTest
+bool IsTestSupportedForDevice()
+{
+#if WORKAROUND_ISSUE_2212
+    using namespace miopen::debug;
+    using e_mask = enabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx103X>;
+    using d_mask = disabled<Gpu::gfx110X, Gpu::gfx94X>;
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
+#else
+    return true;
+#endif
+}
+
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_ConvBiasActivFwd_FP32);
+struct GPU_ConvBiasActivFwd_FP32
     : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, CBATestCase>>
 {
 protected:
     void SetUp() override
     {
+        if(!IsTestSupportedForDevice())
+        {
+            GTEST_SKIP();
+        }
         std::tie(algo, cba_config) = GetParam();
         const double double_zero   = 0.0f;
         input   = tensor<float>{cba_config.N, cba_config.C, cba_config.H, cba_config.W};
@@ -149,8 +166,9 @@ protected:
     miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
 };
 
-TEST_P(ConvBiasActivFwdTest, DISABLED_DriveAPI)
+TEST_P(GPU_ConvBiasActivFwd_FP32, DISABLED_DriveAPI)
 {
+
     tensor<float> z{};
     const float alpha = 1.0f;
     const auto status = miopenConvolutionBiasActivationForward(&get_handle(),
@@ -174,31 +192,14 @@ TEST_P(ConvBiasActivFwdTest, DISABLED_DriveAPI)
     EXPECT_EQ(status, miopenStatusSuccess);
 }
 
-void GatherCBATestCases(std::vector<CBATestCase>& cba_test_cases)
-{
-    const auto dev_name = get_handle().GetDeviceName();
-#if WORKAROUND_ISSUE_2212
-    if(!miopen::StartsWith(dev_name, "gfx11") && !miopen::StartsWith(dev_name, "gfx94"))
-#endif
-    {
-        cba_test_cases.push_back(CBATestCase{
-            16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenActivationRELU, miopenConvolution});
-    }
-    else
-    {
-        GTEST_SKIP() << " Skipping fusion test on unsupported ASIC";
-    }
-}
-
 // Extra layer of indirection introduced since GTEST_SKIP() cannot be called from non-void function.
 std::vector<CBATestCase> GetTestValues()
 {
-    std::vector<CBATestCase> cba_test_cases;
-    GatherCBATestCases(cba_test_cases);
-    return cba_test_cases;
+    return {
+        {16, 128, 16, 16, 128, 3, 3, 0, 0, 1, 1, 1, 1, miopenActivationRELU, miopenConvolution}};
 }
-INSTANTIATE_TEST_SUITE_P(CBAFwdAPITest,
-                         ConvBiasActivFwdTest,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ConvBiasActivFwd_FP32,
                          testing::Combine(testing::Values(miopenConvolutionFwdAlgoDirect,
                                                           miopenConvolutionFwdAlgoWinograd),
                                           testing::ValuesIn(GetTestValues())));

@@ -73,6 +73,10 @@ inline std::string GetDataType(miopenDataType_t type)
         type_str = "bfloat8";
     }
     break;
+    case miopenInt64: {
+        type_str = "int64";
+    }
+    break;
     }
     return type_str;
 }

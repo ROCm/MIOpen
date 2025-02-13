@@ -44,10 +44,12 @@ struct GroupNormForward final : NormalizationSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<GroupNormForward>(); }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::groupnorm::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::groupnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::groupnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::groupnorm::ProblemDescription& problem) const override;
 };
 
 } // namespace groupnorm

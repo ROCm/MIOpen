@@ -29,30 +29,16 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace conv_igemm_dynamic_xdlops_half {
 
-static bool SkipTest(const std::string& float_arg)
+void SetupEnvVar()
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-        return false;
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
-        if(miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg)
-            return false;
-    return true;
-}
-
-void SetupEnvVar(void)
-{
-    miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
-    miopen::UpdateEnvVar(
-        ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-        std::string(
-            "ConvAsmImplicitGemmGTCDynamicFwdXdlops;ConvAsmImplicitGemmGTCDynamicWrwXdlops"));
+    env::update(MIOPEN_FIND_MODE, "normal");
+    env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                "ConvAsmImplicitGemmGTCDynamicFwdXdlops;ConvAsmImplicitGemmGTCDynamicWrwXdlops");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -64,7 +50,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dHalf_conv_igemm_dynamic_xdlops_half
+class GPU_Conv2dHalf_conv_igemm_dynamic_xdlops_FP16
     : public testing::TestWithParam<std::vector<std::string>>
 {
 };
@@ -75,11 +61,12 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenHalf: params = Conv2dHalf_conv_igemm_dynamic_xdlops_half::GetParam(); break;
+    case miopenHalf: params = GPU_Conv2dHalf_conv_igemm_dynamic_xdlops_FP16::GetParam(); break;
     case miopenFloat:
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
     case miopenFloat8:
     case miopenBFloat8:
@@ -87,7 +74,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by conv_igemm_dynamic_xdlops_half test";
 
-    default: params = Conv2dHalf_conv_igemm_dynamic_xdlops_half::GetParam();
+    default: params = GPU_Conv2dHalf_conv_igemm_dynamic_xdlops_FP16::GetParam();
     }
 
     SetupEnvVar();
@@ -112,7 +99,7 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
-    const auto target   = handle.GetTargetProperties();
+    const auto& target  = handle.GetTargetProperties();
     std::string devName = handle.GetDeviceName();
     if(target.Xnack() && *target.Xnack())
         return false;
@@ -149,10 +136,10 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace conv_igemm_dynamic_xdlops_half
 using namespace conv_igemm_dynamic_xdlops_half;
 
-TEST_P(Conv2dHalf_conv_igemm_dynamic_xdlops_half, HalfTest_conv_igemm_dynamic_xdlops_half)
+TEST_P(GPU_Conv2dHalf_conv_igemm_dynamic_xdlops_FP16, HalfTest_conv_igemm_dynamic_xdlops_half)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest("--half"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenHalf);
     }
@@ -162,6 +149,6 @@ TEST_P(Conv2dHalf_conv_igemm_dynamic_xdlops_half, HalfTest_conv_igemm_dynamic_xd
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsFwdWrw,
-                         Conv2dHalf_conv_igemm_dynamic_xdlops_half,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2dHalf_conv_igemm_dynamic_xdlops_FP16,
                          testing::Values(GetTestCases("--half")));

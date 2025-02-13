@@ -35,7 +35,7 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 
-struct BNTestCase
+struct BN2DTestCase
 {
     size_t N;
     size_t C;
@@ -46,7 +46,7 @@ struct BNTestCase
     bool save;
     bool keepRunning;
 
-    friend std::ostream& operator<<(std::ostream& ss, const BNTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& ss, const BN2DTestCase& tc)
     {
         return ss << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " mode: " << tc.mode << " Direction: " << static_cast<int>(tc.Direction)
@@ -55,17 +55,43 @@ struct BNTestCase
     std::vector<size_t> GetInput() const { return {N, C, H, W}; }
 };
 
+struct BN3DTestCase
+{
+    size_t N;
+    size_t C;
+    size_t D;
+    size_t H;
+    size_t W;
+    miopenBatchNormMode_t mode;
+    miopen::batchnorm::Direction Direction;
+    bool save;
+    bool keepRunning;
+
+    friend std::ostream& operator<<(std::ostream& ss, const BN3DTestCase& tc)
+    {
+        return ss << "(N: " << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
+                  << " W:" << tc.W << " mode: " << tc.mode
+                  << " Direction: " << static_cast<int>(tc.Direction) << " save: " << tc.save
+                  << " keepRunning: " << tc.keepRunning;
+    }
+    std::vector<size_t> GetInput() const { return {N, C, D, H, W}; }
+};
+
 template <typename T>
-std::vector<T> Network1();
+std::vector<T> Network2DSmall();
+
+template <typename T>
+std::vector<T> Network2DLarge();
+
+template <typename T>
+std::vector<T> Network3DBN();
 
 template <>
-inline std::vector<BNTestCase> Network1()
+inline std::vector<BN2DTestCase> Network2DLarge()
 {
     // pyt_mlperf_resnet50v1.5
     return {
         {192, 1, 8, 8, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
-        {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 2048, 7, 7, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
@@ -92,7 +118,36 @@ inline std::vector<BNTestCase> Network1()
         {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0}};
+        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {768, 1, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {768, 1, 23, 23, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {832, 1, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {832, 1, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1}};
+}
+
+template <>
+inline std::vector<BN2DTestCase> Network2DSmall()
+{
+    // pyt_mlperf_resnet50v1.5
+    return {
+        {192, 2, 8, 8, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
+        {64, 2048, 17, 17, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+
+    };
+}
+
+template <>
+inline std::vector<BN3DTestCase> Network3DBN()
+{
+    return {
+        {2, 2, 3, 224, 224, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 132, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 16, 128, 128, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
+        {2, 2048, 16, 128, 128, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
+
+    };
 }
 
 template <typename XDataType, typename YDataType, typename TConfig>
@@ -325,7 +380,7 @@ template <typename XDataType,
           typename YDataType,
           typename ScaleDataType,
           typename BiasDataType,
-          typename MeanVarDataType,
+          typename AccDataType,
           typename TConfig>
 struct BNFwdTrainTestData : public BNTestData<XDataType, YDataType, TConfig>
 {
@@ -339,15 +394,15 @@ struct BNFwdTrainTestData : public BNTestData<XDataType, YDataType, TConfig>
 
     tensor<ScaleDataType> scale;
     tensor<BiasDataType> shift;
-    tensor<MeanVarDataType> saveMean;
-    tensor<MeanVarDataType> saveVariance;
-    tensor<MeanVarDataType> runMean;
-    tensor<MeanVarDataType> runVariance;
+    tensor<AccDataType> saveMean;
+    tensor<AccDataType> saveVariance;
+    tensor<AccDataType> runMean;
+    tensor<AccDataType> runVariance;
 
-    tensor<MeanVarDataType> saveMean_ref;
-    tensor<MeanVarDataType> saveVariance_ref;
-    tensor<MeanVarDataType> runMean_ref;
-    tensor<MeanVarDataType> runVariance_ref;
+    tensor<AccDataType> saveMean_ref;
+    tensor<AccDataType> saveVariance_ref;
+    tensor<AccDataType> runMean_ref;
+    tensor<AccDataType> runVariance_ref;
 
     miopen::Allocator::ManageDataPtr scale_dev;
     miopen::Allocator::ManageDataPtr shift_dev; // bias
@@ -374,14 +429,14 @@ private:
                                       derivedBnDesc.GetLengths()};
         shift    = tensor<BiasDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                      derivedBnDesc.GetLengths()};
-        saveMean = tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+        saveMean = tensor<AccDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                       derivedBnDesc.GetLengths()};
+        saveVariance = tensor<AccDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                            derivedBnDesc.GetLengths()};
-        saveVariance = tensor<MeanVarDataType>{
-            BNTestData<XDataType, YDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
-        runMean = tensor<MeanVarDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+        runMean      = tensor<AccDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
+                                      derivedBnDesc.GetLengths()};
+        runVariance  = tensor<AccDataType>{BNTestData<XDataType, YDataType, TConfig>::tensor_layout,
                                           derivedBnDesc.GetLengths()};
-        runVariance = tensor<MeanVarDataType>{
-            BNTestData<XDataType, YDataType, TConfig>::tensor_layout, derivedBnDesc.GetLengths()};
     }
 
     void InitTensorsWithRandValue()
@@ -393,7 +448,7 @@ private:
         shift.generate(gen_value);
 
         auto gen_var = [](auto...) {
-            return static_cast<MeanVarDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
+            return static_cast<AccDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
         };
         runMean.generate(gen_var);
         runVariance.generate(gen_var);

@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/mlo_internal.hpp"
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
 #include <miopen/datatype.hpp>
@@ -43,7 +44,7 @@ namespace diag {
 bool IsImprovementOverROCm(const miopen::diag::FwdProblemDescription& problem)
 {
     TensorDescriptor inputDesc = problem.GetInputDesc();
-    size_t dimNum              = inputDesc.GetSize();
+    size_t dimNum              = inputDesc.GetNumDims();
     auto numElements           = inputDesc.GetElementSize();
 
     return dimNum == 2 && numElements >= 4096576;
@@ -80,7 +81,7 @@ ConvSolution DiagForward::GetSolution(const ExecutionContext& context,
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
-    int64_t output_numel = problem.GetOutputDesc().GetElementSize();
+    auto output_numel = problem.GetOutputDesc().GetElementSize();
     size_t xlocalsize    = LOCAL_SIZE;
     size_t xgridsize     = AlignUp(output_numel, xlocalsize);
     size_t ylocalsize    = 1;

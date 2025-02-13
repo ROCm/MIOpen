@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include <miopen/solver.hpp>
-
 #include <miopen/datatype.hpp>
 #include <miopen/subbuffers.hpp>
 #include <miopen/tensor_layout.hpp>
@@ -292,7 +290,7 @@ struct ProblemTensorTransposeDescriptor
 
     inline TensorDescriptor Transpose(const TensorDescriptor& in) const
     {
-        const auto labels    = tensor_layout_get_default(in.GetSize());
+        const auto labels    = tensor_layout_get_default(in.GetNumDims());
         auto derived_strides = std::vector<size_t>{};
         tensor_layout_to_strides(
             in.GetLengths(), labels, SyncLayoutDims(labels.c_str(), to), derived_strides);
@@ -441,8 +439,7 @@ struct TransposingSolver : Base
         for(auto transpose : Derived::GetTransposes())
         {
             decltype(auto) descriptor = (problem.*(transpose.cdescriptor))();
-            const auto labels         = tensor_layout_get_default(descriptor.GetSize());
-            const auto layout         = descriptor.GetLayout(labels);
+            const auto layout         = descriptor.GetLayout_str();
             const auto to             = SyncLayoutDims(layout.c_str(), transpose.to);
 
             auto specific_pair = layout + "-";
@@ -488,9 +485,8 @@ struct TransposingSolver : Base
         for(auto transpose : Derived::GetTransposes())
         {
             const auto& descriptor = (problem.*(transpose.cdescriptor))();
-            const auto labels      = tensor_layout_get_default(descriptor.GetSize());
-            const auto layout      = descriptor.GetLayout(labels);
-            const auto to          = SyncLayoutDims(labels.c_str(), transpose.to);
+            const auto layout      = descriptor.GetLayout_str();
+            const auto to          = SyncLayoutDims(layout.c_str(), transpose.to);
 
             if(layout == to)
                 continue;

@@ -46,7 +46,7 @@ using ThreeInputTuple = std::tuple<bool, Pointwise*, Tensor*, Tensor*, Tensor*, 
 
 } // namespace
 
-TEST(GraphApiOperationPointwiseBuilderSingleSetter, AnyAttribute)
+TEST(CPU_GraphApiOperationPointwiseBuilderSingleSetter_NONE, AnyAttribute)
 {
     EXPECT_ANY_THROW({ OperationPointwiseBuilder().setPointwise(nullptr); })
         << "OperationPointwiseBuilder::setPointwise failed on an invalid attribute";
@@ -82,7 +82,8 @@ TEST(GraphApiOperationPointwiseBuilderSingleSetter, AnyAttribute)
         << "OperationPointwiseBuilder::setDy failed on a valid attribute";
 }
 
-class GraphApiOperationPointwiseBuilderOneInput : public testing::TestWithParam<OneInputTuple>
+class CPU_GraphApiOperationPointwiseBuilderOneInput_NONE
+    : public testing::TestWithParam<OneInputTuple>
 {
 protected:
     bool mValid;
@@ -93,7 +94,7 @@ protected:
     void SetUp() override { std::tie(mValid, mPointwise, mX, mY) = GetParam(); }
 };
 
-TEST_P(GraphApiOperationPointwiseBuilderOneInput, Test)
+TEST_P(CPU_GraphApiOperationPointwiseBuilderOneInput_NONE, Test)
 {
     if(mValid)
     {
@@ -143,7 +144,8 @@ TEST_P(GraphApiOperationPointwiseBuilderOneInput, Test)
     }) << "Builder failed to detect unwanted setAlpha2 call";
 }
 
-class GraphApiOperationPointwiseBuilderTwoInput : public testing::TestWithParam<TwoInputTuple>
+class CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE
+    : public testing::TestWithParam<TwoInputTuple>
 {
 protected:
     bool mValid;
@@ -155,7 +157,7 @@ protected:
     void SetUp() override { std::tie(mValid, mPointwise, mX, mB, mY) = GetParam(); }
 };
 
-TEST_P(GraphApiOperationPointwiseBuilderTwoInput, Test)
+TEST_P(CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE, Test)
 {
     if(mValid)
     {
@@ -237,7 +239,7 @@ TEST_P(GraphApiOperationPointwiseBuilderTwoInput, Test)
     }) << "Builder failed to detect unwanted setDy call";
 }
 
-class GraphApiOperationPointwiseBuilderBwd : public testing::TestWithParam<TwoInputTuple>
+class CPU_GraphApiOperationPointwiseBuilderBwd_NONE : public testing::TestWithParam<TwoInputTuple>
 {
 protected:
     bool mValid;
@@ -249,7 +251,7 @@ protected:
     void SetUp() override { std::tie(mValid, mPointwise, mY, mDy, mDx) = GetParam(); }
 };
 
-TEST_P(GraphApiOperationPointwiseBuilderBwd, Test)
+TEST_P(CPU_GraphApiOperationPointwiseBuilderBwd_NONE, Test)
 {
     if(mValid)
     {
@@ -341,7 +343,8 @@ TEST_P(GraphApiOperationPointwiseBuilderBwd, Test)
     }) << "Builder failed to detect unwanted setT call";
 }
 
-class GraphApiOperationPointwiseBuilderThreeInput : public testing::TestWithParam<ThreeInputTuple>
+class CPU_GraphApiOperationPointwiseBuilderThreeInput_NONE
+    : public testing::TestWithParam<ThreeInputTuple>
 {
 protected:
     bool mValid;
@@ -354,7 +357,7 @@ protected:
     void SetUp() override { std::tie(mValid, mPointwise, mX, mB, mY, mT) = GetParam(); }
 };
 
-TEST_P(GraphApiOperationPointwiseBuilderThreeInput, Test)
+TEST_P(CPU_GraphApiOperationPointwiseBuilderThreeInput_NONE, Test)
 {
     if(mValid)
     {
@@ -447,6 +450,181 @@ TEST_P(GraphApiOperationPointwiseBuilderThreeInput, Test)
     }) << "Builder failed to detect unwanted setDy call";
 }
 
+namespace {
+
+using miopen::graphapi::GMockBackendTensorDescriptor;
+using miopen::graphapi::GTestDescriptorAttribute;
+using miopen::graphapi::GTestDescriptorSingleValueAttribute;
+using miopen::graphapi::GTestGraphApiExecute;
+using miopen::graphapi::ValidatedValue;
+
+class GMockBackendPointwiseDescriptor : public miopen::graphapi::BackendPointwiseDescriptor
+{
+public:
+    GMockBackendPointwiseDescriptor&
+    operator=(Pointwise* pointwise) // we don't bother with ValidatedValue here
+    {
+        if(pointwise == nullptr)
+        {
+            return *this;
+        }
+
+        auto mode = pointwise->getMode();
+        setAttribute(MIOPEN_ATTR_POINTWISE_MODE, MIOPEN_TYPE_POINTWISE_MODE, 1, &mode);
+
+        auto prec = pointwise->getMathPrecision();
+        setAttribute(MIOPEN_ATTR_POINTWISE_MATH_PREC, MIOPEN_TYPE_DATA_TYPE, 1, &prec);
+
+        finalize();
+
+        return *this;
+    }
+};
+
+class GraphApiOperationPointwiseBase
+{
+private:
+    // Pointers to these are stored in the objects below
+    GMockBackendPointwiseDescriptor mPointwiseDescriptor;
+    std::vector<GMockBackendTensorDescriptor> mTensorDescriptors;
+
+    // Pointers to these are stored in mExecute object below
+    GTestDescriptorSingleValueAttribute<miopenBackendDescriptor_t, char> mPointwiseAttribute;
+    std::vector<GTestDescriptorSingleValueAttribute<miopenBackendDescriptor_t, char>>
+        mTensorAttributes;
+
+protected:
+    GTestGraphApiExecute<GTestDescriptorAttribute*> mExecute;
+
+    void prepareExecute(
+        bool valid,
+        Pointwise* pointwise,
+        std::initializer_list<std::tuple<Tensor*, const char*, miopenBackendAttributeName_t>>
+            tensors)
+    {
+        try
+        {
+            mTensorDescriptors.reserve(tensors.size()); // to prevent ptr invalidation
+            mTensorAttributes.reserve(tensors.size());  // to prevent ptr invalidation
+            mExecute.descriptor.attributes.reserve(tensors.size() + 1);
+
+            mExecute.descriptor.textName   = "MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR";
+            mExecute.descriptor.type       = MIOPEN_BACKEND_OPERATION_POINTWISE_DESCRIPTOR;
+            mExecute.descriptor.attrsValid = valid;
+
+            mPointwiseDescriptor = pointwise;
+            mPointwiseAttribute  = {pointwise != nullptr,
+                                   "MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR",
+                                   MIOPEN_ATTR_OPERATION_POINTWISE_PW_DESCRIPTOR,
+                                   MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+                                   MIOPEN_TYPE_CHAR,
+                                   2,
+                                   &mPointwiseDescriptor};
+            mExecute.descriptor.attributes.push_back(&mPointwiseAttribute);
+
+            std::for_each(tensors.begin(), tensors.end(), [this](const auto& tpl) {
+                auto ptr = std::get<Tensor*>(tpl);
+
+                auto& descriptor = mTensorDescriptors.emplace_back();
+                descriptor       = ValidatedValue<Tensor*>{ptr != nullptr, ptr};
+
+                auto& attribute =
+                    mTensorAttributes.emplace_back(ptr != nullptr,
+                                                   std::get<const char*>(tpl),
+                                                   std::get<miopenBackendAttributeName_t>(tpl),
+                                                   MIOPEN_TYPE_BACKEND_DESCRIPTOR,
+                                                   MIOPEN_TYPE_CHAR,
+                                                   2,
+                                                   &descriptor);
+                mExecute.descriptor.attributes.push_back(&attribute);
+            });
+        }
+        catch(const std::exception& e)
+        {
+            FAIL() << e.what();
+        }
+    }
+};
+
+} // namespace
+
+class CPU_GraphApiOperationPointwiseOneInput_NONE : public testing::TestWithParam<OneInputTuple>,
+                                                    protected GraphApiOperationPointwiseBase
+{
+protected:
+    void SetUp() override
+    {
+        auto [valid, pointwise, x, y] = GetParam();
+
+        // clang-format off
+        prepareExecute(
+            valid,
+            pointwise,
+            {{x, "MIOPEN_ATTR_OPERATION_POINTWISE_XDESC", MIOPEN_ATTR_OPERATION_POINTWISE_XDESC},
+             {y, "MIOPEN_ATTR_OPERATION_POINTWISE_YDESC", MIOPEN_ATTR_OPERATION_POINTWISE_YDESC}});
+        // clang-format on
+    }
+};
+
+class CPU_GraphApiOperationPointwiseTwoInput_NONE : public testing::TestWithParam<TwoInputTuple>,
+                                                    protected GraphApiOperationPointwiseBase
+{
+protected:
+    void SetUp() override
+    {
+        auto [valid, pointwise, x, b, y] = GetParam();
+
+        // clang-format off
+        prepareExecute(
+            valid,
+            pointwise,
+            {{x, "MIOPEN_ATTR_OPERATION_POINTWISE_XDESC", MIOPEN_ATTR_OPERATION_POINTWISE_XDESC},
+             {b, "MIOPEN_ATTR_OPERATION_POINTWISE_BDESC", MIOPEN_ATTR_OPERATION_POINTWISE_BDESC},
+             {y, "MIOPEN_ATTR_OPERATION_POINTWISE_YDESC", MIOPEN_ATTR_OPERATION_POINTWISE_YDESC}});
+        // clang-format on
+    }
+};
+
+class CPU_GraphApiOperationPointwiseBwd_NONE : public testing::TestWithParam<TwoInputTuple>,
+                                               protected GraphApiOperationPointwiseBase
+{
+protected:
+    void SetUp() override
+    {
+        auto [valid, pointwise, y, dy, dx] = GetParam();
+
+        // clang-format off
+        prepareExecute(
+            valid,
+            pointwise,
+            {{y, "MIOPEN_ATTR_OPERATION_POINTWISE_YDESC", MIOPEN_ATTR_OPERATION_POINTWISE_YDESC},
+             {dy, "MIOPEN_ATTR_OPERATION_POINTWISE_DYDESC", MIOPEN_ATTR_OPERATION_POINTWISE_DYDESC},
+             {dx, "MIOPEN_ATTR_OPERATION_POINTWISE_DXDESC", MIOPEN_ATTR_OPERATION_POINTWISE_DXDESC}});
+        // clang-format on
+    }
+};
+
+class CPU_GraphApiOperationPointwiseThreeInput_NONE
+    : public testing::TestWithParam<ThreeInputTuple>,
+      protected GraphApiOperationPointwiseBase
+{
+protected:
+    void SetUp() override
+    {
+        auto [valid, pointwise, x, b, y, t] = GetParam();
+
+        // clang-format off
+        prepareExecute(
+            valid,
+            pointwise,
+            {{x, "MIOPEN_ATTR_OPERATION_POINTWISE_XDESC", MIOPEN_ATTR_OPERATION_POINTWISE_XDESC},
+             {b, "MIOPEN_ATTR_OPERATION_POINTWISE_BDESC", MIOPEN_ATTR_OPERATION_POINTWISE_BDESC},
+             {y, "MIOPEN_ATTR_OPERATION_POINTWISE_YDESC", MIOPEN_ATTR_OPERATION_POINTWISE_YDESC},
+             {t, "MIOPEN_ATTR_OPERATION_POINTWISE_TDESC", MIOPEN_ATTR_OPERATION_POINTWISE_TDESC}});
+        // clang-format on
+    }
+};
+
 static Tensor x{miopenFloat, {8, 64, 64}, {64 * 64, 64, 1}, 1, false};
 static Tensor x2{miopenFloat, {8, 1, 64}, {64 * 1, 64, 1}, 2, false};
 static Tensor x3{miopenFloat, {8, 64, 1}, {64 * 1, 1, 1}, 3, false};
@@ -466,9 +644,9 @@ static auto oneInputValid   = testing::Combine(testing::Values(true),
                                              testing::Values(&x),
                                              testing::Values(&y));
 static auto oneInputInvalid = testing::Combine(testing::Values(false),
-                                               testing::Values(&pointwiseAbs),
-                                               testing::Values(&x2, &x3),
-                                               testing::Values(&y));
+                                               testing::Values(&pointwiseAbs, nullptr),
+                                               testing::Values(&x2, &x3, nullptr),
+                                               testing::Values(&y, nullptr));
 
 static auto twoInputValid1  = testing::Combine(testing::Values(true),
                                               testing::Values(&pointwiseAdd),
@@ -481,10 +659,10 @@ static auto twoInputValid2  = testing::Combine(testing::Values(true),
                                               testing::Values(&b, &b2, &b3),
                                               testing::Values(&y));
 static auto twoInputInvalid = testing::Combine(testing::Values(false),
-                                               testing::Values(&pointwiseAdd),
-                                               testing::Values(&x, &x2, &x3),
-                                               testing::Values(&b),
-                                               testing::Values(&y2));
+                                               testing::Values(&pointwiseAdd, nullptr),
+                                               testing::Values(&x, &x2, &x3, nullptr),
+                                               testing::Values(&b, nullptr),
+                                               testing::Values(&y2, nullptr));
 
 static auto twoInputValidBwd1  = testing::Combine(testing::Values(true),
                                                  testing::Values(&pointwiseReluBwd),
@@ -497,10 +675,10 @@ static auto twoInputValidBwd2  = testing::Combine(testing::Values(true),
                                                  testing::Values(&b, &b2, &b3),
                                                  testing::Values(&y));
 static auto twoInputInvalidBwd = testing::Combine(testing::Values(false),
-                                                  testing::Values(&pointwiseReluBwd),
-                                                  testing::Values(&x, &x2, &x3),
-                                                  testing::Values(&b),
-                                                  testing::Values(&y2));
+                                                  testing::Values(&pointwiseReluBwd, nullptr),
+                                                  testing::Values(&x, &x2, &x3, nullptr),
+                                                  testing::Values(&b, nullptr),
+                                                  testing::Values(&y2, nullptr));
 
 static auto threeInputValid   = testing::Combine(testing::Values(true),
                                                testing::Values(&pointwiseBinSel),
@@ -509,36 +687,57 @@ static auto threeInputValid   = testing::Combine(testing::Values(true),
                                                testing::Values(&y),
                                                testing::Values(&t));
 static auto threeInputInvalid = testing::Combine(testing::Values(false),
-                                                 testing::Values(&pointwiseBinSel),
-                                                 testing::Values(&x2, &x3),
-                                                 testing::Values(&b, &b2, &b3),
-                                                 testing::Values(&y, &y2),
-                                                 testing::Values(&t));
+                                                 testing::Values(&pointwiseBinSel, nullptr),
+                                                 testing::Values(&x2, &x3, nullptr),
+                                                 testing::Values(&b, &b2, &b3, nullptr),
+                                                 testing::Values(&y, &y2, nullptr),
+                                                 testing::Values(&t, nullptr));
 
-INSTANTIATE_TEST_SUITE_P(OneInputValid, GraphApiOperationPointwiseBuilderOneInput, oneInputValid);
-INSTANTIATE_TEST_SUITE_P(OneInputInvalid,
-                         GraphApiOperationPointwiseBuilderOneInput,
+INSTANTIATE_TEST_SUITE_P(UnitIV, CPU_GraphApiOperationPointwiseBuilderOneInput_NONE, oneInputValid);
+INSTANTIATE_TEST_SUITE_P(UnitII,
+                         CPU_GraphApiOperationPointwiseBuilderOneInput_NONE,
                          oneInputInvalid);
 
-INSTANTIATE_TEST_SUITE_P(TwoInputValid1, GraphApiOperationPointwiseBuilderTwoInput, twoInputValid1);
-INSTANTIATE_TEST_SUITE_P(TwoInputValid2, GraphApiOperationPointwiseBuilderTwoInput, twoInputValid2);
-INSTANTIATE_TEST_SUITE_P(TwoInputInvalid,
-                         GraphApiOperationPointwiseBuilderTwoInput,
+INSTANTIATE_TEST_SUITE_P(Unit2IV1,
+                         CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE,
+                         twoInputValid1);
+INSTANTIATE_TEST_SUITE_P(Unit2IV2,
+                         CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE,
+                         twoInputValid2);
+INSTANTIATE_TEST_SUITE_P(Unit2II,
+                         CPU_GraphApiOperationPointwiseBuilderTwoInput_NONE,
                          twoInputInvalid);
 
-INSTANTIATE_TEST_SUITE_P(TwoInputValidBwd1,
-                         GraphApiOperationPointwiseBuilderBwd,
-                         twoInputValidBwd1);
-INSTANTIATE_TEST_SUITE_P(TwoInputValidBwd2,
-                         GraphApiOperationPointwiseBuilderBwd,
+INSTANTIATE_TEST_SUITE_P(Unit2IV, CPU_GraphApiOperationPointwiseBuilderBwd_NONE, twoInputValidBwd1);
+INSTANTIATE_TEST_SUITE_P(Unit2IV2,
+                         CPU_GraphApiOperationPointwiseBuilderBwd_NONE,
                          twoInputValidBwd2);
-INSTANTIATE_TEST_SUITE_P(TwoInputInvalidBwd,
-                         GraphApiOperationPointwiseBuilderBwd,
+INSTANTIATE_TEST_SUITE_P(Unit2II,
+                         CPU_GraphApiOperationPointwiseBuilderBwd_NONE,
                          twoInputInvalidBwd);
 
-INSTANTIATE_TEST_SUITE_P(ThreeInputValid,
-                         GraphApiOperationPointwiseBuilderThreeInput,
+INSTANTIATE_TEST_SUITE_P(Unit3IV,
+                         CPU_GraphApiOperationPointwiseBuilderThreeInput_NONE,
                          threeInputValid);
-INSTANTIATE_TEST_SUITE_P(ThreeInputInvalid,
-                         GraphApiOperationPointwiseBuilderThreeInput,
+INSTANTIATE_TEST_SUITE_P(Unit3II,
+                         CPU_GraphApiOperationPointwiseBuilderThreeInput_NONE,
                          threeInputInvalid);
+
+TEST_P(CPU_GraphApiOperationPointwiseOneInput_NONE, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiOperationPointwiseTwoInput_NONE, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiOperationPointwiseBwd_NONE, CFunctions) { mExecute(); }
+TEST_P(CPU_GraphApiOperationPointwiseThreeInput_NONE, CFunctions) { mExecute(); }
+
+INSTANTIATE_TEST_SUITE_P(UnitIV, CPU_GraphApiOperationPointwiseOneInput_NONE, oneInputValid);
+INSTANTIATE_TEST_SUITE_P(UnitII, CPU_GraphApiOperationPointwiseOneInput_NONE, oneInputInvalid);
+
+INSTANTIATE_TEST_SUITE_P(Unit2IV1, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputValid1);
+INSTANTIATE_TEST_SUITE_P(Unit2IV2, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputValid2);
+INSTANTIATE_TEST_SUITE_P(Unit2II, CPU_GraphApiOperationPointwiseTwoInput_NONE, twoInputInvalid);
+
+INSTANTIATE_TEST_SUITE_P(Unit2IV1, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputValidBwd1);
+INSTANTIATE_TEST_SUITE_P(Unit2IV2, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputValidBwd2);
+INSTANTIATE_TEST_SUITE_P(Unit2II, CPU_GraphApiOperationPointwiseBwd_NONE, twoInputInvalidBwd);
+
+INSTANTIATE_TEST_SUITE_P(Unit3IV, CPU_GraphApiOperationPointwiseThreeInput_NONE, threeInputValid);
+INSTANTIATE_TEST_SUITE_P(Unit3II, CPU_GraphApiOperationPointwiseThreeInput_NONE, threeInputInvalid);

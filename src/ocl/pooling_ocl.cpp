@@ -54,7 +54,7 @@ static auto PoolingBackwardSolvers()
                                    solver::pooling::TransposedPoolingBwdNd>{};
 }
 
-miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
+miopenStatus_t PoolingDescriptor::Forward(const Handle& handle,
                                           const void* alpha,
                                           const TensorDescriptor& xDesc,
                                           ConstData_t x,
@@ -80,7 +80,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
         }
     }
 
-    int pool_dim = xDesc.GetSize();
+    unsigned pool_dim = xDesc.GetNumDims();
     if(pool_dim != 4 && pool_dim != 5)
     {
         MIOPEN_THROW("Unsupported pooling dimension");
@@ -139,7 +139,7 @@ miopenStatus_t PoolingDescriptor::Forward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
+miopenStatus_t PoolingDescriptor::Backward(const Handle& handle,
                                            const void* alpha,
                                            const TensorDescriptor& yDesc,
                                            ConstData_t /*y*/,
@@ -171,7 +171,7 @@ miopenStatus_t PoolingDescriptor::Backward(Handle& handle,
     assert(yDesc.GetElementSize() == dyDesc.GetElementSize() &&
            xDesc.GetElementSize() == dxDesc.GetElementSize());
 
-    int pool_dim = dyDesc.GetSize();
+    unsigned pool_dim = dyDesc.GetNumDims();
     if(pool_dim != 4 && pool_dim != 5)
     {
         MIOPEN_THROW("Unsupported pooling dimension");
