@@ -310,7 +310,6 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
-    solver/mha/mha_solver.cpp
     solver/pad_constant/pad_constant.cpp
     solver/layernorm/forward_t5layernorm.cpp
     solver/mha/mha_ck_fa_v2_solver_forward.cpp

@@ -66,9 +66,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsSameShape() const
     {
-        auto xSize = xDesc.GetSize();
-        auto ySize = yDesc.GetSize();
-        if(xSize == ySize)
+        if(xDesc.GetNumDims() == yDesc.GetNumDims())
             return true;
         return false;
     }
@@ -142,9 +140,7 @@ struct ProblemDescription : ProblemDescriptionBase
 
     bool IsSameShape() const
     {
-        auto xSize = dxDesc.GetSize();
-        auto ySize = dyDesc.GetSize();
-        if(xSize == ySize)
+        if(dxDesc.GetNumDims() == dyDesc.GetNumDims())
             return true;
         return false;
     }

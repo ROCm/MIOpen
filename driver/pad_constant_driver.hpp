@@ -254,7 +254,7 @@ int ConstantPadDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("forw", 'F', "0", "Only run the Forward Pass (Default=1)", "int");
     inflags.AddInputFlag("contiguous", 'Z', "0", "Use contiguous tensor", "int");
     inflags.AddInputFlag("in", 'I', "3,3,3,3,3", "Input batch size (n,c,d,h,w)", "int");
-    inflags.AddInputFlag("pad", 'P', "1,1,1,1,1", "Padding batch size (n,c,d,h,w)", "int");
+    inflags.AddInputFlag("pad", 'P', "1,1,1,1,1,1", "Padding batch size (n,c,d,h,w)", "int");
     inflags.AddInputFlag("value", 'v', "0", "Padding value", "string");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of iterations", "int");
