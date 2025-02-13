@@ -95,7 +95,7 @@ std::string Write2s(kernel_type_t kern_type)
     }
 }
 
-void run2s(miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
+void run2s(const miopen::Handle& h, std::size_t n, kernel_type_t kern_type)
 {
     std::vector<int> data_in(n, 1);
     auto data_dev = h.Write(data_in);

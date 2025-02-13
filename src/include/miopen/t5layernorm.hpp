@@ -33,7 +33,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t T5LayerNormForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t T5LayerNormForward(const Handle& handle,
                                                           const TensorDescriptor& xDesc,
                                                           ConstData_t x,
                                                           const TensorDescriptor& weightDesc,
@@ -46,7 +46,7 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t T5LayerNormForward(Handle& handle,
                                                           float epsilon);
 
 MIOPEN_INTERNALS_EXPORT std::size_t
-GetT5LayerNormBackwardWorkspaceSize(Handle& handle,
+GetT5LayerNormBackwardWorkspaceSize(const Handle& handle,
                                     const TensorDescriptor& dyDesc,
                                     const TensorDescriptor& xDesc,
                                     const TensorDescriptor& weightDesc,
@@ -55,7 +55,7 @@ GetT5LayerNormBackwardWorkspaceSize(Handle& handle,
                                     const TensorDescriptor& dwDesc,
                                     miopenNormMode_t mode);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t T5LayerNormBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t T5LayerNormBackward(const Handle& handle,
                                                            Data_t workspace,
                                                            size_t workspaceSizeInBytes,
                                                            const TensorDescriptor& dyDesc,

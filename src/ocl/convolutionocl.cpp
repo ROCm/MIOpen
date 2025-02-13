@@ -89,7 +89,7 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
     ctx.disable_search_enforce = true;
 
     const auto solver = solver_id.GetSolver();
-    auto db           = GetDb(ctx);
+    auto db           = MakeConvDbGetter(ctx);
     auto solution     = solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
     auto& handle      = ctx.GetStream();
     auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
@@ -226,7 +226,7 @@ static inline void FillFindReturnParameters(const std::vector<Solution>& results
                            << results[0].GetWorkspaceSize() << ", " << results[0].GetTime());
 }
 
-void ConvolutionDescriptor::FindConvFwdAlgorithm(Handle& handle,
+void ConvolutionDescriptor::FindConvFwdAlgorithm(const Handle& handle,
                                                  const TensorDescriptor& xDesc,
                                                  ConstData_t x,
                                                  const TensorDescriptor& wDesc,
@@ -453,7 +453,7 @@ miopenDataType_t GetScalarDataType(const TensorDescriptor& xDesc)
     }
 }
 
-void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
+void ConvolutionDescriptor::ConvolutionForward(const Handle& handle,
                                                const void* alpha,
                                                const TensorDescriptor& xDesc,
                                                ConstData_t x,
@@ -501,7 +501,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     });
 }
 
-static std::size_t GetSolutionCount(Handle& handle, const conv::ProblemDescription& problem)
+static std::size_t GetSolutionCount(const Handle& handle, const conv::ProblemDescription& problem)
 {
     const FindDbRecord fdb_record{handle, problem};
     if(fdb_record.empty())
@@ -603,7 +603,17 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     if(!env::disabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK))
     {
         const static std::string arch = ctx.GetStream().GetDeviceName();
-        auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
+        std::vector<uint64_t> solvers;
+        try
+        {
+            solvers = ai::immed_mode::PredictSolver(problem, ctx, arch);
+        }
+        catch(const miopen::Exception& ex)
+        {
+            MIOPEN_LOG_I2("[Warning] Caught exception: (" << ex.what()
+                                                          << "), passing empty solver vector");
+        }
+
         if(!solvers.empty())
         {
             MIOPEN_LOG_I2("Using TunaNet Fallback");
@@ -786,7 +796,7 @@ ConvolutionDescriptor::GetSolutions(const ExecutionContext& ctx,
     return GetSolutionsFallback(ctx, problem, maxSolutionCount, invokeParams);
 }
 
-std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(Handle& handle,
+std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(const Handle& handle,
                                                                    const TensorDescriptor& wDesc,
                                                                    const TensorDescriptor& xDesc,
                                                                    const TensorDescriptor& yDesc,
@@ -817,7 +827,7 @@ void ConvolutionDescriptor::CompileSolution(const ExecutionContext& ctx,
     miopen::CompileSolution(solver_id, ctx, problem);
 }
 
-void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
+void ConvolutionDescriptor::ConvolutionForwardImmediate(const Handle& handle,
                                                         const TensorDescriptor& wDesc,
                                                         ConstData_t w,
                                                         const TensorDescriptor& xDesc,
@@ -849,7 +859,7 @@ void ConvolutionDescriptor::ConvolutionForwardImmediate(Handle& handle,
 
 // FindBackwardDataAlgorithm()
 //
-void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
+void ConvolutionDescriptor::FindConvBwdDataAlgorithm(const Handle& handle,
                                                      const TensorDescriptor& dyDesc,
                                                      ConstData_t dy,
                                                      const TensorDescriptor& wDesc,
@@ -939,7 +949,7 @@ static void ConvBwdCheckNumerics(const Handle& handle,
 }
 
 // BackwardDataAlgorithm()
-void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
+void ConvolutionDescriptor::ConvolutionBackwardData(const Handle& handle,
                                                     const void* alpha,
                                                     const TensorDescriptor& dyDesc,
                                                     ConstData_t dy,
@@ -990,7 +1000,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
     });
 }
 
-std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& handle,
+std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(const Handle& handle,
                                                                     const TensorDescriptor& dyDesc,
                                                                     const TensorDescriptor& wDesc,
                                                                     const TensorDescriptor& dxDesc,
@@ -1019,7 +1029,7 @@ std::size_t ConvolutionDescriptor::GetBackwardSolutionWorkspaceSize(Handle& hand
     }
 }
 
-void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
+void ConvolutionDescriptor::ConvolutionBackwardImmediate(const Handle& handle,
                                                          const TensorDescriptor& dyDesc,
                                                          ConstData_t dy,
                                                          const TensorDescriptor& wDesc,
@@ -1057,7 +1067,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
 // ConvolutionBackwardWeightsGetWorkSpaceSize
 // FindBackwardWeightsAlgorithm()
 //
-void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(Handle& handle,
+void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(const Handle& handle,
                                                         const TensorDescriptor& dyDesc,
                                                         ConstData_t dy,
                                                         const TensorDescriptor& xDesc,
@@ -1194,7 +1204,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
     });
 }
 
-std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
+std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(const Handle& handle,
                                                                const TensorDescriptor& dyDesc,
                                                                const TensorDescriptor& xDesc,
                                                                const TensorDescriptor& dwDesc,
@@ -1223,7 +1233,7 @@ std::size_t ConvolutionDescriptor::GetWrwSolutionWorkspaceSize(Handle& handle,
     }
 }
 
-void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
+void ConvolutionDescriptor::ConvolutionWrwImmediate(const Handle& handle,
                                                     const TensorDescriptor& dyDesc,
                                                     ConstData_t dy,
                                                     const TensorDescriptor& xDesc,

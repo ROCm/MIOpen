@@ -50,6 +50,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <shared_mutex>
 
 namespace miopen {
 
@@ -81,8 +82,7 @@ public:
 
     void ClearKernels(const std::string& algorithm, const std::string& network_config);
 
-    const std::vector<Kernel>& GetKernels(const std::string& algorithm,
-                                          const std::string& network_config);
+    std::vector<Kernel> GetKernels(const std::string& algorithm, const std::string& network_config);
 
     bool HasProgram(const fs::path& name, const std::string& params) const;
     void ClearProgram(const fs::path& name, const std::string& params);
@@ -92,8 +92,11 @@ public:
     KernelCache();
 
 private:
+    void AddKernelUnsafe(Key key, Kernel k, std::size_t cache_index);
+
     KernelMap kernel_map;
     ProgramMap program_map;
+    mutable std::shared_mutex lock;
 };
 
 } // namespace miopen
