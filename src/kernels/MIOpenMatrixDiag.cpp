@@ -83,10 +83,12 @@ __device__ void MatrixSetDiag(const TIO* input,
     if(is_input_padding)
     {
         if(lid == 0)
+        {
             if(input)
                 input_val = input[0];
             else
                 input_val = 0;
+        }
         __syncthreads();
     }
 
@@ -158,10 +160,12 @@ __device__ void MatrixDiagPart(const TIO* input,
     if(is_single_padding)
     {
         if(lid == 0)
+        {
             if(padding)
                 padding_val = padding[0];
             else
                 padding_val = 0;
+        }
         __syncthreads();
     }
 
