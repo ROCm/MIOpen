@@ -91,9 +91,10 @@ __device__ void MatrixSetDiag(const TIO* input,
     }
 
     int64_t d = n - m;
-    int64_t diag_id;
+
     if(k0 <= d && d <= k1)
     {
+        int64_t diag_id;
         if(k0 == k1)
             diag_id = batch_id * max_diag_len + n - max(k1, static_cast<int64_t>(0));
         else
@@ -105,10 +106,6 @@ __device__ void MatrixSetDiag(const TIO* input,
             diag_id =
                 batch_id * num_diags * max_diag_len + diag_index * max_diag_len + index_in_diag;
         }
-    }
-
-    if(k0 <= d && d <= k1)
-    {
         if(diagonal)
             output[gid] = diagonal[diag_id];
         else
@@ -187,7 +184,8 @@ __device__ void MatrixDiagPart(const TIO* input,
         x                 = max(d, static_cast<int64_t>(0)) - offset;
     }
 
-    if(0 <= n + y && n + y < M && 0 <= n + x && n + x < N)
+    if(0 <= n + y && static_cast<uint64_t>(n + y) < M && 0 <= n + x &&
+       static_cast<uint64_t>(n + x) < N)
     {
         uint64_t input_id = batch_id * M * N + (n + y) * N + n + x;
         output[gid]       = input[input_id];
