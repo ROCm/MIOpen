@@ -240,3 +240,36 @@ TEST(CPU_InlineVectorInsert_NONE, Test)
         EXPECT_EQ(iv13_4[i], v13_4[i]);
     }
 }
+
+TEST(CPU_InlineVectorErase_NONE, Test)
+{
+    miopen::InlineVector<size_t, 5> iv14_1{1, 2, 3};
+    std::vector<size_t> v14_1{1, 2, 3};
+    iv14_1.erase(iv14_1.begin());
+    v14_1.erase(v14_1.begin());
+    for(int i = 0; i < iv14_1.size(); i++)
+    {
+        EXPECT_EQ(iv14_1[i], v14_1[i]);
+    }
+
+    miopen::InlineVector<size_t, 5> iv14_2{1, 2, 3};
+    EXPECT_ANY_THROW(iv14_2.erase(iv14_2.end()));
+
+    miopen::InlineVector<size_t, 5> iv14_3{1, 2, 3, 4};
+    std::vector<size_t> v14_3{1, 2, 3, 4};
+    iv14_3.erase(iv14_3.begin() + 2);
+    v14_3.erase(v14_3.begin() + 2);
+    for(int i = 0; i < iv14_3.size(); i++)
+    {
+        EXPECT_EQ(iv14_3[i], v14_3[i]);
+    }
+
+    miopen::InlineVector<size_t, 5> iv14_4{1, 2, 3};
+    std::vector<size_t> v14_4{1, 2, 3};
+    iv14_4.erase(std::prev(iv14_4.end()));
+    v14_4.erase(std::prev(v14_4.end()));
+    for(int i = 0; i < iv14_4.size(); i++)
+    {
+        EXPECT_EQ(iv14_4[i], v14_4[i]);
+    }
+}

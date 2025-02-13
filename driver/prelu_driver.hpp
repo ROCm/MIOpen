@@ -141,7 +141,7 @@ int PReLUDriver<Tgpu, Tref>::GetandSetData()
 {
     auto inTensorParam             = inflags.GetValueTensor("input");
     auto input_length              = inTensorParam.lengths;
-    std::vector<int> weight_length = {inflags.GetValueInt("NumParameters")};
+    miopen::InlineVector<int, 5> weight_length = {inflags.GetValueInt("NumParameters")};
 
     if(SetTensorNd(inputDesc, input_length, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");

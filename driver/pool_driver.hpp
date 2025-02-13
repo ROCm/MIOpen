@@ -77,7 +77,7 @@ public:
 
     int SetPoolDescriptorFromCmdLineArgs();
 
-    std::vector<int> GetOutputTensorLengths();
+    miopen::InlineVector<int, 5> GetOutputTensorLengths();
 
     int AllocateBuffersAndCopy() override;
 
@@ -322,9 +322,9 @@ int PoolDriver_impl<Tgpu, Tref, Index>::SetPoolDescriptorFromCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref, typename Index>
-std::vector<int> PoolDriver_impl<Tgpu, Tref, Index>::GetOutputTensorLengths()
+miopen::InlineVector<int, 5> PoolDriver_impl<Tgpu, Tref, Index>::GetOutputTensorLengths()
 {
-    std::vector<int> out_dim(spatial_dim + 2);
+    miopen::InlineVector<int, 5> out_dim(spatial_dim + 2);
     miopenGetPoolingNdForwardOutputDim(poolDesc, inputTensor, spatial_dim + 2, out_dim.data());
 
     return out_dim;

@@ -255,7 +255,6 @@ public:
         real_size = n;
     }
 
-    // Insert
     // Insert 'value' before 'pos'
     iterator insert(iterator pos, const T& value)
     {
@@ -281,6 +280,26 @@ public:
             }
         }
         storage[idx] = value;
+        return iterator(data() + idx);
+    }
+
+    // Erase element at the pos
+    iterator erase(iterator pos)
+    {
+        if(empty())
+        {
+            return iterator(data());
+        }
+        int idx = std::distance(begin(), pos);
+        if(idx < 0 || idx >= real_size)
+        {
+            MIOPEN_THROW("Cannot erase data at this position");
+        }
+        real_size -= 1;
+        for(int i = idx; i < real_size; i++)
+        {
+            storage[i] = storage[i + 1];
+        }
         return iterator(data() + idx);
     }
 

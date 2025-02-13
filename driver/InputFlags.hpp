@@ -27,6 +27,7 @@
 #define MIOPEN_INPUT_FLAGS_HPP_
 
 #include <miopen/miopen.h>
+#include <miopen/inline_vector.hpp>
 
 #include <boost/optional.hpp>
 
@@ -46,8 +47,8 @@ struct Input
 
 struct TensorParameters
 {
-    std::vector<int> lengths = {};
-    std::vector<int> strides = {};
+    miopen::InlineVector<int, 5> lengths = {};
+    miopen::InlineVector<int, 5> strides = {};
     std::string layout       = "";
 
     TensorParameters FillMissing(const TensorParameters& other) const
@@ -65,8 +66,8 @@ struct TensorParameters
 
 struct TensorParametersUint64
 {
-    std::vector<uint64_t> lengths = {};
-    std::vector<uint64_t> strides = {};
+    miopen::InlineVector<uint64_t, 5> lengths = {};
+    miopen::InlineVector<uint64_t, 5> strides = {};
     std::string layout            = "";
 
     TensorParametersUint64 FillMissing(const TensorParametersUint64& other) const

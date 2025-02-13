@@ -210,13 +210,13 @@ int AddLayerNormDriver<Tgpu, Tref>::GetandSetData()
     MIOPEN_THROW_IF(dim < 0 || static_cast<size_t>(dim) >= in_len.size(),
                     "normalized_dim out of range");
 
-    std::vector<int> inner_len;
+    miopen::InlineVector<int, 5> inner_len;
     if(dim == in_len.size())
         inner_len = {1};
     else
         inner_len = {in_len.begin() + dim, in_len.end()};
 
-    std::vector<int> outer_len;
+    miopen::InlineVector<int, 5> outer_len;
     if(dim == 0)
         outer_len = {1};
     else

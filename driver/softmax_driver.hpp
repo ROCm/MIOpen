@@ -66,7 +66,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -133,7 +133,7 @@ int SoftmaxDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int SoftmaxDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> in_len = GetInputTensorLengthsFromCmdLine();
 
     SetTensor4d(inputTensor, in_len, data_type);
     SetTensor4d(outputTensor, in_len, data_type);
@@ -175,7 +175,7 @@ int SoftmaxDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> SoftmaxDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+miopen::InlineVector<int, 5> SoftmaxDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -184,7 +184,7 @@ std::vector<int> SoftmaxDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 
     isForward = inflags.GetValueInt("forw") == 1;
 
-    return std::vector<int>({in_n, in_c, in_h, in_w});
+    return miopen::InlineVector<int, 5>({in_n, in_c, in_h, in_w});
 }
 
 template <typename Tgpu, typename Tref>

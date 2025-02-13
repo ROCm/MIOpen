@@ -191,12 +191,12 @@ int GLUDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = inflags.GetValueTensor("dim_lengths").lengths;
+    miopen::InlineVector<int, 5> in_len = inflags.GetValueTensor("dim_lengths").lengths;
     dim                     = inflags.GetValueInt("dim_to_split");
 
     SetTensorNd(inputTensor, in_len, data_type);
 
-    std::vector<int> out_len;
+    miopen::InlineVector<int, 5> out_len;
 
     for(int i = 0; i < in_len.size(); i++)
     {

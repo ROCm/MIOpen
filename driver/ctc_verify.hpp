@@ -331,10 +331,10 @@ void ctc_softmaxlayer_gradient_log(std::vector<int>& label,
 
 template <typename Tgpu, typename Tref = Tgpu>
 void RunCTCLossCPUVerify(const int num_class,
-                         std::vector<size_t> probsSize,
-                         std::vector<size_t> probsStride,
-                         std::vector<size_t> gradientsSize,
-                         std::vector<size_t> gradientsStride,
+                         miopen::InlineVector<size_t, 5> probsSize,
+                         miopen::InlineVector<size_t, 5> probsStride,
+                         miopen::InlineVector<size_t, 5> gradientsSize,
+                         miopen::InlineVector<size_t, 5> gradientsStride,
                          std::vector<Tgpu>& probs,
                          std::vector<int>& labels,
                          std::vector<int>& labelLengths,
@@ -493,8 +493,8 @@ void RunCTCLossCPUVerify(const int num_class,
 }
 
 template <typename T>
-void GetCTCLossWorkspaceSizeCPU(std::vector<size_t> probsDesc,
-                                std::vector<size_t> gradientsDesc,
+void GetCTCLossWorkspaceSizeCPU(miopen::InlineVector<size_t, 5> probsDesc,
+                                miopen::InlineVector<size_t, 5> gradientsDesc,
                                 const int* labels,
                                 const int* labelLengths,
                                 const int* inputLengths,

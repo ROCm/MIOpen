@@ -103,10 +103,10 @@ private:
     miopenReduceTensorIndices_t indicesOpt;
     miopenIndicesType_t indicesType;
 
-    std::vector<int> inLengths;
-    std::vector<int> outLengths;
-    std::vector<int> inStrides;
-    std::vector<int> outStrides;
+    miopen::InlineVector<int, 5> inLengths;
+    miopen::InlineVector<int, 5> outLengths;
+    miopen::InlineVector<int, 5> inStrides;
+    miopen::InlineVector<int, 5> outStrides;
 
     std::vector<int> invariantLengths;
     std::vector<int> toReduceLengths;

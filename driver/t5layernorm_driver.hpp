@@ -277,13 +277,13 @@ int T5LayerNormDriver<Tgpu, Tref>::GetandSetData()
 
     auto in_len = inTensorParam.lengths;
 
-    std::vector<int> inner_len;
+    miopen::InlineVector<int, 5> inner_len;
 
     inner_len = {in_len[in_len.size() - 1]};
 
     MIOPEN_THROW_IF(inner_len[0] == 0, "Final dimension must be nonzero");
 
-    std::vector<int> outer_len;
+    miopen::InlineVector<int, 5> outer_len;
 
     outer_len = {in_len.begin(), in_len.end() - 1};
 

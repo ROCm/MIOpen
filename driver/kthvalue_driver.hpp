@@ -102,7 +102,7 @@ public:
         data_type = miopen_type<TIO>{};
     }
 
-    std::vector<int> ComputeStrides(std::vector<int> input);
+    miopen::InlineVector<int, 5> ComputeStrides(miopen::InlineVector<int, 5> input);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
@@ -175,7 +175,7 @@ template <typename TIO>
 int KthvalueDriver<TIO>::GetandSetData()
 {
     auto inDims               = inflags.GetValueTensor("dim-lengths").lengths;
-    std::vector<int> inStride = ComputeStrides(inDims);
+    miopen::InlineVector<int, 5> inStride = ComputeStrides(inDims);
     auto outDims              = inflags.GetValueTensor("dim-lengths").lengths;
 
     if(dim < 0)
@@ -202,11 +202,12 @@ int KthvalueDriver<TIO>::GetandSetData()
 
 // Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
 template <typename TIO>
-std::vector<int> KthvalueDriver<TIO>::ComputeStrides(std::vector<int> inputDim)
+miopen::InlineVector<int, 5>
+KthvalueDriver<TIO>::ComputeStrides(miopen::InlineVector<int, 5> inputDim)
 {
     if(!isContiguous)
         std::swap(inputDim.front(), inputDim.back());
-    std::vector<int> strides(inputDim.size());
+    miopen::InlineVector<int, 5> strides(inputDim.size());
     strides.back() = 1;
     for(int i = inputDim.size() - 2; i >= 0; --i)
         strides[i] = strides[i + 1] * inputDim[i + 1];

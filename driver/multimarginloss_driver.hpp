@@ -212,33 +212,33 @@ template <typename Tgpu, typename Tref>
 int MultiMarginLossDriver<Tgpu, Tref>::GetandSetData()
 {
     // Set tensor description
-    std::vector<int> in_len = inflags.GetValueTensor("dim").lengths;
+    miopen::InlineVector<int, 5> in_len = inflags.GetValueTensor("dim").lengths;
     size_t N = in_len[0], C = in_len[1];
     if(inflags.GetValueInt("contiguous") == 1)
     {
         SetTensorNd(iDesc, in_len, data_type);
 
-        std::vector<int> t_len = {N};
+        miopen::InlineVector<int, 5> t_len = {N};
         SetTensorNd(tDesc, t_len, miopenInt64);
 
-        std::vector<int> w_len = {C};
+        miopen::InlineVector<int, 5> w_len = {C};
         SetTensorNd(wDesc, w_len, data_type);
     }
     else
     {
-        std::vector<int> in_strides(in_len.size());
+        miopen::InlineVector<int, 5> in_strides(in_len.size());
         in_strides.back() = 1;
         for(int i = in_len.size() - 2; i >= 0; --i)
             in_strides[i] = in_strides[i + 1] * in_len[i + 1];
         in_strides[0] *= 2;
         SetTensorNd(iDesc, in_len, in_strides, data_type);
 
-        std::vector<int> t_len     = {N};
-        std::vector<int> t_strides = {2};
+        miopen::InlineVector<int, 5> t_strides = {2};
+        miopen::InlineVector<int, 5> t_len     = {N};
         SetTensorNd(tDesc, t_len, t_strides, miopenInt64);
 
-        std::vector<int> w_lens    = {C};
-        std::vector<int> w_strides = {2};
+        miopen::InlineVector<int, 5> w_lens    = {C};
+        miopen::InlineVector<int, 5> w_strides = {2};
         SetTensorNd(wDesc, w_lens, w_strides, data_type);
     }
 
@@ -261,12 +261,12 @@ int MultiMarginLossDriver<Tgpu, Tref>::GetandSetData()
     {
         if(reduction == "none")
         {
-            std::vector<int> o_lens = {N};
+            miopen::InlineVector<int, 5> o_lens = {N};
             SetTensorNd(oDesc, o_lens, data_type);
         }
         else
         {
-            std::vector<int> o_lens = {1};
+            miopen::InlineVector<int, 5> o_lens = {1};
             SetTensorNd(oDesc, o_lens, data_type);
         }
     }

@@ -59,7 +59,7 @@ int32_t mloReduceExtremeForwardRunHost(miopenTensorDescriptor_t xDesc,
                                        int32_t dim)
 {
     auto x_dims = miopen::deref(xDesc).GetLengths();
-    std::vector<std::size_t> indice_dims;
+    miopen::InlineVector<std::size_t, 5> indice_dims;
     if(yhost)
         indice_dims = miopen::deref(yDesc).GetLengths();
     else
@@ -194,7 +194,7 @@ int ReduceExtremeDriver<Tgpu, Tref>::GetandSetData()
     dim             = inflags.GetValueInt("DimToReduce");
     reduceExtremeOp = static_cast<miopenReduceExtremeOp_t>(inflags.GetValueInt("ReduceExtremeOp"));
 
-    std::vector<int> out_len;
+    miopen::InlineVector<int, 5> out_len;
 
     for(int i = 0; i < in_len.size(); ++i)
     {

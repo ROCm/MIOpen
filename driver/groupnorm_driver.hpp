@@ -64,7 +64,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -139,9 +139,9 @@ int GroupNormDriver<Tgpu, Tref>::GetandSetData()
     eps        = static_cast<float>(inflags.GetValueDouble("eps"));
     mode       = miopenNormMode_t(inflags.GetValueInt("mode"));
 
-    std::vector<int> in_len          = GetInputTensorLengthsFromCmdLine();
-    std::vector<int> weight_bias_len = {in_len[1]};
-    std::vector<int> mean_rstd_len   = {in_len[0], num_groups};
+    miopen::InlineVector<int, 5> in_len          = GetInputTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> weight_bias_len = {in_len[1]};
+    miopen::InlineVector<int, 5> mean_rstd_len   = {in_len[0], num_groups};
 
     SetTensorNd(inputDesc, in_len, data_type);
     SetTensorNd(weightDesc, weight_bias_len, data_type);
@@ -178,7 +178,7 @@ int GroupNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> GroupNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+miopen::InlineVector<int, 5> GroupNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
@@ -189,17 +189,17 @@ std::vector<int> GroupNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
     if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
     {
         dim_size = 5;
-        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
+        return miopen::InlineVector<int, 5>({in_n, in_c, in_d, in_h, in_w});
     }
     else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
     {
         dim_size = 4;
-        return std::vector<int>({in_n, in_c, in_h, in_w});
+        return miopen::InlineVector<int, 5>({in_n, in_c, in_h, in_w});
     }
     else if((in_n != 0) && (in_c != 0) && (in_w != 0))
     {
         dim_size = 3;
-        return std::vector<int>({in_n, in_c, in_w});
+        return miopen::InlineVector<int, 5>({in_n, in_c, in_w});
     }
     else
     {

@@ -106,9 +106,9 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
-    std::vector<int> GetOutputTensorLengths();
-    std::vector<int> GetWeightTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> GetInputTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> GetOutputTensorLengths();
+    miopen::InlineVector<int, 5> GetWeightTensorLengthsFromCmdLine();
     std::vector<int> GetModeFromCmdLine();
 
     int SetActivationDescriptorFromCmdLineArgs();
@@ -309,14 +309,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetActivationDescriptorFromCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
+miopen::InlineVector<int, 5> CBAInferFusionDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
 {
     int wei_n = inflags.GetValueInt("out_channels");
     int wei_c = inflags.GetValueInt("in_channels");
     int wei_h = inflags.GetValueInt("fil_h");
     int wei_w = inflags.GetValueInt("fil_w");
 
-    return std::vector<int>({wei_n, wei_c, wei_h, wei_w});
+    return miopen::InlineVector<int, 5>({wei_n, wei_c, wei_h, wei_w});
 }
 
 template <typename Tgpu, typename Tref>
@@ -327,8 +327,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     SetConvDescriptorFromCmdLineArgs();
     SetActivationDescriptorFromCmdLineArgs();
 
-    std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
-    std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> in_len  = GetInputTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> wei_len = GetWeightTensorLengthsFromCmdLine();
 
     SetTensor4d(inputTensor, in_len, data_type);
 
@@ -336,7 +336,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
 
     SetTensor4d(weightTensor, wei_len, data_type);
 
-    std::vector<int> out_len{};
+    miopen::InlineVector<int, 5> out_len{};
     if(fusion_mode != miopen_fusion_na)
     {
         out_len = GetOutputTensorLengths();
@@ -349,7 +349,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
 
     if(bias_mode)
     {
-        std::vector<int> b_len{1, out_len[1], 1, 1};
+        miopen::InlineVector<int, 5> b_len{1, out_len[1], 1, 1};
         SetTensor4d(biasTensor, b_len, data_type);
     }
 
@@ -419,13 +419,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+miopen::InlineVector<int, 5> CBAInferFusionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
-    return std::vector<int>({in_n, in_c, in_h, in_w});
+    return miopen::InlineVector<int, 5>({in_n, in_c, in_h, in_w});
 }
 
 template <typename Tgpu, typename Tref>
@@ -502,11 +502,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetOutputTensorLengths()
+miopen::InlineVector<int, 5> CBAInferFusionDriver<Tgpu, Tref>::GetOutputTensorLengths()
 {
     int n, c, h, w;
     miopenGetConvolutionForwardOutputDim(convDesc, inputTensor, weightTensor, &n, &c, &h, &w);
-    return std::vector<int>({n, c, h, w});
+    return miopen::InlineVector<int, 5>({n, c, h, w});
 }
 
 template <typename Tgpu, typename Tref>

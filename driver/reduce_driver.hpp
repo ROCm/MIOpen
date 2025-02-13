@@ -75,7 +75,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> GetInputTensorLengthsFromCmdLine();
     std::vector<int> GetDimsToReduceFromCmdLine();
 
     int SetReduceTensorDescriptorFromCmdLineArgs();
@@ -141,9 +141,9 @@ int ReduceDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int ReduceDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> inLengths    = GetInputTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> inLengths    = GetInputTensorLengthsFromCmdLine();
     std::vector<int> toReduceDims = GetDimsToReduceFromCmdLine();
-    std::vector<int> outLengths   = inLengths;
+    miopen::InlineVector<int, 5> outLengths = inLengths;
     std::vector<int> invariantDims;
 
     assert(toReduceDims.size() <= inLengths.size());
@@ -221,11 +221,11 @@ int ReduceDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> ReduceDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+miopen::InlineVector<int, 5> ReduceDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     std::string lengthsStr = inflags.GetValueStr("DimLengths");
 
-    std::vector<int> lengths;
+    miopen::InlineVector<int, 5> lengths;
     std::size_t pos = 0;
     std::size_t new_pos;
 

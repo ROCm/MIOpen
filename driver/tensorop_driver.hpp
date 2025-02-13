@@ -59,7 +59,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> GetInputTensorLengthsFromCmdLine();
 
     int SetTensorOpFromCmdLineArgs();
 
@@ -121,7 +121,7 @@ int TensorOpDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int TensorOpDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    miopen::InlineVector<int, 5> in_len = GetInputTensorLengthsFromCmdLine();
     SetTensor4d(aTensor, in_len, data_type);
     SetTensor4d(bTensor, in_len, data_type);
     SetTensor4d(cTensor, in_len, data_type);
@@ -157,7 +157,7 @@ int TensorOpDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> TensorOpDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+miopen::InlineVector<int, 5> TensorOpDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
