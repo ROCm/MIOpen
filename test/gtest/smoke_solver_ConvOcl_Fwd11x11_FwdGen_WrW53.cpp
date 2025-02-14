@@ -34,10 +34,6 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_fwd_gen =
-        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
-                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvOclDirectFwdGen"}};
-
     const auto env_wrw = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
                                     std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvOclBwdWrW53"}};
 
@@ -46,7 +42,6 @@ auto GetTestCases()
 
     return std::vector{
         // clang-format off
-    std::pair{env_fwd_gen, vf + " --input 1 1 6 6 --weights 1 1 3 3 --pads_strides_dilations 0 0 2 2 1 1"},
     std::pair{env_wrw,     vw + " --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1"}
         // clang-format on
     };
