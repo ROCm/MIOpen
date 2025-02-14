@@ -274,15 +274,16 @@ static std::vector<Solution> EvaluateInvokers(const Handle& handle,
             while(i < N_RUNS_MAX && elapsed < TIME_MS_MAX)
             {
                 invoker(handle, invoke_ctx);
+
+                // don't include warm-up run in our samples.
                 if(i > 0)
                 {
-                    // don't include warm-up run in our measurements
+
                     samples.push_back(handle.GetKernelTime());
                 }
                 else
                 {
-                    // Use first_elapsed if we go past max time since we won't have any other
-                    // samples.
+                    // Keep first run just in case we go over the limit, and have no samples.
                     first_elapsed = handle.GetKernelTime();
                 }
                 ++i;
