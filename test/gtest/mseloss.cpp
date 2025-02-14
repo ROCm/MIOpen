@@ -28,9 +28,12 @@
 
 namespace mseloss {
 
-using GPU_MSELoss_fwd_FP32  = MSELossTest<float>;
-using GPU_MSELoss_fwd_FP16  = MSELossTest<half>;
-using GPU_MSELoss_fwd_BFP16 = MSELossTest<bfloat16>;
+using GPU_MSELoss_fwd_FP32  = MSELossTestForward<float>;
+using GPU_MSELoss_fwd_FP16  = MSELossTestForward<half>;
+using GPU_MSELoss_fwd_BFP16 = MSELossTestForward<bfloat16>;
+using GPU_MSELoss_bwd_FP32  = MSELossTestBackward<float>;
+using GPU_MSELoss_bwd_FP16  = MSELossTestBackward<half>;
+using GPU_MSELoss_bwd_BFP16 = MSELossTestBackward<bfloat16>;
 
 } // namespace mseloss
 using namespace mseloss;
@@ -53,6 +56,27 @@ TEST_P(GPU_MSELoss_fwd_BFP16, Full)
     Verify();
 }
 
-INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_fwd_FP32, testing::ValuesIn(MSELossTestConfigs()));
-INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_fwd_FP16, testing::ValuesIn(MSELossTestConfigs()));
-INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_fwd_BFP16, testing::ValuesIn(MSELossTestConfigs()));
+TEST_P(GPU_MSELoss_bwd_FP32, Full)
+{
+    RunTest();
+    Verify();
+}
+
+TEST_P(GPU_MSELoss_bwd_FP16, Full)
+{
+    RunTest();
+    Verify();
+}
+
+TEST_P(GPU_MSELoss_bwd_BFP16, Full)
+{
+    RunTest();
+    Verify();
+}
+
+INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_fwd_FP32, testing::ValuesIn(MSELossTestFwdConfigs()));
+INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_fwd_FP16, testing::ValuesIn(MSELossTestFwdConfigs()));
+INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_fwd_BFP16, testing::ValuesIn(MSELossTestFwdConfigs()));
+INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_bwd_FP32, testing::ValuesIn(MSELossTestBwdConfigs()));
+INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_bwd_FP16, testing::ValuesIn(MSELossTestBwdConfigs()));
+INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_bwd_BFP16, testing::ValuesIn(MSELossTestBwdConfigs()));

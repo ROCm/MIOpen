@@ -59,7 +59,7 @@ struct MSELossTestCase
     }
 };
 
-std::vector<MSELossTestCase> MSELossTestConfigs()
+inline std::vector<MSELossTestCase> MSELossTestFwdConfigs()
 {
     // clang-format off
     return {
@@ -81,6 +81,28 @@ std::vector<MSELossTestCase> MSELossTestConfigs()
     // clang-format on
 }
 
+inline std::vector<MSELossTestCase> MSELossTestBwdConfigs()
+{
+    // clang-format off
+    return {
+            {{10000, 2}, 10000.0f, false},
+            {{2, 1000000}, 1.0f, false},
+            {{25, 100}, 25000.0f, false},
+            {{2000,3000}, 1.0f, false},
+            {{2, 3}, 1.0f, false},
+            {{8, 8}, 1.0f, false},
+            {{ 128,384}, 1.0f, false},
+            {{100,100}, 1.0f, false},
+            {{3,4}, 1.0f, false},
+            {{2, 8}, 1.0f, false},
+            {{ 32, 32}, 1.0f,false},
+            {{16,1024}, 1.0f, false},
+            {{ 32, 2}, 1.0f, false},
+            {{ 32, 256}, 1.0f, false}
+            };
+    // clang-format on
+}
+
 inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous)
 {
     if(!contiguous)
@@ -95,7 +117,7 @@ inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous
 }
 
 template <class T>
-struct MSELossTest : public ::testing::TestWithParam<MSELossTestCase>
+struct MSELossTestForward : public ::testing::TestWithParam<MSELossTestCase>
 {
 protected:
     MSELossTestCase mseloss_config;
@@ -105,6 +127,98 @@ protected:
     tensor<T> output;
     tensor<T> output_ref;
 
+    miopen::Allocator::ManageDataPtr input_dev;
+    miopen::Allocator::ManageDataPtr target_dev;
+    miopen::Allocator::ManageDataPtr output_dev;
+    miopen::Allocator::ManageDataPtr workspace_dev;
+
+    float divisor;
+
+    size_t ws_sizeInBytes;
+
+    void SetUp() override
+    {
+        auto&& handle  = get_handle();
+        mseloss_config = GetParam();
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+
+        auto in_dims = mseloss_config.lengths;
+        auto strides = GetStrides(in_dims, mseloss_config.isContiguous);
+
+        input  = tensor<T>{in_dims, strides}.generate(gen_value);
+        target = tensor<T>{in_dims, strides}.generate(gen_value);
+
+        divisor = mseloss_config.divisor;
+
+        if(divisor == 0.0f)
+        {
+            output     = tensor<T>{in_dims};
+            output_ref = tensor<T>{in_dims};
+        }
+        else
+        {
+            output     = tensor<T>{{1}};
+            output_ref = tensor<T>{{1}};
+        }
+
+        auto status = miopenGetMSELossForwardWorkspaceSize(
+            &handle, &input.desc, &target.desc, &ws_sizeInBytes);
+        ASSERT_EQ(status, miopenStatusSuccess)
+            << "Error: failed to obtain workspace size" << std::endl;
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
+            GTEST_SKIP();
+        workspace_dev = handle.Create(ws_sizeInBytes);
+
+        input_dev  = handle.Write(input.data);
+        target_dev = handle.Write(target.data);
+        output_dev = handle.Create(output.desc.GetNumBytes());
+    }
+
+    void RunTest()
+    {
+        auto&& handle = get_handle();
+
+        cpu_mseloss_forward<T>(input.desc,
+                               target.desc,
+                               output.desc,
+                               input.data.data(),
+                               target.data.data(),
+                               output_ref.data.data(),
+                               divisor);
+
+        auto status = MSELossForward(handle,
+                                     input.desc,
+                                     target.desc,
+                                     output.desc,
+                                     input_dev.get(),
+                                     target_dev.get(),
+                                     output_dev.get(),
+                                     workspace_dev.get(),
+                                     divisor);
+
+        ASSERT_EQ(status, miopenStatusSuccess);
+        output.data = handle.Read<T>(output_dev, output.data.size());
+    }
+
+    void Verify()
+    {
+        auto error = miopen::rms_range(output_ref, output);
+        EXPECT_EQ(miopen::range_distance(output_ref), miopen::range_distance(output));
+        EXPECT_LT(error, std::numeric_limits<T>::epsilon())
+            << "Forward outputs do not match each other. Error:" << error;
+    }
+};
+
+template <class T>
+struct MSELossTestBackward : public ::testing::TestWithParam<MSELossTestCase>
+{
+protected:
+    MSELossTestCase mseloss_config;
+
+    tensor<T> input;
+    tensor<T> target;
+    tensor<T> output;
+
     tensor<T> input_grad;
     tensor<T> target_grad;
     tensor<T> input_grad_ref;
@@ -113,10 +227,10 @@ protected:
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr target_dev;
     miopen::Allocator::ManageDataPtr output_dev;
-    miopen::Allocator::ManageDataPtr workspace_dev;
-
     miopen::Allocator::ManageDataPtr input_grad_dev;
     miopen::Allocator::ManageDataPtr target_grad_dev;
+
+    miopen::Allocator::ManageDataPtr workspace_dev;
 
     float divisor;
 
@@ -144,16 +258,22 @@ protected:
 
         if(divisor == 0.0f)
         {
-            output     = tensor<T>{in_dims};
-            output_ref = tensor<T>{in_dims};
+            output = tensor<T>{in_dims};
         }
         else
         {
-            output     = tensor<T>{{1}};
-            output_ref = tensor<T>{{1}};
+            output = tensor<T>{{1}};
         }
-        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
-        std::fill(output_ref.begin(), output_ref.end(), std::numeric_limits<T>::quiet_NaN());
+
+        cpu_mseloss_forward<T>(input.desc,
+                               target.desc,
+                               output.desc,
+                               input.data.data(),
+                               target.data.data(),
+                               output.data.data(),
+                               divisor);
+
+        // std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(target_grad.begin(), target_grad.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(
@@ -169,96 +289,47 @@ protected:
     void RunTest()
     {
         auto&& handle = get_handle();
-        auto outDesc  = output.desc;
 
-        // forward portion
-        size_t workspace_in_bytes = 0;
-        auto status               = miopenGetMSELossForwardWorkspaceSize(
-            &handle, &input.desc, &target.desc, &workspace_in_bytes);
-
-        if(status != miopenStatusSuccess)
-        {
-            std::cout << "Error: failed to obtain workspace size" << std::endl;
-        }
-
-        workspace_dev = handle.Create(workspace_in_bytes);
-
-        cpu_mseloss_forward<T>(input.desc,
-                               target.desc,
-                               output.desc,
-                               input.data.data(),
-                               target.data.data(),
-                               output_ref.data.data(),
-                               divisor);
-
-        status = MSELossForward(handle,
-                                input.desc,
+        cpu_mseloss_backward<T>(input.desc,
                                 target.desc,
                                 output.desc,
-                                input_dev.get(),
-                                target_dev.get(),
-                                output_dev.get(),
-                                workspace_dev.get(),
+                                input_grad.desc,
+                                target_grad.desc,
+                                input.data.data(),
+                                target.data.data(),
+                                output.data.data(),
+                                input_grad_ref.data.data(),
+                                target_grad_ref.data.data(),
                                 divisor);
 
+        auto status = MSELossBackward(handle,
+                                      input.desc,
+                                      target.desc,
+                                      output.desc,
+                                      input_grad.desc,
+                                      target_grad.desc,
+                                      input_dev.get(),
+                                      target_dev.get(),
+                                      output_dev.get(),
+                                      input_grad_dev.get(),
+                                      target_grad_dev.get(),
+                                      divisor);
         ASSERT_EQ(status, miopenStatusSuccess);
-        output.data = handle.Read<T>(output_dev, output.data.size());
 
-        if(input.desc.GetLengths().size() == 2) // only case we support
-        {
-            cpu_mseloss_backward<T>(input.desc,
-                                    target.desc,
-                                    output.desc,
-                                    input_grad.desc,
-                                    target_grad.desc,
-                                    input.data.data(),
-                                    target.data.data(),
-                                    output_ref.data.data(),
-                                    input_grad_ref.data.data(),
-                                    target_grad_ref.data.data(),
-                                    divisor);
-
-            status = MSELossBackward(handle,
-                                     input.desc,
-                                     target.desc,
-                                     output.desc,
-                                     input_grad.desc,
-                                     target_grad.desc,
-                                     input_dev.get(),
-                                     target_dev.get(),
-                                     output_dev.get(),
-                                     input_grad_dev.get(),
-                                     target_grad_dev.get(),
-                                     divisor);
-            ASSERT_EQ(status, miopenStatusSuccess);
-        }
-
-        if(input.desc.GetLengths().size() == 2)
-        {
-            input_grad.data  = handle.Read<T>(input_grad_dev, input_grad.data.size());
-            target_grad.data = handle.Read<T>(target_grad_dev, target_grad.data.size());
-        }
+        input_grad.data  = handle.Read<T>(input_grad_dev, input_grad.data.size());
+        target_grad.data = handle.Read<T>(target_grad_dev, target_grad.data.size());
     }
 
     void Verify()
     {
-        // Forward verification
-        auto error = miopen::rms_range(output_ref, output);
-        EXPECT_EQ(miopen::range_distance(output_ref), miopen::range_distance(output));
-        EXPECT_LT(error, std::numeric_limits<T>::epsilon())
-            << "Forward outputs do not match each other. Error:" << error;
+        auto error_input_grad = miopen::rms_range(input_grad_ref, input_grad);
+        EXPECT_EQ(miopen::range_distance(input_grad_ref), miopen::range_distance(input_grad));
+        EXPECT_LT(error_input_grad, std::numeric_limits<T>::epsilon())
+            << "Backward input gradients do not match each other. Error:" << error_input_grad;
 
-        if(input.desc.GetLengths().size() == 2) // only case we support backward pass
-        {
-            error = miopen::rms_range(input_grad_ref, input_grad);
-            EXPECT_EQ(miopen::range_distance(input_grad_ref), miopen::range_distance(input_grad));
-            EXPECT_LT(error, std::numeric_limits<T>::epsilon())
-                << "Backward input gradients do not match each other. Error:" << error;
-
-            error = miopen::rms_range(target_grad_ref, target_grad);
-            EXPECT_EQ(miopen::range_distance(target_grad_ref), miopen::range_distance(target_grad));
-            EXPECT_LT(error, std::numeric_limits<T>::epsilon())
-                << "Backward target gradients do not match each other. Error:" << error;
-        }
+        auto error_target_grad = miopen::rms_range(target_grad_ref, target_grad);
+        EXPECT_EQ(miopen::range_distance(target_grad_ref), miopen::range_distance(target_grad));
+        EXPECT_LT(error_target_grad, std::numeric_limits<T>::epsilon())
+            << "Backward target gradients do not match each other. Error:" << error_target_grad;
     }
 };
