@@ -27,6 +27,7 @@
 
 #include <miopen/graphapi/graphapi.hpp>
 #include <miopen/tensor.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <cstdint>
 #include <vector>
@@ -79,6 +80,15 @@ public:
 
     int64_t getId() const noexcept { return mId; }
     bool isVirtual() const noexcept { return mVirtual; }
+
+    friend void to_json(nlohmann::json& json, const Tensor& tensor);
+    friend void from_json(const nlohmann::json& json, Tensor& tensor);
+
+    struct JsonFields
+    {
+        static constexpr const char* Id        = "id";
+        static constexpr const char* IsVirtual = "is_virtual";
+    };
 };
 
 class MIOPEN_INTERNALS_EXPORT TensorBuilder

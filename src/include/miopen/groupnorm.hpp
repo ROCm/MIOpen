@@ -34,7 +34,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t GroupNormForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t GroupNormForward(const Handle& handle,
                                                         const TensorDescriptor& xDesc,
                                                         ConstData_t x,
                                                         const TensorDescriptor& weightDesc,

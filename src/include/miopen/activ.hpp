@@ -50,7 +50,7 @@ struct MIOPEN_INTERNALS_EXPORT ActivationDescriptor : miopenActivationDescriptor
     double GetBeta() const;
     double GetGamma() const;
 
-    miopenStatus_t Forward(Handle& handle,
+    miopenStatus_t Forward(const Handle& handle,
                            const void* alpha,
                            const TensorDescriptor& xDesc,
                            ConstData_t x,
@@ -60,7 +60,7 @@ struct MIOPEN_INTERNALS_EXPORT ActivationDescriptor : miopenActivationDescriptor
                            size_t xOffset = 0,
                            size_t yOffset = 0) const;
 
-    miopenStatus_t Backward(Handle& handle,
+    miopenStatus_t Backward(const Handle& handle,
                             const void* alpha,
                             const TensorDescriptor& yDesc,
                             ConstData_t y,

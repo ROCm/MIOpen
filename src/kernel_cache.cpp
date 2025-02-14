@@ -47,14 +47,19 @@
 
 #include <iostream>
 #include <iterator>
+#include <mutex>
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
 
-const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
-                                                   const std::string& network_config)
+using WriteLock = std::unique_lock<std::shared_mutex>;
+using ReadLock  = std::shared_lock<std::shared_mutex>;
+
+std::vector<Kernel> KernelCache::GetKernels(const std::string& algorithm,
+                                            const std::string& network_config)
 {
+    ReadLock readLock(lock);
 
     std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
 
@@ -73,21 +78,28 @@ const std::vector<Kernel>& KernelCache::GetKernels(const std::string& algorithm,
 
 bool KernelCache::HasProgram(const fs::path& name, const std::string& params) const
 {
+    ReadLock readLock(lock);
+
     const auto key = std::make_pair(name, params);
     return program_map.count(key) > 0;
 }
 
 void KernelCache::ClearProgram(const fs::path& name, const std::string& params)
 {
-    if(HasProgram(name, params))
+    WriteLock writeLock(lock);
+
+    const auto key  = std::make_pair(name, params);
+    auto program_it = program_map.find(key);
+    if(program_it != program_map.end())
     {
-        const auto key = std::make_pair(name, params);
-        program_map.erase(key);
+        program_map.erase(program_it);
     }
 }
 
 void KernelCache::AddProgram(Program prog, const fs::path& program_name, std::string params)
 {
+    WriteLock writeLock(lock);
+
     program_map[std::make_pair(program_name, params)] = prog;
 }
 
@@ -103,6 +115,8 @@ Kernel KernelCache::AddKernel(const Handle& h,
                               const std::string& kernel_src,
                               Program* program_out)
 {
+    WriteLock writeLock(lock);
+
     const std::pair<std::string, std::string> key = std::make_pair(algorithm, network_config);
     if(!network_config.empty() || !algorithm.empty()) // Don't log only _empty_ keys.
         MIOPEN_LOG_I2("Key: " << key.first << " \"" << key.second << '\"');
@@ -149,12 +163,18 @@ Kernel KernelCache::AddKernel(const Handle& h,
 
     if(!network_config.empty() && !algorithm.empty())
     {
-        this->AddKernel(key, kernel, cache_index);
+        this->AddKernelUnsafe(key, kernel, cache_index);
     }
     return kernel;
 }
 
 void KernelCache::AddKernel(Key key, Kernel k, std::size_t cache_index)
+{
+    WriteLock writeLock(lock);
+    AddKernelUnsafe(key, k, cache_index);
+}
+
+void KernelCache::AddKernelUnsafe(Key key, Kernel k, std::size_t cache_index)
 {
     auto&& v = kernel_map[key];
     if(cache_index >= v.size())
@@ -166,6 +186,8 @@ void KernelCache::AddKernel(Key key, Kernel k, std::size_t cache_index)
 
 void KernelCache::ClearKernels(const std::string& algorithm, const std::string& network_config)
 {
+    WriteLock writeLock(lock);
+
     if(network_config.empty() || algorithm.empty())
     {
         MIOPEN_THROW("Network config or algorithm empty.");
