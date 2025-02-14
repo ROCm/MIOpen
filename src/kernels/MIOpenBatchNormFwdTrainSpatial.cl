@@ -476,9 +476,9 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
     {
         lcl_scale[xlid] = *(scale + xgid);
         lcl_bias[xlid]  = *(bias + xgid);
-        lcl_mean[xlid]  = 
+        lcl_mean[xlid] =
             loadFromStash(out, 0, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-        lcl_ivar[xlid]  = 
+        lcl_ivar[xlid] =
             loadFromStash(out, 1, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
