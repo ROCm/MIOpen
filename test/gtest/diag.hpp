@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "../driver/tensor_driver.hpp"
 #include "cpu_diag.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
@@ -34,8 +33,8 @@
 #include <gtest/gtest.h>
 
 #include <miopen/allocator.hpp>
-#include <miopen/miopen.h>
 #include <miopen/diag.hpp>
+#include <miopen/miopen.h>
 
 struct DiagTestCase
 {
@@ -75,7 +74,7 @@ struct DiagTestCase
     }
 };
 
-std::vector<DiagTestCase> DiagTestConfigs()
+inline std::vector<DiagTestCase> GenFullTestCases()
 { // n c d h w dim
     // clang-format off
     return {
@@ -116,7 +115,7 @@ protected:
 
         std::vector<size_t> out_dims;
 
-        if(input.desc.GetSize() == 1)
+        if(input.desc.GetNumDims() == 1)
         {
             size_t sz = in_dims[0] + abs(diagonal);
             out_dims  = {sz, sz};
@@ -177,13 +176,7 @@ protected:
 
     double GetTolerance()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
-
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            tolerance *= 8.0;
+        double tolerance = std::numeric_limits<T>::epsilon() * 10;
         return tolerance;
     }
 
@@ -195,8 +188,7 @@ protected:
             auto error       = miopen::rms_range(ref_output, output);
 
             EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-            EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
-                                                << ",  Thresholdx10: " << threshold * 10;
+            EXPECT_LT(error, threshold * 10);
         }
     }
 

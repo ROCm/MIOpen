@@ -25,82 +25,35 @@
  *******************************************************************************/
 
 #include "diag.hpp"
-#include <gtest/gtest-param-test.h>
-#include <miopen/env.hpp>
 using float16 = half_float::half;
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace diag {
 
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct DiagFwdTestFloat : DiagFwdTest<float>
-{
-};
-
-struct DiagFwdTestFP16 : DiagFwdTest<float16>
-{
-};
-
-struct DiagFwdTestBFP16 : DiagFwdTest<bfloat16>
-{
-};
+using GPU_Diag_fwd_FP32  = DiagFwdTest<float>;
+using GPU_Diag_fwd_FP16  = DiagFwdTest<float16>;
+using GPU_Diag_fwd_BFP16 = DiagFwdTest<bfloat16>;
 
 } // namespace diag
 using namespace diag;
 
-TEST_P(DiagFwdTestFloat, DiagTestFw)
+TEST_P(GPU_Diag_fwd_FP32, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(DiagFwdTestFP16, DiagTestFw)
+TEST_P(GPU_Diag_fwd_FP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(DiagFwdTestBFP16, DiagTestFw)
+TEST_P(GPU_Diag_fwd_BFP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(DiagTestSet, DiagFwdTestFloat, testing::ValuesIn(DiagTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(DiagTestSet, DiagFwdTestFP16, testing::ValuesIn(DiagTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(DiagTestSet, DiagFwdTestBFP16, testing::ValuesIn(DiagTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Diag_fwd_FP32, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Diag_fwd_FP16, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Diag_fwd_BFP16, testing::ValuesIn(GenFullTestCases()));

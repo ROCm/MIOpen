@@ -24,10 +24,10 @@
  *
  *******************************************************************************/
 
-#include <miopen/diag/invoke_params.hpp>
-#include <miopen/find_solution.hpp>
-#include <miopen/diag/solvers.hpp>
 #include <miopen/diag.hpp>
+#include <miopen/diag/invoke_params.hpp>
+#include <miopen/diag/solvers.hpp>
+#include <miopen/find_solution.hpp>
 
 namespace miopen {
 

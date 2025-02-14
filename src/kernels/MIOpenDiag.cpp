@@ -35,7 +35,7 @@ template <typename TIO>
 __device__ void Diag2dForwardKernel(const TIO* input,
                                     TIO* output,
                                     size_t N,
-                                    long offset,
+                                    size_t offset,
                                     tensor_view_t<2> input_tv,
                                     tensor_view_t<1> output_tv)
 {
@@ -43,17 +43,17 @@ __device__ void Diag2dForwardKernel(const TIO* input,
     if(gid >= N)
         return;
 
-    long input_stride_0 = input_tv.stride[0];
-    long input_stride_1 = input_tv.stride[1];
+    size_t input_stride_0 = input_tv.stride[0];
+    size_t input_stride_1 = input_tv.stride[1];
 
-    long input_idx = gid * (input_stride_0 + input_stride_1) + offset;
+    size_t input_idx = gid * (input_stride_0 + input_stride_1) + offset;
     setNDVal(output, output_tv, gid, getNDVal(input, input_tv, input_idx));
 }
 
 extern "C" __global__ void Diag2dForward(const IN_OUT_TYPE* input,
                                          IN_OUT_TYPE* output,
                                          size_t N,
-                                         long offset,
+                                         size_t offset,
                                          tensor_view_t<2> input_tv,
                                          tensor_view_t<1> output_tv)
 {

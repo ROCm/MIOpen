@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_DIAG_DRIVER_HPP
-#define GUARD_MIOPEN_DIAG_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -41,15 +40,12 @@
 
 #include <vector>
 
-#ifndef MLO_DIAGHOST_H_
-#define MLO_DIAGHOST_H_
-
 template <typename Tgpu, typename Tcheck>
-int32_t mloDiagForwardRunHost(miopenTensorDescriptor_t inputDesc,
-                              Tgpu* input,
-                              miopenTensorDescriptor_t outputDesc,
-                              Tcheck* outputHost,
-                              int64_t diagonal)
+int mloDiagForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                          const Tgpu* input,
+                          const miopenTensorDescriptor_t outputDesc,
+                          Tcheck* outputHost,
+                          int64_t diagonal)
 {
     auto in_len = miopen::deref(inputDesc).GetLengths();
     if(in_len.size() == 1)
@@ -84,8 +80,6 @@ int32_t mloDiagForwardRunHost(miopenTensorDescriptor_t inputDesc,
     return 0;
 }
 
-#endif
-
 template <typename Tgpu, typename Tref>
 class DiagDriver : public Driver
 {
@@ -104,16 +98,13 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-
-    int SetBNParametersFromCmdLineArgs();
-
     int AllocateBuffersAndCopy() override;
 
     int RunForwardGPU() override;
-    int RunForwardCPU(); // Verify implements it
+    int RunForwardCPU();
 
     int RunBackwardGPU() override;
-    int RunBackwardCPU(); // Verify implements it
+    int RunBackwardCPU();
 
     Tref GetTolerance();
     int VerifyBackward() override;
@@ -151,6 +142,12 @@ int DiagDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     diagonal     = inflags.GetValueInt("Diagonal");
     isContiguous = inflags.GetValueInt("contiguous") > 0 ? true : false;
 
+    forw = inflags.GetValueInt("forw");
+    if(forw != 1)
+    {
+        MIOPEN_THROW("Invalid Forward Mode");
+    }
+
     if(inflags.GetValueInt("time") == 1)
     {
         miopenEnableProfiling(GetHandle(), true);
@@ -161,8 +158,6 @@ int DiagDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int DiagDriver<Tgpu, Tref>::GetandSetData()
 {
-    SetBNParametersFromCmdLineArgs();
-
     std::vector<int> in_len = inflags.GetValueTensor("dim-lengths").lengths;
     auto inStride           = ComputeStrides(in_len);
     SetTensorNd(inputTensor, in_len, inStride, data_type);
@@ -223,29 +218,18 @@ template <typename Tgpu, typename Tref>
 int DiagDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward (1) (Default = 1)", "int");
-    inflags.AddTensorFlag(
-        "dim-lengths", 'D', "2048x2048", "The dimensional lengths of the input tensor");
+    inflags.AddTensorFlag("dim-lengths",
+                          'D',
+                          "2048x2048",
+                          "The dimensional lengths of the input tensor (Default=2048x2048)");
     inflags.AddInputFlag(
         "Diagonal", 'R', "0", "Control which diagonal to consider (Default=0)", "int");
-    inflags.AddInputFlag("contiguous", 'C', "1", "Tensor is contiguous or not", "int");
+    inflags.AddInputFlag("contiguous", 'C', "1", "Tensor is contiguous or not (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
-
-    return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-int DiagDriver<Tgpu, Tref>::SetBNParametersFromCmdLineArgs()
-{
-    forw = inflags.GetValueInt("forw");
-    if(forw != 1)
-    {
-        printf("Incorrect Forward Mode\n");
-        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
-    }
 
     return miopenStatusSuccess;
 }
@@ -277,10 +261,16 @@ int DiagDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
 
         if(in_dev->ToGPU(GetStream(), in.data()) != 0)
+        {
             std::cerr << "Error copying (input) to GPU, size: " << in_dev->GetSize() << std::endl;
+            return miopenStatusInternalError;
+        }
 
         if(out_dev->ToGPU(GetStream(), out.data()) != 0)
+        {
             std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
+            return miopenStatusInternalError;
+        }
     }
 
     return miopenStatusSuccess;
@@ -327,8 +317,11 @@ int DiagDriver<Tgpu, Tref>::RunForwardGPU()
         }
 
         if(out_dev->FromGPU(GetStream(), out.data()) != 0)
+        {
             std::cerr << "Error copying (out_dev) from GPU, size: " << out_dev->GetSize()
                       << std::endl;
+            return miopenStatusInternalError;
+        }
     }
 
     return miopenStatusSuccess;
@@ -349,19 +342,13 @@ int DiagDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int DiagDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
 Tref DiagDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
@@ -389,13 +376,11 @@ int DiagDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int DiagDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
 int DiagDriver<Tgpu, Tref>::VerifyBackward()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
-
-#endif // GUARD_MIOPEN_DIAG_DRIVER_HPP

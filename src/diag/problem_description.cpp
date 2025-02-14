@@ -34,8 +34,10 @@ namespace diag {
 NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
     std::ostringstream ss;
+    auto input_type = inputDesc.GetType();
 
     ss << "diagonal" << diagonal;
+    ss << "input_type" << input_type;
     ss << "numDim" << inputDesc.GetNumDims();
     ss << "input_numel" << inputDesc.GetElementSize();
 

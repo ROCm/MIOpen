@@ -24,10 +24,10 @@
  *
  *******************************************************************************/
 
-#include <miopen/tensor.hpp>
 #include <miopen/diag.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/tensor.hpp>
 
 extern "C" miopenStatus_t miopenDiagForward(miopenHandle_t handle,
                                             const miopenTensorDescriptor_t inputDesc,

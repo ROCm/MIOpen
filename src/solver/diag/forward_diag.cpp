@@ -75,19 +75,18 @@ ConvSolution DiagForward::GetSolution(const ExecutionContext& context,
     const auto build_params = KernelBuildParameters{
         {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-        {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"IN_OUT_TYPE", in_out_dtype == "bfloat16" ? "ushort" : in_out_dtype}};
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
     auto output_numel = problem.GetOutputDesc().GetElementSize();
-    size_t xlocalsize    = LOCAL_SIZE;
-    size_t xgridsize     = AlignUp(output_numel, xlocalsize);
-    size_t ylocalsize    = 1;
-    size_t ygridsize     = 1;
-    size_t zlocalsize    = 1;
-    size_t zgridsize     = 1;
+    size_t xlocalsize = LOCAL_SIZE;
+    size_t xgridsize  = AlignUp(output_numel, xlocalsize);
+    size_t ylocalsize = 1;
+    size_t ygridsize  = 1;
+    size_t zlocalsize = 1;
+    size_t zgridsize  = 1;
 
     kernel.kernel_file = "MIOpenDiag.cpp";
     kernel.kernel_name = "Diag2dForward";
@@ -106,7 +105,7 @@ ConvSolution DiagForward::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::diag::FwdInvokeParams>();
             auto input_tv         = get_inner_expanded_tv<2>(deref(params.inputDesc));
             auto output_tv        = get_inner_expanded_tv<1>(deref(params.outputDesc));
-            long offset           = (params.diagonal >= 0 ? params.diagonal * input_tv.stride[1]
+            size_t offset         = (params.diagonal >= 0 ? params.diagonal * input_tv.stride[1]
                                                           : -params.diagonal * input_tv.stride[0]);
             kernel(params.input, params.output, output_numel, offset, input_tv, output_tv);
         };
