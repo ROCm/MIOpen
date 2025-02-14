@@ -193,7 +193,7 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 

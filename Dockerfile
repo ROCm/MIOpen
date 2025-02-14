@@ -23,13 +23,13 @@ DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 RUN curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
-RUN wget https://repo.radeon.com/amdgpu-install/6.3.1/ubuntu/jammy/amdgpu-install_6.3.60301-1_all.deb --no-check-certificate
+RUN wget https://repo.radeon.com/amdgpu-install/6.3.2/ubuntu/jammy/amdgpu-install_6.3.60302-1_all.deb --no-check-certificate
 RUN apt-get update && \
 DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-    ./amdgpu-install_6.3.60301-1_all.deb
+    ./amdgpu-install_6.3.60302-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=6.3.1;\
+RUN export ROCM_APT_VER=6.3.2;\
 echo $ROCM_APT_VER &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
 sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
@@ -114,7 +114,7 @@ DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
     miopen-hip
 
 # TODO: it should be able to automatically get commit hash from requirements.txt
-ARG CK_COMMIT=fb948120d2d674607e70d0e7587dcb249c0e74c7
+ARG CK_COMMIT=a8c5bd9b9ad950c3e742877e01cb784da91664e3
 RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
@@ -125,7 +125,7 @@ RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK
     -D CMAKE_BUILD_TYPE=Release \
     -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201" \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j $(nproc) install 
+    make -j $(nproc) install
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 # this can minimize build time
@@ -146,6 +146,21 @@ RUN pip3 install -r /doc-requirements.txt
 
 # Composable Kernel requires this version cmake
 RUN pip3 install --upgrade cmake==3.27.5
+
+#install miopen
+ARG INSTALL_MIOPEN=OFF
+ARG FRECKLE=0
+ADD . / miopen/
+RUN set -e; \
+    if [ "$INSTALL_MIOPEN" = "ON" ]; then \
+        cd miopen; \
+        mkdir build; \
+        rm -f src/kernels/*.ufdb.txt; \
+        rm -f src/kernels/miopen*.udb; \
+        cd build ; \
+        CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=release -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=/opt/rocm -DCMAKE_PREFIX_PATH=/opt/rocm ..; \
+        LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \
+    fi
 
 # groupadd can add one group a time
 RUN groupadd -f render

@@ -33,19 +33,133 @@ namespace miopen {
 
 namespace rnn_base {
 
+namespace rnn_dynamic {
+
+// 12.5% overhead
+constexpr int rounding_limit = 4;
+
+inline size_t getPow2Mask(size_t pow_2)
+{
+    auto mask = pow_2;
+    for(int i = 0; i < rounding_limit; i++)
+    {
+        mask = (mask >> 1) | pow_2;
+    }
+    return mask & ~(3);
+}
+
+inline size_t getPow2Minimum(size_t pow_2)
+{
+    for(int i = 0; i < rounding_limit; i++)
+    {
+        pow_2 >>= 1;
+    }
+    return pow_2 < 4 ? 4 : pow_2;
+}
+
+inline size_t getLowerBoundPow2(size_t v)
+{
+    v--;
+    v |= v >> 1;
+    v |= v >> 2;
+    v |= v >> 4;
+    v |= v >> 8;
+    v |= v >> 16;
+    v++;
+    return v;
+};
+
+// Decomposing a number into a sum of powers of two.
+class MaskedPow2Range
+{
+public:
+    class Iterator
+    {
+    public:
+        using iterator_category = std::bidirectional_iterator_tag;
+        using difference_type   = size_t;
+        using reference         = size_t;
+        using pointer           = size_t*;
+        using value_type        = size_t;
+
+        static Iterator BuildBegin(size_t mask)
+        {
+            Iterator begin{mask, 0};
+            return (mask & 1) != 0u ? begin : ++begin;
+        }
+
+        static Iterator BuildEnd(size_t mask) { return {mask, MAX_BIT_POS}; }
+
+        Iterator(size_t range_mask, int bit_position) : mask(range_mask), bitPosition(bit_position)
+        {
+        }
+
+        size_t operator*() const { return (1LL) << bitPosition; }
+
+        Iterator& operator++()
+        {
+            bitPosition++;
+            while(bitPosition < MAX_BIT_POS && !BitExistenceCheck())
+            {
+                bitPosition++;
+            }
+            return *this;
+        }
+
+        Iterator& operator--()
+        {
+            if(bitPosition > 0)
+                bitPosition--;
+
+            while(bitPosition > 0 && !BitExistenceCheck())
+            {
+                bitPosition--;
+            }
+            return *this;
+        }
+
+        bool operator!=(const Iterator& other) const { return bitPosition != other.bitPosition; }
+
+    private:
+        size_t mask;
+        unsigned int bitPosition;
+
+        bool BitExistenceCheck() const { return (mask & ((1LL) << bitPosition)) != 0u; }
+
+        static constexpr unsigned int MAX_BIT_POS = sizeof(size_t) * 8;
+    };
+
+    explicit MaskedPow2Range(size_t range_mask) : mask(range_mask) {}
+
+    Iterator begin() const { return Iterator::BuildBegin(mask); }
+
+    Iterator end() const { return Iterator::BuildEnd(mask); }
+
+    auto rbegin() const { return std::reverse_iterator<Iterator>(end()); }
+
+    auto rend() const { return std::reverse_iterator<Iterator>{begin()}; }
+
+private:
+    size_t mask;
+};
+
+} // namespace rnn_dynamic
+
 inline std::vector<size_t> roundedDynamicLengths(const SeqTensorDescriptor& desc)
 {
-    auto src_lens = desc.GetLengths();
-    src_lens[1]   = [](size_t v) {
-        v--;
-        v |= v >> 1;
-        v |= v >> 2;
-        v |= v >> 4;
-        v |= v >> 8;
-        v |= v >> 16;
-        v++;
-        return v;
-    }(src_lens[1]);
+    auto src_lens     = desc.GetLengths();
+    auto real_seq_len = src_lens[1];
+
+    auto lower_bound_pow2 = rnn_dynamic::getLowerBoundPow2(real_seq_len);
+    auto acc_len          = real_seq_len & rnn_dynamic::getPow2Mask(lower_bound_pow2);
+
+    if(real_seq_len > acc_len)
+    {
+        acc_len += rnn_dynamic::getPow2Minimum(lower_bound_pow2);
+    }
+
+    src_lens[1] = acc_len;
+
     return src_lens;
 }
 
@@ -129,16 +243,18 @@ public:
         };
     }
 
-    auto getTempBuffersSize() const
+    auto getTempBuffersSize(const Handle& handle) const
     {
-        auto [ws_size, reserve_size] = RNNForwardDataModularAlgo::getTempBuffersSize();
+        auto [ws_size, reserve_size] = RNNForwardDataModularAlgo::getTempBuffersSize(handle);
 
         return std::make_tuple(ws_size + tmpMapXDesc.GetTensorMaxByteSpace() +
                                    tmpMapYDesc.GetTensorMaxByteSpace(),
                                reserve_size);
     }
 
-    static auto getTempBuffersSize(const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc)
+    static auto getTempBuffersSize(const Handle& handle,
+                                   const RNNDescriptor& rnnD,
+                                   const SeqTensorDescriptor& xDesc)
     {
         auto y_desc = [](const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc) {
             std::vector<size_t> y_lenghts{xDesc.GetLengths()};
@@ -150,7 +266,7 @@ public:
         auto temp_y_desc = buildDynamicVirtual(y_desc);
 
         auto [ws_size, reserve_size] =
-            RNNForwardDataModularAlgo::getTempBuffersSize(rnnD, temp_x_desc);
+            RNNForwardDataModularAlgo::getTempBuffersSize(handle, rnnD, temp_x_desc);
 
         return std::make_tuple(ws_size + temp_x_desc.GetTensorMaxByteSpace() +
                                    temp_y_desc.GetTensorMaxByteSpace(),
@@ -164,6 +280,13 @@ public:
     void PrepareWriteBuffers(const Handle& handle,
                              const runtimeArgsFwdDynamicExt& runtimeArgsExt,
                              const runtimeArgsFwd& runtimeArgs) const;
+
+    void PropX(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
+
+    void PropHiddenY(const Handle& handle,
+                     const runtimeArgsFwd& runtimeArgs,
+                     size_t layer,
+                     SequenceDirection direction) const;
 
     void PropHyCy(const Handle& handle,
                   const runtimeArgsFwdDynamicExt& runtimeArgs,
@@ -241,16 +364,18 @@ public:
         };
     }
 
-    auto getTempBuffersSize() const
+    auto getTempBuffersSize(const Handle& handle) const
     {
-        auto [ws_size, reserve_size] = BaseBWDModuleT::getTempBuffersSize();
+        auto [ws_size, reserve_size] = BaseBWDModuleT::getTempBuffersSize(handle);
 
         return std::make_tuple(ws_size + tmpMapDxDesc.GetTensorMaxByteSpace() +
                                    tmpMapDyDesc.GetTensorMaxByteSpace(),
                                reserve_size);
     }
 
-    static auto getTempBuffersSize(const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc)
+    static auto getTempBuffersSize(const Handle& handle,
+                                   const RNNDescriptor& rnnD,
+                                   const SeqTensorDescriptor& xDesc)
     {
         auto y_desc = [](const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc) {
             std::vector<size_t> y_lenghts{xDesc.GetLengths()};
@@ -262,7 +387,7 @@ public:
         auto temp_y_desc = buildDynamicVirtual(y_desc);
 
         auto [ws_size, reserve_size] =
-            RNNForwardDataModularAlgo::getTempBuffersSize(rnnD, temp_x_desc);
+            RNNForwardDataModularAlgo::getTempBuffersSize(handle, rnnD, temp_x_desc);
 
         return std::make_tuple(ws_size + temp_x_desc.GetTensorMaxByteSpace() +
                                    temp_y_desc.GetTensorMaxByteSpace(),
@@ -293,11 +418,18 @@ public:
     void PrepareWriteBuffers(const Handle& handle,
                              const runtimeArgsBwdDynamicExt& runtimeArgsExt) const;
 
-    void HtHiddenDataZeroing() const;
+    void PropDx(const Handle& handle,
+                ConstData_t w,
+                ConstData_t workSpace,
+                Data_t dx,
+                SequenceDirection direction) const;
 
-    // void PrepareWriteBuffers(const Handle& handle,
-    //                         const runtimeArgsBwdDynamicExt& runtimeArgsExt,
-    //                         const runtimeArgsFwd& runtimeArgs) const;
+    void PropHiddenDy(const Handle& handle,
+                      ConstData_t w,
+                      Data_t workSpace,
+                      Data_t reserveSpace,
+                      size_t layer,
+                      SequenceDirection direction) const;
 
     inline size_t getRealTimeSeqSize() const { return realBatchController.size(); }
 
@@ -358,14 +490,16 @@ public:
                 runtimeArgs.freeWorkSpaceSize - temp_x_byte_size};
     }
 
-    auto getTempBuffersSize() const
+    auto getTempBuffersSize(const Handle& handle) const
     {
-        auto [ws_size, reserve_size] = BaseBWDModuleT::getTempBuffersSize();
+        auto [ws_size, reserve_size] = BaseBWDModuleT::getTempBuffersSize(handle);
 
         return std::make_tuple(ws_size + tmpMapXDesc.GetTensorMaxByteSpace() + reserve_size);
     }
 
-    static auto getTempBuffersSize(const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc)
+    static auto getTempBuffersSize(const Handle& handle,
+                                   const RNNDescriptor& rnnD,
+                                   const SeqTensorDescriptor& xDesc)
     {
         auto y_desc = [](const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc) {
             std::vector<size_t> y_lenghts{xDesc.GetLengths()};
@@ -377,12 +511,21 @@ public:
         auto temp_y_desc = buildDynamicVirtual(y_desc);
 
         auto [ws_size, reserve_size] =
-            RNNForwardDataModularAlgo::getTempBuffersSize(rnnD, temp_x_desc);
+            RNNForwardDataModularAlgo::getTempBuffersSize(handle, rnnD, temp_x_desc);
 
         return std::make_tuple(ws_size + temp_x_desc.GetTensorMaxByteSpace() +
                                    temp_y_desc.GetTensorMaxByteSpace(),
                                reserve_size);
     }
+
+    void HiddenXInputWeights(const Handle& handle,
+                             Data_t dw,
+                             ConstData_t workSpace,
+                             ConstData_t reserveSpace,
+                             size_t layer) const;
+
+    void
+    PhisXInputWeights(const Handle& handle, Data_t dw, ConstData_t workSpace, ConstData_t x) const;
 
     void PhisHStateWeights(const Handle& handle,
                            Data_t dw,
@@ -431,6 +574,8 @@ public:
                                                                 nullptr,
                                                                 false);
     }
+
+    inline size_t getRealTimeSeqSize() const { return realBatchController.size(); }
 
 private:
     BatchController realBatchController;
