@@ -364,27 +364,27 @@ struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
-struct MIOPEN_INTERNALS_EXPORT ConvOclDirectFwd11x11 final : ConvSolver
+struct ConvOclDirectFwd11x11 final : ConvSolver
 {
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvOclDirectFwd11x11>();
     }
 
-    bool IsApplicable(const ExecutionContext&,
-                      const miopen::conv::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&,
-                             const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
-struct MIOPEN_INTERNALS_EXPORT ConvOclDirectFwdGen final : ConvSolver
+struct ConvOclDirectFwdGen final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclDirectFwdGen>(); }
 
-    bool IsApplicable(const ExecutionContext&,
-                      const miopen::conv::ProblemDescription&) const override;
-    ConvSolution GetSolution(const ExecutionContext&,
-                             const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
 struct PerformanceImplicitGemm : PerfConfigBase<PerformanceImplicitGemm>
@@ -2530,46 +2530,46 @@ struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW2NonTunable final : ConvSolver
                              const miopen::conv::ProblemDescription&) const override;
 };
 
-struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW53 final : ConvSolver
+struct ConvOclBwdWrW53 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclBwdWrW53>(); }
 
-    bool IsApplicable(const ExecutionContext&,
-                      const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&,
-                            const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
+        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    ConvSolution GetSolution(const ExecutionContext&,
-                             const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
-struct MIOPEN_INTERNALS_EXPORT ConvOclBwdWrW1x1 final : ConvSolver
+struct ConvOclBwdWrW1x1 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvOclBwdWrW1x1>(); }
 
-    bool IsApplicable(const ExecutionContext&,
-                      const miopen::conv::ProblemDescription&) const override;
-    size_t GetWorkspaceSize(const ExecutionContext&,
-                            const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
+        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    ConvSolution GetSolution(const ExecutionContext&,
-                             const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
-struct MIOPEN_INTERNALS_EXPORT fft final : ConvSolver
+struct fft final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<fft>(); }
 
-    bool IsApplicable(const ExecutionContext&,
-                      const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
-    size_t GetWorkspaceSize(const ExecutionContext&,
-                            const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
+        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext&,
-                             const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
 struct PerformanceImplicitGemmWrwV4R4Xdlops : PerfConfigBase<PerformanceImplicitGemmWrwV4R4Xdlops>
