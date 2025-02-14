@@ -126,6 +126,10 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     }
     else
     {
+        xlocalsize = 1024;
+        xgridsize  = c * xlocalsize;
+        ldsgcn     = xlocalsize / wavesize;
+        ldsnogcn   = xlocalsize;
         //*************************************************************************************************
         // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize
         // work groups over channels and loop through NHW.
@@ -220,7 +224,8 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
 #if WORKAROUND_ISSUE_1146
              && (handle.GetDeviceName() != "gfx90a")
 #endif
-             && (!StartsWith(handle.GetDeviceName(), "gfx94")))) &&
+             && (!StartsWith(handle.GetDeviceName(), "gfx908")) &&
+             (!StartsWith(handle.GetDeviceName(), "gfx94")))) &&
            (!handle.GetTargetProperties().Xnack() || !*handle.GetTargetProperties().Xnack()))
         {
             kernel.kernel_file = "gcnAsmBNBwdTrainSpatial.s";

@@ -199,10 +199,8 @@ private:
 
     void InitTensorsWithRandValue()
     {
-        // 0.0 to 2.0 (since unsigned)
-        input.generate([](auto...) {
-            return prng::gen_descreet_unsigned<XDataType>(2e-3 /*scale*/, 1000 /*range*/);
-        });
+        // -2.0 to 2.0
+        input.generate(uniform_signed_initializer<XDataType>(2e-3 /*scale*/, 1000 /*range*/));
     }
 
     void SetDirection() { direction = bn_config.Direction; }
@@ -266,18 +264,12 @@ private:
     void InitTensorsWithRandValue()
     {
         // -2.0 to 2.0
-        scale.generate(
-            [](auto...) { return prng::gen_descreet_uniform_sign<ScaleDataType>(2e-3, 1000); });
-        shift.generate(
-            [](auto...) { return prng::gen_descreet_uniform_sign<BiasDataType>(2e-3, 1000); });
+        scale.generate(uniform_signed_initializer<ScaleDataType>(2e-3 /*scale*/, 1000 /*range*/));
+        shift.generate(uniform_signed_initializer<BiasDataType>(2e-3 /*scale*/, 1000 /*range*/));
         estMean.generate(
-            [](auto...) { return prng::gen_descreet_uniform_sign<MeanVarDataType>(2e-3, 1000); });
-
-        // 0.0 to 2.0
-        auto gen_var = [](auto...) {
-            return static_cast<MeanVarDataType>(2e-3 * (prng::gen_0_to_B(1000) + 1));
-        };
-        estVariance.generate(gen_var);
+            uniform_signed_initializer<MeanVarDataType>(2e-3 /*scale*/, 1000 /*range*/));
+        estVariance.generate(
+            uniform_signed_initializer<MeanVarDataType>(2e-3 /*scale*/, 1000 /*range*/));
     }
     void WriteToGPU()
     {
@@ -359,17 +351,12 @@ private:
 
     void InitTensorsWithRandValue()
     {
-        auto gen_value = [](auto...) {
-            return prng::gen_descreet_uniform_sign<ScaleDataType>(2e-3, 1000);
-        };
-        dy.generate(gen_value);
-        bnScale.generate(gen_value);
-        savedMean.generate(gen_value);
-
-        auto gen_var = [](auto...) {
-            return static_cast<MeanVarDataType>(1e-2 * (prng::gen_0_to_B(100) + 1));
-        };
-        savedInvVar.generate(gen_var);
+        dy.generate(uniform_signed_initializer<DyDataType>(2e-3 /*scale*/, 1000 /*range*/));
+        bnScale.generate(uniform_signed_initializer<ScaleDataType>(2e-3 /*scale*/, 1000 /*range*/));
+        savedMean.generate(
+            uniform_signed_initializer<MeanVarDataType>(2e-3 /*scale*/, 1000 /*range*/));
+        savedInvVar.generate(
+            uniform_signed_initializer<MeanVarDataType>(2e-3 /*scale*/, 1000 /*range*/));
 
         std::fill(dScale.begin(), dScale.end(), 0.);
         std::fill(dBias.begin(), dBias.end(), 0.);
@@ -458,16 +445,11 @@ private:
     void InitTensorsWithRandValue()
     {
         // -2.0 to 2.0
-        scale.generate(
-            [](auto...) { return prng::gen_descreet_uniform_sign<ScaleDataType>(2e-3, 1000); });
-        shift.generate(
-            [](auto...) { return prng::gen_descreet_uniform_sign<BiasDataType>(2e-3, 1000); });
-        // 0.0 to 2.0
-        auto gen_var = [](auto...) {
-            return static_cast<AccDataType>(2e-3 * (prng::gen_0_to_B(1000) + 1));
-        };
-        runMean.generate(gen_var);
-        runVariance.generate(gen_var);
+        scale.generate(uniform_signed_initializer<ScaleDataType>(2e-3 /*scale*/, 1000 /*range*/));
+        shift.generate(uniform_signed_initializer<BiasDataType>(2e-3 /*scale*/, 1000 /*range*/));
+        runMean.generate(uniform_signed_initializer<AccDataType>(2e-3 /*scale*/, 1000 /*range*/));
+        runVariance.generate(
+            uniform_signed_initializer<AccDataType>(2e-3 /*scale*/, 1000 /*range*/));
 
         saveMean_ref     = saveMean;
         saveVariance_ref = saveVariance;

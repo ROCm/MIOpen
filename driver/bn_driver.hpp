@@ -187,16 +187,6 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::ParseCmdLineArgs(int 
     return miopenStatusSuccess;
 }
 
-// initializes with  of -ve and +ve value
-template <typename T, typename ScaleT, typename RangeT>
-auto uniform_signed_initializer(ScaleT scale_arg, RangeT range_arg)
-{
-    return [=](auto&&...) -> T {
-        // uniform sign give balance of both negative and positive values
-        return prng::gen_descreet_uniform_sign<T>(scale_arg, range_arg);
-    };
-}
-
 template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
 int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
 {
