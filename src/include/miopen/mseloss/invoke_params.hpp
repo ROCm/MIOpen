@@ -57,24 +57,6 @@ struct InvokeParams : public miopen::InvokeParams
 
 } // namespace forward
 
-namespace forward_unreduced {
-struct InvokeParams : public miopen::InvokeParams
-{
-    InvokeParams() = default;
-
-    const TensorDescriptor* xDesc;
-    const TensorDescriptor* yDesc;
-    const TensorDescriptor* zDesc;
-
-    ConstData_t x;
-    ConstData_t y;
-    Data_t z;
-
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
-};
-} // namespace forward_unreduced
-
 namespace backward {
 struct InvokeParams : public miopen::InvokeParams
 {
@@ -98,27 +80,6 @@ struct InvokeParams : public miopen::InvokeParams
     Data_t GetWorkspace() const { return nullptr; }
 };
 } // namespace backward
-namespace backward_unreduced {
-struct InvokeParams : public miopen::InvokeParams
-{
 
-    InvokeParams() = default;
-
-    const TensorDescriptor* xDesc;
-    const TensorDescriptor* yDesc;
-    const TensorDescriptor* zDesc;
-    const TensorDescriptor* dxDesc;
-    const TensorDescriptor* dyDesc;
-
-    ConstData_t x;
-    ConstData_t y;
-    ConstData_t z;
-    Data_t dx;
-    Data_t dy;
-
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
-};
-} // namespace backward_unreduced
 } // namespace mseloss
 } // namespace miopen

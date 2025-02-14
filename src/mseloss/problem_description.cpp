@@ -47,21 +47,6 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
 } // namespace forward
 
-namespace forward_unreduced {
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
-{
-    auto dtype = xDesc.GetType();
-
-    std::ostringstream ss;
-    ss << "fwdu";
-    ss << "dtype" << dtype;
-    ss << "xdesc" << xDesc;
-    ss << "yDesc" << yDesc;
-
-    return NetworkConfig{ss.str()};
-}
-} // namespace forward_unreduced
-
 namespace backward {
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
@@ -79,21 +64,5 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
 } // namespace backward
 
-namespace backward_unreduced {
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
-{
-    auto dtype = xDesc.GetType();
-
-    std::ostringstream ss;
-    ss << "bwdu";
-    ss << "dtype" << dtype;
-    ss << "dxDesc" << dxDesc;
-    ss << "dyDesc" << dyDesc;
-    ss << "zDesc" << zDesc;
-
-    return NetworkConfig{ss.str()};
-}
-
-} // namespace backward_unreduced
 } // namespace mseloss
 } // namespace miopen

@@ -710,15 +710,8 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
   
     Register(registry, ++id, Primitive::LossFunction, mseloss::forward::MSELossForward{}.SolverDbId());
-    Register(registry, ++id, Primitive::LossFunction, mseloss::backward::MSELossBackward{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::LossFunction,
-             mseloss::forward_unreduced::MSELossForwardUnreduced{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::LossFunction,
-             mseloss::backward_unreduced::MSELossBackwardUnreduced{}.SolverDbId());
+    Register(
+        registry, ++id, Primitive::LossFunction, mseloss::backward::MSELossBackward{}.SolverDbId());
 
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
