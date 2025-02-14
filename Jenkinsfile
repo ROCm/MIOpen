@@ -170,7 +170,7 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         script {
-                            utils.buildHipClangJobAndReboot( package_build: "true", needs_gpu:false, needs_reboot:false)
+                            utils.buildHipClangJobAndReboot( package_build:true, needs_gpu:false, needs_reboot:false)
                         }
                     }
                 }
