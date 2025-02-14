@@ -52,12 +52,6 @@ namespace debug {
 MIOPEN_EXPORT extern bool
     AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
-/// WORKAROUND_SWDEV_271887 disables ConvOclDirectFwd1x1 solver on gfx10 due to precision issues.
-/// However we still want to check that the solver is not broken and therefore use
-/// disable_wa_swdev_271887 = true to enable it.
-// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-MIOPEN_INTERNALS_EXPORT extern bool disable_wa_swdev_271887;
-
 } // namespace debug
 
 struct AnyInvokeParams;
@@ -337,37 +331,37 @@ struct ConvAsm1x1UV2 final : ConvTunableSolver<PerformanceConfigConvAsm1x1UV2>
                 const PerformanceConfigConvAsm1x1UV2&) const override;
 };
 
-struct ConvAsm5x10u2v2f1 final : ConvSolver
+struct MIOPEN_INTERNALS_EXPORT ConvAsm5x10u2v2f1 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2f1>(); }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
-struct ConvAsm5x10u2v2b1 final : ConvSolver
+struct MIOPEN_INTERNALS_EXPORT ConvAsm5x10u2v2b1 final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvAsm5x10u2v2b1>(); }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
-struct ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
+struct MIOPEN_INTERNALS_EXPORT ConvAsm7x7c3h224w224k64u2v2p3q3f1 final : ConvSolver
 {
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvAsm7x7c3h224w224k64u2v2p3q3f1>();
     }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvOclDirectFwd11x11 final : ConvSolver
@@ -4768,7 +4762,10 @@ private:
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
     void InitHeuristicKernelIDs();
-    bool ModelApplyToken(int idx, std::string value);
+    bool ModelApplyToken(int idx,
+                         std::string value,
+                         const std::string& arch,
+                         const miopen::conv::ProblemDescription& problem);
 #endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);
