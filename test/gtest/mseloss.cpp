@@ -26,71 +26,31 @@
 
 #include "mseloss.hpp"
 
-#include <gtest/gtest-param-test.h>
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace mseloss {
-std::string GetFloatArg()
-{
-    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
 
-struct GPU_MSELoss_fwd_FP32 : MSELossTest<float>
-{
-};
+using GPU_MSELoss_fwd_FP32  = MSELossTest<float>;
+using GPU_MSELoss_fwd_FP16  = MSELossTest<half>;
+using GPU_MSELoss_fwd_BFP16 = MSELossTest<bfloat16>;
 
-struct GPU_MSELoss_fwd_FP16 : MSELossTest<half>
-{
-};
-
-struct GPU_MSELoss_fwd_BFP16 : MSELossTest<bfloat16>
-{
-};
 } // namespace mseloss
-
 using namespace mseloss;
+
 TEST_P(GPU_MSELoss_fwd_FP32, Full)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-        GTEST_SKIP();
+    RunTest();
+    Verify();
 }
 
 TEST_P(GPU_MSELoss_fwd_FP16, Full)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-        GTEST_SKIP();
+    RunTest();
+    Verify();
 }
 
 TEST_P(GPU_MSELoss_fwd_BFP16, Full)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-        GTEST_SKIP();
+    RunTest();
+    Verify();
 }
 
 INSTANTIATE_TEST_CASE_P(Full, GPU_MSELoss_fwd_FP32, testing::ValuesIn(MSELossTestConfigs()));

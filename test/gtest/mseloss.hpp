@@ -183,13 +183,13 @@ protected:
 
         workspace_dev = handle.Create(workspace_in_bytes);
 
-        cpu_mseloss<T>(input.desc,
-                       target.desc,
-                       output.desc,
-                       input.data.data(),
-                       target.data.data(),
-                       output_ref.data.data(),
-                       divisor);
+        cpu_mseloss_forward<T>(input.desc,
+                               target.desc,
+                               output.desc,
+                               input.data.data(),
+                               target.data.data(),
+                               output_ref.data.data(),
+                               divisor);
 
         status = MSELossForward(handle,
                                 input.desc,

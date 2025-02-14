@@ -30,13 +30,13 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T>
-void cpu_mseloss(miopen::TensorDescriptor inputDesc,
-                 miopen::TensorDescriptor targetDesc,
-                 miopen::TensorDescriptor /*outputDesc*/,
-                 const T* input,
-                 const T* target,
-                 T* output,
-                 float divisor)
+void cpu_mseloss_forward(miopen::TensorDescriptor inputDesc,
+                         miopen::TensorDescriptor targetDesc,
+                         miopen::TensorDescriptor /*outputDesc*/,
+                         const T* input,
+                         const T* target,
+                         T* output,
+                         float divisor)
 {
     tensor_view_t<5> I_tv = miopen::get_inner_expanded_tv<5>(inputDesc);
     tensor_view_t<5> T_tv = miopen::get_inner_expanded_tv<5>(targetDesc);
