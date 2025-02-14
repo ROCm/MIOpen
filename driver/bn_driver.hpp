@@ -1411,7 +1411,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                           alpha,
                                           in.GetTensor(),
                                           dy.GetTensor(),
-                                          out.GetTensor(),
+                                          out_bwd.GetTensor(),
                                           out_ref,
                                           bnScale.GetTensor(),
                                           dBias.GetTensor(),

@@ -476,10 +476,10 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
     {
         lcl_scale[xlid] = *(scale + xgid);
         lcl_bias[xlid]  = *(bias + xgid);
-        lcl_mean[xlid] =
-            loadFromStash(out, 2, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-        lcl_ivar[xlid] =
-            loadFromStash(out, 3, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        lcl_mean[xlid]  = 
+            loadFromStash(out, 0, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        lcl_ivar[xlid]  = 
+            loadFromStash(out, 1, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
@@ -549,7 +549,7 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
             meanvarbuff, 1, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP1 > 1
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
     // TODO: this simple approach has many bank conflicts, optimize if it affects performance
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
@@ -578,10 +578,10 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
     for(unsigned int yoffset = ylid; yoffset < MIO_BN_NGRPS; yoffset += ygrp_sz)
     {
         storeToStash(
-            mean, meanvarbuff, 2, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+            mean, meanvarbuff, 0, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
         storeToStash(invVariance,
                      meanvarbuff,
-                     3,
+                     1,
                      ygrp_sz * yoffset,
                      ystride,
                      xgrp_sz,
@@ -642,7 +642,7 @@ MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
         }
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP1 > 1
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
     // TODO: this simple approach has many bank conflicts, optimize if it affects performance
     local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
