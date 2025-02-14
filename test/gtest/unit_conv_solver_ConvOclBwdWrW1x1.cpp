@@ -53,9 +53,9 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverOclBwdWrW1x1_FP16 = GPU_UnitTestConvSolverWrw_FP16;
+using GPU_UnitTestConvSolverOclBwdWrW1x1_FP16  = GPU_UnitTestConvSolverWrw_FP16;
 using GPU_UnitTestConvSolverOclBwdWrW1x1_BFP16 = GPU_UnitTestConvSolverWrw_BFP16;
-using GPU_UnitTestConvSolverOclBwdWrW1x1_FP32 = GPU_UnitTestConvSolverWrw_FP32;
+using GPU_UnitTestConvSolverOclBwdWrW1x1_FP32  = GPU_UnitTestConvSolverWrw_FP32;
 
 using CPU_UnitTestConvSolverOclBwdWrW1x1DevApplicability_NONE =
     CPU_UnitTestConvSolverDevApplicabilityWrw_NONE;

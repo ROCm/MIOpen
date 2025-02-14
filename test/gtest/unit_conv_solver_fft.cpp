@@ -56,15 +56,9 @@ using GPU_UnitTestConvSolverFFTBwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
 using CPU_UnitTestConvSolverFFTDevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
-TEST_P(GPU_UnitTestConvSolverFFTFwd_FP32, fft)
-{
-    this->RunTest(miopen::solver::conv::fft{});
-};
+TEST_P(GPU_UnitTestConvSolverFFTFwd_FP32, fft) { this->RunTest(miopen::solver::conv::fft{}); };
 
-TEST_P(GPU_UnitTestConvSolverFFTBwd_FP32, fft)
-{
-    this->RunTest(miopen::solver::conv::fft{});
-};
+TEST_P(GPU_UnitTestConvSolverFFTBwd_FP32, fft) { this->RunTest(miopen::solver::conv::fft{}); };
 
 TEST_P(CPU_UnitTestConvSolverFFTDevApplicabilityFwd_NONE, fft)
 {

@@ -42,7 +42,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        auto p             = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
         p.EnableDeprecatedSolvers();
         return p;
     }();
@@ -51,9 +51,9 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverOclBwdWrW53_FP16 = GPU_UnitTestConvSolverWrw_FP16;
+using GPU_UnitTestConvSolverOclBwdWrW53_FP16  = GPU_UnitTestConvSolverWrw_FP16;
 using GPU_UnitTestConvSolverOclBwdWrW53_BFP16 = GPU_UnitTestConvSolverWrw_BFP16;
-using GPU_UnitTestConvSolverOclBwdWrW53_FP32 = GPU_UnitTestConvSolverWrw_FP32;
+using GPU_UnitTestConvSolverOclBwdWrW53_FP32  = GPU_UnitTestConvSolverWrw_FP32;
 
 using CPU_UnitTestConvSolverOclBwdWrW53DevApplicability_NONE =
     CPU_UnitTestConvSolverDevApplicabilityWrw_NONE;
