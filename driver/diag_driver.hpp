@@ -27,16 +27,16 @@
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "tensor_driver.hpp"
 #include "random.hpp"
+#include "tensor_driver.hpp"
 #include "tensor_view.hpp"
 #include "timer.hpp"
 
 #include <../test/verify.hpp>
 
 #include <miopen/errors.hpp>
-#include <miopen/tensor_view_utils.hpp>
 #include <miopen/miopen.h>
+#include <miopen/tensor_view_utils.hpp>
 
 #include <vector>
 
@@ -139,7 +139,7 @@ template <typename Tgpu, typename Tref>
 int DiagDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
-    diagonal     = inflags.GetValueInt("Diagonal");
+    diagonal     = inflags.GetValueInt("diagonal");
     isContiguous = inflags.GetValueInt("contiguous") > 0 ? true : false;
 
     forw = inflags.GetValueInt("forw");
@@ -223,7 +223,7 @@ int DiagDriver<Tgpu, Tref>::AddCmdLineArgs()
                           "2048x2048",
                           "The dimensional lengths of the input tensor (Default=2048x2048)");
     inflags.AddInputFlag(
-        "Diagonal", 'R', "0", "Control which diagonal to consider (Default=0)", "int");
+        "diagonal", 'R', "0", "Control which diagonal to consider (Default=0)", "int");
     inflags.AddInputFlag("contiguous", 'C', "1", "Tensor is contiguous or not (Default=1)", "int");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");

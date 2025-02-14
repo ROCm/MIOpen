@@ -24,14 +24,14 @@
  *
  *******************************************************************************/
 
-#include "miopen/mlo_internal.hpp"
-#include <miopen/tensor.hpp>
-#include <miopen/tensor_view_utils.hpp>
 #include <miopen/datatype.hpp>
-#include <miopen/kernel_build_params.hpp>
+#include <miopen/diag.hpp>
 #include <miopen/diag/invoke_params.hpp>
 #include <miopen/diag/solvers.hpp>
-#include <miopen/diag.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE 256
 

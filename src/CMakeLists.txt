@@ -112,9 +112,8 @@ set( MIOpen_Source
     ctc_api.cpp
     db.cpp
     db_record.cpp
-    diag.cpp
-    diag_api.cpp
     diag/problem_description.cpp
+    diag_api.cpp
     driver_arguments.cpp
     dropout.cpp
     dropout_api.cpp
@@ -681,6 +680,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         adam.cpp
         addlayernorm.cpp
         cat.cpp
+        diag.cpp
         exec_utils.cpp
         groupnorm.cpp
         getitem.cpp

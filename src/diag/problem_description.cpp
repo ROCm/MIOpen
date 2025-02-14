@@ -40,6 +40,7 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
     ss << "input_type" << input_type;
     ss << "numDim" << inputDesc.GetNumDims();
     ss << "input_numel" << inputDesc.GetElementSize();
+    ss << "output_numel" << outputDesc.GetElementSize();
 
     return NetworkConfig{ss.str()};
 }

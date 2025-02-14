@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_DIAG_HPP_
-#define MIOPEN_DIAG_HPP_
+#pragma once
 
 #include <miopen/common.hpp>
 
@@ -41,4 +40,3 @@ miopenStatus_t DiagForward(Handle& handle,
                            int64_t diagonal);
 
 } // namespace miopen
-#endif // _MIOPEN_DIAG_HPP_
