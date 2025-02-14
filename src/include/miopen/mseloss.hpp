@@ -24,9 +24,12 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
-#include <cstddef>
+#pragma once
+
+#include <miopen/miopen.h>
 #include <miopen/common.hpp>
+
+#include <cstdlib>
 
 namespace miopen {
 struct Handle;

@@ -58,14 +58,14 @@ enum class Primitive
     Cat,
     Mha,
     Softmax,
-    Loss,
     Adam,
     Item,
     RoPE,
     ReLU,
     Kthvalue,
     SoftMarginLoss,
-    MultiMarginLoss
+    MultiMarginLoss,
+    LossFunction
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id

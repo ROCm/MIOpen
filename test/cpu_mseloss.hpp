@@ -24,16 +24,15 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_CPU_MSE_LOSS_HPP
-#define GUARD_CPU_MSE_LOSS_HPP
+#pragma once
 
-#include "miopen/tensor.hpp"
-#include "miopen/tensor_view_utils.hpp"
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 template <class T>
 void cpu_mseloss(miopen::TensorDescriptor inputDesc,
                  miopen::TensorDescriptor targetDesc,
-                 miopen::TensorDescriptor outputDesc,
+                 miopen::TensorDescriptor /*outputDesc*/,
                  const T* input,
                  const T* target,
                  T* output,
@@ -68,7 +67,7 @@ void cpu_mseloss(miopen::TensorDescriptor inputDesc,
 template <class T>
 void cpu_mseloss_backward(miopen::TensorDescriptor inputDesc,
                           miopen::TensorDescriptor targetDesc,
-                          miopen::TensorDescriptor outputDesc,
+                          miopen::TensorDescriptor /*outputDesc*/,
                           miopen::TensorDescriptor inputGradDesc,
                           miopen::TensorDescriptor targetGradDesc,
                           const T* input,
@@ -115,4 +114,3 @@ void cpu_mseloss_backward(miopen::TensorDescriptor inputDesc,
         ++gid;
     }
 }
-#endif

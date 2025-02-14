@@ -26,10 +26,11 @@
 
 #pragma once
 
-#include "miopen/execution_context.hpp"
-#include <cstddef>
+#include <miopen/execution_context.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/mseloss/problem_description.hpp>
+
+#include <cstddef>
 
 namespace miopen {
 namespace solver {

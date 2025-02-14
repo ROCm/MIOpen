@@ -24,18 +24,19 @@
  *
  *******************************************************************************/
 
-#include "miopen/buffer_info.hpp"
-#include "miopen/conv_solution.hpp"
-#include "miopen/datatype.hpp"
-#include "miopen/hipoc_kernel.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/kernel_build_params.hpp"
-#include "miopen/miopen.h"
-#include "miopen/mlo_internal.hpp"
-#include "miopen/mseloss/solvers.hpp"
-#include "miopen/mseloss/invoke_params.hpp"
-#include "miopen/tensor.hpp"
-#include "miopen/tensor_view_utils.hpp"
+#include <miopen/buffer_info.hpp>
+#include <miopen/conv_solution.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/hipoc_kernel.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/miopen.h>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/mseloss/solvers.hpp>
+#include <miopen/mseloss/invoke_params.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
+
 #include <cstddef>
 
 #define LOCAL_SIZE_MSELOSS 256

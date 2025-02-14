@@ -24,17 +24,18 @@
  *
  *******************************************************************************/
 
-#include "miopen/common.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/miopen.h"
-#include "miopen/names.hpp"
-#include "miopen/tensor.hpp"
-#include "miopen/find_solution.hpp"
-#include <cstddef>
+#include <miopen/common.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/miopen.h>
+#include <miopen/names.hpp>
+#include <miopen/tensor.hpp>
+#include <miopen/find_solution.hpp>
 #include <miopen/mseloss.hpp>
 #include <miopen/mseloss/problem_description.hpp>
 #include <miopen/mseloss/invoke_params.hpp>
 #include <miopen/mseloss/solvers.hpp>
+
+#include <cstddef>
 
 namespace miopen {
 

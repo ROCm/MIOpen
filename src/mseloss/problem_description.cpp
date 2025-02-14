@@ -24,8 +24,9 @@
  *
  *******************************************************************************/
 
-#include "miopen/names.hpp"
+#include <miopen/names.hpp>
 #include <miopen/mseloss/problem_description.hpp>
+
 #include <sstream>
 
 namespace miopen {

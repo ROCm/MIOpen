@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include "mseloss.hpp"
+
 #include <gtest/gtest-param-test.h>
 #include <miopen/env.hpp>
 

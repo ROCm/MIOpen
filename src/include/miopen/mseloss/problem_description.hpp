@@ -26,7 +26,6 @@
 
 #pragma once
 
-#include <cstddef>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>

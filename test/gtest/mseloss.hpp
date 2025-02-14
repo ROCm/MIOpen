@@ -24,17 +24,17 @@
  *
  *******************************************************************************/
 
-#include "get_handle.hpp"
-#include "miopen/miopen.h"
 #include "cpu_mseloss.hpp"
+#include "get_handle.hpp"
 #include "random.hpp"
-#include "miopen/allocator.hpp"
 #include "tensor_holder.hpp"
-#include "miopen/mseloss.hpp"
 #include "verify.hpp"
-#include <cstddef>
-#include <cstdint>
 #include <gtest/gtest.h>
+#include <miopen/miopen.h>
+#include <miopen/allocator.hpp>
+#include <miopen/mseloss.hpp>
+
+#include <cstddef>
 #include <limits>
 #include <vector>
 

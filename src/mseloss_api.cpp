@@ -24,13 +24,14 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
-#include <cstdio>
+#include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mseloss.hpp>
+
+#include <cstddef>
 
 extern "C" miopenStatus_t miopenMSELossForward(miopenHandle_t handle,
                                                miopenTensorDescriptor_t xDesc,

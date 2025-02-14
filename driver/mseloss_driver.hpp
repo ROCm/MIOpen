@@ -24,8 +24,7 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MIOPEN_MSELOSS_DRIVER_HPP
-#define GUARD_MIOPEN_MSELOSS_DRIVER_HPP
+#pragma once
 
 #include "driver.hpp"
 #include "miopen/errors.hpp"
@@ -576,5 +575,3 @@ int MSELossDriver<Tgpu, Tref>::VerifyBackward()
 
     return miopenStatusSuccess;
 }
-
-#endif
