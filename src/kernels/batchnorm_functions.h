@@ -225,7 +225,7 @@
 
 #define _ACCUMULATE1(a, b) a += b;
 
-#define _ACCUMULATE_MAD1(a, b) a = mad(b, b, a);
+#define _ACCUMULATE_MAD1(a, b, c, d) a = mad(b, c, d);
 
 #define _ACCUMULATE4(a, b) \
     a += b.x;              \
@@ -233,11 +233,11 @@
     a += b.z;              \
     a += b.w;
 
-#define _ACCUMULATE_MAD4(a, b) \
-    a = mad(b.x, b.x, a);      \
-    a = mad(b.y, b.y, a);      \
-    a = mad(b.z, b.z, a);      \
-    a = mad(b.w, b.w, a);
+#define _ACCUMULATE_MAD4(a, b, c, d) \
+    a = mad(b.x, c.x, d);            \
+    a = mad(b.y, c.y, d);            \
+    a = mad(b.z, c.z, d);            \
+    a = mad(b.w, c.w, d);
 
 #if MIO_BN_VECTORIZE
 #define VEC_SIZE 4
@@ -298,13 +298,14 @@
 #define UNUSED __attribute__((__unused__))
 
 #if(MIO_BN_VARIANT == 2)
-inline unsigned int getStashIndex(unsigned int vindex,
-                                  unsigned int ygroupoffset,
-                                  unsigned int ystride,
-                                  unsigned int xgrp_sz,
-                                  unsigned int xgrp_id,
-                                  unsigned int xlid,
-                                  unsigned int xstride)
+    inline unsigned int
+    getStashIndex(unsigned int vindex,
+                  unsigned int ygroupoffset,
+                  unsigned int ystride,
+                  unsigned int xgrp_sz,
+                  unsigned int xgrp_id,
+                  unsigned int xlid,
+                  unsigned int xstride)
 {
 #if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
     // 2 _FLOAT values are used to store 1 _FLOAT_PREC value.
@@ -402,13 +403,14 @@ static inline void running_stash_pa(global _FLOAT_PREC* resultRunningMean,
 
 #else
 
-static inline void running_stash_dyn(global _FLOAT_PREC* resultRunningMean,
-                                     global _FLOAT_PREC* resultRunningVariance,
-                                     double expAvgFactor,
-                                     _FLOAT_ACCUM mean,
-                                     _FLOAT_ACCUM variance,
-                                     uint channel,
-                                     _FLOAT_ACCUM inhw)
+    static inline void
+    running_stash_dyn(global _FLOAT_PREC* resultRunningMean,
+                      global _FLOAT_PREC* resultRunningVariance,
+                      double expAvgFactor,
+                      _FLOAT_ACCUM mean,
+                      _FLOAT_ACCUM variance,
+                      uint channel,
+                      _FLOAT_ACCUM inhw)
 {
     _FLOAT_ACCUM pvt_runMean = (_FLOAT_ACCUM)(*(resultRunningMean + channel));
     _FLOAT_ACCUM pvt_newRunMean =

@@ -137,22 +137,27 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
 
     int variant = 2;
 
+    bool vectorize;
     size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize;
     if(problem.IsLayoutNHWC())
     {
+        vectorize       = c % 4 == 0;
+        int vector_size = vectorize ? 4 : 1;
         // ylocalsize must be power of 2 as reductions in the kernels rely on it, here c is rounded
         // up to next power of 2.
-        xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
-        xgridsize  = xlocalsize * ((c + xlocalsize - 1) / xlocalsize);
+        xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c / vector_size)))}, size_t{64});
+        xgridsize  = xlocalsize * ((c / vector_size + xlocalsize - 1) / xlocalsize);
         ylocalsize = 1024 / xlocalsize;
         ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
     }
     else
     {
+        vectorize       = c % 4 == 0;
+        int vector_size = vectorize ? 4 : 1;
         xlocalsize = 1;
         xgridsize  = c;
         ylocalsize = 1024;
-        ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+        ygridsize       = ylocalsize * ((in_cstride / vector_size + ylocalsize - 1) / ylocalsize);
     }
     zlocalsize = 1;
     zgridsize  = 1;
@@ -191,6 +196,7 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
+            {"MIO_BN_VECTORIZE", static_cast<int>(vectorize)},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
