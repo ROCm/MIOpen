@@ -1801,15 +1801,17 @@ struct MIOPEN_INTERNALS_EXPORT ConvOclDirectFwd1x1 final : ConvOclDirectFwdLegac
     }
 };
 
-struct MIOPEN_INTERNALS_EXPORT ConvBinWinograd3x3U final : ConvSolver
+struct ConvBinWinograd3x3U final : ConvSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ConvBinWinograd3x3U>(); }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
 struct ConvBinWinogradRxS final : ConvSolver
