@@ -496,7 +496,7 @@ bool ConvAsmBwdWrW1x1::IsApplicable(const ExecutionContext& ctx,
     if(problem.IsTensorsCasted())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
