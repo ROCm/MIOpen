@@ -27,7 +27,6 @@
 #include <miopen/find_controls.hpp>
 
 #include <miopen/miopen.h>
-#include <miopen/miopen_internal.h>
 #include <miopen/logger.hpp>
 #include <miopen/env.hpp>
 #include <miopen/execution_context.hpp>

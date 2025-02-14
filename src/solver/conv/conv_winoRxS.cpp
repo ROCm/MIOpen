@@ -671,7 +671,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
     if(!ctx.rmv.IsV3())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
