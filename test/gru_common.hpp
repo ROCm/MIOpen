@@ -2960,18 +2960,20 @@ struct gru_basic_driver : test_driver
             return [=]() -> T { return prng::gen_descreet_uniform_sign<T>(scale, range); };
         };
 
-        const double Data_scale = 0.0001;
-        fill_array_via_gen(input, pos_gen(Data_scale, 100));
+        const double data_max_v = sqrt(1. / hiddenSize);
+        int data_range          = 100;
+        const double data_scale = data_max_v / data_range;
+        fill_array_via_gen(input, pos_gen(data_scale, data_range), 0);
 
         if(!nohx)
         {
-            fill_array_via_gen(hx, pos_gen(Data_scale, 100), 1);
+            fill_array_via_gen(hx, pos_gen(data_scale, data_range), 1);
         }
 
         // filter
-        auto weights_max_v = sqrt(1 / hiddenSize);
-        int weights_range  = 64;
-        auto weights_scale = weights_max_v / weights_range;
+        const double weights_max_v = sqrt(1. / hiddenSize);
+        int weights_range          = 64;
+        const double weights_scale = weights_max_v / weights_range;
 
         fill_array_via_gen(weights, sign_gen(weights_scale, weights_range), 2);
     }
@@ -2990,8 +2992,10 @@ struct gru_basic_driver : test_driver
             return [=]() { return prng::gen_descreet_uniform_sign<T>(scale, range); };
         };
 
-        auto bwd_data_scale = 0.000001;
-        auto bwd_data_range = 50;
+        const double bwd_data_max_v = sqrt(1. / hiddenSize) / 8;
+        int bwd_data_range          = 100;
+        const double bwd_data_scale = bwd_data_max_v / bwd_data_range;
+
         if(!nodhy)
         {
             fill_array_via_gen(dhy, sign_gen(bwd_data_scale, bwd_data_range), 3);
