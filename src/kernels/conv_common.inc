@@ -79,9 +79,9 @@ TYPE_INT4  = 8
     .set max_hw_vctn, 63
 .endif
 max_hw_lcnt = 15
-.macro s_wait vmcnt=max_hw_vctn, lgkmcnt=max_hw_lcnt
-    vm_cnt = \vmcnt
-    lgkm_cnt = \lgkmcnt
+.macro s_wait arg_vmcnt=max_hw_vctn, arg_lgkmcnt=max_hw_lcnt
+    vm_cnt = \arg_vmcnt
+    lgkm_cnt = \arg_lgkmcnt
     .if vm_cnt > max_hw_vctn
         vm_cnt = max_hw_vctn
     .elseif vm_cnt < 0
