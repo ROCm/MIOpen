@@ -27,6 +27,25 @@
 #include <miopen/utility/modified_z.hpp>
 #include <gtest/gtest.h>
 
+TEST(CPU_UnitTestModifiedZ_NONE, TestMean)
+{
+    std::vector<double> testSorted     = {1, 2, 3, 4, 5, 6, 7};
+    std::vector<double> testDuplicates = {1, 1, 1};
+    std::vector<double> testUnsorted   = {5, 9, 11, 7, 3};
+    std::vector<double> testOdd        = {13.5, 10.5, 12.5};
+    std::vector<double> testEven       = {13.5, 10.5, 12.5, 15.5};
+    std::vector<double> testSingle     = {1};
+    std::vector<double> testEmpty      = {};
+
+    EXPECT_DOUBLE_EQ(miopen::Mean(testSorted), 4);
+    EXPECT_DOUBLE_EQ(miopen::Mean(testDuplicates), 1);
+    EXPECT_DOUBLE_EQ(miopen::Mean(testUnsorted), 7);
+    EXPECT_DOUBLE_EQ(miopen::Mean(testOdd), 12.16666666666667);
+    EXPECT_DOUBLE_EQ(miopen::Mean(testEven), 13.0);
+    EXPECT_DOUBLE_EQ(miopen::Mean(testSingle), 1);
+    EXPECT_THROW(miopen::Mean(testEmpty), miopen::Exception);
+}
+
 TEST(CPU_UnitTestModifiedZ_NONE, TestMedian)
 {
     std::vector<double> testSorted     = {1, 2, 3, 4, 5, 6, 7};
@@ -37,12 +56,12 @@ TEST(CPU_UnitTestModifiedZ_NONE, TestMedian)
     std::vector<double> testSingle     = {1};
     std::vector<double> testEmpty      = {};
 
-    EXPECT_EQ(miopen::Median(testSorted), 4);
-    EXPECT_EQ(miopen::Median(testDuplicates), 1);
-    EXPECT_EQ(miopen::Median(testUnsorted), 7);
-    EXPECT_EQ(miopen::Median(testOdd), 12.5);
-    EXPECT_EQ(miopen::Median(testEven), 13.0);
-    EXPECT_EQ(miopen::Median(testSingle), 1);
+    EXPECT_DOUBLE_EQ(miopen::Median(testSorted), 4);
+    EXPECT_DOUBLE_EQ(miopen::Median(testDuplicates), 1);
+    EXPECT_DOUBLE_EQ(miopen::Median(testUnsorted), 7);
+    EXPECT_DOUBLE_EQ(miopen::Median(testOdd), 12.5);
+    EXPECT_DOUBLE_EQ(miopen::Median(testEven), 13.0);
+    EXPECT_DOUBLE_EQ(miopen::Median(testSingle), 1);
     EXPECT_THROW(miopen::Median(testEmpty), miopen::Exception);
 }
 
@@ -54,10 +73,10 @@ TEST(CPU_UnitTestModifiedZ_NONE, TestMedianOfSortedData)
     std::vector<double> testSingle     = {1};
     std::vector<double> testEmpty      = {};
 
-    EXPECT_EQ(miopen::MedianOfSortedData(testSorted), 4);
-    EXPECT_EQ(miopen::MedianOfSortedData(testDuplicates), 1);
+    EXPECT_DOUBLE_EQ(miopen::MedianOfSortedData(testSorted), 4);
+    EXPECT_DOUBLE_EQ(miopen::MedianOfSortedData(testDuplicates), 1);
     EXPECT_NE(miopen::MedianOfSortedData(testUnsorted), 7);
-    EXPECT_EQ(miopen::MedianOfSortedData(testSingle), 1);
+    EXPECT_DOUBLE_EQ(miopen::MedianOfSortedData(testSingle), 1);
     EXPECT_THROW(miopen::MedianOfSortedData(testEmpty), miopen::Exception);
 }
 
@@ -127,39 +146,40 @@ TEST(CPU_UnitTestModifiedZ_NONE, TestModifiedZScores)
     EXPECT_THROW(miopen::ModifiedZScores(testEmpty), miopen::Exception);
 }
 
-TEST(CPU_UnitTestModifiedZ_NONE, TestRemoveOutliersAndGetMedian)
+TEST(CPU_UnitTestModifiedZ_NONE, TestRemoveHighOutliersAndGetMean)
 {
     std::vector<double> testNoDeviation      = {1, 1, 1};
     std::vector<double> testZeroMAD          = {7, 7, 7, 1000};
     std::vector<double> testDeviationOdd     = {1, 2, 3, 4, 5};
     std::vector<double> testDeviationEven    = {1, 2, 3, 4};
-    std::vector<double> testDeviationRepeats = {1, 2, 2, 3, 4};
-    std::vector<double> testWithOutliers1    = {1, 2, 3, 4, 5, 900, 1000, -100};
-    std::vector<double> testWithOutliers2    = {1, 2, 2, 3, 900, 1000, -100};
+    std::vector<double> testDeviationRepeats = {1, 2, 2, 3, 10};
+    std::vector<double> testWithOutliers1    = {1, 2, 3, 4, 5, 900, 1000};
+    std::vector<double> testWithOutliers2    = {1, 2, 2, 3, 900, 1000};
     std::vector<double> testWithOutliers3    = {
-        1, 2, 2, 3, 900, 1000, 1000, 1105, 1106, 1107, 1108, -100};
+        1, 2, 2, 3, 900, 1000, 1000, 1105, 1106, 1107, 1108, 100000};
     std::vector<double> testSingle = {1};
     std::vector<double> testEmpty  = {};
 
-    double median1 = miopen::RemoveOutliersAndGetMedian(testNoDeviation, 1.0);
-    double median2 = miopen::RemoveOutliersAndGetMedian(testZeroMAD, 1.0);
-    double median3 = miopen::RemoveOutliersAndGetMedian(testDeviationOdd, 1.0);
-    double median4 = miopen::RemoveOutliersAndGetMedian(testDeviationEven, 1.0);
-    double median5 = miopen::RemoveOutliersAndGetMedian(testDeviationRepeats, 1.0);
-    double median6 = miopen::RemoveOutliersAndGetMedian(testWithOutliers1, 1.0);
-    double median7 = miopen::RemoveOutliersAndGetMedian(testWithOutliers2, 1.0);
-    double median8 = miopen::RemoveOutliersAndGetMedian(testWithOutliers3, 1.0);
-    double median9 = miopen::RemoveOutliersAndGetMedian(testSingle, 1.0);
+    double mean1 = miopen::RemoveHighOutliersAndGetMean(testNoDeviation, 1.0);
+    double mean2 = miopen::RemoveHighOutliersAndGetMean(testZeroMAD, 1.0);
+    double mean3 = miopen::RemoveHighOutliersAndGetMean(testDeviationOdd, 1.0);
+    double mean4 = miopen::RemoveHighOutliersAndGetMean(testDeviationEven, 1.0);
+    double mean5 = miopen::RemoveHighOutliersAndGetMean(testDeviationRepeats, 1.0);
+    double mean6 = miopen::RemoveHighOutliersAndGetMean(testWithOutliers1, 1.0);
+    double mean7 = miopen::RemoveHighOutliersAndGetMean(testWithOutliers2, 1.0);
+    double mean8 = miopen::RemoveHighOutliersAndGetMean(testWithOutliers3, 1.0);
+    double mean9 = miopen::RemoveHighOutliersAndGetMean(testSingle, 1.0);
 
-    EXPECT_EQ(median1, 1);
-    EXPECT_EQ(median2, 7);
-    EXPECT_EQ(median3, 3);
-    EXPECT_EQ(median4, 2.5);
-    EXPECT_EQ(median5, 2);
-    EXPECT_EQ(median6, 3);
-    EXPECT_EQ(median7, 2);
-    EXPECT_EQ(median8, 1105);
-    EXPECT_EQ(median9, 1);
-    EXPECT_THROW(miopen::RemoveOutliersAndGetMedian(testEmpty, 1.0), miopen::Exception);
-    EXPECT_THROW(miopen::RemoveOutliersAndGetMedian(testDeviationRepeats, -1.0), miopen::Exception);
+    EXPECT_DOUBLE_EQ(mean1, 1);
+    EXPECT_DOUBLE_EQ(mean2, 255.25);
+    EXPECT_DOUBLE_EQ(mean3, 2.5);
+    EXPECT_DOUBLE_EQ(mean4, 2);
+    EXPECT_DOUBLE_EQ(mean5, 2);
+    EXPECT_DOUBLE_EQ(mean6, 3);
+    EXPECT_DOUBLE_EQ(mean7, 2);
+    EXPECT_DOUBLE_EQ(mean8, 666.72727272727275);
+    EXPECT_DOUBLE_EQ(mean9, 1);
+    EXPECT_THROW(miopen::RemoveHighOutliersAndGetMean(testEmpty, 1.0), miopen::Exception);
+    EXPECT_THROW(miopen::RemoveHighOutliersAndGetMean(testDeviationRepeats, -1.0),
+                 miopen::Exception);
 }

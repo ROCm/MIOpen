@@ -518,8 +518,8 @@ auto GenericSearch(const Solver s,
             {
                 // Smooth the jitter of measurements:
                 // If the 1st probe is NOT too bad (measured time <= 1.10 * worst sample of the best
-                // config), then gather 9 more samples, and remove outliers. Use the median value
-                // with outliers removed for calculating best config.
+                // config), then gather 9 more samples, and remove positive z-score outliers. Use
+                // the mean value with outliers removed for calculating best config.
                 constexpr int N_RUNS = 10;
                 if(elapsed_time / worst_time < 1.10f)
                 {
@@ -544,9 +544,9 @@ auto GenericSearch(const Solver s,
                     {
                         is_passed = true;
 
-                        // Remove outliers that are more than 2 modified z-score's away, and get the
-                        // median result.
-                        elapsed_time = miopen::RemoveOutliersAndGetMedian(samples, 2.0f);
+                        // Remove outliers that are more than 2 positive modified z-score's away,
+                        // and get the mean.
+                        elapsed_time = miopen::RemoveHighOutliersAndGetMean(samples, 2.0f);
                         if(elapsed_time < best_time)
                         {
                             MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
@@ -554,9 +554,12 @@ auto GenericSearch(const Solver s,
                                              << current_config);
                             best_config = current_config;
                             best_time   = elapsed_time;
-                            worst_time  = samples.back();
-                            n_best      = n_current;
-                            last_imprv  = 0;
+
+                            // Samples gets sorted by the RemoveOutliers call so the last element
+                            // will be the slowest.
+                            worst_time = samples.back();
+                            n_best     = n_current;
+                            last_imprv = 0;
                         }
                         else
                         {

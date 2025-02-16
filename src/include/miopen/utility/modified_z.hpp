@@ -28,9 +28,19 @@
 
 #include <vector>
 #include <algorithm>
+#include <numeric>
 #include <miopen/errors.hpp>
 
 namespace miopen {
+
+template <typename T>
+T Mean(const std::vector<T>& data)
+{
+    MIOPEN_THROW_IF(data.size() == 0, "Cannot find Mean of 0 length data");
+
+    T sum = std::accumulate(data.begin(), data.end(), 0.0);
+    return sum / data.size();
+}
 
 template <typename T>
 T MedianOfSortedData(const std::vector<T>& sortedData)
@@ -97,7 +107,7 @@ std::vector<T> ModifiedZScores(const std::vector<T>& sortedData)
 }
 
 template <typename T>
-T RemoveOutliersAndGetMedian(std::vector<T>& data, T z_threshold)
+T RemoveHighOutliersAndGetMean(std::vector<T>& data, T z_threshold)
 {
     std::sort(data.begin(), data.end());
 
@@ -106,12 +116,12 @@ T RemoveOutliersAndGetMedian(std::vector<T>& data, T z_threshold)
 
     for(size_t i = 0; i < data.size(); ++i)
     {
-        if(std::abs(modZScores[i]) <= z_threshold)
+        if(modZScores[i] <= z_threshold)
         {
             filteredData.push_back(data[i]);
         }
     }
 
-    return MedianOfSortedData(filteredData);
+    return Mean(filteredData);
 }
 } // namespace miopen

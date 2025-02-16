@@ -291,9 +291,9 @@ static std::vector<Solution> EvaluateInvokers(const Handle& handle,
 
             if(samples.size() > 0)
             {
-                // Remove outliers that are more than 2 modified z-score's away, and get the median
-                // result.
-                elapsed = miopen::RemoveOutliersAndGetMedian(samples, 2.0f);
+                // Remove outliers that are more than 2 positive modified z-score's away, and get
+                // the mean.
+                elapsed = miopen::RemoveHighOutliersAndGetMean(samples, 2.0f);
             }
             else
             {
