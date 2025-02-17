@@ -33,7 +33,6 @@ template <class T>
 void cpu_adaptiveavgpool_forward_1d(
     tensor<T> input, tensor<T>& output, size_t C, size_t H, size_t OH)
 {
-    auto dims  = input.desc.GetLengths();
     auto numel = output.desc.GetElementSize();
 
     auto input_tv  = miopen::get_inner_expanded_tv<3>(input.desc);
@@ -60,7 +59,6 @@ template <class T>
 void cpu_adaptiveavgpool_forward_2d(
     tensor<T> input, tensor<T>& output, size_t C, size_t H, size_t W, size_t OH, size_t OW)
 {
-    auto dims  = input.desc.GetLengths();
     auto numel = output.desc.GetElementSize();
 
     auto input_tv  = miopen::get_inner_expanded_tv<4>(input.desc);
@@ -102,7 +100,6 @@ void cpu_adaptiveavgpool_forward_3d(tensor<T> input,
                                     size_t OH,
                                     size_t OW)
 {
-    auto dims  = input.desc.GetLengths();
     auto numel = output.desc.GetElementSize();
 
     auto input_tv  = miopen::get_inner_expanded_tv<5>(input.desc);
@@ -145,7 +142,6 @@ template <class T>
 void cpu_adaptiveavgpool_backward_1d(
     tensor<T> output_grad, tensor<T>& input_grad, size_t C, size_t H, size_t OH)
 {
-    auto dims  = input_grad.desc.GetLengths();
     auto numel = input_grad.desc.GetElementSize();
 
     auto output_grad_tv = miopen::get_inner_expanded_tv<3>(output_grad.desc);
@@ -180,7 +176,6 @@ void cpu_adaptiveavgpool_backward_2d(tensor<T> output_grad,
                                      size_t OH,
                                      size_t OW)
 {
-    auto dims  = input_grad.desc.GetLengths();
     auto numel = input_grad.desc.GetElementSize();
 
     auto output_grad_tv = miopen::get_inner_expanded_tv<4>(output_grad.desc);
@@ -225,7 +220,6 @@ void cpu_adaptiveavgpool_backward_3d(tensor<T> output_grad,
                                      size_t OH,
                                      size_t OW)
 {
-    auto dims  = input_grad.desc.GetLengths();
     auto numel = input_grad.desc.GetElementSize();
 
     auto output_grad_tv = miopen::get_inner_expanded_tv<5>(output_grad.desc);

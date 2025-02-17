@@ -43,6 +43,8 @@ namespace solver {
 
 namespace adaptiveavgpool {
 
+namespace {
+
 bool IsOverRocmBwd1d(const miopen::adaptiveavgpool::BwdProblemDescription& problem)
 {
     if(!problem.IsAllContiguous())
@@ -60,6 +62,8 @@ bool IsOverRocmBwd1d(const miopen::adaptiveavgpool::BwdProblemDescription& probl
     }
     return false;
 }
+
+} // namespace
 
 bool AdaptiveAvgPoolBackward1d::IsApplicable(
     const ExecutionContext&, const miopen::adaptiveavgpool::BwdProblemDescription& problem) const

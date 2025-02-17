@@ -43,6 +43,8 @@ namespace solver {
 
 namespace adaptiveavgpool {
 
+namespace {
+
 bool IsOverRocmFwd3d(const miopen::adaptiveavgpool::FwdProblemDescription& problem)
 {
     auto in_nelems   = problem.GetInputDesc().GetElementSize();
@@ -61,6 +63,8 @@ bool IsOverRocmFwd3d(const miopen::adaptiveavgpool::FwdProblemDescription& probl
     }
     return false;
 }
+
+} // namespace
 
 bool AdaptiveAvgPoolForward3d::IsApplicable(
     const ExecutionContext&, const miopen::adaptiveavgpool::FwdProblemDescription& problem) const

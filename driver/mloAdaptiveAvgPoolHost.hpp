@@ -39,7 +39,6 @@ int32_t mloAdaptiveAvgPoolForward1dRunHost(const miopenTensorDescriptor_t inputD
                                            const size_t H,
                                            const size_t OH)
 {
-    auto dims  = miopen::deref(inputDesc).GetLengths();
     auto numel = miopen::deref(outputDesc).GetElementSize();
 
     auto input_tv  = miopen::get_inner_expanded_tv<3>(miopen::deref(inputDesc));
@@ -74,7 +73,6 @@ int32_t mloAdaptiveAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputD
                                            const size_t OH,
                                            const size_t OW)
 {
-    auto dims  = miopen::deref(inputDesc).GetLengths();
     auto numel = miopen::deref(outputDesc).GetElementSize();
 
     auto input_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
@@ -119,7 +117,6 @@ int32_t mloAdaptiveAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputD
                                            const size_t OH,
                                            const size_t OW)
 {
-    auto dims  = miopen::deref(inputDesc).GetLengths();
     auto numel = miopen::deref(outputDesc).GetElementSize();
 
     auto input_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
@@ -168,7 +165,6 @@ int32_t mloAdaptiveAvgPoolBackward1dRunHost(const miopenTensorDescriptor_t outpu
                                             const size_t H,
                                             const size_t OH)
 {
-    auto dims  = miopen::deref(inputGradDesc).GetLengths();
     auto numel = miopen::deref(inputGradDesc).GetElementSize();
 
     auto output_grad_tv = miopen::get_inner_expanded_tv<3>(miopen::deref(outputGradDesc));
@@ -205,7 +201,6 @@ int32_t mloAdaptiveAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outpu
                                             const size_t OH,
                                             const size_t OW)
 {
-    auto dims  = miopen::deref(inputGradDesc).GetLengths();
     auto numel = miopen::deref(inputGradDesc).GetElementSize();
 
     auto output_grad_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
@@ -253,7 +248,6 @@ int32_t mloAdaptiveAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outpu
                                             const size_t OH,
                                             const size_t OW)
 {
-    auto dims  = miopen::deref(inputGradDesc).GetLengths();
     auto numel = miopen::deref(inputGradDesc).GetElementSize();
 
     auto output_grad_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
