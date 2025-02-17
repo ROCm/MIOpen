@@ -59,6 +59,8 @@ bool IsImprovementOverROCm(const miopen::roialign::BwdProblemDescription& proble
 bool RoIAlignBackward::IsApplicable(const ExecutionContext& context,
                                     const miopen::roialign::BwdProblemDescription& problem) const
 {
+    std::ignore = context;
+
     if(!(problem.GetInputGradDesc().GetType() == miopenFloat ||
          problem.GetInputGradDesc().GetType() == miopenHalf ||
          problem.GetInputGradDesc().GetType() == miopenBFloat16))
@@ -74,6 +76,8 @@ ConvSolution
 RoIAlignBackward::GetSolution(const ExecutionContext& context,
                               const miopen::roialign::BwdProblemDescription& problem) const
 {
+    std::ignore = context;
+
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto dtype    = problem.GetInputGradDesc().GetType();

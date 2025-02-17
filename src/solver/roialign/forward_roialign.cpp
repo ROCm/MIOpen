@@ -45,6 +45,8 @@ namespace roialign {
 bool RoIAlignForward::IsApplicable(const ExecutionContext& context,
                                    const miopen::roialign::FwdProblemDescription& problem) const
 {
+    std::ignore = context;
+
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
          problem.GetInputDesc().GetType() == miopenHalf ||
          problem.GetInputDesc().GetType() == miopenBFloat16))
