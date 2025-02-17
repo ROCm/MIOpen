@@ -91,10 +91,10 @@ void cpu_mseloss_backward(tensor<T> input,
         const uint64_t Tidx      = T_tv.get_tensor_view_idx(tensor_layout);
 
         float sub = static_cast<float>(input[Iidx]) - static_cast<float>(target[Tidx]);
-        float grad =
-            2.0f * sub *
-            dO[reduction == MIOPEN_LOSS_REDUCTION_NONE ? dO_tv.get_tensor_view_idx(tensor_layout)
-                                                       : 0];
+        float grad = 2.0f * sub *
+                     static_cast<float>(dO[reduction == MIOPEN_LOSS_REDUCTION_NONE
+                                               ? dO_tv.get_tensor_view_idx(tensor_layout)
+                                               : 0]);
 
         if(reduction == MIOPEN_LOSS_REDUCTION_MEAN)
             grad = grad / size;
