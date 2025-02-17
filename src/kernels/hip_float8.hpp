@@ -26,6 +26,7 @@
 #pragma once
 
 #include "miopen_cstdint.hpp"
+#include "miopen_limits.hpp"
 
 #ifndef MIOPEN_ENABLE_F8_DEVICE_CODE
 #define MIOPEN_ENABLE_F8_DEVICE_CODE 0
@@ -617,9 +618,6 @@ inline bool isnan(miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8> x) // NOLINT
 
 // NOLINTBEGIN(cert-dcl58-cpp)
 namespace std {
-
-template <typename T>
-class numeric_limits;
 
 template <>
 class numeric_limits<miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>>
