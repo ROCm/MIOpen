@@ -26,91 +26,80 @@
 
 #pragma once
 
-#include <miopen/tensor.hpp>
+#include "tensor_holder.hpp"
+
+#include <miopen/miopen.h>
 #include <miopen/tensor_view_utils.hpp>
 
-template <class T>
-void cpu_mseloss_forward(miopen::TensorDescriptor inputDesc,
-                         miopen::TensorDescriptor targetDesc,
-                         miopen::TensorDescriptor /*outputDesc*/,
-                         const T* input,
-                         const T* target,
-                         T* output,
-                         float divisor)
+template <class T, int NDIM>
+void cpu_mseloss_forward(const tensor<T> input,
+                         const tensor<T> target,
+                         tensor<T>& ref_output,
+                         const miopenLossReductionMode_t reduction)
 {
-    tensor_view_t<5> I_tv = miopen::get_inner_expanded_tv<5>(inputDesc);
-    tensor_view_t<5> T_tv = miopen::get_inner_expanded_tv<5>(targetDesc);
+    // Treat contiguous tensors as non-contiguous tensors (for consistency)
+    auto I_tv = get_inner_expanded_tv<NDIM>(input.desc);
+    auto T_tv = get_inner_expanded_tv<NDIM>(target.desc);
+    auto O_tv = get_inner_expanded_tv<NDIM>(ref_output.desc);
 
-    int64_t gid = 0;
-    *output     = 0;
+    auto size = input.desc.GetElementSize();
 
-    while(true)
-    {
-        size_t n0123 = gid / I_tv.size[4], n4 = gid % I_tv.size[4];
-        size_t n012 = n0123 / I_tv.size[3], n3 = n0123 % I_tv.size[3];
-        size_t n01 = n012 / I_tv.size[2], n2 = n012 % I_tv.size[2];
-        size_t n0 = n01 / I_tv.size[1], n1 = n01 % I_tv.size[1];
+    std::vector<double> buffer;
+    if(reduction != MIOPEN_LOSS_REDUCTION_NONE)
+        buffer.assign(size, 0);
 
-        if(!(n0 < I_tv.size[0]))
-            break;
+    par_ford(size)([&](size_t i) {
+        const auto tensor_layout = tensor_layout_t<5>(I_tv, i);
+        const uint64_t Iidx      = I_tv.get_tensor_view_idx(tensor_layout);
+        const uint64_t Tidx      = T_tv.get_tensor_view_idx(tensor_layout);
+        float sub                = static_cast<float>(input[Iidx]) - static_cast<float>(target[Tidx]);
+        float loss               = sub * sub;
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
+            ref_output[O_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(loss);
+        else
+            buffer[i] = loss;
+    });
 
-        size_t Iidx = I_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        size_t Tidx = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+    double loss_sum = std::accumulate(buffer.begin(), buffer.end(), 0.0);
 
-        *output +=
-            static_cast<T>((input[Iidx] - target[Tidx]) * (input[Iidx] - target[Tidx]) / divisor);
-
-        ++gid;
-    }
+    if(reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+        loss_sum /= size;
+    if(reduction != MIOPEN_LOSS_REDUCTION_NONE)
+        ref_output[0] = static_cast<T>(loss_sum);
 }
 
-template <class T>
-void cpu_mseloss_backward(miopen::TensorDescriptor inputDesc,
-                          miopen::TensorDescriptor targetDesc,
-                          miopen::TensorDescriptor /*outputDesc*/,
-                          miopen::TensorDescriptor inputGradDesc,
-                          miopen::TensorDescriptor targetGradDesc,
-                          const T* input,
-                          const T* target,
-                          const T* output,
-                          T* input_grad,
-                          T* target_grad,
-                          float divisor)
+template <class T, int NDIM>
+void cpu_mseloss_backward(tensor<T> input,
+                          tensor<T> target,
+                          tensor<T> dO,
+                          tensor<T>& ref_dI,
+                          tensor<T>& ref_dT,
+                          miopenLossReductionMode_t reduction)
 {
-    tensor_view_t<5> I_tv  = miopen::get_inner_expanded_tv<5>(inputDesc);
-    tensor_view_t<5> T_tv  = miopen::get_inner_expanded_tv<5>(targetDesc);
-    tensor_view_t<5> IG_tv = miopen::get_inner_expanded_tv<5>(inputGradDesc);
-    tensor_view_t<5> TG_tv = miopen::get_inner_expanded_tv<5>(targetGradDesc);
+    // Treat contiguous tensors as non-contiguous tensors (for consistency)
+    auto I_tv  = get_inner_expanded_tv<5>(input.desc);
+    auto T_tv  = get_inner_expanded_tv<5>(target.desc);
+    auto dO_tv = get_inner_expanded_tv<5>(dO.desc);
+    auto dI_tv = get_inner_expanded_tv<5>(ref_dI.desc);
+    auto dT_tv = get_inner_expanded_tv<5>(ref_dT.desc);
 
-    int64_t gid = 0;
+    auto size = input.desc.GetElementSize();
 
-    while(true)
-    {
-        size_t n0123 = gid / I_tv.size[4], n4 = gid % I_tv.size[4];
-        size_t n012 = n0123 / I_tv.size[3], n3 = n0123 % I_tv.size[3];
-        size_t n01 = n012 / I_tv.size[2], n2 = n012 % I_tv.size[2];
-        size_t n0 = n01 / I_tv.size[1], n1 = n01 % I_tv.size[1];
+    par_ford(size)([&](size_t i) {
+        const auto tensor_layout = tensor_layout_t<5>(I_tv, i);
+        const uint64_t Iidx      = I_tv.get_tensor_view_idx(tensor_layout);
+        const uint64_t Tidx      = T_tv.get_tensor_view_idx(tensor_layout);
 
-        if(!(n0 < I_tv.size[0]))
-            break;
+        float sub = static_cast<float>(input[Iidx]) - static_cast<float>(target[Tidx]);
+        float grad =
+            2.0f * sub *
+            dO[reduction == MIOPEN_LOSS_REDUCTION_NONE ? dO_tv.get_tensor_view_idx(tensor_layout)
+                                                       : 0];
 
-        size_t Iidx  = I_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        size_t Tidx  = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        size_t IGidx = IG_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        size_t TGidx = TG_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+        if(reduction == MIOPEN_LOSS_REDUCTION_MEAN)
+            grad = grad / size;
 
-        T grad = static_cast<T>(2.0f) * (input[Iidx] - target[Tidx]) / static_cast<T>(divisor) *
-                 output[0];
-
-        if(input_grad != nullptr)
-        {
-            input_grad[IGidx] = grad;
-        }
-
-        if(target_grad != nullptr)
-        {
-            target_grad[TGidx] = -grad;
-        }
-        ++gid;
-    }
+        ref_dI[dI_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(grad);
+        ref_dT[dT_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(-grad);
+    });
 }

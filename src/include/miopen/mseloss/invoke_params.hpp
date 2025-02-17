@@ -38,18 +38,16 @@ struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams() = default;
 
-    const TensorDescriptor* xDesc;
-    const TensorDescriptor* yDesc;
-    const TensorDescriptor* zDesc;
+    const TensorDescriptor* iDesc = nullptr;
+    const TensorDescriptor* tDesc = nullptr;
+    const TensorDescriptor* oDesc = nullptr;
 
-    ConstData_t x    = nullptr;
-    ConstData_t y    = nullptr;
-    Data_t workspace = nullptr;
-    Data_t output    = nullptr;
-
-    float divisor = 1.0f;
+    ConstData_t i = nullptr;
+    ConstData_t t = nullptr;
+    Data_t o      = nullptr;
 
     size_t workspace_size = 0;
+    Data_t workspace      = nullptr;
 
     std::size_t GetWorkspaceSize() const { return workspace_size; }
     Data_t GetWorkspace() const { return workspace; }
@@ -62,19 +60,17 @@ struct InvokeParams : public miopen::InvokeParams
 {
     InvokeParams() = default;
 
-    const TensorDescriptor* xDesc;
-    const TensorDescriptor* yDesc;
-    const TensorDescriptor* zDesc;
-    const TensorDescriptor* dxDesc;
-    const TensorDescriptor* dyDesc;
+    const TensorDescriptor* iDesc  = nullptr;
+    const TensorDescriptor* tDesc  = nullptr;
+    const TensorDescriptor* dODesc = nullptr;
+    const TensorDescriptor* dIDesc = nullptr;
+    const TensorDescriptor* dTDesc = nullptr;
 
-    ConstData_t x;
-    ConstData_t y;
-    ConstData_t z;
-    Data_t dx;
-    Data_t dy;
-
-    float divisor = 1.0f;
+    ConstData_t i  = nullptr;
+    ConstData_t t  = nullptr;
+    ConstData_t dO = nullptr;
+    Data_t dI      = nullptr;
+    Data_t dT      = nullptr;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

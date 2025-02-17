@@ -8235,75 +8235,75 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * @{
  */
 
-/*! MSELoss APIs
- * @brief MSELoss forward functon
+/*! @brief Helper function to query the minimum workspace size required by the
+MSELossForward call
  *
- * MSELoss forward, reduced function
- * @param  [in]  handle         An instance of miopenHandle_t
- * @param  [in]  xDesc          Input Tensor descriptor
- * @param  [in]  yDesc          Target Tensor descriptor
- * @param  [in]  zDesc          Output Tensor descriptor
- * @param  [in]  x              Pointer to input tensor data
- * @param  [in]  y              Pointer to target tensor data
- * @param  [out] z              Pointer to the output tensor data
- * @param  [out] workspace      Pointer to the workspace area (for reduction)
- * @param  [in]  divisor        Divisor value
+ * @param [in]  handle              An instance of miopenHandle_t
+ * @param [in]  inputDesc           Input Tensor descriptor
+ * @param [in]  outputDesc          Output Tensor descriptor
+ * @param [in]  reduction           Reduction mode (none, sum, mean)
+ * @param [out] sizeInBytes         Needed workspace size
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetMSELossForwardWorkspaceSize(miopenHandle_t handle,
+                                     miopenTensorDescriptor_t inputDesc,
+                                     miopenTensorDescriptor_t outputDesc,
+                                     miopenLossReductionMode_t reduction,
+                                     size_t* sizeInBytes);
+
+/*! @brief Execute a MSELoss forward layer
+ *
+ * MSELoss forward function
+ * @param [in]  handle                  An instance of miopenHandle_t
+ * @param [in]  inputDesc               Input Tensor descriptor
+ * @param [in]  input                   Pointer to input tensor data
+ * @param [in]  targetDesc              Target Tensor descriptor
+ * @param [in]  target                  Pointer to target tensor data
+ * @param [in]  outputDesc              Output Tensor descriptor
+ * @param [out] output                  Pointer to the output tensor data
+ * @param [in]  reduction               Reduction mode (none, sum, mean)
+ * @param [in]  workspace               Address of the allocated workspace data (Default = null)
+ * @param [in]  workspaceSizeInBytes    Size in bytes of the allocated workspace data (Default = 0)
  */
 MIOPEN_EXPORT miopenStatus_t miopenMSELossForward(miopenHandle_t handle,
-                                                  miopenTensorDescriptor_t xDesc,
-                                                  miopenTensorDescriptor_t yDesc,
-                                                  miopenTensorDescriptor_t zDesc,
-                                                  const void* x,
-                                                  const void* y,
-                                                  void* z,
-                                                  void* ws,
-                                                  float divisor = 1.0f);
+                                                  miopenTensorDescriptor_t inputDesc,
+                                                  const void* input,
+                                                  miopenTensorDescriptor_t targetDesc,
+                                                  const void* target,
+                                                  miopenTensorDescriptor_t outputDesc,
+                                                  void* output,
+                                                  miopenLossReductionMode_t reduction,
+                                                  void* workspace,
+                                                  size_t workspaceSizeInBytes);
 
-/*!
- * @brief MSELoss Forward helper function
+/*! @brief Execute a MSELoss backward layer
  *
- * MSELoss forward reduced helper function to find the workspace size
- * @param  [in]  handle         An instance of miopenHandle_t
- * @param  [in]  xDesc          Input Tensor descriptor
- * @param  [in]  yDesc          Target Tensor descriptor
- * @param  [out] sizeInBytes    Needed workspace size
+ * MSELoss backward function
+ * @param [in]  handle          An instance of miopenHandle_t
+ * @param [in]  inputDesc       Input Tensor descriptor
+ * @param [in]  input           Pointer to input tensor data
+ * @param [in]  targetDesc      Target Tensor descriptor
+ * @param [in]  target          Pointer to target tensor data
+ * @param [in]  doutputDesc     Output Tensor descriptor
+ * @param [in]  doutput         Pointer to output gradient tensor data
+ * @param [in]  dinputDesc      Input gradient Tensor descriptor
+ * @param [out] dinput          Pointer to input gradient tensor data
+ * @param [in]  dtargetDesc     Target gradient Tensor descriptor
+ * @param [out] dtarget         Pointer to target gradient tensor data
+ * @param [in]  reduction       Reduction mode (none, sum, mean)
  */
-
-MIOPEN_EXPORT miopenStatus_t miopenGetMSELossForwardWorkspaceSize(miopenHandle_t handle,
-                                                                  miopenTensorDescriptor_t xDesc,
-                                                                  miopenTensorDescriptor_t yDesc,
-                                                                  size_t* sizeInBytes);
-
-/*!
- * @brief MSELoss backward function
- *
- * MSELoss backward, unreduced function
- * @param  [in]  handle         An instance of miopenHandle_t
- * @param  [in]  xDesc          Input Tensor descriptor
- * @param  [in]  yDesc          Target Tensor descriptor
- * @param  [in]  dzDesc         Output Tensor descriptor
- * @param  [in]  dxDesc         Input gradient Tensor descriptor
- * @param  [in]  dyDesc         Target gradient Tensor descriptor
- * @param  [in]  x              Pointer to input tensor data
- * @param  [in]  y              Pointer to target tensor data
- * @param  [in]  dz             Pointer to output tensor data
- * @param  [out] dx             Pointer to input gradient data
- * @param  [out] dy             Pointer to target gradient data
- * @param  [in]  divisor        Divisor value
- */
-
 MIOPEN_EXPORT miopenStatus_t miopenMSELossBackward(miopenHandle_t handle,
-                                                   miopenTensorDescriptor_t xDesc,
-                                                   miopenTensorDescriptor_t yDesc,
-                                                   miopenTensorDescriptor_t dzDesc,
-                                                   miopenTensorDescriptor_t dxDesc,
-                                                   miopenTensorDescriptor_t dyDesc,
-                                                   const void* x,
-                                                   const void* y,
-                                                   const void* z,
-                                                   void* dx,
-                                                   void* dy,
-                                                   float divisor = 1.0f);
+                                                   miopenTensorDescriptor_t inputDesc,
+                                                   const void* input,
+                                                   miopenTensorDescriptor_t targetDesc,
+                                                   const void* target,
+                                                   miopenTensorDescriptor_t doutputDesc,
+                                                   const void* doutput,
+                                                   miopenTensorDescriptor_t dinputDesc,
+                                                   void* dinput,
+                                                   miopenTensorDescriptor_t dtargetDesc,
+                                                   void* dtarget,
+                                                   miopenLossReductionMode_t reduction);
 /*! @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
 #endif // MIOPEN_BETA_API

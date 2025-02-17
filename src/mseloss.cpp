@@ -39,30 +39,44 @@
 
 namespace miopen {
 
-miopenStatus_t MSELossForward(Handle& handle,
-                              const TensorDescriptor& xDesc,
-                              const TensorDescriptor& yDesc,
-                              const TensorDescriptor& zDesc,
-                              ConstData_t x,
-                              ConstData_t y,
-                              Data_t z,
-                              Data_t ws,
-                              float divisor)
+size_t GetMSELossForwardWorkspaceSize(Handle& handle,
+                                      TensorDescriptor& iDesc,
+                                      TensorDescriptor& oDesc,
+                                      miopenLossReductionMode_t reduction)
 {
-    auto ctx = ExecutionContext{&handle};
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = mseloss::forward::ProblemDescription{iDesc, iDesc, oDesc, reduction};
 
-    const auto problem = mseloss::forward::ProblemDescription{xDesc, yDesc};
+    const auto solvers = solver::SolverContainer<solver::mseloss::forward::MSELossForward>{};
+
+    auto workspace_sizes = solvers.GetWorkspaceSizes(ctx, problem);
+    return workspace_sizes.empty() ? static_cast<size_t>(0) : workspace_sizes.front().second;
+}
+
+miopenStatus_t MSELossForward(Handle& handle,
+                              Data_t workspace,
+                              size_t workspaceSizeInBytes,
+                              const TensorDescriptor& iDesc,
+                              ConstData_t i,
+                              const TensorDescriptor& tDesc,
+                              ConstData_t t,
+                              const TensorDescriptor& oDesc,
+                              Data_t o,
+                              miopenLossReductionMode_t reduction)
+{
+    const auto problem = mseloss::forward::ProblemDescription{iDesc, tDesc, oDesc, reduction};
 
     const auto invoke_params = [&]() {
         auto tmp      = mseloss::forward::InvokeParams{};
-        tmp.xDesc     = &xDesc;
-        tmp.yDesc     = &yDesc;
-        tmp.zDesc     = &zDesc;
-        tmp.x         = x;
-        tmp.y         = y;
-        tmp.output    = z;
-        tmp.workspace = ws;
-        tmp.divisor   = divisor;
+        tmp.iDesc          = &iDesc;
+        tmp.tDesc          = &tDesc;
+        tmp.oDesc          = &oDesc;
+        tmp.i              = i;
+        tmp.t              = t;
+        tmp.o              = o;
+        tmp.workspace      = workspace;
+        tmp.workspace_size = workspaceSizeInBytes;
+
         return tmp;
     }();
 
@@ -73,51 +87,35 @@ miopenStatus_t MSELossForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-size_t
-MSELossForwardGetWorkspaceSize(Handle& handle, TensorDescriptor& xDesc, TensorDescriptor& yDesc)
-{
-    auto ctx = ExecutionContext{&handle};
-
-    const auto problem = mseloss::forward::ProblemDescription{xDesc, yDesc};
-    const auto algo    = AlgorithmName{"MSELossForward"};
-
-    const auto solvers = solver::SolverContainer<solver::mseloss::forward::MSELossForward>{};
-
-    auto workspace_sizes = solvers.GetWorkspaceSizes(ctx, problem);
-
-    return workspace_sizes.empty() ? static_cast<size_t>(0) : workspace_sizes.front().second;
-}
-
 miopenStatus_t MSELossBackward(Handle& handle,
-                               const TensorDescriptor& xDesc,
-                               const TensorDescriptor& yDesc,
-                               const TensorDescriptor& zDesc,
-                               const TensorDescriptor& dxDesc,
-                               const TensorDescriptor& dyDesc,
-                               ConstData_t x,
-                               ConstData_t y,
-                               ConstData_t z,
-                               Data_t dx,
-                               Data_t dy,
-                               float divisor)
+                               const TensorDescriptor& iDesc,
+                               ConstData_t i,
+                               const TensorDescriptor& tDesc,
+                               ConstData_t t,
+                               const TensorDescriptor& dODesc,
+                               ConstData_t dO,
+                               const TensorDescriptor& dIDesc,
+                               Data_t dI,
+                               const TensorDescriptor& dTDesc,
+                               Data_t dT,
+                               miopenLossReductionMode_t reduction)
 {
-    auto ctx = ExecutionContext{&handle};
-
-    const auto problem = mseloss::backward::ProblemDescription{xDesc, yDesc, zDesc, dxDesc, dyDesc};
+    const auto problem =
+        mseloss::backward::ProblemDescription{iDesc, tDesc, dODesc, dIDesc, dTDesc, reduction};
 
     const auto invoke_params = [&]() {
         auto tmp    = mseloss::backward::InvokeParams{};
-        tmp.xDesc   = &xDesc;
-        tmp.yDesc   = &yDesc;
-        tmp.zDesc   = &zDesc;
-        tmp.dxDesc  = &dxDesc;
-        tmp.dyDesc  = &dyDesc;
-        tmp.x       = x;
-        tmp.y       = y;
-        tmp.z       = z;
-        tmp.dx      = dx;
-        tmp.dy      = dy;
-        tmp.divisor = divisor;
+        tmp.iDesc   = &iDesc;
+        tmp.tDesc   = &tDesc;
+        tmp.dODesc  = &dODesc;
+        tmp.dIDesc  = &dIDesc;
+        tmp.dTDesc  = &dTDesc;
+        tmp.i       = i;
+        tmp.t       = t;
+        tmp.dO      = dO;
+        tmp.dI      = dI;
+        tmp.dT      = dT;
+
         return tmp;
     }();
 

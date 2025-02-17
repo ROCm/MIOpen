@@ -36,122 +36,142 @@ namespace mseloss {
 namespace forward {
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& xDesc_, const TensorDescriptor& yDesc_)
-        : xDesc(xDesc_), yDesc(yDesc_)
+    ProblemDescription(const TensorDescriptor& iDesc_,
+                       const TensorDescriptor& tDesc_,
+                       const TensorDescriptor& oDesc_,
+                       const miopenLossReductionMode_t reduction_)
+        : iDesc(iDesc_), tDesc(tDesc_), oDesc(oDesc_), reduction(reduction_)
     {
-        if(!DoesTensorsMatch())
-        {
-            MIOPEN_THROW("Target and Input does not match");
-        }
-        if(!IsSameType())
-        {
-            MIOPEN_THROW("Target and Input does not match");
-        }
+        IsSameType();
+        IsSameLength();
     };
+
+    const TensorDescriptor& GetIDesc() const { return iDesc; }
+    const TensorDescriptor& GetTDesc() const { return tDesc; }
+    const TensorDescriptor& GetODesc() const { return oDesc; }
+
+    const miopenLossReductionMode_t& GetReduction() const { return reduction; }
+
+    bool IsSameType() const
+    {
+        if(iDesc.GetType() != tDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Input and Target tensor types do not match.");
+        if(iDesc.GetType() != oDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Input and Output tensor types do not match.");
+        return true;
+    }
+
+    bool IsSameLength() const
+    {
+        if(iDesc.GetLengths() != tDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Input and Target tensor dimension lengths do not match.");
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE && iDesc.GetLengths() != oDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Without reduction, Input and Output tensor dimension "
+                         "lengths should be equal.");
+        if(reduction != MIOPEN_LOSS_REDUCTION_NONE && oDesc.GetElementSize() != 1)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: When reduction, Output tensor dimension lengths must be (1).");
+        return true;
+    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
-    const TensorDescriptor& GetXDesc() const { return xDesc; }
-    const TensorDescriptor& GetYDesc() const { return yDesc; }
-
-    bool IsSameType() const { return xDesc.GetType() == yDesc.GetType(); }
-
-    bool IsContiguous() const { return xDesc.IsContiguous() && yDesc.IsContiguous(); }
-
-    bool DoesTensorsMatch() const
-    {
-        if(xDesc.GetLengths().size() != yDesc.GetLengths().size())
-            return false;
-
-        for(auto i = 0; i < xDesc.GetLengths().size(); ++i)
-        {
-            if(xDesc.GetLengths()[i] != yDesc.GetLengths()[i])
-                return false;
-        }
-        return true;
-    }
-
-    bool IsImprovementOverROCm() const
-    {
-        // Mostly thanks to parallel reduction, since we lose pretty much everywhere else
-        return true;
-    }
-
 private:
-    const TensorDescriptor& xDesc;
-    const TensorDescriptor& yDesc;
+    const TensorDescriptor& iDesc;
+    const TensorDescriptor& tDesc;
+    const TensorDescriptor& oDesc;
+
+    const miopenLossReductionMode_t reduction;
 };
 } // namespace forward
 
 namespace backward {
 struct ProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& xDesc_,
-                       const TensorDescriptor& yDesc_,
-                       const TensorDescriptor& zDesc_,
-                       const TensorDescriptor& dxDesc_,
-                       const TensorDescriptor& dyDesc_,
-                       const float divisor_ = 1.0f)
-        : xDesc(xDesc_),
-          yDesc(yDesc_),
-          zDesc(zDesc_),
-          dxDesc(dxDesc_),
-          dyDesc(dyDesc_),
-          divisor(divisor_)
+    ProblemDescription(const TensorDescriptor& iDesc_,
+                       const TensorDescriptor& tDesc_,
+                       const TensorDescriptor& dODesc_,
+                       const TensorDescriptor& dIDesc_,
+                       const TensorDescriptor& dTDesc_,
+                       const miopenLossReductionMode_t reduction_)
+        : iDesc(iDesc_),
+          tDesc(tDesc_),
+          dODesc(dODesc_),
+          dIDesc(dIDesc_),
+          dTDesc(dTDesc_),
+          reduction(reduction_)
     {
-        if(!DoesTensorsMatch())
-        {
-            MIOPEN_THROW("Target and Input does not match");
-        }
-        if(!IsSameType())
-        {
-            MIOPEN_THROW("Target and Input does not match");
-        }
+        IsSameType();
+        IsSameLength();
     };
 
-    NetworkConfig MakeNetworkConfig() const override;
+    const TensorDescriptor& GetIDesc() const { return iDesc; }
+    const TensorDescriptor& GetTDesc() const { return tDesc; }
+    const TensorDescriptor& GetDODesc() const { return dODesc; }
+    const TensorDescriptor& GetDIDesc() const { return dIDesc; }
+    const TensorDescriptor& GetDTDesc() const { return dTDesc; }
 
-    const TensorDescriptor& GetXDesc() const { return xDesc; }
-    const TensorDescriptor& GetYDesc() const { return yDesc; }
-    const TensorDescriptor& GetZDesc() const { return zDesc; }
+    const miopenLossReductionMode_t& GetReduction() const { return reduction; }
 
-    const TensorDescriptor& GetDXDesc() const { return dxDesc; }
-    const TensorDescriptor& GetDYDesc() const { return dyDesc; }
-
-    float GetDivisor() const { return divisor; }
-
-    bool IsSameType() const { return xDesc.GetType() == yDesc.GetType(); }
-
-    bool IsContiguous() const { return xDesc.IsContiguous() && yDesc.IsContiguous(); }
-
-    bool DoesTensorsMatch() const
+    bool IsSameType() const
     {
-        if(xDesc.GetLengths().size() != yDesc.GetLengths().size())
-            return false;
-
-        for(auto i = 0; i < xDesc.GetLengths().size(); ++i)
-        {
-            if(xDesc.GetLengths()[i] != yDesc.GetLengths()[i])
-                return false;
-        }
+        if(iDesc.GetType() != tDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Input and Target tensor types do not match.");
+        if(iDesc.GetType() != dIDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Input and its Gradient tensor types do not match.");
+        if(tDesc.GetType() != dTDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Target and its Gradient tensor types do not match.");
+        if(iDesc.GetType() != dODesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Input and Output Gradient tensor types do not match.");
         return true;
     }
 
-    bool IsImprovementOverROCm() const
+    bool IsSameLength() const
     {
-        // Backward, reduced is seems only faster on 2d, non-contiguous tensors
-        if(xDesc.GetLengths().size() == 2 && !IsContiguous())
-            return true;
-        return false;
+        if(iDesc.GetLengths() != tDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Input and Target tensor dimension lengths do not match.");
+        if(iDesc.GetLengths() != dIDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Input and its Gradient tensor dimension lengths do not match.");
+        if(tDesc.GetLengths() != dTDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Target and its Gradient tensor dimension lengths do not match.");
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE && iDesc.GetLengths() != dODesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: Without reduction, Input and Output Gradient tensor dimension "
+                         "lengths should be equal.");
+        if(reduction != MIOPEN_LOSS_REDUCTION_NONE && dODesc.GetElementSize() != 1)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "MSELoss: When reduction, Output Gradient tensor dimension lengths "
+                         "must be (1).");
+        return true;
     }
 
+    bool IsAllContiguous() const
+    {
+        return iDesc.IsContiguous() && tDesc.IsContiguous() && dODesc.IsContiguous() &&
+               dIDesc.IsContiguous() && dTDesc.IsContiguous();
+    }
+
+    NetworkConfig MakeNetworkConfig() const override;
+
 private:
-    const TensorDescriptor& xDesc;
-    const TensorDescriptor& yDesc;
-    const TensorDescriptor& zDesc;
-    const TensorDescriptor& dxDesc;
-    const TensorDescriptor& dyDesc;
-    const float divisor = 1.0f;
+    const TensorDescriptor& iDesc;
+    const TensorDescriptor& tDesc;
+    const TensorDescriptor& dODesc;
+    const TensorDescriptor& dIDesc;
+    const TensorDescriptor& dTDesc;
+
+    const miopenLossReductionMode_t reduction;
 };
 } // namespace backward
 

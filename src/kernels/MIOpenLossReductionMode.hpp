@@ -23,49 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+ #ifndef GUARD_KERNELS_MIOPEN_LOSS_REDUCTION_MODE_HPP
+ #define GUARD_KERNELS_MIOPEN_LOSS_REDUCTION_MODE_HPP
+ 
+ enum class LossReductionMode_t
+ {
+     NONE = 0,
+     SUM,
+     MEAN,
+ };
+ 
+ #ifndef __HIP_DEVICE_COMPILE__
+ static_assert(MIOPEN_LOSS_REDUCTION_NONE == static_cast<int>(LossReductionMode_t::NONE));
+ static_assert(MIOPEN_LOSS_REDUCTION_SUM == static_cast<int>(LossReductionMode_t::SUM));
+ static_assert(MIOPEN_LOSS_REDUCTION_MEAN == static_cast<int>(LossReductionMode_t::MEAN));
+ #endif
 
-#include <miopen/names.hpp>
-#include <miopen/mseloss/problem_description.hpp>
-
-#include <sstream>
-
-namespace miopen {
-namespace mseloss {
-namespace forward {
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
-{
-    auto dtype = iDesc.GetType();
-    auto size  = iDesc.GetElementSize();
-
-    std::ostringstream ss;
-
-    ss << "mseloss_fwd";
-    ss << "dtype" << dtype;
-    ss << "size" << size;
-    ss << "reduce" << reduction;
-
-    return NetworkConfig{ss.str()};
-}
-
-} // namespace forward
-
-namespace backward {
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
-{
-    auto dtype = iDesc.GetType();
-    auto size  = iDesc.GetElementSize();
-
-    std::ostringstream ss;
-
-    ss << "mseloss_bwd";
-    ss << "dtype" << dtype;
-    ss << "size" << size;
-    ss << "reduce" << reduction;
-
-    return NetworkConfig{ss.str()};
-}
-
-} // namespace backward
-
-} // namespace mseloss
-} // namespace miopen
+#endif // GUARD_KERNELS_MIOPEN_LOSS_REDUCTION_MODE_HPP

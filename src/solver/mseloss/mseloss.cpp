@@ -32,6 +32,7 @@
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/miopen.h>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/mseloss/problem_description.hpp>
 #include <miopen/mseloss/solvers.hpp>
 #include <miopen/mseloss/invoke_params.hpp>
 #include <miopen/tensor.hpp>
@@ -39,7 +40,11 @@
 
 #include <cstddef>
 
-#define LOCAL_SIZE_MSELOSS 256
+#define LOCAL_SIZE_NONCONTIGUOUS_FWD 256
+#define LOCAL_SIZE_NONCONTIGUOUS_BWD 256
+#define LOCAL_SIZE_REDUCE 256
+
+#define VIEW_DIMS 5
 
 namespace miopen {
 namespace solver {
@@ -61,10 +66,27 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
 
 namespace mseloss {
 namespace forward {
-bool MSELossForward::IsApplicable(const ExecutionContext& /*context*/,
+
+namespace {
+bool IsImprovementOverROCm(const ExecutionContext& /*context*/,
+                           const miopen::mseloss::forward::ProblemDescription& problem)
+{
+    if(problem.GetReduction() == MIOPEN_LOSS_REDUCTION_NONE)
+        return false;
+    return true;
+}
+} // namespace
+
+bool MSELossForward::IsApplicable(const ExecutionContext& context,
                                   const miopen::mseloss::forward::ProblemDescription& problem) const
 {
-    if(!problem.IsImprovementOverROCm())
+    if(!(problem.GetIDesc().GetType() == miopenFloat ||
+         problem.GetIDesc().GetType() == miopenHalf ||
+         problem.GetIDesc().GetType() == miopenBFloat16))
+        return false;
+    if(!IsImprovementOverROCm(context, problem))
+        return false;
+    if(problem.GetIDesc().GetNumDims() > VIEW_DIMS)
         return false;
     return true;
 }
@@ -75,111 +97,152 @@ MSELossForward::GetSolution(const ExecutionContext& /*context*/,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype   = problem.GetXDesc().GetType();
-    auto io_type = miopen::GetDataType(dtype);
-    auto xdims   = problem.GetXDesc().GetLengths();
-    auto ydims   = problem.GetYDesc().GetLengths();
-    auto numel   = problem.GetXDesc().GetElementSize();
+    auto dtype = problem.GetODesc().GetType();
+    auto size  = problem.GetIDesc().GetElementSize();
 
-    const auto build_params =
-        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
-                              {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-                              {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
-                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-                              {"REDUCE_SIZE", static_cast<int32_t>(LOCAL_SIZE_MSELOSS)},
-                              {"OUTPUT_TYPE", io_type == "bfloat16" ? "ushort" : io_type}};
-
-    // Kernel 1: calculate loss for every elements to workspace
-    result.construction_params.push_back(make_hip_kernel(
-        {LOCAL_SIZE_MSELOSS}, {numel}, "MIOpenMSELoss.cpp", "MSELossForward5d", build_params));
-
-    // Kernel 2: Sum reduce
-    auto _size = numel;
-    do
+    /* Phase 1: Calc loss for each element. */
     {
-        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_MSELOSS},
-                                                             {_size},
-                                                             "MIOpenReduceSum.cpp",
-                                                             "ReduceSumFLOATACCUM",
+        const auto build_params =
+            KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                                  {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                                  {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                                  {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                                  {"REDUCTION_TYPE", static_cast<int>(problem.GetReduction())},
+                                  {"VIEW_DIMS", VIEW_DIMS},
+                                  {"MIOPEN_LOSS_REDUCTION_NONE", MIOPEN_LOSS_REDUCTION_NONE},
+                                  {"MIOPEN_LOSS_REDUCTION_SUM", MIOPEN_LOSS_REDUCTION_SUM},
+                                  {"MIOPEN_LOSS_REDUCTION_MEAN", MIOPEN_LOSS_REDUCTION_MEAN}};
+        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_NONCONTIGUOUS_FWD},
+                                                             {size},
+                                                             "MIOpenMSELoss.cpp",
+                                                             "MSELossForward",
                                                              build_params));
-        _size = AlignUp(_size, LOCAL_SIZE_MSELOSS) / LOCAL_SIZE_MSELOSS;
-    } while(_size > LOCAL_SIZE_MSELOSS);
+    }
 
-    result.construction_params.push_back(make_hip_kernel(
-        {LOCAL_SIZE_MSELOSS}, {_size}, "MIOpenReduceSum.cpp", "ReduceSum", build_params));
+    /* Phase 2: Reduce */
+    if(problem.GetReduction() != MIOPEN_LOSS_REDUCTION_NONE)
+    {
+        // If Reduction = NONE, then we should run second kernel to calculate mean/sum of result
+        // from first kernel above
+        auto _size              = size;
+        const auto build_params = KernelBuildParameters{
+            {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+            {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+            {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+            {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+            {"REDUCE_SIZE", LOCAL_SIZE_REDUCE},
+        };
+        /* Reduce FLOAT_ACCUM -> FLOAT_ACCUM */
+        while(_size > LOCAL_SIZE_REDUCE)
+        {
+            result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDUCE},
+                                                                 {_size},
+                                                                 "MIOpenReduceSum.cpp",
+                                                                 "ReduceSumFLOATACCUM",
+                                                                 build_params));
+            _size = (_size + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE;
+        }
+        // Last kernel reduce: FLOAT_ACCUM -> FLOAT
+        result.construction_params.push_back(make_hip_kernel(
+            {LOCAL_SIZE_REDUCE}, {_size}, "MIOpenReduceSum.cpp", "ReduceSum", build_params));
+    }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-            decltype(auto) params = raw_params.CastTo<miopen::mseloss::forward::InvokeParams>();
-            auto kcount           = 0;
+    if(problem.GetReduction() == MIOPEN_LOSS_REDUCTION_NONE)
+    {
+        // Reduction = None -> invoke 1 kernel
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) kernel = handle_.Run(kernels.front());
+                decltype(auto) params = raw_params.CastTo<miopen::mseloss::forward::InvokeParams>();
 
-            HipEventPtr start, stop;
-            if(handle_.IsProfilingEnabled())
-            {
-                handle_.EnableProfiling(false);
-                hipStreamSynchronize(handle_.GetStream());
-                start = miopen::make_hip_event();
-                stop  = miopen::make_hip_event();
-                hipEventRecord(start.get(), handle_.GetStream());
-            }
+                auto i_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.iDesc));
+                auto t_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.tDesc));
+                auto o_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.oDesc));
 
-            {
-                decltype(auto) kernel = handle_.Run(kernels[kcount++]);
-                // Kernel 1: calculate loss for every elements to workspace
-                auto xdims = params.xDesc->GetLengths();
-                auto ydims = params.yDesc->GetLengths();
+                kernel(params.i,
+                       params.t,
+                       params.o,
+                       deref(params.iDesc).GetElementSize(),
+                       i_tv,
+                       t_tv,
+                       o_tv);
+            };
+        };
+    }
+    else
+    {
+        // Reduction != None -> invoke 2 or more kernels
+        result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+            return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+                decltype(auto) params = raw_params.CastTo<miopen::mseloss::forward::InvokeParams>();
+                auto i_tv             = get_inner_expanded_tv<VIEW_DIMS>(deref(params.iDesc));
+                auto t_tv             = get_inner_expanded_tv<VIEW_DIMS>(deref(params.tDesc));
+                auto o_tv             = get_inner_expanded_tv<VIEW_DIMS>(deref(params.oDesc));
 
-                auto xstrides = params.xDesc->GetStrides();
-                auto ystrides = params.yDesc->GetStrides();
+                float elapsed = 0.0f;
+                HipEventPtr start, stop;
 
-                tensor_view_t<5> I_tv = get_inner_expanded_tv<5>(miopen::deref(params.xDesc));
-                tensor_view_t<5> T_tv = get_inner_expanded_tv<5>(miopen::deref(params.yDesc));
-
-                kernel(params.x, params.y, params.workspace, params.divisor, I_tv, T_tv);
-            }
-
-            // Kernel 2: Sum reduce
-            {
-                auto elsize       = get_data_size(miopenFloat);
-                auto numel        = params.xDesc->GetElementSize();
-                auto main_ws_size = numel * elsize;
-                auto aux_ws_size = AlignUp(numel, LOCAL_SIZE_MSELOSS) / LOCAL_SIZE_MSELOSS * elsize;
-
-                auto wt = MultiBufferWorkspaceTraits{main_ws_size, aux_ws_size};
-
-                auto work_a = params.workspace;
-                auto work_b =
-                    static_cast<Data_t>(static_cast<char*>(params.workspace) + wt.GetOffset(1));
-
-                auto _size = deref(params.xDesc).GetElementSize();
-
-                // Run all the reduction in-between on FLOAT_ACCUM
-                while(_size > LOCAL_SIZE_MSELOSS)
+                const bool profiling = handle_.IsProfilingEnabled();
+                if(profiling)
                 {
-                    decltype(auto) kernel = handle_.Run(kernels[kcount++]);
-                    kernel(work_a, work_b, _size);
-                    _size = AlignUp(_size, LOCAL_SIZE_MSELOSS) / LOCAL_SIZE_MSELOSS;
-                    std::swap(work_a, work_b);
+                    handle_.EnableProfiling(false);
+                    start = miopen::make_hip_event();
+                    stop  = miopen::make_hip_event();
+                    hipEventRecord(start.get(), handle_.GetStream());
                 }
 
-                auto weight_grad_tv   = get_inner_expanded_tv<1>(*params.yDesc);
-                decltype(auto) kernel = handle_.Run(kernels[kcount++]);
-                kernel(work_a, params.output, _size, weight_grad_tv);
-            }
+                int kernelCnt = 0;
 
-            if(handle_.IsProfilingEnabled())
-            {
-                float elapsed = 0.0f;
-                hipEventRecord(stop.get(), handle_.GetStream());
-                hipEventSynchronize(stop.get());
-                hipEventElapsedTime(&elapsed, start.get(), stop.get());
-                hipEventDestroy(start.get());
-                hipEventDestroy(stop.get());
-                handle_.ResetKernelTime();
-                handle_.AccumKernelTime(elapsed);
-            }
+                /* Phase 1: Calc loss for each element. */
+                {
+                    decltype(auto) kernel = handle_.Run(kernels[kernelCnt++]);
+                    kernel(params.i,
+                           params.t,
+                           params.workspace,
+                           params.iDesc->GetElementSize(),
+                           i_tv,
+                           t_tv,
+                           o_tv);
+                }
+
+                /* Phase 2: Reduce */
+                {
+                    auto size      = deref(params.iDesc).GetElementSize();
+                    auto data_size = get_data_size(miopenFloat);
+                    auto wt        = MultiBufferWorkspaceTraits{size * data_size,
+                                                         (size + LOCAL_SIZE_REDUCE - 1) /
+                                                             LOCAL_SIZE_REDUCE * data_size};
+                    auto work_a    = params.workspace;
+                    auto work_b    = static_cast<Data_t>(static_cast<std::byte*>(params.workspace) +
+                                                      wt.GetOffset(1));
+                    while(size > LOCAL_SIZE_REDUCE)
+                    {
+                        auto kernel = handle_.Run(kernels[kernelCnt++]);
+                        kernel(work_a, work_b, size);
+                        size = (size + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE;
+                        std::swap(work_a, work_b);
+                    }
+                    handle_.Run(kernels[kernelCnt++])(work_a, params.o, size, o_tv);
+                }
+
+                if(profiling)
+                {
+                    hipEventRecord(stop.get(), handle_.GetStream());
+                    hipEventSynchronize(stop.get());
+                    hipEventElapsedTime(&elapsed, start.get(), stop.get());
+
+                    // Clean up
+                    hipEventDestroy(start.get());
+                    hipEventDestroy(stop.get());
+                    handle_.ResetKernelTime();
+                    handle_.AccumKernelTime(elapsed);
+
+                    handle_.EnableProfiling(true);
+                };
+            };
         };
-    };
+    }
+
     return result;
 }
 
@@ -187,23 +250,44 @@ std::size_t
 MSELossForward::GetWorkspaceSize(const ExecutionContext& /*context*/,
                                  const miopen::mseloss::forward::ProblemDescription& problem) const
 {
-    auto numel  = problem.GetXDesc().GetElementSize();
-    auto elsize = GetTypeSize(miopenFloat);
+    if(problem.GetReduction() == MIOPEN_LOSS_REDUCTION_NONE)
+        return 0;
 
-    auto main_ws_size = numel * elsize;
-    auto aux_ws_size  = AlignUp(numel, LOCAL_SIZE_MSELOSS) / LOCAL_SIZE_MSELOSS * elsize;
-
-    return MultiBufferWorkspaceTraits{main_ws_size, aux_ws_size}.GetSize();
+    auto size      = problem.GetIDesc().GetElementSize();
+    auto data_size = get_data_size(miopenFloat);
+    return MultiBufferWorkspaceTraits{
+        size * data_size, (size + LOCAL_SIZE_REDUCE - 1) / LOCAL_SIZE_REDUCE * data_size}
+        .GetSize();
 }
 
 } // namespace forward
 
 namespace backward {
+
+namespace {
+bool IsImprovementOverROCm(const ExecutionContext& /*context*/,
+                           const miopen::mseloss::backward::ProblemDescription& problem)
+{
+    // Backward, reduced is seems only faster on 2d, non-contiguous tensors
+    if(problem.GetIDesc().GetLengths().size() != 2)
+        return false;
+    if(problem.IsAllContiguous())
+        return false;
+    return true;
+}
+} // namespace
+
 bool MSELossBackward::IsApplicable(
-    const ExecutionContext& /*context*/,
+    const ExecutionContext& context,
     const miopen::mseloss::backward::ProblemDescription& problem) const
 {
-    if(!problem.IsImprovementOverROCm())
+    if(!(problem.GetIDesc().GetType() == miopenFloat ||
+         problem.GetIDesc().GetType() == miopenHalf ||
+         problem.GetIDesc().GetType() == miopenBFloat16))
+        return false;
+    if(!IsImprovementOverROCm(context, problem))
+        return false;
+    if(problem.GetIDesc().GetNumDims() > VIEW_DIMS)
         return false;
     return true;
 }
@@ -214,69 +298,54 @@ MSELossBackward::GetSolution(const ExecutionContext& /*context*/,
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype   = problem.GetXDesc().GetType();
-    auto io_type = miopen::GetDataType(dtype);
-    auto xdims   = problem.GetXDesc().GetLengths();
-    auto ydims   = problem.GetYDesc().GetLengths();
+    auto dtype        = problem.GetDIDesc().GetType();
+    auto input_dtype  = miopen::GetDataType(problem.GetIDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetDODesc().GetType());
+    auto size         = problem.GetIDesc().GetElementSize();
 
-    auto numel = problem.GetDXDesc().GetElementSize();
+    const auto build_params =
+        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                              {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                              {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                              {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                              {"REDUCTION_TYPE", static_cast<int>(problem.GetReduction())},
+                              {"VIEW_DIMS", VIEW_DIMS},
+                              {"MIOPEN_LOSS_REDUCTION_NONE", MIOPEN_LOSS_REDUCTION_NONE},
+                              {"MIOPEN_LOSS_REDUCTION_SUM", MIOPEN_LOSS_REDUCTION_SUM},
+                              {"MIOPEN_LOSS_REDUCTION_MEAN", MIOPEN_LOSS_REDUCTION_MEAN}};
 
-    size_t xlocalsize = LOCAL_SIZE_MSELOSS;
-    size_t xgridsize  = AlignUp(numel, xlocalsize);
-    size_t ylocalsize = 1;
-    size_t ygridsize  = 1;
-    size_t zlocalsize = 1;
-    size_t zgridsize  = 1;
-
-    auto kernel        = KernelInfo{};
-    kernel.kernel_file = "MIOpenMSELoss.cpp";
-    kernel.kernel_name = "MSELossBackward5d";
-
-    const auto build_params = KernelBuildParameters{
-        {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
-        {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-        {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
-        {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-        {"DTYPE", io_type == "bfloat16" ? "ushort" : io_type},
-        {"REDUCE_SIZE", static_cast<int32_t>(LOCAL_SIZE_MSELOSS)},
-    };
-
-    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
-
-    kernel.l_wk.push_back(xlocalsize);
-    kernel.l_wk.push_back(ylocalsize);
-    kernel.l_wk.push_back(zlocalsize);
-
-    kernel.g_wk.push_back(xgridsize);
-    kernel.g_wk.push_back(ygridsize);
-    kernel.g_wk.push_back(zgridsize);
-
-    result.construction_params.push_back(kernel);
+    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_NONCONTIGUOUS_BWD},
+                                                         {size},
+                                                         "MIOpenMSELoss.cpp",
+                                                         "MSELossBackward",
+                                                         build_params));
 
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::mseloss::backward::InvokeParams>();
 
-            tensor_view_t<5> I_tv  = get_inner_expanded_tv<5>(miopen::deref(params.xDesc));
-            tensor_view_t<5> T_tv  = get_inner_expanded_tv<5>(miopen::deref(params.yDesc));
-            tensor_view_t<5> dO_tv = get_inner_expanded_tv<5>(miopen::deref(params.zDesc));
-            tensor_view_t<5> dI_tv = get_inner_expanded_tv<5>(miopen::deref(params.dxDesc));
-            tensor_view_t<5> dT_tv = get_inner_expanded_tv<5>(miopen::deref(params.dyDesc));
+            auto i_tv  = get_inner_expanded_tv<VIEW_DIMS>(deref(params.iDesc));
+            auto t_tv  = get_inner_expanded_tv<VIEW_DIMS>(deref(params.tDesc));
+            auto dO_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.dODesc));
+            auto dI_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.dIDesc));
+            auto dT_tv = get_inner_expanded_tv<VIEW_DIMS>(deref(params.dTDesc));
 
-            kernel(params.x,
-                   params.y,
-                   params.z,
-                   params.dx,
-                   params.dy,
-                   params.divisor,
-                   I_tv,
-                   T_tv,
+            handle_.ResetKernelTime();
+            kernel(params.i,
+                   params.t,
+                   params.dO,
+                   params.dI,
+                   params.dT,
+                   deref(params.iDesc).GetElementSize(),
+                   i_tv,
+                   t_tv,
                    dO_tv,
                    dI_tv,
                    dT_tv);
         };
     };
+
     return result;
 }
 } // namespace backward

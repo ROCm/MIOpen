@@ -31,99 +31,105 @@
 
 #include "float_types.h"
 #include "tensor_view.hpp"
+#include "MIOpenLossReductionMode.hpp"
 
-template <typename IO_TYPE>
-__device__ void DeviceMSELossForward5d(const IO_TYPE* __restrict__ I,
-                                       const IO_TYPE* __restrict__ T,
-                                       FLOAT_ACCUM* __restrict__ lsum,
-                                       float divisor,
-                                       tensor_view_t<5> I_tv,
-                                       tensor_view_t<5> T_tv)
+template <typename TIO, uint32_t NDIM, LossReductionMode_t REDUCTION_T>
+__device__ void MSELossForward(const TIO* __restrict__ I,
+                               const TIO* __restrict__ T,
+                               void* O,
+                               const uint64_t size,
+                               tensor_view_t<NDIM> I_tv,
+                               tensor_view_t<NDIM> T_tv,
+                               tensor_view_t<NDIM> O_tv)
 {
-    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
-    size_t n0123 = gid / I_tv.size[4], n4 = gid % I_tv.size[4];
-    size_t n012 = n0123 / I_tv.size[3], n3 = n0123 % I_tv.size[3];
-    size_t n01 = n012 / I_tv.size[2], n2 = n012 % I_tv.size[2];
-    size_t n0 = n01 / I_tv.size[1], n1 = n01 % I_tv.size[1];
-
-    if(!(n0 < I_tv.size[0]))
+    tensor_layout_t<5> tensor_layout(I_tv, gid);
+    if(tensor_layout.layout[0] >= I_tv.size[0])
         return;
 
-    size_t Iidx = I_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-    size_t Tidx = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
+    FLOAT_ACCUM i = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx(tensor_layout)]);
+    FLOAT_ACCUM t = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx(tensor_layout)]);
 
-    FLOAT_ACCUM iidxval = CVT_FLOAT2ACCUM(I[Iidx]);
-    FLOAT_ACCUM tidxval = CVT_FLOAT2ACCUM(T[Tidx]);
-    FLOAT_ACCUM lsumval = (iidxval - tidxval) * (iidxval - tidxval) / divisor;
+    FLOAT_ACCUM loss = (i - t) * (i - t);
 
-    lsum[gid] = lsumval;
+    switch(REDUCTION_T)
+    {
+    case LossReductionMode_t::NONE:
+        static_cast<TIO*>(O)[O_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(loss);
+        break;
+    case LossReductionMode_t::SUM: static_cast<FLOAT_ACCUM*>(O)[gid] = loss; break;
+    case LossReductionMode_t::MEAN: static_cast<FLOAT_ACCUM*>(O)[gid] = loss / size; break;
+    default: break;
+    }
 }
 
-template <typename IO_TYPE>
-__device__ void DeviceMSELossBackward5d(const IO_TYPE* __restrict__ I,
-                                        const IO_TYPE* __restrict__ T,
-                                        const IO_TYPE* __restrict__ dO,
-                                        IO_TYPE* __restrict__ dI,
-                                        IO_TYPE* __restrict__ dT,
-                                        float divisor,
-                                        tensor_view_t<5> I_tv,
-                                        tensor_view_t<5> T_tv,
-                                        tensor_view_t<5> dO_tv,
-                                        tensor_view_t<5> dI_tv,
-                                        tensor_view_t<5> dT_tv)
-{
-    const size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    size_t n0123 = gid / I_tv.size[4], n4 = gid % I_tv.size[4];
-    size_t n012 = n0123 / I_tv.size[3], n3 = n0123 % I_tv.size[3];
-    size_t n01 = n012 / I_tv.size[2], n2 = n012 % I_tv.size[2];
-    size_t n0 = n01 / I_tv.size[1], n1 = n01 % I_tv.size[1];
+extern "C" __global__ void MSELossForward(const FLOAT* __restrict__ I,
+                                          const FLOAT* __restrict__ T,
+                                          void* __restrict__ O,
+                                          const uint64_t size,
+                                          tensor_view_t<VIEW_DIMS> I_tv,
+                                          tensor_view_t<VIEW_DIMS> T_tv,
+                                          tensor_view_t<VIEW_DIMS> O_tv)
 
-    if(!(n0 < I_tv.size[0]))
+{
+    // instantiate the kernel
+    MSELossForward<FLOAT, VIEW_DIMS, static_cast<LossReductionMode_t>(REDUCTION_TYPE)>(
+        I, T, O, size, I_tv, T_tv, O_tv);
+}
+
+template <typename TIO, uint32_t NDIM, LossReductionMode_t REDUCTION_T>
+__device__ void MSELossBackward(const TIO* __restrict__ I,
+                                const TIO* __restrict__ T,
+                                const TIO* __restrict__ dO,
+                                TIO* __restrict__ dI,
+                                TIO* __restrict__ dT,
+                                const uint64_t size,
+                                tensor_view_t<5> I_tv,
+                                tensor_view_t<5> T_tv,
+                                tensor_view_t<5> dO_tv,
+                                tensor_view_t<5> dI_tv,
+                                tensor_view_t<5> dT_tv)
+{
+    uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    tensor_layout_t<5> tensor_layout(I_tv, gid);
+    if(tensor_layout.layout[0] >= I_tv.size[0])
         return;
 
-    size_t Iidx = I_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-    size_t Tidx = T_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-
-    FLOAT_ACCUM iidxval  = CVT_FLOAT2ACCUM(I[Iidx]);
-    FLOAT_ACCUM tidxval  = CVT_FLOAT2ACCUM(T[Tidx]);
-    FLOAT_ACCUM dOidxval = CVT_FLOAT2ACCUM(dO[dO_tv.get_tensor_view_idx({dO_tv, 0})]);
-    FLOAT_ACCUM grad     = 2.0f * (iidxval - tidxval) / divisor * dOidxval;
-
-    if(dI != nullptr)
+    FLOAT_ACCUM o_grad;
+    switch(REDUCTION_T)
     {
-        size_t dIidx = dI_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        dI[dIidx]    = CVT_ACCUM2FLOAT(grad);
+    case LossReductionMode_t::NONE:
+        o_grad = CVT_FLOAT2ACCUM(dO[dO_tv.get_tensor_view_idx(tensor_layout)]);
+        break;
+    case LossReductionMode_t::SUM: o_grad = CVT_FLOAT2ACCUM(dO[0]); break;
+    case LossReductionMode_t::MEAN: o_grad = CVT_FLOAT2ACCUM(dO[0]) / size; break;
+    default: break;
     }
-    if(dT != nullptr)
-    {
-        size_t dTidx = dT_tv.get_tensor_view_idx({n0, n1, n2, n3, n4});
-        dT[dTidx]    = CVT_ACCUM2FLOAT(-grad);
-    }
-}
-// Trampolines
-extern "C" __global__ void MSELossForward5d(const FLOAT* __restrict__ I,
-                                            const FLOAT* __restrict__ T,
-                                            FLOAT_ACCUM* __restrict__ lsum,
-                                            float divisor,
-                                            tensor_view_t<5> I_tv,
-                                            tensor_view_t<5> T_tv)
 
-{
-    DeviceMSELossForward5d<FLOAT>(I, T, lsum, divisor, I_tv, T_tv);
+    FLOAT_ACCUM i    = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx(tensor_layout)]);
+    FLOAT_ACCUM t    = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx(tensor_layout)]);
+    FLOAT_ACCUM grad = 2.0f * (i - t) * o_grad;
+
+    if(dI)
+        dI[dI_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(grad);
+    if(dT)
+        dT[dT_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(-grad);
 }
 
-extern "C" __global__ void MSELossBackward5d(const FLOAT* __restrict__ I,
-                                             const FLOAT* __restrict__ T,
-                                             const FLOAT* __restrict__ dO,
-                                             FLOAT* __restrict__ dI,
-                                             FLOAT* __restrict__ dT,
-                                             float divisor,
-                                             tensor_view_t<5> I_tv,
-                                             tensor_view_t<5> T_tv,
-                                             tensor_view_t<5> dO_tv,
-                                             tensor_view_t<5> dI_tv,
-                                             tensor_view_t<5> dT_tv)
+extern "C" __global__ void MSELossBackward(const FLOAT* __restrict__ I,
+                                           const FLOAT* __restrict__ T,
+                                           const FLOAT* __restrict__ dO,
+                                           FLOAT* __restrict__ dI,
+                                           FLOAT* __restrict__ dT,
+                                           const uint64_t size,
+                                           tensor_view_t<5> I_tv,
+                                           tensor_view_t<5> T_tv,
+                                           tensor_view_t<5> dO_tv,
+                                           tensor_view_t<5> dI_tv,
+                                           tensor_view_t<5> dT_tv)
 {
-    DeviceMSELossBackward5d<FLOAT>(I, T, dO, dI, dT, divisor, I_tv, T_tv, dO_tv, dI_tv, dT_tv);
+    // instantiate the kernel
+    MSELossBackward<FLOAT, VIEW_DIMS, static_cast<LossReductionMode_t>(REDUCTION_TYPE)>(
+        I, T, dO, dI, dT, size, I_tv, T_tv, dO_tv, dI_tv, dT_tv);
 }

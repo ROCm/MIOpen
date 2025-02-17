@@ -29,6 +29,7 @@
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
+
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/allocator.hpp>
@@ -41,7 +42,7 @@
 struct MSELossTestCase
 {
     std::vector<size_t> lengths;
-    float divisor;
+    miopenLossReductionMode_t reduction;
     bool isContiguous;
 
     friend std::ostream& operator<<(std::ostream& os, const MSELossTestCase& tc)
@@ -54,53 +55,82 @@ struct MSELossTestCase
                 os << ",";
             os << input;
         }
-        os << " divisor:" << tc.divisor << " contiguous:" << tc.isContiguous;
+        os << " reduction:" << tc.reduction << " contiguous:" << tc.isContiguous;
         return os;
     }
 };
 
 inline std::vector<MSELossTestCase> MSELossTestFwdConfigs()
 {
-    // clang-format off
     return {
-            {{10000}, 10000.0f, false},
-            {{1000000}, 1.0f, false},
-            {{25, 100}, 25000.0f, false},
-            {{2000,3000}, 1.0f, false},
-            {{1, 2,3}, 1.0f, false},
-            {{8, 8,8}, 1.0f, false},
-            {{16, 128,384}, 1.0f, true},
-            {{25,100,100}, 1.0f, false},
-            {{1,2,3,4}, 1.0f, true},
-            {{8, 8, 8, 8}, 1.0f, false},
-            {{16, 32, 32, 32}, 1.0f,true},
-            {{1,1,16,1024}, 1.0f, false},
-            {{16, 16, 32, 32, 2}, 1.0f, true},
-            {{16, 16, 32, 32, 256}, 1.0f, false}
-            };
-    // clang-format on
+        {{10000}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{10000}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{1000000}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{25, 100}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{25, 100}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{2000, 3000}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{1, 2, 3}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{1, 2, 3}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{8, 8, 8}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{8, 8, 8}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{16, 128, 384}, MIOPEN_LOSS_REDUCTION_MEAN, true},
+        {{25, 100, 100}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{1, 2, 3, 4}, MIOPEN_LOSS_REDUCTION_SUM, true},
+        {{1, 2, 3, 4}, MIOPEN_LOSS_REDUCTION_MEAN, true},
+        {{8, 8, 8, 8}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{8, 8, 8, 8}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{16, 32, 32, 32}, MIOPEN_LOSS_REDUCTION_MEAN, true},
+        {{1, 1, 16, 1024}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{1, 1, 16, 1024}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{16, 16, 32, 32, 2}, MIOPEN_LOSS_REDUCTION_MEAN, true},
+        {{16, 16, 32, 32, 256}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+    };
 }
 
 inline std::vector<MSELossTestCase> MSELossTestBwdConfigs()
 {
-    // clang-format off
     return {
-            {{10000, 2}, 10000.0f, false},
-            {{2, 1000000}, 1.0f, false},
-            {{25, 100}, 25000.0f, false},
-            {{2000,3000}, 1.0f, false},
-            {{2, 3}, 1.0f, false},
-            {{8, 8}, 1.0f, false},
-            {{ 128,384}, 1.0f, false},
-            {{100,100}, 1.0f, false},
-            {{3,4}, 1.0f, false},
-            {{2, 8}, 1.0f, false},
-            {{ 32, 32}, 1.0f,false},
-            {{16,1024}, 1.0f, false},
-            {{ 32, 2}, 1.0f, false},
-            {{ 32, 256}, 1.0f, false}
-            };
-    // clang-format on
+        {{10000, 2}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{10000, 2}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{10000, 2}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{2, 1000000}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{2, 1000000}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{25, 100}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{25, 100}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{25, 100}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{2000, 3000}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{2000, 3000}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{2, 3}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{2, 3}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{2, 3}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{8, 8}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{8, 8}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{8, 8}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{128, 384}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{128, 384}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{128, 384}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{100, 100}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{100, 100}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{100, 100}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{3, 4}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{3, 4}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{3, 4}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{2, 8}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{2, 8}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{2, 8}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{32, 32}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{32, 32}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{32, 32}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{16, 1024}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{16, 1024}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{16, 1024}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{32, 2}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{32, 2}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{32, 2}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+        {{32, 256}, MIOPEN_LOSS_REDUCTION_NONE, false},
+        {{32, 256}, MIOPEN_LOSS_REDUCTION_SUM, false},
+        {{32, 256}, MIOPEN_LOSS_REDUCTION_MEAN, false},
+    };
 }
 
 inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous)
@@ -132,25 +162,26 @@ protected:
     miopen::Allocator::ManageDataPtr output_dev;
     miopen::Allocator::ManageDataPtr workspace_dev;
 
-    float divisor;
+    miopenLossReductionMode_t reduction;
 
     size_t ws_sizeInBytes;
 
     void SetUp() override
     {
-        auto&& handle  = get_handle();
-        mseloss_config = GetParam();
-        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto&& handle   = get_handle();
+        mseloss_config  = GetParam();
+        auto gen_value1 = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_value2 = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 101); };
 
         auto in_dims = mseloss_config.lengths;
         auto strides = GetStrides(in_dims, mseloss_config.isContiguous);
 
-        input  = tensor<T>{in_dims, strides}.generate(gen_value);
-        target = tensor<T>{in_dims, strides}.generate(gen_value);
+        input  = tensor<T>{in_dims, strides}.generate(gen_value1);
+        target = tensor<T>{in_dims, strides}.generate(gen_value2);
 
-        divisor = mseloss_config.divisor;
+        reduction = mseloss_config.reduction;
 
-        if(divisor == 0.0f)
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
         {
             output     = tensor<T>{in_dims};
             output_ref = tensor<T>{in_dims};
@@ -161,10 +192,8 @@ protected:
             output_ref = tensor<T>{{1}};
         }
 
-        auto status = miopenGetMSELossForwardWorkspaceSize(
-            &handle, &input.desc, &target.desc, &ws_sizeInBytes);
-        ASSERT_EQ(status, miopenStatusSuccess)
-            << "Error: failed to obtain workspace size" << std::endl;
+        ws_sizeInBytes =
+            miopen::GetMSELossForwardWorkspaceSize(handle, input.desc, output.desc, reduction);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_SKIP();
         workspace_dev = handle.Create(ws_sizeInBytes);
@@ -176,25 +205,19 @@ protected:
 
     void RunTest()
     {
+        cpu_mseloss_forward<T, 5>(input, target, output_ref, reduction);
+
         auto&& handle = get_handle();
-
-        cpu_mseloss_forward<T>(input.desc,
-                               target.desc,
-                               output.desc,
-                               input.data.data(),
-                               target.data.data(),
-                               output_ref.data.data(),
-                               divisor);
-
-        auto status = MSELossForward(handle,
-                                     input.desc,
-                                     target.desc,
-                                     output.desc,
-                                     input_dev.get(),
-                                     target_dev.get(),
-                                     output_dev.get(),
-                                     workspace_dev.get(),
-                                     divisor);
+        auto status   = miopen::MSELossForward(handle,
+                                             workspace_dev.get(),
+                                             ws_sizeInBytes,
+                                             input.desc,
+                                             input_dev.get(),
+                                             target.desc,
+                                             target_dev.get(),
+                                             output.desc,
+                                             output_dev.get(),
+                                             reduction);
 
         ASSERT_EQ(status, miopenStatusSuccess);
         output.data = handle.Read<T>(output_dev, output.data.size());
@@ -217,8 +240,8 @@ protected:
 
     tensor<T> input;
     tensor<T> target;
-    tensor<T> output;
 
+    tensor<T> output_grad;
     tensor<T> input_grad;
     tensor<T> target_grad;
     tensor<T> input_grad_ref;
@@ -226,25 +249,26 @@ protected:
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr target_dev;
-    miopen::Allocator::ManageDataPtr output_dev;
+    miopen::Allocator::ManageDataPtr output_grad_dev;
     miopen::Allocator::ManageDataPtr input_grad_dev;
     miopen::Allocator::ManageDataPtr target_grad_dev;
 
     miopen::Allocator::ManageDataPtr workspace_dev;
 
-    float divisor;
+    miopenLossReductionMode_t reduction;
 
     void SetUp() override
     {
-        auto&& handle  = get_handle();
-        mseloss_config = GetParam();
-        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto&& handle   = get_handle();
+        mseloss_config  = GetParam();
+        auto gen_value1 = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_value2 = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 101); };
 
         auto in_dims = mseloss_config.lengths;
         auto strides = GetStrides(in_dims, mseloss_config.isContiguous);
 
-        input  = tensor<T>{in_dims, strides}.generate(gen_value);
-        target = tensor<T>{in_dims, strides}.generate(gen_value);
+        input  = tensor<T>{in_dims, strides}.generate(gen_value1);
+        target = tensor<T>{in_dims, strides}.generate(gen_value2);
 
         input_grad      = tensor<T>{in_dims};
         target_grad     = tensor<T>{in_dims};
@@ -254,26 +278,19 @@ protected:
         input_dev  = handle.Write(input.data);
         target_dev = handle.Write(target.data);
 
-        divisor = mseloss_config.divisor;
+        reduction = mseloss_config.reduction;
 
-        if(divisor == 0.0f)
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
         {
-            output = tensor<T>{in_dims};
+            output_grad = tensor<T>{in_dims};
         }
         else
         {
-            output = tensor<T>{{1}};
+            output_grad = tensor<T>{{1}};
         }
 
-        cpu_mseloss_forward<T>(input.desc,
-                               target.desc,
-                               output.desc,
-                               input.data.data(),
-                               target.data.data(),
-                               output.data.data(),
-                               divisor);
+        std::fill(output_grad.begin(), output_grad.end(), static_cast<T>(1.0f));
 
-        // std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(target_grad.begin(), target_grad.end(), std::numeric_limits<T>::quiet_NaN());
         std::fill(
@@ -281,39 +298,29 @@ protected:
         std::fill(
             target_grad_ref.begin(), target_grad_ref.end(), std::numeric_limits<T>::quiet_NaN());
 
-        output_dev      = handle.Write(output.data);
+        output_grad_dev = handle.Write(output_grad.data);
         input_grad_dev  = handle.Write(input_grad.data);
         target_grad_dev = handle.Write(target_grad.data);
     }
 
     void RunTest()
     {
+        cpu_mseloss_backward<T, 5>(
+            input, target, output_grad, input_grad_ref, target_grad_ref, reduction);
+
         auto&& handle = get_handle();
-
-        cpu_mseloss_backward<T>(input.desc,
-                                target.desc,
-                                output.desc,
-                                input_grad.desc,
-                                target_grad.desc,
-                                input.data.data(),
-                                target.data.data(),
-                                output.data.data(),
-                                input_grad_ref.data.data(),
-                                target_grad_ref.data.data(),
-                                divisor);
-
-        auto status = MSELossBackward(handle,
-                                      input.desc,
-                                      target.desc,
-                                      output.desc,
-                                      input_grad.desc,
-                                      target_grad.desc,
-                                      input_dev.get(),
-                                      target_dev.get(),
-                                      output_dev.get(),
-                                      input_grad_dev.get(),
-                                      target_grad_dev.get(),
-                                      divisor);
+        auto status   = miopen::MSELossBackward(handle,
+                                              input.desc,
+                                              input_dev.get(),
+                                              target.desc,
+                                              target_dev.get(),
+                                              output_grad.desc,
+                                              output_grad_dev.get(),
+                                              input_grad.desc,
+                                              input_grad_dev.get(),
+                                              target_grad.desc,
+                                              target_grad_dev.get(),
+                                              reduction);
         ASSERT_EQ(status, miopenStatusSuccess);
 
         input_grad.data  = handle.Read<T>(input_grad_dev, input_grad.data.size());

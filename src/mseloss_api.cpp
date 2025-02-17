@@ -33,71 +33,97 @@
 
 #include <cstddef>
 
-extern "C" miopenStatus_t miopenMSELossForward(miopenHandle_t handle,
-                                               miopenTensorDescriptor_t xDesc,
-                                               miopenTensorDescriptor_t yDesc,
-                                               miopenTensorDescriptor_t zDesc,
-                                               const void* x,
-                                               const void* y,
-                                               void* z,
-                                               void* ws,
-                                               const float divisor)
+extern "C" miopenStatus_t
+miopenGetMSELossForwardWorkspaceSize(miopenHandle_t handle,
+                                     const miopenTensorDescriptor_t inputDesc,
+                                     const miopenTensorDescriptor_t outputDesc,
+                                     const miopenLossReductionMode_t reduction,
+                                     size_t* sizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(xDesc, yDesc, x, y, z, divisor);
+    MIOPEN_LOG_FUNCTION("mseloss_get_workspace_size", handle, inputDesc, outputDesc, sizeInBytes);
 
     return miopen::try_([&] {
-        miopen::MSELossForward(miopen::deref(handle),
-                               miopen::deref(xDesc),
-                               miopen::deref(yDesc),
-                               miopen::deref(zDesc),
-                               DataCast(x),
-                               DataCast(y),
-                               DataCast(z),
-                               DataCast(ws),
-                               divisor);
+        miopen::deref(sizeInBytes) = miopen::GetMSELossForwardWorkspaceSize(
+            miopen::deref(handle), miopen::deref(inputDesc), miopen::deref(outputDesc), reduction);
     });
 }
 
-extern "C" miopenStatus_t miopenGetMSELossForwardWorkspaceSize(miopenHandle_t handle,
-                                                               miopenTensorDescriptor_t xDesc,
-                                                               miopenTensorDescriptor_t yDesc,
-                                                               size_t* size)
+extern "C" miopenStatus_t miopenMSELossForward(miopenHandle_t handle,
+                                               const miopenTensorDescriptor_t inputDesc,
+                                               const void* input,
+                                               const miopenTensorDescriptor_t targetDesc,
+                                               const void* target,
+                                               const miopenTensorDescriptor_t outputDesc,
+                                               void* output,
+                                               const miopenLossReductionMode_t reduction,
+                                               void* workspace,
+                                               const size_t workspaceSizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(xDesc, yDesc, size);
+    MIOPEN_LOG_FUNCTION("mseloss_forward",
+                        handle,
+                        inputDesc,
+                        input,
+                        targetDesc,
+                        target,
+                        outputDesc,
+                        output,
+                        reduction,
+                        workspace,
+                        workspaceSizeInBytes);
 
     return miopen::try_([&] {
-        miopen::deref(size) = miopen::MSELossForwardGetWorkspaceSize(
-            miopen::deref(handle), miopen::deref(xDesc), miopen::deref(yDesc));
+        miopen::MSELossForward(miopen::deref(handle),
+                               DataCast(workspace),
+                               workspaceSizeInBytes,
+                               miopen::deref(inputDesc),
+                               DataCast(input),
+                               miopen::deref(targetDesc),
+                               DataCast(target),
+                               miopen::deref(outputDesc),
+                               DataCast(output),
+                               reduction);
     });
 }
 
 extern "C" miopenStatus_t miopenMSELossBackward(miopenHandle_t handle,
-                                                miopenTensorDescriptor_t xDesc,
-                                                miopenTensorDescriptor_t yDesc,
-                                                miopenTensorDescriptor_t zDesc,
-                                                miopenTensorDescriptor_t dxDesc,
-                                                miopenTensorDescriptor_t dyDesc,
-                                                const void* x,
-                                                const void* y,
-                                                const void* z,
-                                                void* dx,
-                                                void* dy,
-                                                const float divisor)
+                                                miopenTensorDescriptor_t inputDesc,
+                                                const void* input,
+                                                miopenTensorDescriptor_t targetDesc,
+                                                const void* target,
+                                                miopenTensorDescriptor_t doutputDesc,
+                                                const void* doutput,
+                                                miopenTensorDescriptor_t dinputDesc,
+                                                void* dinput,
+                                                miopenTensorDescriptor_t dtargetDesc,
+                                                void* dtarget,
+                                                miopenLossReductionMode_t reduction)
 {
-    MIOPEN_LOG_FUNCTION(xDesc, yDesc, zDesc, dxDesc, dyDesc, x, y, z, dx, dy, divisor);
+    MIOPEN_LOG_FUNCTION("mseloss_backward",
+                        handle,
+                        inputDesc,
+                        input,
+                        targetDesc,
+                        target,
+                        doutputDesc,
+                        doutput,
+                        dinputDesc,
+                        dinput,
+                        dtargetDesc,
+                        dtarget,
+                        reduction);
 
     return miopen::try_([&] {
         miopen::MSELossBackward(miopen::deref(handle),
-                                miopen::deref(xDesc),
-                                miopen::deref(yDesc),
-                                miopen::deref(zDesc),
-                                miopen::deref(dxDesc),
-                                miopen::deref(dyDesc),
-                                DataCast(x),
-                                DataCast(y),
-                                DataCast(z),
-                                DataCast(dx),
-                                DataCast(dy),
-                                divisor);
+                                miopen::deref(inputDesc),
+                                DataCast(input),
+                                miopen::deref(targetDesc),
+                                DataCast(target),
+                                miopen::deref(doutputDesc),
+                                DataCast(doutput),
+                                miopen::deref(dinputDesc),
+                                DataCast(dinput),
+                                miopen::deref(dtargetDesc),
+                                DataCast(dtarget),
+                                reduction);
     });
 }
