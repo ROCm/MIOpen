@@ -28,11 +28,9 @@ cmake_policy(SET CMP0057 NEW)
 
 set(test_perf.py ${CMAKE_INSTALL_BINDIR}/test_perf.py)
 
-if( NOT ENABLE_ASAN_PACKAGING )
-  install(FILES  test_perf.py
-      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-      DESTINATION ${CMAKE_INSTALL_BINDIR})
-endif()
+install(FILES  test_perf.py
+    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    DESTINATION ${CMAKE_INSTALL_BINDIR})
 
 set(MODEL_FILES)
 file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
@@ -40,15 +38,13 @@ foreach (src ${model_src})
     list (APPEND MODEL_FILES ${src})
 endforeach()
 
-if( NOT ENABLE_ASAN_PACKAGING )
-  install(FILES
-      ${MODEL_FILES}
-      DESTINATION ${DATA_INSTALL_DIR}/perf_models)
-endif()
- foreach(MODEL_FILE ${MODEL_FILES})
-    get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-    configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
- endforeach()
+install(FILES
+    ${MODEL_FILES}
+    DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+foreach(MODEL_FILE ${MODEL_FILES})
+   get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+   configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
+endforeach()
 
 include(CheckCXXCompilerFlag)
 
