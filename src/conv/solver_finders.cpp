@@ -298,7 +298,7 @@ static std::vector<Solution> EvaluateInvokers(const Handle& handle,
                 best_invoker = invoker;
             }
 
-            auto solution = Solution{solver::Id{selected.solver_id}, best, selected.workspace_sz};
+            auto solution = Solution{solver::Id{sol.solver_id}, elapsed, sol.workspace_sz};
             if(force_attach_binary)
                 solution.SetInvoker(invoker, programs, selected.construction_params);
             else
