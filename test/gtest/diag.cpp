@@ -25,16 +25,12 @@
  *******************************************************************************/
 
 #include "diag.hpp"
+#include "gtest/gtest.h"
 using float16 = half_float::half;
-
-namespace diag {
 
 using GPU_Diag_fwd_FP32  = DiagFwdTest<float>;
 using GPU_Diag_fwd_FP16  = DiagFwdTest<float16>;
 using GPU_Diag_fwd_BFP16 = DiagFwdTest<bfloat16>;
-
-} // namespace diag
-using namespace diag;
 
 TEST_P(GPU_Diag_fwd_FP32, Test)
 {

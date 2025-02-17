@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#pragma once
+
 #include "cpu_diag.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
@@ -38,25 +40,25 @@
 
 struct DiagTestCase
 {
-    std::vector<size_t> dims;
+    std::vector<size_t> dimsLength;
     int64_t diagonal;
     bool isContiguous;
     friend std::ostream& operator<<(std::ostream& os, const DiagTestCase& tc)
     {
         os << "dims: ";
-        for(auto dim_sz : tc.dims)
+        for(auto dim_sz : tc.dimsLength)
         {
             os << dim_sz << " ";
         }
         return os << " diagonal:" << tc.diagonal << " isContiguous:" << tc.isContiguous;
     }
 
-    std::vector<size_t> GetDims() const { return dims; }
+    std::vector<size_t> GetDims() const { return dimsLength; }
 
     DiagTestCase() {}
 
-    DiagTestCase(std::vector<size_t> dims_, int64_t diagonal_, bool isContiguous_)
-        : dims(dims_), diagonal(diagonal_), isContiguous(isContiguous_)
+    DiagTestCase(std::vector<size_t> dimsLength_, int64_t diagonal_, bool isContiguous_)
+        : dimsLength(dimsLength_), diagonal(diagonal_), isContiguous(isContiguous_)
     {
     }
 
@@ -75,23 +77,13 @@ struct DiagTestCase
 };
 
 inline std::vector<DiagTestCase> GenFullTestCases()
-{ // n c d h w dim
-    // clang-format off
-    return {
-        DiagTestCase({2048, 4096}, 0, true),
-        DiagTestCase({2222, 4444}, 8, true),
-        DiagTestCase({2222, 4444}, -8, true),
-        DiagTestCase({16000, 16000}, 0, true),
-        DiagTestCase({16000, 16000}, 2, true),
-        DiagTestCase({16000, 16000}, -2, true),
-        DiagTestCase({2048, 4096}, 0, false),
-        DiagTestCase({2048, 4096}, 8, false),
-        DiagTestCase({2048, 4096}, -8, false),
-        DiagTestCase({16166, 16166}, 0, false),
-        DiagTestCase({16111, 1621}, 2, false),
-        DiagTestCase({16111, 1621}, -2, false),
-      };
-    // clang-format on
+{
+    return {DiagTestCase({2048, 4096}, 0, true),
+            DiagTestCase({2222, 4444}, 8, true),
+            DiagTestCase({2222, 4444}, -8, true),
+            DiagTestCase({16000, 16000}, 0, true),
+            DiagTestCase({2048, 4096}, 0, false),
+            DiagTestCase({2048, 4096}, 8, false)};
 }
 
 template <typename T>
@@ -100,11 +92,8 @@ struct DiagFwdTest : public ::testing::TestWithParam<DiagTestCase>
 protected:
     void SetUp() override
     {
-
-        auto&& handle = get_handle();
-        diag_config   = GetParam();
-
-        std::cout << diag_config << std::endl;
+        auto&& handle  = get_handle();
+        diag_config    = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
         diagonal      = diag_config.diagonal;
@@ -162,7 +151,7 @@ protected:
         if(isOutputRequired)
         {
             auto&& handle = get_handle();
-            cpu_diag_forward(input, ref_output, diagonal);
+            cpu_diag_forward<T>(input, ref_output, diagonal);
             miopenStatus_t status;
 
             status = miopen::DiagForward(

@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_DIAG_HPP
-#define GUARD_CPU_DIAG_HPP
+
+#pragma once
 
 #include "ford.hpp"
 #include "tensor_holder.hpp"
@@ -34,7 +34,7 @@
 #include <miopen/tensor_view_utils.hpp>
 
 template <class T>
-void cpu_diag_forward(tensor<T> input, tensor<T>& ref_output, int64_t diagonal)
+void cpu_diag_forward(const tensor<T>& input, tensor<T>& ref_output, int64_t diagonal)
 {
     if(input.desc.GetNumDims() == 1)
     {
@@ -65,5 +65,3 @@ void cpu_diag_forward(tensor<T> input, tensor<T>& ref_output, int64_t diagonal)
         });
     }
 }
-
-#endif
