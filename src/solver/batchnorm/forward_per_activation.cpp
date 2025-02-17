@@ -41,8 +41,12 @@ namespace batchnorm {
 bool BnFwdTrainingPerActivation::IsApplicable(
     const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
 {
-    return problem.GetDirection() == miopen::batchnorm::Direction::ForwardTraining ||
-           problem.GetMode() == miopenBNPerActivation;
+    if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
+       problem.GetMode() != miopenBNPerActivation)
+        return false;
+    if(!IsOCLFwdTrainTypeValid(problem))
+        return false;
+    return true;
 }
 
 ConvSolution
@@ -61,14 +65,15 @@ BnFwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
 
     {
         decltype(auto) handle                 = context.GetStream();
-        decltype(auto) bnScaleBiasMeanVarDesc = problem.GetBnScaleBiasMeanVarDesc();
+        decltype(auto) bnScaleBiasMeanVarDesc = problem.GetBnScale();
 
         unsigned int in_nhw  = n * in_cstride;
         unsigned int in_nchw = n * in_nstride;
 
-        bool bfpmixparm = false;
-        bool bfp16parm  = false;
-        bool bfp32parm  = true;
+        bool bfpmixparm   = false;
+        bool bbfpmixparam = false;
+        bool bfp16parm    = false;
+        bool bfp32parm    = true;
         if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
         {
             bfp16parm = true;
@@ -78,6 +83,12 @@ BnFwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
         {
             bfpmixparm = true;
             bfp32parm  = false;
+        }
+        else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
+                problem.GetBnScale().GetType() == miopenFloat)
+        {
+            bbfpmixparam = true;
+            bfp32parm    = false;
         }
 
         std::size_t xlocalsize = 1;
@@ -92,6 +103,7 @@ BnFwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+            {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
             {"MIO_SAVE_MEAN_VARIANCE", static_cast<int>(problem.GetResultSave())},
             {"MIO_RUNNING_RESULT", static_cast<int>(problem.GetResultRunning())},
             {"MIO_BN_N", n},
@@ -130,7 +142,7 @@ BnFwdTrainingPerActivation::GetSolution(const ExecutionContext& context,
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::batchnorm::FwdTrainInvokeParams>();
             const auto resultsave =
                 params.resultSaveMean != nullptr && params.resultSaveInvVariance != nullptr;
             const auto resultrunning =

@@ -31,7 +31,7 @@
 #include "timer.hpp"
 #include "random.hpp"
 #include <cfloat>
-#include <cstdint>
+#include <cmath>
 #include <cstdlib>
 #include <memory>
 #include <miopen/miopen.h>
@@ -69,7 +69,7 @@ int32_t mloReduceCalculationForwardRunHost(const miopenTensorDescriptor_t inputD
         for(size_t i = 0; i < reduce_size; ++i)
         {
             float val = static_cast<float>(input[input_idx]);
-            if(nanPropagation && isnan(val))
+            if(nanPropagation && std::isnan(val))
             {
                 val = op == ReduceCalculationOp_t::Prod ? 1.0f : 0.0f;
             }
