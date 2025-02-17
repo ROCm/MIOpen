@@ -137,7 +137,7 @@ protected:
         ws_sizeInBytes = miopen::pdist::GetPdistBackwardWorkspaceSize(
             handle, input.desc, output.desc, doutput.desc, dinput.desc, p);
 
-        if(ws_sizeInBytes <= 0)
+        if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_FAIL() << "Call GetPdistBackwardWorkspaceSize failed!";
 
         workspace = tensor<T>{ws_sizeInBytes / sizeof(T)};
