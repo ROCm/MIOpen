@@ -379,7 +379,7 @@ void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
     const size_t gemm_batch_offset = 0;
 
     return PropHiddenDy(
-        handle, w, workSpace, reserveSpace, layer, direction, gemm_batch_size, gemm_batch_offset);
+        handle, w, workSpace, reserveSpace, layer, direction, gemm_batch_offset, gemm_batch_size);
 }
 
 void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
@@ -404,7 +404,7 @@ void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
     const size_t gemm_batch_offset = batchController.getBatchSum(start_phis_seq);
 
     return PropHiddenDy(
-        handle, w, workSpace, reserveSpace, layer, direction, gemm_batch_size, gemm_batch_offset);
+        handle, w, workSpace, reserveSpace, layer, direction, gemm_batch_offset, gemm_batch_size);
 }
 
 void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
@@ -413,8 +413,8 @@ void RNNBackwardDataModularAlgo::PropHiddenDy(const Handle& handle,
                                               Data_t reserveSpace,
                                               size_t layer,
                                               SequenceDirection direction,
-                                              size_t gemm_batch_size,
-                                              size_t gemm_batch_offset) const
+                                              size_t gemm_batch_offset,
+                                              size_t gemm_batch_size) const
 {
 
     if(layer == 0)
@@ -797,8 +797,59 @@ void RNNBackwardModuleAlgoDynamic::PrepareWriteBuffers(
             rnnDesc.dataType, {1, temp_dy_size}, {temp_dy_size, 1}};
         SetTensor(handle, temp_dy_desk, runtimeArgsExt.tempDy, &beta);
     }
+}
 
-    // realDxProp(handle, runtimeArgsExt);
+void RNNBackwardModuleAlgoDynamic::PropDx(const Handle& handle,
+                                          ConstData_t w,
+                                          ConstData_t workSpace,
+                                          Data_t dx,
+                                          SequenceDirection direction) const
+{
+    const size_t total_seq_cnt = getTimeSeqSize();
+
+    size_t seq_it = 0;
+    for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
+    {
+        const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+        const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                              ? batchController.getTotalBatchSum()
+                                              : batchController.getBatchSum(seq_it + step_size)) -
+                                       gemm_batch_offset;
+
+        RNNBackwardDataModularAlgo::PropDx(
+            handle, w, workSpace, dx, direction, gemm_batch_offset, gemm_batch_size);
+        seq_it += step_size;
+    }
+}
+
+void RNNBackwardModuleAlgoDynamic::PropHiddenDy(const Handle& handle,
+                                                ConstData_t w,
+                                                Data_t workSpace,
+                                                Data_t reserveSpace,
+                                                size_t layer,
+                                                SequenceDirection direction) const
+{
+    const size_t total_seq_cnt = getTimeSeqSize();
+
+    size_t seq_it = 0;
+    for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
+    {
+        const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+        const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                              ? batchController.getTotalBatchSum()
+                                              : batchController.getBatchSum(seq_it + step_size)) -
+                                       gemm_batch_offset;
+
+        RNNBackwardDataModularAlgo::PropHiddenDy(handle,
+                                                 w,
+                                                 workSpace,
+                                                 reserveSpace,
+                                                 layer,
+                                                 direction,
+                                                 gemm_batch_offset,
+                                                 gemm_batch_size);
+        seq_it += step_size;
+    }
 }
 
 } // namespace rnn_base
