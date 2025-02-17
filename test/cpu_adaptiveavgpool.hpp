@@ -43,8 +43,8 @@ void cpu_adaptiveavgpool_forward_1d(
         size_t nc = gid / OH, oh = gid % OH;
         size_t n = nc / C, c = nc % C;
 
-        size_t h  = static_cast<size_t>(std::floor(static_cast<float>(oh * H) / OH));
-        size_t kh = static_cast<size_t>(std::ceil(static_cast<float>((oh + 1) * H) / OH)) - h;
+        size_t h  = oh * H / OH;
+        size_t kh = (((oh + 1) * H + OH - 1) / OH) - h;
 
         float sum = 0;
         for(size_t ih = h; ih < (h + kh); ++ih)
@@ -71,11 +71,11 @@ void cpu_adaptiveavgpool_forward_2d(
         size_t nc = ncoh / OH, oh = ncoh % OH;
         size_t n = nc / C, c = nc % C;
 
-        size_t h  = static_cast<size_t>(std::floor(static_cast<float>(oh * H) / OH));
-        size_t kh = static_cast<size_t>(std::ceil(static_cast<float>((oh + 1) * H) / OH)) - h;
+        size_t h  = (oh * H) / OH;
+        size_t kh = (((oh + 1) * H + OH - 1) / OH) - h;
 
-        size_t w  = static_cast<size_t>(std::floor(static_cast<float>(ow * W) / OW));
-        size_t kw = static_cast<size_t>(std::ceil(static_cast<float>((ow + 1) * W) / OW)) - w;
+        size_t w  = (ow * W) / OW;
+        size_t kw = (((ow + 1) * W + OW - 1) / OW) - w;
 
         float divider = static_cast<float>(kh * kw);
         float sum     = 0;
@@ -114,14 +114,14 @@ void cpu_adaptiveavgpool_forward_3d(tensor<T> input,
         size_t nc = ncod / OD, od = ncod % OD;
         size_t n = nc / C, c = nc % C;
 
-        size_t d  = static_cast<size_t>(std::floor(static_cast<float>(od * D) / OD));
-        size_t kd = static_cast<size_t>(std::ceil(static_cast<float>((od + 1) * D) / OD)) - d;
+        size_t d  = (od * D) / OD;
+        size_t kd = ((od + 1) * D + OD - 1) / OD - d;
 
-        size_t h  = static_cast<size_t>(std::floor(static_cast<float>(oh * H) / OH));
-        size_t kh = static_cast<size_t>(std::ceil(static_cast<float>((oh + 1) * H) / OH)) - h;
+        size_t h  = (oh * H) / OH;
+        size_t kh = ((oh + 1) * H + OH - 1) / OH - h;
 
-        size_t w  = static_cast<size_t>(std::floor(static_cast<float>(ow * W) / OW));
-        size_t kw = static_cast<size_t>(std::ceil(static_cast<float>((ow + 1) * W) / OW)) - w;
+        size_t w  = (ow * W) / OW;
+        size_t kw = ((ow + 1) * W + OW - 1) / OW - w;
 
         float sum = 0;
         for(size_t id = d; id < (d + kd); ++id)
@@ -155,14 +155,13 @@ void cpu_adaptiveavgpool_backward_1d(
         size_t nc = gid / H, h = gid % H;
         size_t n = nc / C, c = nc % C;
 
-        size_t oh  = static_cast<size_t>(std::floor(static_cast<float>(h * OH) / H));
-        size_t koh = static_cast<size_t>(std::ceil(static_cast<float>((h + 1) * OH) / H)) - oh;
+        size_t oh  = (h * OH) / H;
+        size_t koh = (((h + 1) * OH + H - 1) / H) - oh;
 
         float grad = 0;
         for(size_t ih = oh; ih < (oh + koh); ++ih)
         {
-            size_t kh = static_cast<size_t>(std::ceil(static_cast<float>((ih + 1) * H) / OH)) -
-                        static_cast<size_t>(std::floor(static_cast<float>(ih * H) / OH));
+            size_t kh = ((ih + 1) * H + OH - 1) / OH - (ih * H) / OH;
             grad +=
                 static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx({n, c, ih})]) /
                 kh;
@@ -192,21 +191,19 @@ void cpu_adaptiveavgpool_backward_2d(tensor<T> output_grad,
         size_t nc = nch / H, h = nch % H;
         size_t n = nc / C, c = nc % C;
 
-        size_t oh  = static_cast<size_t>(std::floor(static_cast<float>(h * OH) / H));
-        size_t koh = static_cast<size_t>(std::ceil(static_cast<float>((h + 1) * OH) / H)) - oh;
+        size_t oh  = (h * OH) / H;
+        size_t koh = ((h + 1) * OH + H - 1) / H - oh;
 
-        size_t ow  = static_cast<size_t>(std::floor(static_cast<float>(w * OW) / W));
-        size_t kow = static_cast<size_t>(std::ceil(static_cast<float>((w + 1) * OW) / W)) - ow;
+        size_t ow  = (w * OW) / W;
+        size_t kow = ((w + 1) * OW + W - 1) / W - ow;
 
         float grad = 0;
         for(size_t ih = oh; ih < (oh + koh); ++ih)
         {
-            size_t kh = static_cast<size_t>(std::ceil(static_cast<float>((ih + 1) * H) / OH)) -
-                        static_cast<size_t>(std::floor(static_cast<float>(ih * H) / OH));
+            size_t kh = ((ih + 1) * H + OH - 1) / OH - (ih * H) / OH;
             for(size_t iw = ow; iw < (ow + kow); ++iw)
             {
-                size_t kw = static_cast<size_t>(std::ceil(static_cast<float>((iw + 1) * W) / OW)) -
-                            static_cast<size_t>(std::floor(static_cast<float>(iw * W) / OW));
+                size_t kw = ((iw + 1) * W + OW - 1) / OW - (iw * W) / OW;
                 grad += static_cast<float>(
                             output_grad[output_grad_tv.get_tensor_view_idx({n, c, ih, iw})]) /
                         (kh * kw);
@@ -240,29 +237,25 @@ void cpu_adaptiveavgpool_backward_3d(tensor<T> output_grad,
         size_t nc = ncd / D, d = ncd % D;
         size_t n = nc / C, c = nc % C;
 
-        size_t od  = static_cast<size_t>(std::floor(static_cast<float>(d * OD) / D));
-        size_t kod = static_cast<size_t>(std::ceil(static_cast<float>((d + 1) * OD) / D)) - od;
+        size_t od  = (d * OD) / D;
+        size_t kod = ((d + 1) * OD + D - 1) / D - od;
 
-        size_t oh  = static_cast<size_t>(std::floor(static_cast<float>(h * OH) / H));
-        size_t koh = static_cast<size_t>(std::ceil(static_cast<float>((h + 1) * OH) / H)) - oh;
+        size_t oh  = (h * OH) / H;
+        size_t koh = ((h + 1) * OH + H - 1) / H - oh;
 
-        size_t ow  = static_cast<size_t>(std::floor(static_cast<float>(w * OW) / W));
-        size_t kow = static_cast<size_t>(std::ceil(static_cast<float>((w + 1) * OW) / W)) - ow;
+        size_t ow  = (w * OW) / W;
+        size_t kow = ((w + 1) * OW + W - 1) / W - ow;
 
         float grad = 0;
         for(size_t id = od; id < (od + kod); ++id)
         {
-            size_t kd = static_cast<size_t>(std::ceil(static_cast<float>((id + 1) * D) / OD)) -
-                        static_cast<size_t>(std::floor(static_cast<float>(id * D) / OD));
+            size_t kd = ((id + 1) * D + OD - 1) / OD - (id * D) / OD;
             for(size_t ih = oh; ih < (oh + koh); ++ih)
             {
-                size_t kh = static_cast<size_t>(std::ceil(static_cast<float>((ih + 1) * H) / OH)) -
-                            static_cast<size_t>(std::floor(static_cast<float>(ih * H) / OH));
+                size_t kh = ((ih + 1) * H + OH - 1) / OH - (ih * H) / OH;
                 for(size_t iw = ow; iw < (ow + kow); ++iw)
                 {
-                    size_t kw =
-                        static_cast<size_t>(std::ceil(static_cast<float>((iw + 1) * W) / OW)) -
-                        static_cast<size_t>(std::floor(static_cast<float>(iw * W) / OW));
+                    size_t kw = ((iw + 1) * W + OW - 1) / OW - (iw * W) / OW;
                     grad +=
                         static_cast<float>(
                             output_grad[output_grad_tv.get_tensor_view_idx({n, c, id, ih, iw})]) /
