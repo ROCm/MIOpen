@@ -177,8 +177,8 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     virtual std::size_t GetMaxMemoryAllocSize() const;
     virtual bool CooperativeLaunchSupported() const;
 
-    virtual std::string GetDeviceName() const;
-    const TargetProperties& GetTargetProperties() const;
+    std::string GetDeviceName() const;
+    virtual const TargetProperties& GetTargetProperties() const;
 
 private:
     std::string GetDeviceNameImpl() const;

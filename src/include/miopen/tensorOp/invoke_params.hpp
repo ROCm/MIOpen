@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2020 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,42 +23,56 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_TARGET_PROPERTIES_HPP
-#define GUARD_TARGET_PROPERTIES_HPP
 
-#include <boost/optional.hpp>
-#include <string>
+#pragma once
 
-#define WORKAROUND_ISSUE_3001 1
+#include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 
-struct Handle;
+namespace tensorOp {
 
-struct TargetProperties
+struct InvokeParams : public miopen::InvokeParams
 {
-    virtual ~TargetProperties() = default;
+    InvokeParams(const void* alpha0_,
+                 ConstData_t ATensor_,
+                 const void* alpha1_,
+                 ConstData_t BTensor_,
+                 const void* beta_,
+                 Data_t CTensor_,
+                 const size_t Aoffset_,
+                 const size_t Boffset_,
+                 const size_t Coffset_)
+        : alpha0(alpha0_),
+          alpha1(alpha1_),
+          beta(beta_),
+          ATensor(ATensor_),
+          BTensor(BTensor_),
+          CTensor(CTensor_),
+          Aoffset(Aoffset_),
+          Boffset(Boffset_),
+          Coffset(Coffset_)
+    {
+    }
 
-    virtual const std::string& Name() const { return name; }
-    const std::string& DbId() const { return dbId; }
-    virtual boost::optional<bool> Xnack() const { return xnack; }
-    boost::optional<bool> Sramecc() const { return sramecc; }
-    boost::optional<bool> SrameccReported() const { return sramecc_reported; }
-    static std::size_t GetMaxWaveScratchSize() { return MaxWaveScratchSize; }
-    static std::size_t GetMaxLocalMemorySize() { return MaxLocalMemorySize; }
-    void Init(const Handle*);
+    size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 
-private:
-    void InitDbId();
-    std::string name;
-    std::string dbId;
-    boost::optional<bool> xnack            = boost::none;
-    boost::optional<bool> sramecc          = boost::none;
-    boost::optional<bool> sramecc_reported = boost::none;
-    static const std::size_t MaxWaveScratchSize;
-    static const std::size_t MaxLocalMemorySize;
+public:
+    const void* alpha0;
+    const void* alpha1;
+    const void* beta;
+
+    ConstData_t ATensor;
+    ConstData_t BTensor;
+    Data_t CTensor;
+
+    size_t Aoffset;
+    size_t Boffset;
+    size_t Coffset;
 };
 
-} // namespace miopen
+} // namespace tensorOp
 
-#endif // GUARD_TARGET_PROPERTIES_HPP
+} // namespace miopen
