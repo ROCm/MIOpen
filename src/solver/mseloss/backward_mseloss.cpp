@@ -41,7 +41,6 @@
 #include <cstddef>
 
 #define LOCAL_SIZE_NONCONTIGUOUS_BWD 256
-#define LOCAL_SIZE_REDUCE 256
 
 #define VIEW_DIMS 5
 
