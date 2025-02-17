@@ -73,11 +73,11 @@ protected:
             std::vector<size_t> dims(d.begin(), d.end());
             if(auto dt = mTensPtr->GetType(); dt == miopenFloat)
             {
-                mCpuTensor = TensFlt{mTensPtr->GetLengths()};
+                mCpuTensor = TensFlt{dims};
             }
             else if(dt == miopenInt64)
             {
-                mCpuTensor = TensI64{mTensPtr->GetLengths()};
+                mCpuTensor = TensI64{dims};
             }
             else
             {
