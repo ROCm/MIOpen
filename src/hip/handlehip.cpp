@@ -782,7 +782,7 @@ bool Handle::CooperativeLaunchSupported() const
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
 
-std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
+std::string Handle::GetDeviceName() const { return this->GetTargetProperties().Name(); }
 
 const TargetProperties& Handle::GetTargetProperties() const
 {
