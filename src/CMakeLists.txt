@@ -315,7 +315,8 @@ set( MIOpen_Source
     solver/mha/mha_ck_fa_v2_solver_forward.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
-    solver/mseloss/mseloss.cpp
+    solver/mseloss/backward_mseloss.cpp
+    solver/mseloss/forward_mseloss.cpp
     solver/multimarginloss/forward_multimarginloss.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
