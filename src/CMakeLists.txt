@@ -41,9 +41,6 @@ endif()
 option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
 option( MIOPEN_FP8_IEEE_EXPONENT_BIAS "Sets the FP8 exponent bias to IEEE" OFF)
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
-set ( MIOPEN_DEFAULT_FIND_MODE "DynamicHybrid" CACHE STRING "Sets the default find mode")
-set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS
-    Normal Fast Hybrid FastHybrid DynamicHybrid)
 
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
 
@@ -336,11 +333,22 @@ set( MIOpen_Source
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
+    solver/tensorOp/Op1dTensorGeneric.cpp
+    solver/tensorOp/Op2dTensorGeneric.cpp
+    solver/tensorOp/Op2dTensorLite.cpp
+    solver/tensorOp/Op2dTensorSquash.cpp
+    solver/tensorOp/Op3dTensorGeneric.cpp
+    solver/tensorOp/Op4dTensorGeneric.cpp
+    solver/tensorOp/Op4dTensorLite.cpp
+    solver/tensorOp/Op5dTensorGeneric.cpp
+    solver/tensorOp/OpTensorFwdBias.cpp
+    solver/tensorOp/OpTensorLeadingOnes.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
+    tensorOp/problem_description.cpp
     tensor_api.cpp
     transformers_adam_w_api.cpp
     seq_tensor.cpp
@@ -498,7 +506,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c32_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1024vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_metadata.inc
-        kernels/workaround_issue_1431.hpp
         kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
@@ -684,7 +691,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/lrn_ocl.cpp
         ocl/mloNorm.cpp
         ocl/pooling_ocl.cpp
-        ocl/tensorocl.cpp
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/ctcocl.cpp
