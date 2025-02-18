@@ -32,6 +32,9 @@
 #include "miopen_limits.hpp"
 #include "static_kernel_reduction_common.hpp"
 
+#define MIOPEN_ENABLE_F8_DEVICE_CODE 1
+#include "hip_float8.hpp"
+
 namespace ck {
 
 namespace reduce {

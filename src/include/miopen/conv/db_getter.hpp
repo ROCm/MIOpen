@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2022 Advanced Micro Devices, Inc.
+ * Copyright (c) 2024 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,15 +23,43 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef WORKAROUND_ISSUE_1431_HPP
-#define WORKAROUND_ISSUE_1431_HPP
 
-// This is for the case if compiler defines `warpSize` as a macro.
-#ifdef warpSize
-#undef warpSize
+#pragma once
+
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+#include <miopen/sqlite_db.hpp>
+#else
+#include <miopen/readonlyramdb.hpp>
+#include <miopen/ramdb.hpp>
 #endif
 
-// Hack: this replaces each `warpSize` by literal `32`.
-#define warpSize 32
+#include <functional>
+#include <optional>
 
-#endif // WORKAROUND_ISSUE_1431_HPP
+namespace miopen {
+struct ExecutionContext;
+
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
+#else
+using PerformanceDb = DbTimer<MultiFileDb<ReadonlyRamDb, RamDb, true>>;
+#endif
+
+class [[nodiscard]] DbGetter final
+{
+public:
+    explicit DbGetter(std::function<PerformanceDb()>&& init_);
+
+    DbGetter(const DbGetter&) = delete;
+    auto operator=(const DbGetter&) -> DbGetter& = delete;
+
+    [[nodiscard]] auto operator()() -> PerformanceDb&;
+
+private:
+    std::function<PerformanceDb()> init;
+    std::optional<PerformanceDb> db;
+};
+
+[[nodiscard]] MIOPEN_INTERNALS_EXPORT auto MakeConvDbGetter(const ExecutionContext& ctx)
+    -> DbGetter;
+} // namespace miopen

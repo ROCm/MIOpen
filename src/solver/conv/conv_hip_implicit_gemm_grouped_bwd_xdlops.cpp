@@ -277,7 +277,6 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::ModelApplyToken(
         else
             return true;
     }
-    MIOPEN_LOG_I2("NEW INDEX");
 
     auto eraseBegin = std::remove_if(
         heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
@@ -287,20 +286,6 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::ModelApplyToken(
     if(eraseBegin != heuristic_indexes.begin())
     {
         heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
-
-        std::stringstream ss;
-        ss << "AFTER REMOVING\n";
-        for(auto i : heuristic_indexes)
-        {
-            for(const auto& x : heuristic_kernels[heuristic_indexes[i]])
-                ss << x << " ";
-            ss << "\n";
-            ss << valid_kernels[heuristic_indexes[i]];
-            ss << "\n";
-        }
-        ss << "\n";
-        MIOPEN_LOG_I2(ss.str());
-
         return true;
     }
     return false;
@@ -545,8 +530,6 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS))
-        return false;
-    if(env::enabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC))
         return false;
     if(problem.HasMixedDataTypes())
         return false;
