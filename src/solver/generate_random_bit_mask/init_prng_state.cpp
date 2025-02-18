@@ -65,6 +65,8 @@ ConvSolution InitPRNGState::GetSolution(
     const ExecutionContext& context,
     const miopen::generate_random_bit_mask::InitPRNGStateProblemDescription& problem) const
 {
+    std::ignore = context;
+
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto prng_stateSizeInBytes = problem.GetStateSizeInBytes();

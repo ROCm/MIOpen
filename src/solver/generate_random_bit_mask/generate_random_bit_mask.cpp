@@ -63,6 +63,7 @@ ConvSolution GenerateRandomBitMask::GetSolution(
     const miopen::generate_random_bit_mask::ProblemDescription& problem) const
 {
     std::ignore = context;
+
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto p             = problem.GetProb();
