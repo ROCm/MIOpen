@@ -1429,14 +1429,14 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
         else
         {
             tensor<Tref> empty_tensor;
-            batchNormSpatialHostBwdTrain(in.GetTensor(),
-                                         dy.GetTensor(),
-                                         out_ref,
-                                         bnScale.GetTensor(),
-                                         dScale_ref,
-                                         dBias_ref,
-                                         empty_tensor,
-                                         empty_tensor);
+            batchNormPerActHostBwdTrain(in.GetTensor(),
+                                        dy.GetTensor(),
+                                        out_ref,
+                                        bnScale.GetTensor(),
+                                        dScale_ref,
+                                        dBias_ref,
+                                        empty_tensor,
+                                        empty_tensor);
         }
     }
     else

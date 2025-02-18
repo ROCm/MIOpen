@@ -156,9 +156,9 @@ inline std::vector<BN3DTestCase> Network3DBN()
     // clang-format off
     return {
         {2, 2, 3, 224, 224, miopen::batchnorm::Direction::Backward, 1, 0},
-        // {16, 8, 132, 28, 28, miopen::batchnorm::Direction::Backward, 1, 0},
-        // {16, 8, 16, 128, 128, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
-        // {2, 2048, 16, 128, 128, miopen::batchnorm::Direction::Backward, 0, 1}
+        {16, 8, 132, 28, 28, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 16, 128, 128, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
+        {2, 2048, 16, 128, 128, miopen::batchnorm::Direction::Backward, 0, 1}
     };
     // clang-format on
 }

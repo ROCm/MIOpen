@@ -162,7 +162,6 @@ void batchNormSpatialHostInference(const tensor<T>& input,
                     output(bidx, cidx, row, column) =
                         static_cast<T>(scale(0, cidx, 0, 0) * inhat + bias(0, cidx, 0, 0));
                     // printf("output: %f\n",scale(0, cidx, 0, 0) * inhat + bias(0, cidx, 0, 0));
-                    // std::cout << output(bidx, cidx, row, column) << ",";
                 }
             }
         }
@@ -542,17 +541,24 @@ void batchNormPerActHostFwdTrain(const tensor<T>& input,
                         scale(0, cidx, row, column) * inhat + bias(0, cidx, row, column));
                 } // end for(n_batch)
 
-                newRunMean = runMean(0, cidx, row, column) * (1.0 - expAvgFactor);
-                runMean(0, cidx, row, column) =
-                    mean_accum * expAvgFactor + newRunMean; // newMean*factor + tmp
-
+                if(!runMean.data.empty())
+                {
+                    newRunMean = runMean(0, cidx, row, column) * (1.0 - expAvgFactor);
+                    runMean(0, cidx, row, column) =
+                        mean_accum * expAvgFactor + newRunMean; // newMean*factor + tmp
+                }
                 // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
-                adjust = (n_batch == 1) ? variance_accum : (n / (n - 1.0)) * variance_accum;
-                runVar(0, cidx, row, column) =
-                    (1 - expAvgFactor) * runVar(0, cidx, row, column) + expAvgFactor * adjust;
-
-                saveMean(0, cidx, row, column)   = static_cast<Tref>(mean_accum);
-                saveInvVar(0, cidx, row, column) = static_cast<Tref>(elemInvVar);
+                if(!runVar.data.empty())
+                {
+                    adjust = (n_batch == 1) ? variance_accum : (n / (n - 1.0)) * variance_accum;
+                    runVar(0, cidx, row, column) =
+                        (1 - expAvgFactor) * runVar(0, cidx, row, column) + expAvgFactor * adjust;
+                }
+                if(!saveMean.data.empty() || !saveInvVar.data.empty())
+                {
+                    saveMean(0, cidx, row, column)   = static_cast<Tref>(mean_accum);
+                    saveInvVar(0, cidx, row, column) = static_cast<Tref>(elemInvVar);
+                }
 
             } // for (column)
         }     // for (row)
