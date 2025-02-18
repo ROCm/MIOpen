@@ -27,11 +27,8 @@
 
 #include "lstm.hpp"
 #include "get_handle.hpp"
-#include <miopen/env.hpp>
 #include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 
 namespace env = miopen::env;
 
@@ -82,13 +79,13 @@ auto GetTestCases(std::string precision)
 
 using TestCase = decltype(GetTestCases({}))::value_type;
 
-class ConfigWithFloat_deepbench_lstm : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_DeepBench_lstm_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
 void Run2dDriverFloat(void)
 {
-    std::vector<std::string> params = ConfigWithFloat_deepbench_lstm::GetParam();
+    std::vector<std::string> params = GPU_DeepBench_lstm_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -109,16 +106,6 @@ void Run2dDriverFloat(void)
 
 using namespace deepbench_lstm;
 
-TEST_P(ConfigWithFloat_deepbench_lstm, FloatTest_deepbench_lstm)
-{
-    if(!env::enabled(MIOPEN_TEST_DEEPBENCH))
-    {
-        GTEST_SKIP();
-    }
+TEST_P(GPU_DeepBench_lstm_FP32, FloatTest_deepbench_lstm) { Run2dDriverFloat(); };
 
-    Run2dDriverFloat();
-};
-
-INSTANTIATE_TEST_SUITE_P(DeepbenchLstm,
-                         ConfigWithFloat_deepbench_lstm,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_DeepBench_lstm_FP32, testing::Values(GetTestCases("--float")));

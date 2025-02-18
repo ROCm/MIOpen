@@ -119,7 +119,7 @@ void VisitType(int id, Args... args)
     detail::VisitType<Visitor, Variant>{}(id, args...);
 }
 
-static Data_t AllocateTensor(Handle& handle,
+static Data_t AllocateTensor(const Handle& handle,
                              const FindOptions& options,
                              std::vector<Allocator::ManageDataPtr>& owned,
                              std::vector<std::uint64_t>& owned_scalars,
@@ -160,8 +160,9 @@ static void SortFindResults(const FindOptions& options, std::vector<Solution>& r
               }());
 }
 
-std::vector<Solution>
-Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t max_solutions) const
+std::vector<Solution> Problem::FindSolutions(const Handle& handle,
+                                             const FindOptions& options,
+                                             std::size_t max_solutions) const
 {
     auto owned_buffers = std::vector<Allocator::ManageDataPtr>{};
     auto owned_scalars = std::vector<std::uint64_t>{};
@@ -179,7 +180,12 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
     auto ret = std::visit(
         boost::hof::match(
             [&](const ConvolutionDescriptor& op_desc) {
-                return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
+                if(op_desc.mode == miopenTranspose)
+                    return MakeTransposed().FindSolutionsImpl(
+                        handle, options, max_solutions, buffers, op_desc, *this);
+                else
+                    return FindSolutionsImpl(
+                        handle, options, max_solutions, buffers, op_desc, *this);
             },
             [&](const SoftmaxDescriptor& op_desc) {
                 return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
@@ -382,6 +388,7 @@ mha::ProblemDescription Problem::AsMha() const
             dpDesc,
             dsDesc,
             doffDesc,
+            GetTensorDescriptor(miopenTensorMhaBias, TensorDescriptor()),
             oDesc,
             GetTensorDescriptorChecked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO"),
             GetTensorDescriptorChecked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS"),
@@ -455,11 +462,12 @@ softmax::ProblemDescription Problem::AsSoftmax() const
     return problem_description;
 }
 
-std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
+std::vector<Solution> Problem::FindSolutionsImpl(const Handle& handle,
                                                  const FindOptions& options,
                                                  std::size_t max_solutions,
                                                  const Buffers& buffers,
-                                                 const ConvolutionDescriptor& conv_desc) const
+                                                 const ConvolutionDescriptor& conv_desc,
+                                                 const Problem& original) const
 {
     if(tensor_descriptors.size() != 3)
     {
@@ -476,20 +484,16 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
     const auto& w = buffers.at(miopenTensorConvolutionW);
     auto y        = buffers.at(miopenTensorConvolutionY);
 
-    const auto conv_problem =
-        conv_desc.mode == miopenTranspose ? MakeTransposed().AsConvolution() : AsConvolution();
+    if(conv_desc.mode == miopenTranspose)
+        std::swap(x, y);
+
+    const auto conv_problem = AsConvolution();
+
+    ValidateGroupCount(x_desc, w_desc, conv_desc);
 
     std::size_t workspace_size;
     Allocator::ManageDataPtr owned_workspace;
     Data_t workspace;
-
-    if(conv_desc.mode == miopenTranspose)
-    {
-        std::swap(x, y);
-        std::swap(x_desc, y_desc);
-    }
-
-    ValidateGroupCount(x_desc, w_desc, conv_desc);
 
     if(options.preallocated_workspace)
     {
@@ -514,10 +518,11 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     auto results =
         FindConvolution(ctx, conv_problem, invoke_ctx, max_solutions, options.attach_binaries);
+    auto db = MakeConvDbGetter(ctx);
 
     for(auto& result : results)
     {
-        result.SetProblem({*this});
+        result.SetProblem({original});
 
         if(result.GetKernels().empty())
         {
@@ -525,7 +530,6 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
             // This would make binaries not serialized and invoker not cached.
             // So we prepare them here.
 
-            auto db = GetDb(ctx);
             const auto conv_solution =
                 result.GetSolver().GetSolver().FindSolution(ctx, conv_problem, db, invoke_ctx);
 
@@ -540,7 +544,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 }
 
 std::vector<Solution>
-Problem::FindSolutionsImpl(Handle& handle,
+Problem::FindSolutionsImpl(const Handle& handle,
                            [[maybe_unused]] const FindOptions& options,
                            std::size_t max_solutions,
                            [[maybe_unused]] const Buffers& buffers,
@@ -595,7 +599,7 @@ Problem::FindSolutionsImpl(Handle& handle,
 }
 
 std::vector<Solution>
-Problem::FindSolutionsImpl(Handle& handle,
+Problem::FindSolutionsImpl(const Handle& handle,
                            [[maybe_unused]] const FindOptions& options,
                            std::size_t max_solutions,
                            [[maybe_unused]] const Buffers& buffers,
@@ -609,10 +613,12 @@ Problem::FindSolutionsImpl(Handle& handle,
 
     const auto algo = AlgorithmName{"Mha"};
 
+    static solver::mha::MhaCKFlashAttentionV2Forward mhaCKFAForwardSolver;
     static solver::mha::MhaForward mhaForwardSolver;
     static solver::mha::MhaBackward mhaBackwardSolver;
 
-    std::vector<solver::mha::MhaSolver*> solvers = {&mhaForwardSolver, &mhaBackwardSolver};
+    std::vector<solver::mha::MhaSolver*> solvers = {
+        &mhaCKFAForwardSolver, &mhaForwardSolver, &mhaBackwardSolver};
 
     for(auto solver : solvers)
     {
@@ -650,7 +656,7 @@ Problem::FindSolutionsImpl(Handle& handle,
 namespace {
 inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
                                        const TensorDescriptor& w,
-                                       const miopenTensorLayout_t layout,
+                                       const std::optional<miopenTensorLayout_t>& layout,
                                        const int groups)
 {
     if(layout == miopenTensorNCHW      //
@@ -671,7 +677,7 @@ inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
 
 inline bool IsValidGroupCount(const TensorDescriptor& x,
                               const TensorDescriptor& w,
-                              const miopenTensorLayout_t layout,
+                              const std::optional<miopenTensorLayout_t>& layout,
                               const int groups)
 {
     if(groups > 1) // Optimize for speed
@@ -696,7 +702,7 @@ void Problem::ValidateGroupCount(const TensorDescriptor& x,
                                  const TensorDescriptor& w,
                                  const ConvolutionDescriptor& conv)
 {
-    const auto layout = w.GetLayout_t();
+    const auto layout = w.GetLayoutEnum();
     const auto groups = conv.group_count;
     assert(groups > 0);
 
@@ -955,7 +961,7 @@ void FusedProblem::PropagateDescriptors()
     }
 }
 
-std::vector<Solution> FusedProblem::FindSolutions(Handle& handle,
+std::vector<Solution> FusedProblem::FindSolutions(const Handle& handle,
                                                   const FindOptions& options,
                                                   std::size_t max_solutions) const
 {

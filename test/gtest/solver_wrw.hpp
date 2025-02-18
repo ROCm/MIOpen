@@ -25,35 +25,28 @@
  *******************************************************************************/
 #pragma once
 
-#include <gtest/gtest.h>
+#include "gtest_common.hpp"
 #include "conv_common.hpp"
 #include "get_handle.hpp"
-#include "tensor_util.hpp"
-#include <fusionHost.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
-
-#include <hip_float8.hpp>
-#include <miopen/type_name.hpp>
-#include <miopen/rank.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include "conv_test_base.hpp"
 #include "conv_tensor_gen.hpp"
 
-#include "get_solver.hpp"
 #include "../workspace.hpp"
 
 template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvWrwSolverTest
-    : public ::testing::TestWithParam<std::tuple<miopenConvFwdAlgorithm_t, ConvTestCaseBase>>
+    : public ::testing::TestWithParam<std::tuple<Gpu, miopenConvAlgorithm_t, ConvTestCaseBase>>
 {
-
-    template <typename Solver>
-    void SolverWrw(Solver solv)
+    void SolverWrw(const miopen::solver::conv::ConvSolverInterface& solv)
     {
         auto&& handle = get_handle();
 
         const auto tensors = miopen::ConvWrwTensors{
             output.desc, out_dev.get(), input.desc, in_dev.get(), weights.desc, wei_dev.get()};
+
         const auto problem =
             miopen::conv::ProblemDescription(output.desc,
                                              weights.desc,
@@ -66,12 +59,11 @@ struct ConvWrwSolverTest
             return tmp;
         }();
 
-        // const auto network_config = problem.BuildConfKey();
-
         if(!solv.IsApplicable(ctx, problem))
         {
-            test_skipped = true;
-            GTEST_SKIP() << solv.SolverDbId() << ": Not Applicable for this problem" << conv_config;
+            // Do not put GTEST_SKIP here.
+            // The usage of non-applicable config should be considered as a bug in the test.
+            GTEST_FAIL();
         }
 
         if(solv.MayNeedWorkspace())
@@ -81,23 +73,35 @@ struct ConvWrwSolverTest
         }
 
         const auto invoke_params = miopen::conv::WrWInvokeParams{
-            tensors, wspace.ptr(), wspace.size(), conv_desc.attribute.gfx90aFp16alt.GetBwd()};
+            tensors, wspace.ptr(), wspace.size(), conv_desc.attribute.gfx90aFp16alt.GetWrW()};
 
-        auto sol = GetSolution(solv, ctx, problem);
+        // \todo add path for tunable solvers
+        const auto& conv_solv = dynamic_cast<const miopen::solver::conv::ConvSolver&>(solv);
+
+        const auto sol = conv_solv.GetSolution(ctx, problem);
         ASSERT_TRUE(sol.Succeeded());
         ASSERT_TRUE(sol.invoker_factory);
         const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
         (invoker)(handle, invoke_params);
         handle.Finish();
+
+        this->Verify();
     }
 
 protected:
     void SetUp() override
     {
-        test_skipped                = false;
-        std::tie(algo, conv_config) = GetParam();
-        input   = tensor<T>{conv_config.N, conv_config.C, conv_config.H, conv_config.W};
-        weights = tensor<T>{conv_config.k, conv_config.C, conv_config.y, conv_config.x};
+        Gpu supported_devs;
+        ConvTestCaseBase conv_config;
+        std::tie(supported_devs, algo, conv_config) = GetParam();
+
+        if(!IsTestSupportedByDevice(supported_devs))
+        {
+            GTEST_SKIP();
+        }
+
+        input   = tensor<T>{conv_config.GetInput()};
+        weights = tensor<T>{conv_config.GetWeights()};
         input.generate(GenData<T>{});
 
         conv_desc = conv_config.GetConv();
@@ -115,16 +119,11 @@ protected:
         wei_dev       = handle.Write(weights.data);
         out_dev       = handle.Write(output.data);
     }
-    void TearDown() override
+
+private:
+    void Verify()
     {
-        if(test_skipped)
-            return;
-
-        auto&& handle = get_handle();
-
-        miopen::TensorDescriptor output_desc =
-            conv_desc.GetForwardOutputTensor(input.desc, weights.desc, miopen_type<T>{});
-        ref_weights = tensor<Tref>{output_desc.GetLengths()};
+        ref_weights = tensor<Tref>{weights.desc.GetLengths()};
         if(use_cpu_ref)
         {
             cpu_convolution_backward_weight(conv_desc.GetSpatialDimension(),
@@ -140,34 +139,24 @@ protected:
         {
             ref_weights = ref_conv_wrw(input, ref_weights, output, conv_desc);
         }
-        weights.data = handle.Read<T>(in_dev, input.data.size());
-#if defined(__clang__) || defined(__GNUG__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wfloat-equal"
-#endif
-        const auto zero_chk = [](T x) { return static_cast<T>(x) == static_cast<T>(0.0); };
-#if defined(__clang__) || defined(__GNUG__)
-#pragma GCC diagnostic pop
-#endif
 
-        EXPECT_FALSE(std::all_of(ref_weights.begin(), ref_weights.end(), [](float x) {
-            return x == 0.0f;
-        })) << "Cpu data is all zeros";
-        EXPECT_FALSE(std::all_of(weights.begin(), weights.end(), zero_chk))
-            << "Gpu data is all zeros";
-        EXPECT_TRUE(miopen::range_distance(ref_weights) == miopen::range_distance(weights));
+        auto&& handle = get_handle();
+        weights.data  = handle.Read<T>(wei_dev, weights.data.size());
+
+        ASSERT_FALSE(miopen::range_zero(ref_weights)) << "Cpu data is all zeros";
+        ASSERT_FALSE(miopen::range_zero(weights)) << "Gpu data is all zeros";
+        ASSERT_EQ(miopen::range_distance(ref_weights), miopen::range_distance(weights));
 
         const double tolerance = 80;
-        double threshold       = static_cast<float>(std::numeric_limits<T>::epsilon()) * tolerance;
+        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
         auto error             = miopen::rms_range(ref_weights, weights);
 
-        EXPECT_FALSE(miopen::find_idx(ref_weights, miopen::not_finite) >= 0)
+        ASSERT_LT(miopen::find_idx(ref_weights, miopen::not_finite), 0)
             << "Non finite number found in the CPU data";
 
-        EXPECT_TRUE(error < threshold)
-            << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        ASSERT_LT(error, threshold) << "Error beyond tolerance";
     }
-    ConvTestCaseBase conv_config;
+
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;
@@ -177,6 +166,5 @@ protected:
     miopen::Allocator::ManageDataPtr wei_dev;
     miopen::Allocator::ManageDataPtr out_dev;
     Workspace wspace{};
-    miopenConvFwdAlgorithm_t algo = miopenConvolutionFwdAlgoDirect;
-    bool test_skipped             = false;
+    miopenConvAlgorithm_t algo = miopenConvolutionAlgoDirect;
 };

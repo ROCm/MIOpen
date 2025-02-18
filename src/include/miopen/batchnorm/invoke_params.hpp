@@ -32,9 +32,9 @@
 namespace miopen {
 namespace batchnorm {
 
-struct InvokeParams : public miopen::InvokeParams
+struct FwdTrainInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    FwdTrainInvokeParams() = default;
 
     ConstData_t x                = nullptr;
     Data_t y                     = nullptr;

@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include <miopen/env.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -55,7 +55,7 @@ bool ConvBinWinograd3x3U::IsApplicable(const ExecutionContext& ctx,
     if(!(ctx.rmv.IsV2orV3() && ctx.use_asm_kernels))
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 

@@ -25,16 +25,12 @@
  *******************************************************************************/
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "../gru.hpp"
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 
 namespace env = miopen::env;
 
 namespace deepbench_gru {
-static bool SkipTest(void) { return !env::enabled(MIOPEN_TEST_DEEPBENCH); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -45,13 +41,13 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class DeepBenchGRUConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class GPU_DeepBenchGRU_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
 void Run2dDriverFloat(void)
 {
-    std::vector<std::string> params = DeepBenchGRUConfigWithFloat::GetParam();
+    std::vector<std::string> params = GPU_DeepBenchGRU_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -107,18 +103,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace deepbench_gru;
 
-TEST_P(DeepBenchGRUConfigWithFloat, FloatTest_deepbench_gru)
-{
-    if(SkipTest())
-    {
-        GTEST_SKIP();
-    }
-    else
-    {
-        Run2dDriverFloat();
-    }
-};
+TEST_P(GPU_DeepBenchGRU_FP32, FloatTest_deepbench_gru) { Run2dDriverFloat(); };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans,
-                         DeepBenchGRUConfigWithFloat,
-                         testing::Values(GetTestCases("--float")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_DeepBenchGRU_FP32, testing::Values(GetTestCases("--float")));

@@ -30,289 +30,26 @@
 #include <miopen/rnn_util.hpp>
 #include "miopen/rnn/tmp_buffer_utils.hpp"
 
+#include "miopen/rnn/algorithms/default_algo_utils.hpp"
+#include "miopen/rnn/algorithms/dynamic_algo_utils.hpp"
+
 namespace miopen {
 
 namespace rnn_base {
 
-class RNNBackwardDataModularAlgo
+//
+// Forward data
+//
+
+class RNNModularSingleStreamFWD
 {
 public:
-    static RNNBackwardDataModularAlgo create(const RNNDescriptor& rnnDesc,
-                                             const SeqTensorDescriptor& xDesc,
-                                             const SeqTensorDescriptor& yDesc,
-                                             const TensorDescriptor& hDesc)
-    {
-        auto [max_layers_hid, max_batch_hid, hidden_vec_sz] = miopen::tien<3>(hDesc.GetLengths());
-        auto [max_batch_in, max_seq, input_vec_sz]          = miopen::tien<3>(xDesc.GetLengths());
-
-        assert(max_batch_in <= max_batch_hid);
-
-        auto layers_cnt         = static_cast<int>(rnnDesc.nLayers);
-        const bool is_seq_bidir = rnnDesc.dirMode == miopenRNNbidirection;
-
-        assert(static_cast<size_t>(layers_cnt) * (is_seq_bidir ? 2 : 1) <= max_layers_hid);
-
-        auto gates_cnt = static_cast<int>(rnnDesc.nHiddenTensorsPerLayer);
-
-        // class update req
-        assert(!is_seq_bidir);
-        const size_t seq_directions = is_seq_bidir ? 2 : 1;
-
-        // TODO all size_t
-        GeneralLstmRedBuffer rb_layout = GeneralLstmRedBuffer::build(
-            layers_cnt, xDesc.GetTotalSequenceLen(), seq_directions, hidden_vec_sz);
-
-        GeneralLstmTempBuffer workspace_info = GeneralLstmTempBuffer::build(
-            layers_cnt, xDesc.GetTotalSequenceLen(), seq_directions, hidden_vec_sz);
-
-        WeightsBufferDescriptor weights_layout{static_cast<int>(input_vec_sz),
-                                               static_cast<int>(hidden_vec_sz),
-                                               layers_cnt,
-                                               rnnDesc.biasMode,
-                                               gates_cnt};
-
-        BatchController batch_controller = BatchController::Create(xDesc);
-
-        HiddenBuffersDescriptor hidden_hxcx_info{hDesc};
-
-        IOBufferDescriptor x_info{IOBufferDescriptor::build(xDesc)};
-        IOBufferDescriptor y_info{IOBufferDescriptor::build(yDesc)};
-
-        return {std::move(rb_layout),
-                workspace_info,
-                weights_layout,
-                hidden_hxcx_info,
-                x_info,
-                y_info,
-                rnnDesc,
-                batch_controller};
-    }
-
-    void PrepareWriteBuffers(const Handle& handle, Data_t dhx, Data_t dcx, Data_t workSpace) const;
-
-    void PropDhy(const Handle& handle,
-                 ConstData_t dhy,
-                 Data_t workSpace,
-                 unsigned int layer,
-                 const SequenceIterator& currentSeq,
-                 SequenceDirection direction) const;
-
-    void PropHiddenDht(const Handle& handle,
-                       ConstData_t w,
-                       Data_t workSpace,
-                       int layer,
-                       const SequenceIterator& currentSeq,
-                       SequenceDirection direction) const;
-
-    void UpdateHStatePerTimeSeq(const Handle& handle,
-                                ConstData_t dcy,
-                                ConstData_t cx,
-                                Data_t,
-                                Data_t workSpace,
-                                Data_t reserveSpace,
-                                int layer,
-                                const SequenceIterator& seq,
-                                SequenceDirection direction) const;
-
-    void PropDhxDcx(const Handle& handle,
-                    ConstData_t w,
-                    Data_t dhx,
-                    Data_t dcx,
-                    Data_t workSpace,
-                    Data_t reserveSpace,
-                    size_t layer,
-                    const SequenceIterator& currentSeq,
-                    SequenceDirection direction) const;
-
-    void PropDy(const Handle& handle, ConstData_t dy, Data_t workSpace) const;
-
-    void PropHiddenDy(const Handle& handle,
-                      ConstData_t w,
-                      Data_t workSpace,
-                      Data_t reserveSpace,
-                      size_t layer,
-                      SequenceDirection direction) const;
-
-    void PropHiddenDy(const Handle& handle,
-                      ConstData_t w,
-                      Data_t workSpace,
-                      Data_t reserveSpace,
-                      size_t layer,
-                      SequenceDirection direction,
-                      const SequenceIterator& firstSeq,
-                      const SequenceIterator& lastSeq) const;
-
-    void PropHiddenDy(const Handle& handle,
-                      ConstData_t w,
-                      Data_t workSpace,
-                      Data_t reserveSpace,
-                      size_t layer,
-                      SequenceDirection direction,
-                      size_t gemm_batch_size,
-                      size_t gemm_batch_offset) const;
-
-    void PropDx(const Handle& handle,
-                ConstData_t w,
-                ConstData_t workSpace,
-                Data_t dx,
-                SequenceDirection direction,
-                const SequenceIterator& firstSeq,
-                const SequenceIterator& lastSeq) const;
-
-    void PropDx(const Handle& handle,
-                ConstData_t w,
-                ConstData_t workSpace,
-                Data_t dx,
-                SequenceDirection direction) const;
-
-    void PropDx(const Handle& handle,
-                ConstData_t w,
-                ConstData_t workSpace,
-                Data_t dx,
-                SequenceDirection direction,
-                size_t gemm_batch_offset,
-                size_t gemm_batch_size) const;
-    static bool IsApplicable()
-    {
-#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
-        return true;
-#else
-        return false;
-#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
-    }
-
-private:
-    RNNBackwardDataModularAlgo(GeneralLstmRedBuffer rb_layout,
-                               GeneralLstmTempBuffer workspace_info,
-                               WeightsBufferDescriptor weights_layout,
-                               HiddenBuffersDescriptor hidden_hxcx_info,
-                               IOBufferDescriptor x_info,
-                               IOBufferDescriptor y_info,
-                               const RNNDescriptor& rnn_desc,
-                               BatchController batch_controller)
-        : reservLayout(std::move(rb_layout)),
-          workspaceInfo(std::move(workspace_info)),
-          weightsLayout(std::move(weights_layout)),
-          hiddenHxCxInfo(std::move(hidden_hxcx_info)),
-          xInfo(std::move(x_info)),
-          yInfo(std::move(y_info)),
-          rnnDesc(rnn_desc),
-          batchController(std::move(batch_controller))
-    {
-    }
-
-    template <typename BufType>
-    inline miopen::TensorDescriptor BuildLstmTmpBlockDesc2D(const BufType& buf_info,
-                                                            const size_t batch_size) const
-    {
-        const std::array<size_t, 4>& tmp_block_stride = buf_info.getGateBlockStride();
-        const std::array<size_t, 4>& tmp_block_size   = buf_info.getGateBlockSize();
-
-        // batch, gateBlock_elements
-        return miopen::TensorDescriptor{rnnDesc.dataType,
-                                        {batch_size, tmp_block_size[3]},
-                                        {tmp_block_stride[1], tmp_block_stride[3]}};
-    }
-
-    inline miopen::TensorDescriptor BuildLstmFilterXDesc2D(int layer_id) const
-    {
-        // TODO replace by stride
-        auto x_vec = layer_id != 0 ? weightsLayout.x_in_vec : weightsLayout.in_vec;
-
-        // gateBlock_elements, ht_vec
-        return miopen::TensorDescriptor{
-            rnnDesc.dataType, {weightsLayout.gates_cnt * weightsLayout.h_vec, x_vec}, {x_vec, 1}};
-    }
-
-    inline miopen::TensorDescriptor BuildLstmFilterHidDesc2D() const
-    {
-        // TODO replace by stride
-        auto h_vec = weightsLayout.h_vec;
-
-        // gateBlock_elements, ht_vec
-        return miopen::TensorDescriptor{
-            rnnDesc.dataType, {weightsLayout.gates_cnt * weightsLayout.h_vec, h_vec}, {h_vec, 1}};
-    }
-
-    inline miopen::TensorDescriptor BuildWsHtDesc2D(size_t batch_size) const
-    {
-        auto& ht_stride = workspaceInfo.getHiddenStateStride();
-        auto& ht_size   = workspaceInfo.hStateSizes;
-
-        // batch, gateBlock_elements
-        return miopen::TensorDescriptor{
-            rnnDesc.dataType, {batch_size, ht_size[3]}, {ht_stride[1], ht_stride[3]}};
-    }
-
-    // 2 dims batch, vec
-    inline miopen::TensorDescriptor BuildHxCxDesc2D(size_t batch_size) const
-    {
-        const std::vector<size_t> hx_size{batch_size, hiddenHxCxInfo.getHiddenSize()};
-        const std::vector<size_t> hx_stride{hiddenHxCxInfo.getStrides()[1],
-                                            hiddenHxCxInfo.getStrides()[2]};
-
-        return miopen::TensorDescriptor{rnnDesc.dataType, hx_size, hx_stride};
-    }
-
-    // 3 dims layer, batch, vec
-    inline miopen::TensorDescriptor BuildHxCxDesc3D(size_t layer_size, size_t batch_size) const
-    {
-        const std::vector<size_t> hx_accum_size{
-            layer_size, batch_size, hiddenHxCxInfo.getHiddenSize()};
-
-        return miopen::TensorDescriptor{
-            rnnDesc.dataType, hx_accum_size, hiddenHxCxInfo.getStrides()};
-    }
-
-    // 3 dims layer, batch, vec
-    inline miopen::TensorDescriptor BuildTempDhtDesc3D(size_t layer_size, size_t batch_size) const
-    {
-        const std::vector<size_t> dy_dhy_accum_size{
-            layer_size, batch_size, hiddenHxCxInfo.getHiddenSize()};
-
-        const auto ws_dy_stride = [](const auto& ws_4dim_strides) -> std::vector<size_t> {
-            // convert 4dim stride to 3 dim without direction
-            // TODO change hiddenBufferDesc
-            return std::vector<size_t>{ws_4dim_strides[0], ws_4dim_strides[1], ws_4dim_strides[3]};
-        }(workspaceInfo.getHiddenStateStride());
-
-        return miopen::TensorDescriptor{rnnDesc.dataType, dy_dhy_accum_size, ws_dy_stride};
-    }
-
-    inline size_t getVirtualLayer(const size_t layer_id, SequenceDirection direction) const
-    {
-        return layer_id * (isBidirectSeq ? 2 : 1) +
-               (direction == SequenceDirection::Forward ? 0 : 1);
-    }
-
-    const GeneralLstmRedBuffer reservLayout;
-    // const WorkspaceBufferDescriptor workspaceInfo;
-    const GeneralLstmTempBuffer workspaceInfo;
-
-    const WeightsBufferDescriptor weightsLayout;
-    const HiddenBuffersDescriptor hiddenHxCxInfo;
-    const IOBufferDescriptor xInfo;
-    const IOBufferDescriptor yInfo;
-
-    const RNNDescriptor& rnnDesc;
-
-    const ActivationDescriptor tanhDesc = {miopenActivationTANH, 1, 1, 1};
-    const ActivationDescriptor sigDesc  = {miopenActivationLOGISTIC, 1, 0, 1};
-    const ActivationDescriptor reluDesc = {miopenActivationRELU, 1, 0, 1};
-
-    const BatchController batchController;
-
-    const bool isBidirectSeq = false;
-};
-
-class RNNModularSingleStreamBWD
-{
-public:
-    RNNModularSingleStreamBWD(const RNNDescriptor& rnn,
+    RNNModularSingleStreamFWD(const RNNDescriptor& rnn,
                               const SeqTensorDescriptor& xDesc,
                               const SeqTensorDescriptor& yDesc,
-                              const TensorDescriptor& hDesc)
-        : rnnAlgoModules(RNNBackwardDataModularAlgo::create(rnn, xDesc, yDesc, hDesc)),
+                              const TensorDescriptor& hDesc,
+                              miopenRNNFWDMode_t mode)
+        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc, mode)),
           rnnDesc(rnn),
           max_seq_len(xDesc.GetMaxSequenceLength())
     {
@@ -330,7 +67,85 @@ public:
     // TODO
     static size_t GetWsSize() { return 0; };
 
-    void ComputeBWD(Handle& handle,
+    void ComputeFWD(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
+
+    const rnn_base::RNNForwardDataModularAlgo rnnAlgoModules;
+
+    const RNNDescriptor& rnnDesc;
+    const size_t max_seq_len;
+};
+
+class RNNDynamicModularSingleStreamFWD
+{
+private:
+public:
+    RNNDynamicModularSingleStreamFWD(const RNNDescriptor& rnn,
+                                     const SeqTensorDescriptor& xDesc,
+                                     const SeqTensorDescriptor& yDesc,
+                                     const TensorDescriptor& hDesc,
+                                     miopenRNNFWDMode_t mode)
+        : rnnAlgoModules(rnn, xDesc, yDesc, hDesc, mode), rnnDesc(rnn)
+    {
+    }
+
+    static bool IsApplicable()
+    {
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+        return true;
+#else
+        return false;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    }
+
+    auto getTempBuffersSize(const Handle& handle) const
+    {
+        return rnnAlgoModules.getTempBuffersSize(handle);
+    }
+
+    static auto getTempBuffersSize(const Handle& handle,
+                                   const RNNDescriptor& rnn,
+                                   const SeqTensorDescriptor& xDesc)
+    {
+        return rnn_base::RNNModuleAlgoDynamic::getTempBuffersSize(handle, rnn, xDesc);
+    }
+
+    void ComputeFWD(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
+
+    const rnn_base::RNNModuleAlgoDynamic rnnAlgoModules;
+    const RNNDescriptor& rnnDesc;
+};
+
+//
+// Backward Data
+//
+
+class RNNModularSingleStreamBWD
+{
+public:
+    RNNModularSingleStreamBWD(const RNNDescriptor& rnn,
+                              const SeqTensorDescriptor& xDesc,
+                              const SeqTensorDescriptor& yDesc,
+                              const TensorDescriptor& hDesc,
+                              miopenRNNFWDMode_t mode)
+        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc, mode)),
+          rnnDesc(rnn),
+          max_seq_len(xDesc.GetMaxSequenceLength())
+    {
+    }
+
+    static bool IsApplicable()
+    {
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+        return true;
+#else
+        return false;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    }
+
+    // TODO
+    static size_t GetWsSize() { return 0; };
+
+    void ComputeBWD(const Handle& handle,
                     ConstData_t dy,
                     ConstData_t dhy,
                     Data_t dhx,
@@ -347,14 +162,55 @@ public:
     const size_t max_seq_len;
 };
 
+class RNNDynamicModularSingleStreamBWD
+{
+private:
+public:
+    RNNDynamicModularSingleStreamBWD(const RNNDescriptor& rnn,
+                                     const SeqTensorDescriptor& xDesc,
+                                     const SeqTensorDescriptor& yDesc,
+                                     const TensorDescriptor& hDesc,
+                                     miopenRNNFWDMode_t mode)
+        : rnnAlgoModules(rnn, xDesc, yDesc, hDesc, mode), rnnDesc(rnn)
+    {
+    }
+
+    static bool IsApplicable()
+    {
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+        return true;
+#else
+        return false;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    }
+
+    auto getTempBuffersSize(const Handle& handle) const
+    {
+        return rnnAlgoModules.getTempBuffersSize(handle);
+    }
+
+    static auto getTempBuffersSize(const Handle& handle,
+                                   const RNNDescriptor& rnn,
+                                   const SeqTensorDescriptor& xDesc)
+    {
+        return decltype(rnnAlgoModules)::getTempBuffersSize(handle, rnn, xDesc);
+    }
+
+    void ComputeBWD(const Handle& handle, const runtimeArgsBwd& runtimeArgs) const;
+
+    const rnn_base::RNNBackwardModuleAlgoDynamic rnnAlgoModules;
+    const RNNDescriptor& rnnDesc;
+};
+
 class RNNModularMultiStreamBWD
 {
 public:
     RNNModularMultiStreamBWD(const RNNDescriptor& rnn,
                              const SeqTensorDescriptor& xDesc,
                              const SeqTensorDescriptor& yDesc,
-                             const TensorDescriptor& hDesc)
-        : rnnAlgoModules(RNNBackwardDataModularAlgo::create(rnn, xDesc, yDesc, hDesc)),
+                             const TensorDescriptor& hDesc,
+                             miopenRNNFWDMode_t mode)
+        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc, mode)),
           rnnDesc(rnn),
           max_seq_len(xDesc.GetMaxSequenceLength())
     {
@@ -372,22 +228,7 @@ public:
     // TODO
     static size_t GetWsSize() { return 0; };
 
-    struct runtimeArgsBwd
-    {
-        const Handle* handle;
-        ConstData_t dy;
-        ConstData_t dhy;
-        Data_t dhx;
-        ConstData_t cx;
-        ConstData_t dcy;
-        Data_t dcx;
-        Data_t dx;
-        ConstData_t w;
-        Data_t workSpace;
-        Data_t reserveSpace;
-    };
-
-    void ComputeBWD(Handle& handle,
+    void ComputeBWD(const Handle& handle,
                     ConstData_t dy,
                     ConstData_t dhy,
                     Data_t dhx,
@@ -408,6 +249,161 @@ private:
     void PrologueDispatch(const runtimeArgsBwd& args) const;
 
     const rnn_base::RNNBackwardDataModularAlgo rnnAlgoModules;
+    const RNNDescriptor& rnnDesc;
+    const size_t max_seq_len;
+};
+
+//
+// Backward Weights
+//
+
+class RNNModularSingleStreamBWWeights
+{
+public:
+    RNNModularSingleStreamBWWeights(const RNNDescriptor& rnn,
+                                    const SeqTensorDescriptor& xDesc,
+                                    const SeqTensorDescriptor& yDesc,
+                                    const TensorDescriptor& hDesc)
+        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc, miopenRNNTraining)),
+          rnnDesc(rnn),
+          max_seq_len(xDesc.GetMaxSequenceLength())
+    {
+    }
+
+    static bool IsApplicable()
+    {
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+        return true;
+#else
+        return false;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    }
+
+    // TODO
+    static size_t GetWsSize() { return 0; };
+
+    void Compute(const Handle& handle,
+                 ConstData_t x,
+                 ConstData_t hx,
+                 Data_t dw,
+                 Data_t workSpace,
+                 size_t /*workSpaceSize*/,
+                 ConstData_t reserveSpace,
+                 size_t /*reserveSpaceSize*/) const;
+
+    const rnn_base::RNNBackwardWeightsModularAlgo rnnAlgoModules;
+    const RNNDescriptor& rnnDesc;
+    const size_t max_seq_len;
+};
+
+class RNNDynamicModularSingleStreamBWWeights
+{
+private:
+public:
+    RNNDynamicModularSingleStreamBWWeights(const RNNDescriptor& rnn,
+                                           const SeqTensorDescriptor& xDesc,
+                                           const SeqTensorDescriptor& yDesc,
+                                           const TensorDescriptor& hDesc,
+                                           miopenRNNFWDMode_t mode)
+        : rnnAlgoModules(rnn, xDesc, yDesc, hDesc, mode),
+          rnnDesc(rnn),
+          max_seq_len(xDesc.GetMaxSequenceLength())
+    {
+    }
+
+    static bool IsApplicable()
+    {
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+        return true;
+#else
+        return false;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    }
+
+    auto getTempBuffersSize(const Handle& handle) const
+    {
+        return rnnAlgoModules.getTempBuffersSize(handle);
+    }
+
+    static auto getTempBuffersSize(const Handle& handle,
+                                   const RNNDescriptor& rnn,
+                                   const SeqTensorDescriptor& xDesc)
+    {
+        return decltype(rnnAlgoModules)::getTempBuffersSize(handle, rnn, xDesc);
+    }
+
+    runtimeArgsBWWeights createRuntimeArgsBase(const Handle& handle,
+                                               ConstData_t x,
+                                               ConstData_t hx,
+                                               Data_t dw,
+                                               Data_t workSpace,
+                                               size_t workSpaceSize,
+                                               ConstData_t reserveSpace,
+                                               size_t /*reserveSpaceSize*/) const
+    {
+        const ConstData_t back_data_space = workSpace;
+        const auto back_data_byte_size =
+            rnnAlgoModules.workspaceInfo.getBufferSizeImpl() * GetTypeSize(rnnDesc.dataType);
+
+        const Data_t free_ws    = moveDataPtrByte(workSpace, back_data_byte_size);
+        const auto free_ws_size = workSpaceSize - back_data_byte_size;
+
+        return runtimeArgsBWWeights{
+            &handle, x, hx, dw, back_data_space, reserveSpace, free_ws, free_ws_size};
+    }
+
+    void Compute(const Handle& handle,
+                 ConstData_t x,
+                 ConstData_t hx,
+                 Data_t dw,
+                 Data_t workSpace,
+                 size_t /*workSpaceSize*/,
+                 ConstData_t reserveSpace,
+                 size_t /*reserveSpaceSize*/) const;
+
+    const RNNBackwardWeiModuleAlgoDynamic rnnAlgoModules;
+    const RNNDescriptor& rnnDesc;
+    const size_t max_seq_len;
+};
+
+class RNNModularMultiStreamBWWeights
+{
+public:
+    RNNModularMultiStreamBWWeights(const RNNDescriptor& rnn,
+                                   const SeqTensorDescriptor& xDesc,
+                                   const SeqTensorDescriptor& yDesc,
+                                   const TensorDescriptor& hDesc)
+        : rnnAlgoModules(RNNModuleAlgoBase::create(rnn, xDesc, yDesc, hDesc, miopenRNNTraining)),
+          rnnDesc(rnn),
+          max_seq_len(xDesc.GetMaxSequenceLength())
+    {
+    }
+
+    static bool IsApplicable()
+    {
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+        return true;
+#else
+        return false;
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    }
+
+    // TODO
+    static size_t GetWsSize() { return 0; };
+
+    void Compute(const Handle& handle,
+                 ConstData_t x,
+                 ConstData_t hx,
+                 Data_t dw,
+                 Data_t workSpace,
+                 size_t /*workSpaceSize*/,
+                 ConstData_t reserveSpace,
+                 size_t /*reserveSpaceSize*/) const;
+
+private:
+    void PrologueDispatch(const runtimeArgsBWWeights& args) const;
+
+    const rnn_base::RNNBackwardWeightsModularAlgo rnnAlgoModules;
     const RNNDescriptor& rnnDesc;
     const size_t max_seq_len;
 };

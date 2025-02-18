@@ -37,7 +37,7 @@ using miopen::graphapi::OpGraph;
 
 } // namespace
 
-TEST(GraphApi, EngineHeurBuilder)
+TEST(CPU_GraphApiEngineHeurBuilder_NONE, EngineHeurBuilder)
 {
     OpGraph opGraph;
 
@@ -70,7 +70,7 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 } // namespace
 
-TEST(GraphApi, EngineHeur)
+TEST(CPU_GraphApiEngineHeur_NONE, EngineHeur)
 {
     MockOpGraphDescriptor opGraphDescriptor;
 

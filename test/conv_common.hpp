@@ -38,7 +38,6 @@
 #include <miopen/tensor_layout.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/mlo_internal.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/conv/tensors.hpp>
@@ -69,7 +68,7 @@ using Direction              = miopen::conv::Direction;
 bool get_handle_xnack();
 
 #if TEST_DIRECT_SUPPORTED_CONFIG_ONLY
-static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
+static inline bool is_direct_fwd_bwd_data_supported(const miopen::Handle& handle,
                                                     const miopen::ConvolutionDescriptor convDesc,
                                                     const miopen::TensorDescriptor& xDesc,
                                                     const miopen::TensorDescriptor& wDesc,
@@ -98,7 +97,7 @@ static inline bool is_direct_fwd_bwd_data_supported(miopen::Handle& handle,
     return true;
 }
 
-static inline bool is_direct_bwd_wrw_supported(miopen::Handle& handle,
+static inline bool is_direct_bwd_wrw_supported(const miopen::Handle& handle,
                                                const miopen::ConvolutionDescriptor convDesc,
                                                const miopen::TensorDescriptor& xDesc,
                                                const miopen::TensorDescriptor& wDesc,
@@ -185,10 +184,7 @@ tensor<Tout> get_output_tensor(const miopen::ConvolutionDescriptor& filter,
                                const std::string& out_layout)
 {
 
-    std::string yLayout =
-        out_layout.empty()
-            ? input.desc.GetLayout(miopen::tensor_layout_get_default(input.desc.GetNumDims()))
-            : out_layout;
+    std::string yLayout = out_layout.empty() ? input.desc.GetLayout_str() : out_layout;
     return tensor<Tout>{filter.GetForwardOutputTensorWithLayout(
         input.desc, weights.desc, yLayout, miopen_type<Tout>{})};
 }

@@ -64,6 +64,16 @@ OutputIt exclusive_scan_wa(InputIt first, InputIt last, OutputIt d_first, T init
 
 } // namespace WA_RHEL
 
+inline Data_t moveDataPtrByte(Data_t ptr, size_t byteOffset)
+{
+    return static_cast<char*>(ptr) + byteOffset;
+}
+
+inline Data_t moveDataPtr(Data_t ptr, size_t elementOffset, miopenDataType_t elementType)
+{
+    return moveDataPtrByte(ptr, elementOffset * GetTypeSize(elementType));
+}
+
 namespace rnn_base {
 
 enum class SequenceDirection
@@ -178,12 +188,13 @@ public:
  */
 //////
 
-class GeneralRNNTempBuffer : public BaseRnnWsBufferPacked<GeneralRNNTempBuffer>
+template <typename Derived>
+class GeneralRNNTempBufferTemplate : public BaseRnnWsBufferPacked<Derived>
 {
 protected:
-    GeneralRNNTempBuffer(const std::array<size_t, 4>& hstate_strides,
-                         const std::array<size_t, 4>& hstate_sizes,
-                         size_t total_element_cnt)
+    GeneralRNNTempBufferTemplate(const std::array<size_t, 4>& hstate_strides,
+                                 const std::array<size_t, 4>& hstate_sizes,
+                                 size_t total_element_cnt)
         : hStateStrides{hstate_strides},
           hStateSizes{hstate_sizes},
           totalElementCnt{total_element_cnt}
@@ -191,7 +202,7 @@ protected:
     }
 
 public:
-    static GeneralRNNTempBuffer
+    static GeneralRNNTempBufferTemplate
     build(size_t layers_cnt, size_t vectors_per_layer, size_t directions, size_t hidden_vec_sz)
     {
         const std::array<size_t, 4> h_state_sizes{
@@ -203,7 +214,7 @@ public:
                          std::multiplies<size_t>{});
 
         auto total_element_cnt = h_state_strides[0] * h_state_sizes[0];
-        return GeneralRNNTempBuffer{h_state_strides, h_state_sizes, total_element_cnt};
+        return {h_state_strides, h_state_sizes, total_element_cnt};
     }
 
     size_t getHiddenStateOffsetImpl(const size_t layer_id,
@@ -250,18 +261,21 @@ public:
  *}
  */
 
-class GeneralLstmTempBuffer : public GeneralRNNTempBuffer,
-                              public GeneralLstmWsExt<GeneralLstmTempBuffer>,
-                              public LstmWsGateBlockExt<GeneralLstmTempBuffer>
+template <typename Derived>
+class GeneralLstmInternalBuffTemplate : public GeneralRNNTempBufferTemplate<Derived>,
+                                        public GeneralLstmWsExt<Derived>,
+                                        public LstmWsGateBlockExt<Derived>
 {
+    using RNNBufferTemplate = GeneralRNNTempBufferTemplate<Derived>;
+
 protected:
-    GeneralLstmTempBuffer(const std::array<size_t, 4>& h_state_strides,
-                          const std::array<size_t, 4>& h_state_sizes,
-                          const std::array<size_t, 4>& lstm_gate_sizes,
-                          const std::array<size_t, 4>& lstm_gate_strides,
-                          const std::array<size_t, 4>& lstm_gates_block_sizes,
-                          size_t total_element_cnt)
-        : GeneralRNNTempBuffer{h_state_strides, h_state_sizes, total_element_cnt},
+    GeneralLstmInternalBuffTemplate(const std::array<size_t, 4>& h_state_strides,
+                                    const std::array<size_t, 4>& h_state_sizes,
+                                    const std::array<size_t, 4>& lstm_gate_sizes,
+                                    const std::array<size_t, 4>& lstm_gate_strides,
+                                    const std::array<size_t, 4>& lstm_gates_block_sizes,
+                                    size_t total_element_cnt)
+        : RNNBufferTemplate{h_state_strides, h_state_sizes, total_element_cnt},
           gateSizes{lstm_gate_sizes},
           gateStride{lstm_gate_strides},
           gateBlockSizes{lstm_gates_block_sizes}
@@ -269,7 +283,7 @@ protected:
     }
 
 public:
-    static GeneralLstmTempBuffer
+    static GeneralLstmInternalBuffTemplate
     build(size_t layers_cnt, size_t comp_dim_per_layer, size_t directions, size_t hidden_vec_sz)
     {
 
@@ -345,7 +359,8 @@ public:
                                 const size_t vector_id,
                                 const SequenceDirection direction) const
     {
-        return getGasOffset(layer_id, vector_id, direction, LstmGateAndState::Ht);
+        return GeneralLstmWsExt<Derived>::getGasOffset(
+            layer_id, vector_id, direction, LstmGateAndState::Ht);
     }
 
     size_t getGasOffsetImpl(const size_t layer_id,
@@ -357,20 +372,21 @@ public:
 
         if(gas == LstmGateAndState::Ht || gas == LstmGateAndState::St)
             return start_ident +
-                   GeneralRNNTempBuffer::getHiddenStateOffset(layer_id, vector_id, direction);
+                   RNNBufferTemplate::getHiddenStateOffset(layer_id, vector_id, direction);
 
         const std::array<size_t, 3> pos{layer_id, vector_id, static_cast<size_t>(direction)};
 
-        return start_ident +
-               std::inner_product(
-                   pos.cbegin(), pos.cend(), hStateStrides.cbegin(), static_cast<size_t>(0));
+        return start_ident + std::inner_product(pos.cbegin(),
+                                                pos.cend(),
+                                                RNNBufferTemplate::hStateStrides.cbegin(),
+                                                static_cast<size_t>(0));
     }
 
     // layer, minor dim(seq or sample), directions, element
     const std::array<size_t, 4>& getGateAndStateStrideImpl(LstmGateAndState gas) const
     {
         if(gas == LstmGateAndState::Ht || gas == LstmGateAndState::St)
-            return getHiddenStateStride();
+            return RNNBufferTemplate::getHiddenStateStride();
         return gateStride;
     }
 
@@ -392,9 +408,19 @@ private:
         case LstmGateAndState::O: return static_cast<size_t>(gas) * gateStride[3] * gateSizes[3];
         case LstmGateAndState::St: return gateStride[2] * gateSizes[2]; // direction DIM
         case LstmGateAndState::Ht:
-            return (gateStride[2] + getHiddenStateStride()[2]) * gateSizes[2];
+            return (gateStride[2] + RNNBufferTemplate::getHiddenStateStride()[2]) * gateSizes[2];
         }
         return 0;
+    }
+};
+
+// final
+class GeneralLstmTempBuffer : public GeneralLstmInternalBuffTemplate<GeneralLstmTempBuffer>
+{
+public:
+    GeneralLstmTempBuffer(const GeneralLstmInternalBuffTemplate<GeneralLstmTempBuffer> base)
+        : GeneralLstmInternalBuffTemplate<GeneralLstmTempBuffer>{base}
+    {
     }
 };
 
@@ -426,16 +452,16 @@ private:
  *}
  */
 
-class GeneralLstmRedBuffer : public GeneralLstmTempBuffer,
+class GeneralLstmRedBuffer : public GeneralLstmInternalBuffTemplate<GeneralLstmRedBuffer>,
                              public LstmActiveCellExt<GeneralLstmRedBuffer>
 {
 protected:
-    GeneralLstmRedBuffer(const GeneralLstmTempBuffer& base,
+    GeneralLstmRedBuffer(const GeneralLstmInternalBuffTemplate<GeneralLstmRedBuffer>& base,
                          const std::array<size_t, 4>& active_cells_sizes,
                          const std::array<size_t, 4>& active_cells_strides,
                          size_t active_cells_ident,
                          size_t active_cell_elements)
-        : GeneralLstmTempBuffer{base},
+        : GeneralLstmInternalBuffTemplate<GeneralLstmRedBuffer>{base},
           activeCellSize{active_cells_sizes},
           activeCellStride{active_cells_strides},
           activeCellsIdent{active_cells_ident},
@@ -448,8 +474,8 @@ public:
     build(size_t layers_cnt, size_t comp_dim_per_layer, size_t directions, size_t hidden_vec_sz)
     {
 
-        auto base =
-            GeneralLstmTempBuffer::build(layers_cnt, comp_dim_per_layer, directions, hidden_vec_sz);
+        auto base = GeneralLstmInternalBuffTemplate<GeneralLstmRedBuffer>::build(
+            layers_cnt, comp_dim_per_layer, directions, hidden_vec_sz);
 
         auto active_cells_ident = base.gateStride[0] * base.gateSizes[0];
 
@@ -534,6 +560,8 @@ public:
     {
         return batchPrefSumAtTime[time_id];
     }
+
+    size_t size() const { return batchAtTime.size(); }
 
 private:
     template <class T, std::enable_if_t<std::is_same<T, std::vector<size_t>>::value, bool> = true>
@@ -625,83 +653,152 @@ private:
  *  } filters[n_layers][bidirect];
  *
  *  struct bias{
- *      struct gateBias{
+ *      struct {
  *          float[hidden_size]
- *      }
- *  }
+ *      }gateBias[gate_cnt]
+ *  }biases[n_layers][bias_cnt][bidirect]
  *}
  */
 struct WeightsBufferDescriptor
 {
 private:
-    static auto hidden_xinput_size(int hidden_sz, int bidirect_mode)
+    static size_t hidden_xinput_size(size_t hidden_sz, bool bidirect_mode)
     {
-        if(bidirect_mode == 0)
+        if(!bidirect_mode)
             return hidden_sz;
         MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
     }
 
-    static auto matrix_size(int input_vector_sz, int hidden_vec_sz, int gates)
+    static auto filter_size(size_t input_vector_sz, size_t hidden_vec_sz, size_t gates)
     {
         return (input_vector_sz + hidden_vec_sz) * hidden_vec_sz * gates;
     }
 
-    static size_t bias_start_offset(
-        int input_vector_sz, int hidden_vec_sz, int layers_cnt, int gates, int bidirect_mode)
+    static size_t bias_start_offset(size_t phis_layer_filter_sz,
+                                    size_t hidden_layer_filter_sz,
+                                    size_t layers_cnt,
+                                    bool bidirect_mode)
     {
-        if(bidirect_mode == 0)
+        if(!bidirect_mode)
         {
-            return matrix_size(input_vector_sz, hidden_vec_sz, gates) +
-                   static_cast<size_t>(hidden_vec_sz + hidden_xinput_size(hidden_vec_sz, 0)) *
-                       hidden_vec_sz * static_cast<size_t>(layers_cnt - 1) * gates;
+            return phis_layer_filter_sz + hidden_layer_filter_sz * (layers_cnt - 1);
         }
 
         MIOPEN_THROW("execution failure: bidirect is not supported by this solver");
     }
-    // TODO static create function
 
-public:
-    WeightsBufferDescriptor(
-        int input_vector_sz, int hidden_vec_sz, int layers_cnt, int bias_mode, int gates)
-        : in_vec(input_vector_sz),
-          h_vec(hidden_vec_sz),
-          x_in_vec(hidden_xinput_size(hidden_vec_sz, 0)),
+    WeightsBufferDescriptor(size_t input_vector_sz,
+                            size_t hidden_vec_sz,
+                            size_t hidden_xinput_sz,
+                            size_t layers_cnt,
+                            size_t gates,
+                            size_t bias_mode,
+
+                            size_t lin_filter_sz,
+                            size_t hidden_filter_sz,
+                            const std::array<size_t, 4>& bias_strides,
+                            const std::array<size_t, 4>& bias_lens,
+                            size_t bias_off)
+        : inVec(input_vector_sz),
+          hVec(hidden_vec_sz),
+          xInVec(hidden_xinput_sz),
           layers(layers_cnt),
-          gates_cnt(gates),
-          bias_cnt(bias_mode),
-          matrix_normal_start_off(matrix_size(input_vector_sz, hidden_vec_sz, gates)),
-          bias_start_off(bias_start_offset(input_vector_sz, hidden_vec_sz, layers_cnt, gates, 0)),
-          linLayerFilterSize(matrix_size(input_vector_sz, hidden_vec_sz, gates)),
-          hiddenLayerFilterSize(matrix_size(x_in_vec, hidden_vec_sz, gates)),
-          bias_strides{}
+          gatesCnt(gates),
+          biasCnt(bias_mode),
+          biasStrides{bias_strides},
+          biasLens{bias_lens},
+          biasStartOff(bias_off),
+          linLayerFilterSize(lin_filter_sz),
+          hiddenLayerFilterSize(hidden_filter_sz)
     {
     }
 
-    const size_t in_vec, h_vec;
-    const size_t x_in_vec; // for bidirect TODO
+public:
+    static WeightsBufferDescriptor create(size_t input_vector_sz,
+                                          size_t hidden_vec_sz,
+                                          size_t layers_cnt,
+                                          size_t bias_mode,
+                                          size_t input_mode,
+                                          size_t gates,
+                                          bool bidirect_mode)
+    {
+        const size_t directions_num = bidirect_mode ? 2 : 1;
+        const size_t x_in_vec       = hidden_xinput_size(hidden_vec_sz, bidirect_mode);
+
+        size_t input_vector_filter_sz = input_mode == 0 ? input_vector_sz : 0;
+
+        const size_t linLayerFilterSize = filter_size(input_vector_filter_sz, hidden_vec_sz, gates);
+        const size_t hiddenLayerFilterSize = filter_size(x_in_vec, hidden_vec_sz, gates);
+
+        const size_t bias_start_off =
+            bias_start_offset(linLayerFilterSize, hiddenLayerFilterSize, layers_cnt, bidirect_mode);
+
+        //[layer][dir][param_id][vector]
+        const std::array<size_t, 4> bias_lens{layers_cnt, directions_num, gates, hidden_vec_sz};
+        const std::array<size_t, 4> bias_strides = [](const auto& lens, size_t bias_cnt) {
+            std::array<size_t, 4> strides = {1, 1, 1, 1};
+            std::partial_sum(lens.crbegin(),
+                             std::prev(lens.crend()),
+                             std::next(strides.rbegin()),
+                             std::multiplies<size_t>{});
+            strides[0] *= bias_cnt;
+            return strides;
+        }(bias_lens, bias_mode * 2);
+
+        return {input_vector_filter_sz,
+                hidden_vec_sz,
+                x_in_vec,
+                layers_cnt,
+                gates,
+                bias_mode,
+                linLayerFilterSize,
+                hiddenLayerFilterSize,
+                bias_strides,
+                bias_lens,
+                bias_start_off};
+    }
+
+    const size_t inVec, hVec;
+    const size_t xInVec; // for bidirect TODO
 
     const size_t layers;
-    const size_t gates_cnt;
-    const int bias_cnt; // 0 - no bisa; 1 - one bias; 2 - separate bias for x_vec and for hidden_vec
+    const size_t gatesCnt;
+    const size_t
+        biasCnt; // 0 - no bisa; 1 - one bias; 2 - separate bias for x_vec and for hidden_vec
 private:
-    const size_t matrix_normal_start_off;
-    const size_t bias_start_off;
+    //[layer][dir][param_id][vector]
+    const std::array<size_t, 4> biasStrides;
+    const std::array<size_t, 4> biasLens;
+
+    const size_t biasStartOff;
 
     const size_t linLayerFilterSize;
     const size_t hiddenLayerFilterSize;
 
 public:
-    size_t getParamRelativeOff(size_t layer_id, int /*dir_id*/, int param_id) const
+    size_t getParamRelativeOff([[maybe_unused]] size_t layer_id, int /*dir_id*/, int param_id) const
     {
-        return param_id * h_vec * (layer_id == 0 ? in_vec : x_in_vec);
+        assert(layer_id > 0);
+        return param_id * hVec * xInVec;
     }
 
-    size_t getMatrixOff(int layer_id, int dir_id, int param_id) const
+    size_t getPhisParamRelativeOff(int /*dir_id*/, int param_id) const
+    {
+        return hVec * ((static_cast<size_t>(param_id) >= gatesCnt)
+                           ? inVec * gatesCnt + xInVec * (param_id - gatesCnt)
+                           : inVec * param_id);
+    }
+
+    size_t getMatrixOff(size_t layer_id, int dir_id, int param_id) const
     {
         size_t offset = 0;
         if(layer_id > 0)
         {
             offset += linLayerFilterSize;
+        }
+        else
+        {
+            return getPhisParamRelativeOff(dir_id, param_id);
         }
         if(layer_id > 1)
         {
@@ -710,31 +807,47 @@ public:
         return offset + getParamRelativeOff(layer_id, dir_id, param_id);
     }
 
-    size_t getMatrixXinOff(int layer_id, int dir_id) const
+    size_t getMatrixXinOff(size_t layer_id, int dir_id) const
     {
         return getMatrixOff(layer_id, dir_id, 0);
     }
 
-    size_t getMatrixHidOff(int layer_id, int dir_id) const
+    size_t getMatrixHidOff(size_t layer_id, int dir_id) const
     {
-        return getMatrixOff(layer_id, dir_id, gates_cnt);
+        return getMatrixOff(layer_id, dir_id, gatesCnt);
     }
 
-    //[layer][dir][param_id]
-    const std::array<size_t, 3> bias_strides;
-
-    size_t getBiasOff(int layer_id, int dir_id, int param_id) const
+    size_t getBiasOff(size_t layer_id, int dir_id, int param_id) const
     {
-        return bias_start_off + bias_strides[0] * layer_id + bias_strides[1] * dir_id +
-               bias_strides[2] * param_id;
+        return biasStartOff + biasStrides[0] * layer_id + biasStrides[1] * dir_id +
+               biasStrides[2] * param_id;
     }
+
+    size_t getBiasXinOff(size_t layer_id, int dir_id, int param_id) const
+    {
+        assert(param_id < gatesCnt);
+        return getBiasOff(layer_id, dir_id, param_id);
+    }
+
+    size_t getBiasHidOff(size_t layer_id, int dir_id, int param_id) const
+    {
+        assert(param_id < gatesCnt);
+        return getBiasOff(layer_id, dir_id, param_id + gatesCnt);
+    }
+
+    //[layers][dirs][params][vec_size]
+    const std::array<size_t, 4>& getBiasSize() const { return biasLens; }
+
+    //[layers][dirs][params][vec_size]
+    const std::array<size_t, 4>& getBiasStride() const { return biasStrides; }
 };
 
 class HiddenBuffersDescriptor
 {
 public:
     explicit HiddenBuffersDescriptor(const TensorDescriptor& hx_desc)
-        : lens(hx_desc.GetLengths()), strides(hx_desc.GetStrides())
+        : lens(hx_desc.GetLengths().begin(), hx_desc.GetLengths().begin() + 3),
+          strides(hx_desc.GetStrides().begin(), hx_desc.GetStrides().begin() + 3)
     {
     }
 

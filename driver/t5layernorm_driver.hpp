@@ -221,7 +221,6 @@ public:
 private:
     InputFlags inflags;
 
-    int forw;
     int dim_size;
 
     miopenTensorDescriptor_t xDesc;
@@ -295,7 +294,7 @@ int T5LayerNormDriver<Tgpu, Tref>::GetandSetData()
         MIOPEN_THROW("Error setting weight tensor.");
 
     if(SetTensorNd(yDesc, in_len, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error setting doutput tensor.");
+        MIOPEN_THROW("Error setting output tensor.");
 
     if(SetTensorNd(rstdDesc, outer_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting rstd tensor.");

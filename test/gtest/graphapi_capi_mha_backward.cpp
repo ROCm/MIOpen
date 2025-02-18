@@ -45,7 +45,7 @@ protected:
         }
     }
 
-    virtual void MakeRealTensorsAndFillData(miopen::Handle& handle) override
+    virtual void MakeRealTensorsAndFillData(const miopen::Handle& handle) override
     {
         auto q = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
         auto k = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
@@ -95,7 +95,7 @@ protected:
 
         // proper O, M and zInv tensors are required for backward pass.
         // randomly generated M and zInv may lead to nan\inf values
-        test::cpu::MultiHeadAttentionfp8(
+        test::cpu::MultiHeadAttentionForwardfp8(
             GetTensor<T>(m_realTensorMap[miopenTensorMhaQ]->m_tensorVariant),
             GetTensor<T>(m_realTensorMap[miopenTensorMhaK]->m_tensorVariant),
             GetTensor<T>(m_realTensorMap[miopenTensorMhaV]->m_tensorVariant),
@@ -374,7 +374,7 @@ protected:
                       m_realTensorMap[miopenTensorMhaDK]->m_gapiDesc);
     }
 
-    virtual void RunCPUverify(miopen::Handle& handle) override
+    virtual void RunCPUverify(const miopen::Handle& handle) override
     {
         const double errorThreshold    = 5e-5;
         const double fp8ErrorThreshold = (std::is_same_v<T, float8>) ? 3e-3 : errorThreshold;
@@ -416,11 +416,11 @@ private:
     float m_amaxDSRef = 0.0f;
 };
 
-class MhaBackwardTestFp32 : public MhaBackwardTest<float>
+class GPU_MhaBackward_FP32 : public MhaBackwardTest<float>
 {
 };
 
-class MhaBackwardTestFp8 : public MhaBackwardTest<float8>
+class GPU_MhaBackward_FP8 : public MhaBackwardTest<float8>
 {
     void SetUp() override
     {
@@ -435,8 +435,8 @@ class MhaBackwardTestFp8 : public MhaBackwardTest<float8>
     }
 };
 
-TEST_P(MhaBackwardTestFp32, TestFloat) { Run(); }
-TEST_P(MhaBackwardTestFp8, TestFloat) { Run(); }
+TEST_P(GPU_MhaBackward_FP32, TestFloat) { Run(); }
+TEST_P(GPU_MhaBackward_FP8, TestFloat8) { Run(); }
 
 inline auto GetCases()
 {
@@ -447,5 +447,5 @@ inline auto GetCases()
                             testing::ValuesIn({0.0f, 0.5f})); // bernulli probability
 }
 
-INSTANTIATE_TEST_SUITE_P(MhaBwdSuiteFp32, MhaBackwardTestFp32, GetCases());
-INSTANTIATE_TEST_SUITE_P(MhaBwdSuiteFp8, MhaBackwardTestFp8, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaBackward_FP32, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaBackward_FP8, GetCases());

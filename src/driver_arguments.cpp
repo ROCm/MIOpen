@@ -60,15 +60,82 @@ void ConvDataType(std::stringstream& ss, const miopen::TensorDescriptor& desc)
     }
 }
 
-void BnDataType(std::stringstream& ss, const miopen::TensorDescriptor& desc)
+// test based on the input tensor and scaleMean.
+// We choose scaleMean because its a accumulator type.
+void BnDataType(std::stringstream& ss,
+                const miopen::TensorDescriptor& xDesc,
+                const miopen::TensorDescriptor& yDesc,
+                const miopen::TensorDescriptor& scaleDesc,
+                const miopen::TensorDescriptor& biasDesc,
+                const miopen::TensorDescriptor& sMeanDesc,
+                const BatchNormDirection_t bn_mode)
 {
-    if(desc.GetType() == miopenHalf)
+    if(bn_mode == BatchNormDirection_t::ForwardInference ||
+       bn_mode == BatchNormDirection_t::ForwardTraining)
     {
-        ss << "bnormfp16";
+        if(xDesc.GetType() == miopenHalf && yDesc.GetType() == miopenHalf &&
+           scaleDesc.GetType() == miopenFloat && biasDesc.GetType() == miopenFloat &&
+           sMeanDesc.GetType() == miopenFloat)
+        {
+            ss << "bnormfp16";
+        }
+        else if(xDesc.GetType() == miopenBFloat16 && yDesc.GetType() == miopenBFloat16 &&
+                scaleDesc.GetType() == miopenFloat && biasDesc.GetType() == miopenFloat &&
+                sMeanDesc.GetType() == miopenFloat)
+        {
+            ss << "bnormbfp16";
+        }
+        else if(xDesc.GetType() == miopenHalf && yDesc.GetType() == miopenHalf &&
+                scaleDesc.GetType() == miopenHalf && biasDesc.GetType() == miopenHalf &&
+                sMeanDesc.GetType() == miopenFloat)
+        {
+            ss << "bnormfp16fp32";
+        }
+        else if(xDesc.GetType() == miopenBFloat16 && yDesc.GetType() == miopenBFloat16 &&
+                scaleDesc.GetType() == miopenBFloat16 && biasDesc.GetType() == miopenBFloat16 &&
+                sMeanDesc.GetType() == miopenFloat)
+        {
+            ss << "bnormbfp16fp32";
+        }
+        else
+        {
+            ss << "bnorm";
+        }
+    }
+    else if(bn_mode == BatchNormDirection_t::Backward)
+    {
+        if(xDesc.GetType() == miopenHalf && yDesc.GetType() == miopenHalf &&
+           scaleDesc.GetType() == miopenFloat && biasDesc.GetType() == miopenFloat &&
+           sMeanDesc.GetType() == miopenFloat)
+        {
+            ss << "bnormfp16";
+        }
+        else if(xDesc.GetType() == miopenBFloat16 && yDesc.GetType() == miopenBFloat16 &&
+                scaleDesc.GetType() == miopenFloat && biasDesc.GetType() == miopenFloat &&
+                sMeanDesc.GetType() == miopenFloat)
+        {
+            ss << "bnormbfp16";
+        }
+        else if(xDesc.GetType() == miopenHalf && yDesc.GetType() == miopenFloat &&
+                scaleDesc.GetType() == miopenHalf && biasDesc.GetType() == miopenFloat &&
+                sMeanDesc.GetType() == miopenFloat)
+        {
+            ss << "bnormfp16fp32";
+        }
+        else if(xDesc.GetType() == miopenBFloat16 && yDesc.GetType() == miopenFloat &&
+                scaleDesc.GetType() == miopenBFloat16 && biasDesc.GetType() == miopenFloat &&
+                sMeanDesc.GetType() == miopenFloat)
+        {
+            ss << "bnormbfp16fp32";
+        }
+        else
+        {
+            ss << "bnorm";
+        }
     }
     else
     {
-        ss << "bnorm";
+        MIOPEN_THROW("Bad Op direction");
     }
 }
 
@@ -142,9 +209,9 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
            << " -v " << convDesc.GetConvStrides()[1]   //
            << " -l " << convDesc.GetConvDilations()[0] //
            << " -j " << convDesc.GetConvDilations()[1];
-        std::string x_layout = xDesc.GetLayout("NCHW");
-        std::string w_layout = wDesc.GetLayout("NCHW");
-        std::string y_layout = yDesc.GetLayout("NCHW");
+        std::string x_layout = xDesc.GetLayout_str();
+        std::string w_layout = wDesc.GetLayout_str();
+        std::string y_layout = yDesc.GetLayout_str();
         if(x_layout != "NCHW")
         {
             ss << " --in_layout " << x_layout;
@@ -182,9 +249,9 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
            << " -l " << convDesc.GetConvDilations()[1]            //
            << " -j " << convDesc.GetConvDilations()[2]            //
            << " --spatial_dim 3";
-        std::string x_layout = xDesc.GetLayout("NCDHW");
-        std::string w_layout = wDesc.GetLayout("NCDHW");
-        std::string y_layout = yDesc.GetLayout("NCDHW");
+        std::string x_layout = xDesc.GetLayout_str();
+        std::string w_layout = wDesc.GetLayout_str();
+        std::string y_layout = yDesc.GetLayout_str();
         if(x_layout != "NCDHW")
         {
             ss << " --in_layout " << x_layout;
@@ -211,7 +278,11 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
     return ss.str();
 }
 
-std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
+std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
+                                     const miopenTensorDescriptor_t yDesc,
+                                     const miopenTensorDescriptor_t scaleDesc,
+                                     const miopenTensorDescriptor_t biasDesc,
+                                     const miopenTensorDescriptor_t saveMeanDesc,
                                      miopenBatchNormMode_t bn_mode,
                                      const void* resultRunningMean,
                                      const void* resultRunningVariance,
@@ -224,7 +295,15 @@ std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
     miopenGetTensorDescriptorSize(xDesc, &size);
     std::stringstream ss;
     if(print_for_bn_driver)
-        BnDataType(ss, miopen::deref(xDesc));
+    {
+        BnDataType(ss,
+                   miopen::deref(xDesc),
+                   miopen::deref(yDesc),
+                   miopen::deref(scaleDesc),
+                   miopen::deref(biasDesc),
+                   miopen::deref(saveMeanDesc),
+                   dir);
+    }
 
     ss << " -n " << miopen::deref(xDesc).GetLengths()[0] // clang-format off
             << " -c " << miopen::deref(xDesc).GetLengths()[1];
@@ -248,6 +327,7 @@ std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
                      resultRunningVariance,
                      resultSaveMean,
                      resultSaveInvVariance);
+        ss << " --layout " << miopen::deref(xDesc).GetLayout_str();
     }
     return ss.str();
 }

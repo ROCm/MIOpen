@@ -56,23 +56,23 @@ std::vector<std::string> GetTestCases(const std::string& modeConvolutionArg)
 
 using TestCase = decltype(GetTestCases(""))::value_type;
 
-class MIOpenDriverConv2dTransTestFloat : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_MIOpenDriverConv2dTransTest_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-class MIOpenDriverConv2dTransTestHalf : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_MIOpenDriverConv2dTransTest_FP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-class MIOpenDriverConv2dTransTestBFloat16 : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_MIOpenDriverConv2dTransTest_BFP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& testCases)
+void RunMIOpenDriver(const std::vector<TestCase>& testCases)
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::gfx900>;
-    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>(floatArg, true))
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>())
     {
         GTEST_SKIP();
     }
@@ -83,29 +83,29 @@ void RunMIOpenDriver(const std::string& floatArg, const std::vector<TestCase>& t
 } // namespace miopendriver_conv2d_trans
 using namespace miopendriver_conv2d_trans;
 
-TEST_P(MIOpenDriverConv2dTransTestFloat, MIOpenDriverConv2dTrans)
+TEST_P(GPU_MIOpenDriverConv2dTransTest_FP32, MIOpenDriverConv2dTrans)
 {
-    RunMIOpenDriver("--float", GetParam());
+    RunMIOpenDriver(GetParam());
 };
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverConv2dTransTestSet,
-                         MIOpenDriverConv2dTransTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverConv2dTransTest_FP32,
                          testing::Values(GetTestCases(miopendriver::basearg::conv::Float)));
 
-TEST_P(MIOpenDriverConv2dTransTestHalf, MIOpenDriverConv2dTrans)
+TEST_P(GPU_MIOpenDriverConv2dTransTest_FP16, MIOpenDriverConv2dTrans)
 {
-    RunMIOpenDriver("--half", GetParam());
+    RunMIOpenDriver(GetParam());
 };
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverConv2dTransTestSet,
-                         MIOpenDriverConv2dTransTestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverConv2dTransTest_FP16,
                          testing::Values(GetTestCases(miopendriver::basearg::conv::Half)));
 
-TEST_P(MIOpenDriverConv2dTransTestBFloat16, MIOpenDriverConv2dTrans)
+TEST_P(GPU_MIOpenDriverConv2dTransTest_BFP16, MIOpenDriverConv2dTrans)
 {
-    RunMIOpenDriver("--bfloat16", GetParam());
+    RunMIOpenDriver(GetParam());
 };
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverConv2dTransTestSet,
-                         MIOpenDriverConv2dTransTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverConv2dTransTest_BFP16,
                          testing::Values(GetTestCases(miopendriver::basearg::conv::BFloat16)));
