@@ -39,13 +39,14 @@ namespace graphapi {
 
 class ConvBiasResAddActivForwardExecutor : public GraphPatternExecutor
 {
-    Tensor* mXTensor;
-    Tensor* mWTensor;
-    Convolution* mConvolution;
+    // We dont use pointers here as we need deserialization
+    Tensor mXTensor;
+    Tensor mWTensor;
+    Convolution mConvolution;
     int mGroupCount;
-    Tensor* mZTensor;
-    Tensor* mBiasTensor;
-    Tensor* mYTensor;
+    Tensor mZTensor;
+    Tensor mBiasTensor;
+    Tensor mYTensor;
     float mAlpha1;
     float mAlpha2;
     float mActivationAlpha;
@@ -62,46 +63,42 @@ public:
                                        float alpha2,
                                        float activationAlpha)
         : GraphPatternExecutor(),
-          mXTensor(xTensor),
-          mWTensor(wTensor),
-          mConvolution(convolution),
+          mXTensor(*xTensor),
+          mWTensor(*wTensor),
+          mConvolution(*convolution),
           mGroupCount(groupCount),
-          mZTensor(zTensor),
-          mBiasTensor(biasTensor),
-          mYTensor(yTensor),
+          mZTensor(*zTensor),
+          mBiasTensor(*biasTensor),
+          mYTensor(*yTensor),
           mAlpha1(alpha1),
           mAlpha2(alpha2),
           mActivationAlpha(activationAlpha)
     {
     }
 
+    ConvBiasResAddActivForwardExecutor(const nlohmann::json& json);
+
     void execute(miopenHandle_t handle, const VariantPack& vpk) final;
 
     size_t getWorkspaceSize() const final { return size_t{0}; }
 
-    static std::unique_ptr<GraphPatternExecutor> make(Tensor* xTensor,
-                                                      Tensor* wTensor,
-                                                      Convolution* convolution,
-                                                      int groupCount,
-                                                      Tensor* zTensor,
-                                                      Tensor* biasTensor,
-                                                      Tensor* yTensor,
-                                                      float alpha1,
-                                                      float alpha2,
-                                                      float activationAlpha)
+    nlohmann::json getJson() final;
+
+    static constexpr const char* name = "ConvBiasResAddActivForwardExecutor";
+
+    struct JsonFields
     {
-        GraphPatternExecutor* p = new ConvBiasResAddActivForwardExecutor(xTensor,
-                                                                         wTensor,
-                                                                         convolution,
-                                                                         groupCount,
-                                                                         zTensor,
-                                                                         biasTensor,
-                                                                         yTensor,
-                                                                         alpha1,
-                                                                         alpha2,
-                                                                         activationAlpha);
-        return std::unique_ptr<GraphPatternExecutor>(p);
-    }
+        static constexpr const char* XTensor         = "x_tensor";
+        static constexpr const char* WTensor         = "w_tensor";
+        static constexpr const char* Convolution     = "convolution";
+        static constexpr const char* GroupCount      = "group_count";
+        static constexpr const char* ZTensor         = "z_tensor";
+        static constexpr const char* BiasTensor      = "bias_tensor";
+        static constexpr const char* YTensor         = "y_tensor";
+        static constexpr const char* Alpha1          = "alpha1";
+        static constexpr const char* Alpha2          = "alpha2";
+        static constexpr const char* ActivationAlpha = "activation_alpha";
+    };
 };
 
 } // namespace graphapi

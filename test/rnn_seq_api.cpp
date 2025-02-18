@@ -41,7 +41,7 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         this->add(this->biasMode, "bias-mode", this->generate_data({1}));
         this->add(this->dirMode, "dir-mode", this->generate_data(modes));
         this->add(this->rnnMode, "rnn-mode", this->generate_data({2, 1, 3}, 2));
-        this->add(this->algoMode, "algo-mode", this->generate_data({0}));
+        this->add(this->algoMode, "algo-mode", this->generate_data({0, 2}));
         this->add(this->numLayers, "num-layers", this->generate_data({1, 3}, 3));
         this->add(this->io_layout, "io_layout", this->generate_data({2, 1, 3}, 3));
         this->add(this->batchSize, "batch-size", this->generate_data({1, 4, 6}, 6));
@@ -63,6 +63,9 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         this->add(this->nocy, "nocy", this->generate_data({false, true}));
 
         this->add(this->pytorchTensorDescriptorFormat, "pyDescFormat", this->generate_data(modes));
+        this->add(this->skip_backward_data, "disable-backward-data", this->generate_data({false}));
+        this->add(
+            this->skip_backward_weights, "disable-backward-weights", this->generate_data({false}));
     }
 
     rnn_seq_driver(bool) : rnn_seq_api_test_driver<T>() {}
@@ -116,10 +119,22 @@ struct rnn_seq_driver : rnn_seq_api_test_driver<T>
         return true;
     }
 
+    bool is_dynamic_algo_skip_case()
+    {
+        if(this->algoMode != 2)
+            return false;
+
+        if(this->dirMode == 0 && this->rnnMode == miopenLSTM && this->useDropout == 0 &&
+           this->inputMode == miopenRNNlinear)
+            return false;
+        return true;
+    }
+
     void run()
     {
 
-        if(!this->full_set || (is_correct_params() && !is_skip_comb()))
+        if(!this->full_set ||
+           (is_correct_params() && !is_skip_comb() && !is_dynamic_algo_skip_case()))
             rnn_seq_api_test_driver<T>::run();
         else
         {

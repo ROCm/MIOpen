@@ -469,7 +469,7 @@ std::size_t Handle::GetGlobalMemorySize() const
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
 
-std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
+std::string Handle::GetDeviceName() const { return this->GetTargetProperties().Name(); }
 
 const TargetProperties& Handle::GetTargetProperties() const
 {
@@ -482,7 +482,7 @@ std::ostream& Handle::Print(std::ostream& os) const
     return os;
 }
 
-std::size_t Handle::GetMaxMemoryAllocSize()
+std::size_t Handle::GetMaxMemoryAllocSize() const
 {
     if(m_MaxMemoryAllocSizeCached == 0)
         m_MaxMemoryAllocSizeCached = miopen::GetDeviceInfo<CL_DEVICE_MAX_MEM_ALLOC_SIZE>(

@@ -24,9 +24,11 @@
  *
  *******************************************************************************/
 
+#include "random.hpp"
 #include "test.hpp"
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
+#include "../driver/mloSoftmaxHost.hpp"
 #include "verify.hpp"
 
 #include <miopen/softmax.hpp>
@@ -40,11 +42,20 @@
 #include <vector>
 
 using namespace miopen;
-
+template <typename T = float, typename Tref = double>
 class SoftmaxFind20Test
 {
 public:
-    SoftmaxFind20Test(bool forward) : problem(nullptr), isForward(forward) { Initialize(); }
+    SoftmaxFind20Test(bool forward,
+                      miopenSoftmaxAlgorithm_t softmax_algo_arg,
+                      miopenSoftmaxMode_t softmax_mode_arg)
+        : problem(nullptr),
+          softmax_algo(softmax_algo_arg),
+          softmax_mode(softmax_mode_arg),
+          isForward(forward)
+    {
+        Initialize();
+    }
 
     void AddTensorDescriptors()
     {
@@ -147,8 +158,8 @@ public:
             float alpha = softmax_descriptor.GetAlpha();
             float beta  = softmax_descriptor.GetBeta();
 
-            // tensor<float> yTensorDup = yTensor;
-            tensor<float> yTensorRef = tensor<float>{test_n, test_c, test_h, test_w};
+            // tensor<T> yTensorDup = yTensor;
+            tensor<T> yTensorRef = tensor<T>{test_n, test_c, test_h, test_w};
 
             auto out_gpu_ref = handle.Write(yTensorRef.data);
 
@@ -164,10 +175,19 @@ public:
                                                  softmax_descriptor.GetMode()),
                          miopenStatusSuccess);
 
-            yTensor.data    = handle.Read<float>(out_gpu, yTensor.data.size());
-            yTensorRef.data = handle.Read<float>(out_gpu_ref, yTensorRef.data.size());
+            yTensor.data    = handle.Read<T>(out_gpu, yTensor.data.size());
+            yTensorRef.data = handle.Read<T>(out_gpu_ref, yTensorRef.data.size());
 
-            double error           = miopen::rms_range(yTensorRef.data, yTensor.data);
+            mloSoftmaxForwardRunHost<T, Tref>(&xTensor.desc,
+                                              &yTensor.desc,
+                                              xTensor.data.data(),
+                                              outhost.data(),
+                                              alpha,
+                                              beta,
+                                              softmax_descriptor.GetAlgorithm(),
+                                              softmax_descriptor.GetMode());
+
+            double error           = miopen::rms_range(yTensorRef.data, outhost);
             const double tolerance = 1e-3;
 
             EXPECT_TRUE(std::isfinite(error) && error <= tolerance)
@@ -215,8 +235,8 @@ public:
             float alpha = softmax_descriptor.GetAlpha();
             float beta  = softmax_descriptor.GetBeta();
 
-            // tensor<float> yTensorDup = yTensor;
-            tensor<float> dxTensorRef = tensor<float>{test_n, test_c, test_h, test_w};
+            // tensor<T> yTensorDup = yTensor;
+            tensor<T> dxTensorRef = tensor<T>{test_n, test_c, test_h, test_w};
 
             // this is dx
             auto out_gpu_ref = handle.Write(dxTensorRef.data);
@@ -235,11 +255,23 @@ public:
                                                   softmax_descriptor.GetMode()),
                          miopenStatusSuccess);
 
-            yTensor.data     = handle.Read<float>(out_gpu, yTensor.data.size());
-            dxTensorRef.data = handle.Read<float>(out_gpu_ref, dxTensorRef.data.size());
+            dxTensorRef.data = handle.Read<T>(out_gpu_ref, dxTensorRef.data.size());
 
-            double error           = miopen::rms_range(dxTensorRef.data, yTensor.data);
-            const double tolerance = 1e-3;
+            // run softmax cpu
+            mloSoftmaxBackwardRunHost<T, Tref>(&yTensor.desc,
+                                               &dyTensor.desc,
+                                               yTensor.data.data(),
+                                               dyTensor.data.data(),
+                                               dinhost.data(),
+                                               alpha,
+                                               beta,
+                                               softmax_descriptor.GetAlgorithm(),
+                                               softmax_descriptor.GetMode());
+
+            double error           = miopen::rms_range(dxTensorRef.data, dinhost);
+            const double tolerance = 1e-4;
+
+            std::cout << "error =  " << error << std::endl;
 
             EXPECT_TRUE(std::isfinite(error) && error <= tolerance)
                 << "Outputs do not match each other. Error:" << error;
@@ -253,26 +285,44 @@ public:
 private:
     void Initialize()
     {
-        softmax_descriptor.SetParams(
-            1.0f, 0.0f, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_MODE_CHANNEL);
+        softmax_descriptor.SetParams(1.0f, 0.0f, softmax_algo, softmax_mode);
 
         if(isForward)
         {
-            xTensor =
-                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
-            yTensor = tensor<float>{test_n, test_c, test_h, test_w};
+
+            auto gen_value_fwd = [](auto...) {
+                return prng::gen_descreet_uniform_sign<T>(0.1, 5.0);
+            };
+
+            xTensor = tensor<T>{test_n, test_c, test_h, test_w}.generate(gen_value_fwd);
+            yTensor = tensor<T>{test_n, test_c, test_h, test_w};
 
             EXPECT_EQUAL(miopenCreateSoftmaxProblem(
                              &problem, &softmax_descriptor, miopenProblemDirectionForward),
                          miopenStatusSuccess);
+
+            outhost = std::vector<Tref>(yTensor.data.size(), static_cast<Tref>(0));
         }
         else
         {
-            yTensor =
-                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
-            dyTensor =
-                tensor<float>{test_n, test_c, test_h, test_w}.generate(tensor_elem_gen_integer{17});
-            dxTensor = tensor<float>{test_n, test_c, test_h, test_w};
+            yTensor  = tensor<T>{test_n, test_c, test_h, test_w};
+            dyTensor = tensor<T>{test_n, test_c, test_h, test_w};
+
+            const T Data_scale = static_cast<T>(0.1);
+            for(int i = 0; i < dyTensor.data.size(); i++)
+            {
+                dyTensor.data[i] =
+                    Data_scale * prng::gen_A_to_B(static_cast<T>(-0.5), static_cast<T>(0.5));
+            }
+
+            for(int i = 0; i < yTensor.data.size(); i++)
+            {
+                yTensor.data[i] = prng::gen_A_to_B(static_cast<T>(-0.6), static_cast<T>(0.6));
+            }
+
+            dxTensor = tensor<T>{test_n, test_c, test_h, test_w};
+
+            dinhost = std::vector<Tref>(yTensor.data.size(), static_cast<Tref>(0));
 
             EXPECT_EQUAL(miopenCreateSoftmaxProblem(
                              &problem, &softmax_descriptor, miopenProblemDirectionBackward),
@@ -283,28 +333,32 @@ private:
     }
 
 private:
-    tensor<float> xTensor;
-    tensor<float> yTensor;
+    tensor<T> xTensor;
+    tensor<T> yTensor;
+    std::vector<Tref> outhost;
 
-    tensor<float> dxTensor;
-    tensor<float> dyTensor;
+    tensor<T> dxTensor;
+    tensor<T> dyTensor;
+    std::vector<Tref> dinhost;
 
     SoftmaxDescriptor softmax_descriptor;
     miopenProblem_t problem;
+    miopenSoftmaxAlgorithm_t softmax_algo;
+    miopenSoftmaxMode_t softmax_mode;
 
     bool isForward;
 
-    const unsigned int test_n = 100;
-    const unsigned int test_c = 3;
-    const unsigned int test_h = 32;
-    const unsigned int test_w = 32;
+    const unsigned int test_n = 128;
+    const unsigned int test_c = 1;
+    const unsigned int test_h = 1;
+    const unsigned int test_w = 1500;
 };
 
 TEST(GPU_SoftmaxFind20_FP32, softmaxForward)
 {
     Handle& handle = get_handle();
 
-    SoftmaxFind20Test test(true);
+    SoftmaxFind20Test<float> test(true, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_MODE_CHANNEL);
 
     std::vector<miopenSolution_t> solutions = test.TestFindSolutions(handle);
     test.TestSolutionAttributes(solutions);
@@ -313,11 +367,37 @@ TEST(GPU_SoftmaxFind20_FP32, softmaxForward)
     test.Finalize();
 }
 
-TEST(GPU_SoftmaxFind20_FP32, softmaxBackward)
+TEST(GPU_SoftmaxFind20_FP32, softmaxBackward_fp32)
 {
     Handle& handle = get_handle();
 
-    SoftmaxFind20Test test(false);
+    SoftmaxFind20Test<float> test(false, MIOPEN_SOFTMAX_ACCURATE, MIOPEN_SOFTMAX_MODE_CHANNEL);
+
+    std::vector<miopenSolution_t> solutions = test.TestFindSolutions(handle);
+    test.TestSolutionAttributes(solutions);
+
+    test.TestRunSolutionsBackward(handle, solutions);
+    test.Finalize();
+}
+
+TEST(GPU_SoftmaxFind20_FP16, softmaxBackward_log_instance_mode_fp16)
+{
+    Handle& handle = get_handle();
+
+    SoftmaxFind20Test<half> test(false, MIOPEN_SOFTMAX_LOG, MIOPEN_SOFTMAX_MODE_INSTANCE);
+
+    std::vector<miopenSolution_t> solutions = test.TestFindSolutions(handle);
+    test.TestSolutionAttributes(solutions);
+
+    test.TestRunSolutionsBackward(handle, solutions);
+    test.Finalize();
+}
+
+TEST(GPU_SoftmaxFind20_FP16, softmaxBackward_log_channel_mode_fp16)
+{
+    Handle& handle = get_handle();
+
+    SoftmaxFind20Test<half> test(false, MIOPEN_SOFTMAX_LOG, MIOPEN_SOFTMAX_MODE_CHANNEL);
 
     std::vector<miopenSolution_t> solutions = test.TestFindSolutions(handle);
     test.TestSolutionAttributes(solutions);
