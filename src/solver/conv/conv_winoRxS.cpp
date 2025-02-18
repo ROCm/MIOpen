@@ -681,7 +681,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
     if(problem.IsFp16() &&
        !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
          StartsWith(name, "gfx94") || StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") ||
-         StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
+         StartsWith(name, "gfx103") || StartsWith(name, "gfx11") || StartsWith(name, "gfx95")))
         return false;
 
     if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
