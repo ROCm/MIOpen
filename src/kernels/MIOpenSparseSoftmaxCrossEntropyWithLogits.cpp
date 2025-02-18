@@ -51,7 +51,7 @@ __device__ void sparseSoftmaxCrossEntropyWithLogitsForward(const T* input,
     uint64_t lid = threadIdx.x;
 
     __shared__ uint64_t label;
-    FLOAT_ACCUM lmax = log(0.0f), lsum = 0.0f;
+    FLOAT_ACCUM lmax = -MAX_FLOAT, lsum = 0.0f;
 
     if(lid == 0)
         label = static_cast<uint64_t>(target[target_tv.get_tensor_view_idx({gid})]);
@@ -111,7 +111,7 @@ __device__ void sparseSoftmaxCrossEntropyWithLogitsForwardContiguous(
 
     __shared__ uint64_t label;
 
-    FLOAT_ACCUM lmax = log(0.0f), lsum = 0.0f;
+    FLOAT_ACCUM lmax = -MAX_FLOAT, lsum = 0.0f;
 
     if(lid == 0)
         label = static_cast<uint64_t>(target[gid]);

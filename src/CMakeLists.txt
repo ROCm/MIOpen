@@ -195,8 +195,6 @@ set( MIOpen_Source
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
-    sparse_softmax_cross_entropy_with_logits_api.cpp
-    sparse_softmax_cross_entropy_with_logits/problem_description.cpp
     softmarginloss/problem_description.cpp 
     softmarginloss_api.cpp
     softmax.cpp
@@ -331,12 +329,12 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/rope/backward_rope.cpp
     solver/rope/forward_rope.cpp
-    solver/sparse_softmax_cross_entropy_with_logits/backward_sparse_softmax_cross_entropy_with_logits.cpp
-    solver/sparse_softmax_cross_entropy_with_logits/forward_sparse_softmax_cross_entropy_with_logits.cpp
     solver/softmarginloss/backward_softmarginloss.cpp
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
+    solver/sparse_softmax_cross_entropy_with_logits/backward_sparse_softmax_cross_entropy_with_logits.cpp
+    solver/sparse_softmax_cross_entropy_with_logits/forward_sparse_softmax_cross_entropy_with_logits.cpp
     solver/tensorOp/Op1dTensorGeneric.cpp
     solver/tensorOp/Op2dTensorGeneric.cpp
     solver/tensorOp/Op2dTensorLite.cpp
@@ -347,6 +345,8 @@ set( MIOpen_Source
     solver/tensorOp/Op5dTensorGeneric.cpp
     solver/tensorOp/OpTensorFwdBias.cpp
     solver/tensorOp/OpTensorLeadingOnes.cpp
+    sparse_softmax_cross_entropy_with_logits_api.cpp
+    sparse_softmax_cross_entropy_with_logits/problem_description.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
@@ -356,7 +356,7 @@ set( MIOpen_Source
     tensor_api.cpp
     transformers_adam_w_api.cpp
     seq_tensor.cpp
-)
+    )
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     list(APPEND MIOpen_Source conv/heuristics/ai_heuristics.cpp)

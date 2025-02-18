@@ -71,6 +71,7 @@ ConvSolution SparseSoftmaxCrossEntropyWithLogitsForward::GetSolution(
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         {"LOCAL_SIZE", LOCAL_SIZE_FWD},
         {"T_TYPE", target_dtype == "int64" ? "size_t" : target_dtype},
+        {"MAX_FLOAT", std::numeric_limits<float>::max()},
     };
 
     if(!problem.IsAllContiguous())

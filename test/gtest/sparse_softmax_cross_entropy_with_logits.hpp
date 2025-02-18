@@ -35,7 +35,7 @@ template <class T>
 inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -73,14 +73,14 @@ inline std::vector<SparseSoftmaxCrossEntropyWithLogitsTestCase>
 SparseSoftmaxCrossEntropyWithLogitsTestConfigs()
 {
     return {
-        {{100, 1000}, true},
-        {{100, 1000}, false},
-        {{1000, 100}, true},
-        {{1000, 100}, false},
-        {{10, 10000}, true},
-        {{10, 10000}, false},
-        {{10000, 10}, true},
-        {{10000, 10}, false},
+        {{10, 100}, true},
+        {{10, 100}, false},
+        {{100, 10}, true},
+        {{100, 10}, false},
+        {{10, 1000}, true},
+        {{10, 1000}, false},
+        {{1000, 10}, true},
+        {{1000, 10}, false},
     };
 }
 

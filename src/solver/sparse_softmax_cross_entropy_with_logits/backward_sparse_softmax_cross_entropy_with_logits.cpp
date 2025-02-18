@@ -69,6 +69,7 @@ ConvSolution SparseSoftmaxCrossEntropyWithLogitsBackward::GetSolution(
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"LOCAL_SIZE", LOCAL_SIZE_BWD},
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+        {"MAX_FLOAT", std::numeric_limits<float>::max()},
     };
 
     if(!problem.IsAllContiguous())
