@@ -26,76 +26,75 @@
 
 #include "bn.hpp"
 
-// XDataType       : half
-// YDataYype       : half
-// ScaleDataType   : half
-// BiasDataType    : half
-// MeanVarDataType : float
+// XDataType
+// YDataYype
+// ScaleDataType
+// BiasDataType
+// RunSaveDataType
+// AccDataType
 
 struct GPU_BNCKFWDTrainLarge2D_FP16 : BNFwdTrainTest<half_float::half,
                                                      half_float::half,
                                                      half_float::half,
                                                      half_float::half,
                                                      float,
+                                                     double,
                                                      BN2DTestCase>
 {
 };
 
 struct GPU_BNOCLFWDTrainLarge2D_FP16
-    : BNFwdTrainTest<half_float::half, half_float::half, float, float, float, BN2DTestCase>
+    : BNFwdTrainTest<half_float::half, half_float::half, float, float, float, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNOCLFWDTrainLarge3D_FP16
-    : BNFwdTrainTest<half_float::half, half_float::half, float, float, float, BN3DTestCase>
+    : BNFwdTrainTest<half_float::half, half_float::half, float, float, float, double, BN3DTestCase>
 {
 };
 
-// XDataType       : bfloat16
-// YDataYype       : bfloat16
-// ScaleDataType   : bfloat16
-// BiasDataType    : bfloat16
-// MeanVarDataType : float
-
 struct GPU_BNCKFWDTrainLarge2D_BFP16
-    : BNFwdTrainTest<bfloat16, bfloat16, bfloat16, bfloat16, float, BN2DTestCase>
+    : BNFwdTrainTest<bfloat16, bfloat16, bfloat16, bfloat16, float, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNOCLFWDTrainLarge2D_BFP16
-    : BNFwdTrainTest<bfloat16, bfloat16, float, float, float, BN2DTestCase>
+    : BNFwdTrainTest<bfloat16, bfloat16, float, float, float, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNOCLFWDTrainLarge3D_BFP16
-    : BNFwdTrainTest<bfloat16, bfloat16, float, float, float, BN3DTestCase>
+    : BNFwdTrainTest<bfloat16, bfloat16, float, float, float, double, BN3DTestCase>
 {
 };
 
-struct GPU_BNFWDTrainSmall2D_FP32 : BNFwdTrainTest<float, float, float, float, float, BN2DTestCase>
+struct GPU_BNFWDTrainSmall2D_FP32
+    : BNFwdTrainTest<float, float, float, float, float, double, BN2DTestCase>
 {
 };
 
-struct GPU_BNFWDTrainSmall3D_FP32 : BNFwdTrainTest<float, float, float, float, float, BN3DTestCase>
+struct GPU_BNFWDTrainSmall3D_FP32
+    : BNFwdTrainTest<float, float, float, float, float, double, BN3DTestCase>
 {
 };
 
-struct GPU_BNFWDTrainLarge2D_FP32 : BNFwdTrainTest<float, float, float, float, float, BN2DTestCase>
+struct GPU_BNFWDTrainLarge2D_FP32
+    : BNFwdTrainTest<float, float, float, float, float, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNFWDTrainSmall2D_FP64
-    : BNFwdTrainTest<double, double, double, double, double, BN2DTestCase>
+    : BNFwdTrainTest<double, double, double, double, double, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNFWDTrainLarge2D_FP64
-    : BNFwdTrainTest<double, double, double, double, double, BN2DTestCase>
+    : BNFwdTrainTest<double, double, double, double, double, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNFWDTrainSmall3D_FP64
-    : BNFwdTrainTest<double, double, double, double, double, BN3DTestCase>
+    : BNFwdTrainTest<double, double, double, double, double, double, BN3DTestCase>
 {
 };
 

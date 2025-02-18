@@ -52,4 +52,14 @@ auto uniform_signed_initializer(ScaleT scale_arg, RangeT range_arg)
         return prng::gen_descreet_uniform_sign<T>(scale_arg, range_arg);
     };
 }
+
+template <typename T, typename ScaleT, typename RangeT>
+auto uniform_unsigned_initializer(ScaleT scale_arg, RangeT range_arg)
+{
+    return [=](auto&&...) -> T {
+        // uniform sign give balance of both negative and positive values
+        return prng::gen_descreet_unsigned<T>(scale_arg, range_arg);
+    };
+}
+
 #endif // GUARD_MIOPEN_TEST_RANDOM_HPP

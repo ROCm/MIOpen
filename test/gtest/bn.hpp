@@ -106,6 +106,7 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType,
+          typename AccDataType,
           typename TestCase>
 struct BNInferTest
     : public ::testing::TestWithParam<
@@ -186,12 +187,18 @@ protected:
             bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
         test::ComputeCPUBNInference(bn_infer_test_data);
         // 4e-3 is tolerance used by CK kernel.
-        test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 4e-3);
+        test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.out_ref, 4e-3);
     }
 
     TestCase bn_config;
     bool test_skipped = false;
-    BNInferTestData<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType, TestCase>
+    BNInferTestData<XDataType,
+                    YDataType,
+                    ScaleDataType,
+                    BiasDataType,
+                    MeanVarDataType,
+                    AccDataType,
+                    TestCase>
         bn_infer_test_data;
     miopenTensorLayout_t tensor_layout;
     miopenBatchNormMode_t bn_mode;
@@ -201,10 +208,10 @@ protected:
 template <typename XDataType,
           typename DxDataType,
           typename DyDataType,
-          typename AccDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
           typename MeanVarDataType,
+          typename AccDataType,
           typename TestCase>
 struct BNBwdTest : public ::testing::TestWithParam<
                        std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>
@@ -298,10 +305,11 @@ protected:
 
         test::ComputeCPUBNBwd(bn_bwd_test_data);
 
-        test::CompareTensor<DxDataType>(bn_bwd_test_data.output, bn_bwd_test_data.ref_out, bwd_tol);
-        test::CompareTensor<DscaleDbiasDataType>(
+        test::CompareTensor<DxDataType, AccDataType>(
+            bn_bwd_test_data.output, bn_bwd_test_data.out_ref, bwd_tol);
+        test::CompareTensor<DscaleDbiasDataType, AccDataType>(
             bn_bwd_test_data.dScale, bn_bwd_test_data.dScale_ref, bwd_tol);
-        test::CompareTensor<DscaleDbiasDataType>(
+        test::CompareTensor<DscaleDbiasDataType, AccDataType>(
             bn_bwd_test_data.dBias, bn_bwd_test_data.dBias_ref, bwd_tol);
     }
 
@@ -310,10 +318,10 @@ protected:
     BNBwdTestData<XDataType,
                   DxDataType,
                   DyDataType,
-                  AccDataType,
                   ScaleDataType,
                   DscaleDbiasDataType,
                   MeanVarDataType,
+                  AccDataType,
                   TestCase>
         bn_bwd_test_data;
     miopenTensorLayout_t tensor_layout;
@@ -326,6 +334,7 @@ template <typename XDataType,
           typename YDataType,
           typename ScaleDataType,
           typename BiasDataType,
+          typename RunSaveDataType,
           typename AccDataType,
           typename TestCase>
 struct BNFwdTrainTest
@@ -419,34 +428,40 @@ protected:
         bn_fwd_train_test_data.output.data = handle.Read<YDataType>(
             bn_fwd_train_test_data.out_dev, bn_fwd_train_test_data.output.data.size());
 
-        bn_fwd_train_test_data.saveMean.data = handle.Read<AccDataType>(
+        bn_fwd_train_test_data.saveMean.data = handle.Read<RunSaveDataType>(
             bn_fwd_train_test_data.saveMean_dev, bn_fwd_train_test_data.saveMean.data.size());
         bn_fwd_train_test_data.saveVariance.data =
-            handle.Read<AccDataType>(bn_fwd_train_test_data.saveVariance_dev,
-                                     bn_fwd_train_test_data.saveVariance_ref.data.size());
-        bn_fwd_train_test_data.runMean.data = handle.Read<AccDataType>(
+            handle.Read<RunSaveDataType>(bn_fwd_train_test_data.saveVariance_dev,
+                                         bn_fwd_train_test_data.saveVariance_ref.data.size());
+        bn_fwd_train_test_data.runMean.data = handle.Read<RunSaveDataType>(
             bn_fwd_train_test_data.runMean_dev, bn_fwd_train_test_data.runMean_ref.data.size());
         bn_fwd_train_test_data.runVariance.data =
-            handle.Read<AccDataType>(bn_fwd_train_test_data.runVariance_dev,
-                                     bn_fwd_train_test_data.runVariance_ref.data.size());
+            handle.Read<RunSaveDataType>(bn_fwd_train_test_data.runVariance_dev,
+                                         bn_fwd_train_test_data.runVariance_ref.data.size());
         test::ComputeCPUBNFwdTrain(bn_fwd_train_test_data);
 
         // 4e-3 is tolerance used by CK kernel.
         test::CompareTensor<YDataType>(
-            bn_fwd_train_test_data.output, bn_fwd_train_test_data.ref_out, 4e-3);
-        test::CompareTensor<AccDataType>(
+            bn_fwd_train_test_data.output, bn_fwd_train_test_data.out_ref, 4e-3);
+        test::CompareTensor<RunSaveDataType>(
             bn_fwd_train_test_data.saveMean, bn_fwd_train_test_data.saveMean_ref, 4e-3);
-        test::CompareTensor<AccDataType>(
+        test::CompareTensor<RunSaveDataType>(
             bn_fwd_train_test_data.saveVariance, bn_fwd_train_test_data.saveVariance_ref, 4e-3);
-        test::CompareTensor<AccDataType>(
+        test::CompareTensor<RunSaveDataType>(
             bn_fwd_train_test_data.runMean, bn_fwd_train_test_data.runMean_ref, 4e-3);
-        test::CompareTensor<AccDataType>(
+        test::CompareTensor<RunSaveDataType>(
             bn_fwd_train_test_data.runVariance, bn_fwd_train_test_data.runVariance_ref, 4e-3);
     }
 
     TestCase bn_config;
     bool test_skipped = false;
-    BNFwdTrainTestData<XDataType, YDataType, ScaleDataType, BiasDataType, AccDataType, TestCase>
+    BNFwdTrainTestData<XDataType,
+                       YDataType,
+                       ScaleDataType,
+                       BiasDataType,
+                       RunSaveDataType,
+                       AccDataType,
+                       TestCase>
         bn_fwd_train_test_data;
     miopenTensorLayout_t tensor_layout;
     miopenBatchNormMode_t bn_mode;

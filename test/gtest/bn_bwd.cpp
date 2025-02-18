@@ -28,13 +28,19 @@
 /* typename XDataType,
    typename DxDataType,
    typename DyDataType,
-   typename AccDataType,
    typename ScaleDataType,
    typename DscaleDbiasDataType,
-   typename MeanVarDataType> */
+   typename MeanVarDataType,
+   typename AccDataType> */
 
-struct GPU_BNBWDSmall_FP32
-    : BNBwdTest<half_float::half, float, float, float, half_float::half, float, float, BN2DTestCase>
+struct GPU_BNBWDSmall_FP32 : BNBwdTest<half_float::half,
+                                       float,
+                                       float,
+                                       float,
+                                       half_float::half,
+                                       float,
+                                       double,
+                                       BN2DTestCase>
 {
 };
 
@@ -44,7 +50,7 @@ struct GPU_BNOCLBWDLarge2D_FP16 : BNBwdTest<half_float::half,
                                             float,
                                             float,
                                             float,
-                                            float,
+                                            double,
                                             BN2DTestCase>
 {
 };
@@ -55,38 +61,38 @@ struct GPU_BNOCLBWDLarge3D_FP16 : BNBwdTest<half_float::half,
                                             float,
                                             float,
                                             float,
-                                            float,
+                                            double,
                                             BN3DTestCase>
 {
 };
 
 struct GPU_BNCKBWDLarge2D_BFP16
-    : BNBwdTest<bfloat16, float, float, float, bfloat16, float, float, BN2DTestCase>
+    : BNBwdTest<bfloat16, float, float, float, bfloat16, float, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNOCLBWDLarge2D_BFP16
-    : BNBwdTest<bfloat16, bfloat16, bfloat16, float, float, float, float, BN2DTestCase>
+    : BNBwdTest<bfloat16, bfloat16, bfloat16, float, float, float, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNOCLBWDLarge3D_BFP16
-    : BNBwdTest<bfloat16, bfloat16, bfloat16, float, float, float, float, BN3DTestCase>
+    : BNBwdTest<bfloat16, bfloat16, bfloat16, float, float, float, double, BN3DTestCase>
 {
 };
 
 struct GPU_BNBWDSmall2D_FP32
-    : BNBwdTest<float, float, float, float, float, float, float, BN2DTestCase>
+    : BNBwdTest<float, float, float, float, float, float, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNBWDLarge2D_FP32
-    : BNBwdTest<float, float, float, float, float, float, float, BN2DTestCase>
+    : BNBwdTest<float, float, float, float, float, float, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNBWDLarge3D_FP32
-    : BNBwdTest<float, float, float, float, float, float, float, BN3DTestCase>
+    : BNBwdTest<float, float, float, float, float, float, double, BN3DTestCase>
 {
 };
 

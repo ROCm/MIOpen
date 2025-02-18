@@ -221,8 +221,10 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         estMean.InitHostData(estMean.GetTensor().desc.GetElementSize(),
                              true,
                              uniform_signed_initializer<TAcc>(2e-3 /*scale*/, 1000 /*range*/));
+        // estVaraince has to be +ve number otherwise 1/sqrt(-ve) would
+        // give img number
         estVariance.GetTensor().generate(
-            uniform_signed_initializer<TAcc>(2e-3 /*scale*/, 1000 /*range*/));
+            uniform_unsigned_initializer<TAcc>(2e-3 /*scale*/, 1000 /*range*/));
     }
     else if(isFwdTrain)
     {

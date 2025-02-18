@@ -39,7 +39,7 @@ void ComputeCPUBNInference(DLModule& dl_module)
         }
     };
     ReshapeIfNeeded(dl_module.input.desc);
-    ReshapeIfNeeded(dl_module.ref_out.desc);
+    ReshapeIfNeeded(dl_module.out_ref.desc);
     ReshapeIfNeeded(dl_module.scale.desc);
     ReshapeIfNeeded(dl_module.shift.desc);
     ReshapeIfNeeded(dl_module.estMean.desc);
@@ -48,7 +48,7 @@ void ComputeCPUBNInference(DLModule& dl_module)
     if(dl_module.bn_mode == miopenBNSpatial)
     {
         batchNormSpatialHostInference(dl_module.input,
-                                      dl_module.ref_out,
+                                      dl_module.out_ref,
                                       dl_module.scale,
                                       dl_module.shift,
                                       dl_module.epsilon,
@@ -58,7 +58,7 @@ void ComputeCPUBNInference(DLModule& dl_module)
     else if(dl_module.bn_mode == miopenBNPerActivation)
     {
         batchNormPerActivHostInference(dl_module.input,
-                                       dl_module.ref_out,
+                                       dl_module.out_ref,
                                        dl_module.scale,
                                        dl_module.shift,
                                        dl_module.epsilon,
@@ -86,7 +86,7 @@ void ComputeCPUBNBwd(DLModule& dl_module)
     };
     ReshapeIfNeeded(dl_module.input.desc);
     ReshapeIfNeeded(dl_module.dy.desc);
-    ReshapeIfNeeded(dl_module.ref_out.desc);
+    ReshapeIfNeeded(dl_module.out_ref.desc);
     ReshapeIfNeeded(dl_module.bnScale.desc);
     ReshapeIfNeeded(dl_module.dScale_ref.desc);
     ReshapeIfNeeded(dl_module.dBias_ref.desc);
@@ -97,7 +97,7 @@ void ComputeCPUBNBwd(DLModule& dl_module)
     {
         batchNormSpatialHostBwdTrain(dl_module.input,
                                      dl_module.dy,
-                                     dl_module.ref_out,
+                                     dl_module.out_ref,
                                      dl_module.bnScale,
                                      dl_module.dScale_ref,
                                      dl_module.dBias_ref,
@@ -108,7 +108,7 @@ void ComputeCPUBNBwd(DLModule& dl_module)
     {
         batchNormPerActHostBwdTrain(dl_module.input,
                                     dl_module.dy,
-                                    dl_module.ref_out,
+                                    dl_module.out_ref,
                                     dl_module.bnScale,
                                     dl_module.dScale_ref,
                                     dl_module.dBias_ref,
@@ -135,7 +135,7 @@ void ComputeCPUBNFwdTrain(DLModule& dl_module)
         }
     };
     ReshapeIfNeeded(dl_module.input.desc);
-    ReshapeIfNeeded(dl_module.ref_out.desc);
+    ReshapeIfNeeded(dl_module.out_ref.desc);
     ReshapeIfNeeded(dl_module.scale.desc);
     ReshapeIfNeeded(dl_module.shift.desc);
     ReshapeIfNeeded(dl_module.saveMean_ref.desc);
@@ -146,7 +146,7 @@ void ComputeCPUBNFwdTrain(DLModule& dl_module)
     if(dl_module.bn_mode == miopenBNSpatial)
     {
         batchNormSpatialHostFwdTrain(dl_module.input,
-                                     dl_module.ref_out,
+                                     dl_module.out_ref,
                                      dl_module.scale,
                                      dl_module.shift,
                                      dl_module.epsilon,
@@ -159,7 +159,7 @@ void ComputeCPUBNFwdTrain(DLModule& dl_module)
     else if(dl_module.bn_mode == miopenBNPerActivation)
     {
         batchNormPerActHostFwdTrain(dl_module.input,
-                                    dl_module.ref_out,
+                                    dl_module.out_ref,
                                     dl_module.scale,
                                     dl_module.shift,
                                     dl_module.epsilon,
@@ -176,18 +176,18 @@ void ComputeCPUBNFwdTrain(DLModule& dl_module)
     }
 }
 
-template <typename T>
+template <typename T, typename U = double>
 void CompareTensor(const tensor<T>& output,
-                   const tensor<T>& ref_out,
+                   const tensor<U>& out_ref,
                    const double threshold = std::numeric_limits<T>::epsilon())
 {
-    EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
+    EXPECT_FALSE(miopen::range_zero(out_ref)) << "CPU data is all zeros";
     EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";
     EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
         << "Non finite number found in the GPU data";
-    EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
-    auto error = miopen::rms_range(ref_out, output);
-    EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
+    EXPECT_TRUE(miopen::range_distance(out_ref) == miopen::range_distance(output));
+    auto error = miopen::rms_range(out_ref, output);
+    EXPECT_FALSE(miopen::find_idx(out_ref, miopen::not_finite) >= 0)
         << "Non finite number found in the CPU data";
     EXPECT_TRUE(error < threshold)
         << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;

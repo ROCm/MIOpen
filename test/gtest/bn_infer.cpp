@@ -31,22 +31,24 @@
 // ScaleDataType   : half_float::half
 // BiasDataType    : half_float::half
 // MeanVarDataType : float
+// AccDataType     : double
 struct GPU_BNCKInferLarge2D_FP16 : BNInferTest<half_float::half,
                                                half_float::half,
                                                half_float::half,
                                                half_float::half,
                                                float,
+                                               double,
                                                BN2DTestCase>
 {
 };
 
 struct GPU_BNOCLInferLarge2D_FP16
-    : BNInferTest<half_float::half, half_float::half, float, float, float, BN2DTestCase>
+    : BNInferTest<half_float::half, half_float::half, float, float, float, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNOCLInferLarge3D_FP16
-    : BNInferTest<half_float::half, half_float::half, float, float, float, BN3DTestCase>
+    : BNInferTest<half_float::half, half_float::half, float, float, float, double, BN3DTestCase>
 {
 };
 
@@ -56,7 +58,7 @@ struct GPU_BNOCLInferLarge3D_FP16
 // BiasDataType    : bfloat16
 // MeanVarDataType : float
 struct GPU_BNCKInferLarge2D_BFP16
-    : BNInferTest<bfloat16, bfloat16, bfloat16, bfloat16, float, BN2DTestCase>
+    : BNInferTest<bfloat16, bfloat16, bfloat16, bfloat16, float, double, BN2DTestCase>
 {
 };
 
@@ -66,30 +68,35 @@ struct GPU_BNCKInferLarge2D_BFP16
 // BiasDataType    : float
 // MeanVarDataType : float
 struct GPU_BNOCLInferLarge2D_BFP16
-    : BNInferTest<bfloat16, bfloat16, float, float, float, BN2DTestCase>
+    : BNInferTest<bfloat16, bfloat16, float, float, float, double, BN2DTestCase>
 {
 };
 
 struct GPU_BNOCLInferLarge3D_BFP16
-    : BNInferTest<bfloat16, bfloat16, float, float, float, BN3DTestCase>
+    : BNInferTest<bfloat16, bfloat16, float, float, float, double, BN3DTestCase>
 {
 };
 
-struct GPU_BNInferSmall2D_FP32 : BNInferTest<float, float, float, float, float, BN2DTestCase>
+struct GPU_BNInferSmall2D_FP32
+    : BNInferTest<float, float, float, float, float, double, BN2DTestCase>
 {
 };
-struct GPU_BNInferSmall3D_FP32 : BNInferTest<float, float, float, float, float, BN3DTestCase>
+struct GPU_BNInferSmall3D_FP32
+    : BNInferTest<float, float, float, float, float, double, BN3DTestCase>
 {
 };
-struct GPU_BNInferLarge2D_FP32 : BNInferTest<float, float, float, float, float, BN2DTestCase>
+struct GPU_BNInferLarge2D_FP32
+    : BNInferTest<float, float, float, float, float, double, BN2DTestCase>
 {
 };
 
-struct GPU_BNInferSmall2D_FP64 : BNInferTest<double, double, double, double, double, BN2DTestCase>
+struct GPU_BNInferSmall2D_FP64
+    : BNInferTest<double, double, double, double, double, double, BN2DTestCase>
 {
 };
 
-struct GPU_BNInferLarge2D_FP64 : BNInferTest<double, double, double, double, double, BN2DTestCase>
+struct GPU_BNInferLarge2D_FP64
+    : BNInferTest<double, double, double, double, double, double, BN2DTestCase>
 {
 };
 
