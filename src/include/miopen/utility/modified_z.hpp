@@ -38,8 +38,8 @@ T Mean(const std::vector<T>& data)
 {
     MIOPEN_THROW_IF(data.size() == 0, "Cannot find Mean of 0 length data");
 
-    T sum = std::accumulate(data.begin(), data.end(), 0.0);
-    return sum / data.size();
+    T sumOfValues = std::accumulate(data.begin(), data.end(), 0.0);
+    return sumOfValues / data.size();
 }
 
 template <typename T>

@@ -278,7 +278,6 @@ static std::vector<Solution> EvaluateInvokers(const Handle& handle,
                 // don't include warm-up run in our samples.
                 if(i > 0)
                 {
-
                     samples.push_back(handle.GetKernelTime());
                 }
                 else
