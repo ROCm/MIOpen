@@ -292,7 +292,7 @@ static std::vector<Solution> EvaluateInvokers(const Handle& handle,
             {
                 // Remove outliers that are more than 2 positive modified z-score's away, and get
                 // the mean.
-                elapsed = miopen::RemoveHighOutliersAndGetMean(samples, 2.0f);
+                elapsed = miopen::removeHighOutliersAndGetMean(samples, 2.0f);
             }
             else
             {

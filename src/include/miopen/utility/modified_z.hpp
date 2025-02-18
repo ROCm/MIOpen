@@ -34,7 +34,7 @@
 namespace miopen {
 
 template <typename T>
-T Mean(const std::vector<T>& data)
+T mean(const std::vector<T>& data)
 {
     MIOPEN_THROW_IF(data.size() == 0, "Cannot find Mean of 0 length data");
 
@@ -43,7 +43,7 @@ T Mean(const std::vector<T>& data)
 }
 
 template <typename T>
-T MedianOfSortedData(const std::vector<T>& sortedData)
+T medianOfSortedData(const std::vector<T>& sortedData)
 {
     MIOPEN_THROW_IF(sortedData.size() == 0, "Cannot find Median of 0 length data");
 
@@ -56,17 +56,17 @@ T MedianOfSortedData(const std::vector<T>& sortedData)
 }
 
 template <typename T>
-T Median(std::vector<T>& data)
+T median(std::vector<T>& data)
 {
     std::sort(data.begin(), data.end());
 
-    return MedianOfSortedData(data);
+    return medianOfSortedData(data);
 }
 
 template <typename T>
-std::vector<T> MedianAbsoluteDeviation(const std::vector<T>& sortedData)
+std::vector<T> medianAbsoluteDeviation(const std::vector<T>& sortedData)
 {
-    T median = MedianOfSortedData(sortedData);
+    T median = medianOfSortedData(sortedData);
 
     std::vector<T> absDeviation;
     absDeviation.reserve(sortedData.size());
@@ -80,12 +80,12 @@ std::vector<T> MedianAbsoluteDeviation(const std::vector<T>& sortedData)
 }
 
 template <typename T>
-std::vector<T> ModifiedZScores(const std::vector<T>& sortedData)
+std::vector<T> modifiedZScores(const std::vector<T>& sortedData)
 {
-    T median = MedianOfSortedData(sortedData);
+    T medianValue = medianOfSortedData(sortedData);
 
-    std::vector<T> absolute_deviation = MedianAbsoluteDeviation(sortedData);
-    T mad                             = Median(absolute_deviation);
+    std::vector<T> absolute_deviation = medianAbsoluteDeviation(sortedData);
+    T mad                             = median(absolute_deviation);
 
     // If MAD is 0, then we cannot calcualte the ModifiedZScore
     if(mad == T{0})
@@ -100,18 +100,18 @@ std::vector<T> ModifiedZScores(const std::vector<T>& sortedData)
         std::transform(sortedData.begin(),
                        sortedData.end(),
                        std::back_inserter(modZScores),
-                       [&](auto& value) { return 0.6745 * (value - median) / mad; });
+                       [&](auto& value) { return 0.6745 * (value - medianValue) / mad; });
 
         return modZScores;
     }
 }
 
 template <typename T>
-T RemoveHighOutliersAndGetMean(std::vector<T>& data, T z_threshold)
+T removeHighOutliersAndGetMean(std::vector<T>& data, T z_threshold)
 {
     std::sort(data.begin(), data.end());
 
-    std::vector<T> modZScores = ModifiedZScores(data);
+    std::vector<T> modZScores = modifiedZScores(data);
     std::vector<T> filteredData;
 
     for(size_t i = 0; i < data.size(); ++i)
@@ -122,6 +122,6 @@ T RemoveHighOutliersAndGetMean(std::vector<T>& data, T z_threshold)
         }
     }
 
-    return Mean(filteredData);
+    return mean(filteredData);
 }
 } // namespace miopen

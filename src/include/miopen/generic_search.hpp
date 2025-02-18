@@ -546,7 +546,7 @@ auto GenericSearch(const Solver s,
 
                         // Remove outliers that are more than 2 positive modified z-score's away,
                         // and get the mean.
-                        elapsed_time = miopen::RemoveHighOutliersAndGetMean(samples, 2.0f);
+                        elapsed_time = miopen::removeHighOutliersAndGetMean(samples, 2.0f);
                         if(elapsed_time < best_time)
                         {
                             MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
@@ -563,8 +563,8 @@ auto GenericSearch(const Solver s,
                         }
                         else
                         {
-                            MIOPEN_LOG_I2("Median is not better: " << elapsed_time
-                                                                   << " >= " << best_time);
+                            MIOPEN_LOG_I2("Mean is not better: " << elapsed_time
+                                                                 << " >= " << best_time);
                         }
                     }
                 }
