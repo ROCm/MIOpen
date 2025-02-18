@@ -58,7 +58,7 @@
  *
  **********************************************/
 template <typename T>
-void RNNFwdTrainCPUVerify(miopen::Handle& handle,
+void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
                           bool use_dropout,
                           miopen::DropoutDescriptor& dropoutDesc,
                           std::vector<T>& in,
