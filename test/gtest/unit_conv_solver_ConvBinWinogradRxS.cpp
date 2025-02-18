@@ -80,15 +80,9 @@ const auto& GetTestParams()
     return params;
 }
 
-const auto& GetTestParamsHalf()
-{
-    return GetTestParams<miopenHalf>();
-}
+const auto& GetTestParamsHalf() { return GetTestParams<miopenHalf>(); }
 
-const auto& GetTestParamsFloat()
-{
-    return GetTestParams<miopenFloat>();
-}
+const auto& GetTestParamsFloat() { return GetTestParams<miopenFloat>(); }
 
 } // namespace
 
