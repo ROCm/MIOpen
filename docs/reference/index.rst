@@ -39,4 +39,4 @@ The MIOpen API library is structured as follows:
   * :doc:`ReLU <../doxygen/html/group___re_l_u>` (experimental)
   * :doc:`Kthvalue <../doxygen/html/group__kthvalue>` (experimental)
   * :doc:`GLU <../doxygen/html/group__glu>` (experimental)
-  * :doc:`RoIAlign <../doxygen/html/group__RoIAlign>` (experimental)
+  * :doc:`RoIAlign <../doxygen/html/group___ro_i_align>` (experimental)

@@ -42,6 +42,7 @@ namespace miopen {
 namespace solver {
 namespace roialign {
 
+namespace {
 bool IsImprovementOverROCm(const miopen::roialign::BwdProblemDescription& problem)
 {
     auto input_grad_dtype = problem.GetInputGradDesc().GetType();
@@ -55,6 +56,7 @@ bool IsImprovementOverROCm(const miopen::roialign::BwdProblemDescription& proble
     return (input_grad_dtype == miopenBFloat16) ||
            (input_grad_dtype == miopenHalf && is_fp16_improve);
 }
+} // namespace
 
 bool RoIAlignBackward::IsApplicable(const ExecutionContext& context,
                                     const miopen::roialign::BwdProblemDescription& problem) const
