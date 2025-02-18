@@ -38,7 +38,7 @@ void cpu_pad_constant_fwd(const T* input,
                           T* output,
                           miopen::TensorDescriptor* input_desc,
                           miopen::TensorDescriptor* output_desc,
-                          std::vector<size_t> padding_vec,
+                          std::vector<int64_t> padding_vec,
                           T value)
 {
     auto input_tv  = get_inner_expanded_tv(*input_desc);
@@ -74,7 +74,7 @@ void cpu_pad_constant_bwd(T* input_grad,
                           T* backward_output,
                           miopen::TensorDescriptor* backward_output_desc,
                           miopen::TensorDescriptor* input_grad_desc,
-                          std::vector<size_t> padding_vec)
+                          std::vector<int64_t> padding_vec)
 {
     auto output_tv = get_inner_expanded_tv(*backward_output_desc);
     auto input_tv  = get_inner_expanded_tv(*input_grad_desc);

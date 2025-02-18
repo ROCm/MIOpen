@@ -129,7 +129,7 @@ protected:
     miopen::Allocator::ManageDataPtr output_dev;
     miopen::Allocator::ManageDataPtr backward_output_dev;
 
-    std::vector<size_t> padding = std::vector<size_t>(2, 0);
+    std::vector<int64_t> padding = std::vector<int64_t>(2, 0);
 
     void SetUp() override
     {

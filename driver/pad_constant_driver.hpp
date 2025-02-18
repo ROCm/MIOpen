@@ -47,7 +47,7 @@ void mloConstantPadForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                   miopenTensorDescriptor_t outputDesc,
                                   Tgpu* input,
                                   Tcheck* output_host,
-                                  std::vector<size_t>& padding_vec,
+                                  std::vector<int64_t>& padding_vec,
                                   Tgpu value)
 {
     if(padding_vec.size() % 2 != 0)
@@ -86,7 +86,7 @@ void mloConstantPadBackwardRunHost(miopenTensorDescriptor_t backwardOutputDesc,
                                    miopenTensorDescriptor_t inputGradDesc,
                                    Tcheck* backward_output_host,
                                    Tgpu* input_grad,
-                                   std::vector<size_t>& padding_vec)
+                                   std::vector<int64_t>& padding_vec)
 {
     if(padding_vec.size() % 2 != 0)
         throw std::runtime_error("padding size should be even");
@@ -156,7 +156,7 @@ public:
 
     int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
-    std::vector<size_t> GetPaddingsFromCmdLine(size_t input_dims_size);
+    std::vector<int64_t> GetPaddingsFromCmdLine(size_t input_dims_size);
 
     int AllocateBuffersAndCopy() override;
 
@@ -193,7 +193,7 @@ private:
     std::vector<Tref> output_host;
     std::vector<Tref> backward_output_host;
 
-    std::vector<size_t> padding;
+    std::vector<int64_t> padding;
     Tgpu value;
 };
 
@@ -300,14 +300,15 @@ std::vector<int> ConstantPadDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<size_t> ConstantPadDriver<Tgpu, Tref>::GetPaddingsFromCmdLine(size_t input_dims_size)
+std::vector<int64_t> ConstantPadDriver<Tgpu, Tref>::GetPaddingsFromCmdLine(size_t input_dims_size)
 {
     // Input would be in PyTorch format (pad_left, pad_right, pad_up, pad_down, pad_front, pad_back,
     // etc.) We would need to flip it into ours (basically backwards of PyTorch format) Eg:
     // (1,2,1,2,1,2,0,0,0,0) -> (0,0,0,0,2,1,2,1,2,1)
-    std::vector<size_t> paddings = std::vector<size_t>(static_cast<size_t>(input_dims_size) * 2, 0);
-    auto pad                     = inflags.GetValueStr("pad");
-    std::vector<std::string> p   = split(pad, ',');
+    std::vector<int64_t> paddings =
+        std::vector<int64_t>(static_cast<size_t>(input_dims_size) * 2, 0);
+    auto pad                   = inflags.GetValueStr("pad");
+    std::vector<std::string> p = split(pad, ',');
     assert(p.size() % 2 == 0);
 
     auto offset = paddings.size() - p.size();

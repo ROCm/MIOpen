@@ -39,7 +39,7 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
-                       const size_t* padding_,
+                       const int64_t* padding_,
                        const int padding_size_ = 0)
         : xDesc(xDesc_), yDesc(yDesc_), padding(padding_), padding_size(padding_size_)
     {
@@ -104,7 +104,7 @@ struct ProblemDescription : ProblemDescriptionBase
 private:
     const TensorDescriptor& xDesc;
     const TensorDescriptor& yDesc;
-    const size_t* padding;
+    const int64_t* padding;
     const int padding_size;
 };
 } // namespace pad_constant_fwd
@@ -114,7 +114,7 @@ struct ProblemDescription : ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& dxDesc_,
                        const TensorDescriptor& dyDesc_,
-                       const size_t* padding_,
+                       const int64_t* padding_,
                        const int padding_size_ = 0)
         : dxDesc(dxDesc_), dyDesc(dyDesc_), padding(padding_), padding_size(padding_size_)
     {
@@ -201,7 +201,7 @@ struct ProblemDescription : ProblemDescriptionBase
 private:
     const TensorDescriptor& dxDesc;
     const TensorDescriptor& dyDesc;
-    const size_t* padding;
+    const int64_t* padding;
     const int padding_size;
 };
 } // namespace pad_constant_bwd
