@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 
+#include <cmath>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
@@ -132,8 +133,8 @@ int32_t mloNLLLossReduceForward5dRunHost(const miopenTensorDescriptor_t inputDes
 
     uint64_t size             = numel;
     const uint64_t local_size = 256;
-    int offset_a              = 0;
-    int offset_b              = size;
+    uint64_t offset_a         = 0;
+    uint64_t offset_b         = size;
     uint64_t _size            = size;
     do
     {
@@ -144,7 +145,7 @@ int32_t mloNLLLossReduceForward5dRunHost(const miopenTensorDescriptor_t inputDes
                 shared[j] = i + j < _size ? static_cast<float>(workspace[offset_a + i + j]) : 0.0f;
             for(int offset = local_size / 2; offset > 0; offset >>= 1)
                 for(uint64_t j = 0; j < local_size; ++j)
-                    if(j < offset)
+                    if(j < static_cast<uint64_t>(offset))
                         shared[j] += shared[j + offset];
             if(_size <= local_size)
                 output[0] = static_cast<Tcheck>(shared[0]);

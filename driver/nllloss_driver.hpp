@@ -584,7 +584,7 @@ int NLLLossDriver<Tgpu, Tref>::VerifyBackward()
     if(!std::isfinite(error) || error > tolerance)
     {
         std::cout << "Backward NLLLoss FAILED: " << error << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {

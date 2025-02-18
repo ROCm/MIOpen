@@ -98,21 +98,21 @@ void cpu_nllloss_reduce_forward_5d(tensor<T> input,
         }
     }
 
-    auto size            = numel;
-    const int local_size = 256;
-    int offset_a         = 0;
-    int offset_b         = size;
-    uint64_t _size       = size;
+    auto size                 = numel;
+    const uint64_t local_size = 256;
+    uint64_t offset_a         = 0;
+    uint64_t offset_b         = size;
+    uint64_t _size            = size;
     do
     {
-        for(int i = 0; i < _size; i += local_size)
+        for(uint64_t i = 0; i < _size; i += local_size)
         {
             float shared[local_size];
-            for(int j = 0; j < local_size; ++j)
+            for(uint64_t j = 0; j < local_size; ++j)
                 shared[j] = i + j < _size ? static_cast<float>(workspace[offset_a + i + j]) : 0.0f;
             for(int offset = local_size / 2; offset > 0; offset >>= 1)
-                for(int j = 0; j < local_size; ++j)
-                    if(j < offset)
+                for(uint64_t j = 0; j < local_size; ++j)
+                    if(j < static_cast<uint64_t>(offset))
                         shared[j] += shared[j + offset];
             if(_size <= local_size)
                 output[0] = static_cast<T>(shared[0]);
