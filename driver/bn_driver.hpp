@@ -1367,11 +1367,6 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
     if(!back)
         return miopenStatusSuccess;
 
-    //	T alphaDiff = 1, betaDiff = 0;
-    //	T alphaParam = 1, betaParam = 0;
-    double alpha = static_cast<double>(1), beta = static_cast<double>(0),
-           gamma = static_cast<double>(1);
-
     // float alphaDataDiff = static_cast<float>(1), betaDataDiff = static_cast<float>(0);
     // float alphaParamDiff = static_cast<float>(1), betaParamDiff = static_cast<float>(0);
     int size{0};
@@ -1397,20 +1392,14 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
     if(bn_mode == miopenBNPerActivation)
     {
         // 1xCxHxW
-        batchNormActivSpatialHostBwdTrain(activ_mode,
-                                          gamma,
-                                          beta,
-                                          alpha,
-                                          in.GetTensor(),
-                                          dy.GetTensor(),
-                                          out_bwd.GetTensor(),
-                                          out_ref,
-                                          bnScale.GetTensor(),
-                                          dBias.GetTensor(),
-                                          dScale_ref,
-                                          dBias_ref,
-                                          savedMean.GetTensor(),
-                                          savedInvVar.GetTensor());
+        batchNormPerActHostBwdTrain(in.GetTensor(),
+                                    dy.GetTensor(),
+                                    out_ref,
+                                    bnScale.GetTensor(),
+                                    dScale_ref,
+                                    dBias_ref,
+                                    savedMean.GetTensor(),
+                                    savedInvVar.GetTensor());
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
@@ -1429,14 +1418,14 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
         else
         {
             tensor<Tref> empty_tensor;
-            batchNormPerActHostBwdTrain(in.GetTensor(),
-                                        dy.GetTensor(),
-                                        out_ref,
-                                        bnScale.GetTensor(),
-                                        dScale_ref,
-                                        dBias_ref,
-                                        empty_tensor,
-                                        empty_tensor);
+            batchNormSpatialHostBwdTrain(in.GetTensor(),
+                                         dy.GetTensor(),
+                                         out_ref,
+                                         bnScale.GetTensor(),
+                                         dScale_ref,
+                                         dBias_ref,
+                                         empty_tensor,
+                                         empty_tensor);
         }
     }
     else
