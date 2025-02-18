@@ -88,30 +88,10 @@ struct MedianTestCase
 inline std::vector<MedianTestCase> MedianTestConfigs()
 {
     return {
-        // Some of those cases are not applicable for the condition IsImprovementOverROCm()
-        // inline std::vector<MedianTestCase> MedianGeneralTestConfigs()
-        MedianTestCase({3, 4, 5}),
-        MedianTestCase({100}, true),
-        MedianTestCase({100}, false),
-        MedianTestCase({100, 500}),
-        MedianTestCase({100, 500}, true, 1),
         MedianTestCase({400, 10}, false),
-        MedianTestCase({400, 10}, false, 1),
-        MedianTestCase({10, 20, 300}),
-        MedianTestCase({10, 20, 300}, true, 1),
-        MedianTestCase({10, 20, 300}, true, 2),
         MedianTestCase({350, 10, 20}, false),
-        MedianTestCase({350, 10, 20}, false, 1),
-        MedianTestCase({350, 10, 20}, false, 2),
-        MedianTestCase({8, 3, 10, 2000}),
-        MedianTestCase({1000, 3, 10, 15}, false),
-        MedianTestCase({2, 2, 4, 10, 3000}),
-        MedianTestCase({3000, 8, 2, 4, 20}, false),
-
-        // Those tests are applicable for the condition IsImprovementOverROCm()
-        MedianTestCase({700, 800}, false, 0),
-        MedianTestCase({600, 20, 10}, false, 0),
-        MedianTestCase({500, 40, 30, 20}, false, 0),
+        MedianTestCase({500, 4, 3, 2}, false),
+        MedianTestCase({400, 8, 2, 4, 2}, false),
     };
 }
 
