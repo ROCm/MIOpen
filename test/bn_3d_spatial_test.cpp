@@ -327,6 +327,9 @@ struct verify_forward_train_3d_bn_spatial
                                          miopen::BuildReshaped4DTensorDescriptor(out.desc),
                                          out_dev.get(),
                                          miopen::BuildReshaped4DTensorDescriptor(scale.desc),
+                                         miopen::BuildReshaped4DTensorDescriptor(shift.desc),
+                                         miopen::BuildReshaped4DTensorDescriptor(shift.desc),
+                                         miopen::BuildReshaped4DTensorDescriptor(shift.desc),
                                          scale_dev.get(),
                                          shift_dev.get(),
                                          expAvgFactor,
@@ -516,6 +519,9 @@ struct verify_forward_infer_3d_bn_spatial_recalc
                                           miopen::BuildReshaped4DTensorDescriptor(out.desc),
                                           out_dev.get(),
                                           miopen::BuildReshaped4DTensorDescriptor(scale.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(shift.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(shift.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(shift.desc),
                                           scale_dev.get(),
                                           shift_dev.get(),
                                           nullptr,
@@ -632,6 +638,9 @@ struct verify_forward_infer_3d_bn_spatial_use_est
                                           miopen::BuildReshaped4DTensorDescriptor(out.desc),
                                           out_dev.get(),
                                           miopen::BuildReshaped4DTensorDescriptor(scale.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(shift.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(shift.desc),
+                                          miopen::BuildReshaped4DTensorDescriptor(shift.desc),
                                           scale_dev.get(),
                                           shift_dev.get(),
                                           estMean_dev.get(),
@@ -913,6 +922,9 @@ struct verify_backward_3d_bn_spatial_recalc
                                   miopen::BuildReshaped4DTensorDescriptor(dx_out.desc),
                                   dx_out_dev.get(),
                                   miopen::BuildReshaped4DTensorDescriptor(scale.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(dshift.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(dshift.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(dshift.desc),
                                   scale_dev.get(),
                                   dscale_dev.get(),
                                   dshift_dev.get(),
@@ -1138,6 +1150,9 @@ struct verify_backward_3d_bn_spatial_use_saved
                                   miopen::BuildReshaped4DTensorDescriptor(dx_out.desc),
                                   dx_out_dev.get(),
                                   miopen::BuildReshaped4DTensorDescriptor(scale.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(dshift.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(dshift.desc),
+                                  miopen::BuildReshaped4DTensorDescriptor(dshift.desc),
                                   scale_dev.get(),
                                   dscale_dev.get(),
                                   dshift_dev.get(),
@@ -1188,6 +1203,8 @@ struct batch_norm_3d_spatial_driver : test_driver
     batch_norm_3d_spatial_driver()
     {
         this->batch_factor = 4;
+        this->tolerance =
+            4e-3 / std::numeric_limits<T>::epsilon(); // ck solver has tolerance of 4e-3
         add(input,
             "input",
             get_3d_bn_spatial_input_tensor(
@@ -1218,34 +1235,18 @@ struct batch_norm_3d_spatial_driver : test_driver
         miopen::DeriveBNTensorDescriptor(derivedBnDesc, input.desc, miopenBNSpatial);
         std::tie(ssn, ssc, ssd, ssh, ssw) = miopen::tien<5>(derivedBnDesc.GetLengths());
 
-        if(input.desc.GetType() == miopenFloat)
-        {
-            scale =
-                tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw}.generate(tensor_elem_gen_integer{17});
-            shift =
-                tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw}.generate(tensor_elem_gen_integer{17});
+        scale                   = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
+        shift                   = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
+        const double Data_scale = 1e-4;
 
-            if(d * h * w < 3072)
-            {
-                std::cout << "Choosing smaller input values for low dims" << std::endl;
-                input = tensor<T>{n, c, d, h, w}.generate(tensor_elem_gen_integer{7});
-            }
+        for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
+        {
+            scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
+            shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
         }
-        else
+        for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
         {
-            scale = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
-            shift = tensor<PREC_TYPE>{ssn, ssc, ssd, ssh, ssw};
-
-            const double Data_scale = 1e-4;
-            for(std::size_t i = 0; i < scale.desc.GetElementSize(); i++)
-            {
-                scale[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
-                shift[i] = prng::gen_descreet_uniform_sign<PREC_TYPE>(Data_scale, 100);
-            }
-            for(std::size_t i = 0; i < input.desc.GetElementSize(); i++)
-            {
-                input[i] = prng::gen_descreet_uniform_sign<T>(1e-5, 100);
-            }
+            input[i] = prng::gen_descreet_uniform_sign<T>(1e-5, 100);
         }
 
 // train

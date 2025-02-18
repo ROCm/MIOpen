@@ -106,5 +106,9 @@ RunMIOpenDriverTestCommand(const std::vector<std::string>& params,
 template <typename disabled_mask, typename enabled_mask>
 static inline bool ShouldRunMIOpenDriverTest()
 {
+#if MIOPEN_BUILD_DRIVER
     return IsTestSupportedForDevMask<disabled_mask, enabled_mask>();
+#else
+    return false;
+#endif
 }

@@ -25,23 +25,24 @@
  *******************************************************************************/
 
 #include <miopen/batchnorm/solvers.hpp>
+#include <miopen/generic_search.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
 #include <miopen/batch_norm.hpp>
 #include <miopen/bfloat16.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/batchnorm_backward.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
+#include <ck/library/tensor_operation_instance/gpu/batchnorm_backward.hpp>
 #endif
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_BN_BACK)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CK_BN_BACK)
 
 namespace miopen {
 namespace solver {
 namespace batchnorm {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-using PassThrough = ck::tensor_operation::element_wise::PassThrough;
-using index_t     = int32_t;
+using PassThroughOp = ck::tensor_operation::element_wise::PassThrough;
+using index_t       = int32_t;
 
 constexpr index_t Rank                  = 4;
 constexpr index_t NumBatchNormReduceDim = 3;
@@ -66,7 +67,7 @@ using DeviceOpBNBwdPtrs = ck::tensor_operation::device::instance::DeviceOperatio
                                                      ScaleDataType,
                                                      DscaleDbiasDataType,
                                                      MeanVarDataType,
-                                                     PassThrough,
+                                                     PassThroughOp,
                                                      Rank,
                                                      NumBatchNormReduceDim>>;
 
@@ -86,7 +87,21 @@ struct CKArgsBNormBwd
 
         // prep for CK
         std::sort(in_strides.begin(), in_strides.end(), std::greater<>());
-        std::rotate(lens.begin() + 1, lens.begin() + 2, lens.end());
+
+        if(problem.IsLayoutNHWC())
+        {
+            std::rotate(lens.begin() + 1, lens.begin() + 2, lens.end());
+            reduceDims = {0, 1, 2};
+        }
+        else if(problem.IsLayoutNCHW())
+        {
+            reduceDims = {0, 2, 3};
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "BnCKBwd operation does not support this data layout");
+        }
     }
 
     CKArgsBNormBwd(const CKArgsBNormBwd&) = default;
@@ -111,7 +126,7 @@ struct CKArgsBNormBwd
                                                 data_ctx.savedMean,
                                                 data_ctx.savedInvVariance,
                                                 epsilon,
-                                                PassThrough{},
+                                                PassThroughOp{},
                                                 data_ctx.dx,
                                                 data_ctx.resultBnScaleDiff,
                                                 data_ctx.resultBnBiasDiff);
@@ -132,8 +147,83 @@ struct CKArgsBNormBwd
     std::array<index_t, Rank - NumBatchNormReduceDim> arrScaleBiasMeanVarStrides;
 
     double epsilon = 1e-5;
-    std::array<int, NumBatchNormReduceDim> reduceDims{0, 1, 2};
+    std::array<int, NumBatchNormReduceDim> reduceDims;
 };
+
+template <typename XDataType,
+          typename DxDataType,
+          typename DyDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename DscaleDbiasDataType,
+          typename MeanVarDataType>
+void PerformanceConfigBnCKBwdBackward::Init(
+    const miopen::batchnorm::ProblemDescription& problem_desc)
+{
+    const auto& args       = CKArgsBNormBwd{problem_desc};
+    const auto bn_bwd_ptrs = DeviceOpBNBwdPtrs<XDataType,
+                                               DxDataType,
+                                               DyDataType,
+                                               AccDataType,
+                                               ScaleDataType,
+                                               DscaleDbiasDataType,
+                                               MeanVarDataType>::GetInstances();
+    if(bn_bwd_ptrs.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward bn_bwd_ptrs empty");
+
+    for(const auto& it : bn_bwd_ptrs)
+    {
+        auto argument_ptr = it->MakeArgumentPointer(args.lens,
+                                                    args.in_strides,
+                                                    args.in_strides,
+                                                    args.in_strides,
+                                                    args.reduceDims,
+                                                    args.arrScaleBiasMeanVarLengths,
+                                                    args.arrScaleBiasMeanVarStrides,
+                                                    args.arrScaleBiasMeanVarStrides,
+                                                    args.arrScaleBiasMeanVarStrides,
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr,
+                                                    0.0,
+                                                    PassThroughOp{},
+                                                    nullptr,
+                                                    nullptr,
+                                                    nullptr);
+        if(it->IsSupportedArgument(argument_ptr.get()))
+        {
+            valid_kernels.push_back(it->GetTypeString());
+        }
+    }
+
+    if(valid_kernels.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "BnCKBwdBackward valid_kernels empty");
+
+    this->index     = 0;
+    this->kernel_id = valid_kernels[0];
+}
+
+template <typename XDataType,
+          typename DxDataType,
+          typename DyDataType,
+          typename AccDataType,
+          typename ScaleDataType,
+          typename DscaleDbiasDataType,
+          typename MeanVarDataType>
+bool PerformanceConfigBnCKBwdBackward::CheckIsSupportCKArgs(
+    const miopen::batchnorm::ProblemDescription& problem) const
+{
+    return IsCKArgsSupported<DeviceOpBNBwdPtrs<XDataType,
+                                               DxDataType,
+                                               DyDataType,
+                                               AccDataType,
+                                               ScaleDataType,
+                                               DscaleDbiasDataType,
+                                               MeanVarDataType>,
+                             CKArgsBNormBwd>(problem, this->kernel_id);
+}
 
 template <typename XDataType,
           typename DxDataType,
@@ -153,96 +243,201 @@ static bool CheckCKApplicability(const miopen::batchnorm::ProblemDescription& pr
                                             MeanVarDataType>,
                           CKArgsBNormBwd>(problem);
 }
+#endif
 
-template <typename XDataType,
-          typename DxDataType,
-          typename DyDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename DscaleDbiasDataType,
-          typename MeanVarDataType>
-static ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& bn_problem)
+void PerformanceConfigBnCKBwdBackward::HeuristicInit(
+    const miopen::batchnorm::ProblemDescription& problem_desc)
 {
-    const auto& valid_kernel_ids = FillValidKernelsIDs<DeviceOpBNBwdPtrs<XDataType,
-                                                                         DxDataType,
-                                                                         DyDataType,
-                                                                         AccDataType,
-                                                                         ScaleDataType,
-                                                                         DscaleDbiasDataType,
-                                                                         MeanVarDataType>,
-                                                       CKArgsBNormBwd>(bn_problem);
-    assert(!valid_kernel_ids.empty());
-    const auto& kernel_id = valid_kernel_ids[0];
-    return InitAnyInvokerFactory<DeviceOpBNBwdPtrs<XDataType,
-                                                   DxDataType,
-                                                   DyDataType,
-                                                   AccDataType,
-                                                   ScaleDataType,
-                                                   DscaleDbiasDataType,
-                                                   MeanVarDataType>,
-                                 CKArgsBNormBwd,
-                                 miopen::batchnorm::BwdInvokeParams>(bn_problem, kernel_id);
-}
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = problem_desc;
+#else
+    switch(problem_desc.GetXDesc().GetType())
+    {
+    case miopenHalf: Init<F16, F32, F32, F32, F16, F32, F32>(problem_desc); break;
+    case miopenBFloat16: Init<BF16, F32, F32, F32, BF16, F32, F32>(problem_desc); break;
+    case miopenFloat: Init<F32, F32, F32, F32, F32, F32, F32>(problem_desc); break;
+    case miopenDouble: Init<F64, F64, F64, F64, F64, F64, F64>(problem_desc); break;
+    case miopenFloat8:
+    case miopenBFloat8:
+    case miopenInt8:
+    case miopenInt32:
+    case miopenInt64:
+    default: MIOPEN_THROW("Unsupported datatype");
+    }
 
 #endif
+}
+
+bool PerformanceConfigBnCKBwdBackward::SetNextValue(
+    const miopen::batchnorm::ProblemDescription& problem_desc)
+{
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = problem_desc;
+    return false;
+#else
+    if(this->valid_kernels.empty())
+    {
+        this->HeuristicInit(problem_desc);
+        return true;
+    }
+    if((this->index + 1) < valid_kernels.size())
+    {
+        ++this->index;
+        this->kernel_id = this->valid_kernels[index];
+        return true;
+    }
+    else
+        return false;
+#endif
+}
+
+bool PerformanceConfigBnCKBwdBackward::IsValidValue() const
+{
+    return this->index >= 0 && this->index < valid_kernels.size();
+}
+
+bool PerformanceConfigBnCKBwdBackward::IsValid(
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem_desc) const
+{
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = problem_desc;
+    return false;
+#else
+    switch(problem_desc.GetXDesc().GetType())
+    {
+    case miopenHalf: return CheckIsSupportCKArgs<F16, F32, F32, F32, F16, F32, F32>(problem_desc);
+    case miopenBFloat16:
+        return CheckIsSupportCKArgs<BF16, F32, F32, F32, BF16, F32, F32>(problem_desc);
+    case miopenFloat: return CheckIsSupportCKArgs<F32, F32, F32, F32, F32, F32, F32>(problem_desc);
+    case miopenDouble: return CheckIsSupportCKArgs<F64, F64, F64, F64, F64, F64, F64>(problem_desc);
+    case miopenFloat8:
+    case miopenBFloat8:
+    case miopenInt8:
+    case miopenInt32:
+    case miopenInt64:
+    default: MIOPEN_THROW("Unsupported datatype");
+    }
+    return false;
+#endif
+}
+
+bool PerformanceConfigBnCKBwdBackward::operator==(
+    const PerformanceConfigBnCKBwdBackward& other) const
+{
+    return this->kernel_id == other.kernel_id;
+}
+
+PerformanceConfigBnCKBwdBackward BnCKBwdBackward::GetDefaultPerformanceConfig(
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem_desc) const
+{
+    PerformanceConfigBnCKBwdBackward pp;
+    pp.HeuristicInit(problem_desc);
+    MIOPEN_LOG_I(pp.ToString());
+    return pp;
+}
+
+bool BnCKBwdBackward::IsValidPerformanceConfig(
+    const ExecutionContext& ctx,
+    const miopen::batchnorm::ProblemDescription& problem_desc,
+    const PerformanceConfigBnCKBwdBackward& config) const
+{
+    return config.IsValid(ctx, problem_desc);
+}
+
+PerformanceConfigBnCKBwdBackward
+BnCKBwdBackward::Search(const ExecutionContext& ctx,
+                        const miopen::batchnorm::ProblemDescription& problem_desc,
+                        const AnyInvokeParams& invoke_ctx) const
+{
+    return GenericSearch(*this, ctx, problem_desc, invoke_ctx);
+}
 
 bool BnCKBwdBackward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(env::disabled(MIOPEN_DEBUG_CONV_CK_BN_BACK))
+    if(env::disabled(MIOPEN_DEBUG_CK_BN_BACK))
         return false;
-    if(!bn_problem.IsLayoutNHWC())
+    if(!bn_problem.IsLayoutNHWC() && !bn_problem.IsLayoutNCHW())
         return false;
     if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
         return false;
-    if(bn_problem.GetXDesc().GetType() != bn_problem.GetScaleBiasDiffDesc().GetType())
+    if(!bn_problem.Is2D())
         return false;
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::Backward)
+        return false;
+    if(bn_problem.GetMode() != miopenBNSpatial)
+        return false;
+    if(!bn_problem.Is2D())
+        return false;
+    if(!IsCKBwdTypeValid(bn_problem))
         return false;
 
     switch(bn_problem.GetXDesc().GetType())
     {
-    case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem);
-    case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64, F64>(bn_problem);
     case miopenHalf: return CheckCKApplicability<F16, F32, F32, F32, F16, F32, F32>(bn_problem);
     case miopenBFloat16:
         return CheckCKApplicability<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
+    case miopenFloat: return CheckCKApplicability<F32, F32, F32, F32, F32, F32, F32>(bn_problem);
+    case miopenDouble: return CheckCKApplicability<F64, F64, F64, F64, F64, F64, F64>(bn_problem);
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
-    case miopenBFloat8:
-    case miopenFloat8: break;
+    case miopenFloat8:
+    case miopenBFloat8: break;
     }
 #endif
     return false;
 }
 
-ConvSolution BnCKBwdBackward::GetSolution(
-    [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem) const
+template <typename InvokerFactoryMakerNHWC>
+ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& problem,
+                                   InvokerFactoryMakerNHWC&& invoker_factory_maker_nhwc)
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    switch(bn_problem.GetXDesc().GetType())
+    switch(problem.GetXDesc().GetType())
     {
-
-    case miopenFloat: return MakeAnyInvokerFactory<F32, F32, F32, F32, F32, F32, F32>(bn_problem);
-    case miopenDouble: return MakeAnyInvokerFactory<F64, F64, F64, F64, F64, F64, F64>(bn_problem);
-    case miopenHalf: return MakeAnyInvokerFactory<F16, F32, F32, F32, F16, F32, F32>(bn_problem);
-    case miopenBFloat16:
-        return MakeAnyInvokerFactory<BF16, F32, F32, F32, BF16, F32, F32>(bn_problem);
-    case miopenInt8:
-    case miopenInt32:
-    case miopenInt64:
-    case miopenBFloat8:
-    case miopenFloat8:
+    case miopenFloat: return invoker_factory_maker_nhwc(F32{});
+    case miopenDouble: return invoker_factory_maker_nhwc(F64{});
+    case miopenHalf: return invoker_factory_maker_nhwc(F16{});
+    case miopenBFloat16: return invoker_factory_maker_nhwc(BF16{});
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "BnCKBwdBackward operation does not support this data type");
     }
-#endif
+#else
     return {};
+#endif
+}
+
+ConvSolution BnCKBwdBackward::GetSolution(
+    [[maybe_unused]] const ExecutionContext&,
+    [[maybe_unused]] const miopen::batchnorm::ProblemDescription& bn_problem,
+    [[maybe_unused]] const PerformanceConfigBnCKBwdBackward& config) const
+{
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    return MakeAnyInvokerFactory(
+        bn_problem,
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+
+            using AccTy = std::conditional_t<std::is_same_v<T, F64>,
+                                             T,    // T==F64
+                                             F32>; // T==F32
+            return InitAnyInvokerFactory<DeviceOpBNBwdPtrs<T, AccTy, AccTy, AccTy, T, AccTy, AccTy>,
+                                         CKArgsBNormBwd,
+                                         miopen::batchnorm::BwdInvokeParams,
+                                         miopen::batchnorm::ProblemDescription>(bn_problem,
+                                                                                config.kernel_id);
+        }
+        // Todo: InvokerFactoryMakerNCHW
+    );
+#else
+    std::ignore = bn_problem;
+    std::ignore = config;
+    return {};
+#endif
 }
 
 } // namespace batchnorm

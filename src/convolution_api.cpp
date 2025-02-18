@@ -192,7 +192,16 @@ extern "C" miopenStatus_t miopenSetConvolutionFindMode(miopenConvolutionDescript
 {
     MIOPEN_LOG_FUNCTION(convDesc, findMode);
     return miopen::try_([&] {
-        miopen::deref(convDesc).findMode.Set(static_cast<miopen::FindMode::Values>(findMode));
+        miopen::FindMode::Values value = static_cast<miopen::FindMode::Values>(findMode);
+        if(miopen::FindMode::Values::Begin_ <= value && value < miopen::FindMode::Values::End_ &&
+           value != miopen::FindMode::Values::DeprecatedFastHybrid)
+        {
+            miopen::deref(convDesc).findMode.Set(value);
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid enum value specified for findMode");
+        }
     });
 }
 
@@ -237,7 +246,8 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             size_t K_per_group = K / G;
 
             return (alpha_beta_case == BILINEAR || alpha_beta_case == SCALE) ||
-                   (data_type == miopenHalf && (is_odd(C_per_group) || is_odd(K_per_group)));
+                   ((data_type == miopenHalf || data_type == miopenBFloat16) &&
+                    (is_odd(C_per_group) || is_odd(K_per_group)));
         };
 
         size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();

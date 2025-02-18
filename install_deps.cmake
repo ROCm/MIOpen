@@ -113,5 +113,5 @@ cget(init ${TOOLCHAIN_FLAG} -DCMAKE_INSTALL_RPATH=${PREFIX}/lib ${PARSE_UNPARSED
 cget(ignore pcre)
 
 # Install dependencies
-cget(install -U ROCm/rocm-recipes@329203d79f9fe77ae5d0d742af0966bc57f4dfc8)
+cget(install -U ROCm/rocm-recipes@92c6695449c85887962f45509b376f2eb0d284f7)
 cget(install -U -f requirements.txt)
