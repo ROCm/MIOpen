@@ -58,32 +58,14 @@ public:
     InlineVector(const InlineVector& inline_vec)     = default;
     InlineVector(InlineVector&& inline_vec) noexcept = default;
 
-    InlineVector(size_type sz) : real_size(sz)
-    {
-        if(real_size > N)
-        {
-            MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
-        }
-    }
-
-    InlineVector(const size_type& cnt, const T& val) : real_size(cnt)
+    InlineVector(const size_type& cnt, const T& val = T()) : real_size(cnt)
     {
         if(real_size > N)
         {
             MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
         }
 
-        std::fill(storage.begin(), storage.begin() + cnt, val);
-    }
-
-    InlineVector(size_type&& cnt, T&& val) : real_size(cnt)
-    {
-        if(real_size > N)
-        {
-            MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
-        }
-
-        std::fill(storage.begin(), storage.begin() + cnt, val);
+        std::fill_n(storage.begin(), cnt, val);
     }
 
     InlineVector(const std::initializer_list<T>& data) : real_size(data.size())
@@ -106,22 +88,17 @@ public:
         std::copy(data.begin(), data.end(), storage.begin());
     }
 
-    template <typename InputIterator>
+    template <typename InputIterator,
+              typename std::enable_if_t<!std::is_integral_v<InputIterator>, bool> = true>
     InlineVector(InputIterator first, InputIterator last)
     {
-        if constexpr(std::is_integral<InputIterator>::value)
+
+        real_size = std::distance(first, last);
+        if(real_size > N)
         {
-            InlineVector(size_t(first), T(last));
+            MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
         }
-        else
-        {
-            real_size = std::distance(first, last);
-            if(real_size > N)
-            {
-                MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
-            }
-            std::copy(first, last, storage.begin());
-        }
+        std::copy(first, last, storage.begin());
     }
 
     // Copy/move operator
@@ -129,10 +106,17 @@ public:
     InlineVector& operator=(InlineVector&& inline_vec) noexcept = default;
 
     // Compare operators
-    bool operator==(const InlineVector& riv) const { return storage == riv.storage; }
-    bool operator!=(const InlineVector& riv) const { return storage != riv.storage; }
-    bool operator<(const InlineVector& riv) const { return storage < riv.storage; }
-    bool operator>(const InlineVector& riv) const { return storage > riv.storage; }
+    bool operator==(const InlineVector& riv) const
+    {
+        return (std::equal(begin(), end(), riv.begin())) && (size() == riv.size());
+    }
+    bool operator!=(const InlineVector& riv) const { return !(*this == riv); }
+    bool operator<(const InlineVector& riv) const
+    {
+        return ((std::lexicographical_compare(begin(), end(), riv.begin(), riv.end())) &&
+                (size() < riv.size()));
+    }
+    bool operator>(const InlineVector& riv) const { return riv < *this; }
 
     // Iterators
     iterator begin() noexcept { return iterator(data()); }
@@ -357,7 +341,7 @@ std::ostream& operator<<(std::ostream& os, const InlineVector<T, N>& iv)
     else
     {
         os << "{";
-        for(int i = 0; i < iv.size() - 1; i++)
+        for(size_t i = 0; i < iv.size() - 1; i++)
         {
             os << iv[i] << ", ";
         }
@@ -367,6 +351,9 @@ std::ostream& operator<<(std::ostream& os, const InlineVector<T, N>& iv)
 
     return os;
 }
+
+template <typename T>
+using LensStrides = InlineVector<T, 5>;
 
 } // namespace miopen
 
