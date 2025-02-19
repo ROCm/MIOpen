@@ -35,7 +35,7 @@
 
 namespace miopen {
 
-miopenStatus_t Adam(Handle& handle,
+miopenStatus_t Adam(const Handle& handle,
                     const TensorDescriptor& paramInDesc,
                     ConstData_t paramIn,
                     const TensorDescriptor& paramOutDesc,

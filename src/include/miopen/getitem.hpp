@@ -34,9 +34,9 @@ struct Handle;
 struct TensorDescriptor;
 
 MIOPEN_INTERNALS_EXPORT std::size_t GetGetitemWorkspaceSize(
-    Handle& handle, uint32_t indexCount, const TensorDescriptor* const* indexDescs);
+    const Handle& handle, uint32_t indexCount, const TensorDescriptor* const* indexDescs);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t GetitemBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t GetitemBackward(const Handle& handle,
                                                        Data_t workspace,
                                                        size_t workspaceSizeInBytes,
                                                        const TensorDescriptor& dyDesc,

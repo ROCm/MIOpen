@@ -72,7 +72,7 @@ BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::ostringstream& netwo
 }
 
 std::vector<size_t>
-BatchNormInferenceFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
+BatchNormInferenceFusionOpDescriptor::GetLocalWGSz(const Handle& /*handle*/,
                                                    std::string /*algorithm_name*/)
 {
     std::vector<size_t> vld{256, 1, 1};
@@ -80,7 +80,7 @@ BatchNormInferenceFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
 }
 
 std::vector<size_t>
-BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
+BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(const Handle& /*handle*/,
                                                     std::string /*algorithm_name*/)
 {
     if(input_desc.GetLengths().empty())

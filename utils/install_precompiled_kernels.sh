@@ -19,12 +19,7 @@ backend="hip"
 while IFS= read -r line ; 
 do
     arch=$(echo $line | awk -F"-" '{print $1}')
-    num_cu=$(echo $line | awk -F"-" '{print $2}')
-    if [[ $arch = gfx1* ]]; then
-        echo "using gfx1* architects ..."
-        num_cu=$((num_cu/2))
-    fi
-    package=$arch-$num_cu
+    package=$arch
     if [ -f /etc/redhat-release ]; then
           echo sudo yum -y install "miopen-${backend}-${package}kdb"
           $SUDO yum -y install --nogpgcheck "miopen-${backend}-${package}kdb"

@@ -42,10 +42,11 @@
 #include <sys/vfs.h>
 #include <linux/magic.h>
 
+// The magic number 0x0BD00BD0 (LL_SUPER_MAGIC) is defined in the Lustre filesystem source code.
+// Please refer to the Lustre project's documentation or source code for details.
 #ifndef LL_SUPER_MAGIC
-#define LL_SUPER_MAGIC \
-    0x0BD00BD0 // LUSTRE
-               // https://github.com/whamcloud/lustre/blob/a336d7c7c1cd62a5a5213835aa85b8eaa87b076a/lustre/include/uapi/linux/lustre/lustre_user.h#L252
+#define LL_SUPER_MAGIC 0x0BD00BD0 // LUSTRE
+
 #endif
 #ifndef CEPH_SUPER_MAGIC
 #define CEPH_SUPER_MAGIC 0x00c36400

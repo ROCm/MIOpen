@@ -29,6 +29,7 @@
 
 #include <miopen/logger.hpp>
 #include <miopen/solver_id.hpp>
+#include <miopen/miopen.h>
 
 #include <boost/optional.hpp>
 
@@ -112,14 +113,14 @@ class MIOPEN_INTERNALS_EXPORT FindMode
 public:
     enum class Values
     {
-        Begin_ = 1, // 0 is returned for non-numeric env.vars.
-        Normal = Begin_,
-        Fast,
-        Hybrid,
-        DeprecatedFastHybrid,
-        DynamicHybrid,
+        Begin_               = 1, // 0 is returned for non-numeric env.vars.
+        Normal               = miopenConvolutionFindModeNormal,
+        Fast                 = miopenConvolutionFindModeFast,
+        Hybrid               = miopenConvolutionFindModeHybrid,
+        DeprecatedFastHybrid = 4,
+        DynamicHybrid        = miopenConvolutionFindModeDynamicHybrid,
         End_,
-        Default_ = MIOPEN_DEFAULT_FIND_MODE,
+        Default_ = miopenConvolutionFindModeDefault,
     };
 
 private:
