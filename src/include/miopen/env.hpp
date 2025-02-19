@@ -75,11 +75,11 @@ struct EnvVar
             }
             if constexpr(is_same_v<T, bool>)
             {
-                if(value == "0")
+                if(value->c_str()[0] == '0')
                 {
                     value_ = false;
                 }
-                else if(value == "1")
+                else if(value->c_str()[0] == '1')
                 {
                     value_ = true;
                 }
@@ -104,7 +104,7 @@ struct EnvVar
                     else
                     {
                         MIOPEN_THROW(miopenStatusInvalidValue,
-                                     "Invalid value for env variable (value='" + value_env_str +
+                                     "Invalid value for env variable '" + std::string{name} + "' (value='" + value_env_str +
                                          "')");
                     }
                 }

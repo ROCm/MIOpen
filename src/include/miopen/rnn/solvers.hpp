@@ -97,16 +97,11 @@ public:
 #endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
     }
 
-    auto getTempBuffersSize(const Handle& handle) const
-    {
-        return rnnAlgoModules.getTempBuffersSize(handle);
-    }
+    auto getTempBuffersSize() const { return rnnAlgoModules.getTempBuffersSize(); }
 
-    static auto getTempBuffersSize(const Handle& handle,
-                                   const RNNDescriptor& rnn,
-                                   const SeqTensorDescriptor& xDesc)
+    static auto getTempBuffersSize(const RNNDescriptor& rnn, const SeqTensorDescriptor& xDesc)
     {
-        return rnn_base::RNNModuleAlgoDynamic::getTempBuffersSize(handle, rnn, xDesc);
+        return rnn_base::RNNModuleAlgoDynamic::getTempBuffersSize(rnn, xDesc);
     }
 
     void ComputeFWD(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
@@ -184,16 +179,11 @@ public:
 #endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
     }
 
-    auto getTempBuffersSize(const Handle& handle) const
-    {
-        return rnnAlgoModules.getTempBuffersSize(handle);
-    }
+    auto getTempBuffersSize() const { return rnnAlgoModules.getTempBuffersSize(); }
 
-    static auto getTempBuffersSize(const Handle& handle,
-                                   const RNNDescriptor& rnn,
-                                   const SeqTensorDescriptor& xDesc)
+    static auto getTempBuffersSize(const RNNDescriptor& rnn, const SeqTensorDescriptor& xDesc)
     {
-        return decltype(rnnAlgoModules)::getTempBuffersSize(handle, rnn, xDesc);
+        return decltype(rnnAlgoModules)::getTempBuffersSize(rnn, xDesc);
     }
 
     void ComputeBWD(const Handle& handle, const runtimeArgsBwd& runtimeArgs) const;
@@ -320,16 +310,11 @@ public:
 #endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
     }
 
-    auto getTempBuffersSize(const Handle& handle) const
-    {
-        return rnnAlgoModules.getTempBuffersSize(handle);
-    }
+    auto getTempBuffersSize() const { return rnnAlgoModules.getTempBuffersSize(); }
 
-    static auto getTempBuffersSize(const Handle& handle,
-                                   const RNNDescriptor& rnn,
-                                   const SeqTensorDescriptor& xDesc)
+    static auto getTempBuffersSize(const RNNDescriptor& rnn, const SeqTensorDescriptor& xDesc)
     {
-        return decltype(rnnAlgoModules)::getTempBuffersSize(handle, rnn, xDesc);
+        return decltype(rnnAlgoModules)::getTempBuffersSize(rnn, xDesc);
     }
 
     runtimeArgsBWWeights createRuntimeArgsBase(const Handle& handle,

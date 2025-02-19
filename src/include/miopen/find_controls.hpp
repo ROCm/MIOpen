@@ -29,7 +29,6 @@
 
 #include <miopen/logger.hpp>
 #include <miopen/solver_id.hpp>
-#include <miopen/miopen.h>
 
 #include <boost/optional.hpp>
 
@@ -113,14 +112,14 @@ class MIOPEN_INTERNALS_EXPORT FindMode
 public:
     enum class Values
     {
-        Begin_               = 1, // 0 is returned for non-numeric env.vars.
-        Normal               = miopenConvolutionFindModeNormal,
-        Fast                 = miopenConvolutionFindModeFast,
-        Hybrid               = miopenConvolutionFindModeHybrid,
-        DeprecatedFastHybrid = 4,
-        DynamicHybrid        = miopenConvolutionFindModeDynamicHybrid,
+        Begin_ = 1, // 0 is returned for non-numeric env.vars.
+        Normal = Begin_,
+        Fast,
+        Hybrid,
+        DeprecatedFastHybrid,
+        DynamicHybrid,
         End_,
-        Default_ = miopenConvolutionFindModeDefault,
+        Default_ = MIOPEN_DEFAULT_FIND_MODE,
     };
 
 private:
@@ -164,6 +163,25 @@ public:
     MIOPEN_INTERNALS_EXPORT friend std::ostream& operator<<(std::ostream&, const FindMode&);
 };
 
+class MIOPEN_INTERNALS_EXPORT FindOperation
+{
+public:
+    enum class Operations
+    {
+        None = 0,
+        Validate = 0x0001,
+        Default_ = None,
+    };
+
+    FindOperation(){}
+    FindOperation(Operations ops_) : ops(ops_) {}
+    Operations Get() const { return ops; }
+
+    bool DoesValidation() const { return ops == Operations::Validate; }
+
+protected:
+    Operations ops = Operations::None;
+};
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_FIND_CONTROLS_HPP_

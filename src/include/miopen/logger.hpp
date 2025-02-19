@@ -221,6 +221,7 @@ MIOPEN_INTERNALS_EXPORT std::string LoggingLevelToCustomString(LoggingLevel leve
                                                                const char* custom);
 MIOPEN_INTERNALS_EXPORT const char* LoggingLevelToCString(LoggingLevel level);
 MIOPEN_INTERNALS_EXPORT std::string LoggingPrefix();
+MIOPEN_INTERNALS_EXPORT std::string LoggingPreamble();
 
 /// \return true if level is enabled.
 /// \param level - one of the values defined in LoggingLevel.
@@ -364,14 +365,22 @@ constexpr std::string_view LoggingParseFunction(const std::string_view func,
 #define MIOPEN_GET_FN_NAME miopen::LoggingParseFunction(__func__, __PRETTY_FUNCTION__)
 #endif
 
+#if defined(_WIN32)
+#define MIOPEN_LOGGING_BUILD_PREAMBLE
+#define MIOPEN_LOGGING_PREAMBLE ""
+#else
+#define MIOPEN_LOGGING_BUILD_PREAMBLE  std::ostringstream ss_pre; if(miopen::IsLogging(miopen::LoggingLevel::Trace, false)) ss_pre << "@" << __FILE__ << ":" << __LINE__ << ": "
+#define MIOPEN_LOGGING_PREAMBLE ss_pre.str()
+//(miopen::IsLogging(miopen::LoggingLevel::Trace, false) ? "@" __FILE__ ":" __LINE__ ": " : "")
+#endif
 #define MIOPEN_LOG_XQ_CUSTOM(level, disableQuieting, category, fn_name, ...)                \
     do                                                                                      \
-    {                                                                                       \
+    {   MIOPEN_LOGGING_BUILD_PREAMBLE;                                                                                    \
         if(miopen::IsLogging(level, disableQuieting))                                       \
         {                                                                                   \
             std::ostringstream miopen_log_ss;                                               \
             miopen_log_ss << miopen::LoggingPrefix() << category << " [" << fn_name << "] " \
-                          << __VA_ARGS__ << std::endl;                                      \
+                          << MIOPEN_LOGGING_PREAMBLE << __VA_ARGS__ << std::endl;           \
             std::cerr << miopen_log_ss.str();                                               \
         }                                                                                   \
     } while(false)
@@ -414,7 +423,7 @@ constexpr std::string_view LoggingParseFunction(const std::string_view func,
         std::cerr << miopen_driver_cmd_ss.str();                                             \
     } while(false)
 
-#ifdef _WIN32
+#ifdef _WIN32 
 #define MIOPEN_LOG_DRIVER_CMD(...) MIOPEN_LOG_DRIVER_COMMAND("MIOpenDriver.exe", __VA_ARGS__)
 #else
 #define MIOPEN_LOG_DRIVER_CMD(...) MIOPEN_LOG_DRIVER_COMMAND("./bin/MIOpenDriver", __VA_ARGS__)

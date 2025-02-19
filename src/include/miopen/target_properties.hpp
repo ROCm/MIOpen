@@ -37,11 +37,9 @@ struct Handle;
 
 struct TargetProperties
 {
-    virtual ~TargetProperties() = default;
-
-    virtual const std::string& Name() const { return name; }
+    const std::string& Name() const { return name; }
     const std::string& DbId() const { return dbId; }
-    virtual boost::optional<bool> Xnack() const { return xnack; }
+    boost::optional<bool> Xnack() const { return xnack; }
     boost::optional<bool> Sramecc() const { return sramecc; }
     boost::optional<bool> SrameccReported() const { return sramecc_reported; }
     static std::size_t GetMaxWaveScratchSize() { return MaxWaveScratchSize; }

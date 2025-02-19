@@ -380,6 +380,13 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     // ROCBLAS for GEMM step
 
 #if(MIOPEN_BACKEND_HIP && MIOPEN_USE_ROCBLAS)
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(name, "gfx8") || name == "gfx900" || name == "gfx906" || name == "gfx908" ||
+         name == "gfx90a"))
+    {
+        return false;
+    }
+
     static const int wino_data_tile   = std::max(WinoDataH, WinoDataW);
     static const int wino_filter_tile = std::max(WinoFilterH, WinoFilterW);
 
@@ -398,7 +405,6 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
         }
     }
 
-    const std::string name = ctx.GetStream().GetDeviceName();
 #if WORKAROUND_SWDEV_234193
     if(problem.IsFp16() && (StartsWith(name, "gfx908") || StartsWith(name, "gfx906")))
     {
@@ -477,7 +483,7 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
     if(!problem.IsLayoutDefault())
         return false;
 
-    const auto& target = ctx.GetStream().GetTargetProperties();
+    const auto target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
@@ -487,8 +493,6 @@ bool ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>
                                                                                        problem)))
         return false;
 
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")) || StartsWith(name, "gfx94"))
-        return false;
     if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 

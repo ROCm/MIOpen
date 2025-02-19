@@ -239,8 +239,8 @@ bool Layernorm2DCKForward::IsApplicable(
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
-    case miopenFloat8:
-    case miopenBFloat8: return false;
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz: return false;
     }
 #endif
     return false;
@@ -266,8 +266,8 @@ ConvSolution Layernorm2DCKForward::GetSolution(
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");

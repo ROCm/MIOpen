@@ -371,17 +371,12 @@ typedef enum
     miopenInt32 = 2, /*!< 32-bit integer (Partially supported) */
     miopenInt8  = 3, /*!< 8-bit integer (Partially supported) */
     // miopenInt8x4   = 4, /*!< Pack of 4x Int8 in NCHW_VECT_C format (Support discontinued) */
-    miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
-                           (Partially supported) */
-    miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
-#ifdef MIOPEN_BETA_API
-    miopenFloat8  = 7,
-    miopenBFloat8 = 8,
-#else
-// miopenReserved1 = 7,
-// miopenReserved2 = 8,
-#endif
-    miopenInt64 = 9,
+    miopenBFloat16 = 5,     /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
+                               (Partially supported) */
+    miopenDouble       = 6, /*!< 64-bit floating point (Partially supported) */
+    miopenFloat8_fnuz  = 7,
+    miopenBFloat8_fnuz = 8,
+    miopenInt64        = 9,
 } miopenDataType_t;
 
 /*! @ingroup tensor
@@ -644,34 +639,6 @@ typedef enum
 // miopenReserved1 = 2,
 #endif
 } miopenConvolutionAttrib_t;
-
-/*! @ingroup convolutions
- *  @enum miopenConvolutionFindMode_t
- * Findmode for convolution descriptor, used for changing the find behavior when calling
- * miopenFindConvolutionForwardAlgorithm(), miopenFindConvolutionBackwardDataAlgorithm(), or
- * miopenFindConvolutionBackwardWeightsAlgorithm().
- */
-typedef enum
-{
-    miopenConvolutionFindModeNormal =
-        1, /*!< Full Find mode call, which will benchmark all the solvers and return a list. >*/
-    miopenConvolutionFindModeFast =
-        2, /*!< Checks the Find-db for an entry. If there is a hit, use that entry. If there is a
-              miss, utilize the Immediate mode fallback. Start-up times are expected to be faster,
-              but with worse GPU performance. >*/
-    miopenConvolutionFindModeHybrid =
-        3, /*!< Checks the Find-db for an entry. If there is a hit, use that entry. If there is a
-              miss, use the existing Find machinery. Slower start-up times than Fast Find, but
-              better GPU performance. >*/
-    // miopenConvolutionFindModeReserved_4 = 4, /*!< Reserved - do not use */
-    miopenConvolutionFindModeDynamicHybrid =
-        5, /*!< Checks the Find-db for an entry. If there is a hit, uses that entry. If there is a
-              miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving
-              compilation time. Faster start-up times than Hybrid Find, but GPU performance might be
-              a bit worse. >*/
-    miopenConvolutionFindModeDefault =
-        miopenConvolutionFindModeDynamicHybrid /*!< Default FindMode >*/
-} miopenConvolutionFindMode_t;
 
 /** @addtogroup tensor
  *
@@ -1196,31 +1163,6 @@ MIOPEN_EXPORT miopenStatus_t miopenSetConvolutionAttribute(miopenConvolutionDesc
 MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionAttribute(miopenConvolutionDescriptor_t convDesc,
                                                            const miopenConvolutionAttrib_t attr,
                                                            int* value);
-
-/*! @brief Sets the Find Mode attribute in the convolution descriptor.
- *
- * The subsequent calls of miopenFindConvolutionForwardAlgorithm(),
- * miopenFindConvolutionBackwardDataAlgorithm(), or miopenFindConvolutionBackwardWeightsAlgorithm()
- * invoked with convDesc, will follow the findMode set by this call.
- *
- * Note that the default Find Mode is overriden by the MIOPEN_FIND_MODE environment variable,
- * if it is set. If unset, the default is as specified by miopenConvolutionFindModeDefault.
- *
- * @param convDesc   Convolution layer descriptor (input)
- * @param findMode   Find Mode of convDesc (input)
- * @return           miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenSetConvolutionFindMode(miopenConvolutionDescriptor_t convDesc,
-                                                          miopenConvolutionFindMode_t findMode);
-
-/*! @brief Reads the Find Mode attribute from the convolution descriptor.
- *
- * @param convDesc   Convolution layer descriptor (input)
- * @param findMode   Find Mode of convDesc (output)
- * @return           miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t miopenGetConvolutionFindMode(
-    const miopenConvolutionDescriptor_t convDesc, miopenConvolutionFindMode_t* findMode);
 
 /*! @enum miopenConvFwdAlgorithm_t
  * Convolutional algorithm mode for forward propagation. MIOpen use cross-correlation for its

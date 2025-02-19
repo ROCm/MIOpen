@@ -133,8 +133,7 @@ struct square_diff_fn
     template <class T, class U>
     double operator()(T x, U y) const
     {
-        double diff = static_cast<double>(x - y);
-        return diff * diff;
+        return static_cast<double>((x - y) * (x - y));
     }
 };
 static constexpr square_diff_fn square_diff{};

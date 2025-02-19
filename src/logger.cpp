@@ -197,4 +197,18 @@ std::string LoggingPrefix()
     return ss.str();
 }
 
+std::string LoggingPreamble()
+{
+    std::stringstream ss;
+   
+#if !defined(_WIN32)
+    if(miopen::IsLogging(miopen::LoggingLevel::Trace, false))
+    {
+        ss << "@" << __FILE__ << ":" << __LINE__ << ": ";
+    }
+#endif
+
+    return ss.str();
+}
+
 } // namespace miopen

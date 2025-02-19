@@ -73,11 +73,11 @@ protected:
             std::vector<size_t> dims(d.begin(), d.end());
             if(auto dt = mTensPtr->GetType(); dt == miopenFloat)
             {
-                mCpuTensor = TensFlt{dims};
+                mCpuTensor = TensFlt{mTensPtr->GetLengths()};
             }
             else if(dt == miopenInt64)
             {
-                mCpuTensor = TensI64{dims};
+                mCpuTensor = TensI64{mTensPtr->GetLengths()};
             }
             else
             {
@@ -218,7 +218,7 @@ protected:
             assert(out_tensors.size() == 1);
 
             auto* mm_desc =
-                mAlloc.allocate(gr::MatmulBuilder().setComputeType(miopenFloat8).build());
+                mAlloc.allocate(gr::MatmulBuilder().setComputeType(miopenFloat8_fnuz).build());
             mGraphBuilder->addNode(mAlloc.allocate(gr::OperationMatmulBuilder{}
                                                        .setA(in_tensors[0])
                                                        .setB(in_tensors[1])

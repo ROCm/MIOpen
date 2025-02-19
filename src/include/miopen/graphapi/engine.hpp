@@ -203,7 +203,6 @@ public:
     BackendEngineDescriptor(const Engine& engine, miopenBackendDescriptor_t opGraphDescriptor)
         : mEngine(engine), mOpGraphDescriptor(opGraphDescriptor)
     {
-        mFinalized = true;
     }
 
     void setAttribute(miopenBackendAttributeName_t attributeName,

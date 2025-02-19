@@ -233,6 +233,7 @@ void Solution::RunImpl(const Handle& handle,
     }
 
     const auto net_cfg       = conv_problem.BuildConfKey();
+    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Solution" << std::endl; // TRJSGetI
     const auto found_invoker = handle.GetInvoker(net_cfg, GetSolver());
 
     if(found_invoker)
@@ -246,7 +247,7 @@ void Solution::RunImpl(const Handle& handle,
     auto conv_ctx = ExecutionContext{&handle};
     conv_problem.SetupFloats(conv_ctx);
 
-    decltype(auto) db        = MakeConvDbGetter(conv_ctx);
+    decltype(auto) db        = GetDb(conv_ctx);
     const auto conv_solution = GetSolver().GetSolver().FindSolution(
         conv_ctx, conv_problem, db, invoke_ctx, perf_cfg.value_or(""));
 
@@ -434,6 +435,7 @@ void Solution::RunImpl(const Handle& handle,
     }
 
     const auto net_cfg = problem_description.MakeNetworkConfig();
+    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Solution" << std::endl; // TRJSGetI
     invoker            = handle.GetInvoker(net_cfg, GetSolver());
 
     if(invoker)
@@ -534,6 +536,7 @@ void Solution::RunImpl(const Handle& handle,
     }
 
     const auto net_cfg = problem_description.MakeNetworkConfig();
+    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Solution" << std::endl; // TRJSGetI
     invoker            = handle.GetInvoker(net_cfg, GetSolver());
 
     if(invoker)
@@ -596,7 +599,7 @@ void Solution::RunImpl(const Handle& handle,
     }
 
     const auto net_cfg = fusion_problem.MakeNetworkConfig();
-
+    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Solution" << std::endl; // TRJSGetI
     invoker = handle.GetInvoker(net_cfg, GetSolver());
     if(invoker)
     {

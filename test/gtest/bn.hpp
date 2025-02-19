@@ -45,9 +45,7 @@ static std::string LayoutToString(int tensor_format)
     switch(tensor_format)
     {
     case miopenTensorNCHW: return "NCHW";
-    case miopenTensorNCDHW: return "NCDHW";
     case miopenTensorNHWC: return "NHWC";
-    case miopenTensorNDHWC: return "NDHWC";
     default: return "UnknownTensorFormat";
     }
 }
@@ -63,28 +61,19 @@ static std::string ApiVerisonToString(int api_version)
 }
 
 // Custom test name generator to handle enums
-template <typename TestCase>
 struct TestNameGenerator
 {
     std::string operator()(
-        const testing::TestParamInfo<std::tuple<TestCase, miopenTensorLayout_t, BNApiType>>& info)
+        const testing::TestParamInfo<std::tuple<BNTestCase, miopenTensorLayout_t, BNApiType>>& info)
         const
     {
-        constexpr int dimension = std::is_same<TestCase, BN2DTestCase>::value   ? 2
-                                  : std::is_same<TestCase, BN3DTestCase>::value ? 3
-                                                                                : -1;
-        static_assert(dimension > 0);
-
         const auto& layout_type = std::get<1>(info.param);
         const auto& api_type    = std::get<2>(info.param);
 
         std::string tensor_name = LayoutToString(layout_type);
         std::string api_name    = ApiVerisonToString(api_type);
 
-        std::ostringstream oss;
-        oss << tensor_name + "_" + api_name + "_Dim_" + std::to_string(dimension) + "_test_id_" +
-                   std::to_string(info.index);
-        return oss.str();
+        return tensor_name + "_" + api_name + "_" + std::to_string(info.index);
     }
 };
 
@@ -92,15 +81,14 @@ template <typename XDataType,
           typename YDataType,
           typename ScaleDataType,
           typename BiasDataType,
-          typename MeanVarDataType,
-          typename TestCase>
+          typename MeanVarDataType>
 struct BNInferTest
-    : public ::testing::TestWithParam<std::tuple<TestCase, miopenTensorLayout_t, BNApiType>>
+    : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t, BNApiType>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, api_type) = this->GetParam();
+        std::tie(bn_config, tensor_layout, api_type) = GetParam();
         bn_infer_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
@@ -162,7 +150,7 @@ protected:
 
     void TearDown() override
     {
-        if(test_skipped || ::testing::Test::HasFailure())
+        if(test_skipped || Test::HasFailure())
         {
             return;
         }
@@ -175,9 +163,9 @@ protected:
         test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 4e-3);
     }
 
-    TestCase bn_config;
+    BNTestCase bn_config;
     bool test_skipped = false;
-    BNInferTestData<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType, TestCase>
+    BNInferTestData<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType, BNTestCase>
         bn_infer_test_data;
     miopenTensorLayout_t tensor_layout;
     BNApiType api_type;
@@ -189,15 +177,14 @@ template <typename XDataType,
           typename AccDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
-          typename MeanVarDataType,
-          typename TestCase>
+          typename MeanVarDataType>
 struct BNBwdTest
-    : public ::testing::TestWithParam<std::tuple<TestCase, miopenTensorLayout_t, BNApiType>>
+    : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t, BNApiType>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, api_type) = this->GetParam();
+        std::tie(bn_config, tensor_layout, api_type) = GetParam();
         bn_bwd_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
@@ -268,7 +255,7 @@ protected:
 
     void TearDown() override
     {
-        if(test_skipped || ::testing::Test::HasFailure())
+        if(test_skipped || Test::HasFailure())
         {
             return;
         }
@@ -290,7 +277,7 @@ protected:
             bn_bwd_test_data.dBias, bn_bwd_test_data.dBias_ref, bwd_tol);
     }
 
-    TestCase bn_config;
+    BNTestCase bn_config;
     bool test_skipped = false;
     BNBwdTestData<XDataType,
                   DxDataType,
@@ -299,7 +286,7 @@ protected:
                   ScaleDataType,
                   DscaleDbiasDataType,
                   MeanVarDataType,
-                  TestCase>
+                  BNTestCase>
         bn_bwd_test_data;
     miopenTensorLayout_t tensor_layout;
     BNApiType api_type;
@@ -310,15 +297,14 @@ template <typename XDataType,
           typename YDataType,
           typename ScaleDataType,
           typename BiasDataType,
-          typename AccDataType,
-          typename TestCase>
+          typename AccDataType>
 struct BNFwdTrainTest
-    : public ::testing::TestWithParam<std::tuple<TestCase, miopenTensorLayout_t, BNApiType>>
+    : public ::testing::TestWithParam<std::tuple<BNTestCase, miopenTensorLayout_t, BNApiType>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, api_type) = this->GetParam();
+        std::tie(bn_config, tensor_layout, api_type) = GetParam();
         bn_fwd_train_test_data.SetUpImpl(bn_config, tensor_layout);
 
         auto&& handle = get_handle();
@@ -393,7 +379,7 @@ protected:
 
     void TearDown() override
     {
-        if(test_skipped || ::testing::Test::HasFailure())
+        if(test_skipped || Test::HasFailure())
         {
             return;
         }
@@ -427,9 +413,9 @@ protected:
             bn_fwd_train_test_data.runVariance, bn_fwd_train_test_data.runVariance_ref, 4e-3);
     }
 
-    TestCase bn_config;
+    BNTestCase bn_config;
     bool test_skipped = false;
-    BNFwdTrainTestData<XDataType, YDataType, ScaleDataType, BiasDataType, AccDataType, TestCase>
+    BNFwdTrainTestData<XDataType, YDataType, ScaleDataType, BiasDataType, AccDataType, BNTestCase>
         bn_fwd_train_test_data;
     miopenTensorLayout_t tensor_layout;
     BNApiType api_type;

@@ -93,7 +93,7 @@ bool AnyRamDb::RemoveRecord(const std::string& key)
 
 boost::optional<AnyRamDb::TRecord> AnyRamDb::FindRecordUnsafe(const std::string& problem)
 {
-    MIOPEN_LOG_I2("Looking for key " << problem << " in cache for file " << filename);
+    MIOPEN_LOG_I2("AnyRamDb Looking for key " << problem << " in cache for file " << filename);
     const auto it = cache.find(problem);
 
     if(it == cache.end())

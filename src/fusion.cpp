@@ -785,13 +785,12 @@ solver::ConvSolution MakeFusedSolution(const FusionContext& ctx,
                                        const FusionDescription& problem,
                                        const AnyInvokeParams& invoke_params)
 {
-    auto db_getter = MakeConvDbGetter(ctx);
-
+    decltype(auto) db = GetDb(ctx);
     solver::ConvSolution solution{miopenStatusInternalError};
 
     GetAllFusionSolvers().FindById(id, [&](auto solver) {
         solution = miopen::solver::FindSolution(
-            solver, ctx, problem, db_getter, invoke_params, perf_cfg_override.value_or(""));
+            solver, ctx, problem, db, invoke_params, perf_cfg_override.value_or(""));
     });
 
     return solution;
@@ -830,7 +829,7 @@ protected:
         const auto fusion_ctx = FusionContext(ctx);
         return solvers.SearchForAllSolutions(fusion_ctx,
                                              problem,
-                                             MakeConvDbGetter(ctx),
+                                             miopen::GetDb(ctx),
                                              invoke_ctx,
                                              std::numeric_limits<std::size_t>::max(),
                                              options);
@@ -979,6 +978,7 @@ miopenStatus_t FusionPlanDescriptor::Compile(const Handle& handle)
     std::vector<Solution> find_results;
 
     const auto network_config = fusion_problem.MakeNetworkConfig();
+    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Algorithm" << std::endl; // TRJSGetI
     auto invoker = handle.GetInvoker(network_config, std::nullopt, AlgorithmName{"fusion"});
 
     if(invoker)
@@ -1039,9 +1039,9 @@ miopenStatus_t FusionPlanDescriptor::Compile(const Handle& handle)
 
             GetAllFusionSolvers().FindById(id, [&](auto solver) {
                 const auto ctx      = FusionContext{handle};
-                auto db_getter      = MakeConvDbGetter(ctx);
+                auto db             = GetDb(ctx);
                 const auto solution = solver::FindSolution(
-                    solver, ctx, fusion_problem, db_getter, {}); // auto tune is not expected here
+                    solver, ctx, fusion_problem, db, {}); // auto tune is not expected here
                 auto invoker =
                     handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
                 // We register the invoker below
@@ -1072,9 +1072,10 @@ miopenStatus_t FusionPlanDescriptor::Compile(const Handle& handle)
         const auto id = result.GetSolver();
         invoker       = result.GetInvoker();
 
-        if(!invoker)
-            invoker = handle.GetInvoker(network_config, id);
+        if(!invoker) {    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Solution" << std::endl; // TRJSGetI
 
+            invoker = handle.GetInvoker(network_config, id);
+        }
         if(!invoker)
         {
             MIOPEN_LOG_E("Find-db has not produced an invoker");

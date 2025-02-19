@@ -11,9 +11,6 @@
 
 #include "miopen_limits.hpp"
 
-#define MIOPEN_ENABLE_F8_DEVICE_CODE 1
-#include "hip_float8.hpp"
-
 namespace ck {
 
 using half_t = _Float16;

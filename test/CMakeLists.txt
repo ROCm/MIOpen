@@ -28,9 +28,11 @@ cmake_policy(SET CMP0057 NEW)
 
 set(test_perf.py ${CMAKE_INSTALL_BINDIR}/test_perf.py)
 
-install(FILES  test_perf.py
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-    DESTINATION ${CMAKE_INSTALL_BINDIR})
+if( NOT ENABLE_ASAN_PACKAGING )
+  install(FILES  test_perf.py
+      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+      DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif()
 
 set(MODEL_FILES)
 file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
@@ -38,13 +40,15 @@ foreach (src ${model_src})
     list (APPEND MODEL_FILES ${src})
 endforeach()
 
-install(FILES
-    ${MODEL_FILES}
-    DESTINATION ${DATA_INSTALL_DIR}/perf_models)
-foreach(MODEL_FILE ${MODEL_FILES})
-   get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-   configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
-endforeach()
+if( NOT ENABLE_ASAN_PACKAGING )
+  install(FILES
+      ${MODEL_FILES}
+      DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+endif()
+ foreach(MODEL_FILE ${MODEL_FILES})
+    get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+    configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
+ endforeach()
 
 include(CheckCXXCompilerFlag)
 
@@ -55,6 +59,7 @@ option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option( MIOPEN_TEST_GFX908 "Test on MI100 (gfx908)" OFF )
 option( MIOPEN_TEST_GFX90A "Test on MI2X0 (gfx90a)" OFF )
 option( MIOPEN_TEST_GFX94X "Test on MI300 (gfx940/1/2)" OFF )
+option( MIOPEN_TEST_GFX95X "Test on MI350 (gfx950)" OFF )
 option( MIOPEN_TEST_GFX900 "Test on Vega10 (gfx900)" OFF )
 option( MIOPEN_TEST_GFX906 "Test on Vega20 (gfx906)" OFF )
 option( MIOPEN_TEST_GFX103X "Test on Navi21/22 (gfx1030/31)" OFF )
@@ -94,7 +99,7 @@ endif()
 # Also we do not detect GPU when target GPU for testing is specified explicitly.
 set(MIOPEN_TEST_GPU_DETECTION_FAILED FALSE)
 set(MIOPEN_NO_GPU FALSE)
-if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX94X OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X OR MIOPEN_TEST_GFX120X OR MIOPEN_TEST_HIP_NOGPU))
+if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX94X OR MIOPEN_TEST_GFX95X OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X OR MIOPEN_TEST_GFX120X OR MIOPEN_TEST_HIP_NOGPU))
     find_program(ROCMINFO
         NAMES rocminfo
         PATHS
@@ -140,6 +145,8 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
             set(MIOPEN_TEST_GFX90A ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx94")
             set(MIOPEN_TEST_GFX94X ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx95")
+            set(MIOPEN_TEST_GFX95X ON)
         else()
             message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
             set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
@@ -173,6 +180,7 @@ message(STATUS "MIOPEN_TEST_GFX906 ${MIOPEN_TEST_GFX906}")
 message(STATUS "MIOPEN_TEST_GFX908 ${MIOPEN_TEST_GFX908}")
 message(STATUS "MIOPEN_TEST_GFX90A ${MIOPEN_TEST_GFX90A}")
 message(STATUS "MIOPEN_TEST_GFX94X ${MIOPEN_TEST_GFX94X}")
+message(STATUS "MIOPEN_TEST_GFX95X ${MIOPEN_TEST_GFX95X}")
 message(STATUS "MIOPEN_TEST_GFX103X ${MIOPEN_TEST_GFX103X}")
 message(STATUS "MIOPEN_TEST_GFX110X ${MIOPEN_TEST_GFX110X}")
 message(STATUS "MIOPEN_TEST_GFX120X ${MIOPEN_TEST_GFX120X}")
@@ -654,7 +662,7 @@ function(add_custom_test NAME)
         set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
 
-    if(  (is_gfx900_check OR is_gfx906_check OR is_gfx908_check OR is_gfx103x_check OR is_gfx110x_check OR is_gfx90a_check OR is_gfx94x_check)
+    if(  (is_gfx900_check OR is_gfx906_check OR is_gfx908_check OR is_gfx103x_check OR is_gfx110x_check OR is_gfx90a_check OR is_gfx94x_check OR is_gfx95x_check)
      AND is_full_check
      AND is_xnack_on_check
      AND is_mlir_check

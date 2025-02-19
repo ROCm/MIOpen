@@ -35,7 +35,7 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 
-struct BN2DTestCase
+struct BNTestCase
 {
     size_t N;
     size_t C;
@@ -46,7 +46,7 @@ struct BN2DTestCase
     bool save;
     bool keepRunning;
 
-    friend std::ostream& operator<<(std::ostream& ss, const BN2DTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& ss, const BNTestCase& tc)
     {
         return ss << "(N: " << tc.N << " C:" << tc.C << " H:" << tc.H << " W:" << tc.W
                   << " mode: " << tc.mode << " Direction: " << static_cast<int>(tc.Direction)
@@ -55,39 +55,14 @@ struct BN2DTestCase
     std::vector<size_t> GetInput() const { return {N, C, H, W}; }
 };
 
-struct BN3DTestCase
-{
-    size_t N;
-    size_t C;
-    size_t D;
-    size_t H;
-    size_t W;
-    miopenBatchNormMode_t mode;
-    miopen::batchnorm::Direction Direction;
-    bool save;
-    bool keepRunning;
-
-    friend std::ostream& operator<<(std::ostream& ss, const BN3DTestCase& tc)
-    {
-        return ss << "(N: " << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
-                  << " W:" << tc.W << " mode: " << tc.mode
-                  << " Direction: " << static_cast<int>(tc.Direction) << " save: " << tc.save
-                  << " keepRunning: " << tc.keepRunning;
-    }
-    std::vector<size_t> GetInput() const { return {N, C, D, H, W}; }
-};
+template <typename T>
+std::vector<T> NetworkSmall();
 
 template <typename T>
-std::vector<T> Network2DSmall();
-
-template <typename T>
-std::vector<T> Network2DLarge();
-
-template <typename T>
-std::vector<T> Network3DBN();
+std::vector<T> NetworkLarge();
 
 template <>
-inline std::vector<BN2DTestCase> Network2DLarge()
+inline std::vector<BNTestCase> NetworkLarge()
 {
     // pyt_mlperf_resnet50v1.5
     return {
@@ -118,34 +93,18 @@ inline std::vector<BN2DTestCase> Network2DLarge()
         {64, 64, 112, 112, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0},
-        {768, 1, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {768, 1, 23, 23, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {832, 1, 14, 14, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {832, 1, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 1}};
+        {64, 64, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::ForwardInference, 1, 0}};
 }
 
 template <>
-inline std::vector<BN2DTestCase> Network2DSmall()
+inline std::vector<BNTestCase> NetworkSmall()
 {
     // pyt_mlperf_resnet50v1.5
     return {
         {192, 2, 8, 8, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 56, 56, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
+        {16, 8, 132, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 128, 256, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
         {64, 2048, 17, 17, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
-
-    };
-}
-
-template <>
-inline std::vector<BN3DTestCase> Network3DBN()
-{
-    return {
-        {2, 2, 3, 224, 224, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 132, 28, 28, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 16, 128, 128, miopenBNSpatial, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
-        {2, 2048, 16, 128, 128, miopenBNSpatial, miopen::batchnorm::Direction::Backward, 0, 1},
 
     };
 }

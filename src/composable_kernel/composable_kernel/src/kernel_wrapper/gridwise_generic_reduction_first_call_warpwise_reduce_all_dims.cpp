@@ -23,6 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifdef WORKAROUND_ISSUE_1431
+#include "workaround_issue_1431.hpp"
+#endif
 #include "config.hpp"
 #include "number.hpp"
 #include "sequence.hpp"

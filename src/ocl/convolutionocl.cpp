@@ -89,7 +89,7 @@ static Invoker PrepareInvoker(ExecutionContext ctx,
     ctx.disable_search_enforce = true;
 
     const auto solver = solver_id.GetSolver();
-    auto db           = MakeConvDbGetter(ctx);
+    auto db           = GetDb(ctx);
     auto solution     = solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
     auto& handle      = ctx.GetStream();
     auto invoker = handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
@@ -105,6 +105,7 @@ Invoker LoadOrPrepareInvoker(const ExecutionContext& ctx,
 {
     const auto& handle = ctx.GetStream();
     const auto config  = problem.MakeNetworkConfig();
+    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Solution" << std::endl; // TRJSGetI
     auto invoker       = handle.GetInvoker(config, solver_id);
     if(invoker)
         return *invoker;
@@ -483,6 +484,7 @@ void ConvolutionDescriptor::ConvolutionForward(const Handle& handle,
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
         const auto network_config = problem.MakeNetworkConfig();
+    std::cerr << __FILE__ << ":" << __LINE__ << ":" << " ConvolutionForward calling GetInvoker with Algorithm" << std::endl; // TRJSGetI
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(invoker)
@@ -603,17 +605,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     if(!env::disabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK))
     {
         const static std::string arch = ctx.GetStream().GetDeviceName();
-        std::vector<uint64_t> solvers;
-        try
-        {
-            solvers = ai::immed_mode::PredictSolver(problem, ctx, arch);
-        }
-        catch(const miopen::Exception& ex)
-        {
-            MIOPEN_LOG_I2("[Warning] Caught exception: (" << ex.what()
-                                                          << "), passing empty solver vector");
-        }
-
+        auto solvers                  = ai::immed_mode::PredictSolver(problem, ctx, arch);
         if(!solvers.empty())
         {
             MIOPEN_LOG_I2("Using TunaNet Fallback");
@@ -985,6 +977,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(const Handle& handle,
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::BackwardData)};
 
         const auto network_config = problem.MakeNetworkConfig();
+    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Algorithm" << std::endl; // TRJSGetI
         const auto& invoker       = handle.GetInvoker(network_config, {}, algorithm_name);
 
         if(!invoker)
@@ -1189,6 +1182,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
         decltype(auto) algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), direction)};
         decltype(auto) network_config = problem.MakeNetworkConfig();
+    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Algorithm" << std::endl; // TRJSGetI
         decltype(auto) invoker = handle.GetInvoker(network_config, std::nullopt, algorithm_name);
 
         if(!invoker)

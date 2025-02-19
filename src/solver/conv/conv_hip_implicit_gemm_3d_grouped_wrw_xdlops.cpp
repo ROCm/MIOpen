@@ -376,8 +376,8 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -433,8 +433,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::IsValid(
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -486,7 +486,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS))
         return false;
-    if(problem.GetConv().attribute.deterministic)
+    if(env::enabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC))
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())
         return false;
@@ -509,12 +509,13 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenBFloat16:
-        return StartsWith(ctx.GetStream().GetDeviceName(), "gfx94") &&
+        return (StartsWith(ctx.GetStream().GetDeviceName(), "gfx94") ||
+                StartsWith(ctx.GetStream().GetDeviceName(), "gfx95")) &&
                CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif

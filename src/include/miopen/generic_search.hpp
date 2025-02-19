@@ -227,7 +227,7 @@ public:
                 n_recent != 0u ? (static_cast<float>(n_total - n_recent) *
                                   (elapsed_cumulative / static_cast<float>(n_recent)) / 1000.0f)
                                : 0.0f; // paraniod
-            MIOPEN_LOG_I(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
+            MIOPEN_LOG_W(n_recent << '/' << n_failed << '/' << n_total << ' ' << total_best
                                   << ", best within recent " << n_within_beat << ": " << best_time
                                   << " #" << n_best << ' ' << best_config << ", ETA:" << eta_sec
                                   << " sec.");
@@ -278,7 +278,7 @@ auto GetAllConfigs(const Solver s, const Context& context, const Problem& proble
 
     ComputedContainer<PerformanceConfig, Context, Problem> all_configs = useSpare ? spare : primary;
     const int n_runs_total = useSpare ? spare_size : primary_size;
-    MIOPEN_LOG_I(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
+    MIOPEN_LOG_W(s.SolverDbId() << ": Searching the best solution among " << n_runs_total
                                 << (useSpare ? " (spare)" : "") << "...");
 
     return all_configs;
@@ -409,6 +409,8 @@ auto GenericSearch(const Solver s,
 
     const auto total_threads = GetTuningThreadsMax();
 
+    MIOPEN_LOG_I("........................Running Generic Search... "); // TRJS
+
     ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>> solution_queue;
     std::vector<std::thread> compile_agents;
     compile_agents.reserve(total_threads);
@@ -481,7 +483,9 @@ auto GenericSearch(const Solver s,
 
                 invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
                                                    current_solution.construction_params);
+    MIOPEN_LOG_I("........................ Generic Search invoking... "); // TRJS
                 invoker(profile_h, invoke_ctx);
+    MIOPEN_LOG_I("........................ Generic Search invoked... "); // TRJS
                 elapsed_time = profile_h.GetKernelTime();
             }
             catch(const std::exception& e)
@@ -579,7 +583,7 @@ auto GenericSearch(const Solver s,
     for(auto& agent : compile_agents)
         agent.join();
 
-    MIOPEN_LOG_I("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
+    MIOPEN_LOG_W("Done: " << n_runs_total << '/' << n_failed << '/' << n_runs_total << ", best #"
                           << n_best << ' ' << best_time << ' ' << best_config);
 
     if(!is_passed)
@@ -591,7 +595,7 @@ auto GenericSearch(const Solver s,
     invoker(profile_h, invoke_ctx);
     const auto default_time = profile_h.GetKernelTime();
     const auto score        = (best_time > 0.0f) ? default_time / best_time : 0.0f;
-    MIOPEN_LOG_I("...Score: " << score << " (default time " << default_time << ')');
+    MIOPEN_LOG_W("................... End of Generic Search..." << "...Score: " << score << " (default time " << default_time << ')');    // TRJS
 
     return best_config;
 }

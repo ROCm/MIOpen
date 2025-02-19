@@ -29,7 +29,7 @@
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "convfp8")
-        return new ConvDriver<float8, float>();
+        return new ConvDriver<float8_fnuz, float>();
     return nullptr;
 }
 

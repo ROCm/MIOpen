@@ -96,24 +96,6 @@ protected:
             layers_cnt, xDesc.GetTotalSequenceLen(), seq_directions, hidden_vec_sz);
     }
 
-    static WeightsBufferDescriptor weightsInterimInfoBuilder(const RNNDescriptor& rnnDesc,
-                                                             const SeqTensorDescriptor& xDesc)
-    {
-        auto input_vec_sz  = xDesc.GetLengths()[2];
-        auto hidden_vec_sz = rnnDesc.hsize;
-        auto layers_cnt    = rnnDesc.nLayers;
-        auto gates_cnt     = rnnDesc.nHiddenTensorsPerLayer;
-        bool is_seq_bidir  = rnnDesc.dirMode == miopenRNNbidirection;
-
-        return WeightsBufferDescriptor::create(input_vec_sz,
-                                               hidden_vec_sz,
-                                               layers_cnt,
-                                               rnnDesc.biasMode,
-                                               rnnDesc.inputMode,
-                                               gates_cnt,
-                                               is_seq_bidir);
-    }
-
 public:
     static RNNModuleAlgoBase create(const RNNDescriptor& rnnDesc,
                                     const SeqTensorDescriptor& xDesc,
@@ -121,17 +103,17 @@ public:
                                     const TensorDescriptor& hDesc,
                                     miopenRNNFWDMode_t mode)
     {
-        [[maybe_unused]] auto [max_layers_hid, max_batch_hid, hidden_vec_sz] =
-            miopen::tien<3>(hDesc.GetLengths());
-        [[maybe_unused]] auto [max_batch_in, max_seq, input_vec_sz] =
-            miopen::tien<3>(xDesc.GetLengths());
+        auto [max_layers_hid, max_batch_hid, hidden_vec_sz] = miopen::tien<3>(hDesc.GetLengths());
+        auto [max_batch_in, max_seq, input_vec_sz]          = miopen::tien<3>(xDesc.GetLengths());
 
         assert(max_batch_in <= max_batch_hid);
 
-        [[maybe_unused]] auto layers_cnt         = static_cast<int>(rnnDesc.nLayers);
-        [[maybe_unused]] const bool is_seq_bidir = rnnDesc.dirMode == miopenRNNbidirection;
+        auto layers_cnt         = static_cast<int>(rnnDesc.nLayers);
+        const bool is_seq_bidir = rnnDesc.dirMode == miopenRNNbidirection;
 
         assert(static_cast<size_t>(layers_cnt) * (is_seq_bidir ? 2 : 1) <= max_layers_hid);
+
+        auto gates_cnt = static_cast<int>(rnnDesc.nHiddenTensorsPerLayer);
 
         // class update req
         assert(!is_seq_bidir);
@@ -141,7 +123,14 @@ public:
 
         GeneralLstmTempBuffer workspace_info = backwardInterimInfoBuilder(rnnDesc, xDesc);
 
-        WeightsBufferDescriptor weights_layout = weightsInterimInfoBuilder(rnnDesc, xDesc);
+        WeightsBufferDescriptor weights_layout =
+            WeightsBufferDescriptor::create(static_cast<int>(input_vec_sz),
+                                            static_cast<int>(hidden_vec_sz),
+                                            layers_cnt,
+                                            rnnDesc.biasMode,
+                                            rnnDesc.inputMode,
+                                            gates_cnt,
+                                            is_seq_bidir);
 
         BatchController batch_controller = BatchController::Create(xDesc);
 
@@ -212,60 +201,20 @@ public:
 
     const bool isBidirectSeq;
 
-    static size_t getReductionWsSize(const Handle& handle,
-                                     const RNNDescriptor& rnnD,
-                                     const GeneralLstmTempBuffer& wsInfo,
-                                     const WeightsBufferDescriptor& weiInfo,
-                                     const size_t batchSize)
+    std::tuple<size_t, size_t> getTempBuffersSize() const
     {
-        const TensorDescriptor block_dsc =
-            BuildLstmTmpBlockDesc2D(wsInfo, batchSize, rnnD.dataType);
-        const miopen::TensorDescriptor dw_desc = BuildWeiBiasDesc2D(weiInfo, rnnD.dataType);
 
-        miopen::ReduceTensorDescriptor red_add{
-            miopenReduceTensorOp_t::MIOPEN_REDUCE_TENSOR_ADD,
-            miopenDataType_t::miopenFloat, // compute in float for fp16
-            miopenNanPropagation_t::MIOPEN_PROPAGATE_NAN,
-            miopenReduceTensorIndices_t::MIOPEN_REDUCE_TENSOR_NO_INDICES,
-            miopenIndicesType_t::MIOPEN_32BIT_INDICES};
-
-        return red_add.GetWorkspaceSize(handle, block_dsc, dw_desc) + // WA CK bug
-               (rnnD.dataType == miopenDataType_t::miopenHalf ? 4 : 0);
-    }
-
-    std::tuple<size_t, size_t> getTempBuffersSize(const Handle& handle) const
-    {
-        auto red_size = rnnDesc.biasMode == miopenRNNNoBias
-                            ? 0
-                            : getReductionWsSize(handle,
-                                                 rnnDesc,
-                                                 workspaceInfo,
-                                                 weightsLayout,
-                                                 batchController.getTotalBatchSum());
-
-        return std::make_tuple(workspaceInfo.getBufferSize() * GetTypeSize(rnnDesc.dataType) +
-                                   red_size,
+        return std::make_tuple(workspaceInfo.getBufferSize() * GetTypeSize(rnnDesc.dataType),
                                reservLayout.getBufferSize() * GetTypeSize(rnnDesc.dataType));
     }
 
-    static std::tuple<size_t, size_t> getTempBuffersSize(const Handle& handle,
-                                                         const RNNDescriptor& rnnD,
+    static std::tuple<size_t, size_t> getTempBuffersSize(const RNNDescriptor& rnnD,
                                                          const SeqTensorDescriptor& xDesc)
     {
         auto wsInfo     = backwardInterimInfoBuilder(rnnD, xDesc);
         auto reservInfo = forwardInterimInfoBuilder(rnnD, xDesc);
 
-        size_t red_size = 0;
-
-        if(rnnD.biasMode == miopenRNNwithBias)
-        {
-            auto weiInfo = weightsInterimInfoBuilder(rnnD, xDesc);
-
-            red_size =
-                getReductionWsSize(handle, rnnD, wsInfo, weiInfo, xDesc.GetTotalSequenceLen());
-        }
-
-        return std::make_tuple(wsInfo.getBufferSize() * GetTypeSize(rnnD.dataType) + red_size,
+        return std::make_tuple(wsInfo.getBufferSize() * GetTypeSize(rnnD.dataType),
                                reservInfo.getBufferSize() * GetTypeSize(rnnD.dataType));
     }
 
@@ -278,24 +227,16 @@ public:
     inline size_t getTimeSeqSize() const { return batchController.size(); }
 
     template <typename BufType>
-    static miopen::TensorDescriptor BuildLstmTmpBlockDesc2D(const BufType& buf_info,
-                                                            const size_t batch_size,
-                                                            miopenDataType_t data_type)
+    inline miopen::TensorDescriptor BuildLstmTmpBlockDesc2D(const BufType& buf_info,
+                                                            const size_t batch_size) const
     {
         const std::array<size_t, 4>& tmp_block_stride = buf_info.getGateBlockStride();
         const std::array<size_t, 4>& tmp_block_size   = buf_info.getGateBlockSize();
 
         // batch, gateBlock_elements
-        return miopen::TensorDescriptor{
-            data_type, {batch_size, tmp_block_size[3]}, {tmp_block_stride[1], tmp_block_stride[3]}};
-    }
-
-    template <typename BufType>
-    inline miopen::TensorDescriptor BuildLstmTmpBlockDesc2D(const BufType& buf_info,
-                                                            const size_t batch_size) const
-    {
-        // batch, gateBlock_elements
-        return BuildLstmTmpBlockDesc2D(buf_info, batch_size, rnnDesc.dataType);
+        return miopen::TensorDescriptor{rnnDesc.dataType,
+                                        {batch_size, tmp_block_size[3]},
+                                        {tmp_block_stride[1], tmp_block_stride[3]}};
     }
 
     inline miopen::TensorDescriptor BuildLstmFilterXDesc2D(int layer_id) const
@@ -367,27 +308,19 @@ public:
     }
 
     // 3 dims layer, batch, vec
-    template <typename WeiType>
-    static miopen::TensorDescriptor BuildWeiBiasDesc2D(WeiType weights_layout,
-                                                       miopenDataType_t data_type)
+    inline miopen::TensorDescriptor BuildWeiBiasDesc2D() const
     {
         const std::vector<size_t> bias_size = [](const auto& wei_4dim_size) -> std::vector<size_t> {
             // wei_4dim_size{layer, dir, gate, vec}
             return {1, wei_4dim_size[1] * wei_4dim_size[2] * wei_4dim_size[3]};
-        }(weights_layout.getBiasSize());
+        }(weightsLayout.getBiasSize());
 
         const auto bias_stride = [](const auto& wei_4dim_strides) -> std::vector<size_t> {
             // convert 4dim stride to 2 dim without direction
             return std::vector<size_t>{wei_4dim_strides[0], wei_4dim_strides[3]};
-        }(weights_layout.getBiasStride());
+        }(weightsLayout.getBiasStride());
 
-        return miopen::TensorDescriptor{data_type, bias_size, bias_stride};
-    }
-
-    // 3 dims layer, batch, vec
-    inline miopen::TensorDescriptor BuildWeiBiasDesc2D() const
-    {
-        return BuildWeiBiasDesc2D(weightsLayout, rnnDesc.dataType);
+        return miopen::TensorDescriptor{rnnDesc.dataType, bias_size, bias_stride};
     }
 };
 
@@ -428,17 +361,7 @@ public:
     void PropHiddenY(const Handle& handle,
                      const runtimeArgsFwd& runtimeArgs,
                      size_t layer,
-                     SequenceDirection direction) const
-    {
-        if(layer == 0)
-            return;
-
-        const auto gemm_batch_size   = batchController.getTotalBatchSum();
-        const auto gemm_batch_offset = 0;
-
-        return PropHiddenY(
-            handle, runtimeArgs, layer, direction, gemm_batch_offset, gemm_batch_size);
-    };
+                     SequenceDirection direction) const;
 
     void PropY(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const;
 
@@ -459,8 +382,8 @@ public:
                      const runtimeArgsFwd& runtimeArgs,
                      size_t layer,
                      SequenceDirection direction,
-                     size_t gemm_batch_offset,
-                     size_t gemm_batch_size) const;
+                     size_t gemm_batch_size,
+                     size_t gemm_batch_offset) const;
 
     void PropX(const Handle& handle,
                const runtimeArgsFwd& runtimeArgs,
@@ -489,16 +412,21 @@ public:
 #endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
     }
 
-    std::tuple<size_t, size_t> getTempBuffersSize(const Handle& handle) const
+    std::tuple<size_t, size_t> getTempBuffersSize() const
     {
-        return RNNModuleAlgoBase::getTempBuffersSize(handle);
+
+        return std::make_tuple(workspaceInfo.getBufferSize() * GetTypeSize(rnnDesc.dataType),
+                               reservLayout.getBufferSize() * GetTypeSize(rnnDesc.dataType));
     }
 
-    static std::tuple<size_t, size_t> getTempBuffersSize(const Handle& handle,
-                                                         const RNNDescriptor& rnnD,
+    static std::tuple<size_t, size_t> getTempBuffersSize(const RNNDescriptor& rnnD,
                                                          const SeqTensorDescriptor& xDesc)
     {
-        return RNNModuleAlgoBase::getTempBuffersSize(handle, rnnD, xDesc);
+        auto wsInfo     = backwardInterimInfoBuilder(rnnD, xDesc);
+        auto reservInfo = forwardInterimInfoBuilder(rnnD, xDesc);
+
+        return std::make_tuple(wsInfo.getBufferSize() * GetTypeSize(rnnD.dataType),
+                               reservInfo.getBufferSize() * GetTypeSize(rnnD.dataType));
     }
 
     inline size_t getTimeSeqSize() const { return RNNModuleAlgoBase::getTimeSeqSize(); }
@@ -585,8 +513,8 @@ public:
                       Data_t reserveSpace,
                       size_t layer,
                       SequenceDirection direction,
-                      size_t gemm_batch_offset,
-                      size_t gemm_batch_size) const;
+                      size_t gemm_batch_size,
+                      size_t gemm_batch_offset) const;
 
     void PropDx(const Handle& handle,
                 ConstData_t w,
@@ -630,42 +558,13 @@ public:
     void PrepareWriteBuffers(const Handle& handle, Data_t w) const;
 
     void
-    PhisXInputWeights(const Handle& handle, Data_t dw, ConstData_t workSpace, ConstData_t x) const
-    {
-        size_t gemm_batch_size   = xInfo.getFullSeqMajorSize()[0];
-        size_t gemm_batch_offset = 0;
-
-        PhisXInputWeights(handle, dw, workSpace, x, gemm_batch_offset, gemm_batch_size);
-    }
-
-    void PhisXInputWeights(const Handle& handle,
-                           Data_t dw,
-                           ConstData_t workSpace,
-                           ConstData_t x,
-                           size_t gemm_batch_offset,
-                           size_t gemm_batch_size) const;
+    PhisXInputWeights(const Handle& handle, Data_t dw, ConstData_t workSpace, ConstData_t x) const;
 
     void HiddenXInputWeights(const Handle& handle,
                              Data_t dw,
                              ConstData_t workSpace,
                              ConstData_t reserveSpace,
-                             size_t layer) const
-    {
-        const size_t gemm_batch_size = workspaceInfo.getGateBlockSize()[1];
-
-        const size_t gemm_batch_offset = 0;
-
-        HiddenXInputWeights(
-            handle, dw, workSpace, reserveSpace, layer, gemm_batch_offset, gemm_batch_size);
-    }
-
-    void HiddenXInputWeights(const Handle& handle,
-                             Data_t dw,
-                             ConstData_t workSpace,
-                             ConstData_t reserveSpace,
-                             size_t layer,
-                             size_t gemm_batch_offset,
-                             size_t gemm_batch_size) const;
+                             size_t layer) const;
 
     void BiasUpdate(const Handle& handle,
                     Data_t dw,
@@ -767,16 +666,21 @@ public:
 #endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
     }
 
-    std::tuple<size_t, size_t> getTempBuffersSize(const Handle& handle) const
+    std::tuple<size_t, size_t> getTempBuffersSize() const
     {
-        return RNNModuleAlgoBase::getTempBuffersSize(handle);
+
+        return std::make_tuple(workspaceInfo.getBufferSize() * GetTypeSize(rnnDesc.dataType),
+                               reservLayout.getBufferSize() * GetTypeSize(rnnDesc.dataType));
     }
 
-    static std::tuple<size_t, size_t> getTempBuffersSize(const Handle& handle,
-                                                         const RNNDescriptor& rnnD,
+    static std::tuple<size_t, size_t> getTempBuffersSize(const RNNDescriptor& rnnD,
                                                          const SeqTensorDescriptor& xDesc)
     {
-        return RNNModuleAlgoBase::getTempBuffersSize(handle, rnnD, xDesc);
+        auto wsInfo     = backwardInterimInfoBuilder(rnnD, xDesc);
+        auto reservInfo = forwardInterimInfoBuilder(rnnD, xDesc);
+
+        return std::make_tuple(wsInfo.getBufferSize() * GetTypeSize(rnnD.dataType),
+                               reservInfo.getBufferSize() * GetTypeSize(rnnD.dataType));
     }
 
     RNNBackwardWeightsModularAlgo(RNNModuleAlgoBase&& base) : RNNModuleAlgoBase(std::move(base)) {}

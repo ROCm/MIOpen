@@ -236,7 +236,8 @@ bool FindDbRecord_t<TDb>::Validate(const Handle& handle, const NetworkConfig& co
     for(const auto& pair : content->As<FindDbData>())
     {
         if(in_sync)
-        {
+        {    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Solution" << std::endl; // TRJS
+
             if(!handle.GetInvoker(config, {{pair.first}}))
             {
                 unbuilt = true;

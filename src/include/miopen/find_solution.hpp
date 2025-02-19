@@ -446,6 +446,7 @@ struct SolverContainer
     {
         const auto network_config = problem.MakeNetworkConfig();
 
+    std::cerr << __FILE__ << ":" << __LINE__ << ":" << __FUNCTION__  << " calling GetInvoker with Algorithm" << std::endl; // TRJSGetI
         if(const auto existingInvoker =
                ctx.GetStream().GetInvoker(network_config, std::nullopt, algo))
         {

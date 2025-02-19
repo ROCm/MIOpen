@@ -105,36 +105,19 @@ struct DevDescription
     friend std::ostream& operator<<(std::ostream& os, const DevDescription& dd);
 };
 
-class MockTargetProperties final : public miopen::TargetProperties
-{
-public:
-    MockTargetProperties(const TargetProperties& target_properties,
-                         const DevDescription& dev_description,
-                         bool disable_xnack);
-
-    // Add additional methods here if needed
-    const std::string& Name() const override;
-    boost::optional<bool> Xnack() const override;
-
-private:
-    std::string name;
-    bool xnack_disabled;
-};
-
 class MockHandle final : public miopen::Handle
 {
 public:
-    MockHandle(const DevDescription& dev_description, bool disable_xnack);
+    MockHandle(const DevDescription& dev_description);
 
     // Add additional methods here if needed
-    const miopen::TargetProperties& GetTargetProperties() const override;
+    std::string GetDeviceName() const override;
     std::size_t GetMaxComputeUnits() const override;
     std::size_t GetMaxMemoryAllocSize() const override;
     bool CooperativeLaunchSupported() const override;
 
 private:
     DevDescription dev_descr;
-    MockTargetProperties target_properties;
 };
 
 Gpu GetDevGpuType();

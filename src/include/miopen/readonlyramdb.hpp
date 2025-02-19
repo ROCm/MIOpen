@@ -51,7 +51,7 @@ public:
 
     boost::optional<DbRecord> FindRecord(const std::string& problem) const
     {
-        MIOPEN_LOG_I2("Looking for key " << problem << " in file " << db_path);
+        MIOPEN_LOG_I2("ReadonlyRamDb: Looking for key " << problem << " in file " << db_path);
         const auto it = cache.find(problem);
 
         if(it == cache.end())

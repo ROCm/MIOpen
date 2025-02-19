@@ -256,7 +256,7 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
 
 boost::optional<miopen::DbRecord> RamDb::FindRecordUnsafe(const std::string& problem)
 {
-    MIOPEN_LOG_I2("Looking for key " << problem << " in cache for file " << GetFileName());
+    MIOPEN_LOG_I2("RamDb: Looking for key " << problem << " in cache for file " << GetFileName());
     const auto it = cache.find(problem);
 
     if(it == cache.end())

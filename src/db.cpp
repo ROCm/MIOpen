@@ -144,7 +144,7 @@ boost::optional<DbRecord> PlainTextDb::FindRecordUnsafe(const std::string& key,
         pos->end   = -1;
     }
 
-    MIOPEN_LOG_I2("Looking for key " << key << " in file " << filename);
+    MIOPEN_LOG_I2("PlainTextDb: Looking for key " << key << " in file " << filename);
 
     std::ifstream file(filename, std::ios::binary);
 
