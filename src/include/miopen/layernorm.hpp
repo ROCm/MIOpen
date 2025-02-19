@@ -33,7 +33,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t LayerNormForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t LayerNormForward(const Handle& handle,
                                                         const TensorDescriptor& xDesc,
                                                         ConstData_t x,
                                                         const TensorDescriptor& weightDesc,

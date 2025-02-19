@@ -1052,10 +1052,10 @@ last_wave:
         s_lshl_b32 s[\dst], s[\src0], 16
         s_or_b32 s[\dst], s[\tmp], s[\dst]
     .endm
-    .macro bias_f base, bias, k, stmp0, stmp1
+    .macro bias_f arg_base, arg_k, stmp0, stmp1
         .if elements_in_dword == 2
-            k_off_1 = k / elements_in_dword
-            k_off_2 = k % elements_in_dword
+            k_off_1 = \arg_k / elements_in_dword
+            k_off_2 = \arg_k % elements_in_dword
             .if k_off_2 == 1
                 .if s_pack_instructions_available
                     s_pack_hh_b32_b16 s[\stmp0], s[bias+k_off_1], s[bias+k_off_1]
@@ -1066,12 +1066,12 @@ last_wave:
                 .if s_pack_instructions_available
                     s_pack_ll_b32_b16 s[\stmp0], s[bias+k_off_1], s[bias+k_off_1]
                 .else
-                    s_pack_ll_f \stmp, bias+k_off_1, bias+k_off_1, \stmp1
+                    s_pack_ll_f \stmp0, bias+k_off_1, bias+k_off_1, \stmp1
                 .endif
             .endif
-            v_pk_add_f16 v[\base], s[\stmp0], v[\base]
+            v_pk_add_f16 v[\arg_base], s[\stmp0], v[\arg_base]
         .else
-            v_add_f32 v[\base], s[bias+k], v[\base]
+            v_add_f32 v[\arg_base], s[bias+\arg_k], v[\arg_base]
         .endif
     .endm
     .macro store_result

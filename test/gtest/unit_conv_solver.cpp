@@ -37,6 +37,8 @@
 
 #include "../workspace.hpp"
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+
 namespace miopen {
 namespace unit_tests {
 
@@ -50,20 +52,32 @@ public:
     DeprecatedSolversScopedEnabler(DeprecatedSolversScopedEnabler&&)      = delete;
     DeprecatedSolversScopedEnabler& operator=(const DeprecatedSolversScopedEnabler&) = delete;
     DeprecatedSolversScopedEnabler& operator=(DeprecatedSolversScopedEnabler&&) = delete;
-    ~DeprecatedSolversScopedEnabler() noexcept
+
+    ~DeprecatedSolversScopedEnabler()
     {
-        if(prev)
-            miopen::debug::enable_deprecated_solvers = prev.value();
+        if(changed)
+        {
+            if(prev)
+                env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, false);
+            else
+                env::clear(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+        }
     }
 
-    void Enable() noexcept
+    void Enable()
     {
-        prev                                     = miopen::debug::enable_deprecated_solvers;
-        miopen::debug::enable_deprecated_solvers = true;
+        if(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+            prev = env::value(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+        if(prev != true)
+        {
+            env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, true);
+            changed = true;
+        }
     }
 
 private:
     std::optional<bool> prev;
+    bool changed = false;
 };
 
 bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
@@ -191,7 +205,8 @@ UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_)
     : supported_devs(supported_devs_),
       use_cpu_ref(false),
       enable_deprecated_solvers(false),
-      tunable(false)
+      tunable(false),
+      check_xnack_disabled(false)
 {
 }
 
@@ -204,6 +219,8 @@ void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
     tunable               = true;
     tuning_iterations_max = iterations_max_;
 }
+
+void UnitTestConvSolverParams::CheckXnackDisabled() { check_xnack_disabled = true; }
 
 namespace {
 
@@ -240,6 +257,10 @@ double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction directio
         {
             tolerance *= 2.0;
         }
+        else if(algo == miopenConvolutionAlgoImplicitGEMM)
+        {
+            tolerance *= 2.0;
+        }
     }
 
     if constexpr(std::is_same_v<T, float>)
@@ -248,6 +269,10 @@ double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction directio
            direction == miopen::conv::Direction::BackwardWeights)
         {
             tolerance *= 2.0;
+        }
+        else if(algo == miopenConvolutionAlgoImplicitGEMM)
+        {
+            tolerance *= 3.0;
         }
     }
 
@@ -698,6 +723,10 @@ void UnitTestConvSolverBase::SetUpImpl(const UnitTestConvSolverParams& params)
     {
         GTEST_SKIP();
     }
+    else if(params.check_xnack_disabled && get_handle_xnack())
+    {
+        GTEST_SKIP();
+    }
 }
 
 void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverInterface& solver,
@@ -739,7 +768,7 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
         const auto supported = IsDeviceSupported(params.supported_devs, dev);
         // std::cout << "Test " << dev_descr << " (supported: " << supported << ")" << std::endl;
 
-        auto handle    = MockHandle{dev_descr};
+        auto handle    = MockHandle{dev_descr, params.check_xnack_disabled};
         const auto ctx = [&] {
             auto tmp = miopen::ExecutionContext{&handle};
             problem.SetupFloats(tmp);

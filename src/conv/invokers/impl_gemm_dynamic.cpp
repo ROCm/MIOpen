@@ -850,8 +850,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             return use_fp32_global_split_on_fp16;
         if(problem.GetOut().GetType() == miopenBFloat16)
         {
-            return (y < stride_h || x < stride_w || dilation_h != 1 || dilation_w != 1 ||
-                    config.gemm_k_global_split > 0);
+            return config.gemm_k_global_split > 0;
         }
         return false;
     }();
