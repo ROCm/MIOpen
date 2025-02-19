@@ -29,6 +29,22 @@ namespace test {
 template <typename DLModule>
 void ComputeCPUBNInference(DLModule& dl_module)
 {
+    int size{0};
+    miopenGetTensorDescriptorSize(&dl_module.input.desc, &size);
+    // In case of NxCxDxHxW
+    auto ReshapeIfNeeded = [size](auto& desc) {
+        if(size == 5)
+        {
+            desc = miopen::BuildReshaped4DTensorDescriptor(desc);
+        }
+    };
+    ReshapeIfNeeded(dl_module.input.desc);
+    ReshapeIfNeeded(dl_module.ref_out.desc);
+    ReshapeIfNeeded(dl_module.scale.desc);
+    ReshapeIfNeeded(dl_module.shift.desc);
+    ReshapeIfNeeded(dl_module.estMean.desc);
+    ReshapeIfNeeded(dl_module.estVariance.desc);
+
     batchNormSpatialHostInference(dl_module.input,
                                   dl_module.ref_out,
                                   dl_module.scale,
@@ -38,16 +54,27 @@ void ComputeCPUBNInference(DLModule& dl_module)
                                   dl_module.estVariance);
 }
 
-template <typename XDataType,
-          typename DxDataType,
-          typename DyDataType,
-          typename AccDataType,
-          typename ScaleDataType,
-          typename DscaleDbiasDataType,
-          typename MeanVarDataType,
-          typename DLModule>
+template <typename DLModule>
 void ComputeCPUBNBwd(DLModule& dl_module)
 {
+    int size{0};
+    miopenGetTensorDescriptorSize(&dl_module.input.desc, &size);
+    // In case of NxCxDxHxW
+    auto ReshapeIfNeeded = [size](auto& desc) {
+        if(size == 5)
+        {
+            desc = miopen::BuildReshaped4DTensorDescriptor(desc);
+        }
+    };
+    ReshapeIfNeeded(dl_module.input.desc);
+    ReshapeIfNeeded(dl_module.dy.desc);
+    ReshapeIfNeeded(dl_module.ref_out.desc);
+    ReshapeIfNeeded(dl_module.bnScale.desc);
+    ReshapeIfNeeded(dl_module.dScale_ref.desc);
+    ReshapeIfNeeded(dl_module.dBias_ref.desc);
+    ReshapeIfNeeded(dl_module.savedMean.desc);
+    ReshapeIfNeeded(dl_module.savedInvVar.desc);
+
     batchNormSpatialHostBwdTrain(dl_module.input,
                                  dl_module.dy,
                                  dl_module.ref_out,
@@ -61,6 +88,24 @@ void ComputeCPUBNBwd(DLModule& dl_module)
 template <typename DLModule>
 void ComputeCPUBNFwdTrain(DLModule& dl_module)
 {
+    int size{0};
+    miopenGetTensorDescriptorSize(&dl_module.input.desc, &size);
+    // In case of NxCxDxHxW
+    auto ReshapeIfNeeded = [size](auto& desc) {
+        if(size == 5)
+        {
+            desc = miopen::BuildReshaped4DTensorDescriptor(desc);
+        }
+    };
+    ReshapeIfNeeded(dl_module.input.desc);
+    ReshapeIfNeeded(dl_module.ref_out.desc);
+    ReshapeIfNeeded(dl_module.scale.desc);
+    ReshapeIfNeeded(dl_module.shift.desc);
+    ReshapeIfNeeded(dl_module.saveMean_ref.desc);
+    ReshapeIfNeeded(dl_module.saveVariance_ref.desc);
+    ReshapeIfNeeded(dl_module.runMean_ref.desc);
+    ReshapeIfNeeded(dl_module.runVariance_ref.desc);
+
     batchNormSpatialHostFwdTrain(dl_module.input,
                                  dl_module.ref_out,
                                  dl_module.scale,
@@ -134,7 +179,7 @@ void AddActiv(miopen::FusionPlanDescriptor& fusePlanDesc,
               miopenStatusSuccess);
 }
 
-inline bool Skip(miopen::Handle& handle)
+inline bool Skip(const miopen::Handle& handle)
 {
     const std::string arch = handle.GetDeviceName();
     bool skip_test         = (arch != "gfx908" && arch != "gfx90a");

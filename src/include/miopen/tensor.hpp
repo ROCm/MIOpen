@@ -42,31 +42,41 @@
 #include <numeric>
 #include <vector>
 #include <optional>
+#include <utility>
 
 namespace miopen {
 
 template <class T, std::size_t... Ns>
-auto tie_impl(T&& x, detail::seq<Ns...>) -> decltype(std::tie(x[Ns]...))
+constexpr auto tie_array_impl(T&& x, std::index_sequence<Ns...>)
+    MIOPEN_RETURNS(std::array{x[Ns]...});
+
+template <std::size_t N, class T>
+constexpr auto tien_array(T&& x)
+    MIOPEN_RETURNS(tie_array_impl(std::forward<T>(x), std::make_index_sequence<N>()));
+
+template <class T, std::size_t... Ns>
+auto tie_impl(T&& x, std::index_sequence<Ns...>) -> decltype(std::tie(x[Ns]...))
 {
     assert(x.size() >= sizeof...(Ns));
     return std::tie(x[Ns]...);
 }
 
 template <class T, class U, std::size_t... Ns>
-auto tie_impl(T&& x, U y, detail::seq<Ns...>) -> decltype(std::make_tuple(x[Ns]...))
+auto tie_impl(T&& x, U y, std::index_sequence<Ns...>) -> decltype(std::make_tuple(x[Ns]...))
 {
     return std::make_tuple((Ns < x.size() ? x[Ns] : y)...);
 }
 
 template <std::size_t N, class T>
-auto tien(T&& x) MIOPEN_RETURNS(tie_impl(std::forward<T>(x), typename detail::gens<N>::type{}));
+constexpr auto tien(T&& x)
+    MIOPEN_RETURNS(tie_impl(std::forward<T>(x), std::make_index_sequence<N>()));
 
 template <std::size_t N, class T, class U>
 auto tien(T&& x, U y)
-    MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, typename detail::gens<N>::type{}));
+    MIOPEN_RETURNS(tie_impl(std::forward<T>(x), y, std::make_index_sequence<N>()));
 
 template <class T, std::size_t... Ns>
-auto tie_pick_impl(T&& x, detail::seq<Ns...>)
+auto tie_pick_impl(T&& x, std::index_sequence<Ns...>)
 {
 #ifndef NDEBUG
     each_args([&](auto i) { assert(i < x.size()); }, Ns...);
@@ -78,11 +88,12 @@ template <std::size_t... Ns>
 struct tie_pick
 {
     template <class T>
-    auto operator()(T&& x) MIOPEN_RETURNS(tie_pick_impl(std::forward<T>(x), detail::seq<Ns...>{}))
+    auto operator()(T&& x)
+        MIOPEN_RETURNS(tie_pick_impl(std::forward<T>(x), std::index_sequence<Ns...>{}))
 };
 
 template <typename F, std::size_t... Ns>
-auto create_tuple_impl(F f, detail::seq<Ns...>)
+auto create_tuple_impl(F f, std::index_sequence<Ns...>)
 {
     return std::make_tuple(std::forward<decltype(f(Ns))>(f(Ns))...);
 }
@@ -90,7 +101,7 @@ auto create_tuple_impl(F f, detail::seq<Ns...>)
 template <std::size_t N, typename F>
 auto create_tuple(F f)
 {
-    return create_tuple_impl(f, typename detail::gens<N>::type{});
+    return create_tuple_impl(f, std::make_index_sequence<N>());
 }
 
 inline std::size_t GetTypeSize(miopenDataType_t d)

@@ -31,9 +31,6 @@
 
 #if defined(MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS) && !WORKAROUND_DONT_USE_CUSTOM_LIMITS
 
-#define MIOPEN_ENABLE_F8_DEVICE_CODE 1
-#include "hip_float8.hpp"
-
 namespace std {
 
 template <typename T>
