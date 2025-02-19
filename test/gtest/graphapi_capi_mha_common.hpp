@@ -166,8 +166,8 @@ private:
 };
 
 using TensorVariant = std::variant<tensor<float>,
-                                   tensor<float8>,
-                                   tensor<bfloat8>,
+                                   tensor<float8_fnuz>,
+                                   tensor<bfloat8_fnuz>,
                                    tensor<half_float::half>,
                                    tensor<int64_t>>;
 
@@ -203,17 +203,17 @@ typedef std::shared_ptr<TensorData> TensorDataPtr;
 template <typename T>
 miopenDataType_t GetMainType()
 {
-    if(std::is_same_v<T, float8>)
+    if(std::is_same_v<T, float8_fnuz>)
     {
-        return miopenFloat8;
+        return miopenFloat8_fnuz;
     }
     else if(std::is_same_v<T, float>)
     {
         return miopenFloat;
     }
-    else if(std::is_same_v<T, bfloat8>)
+    else if(std::is_same_v<T, bfloat8_fnuz>)
     {
-        return miopenBFloat8;
+        return miopenBFloat8_fnuz;
     }
     else if(std::is_same_v<T, half_float::half>)
     {
@@ -660,13 +660,13 @@ protected:
         {
             tensorDataPtr->m_tensorVariant = tensor<int64_t>{n, h, s, d};
         }
-        else if(dtype == miopenFloat8)
+        else if(dtype == miopenFloat8_fnuz)
         {
-            tensorDataPtr->m_tensorVariant = tensor<float8>{n, h, s, d};
+            tensorDataPtr->m_tensorVariant = tensor<float8_fnuz>{n, h, s, d};
         }
-        else if(dtype == miopenBFloat8)
+        else if(dtype == miopenBFloat8_fnuz)
         {
-            tensorDataPtr->m_tensorVariant = tensor<bfloat8>{n, h, s, d};
+            tensorDataPtr->m_tensorVariant = tensor<bfloat8_fnuz>{n, h, s, d};
         }
         else if(dtype == miopenHalf)
         {

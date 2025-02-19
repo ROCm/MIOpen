@@ -704,17 +704,7 @@ bool ModelSetParams(const std::string& arch,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator)
 {
-    using model_type = decltype(GetModel(arch, solver));
-    model_type model;
-    try
-    {
-        model = GetModel(arch, solver);
-    }
-    catch(const miopen::Exception& ex)
-    {
-        MIOPEN_LOG_I2("[Warning] Could not retrieve model: (" << ex.what() << ")");
-        return false;
-    }
+    auto model = GetModel(arch, solver);
 
     // get context
     int dim = 0;
