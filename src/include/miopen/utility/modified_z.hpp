@@ -36,6 +36,7 @@ namespace miopen {
 template <typename T>
 T mean(const std::vector<T>& data)
 {
+    static_assert(std::is_floating_point_v<T>);
     MIOPEN_THROW_IF(data.size() == 0, "Cannot find Mean of 0 length data");
 
     T sumOfValues = std::accumulate(data.begin(), data.end(), 0.0);
@@ -45,6 +46,7 @@ T mean(const std::vector<T>& data)
 template <typename T>
 T medianOfSortedData(const std::vector<T>& sortedData)
 {
+    static_assert(std::is_floating_point_v<T>);
     MIOPEN_THROW_IF(sortedData.size() == 0, "Cannot find Median of 0 length data");
 
     size_t size = sortedData.size();
@@ -58,6 +60,8 @@ T medianOfSortedData(const std::vector<T>& sortedData)
 template <typename T>
 T median(std::vector<T>& data)
 {
+    static_assert(std::is_floating_point_v<T>);
+    // Note: The data needs to be sorted for other parts of the algorthim
     std::sort(data.begin(), data.end());
 
     return medianOfSortedData(data);
@@ -66,6 +70,7 @@ T median(std::vector<T>& data)
 template <typename T>
 std::vector<T> medianAbsoluteDeviation(const std::vector<T>& sortedData)
 {
+    static_assert(std::is_floating_point_v<T>);
     T median = medianOfSortedData(sortedData);
 
     std::vector<T> absDeviation;
@@ -82,6 +87,7 @@ std::vector<T> medianAbsoluteDeviation(const std::vector<T>& sortedData)
 template <typename T>
 std::vector<T> modifiedZScores(const std::vector<T>& sortedData)
 {
+    static_assert(std::is_floating_point_v<T>);
     T medianValue = medianOfSortedData(sortedData);
 
     std::vector<T> absolute_deviation = medianAbsoluteDeviation(sortedData);
@@ -109,6 +115,7 @@ std::vector<T> modifiedZScores(const std::vector<T>& sortedData)
 template <typename T>
 T removeHighOutliersAndGetMean(std::vector<T>& data, T z_threshold)
 {
+    static_assert(std::is_floating_point_v<T>);
     std::sort(data.begin(), data.end());
 
     std::vector<T> modZScores = modifiedZScores(data);
