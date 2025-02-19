@@ -286,9 +286,8 @@ protected:
     }
 
     template <bool IsVirt>
-    gr::Tensor* makeTensor(std::string_view name,
-                           miopenDataType_t dt,
-                           const miopen::InlineVector<size_t, 5>& dims)
+    gr::Tensor*
+    makeTensor(std::string_view name, miopenDataType_t dt, const miopen::LensStrides<size_t>& dims)
     {
         auto ptr = mAlloc.allocate(gr::makeTensor<IsVirt>(name, dt, dims));
         if constexpr(!IsVirt)

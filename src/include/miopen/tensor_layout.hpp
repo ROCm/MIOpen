@@ -37,10 +37,10 @@
 namespace miopen {
 
 template <typename T>
-void tensor_layout_to_strides(const miopen::InlineVector<T, 5>& len,
+void tensor_layout_to_strides(const LensStrides<T>& len,
                               const std::string& len_layout,
                               const std::string& layout,
-                              miopen::InlineVector<T, 5>& strides)
+                              LensStrides<T>& strides)
 {
     // Bind the layout and the dimension lengths together into a map.
     std::map<char, T> dim_to_len;
@@ -74,11 +74,11 @@ void tensor_layout_to_strides(const miopen::InlineVector<T, 5>& len,
 ///
 /// \todo Generalize with non-vectorized version, 90% of code is the same.
 template <typename T>
-void tensor_layout_to_strides(const miopen::InlineVector<T, 5>& len,
+void tensor_layout_to_strides(const LensStrides<T>& len,
                               const std::string& len_layout,
                               const std::string& layout,
                               const std::size_t vector_size,
-                              miopen::InlineVector<T, 5>& strides)
+                              LensStrides<T>& strides)
 {
     const std::string base_layout = layout.substr(0, len.size());
     // Bind the layout and the dimension lengths together into a map.

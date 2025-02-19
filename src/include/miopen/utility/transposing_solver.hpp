@@ -50,7 +50,7 @@ inline static std::array<Element, 5> GetNCDHW(const std::vector<std::size_t>& va
 }
 
 template <class Element = std::size_t>
-inline static std::array<Element, 5> GetNCDHW(const miopen::InlineVector<std::size_t, 5>& values)
+inline static std::array<Element, 5> GetNCDHW(const LensStrides<std::size_t>& values)
 {
     const auto cast = [](auto v) { return static_cast<Element>(v); };
     std::size_t n = 1, c = 1, d = 1, h = 1, w = 1;
@@ -307,7 +307,7 @@ struct ProblemTensorTransposeDescriptor
     inline TensorDescriptor Transpose(const TensorDescriptor& in) const
     {
         const auto labels    = tensor_layout_get_default(in.GetNumDims());
-        miopen::InlineVector<std::size_t, 5> derived_strides{};
+        LensStrides<std::size_t> derived_strides{};
         tensor_layout_to_strides(
             in.GetLengths(), labels, SyncLayoutDims(labels.c_str(), to), derived_strides);
         return {in.GetType(), in.GetLengths(), derived_strides};

@@ -39,7 +39,7 @@ namespace solver {
 
 namespace reduce {
 
-size_t MinForward::XGridSize(miopen::InlineVector<std::size_t, 5> ydims) const
+size_t MinForward::XGridSize(LensStrides<std::size_t> ydims) const
 {
     size_t output_numel =
         std::accumulate(ydims.begin(), ydims.end(), 1ULL, std::multiplies<size_t>());

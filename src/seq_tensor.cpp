@@ -41,7 +41,7 @@ namespace miopen {
 namespace {
 
 template <class T>
-bool CheckLengths(const miopen::InlineVector<T, 5>& lens)
+bool CheckLengths(const LensStrides<T>& lens)
 {
     if(lens.empty())
         return false;
@@ -51,7 +51,7 @@ bool CheckLengths(const miopen::InlineVector<T, 5>& lens)
 }
 
 template <class T>
-bool CheckSequenceLengths(const miopen::InlineVector<T, 5>& lens)
+bool CheckSequenceLengths(const LensStrides<T>& lens)
 {
     if(lens.empty())
         return false;
@@ -80,10 +80,9 @@ bool CheckSequenceLengths(const std::vector<T>& lens)
     return true;
 }
 
-miopen::InlineVector<std::size_t, 5>
-ConvertLengthsOrThrow(const miopen::InlineVector<int, 5>& lens_in,
-                      const std::string& err_msg,
-                      bool is_seq_len = false)
+LensStrides<std::size_t> ConvertLengthsOrThrow(const LensStrides<int>& lens_in,
+                                               const std::string& err_msg,
+                                               bool is_seq_len = false)
 {
     if(!is_seq_len)
     {
@@ -96,7 +95,7 @@ ConvertLengthsOrThrow(const miopen::InlineVector<int, 5>& lens_in,
             MIOPEN_THROW(miopenStatusBadParm, err_msg);
     }
 
-    miopen::InlineVector<std::size_t, 5> lens(lens_in.cbegin(), lens_in.cend());
+    LensStrides<std::size_t> lens(lens_in.cbegin(), lens_in.cend());
     return lens;
 }
 
@@ -128,31 +127,30 @@ SeqTensorDescriptor::SeqTensorDescriptor() : packed(true) {}
 
 SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::initializer_list<int>& lens_in)
-    : SeqTensorDescriptor(t, miopen::InlineVector<int, 5>(lens_in))
+    : SeqTensorDescriptor(t, LensStrides<int>(lens_in))
 {
 }
 
-SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
-                                         const miopen::InlineVector<int, 5>& lens_in)
+SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t, const LensStrides<int>& lens_in)
     : SeqTensorDescriptor(t, GetDefaultLayoutVector(lens_in.size()), lens_in, true)
 {
 }
 
 SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::initializer_list<std::size_t>& lens_in)
-    : SeqTensorDescriptor(t, miopen::InlineVector<std::size_t, 5>(lens_in))
+    : SeqTensorDescriptor(t, LensStrides<std::size_t>(lens_in))
 {
 }
 
 SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
-                                         const miopen::InlineVector<std::size_t, 5>& lens_in)
+                                         const LensStrides<std::size_t>& lens_in)
     : SeqTensorDescriptor(t, GetDefaultLayoutVector(lens_in.size()), lens_in, true)
 {
 }
 
 SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<unsigned int>& layout_in,
-                                         const miopen::InlineVector<int, 5>& lens_in,
+                                         const LensStrides<int>& lens_in,
                                          bool with_padded_seq_layout)
     : SeqTensorDescriptor(t,
                           layout_in,
@@ -165,14 +163,13 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<unsigned int>& layout_in,
                                          const std::initializer_list<std::size_t>& lens_in,
                                          bool with_padded_seq_layout)
-    : SeqTensorDescriptor(
-          t, layout_in, miopen::InlineVector<std::size_t, 5>(lens_in), with_padded_seq_layout)
+    : SeqTensorDescriptor(t, layout_in, LensStrides<std::size_t>(lens_in), with_padded_seq_layout)
 {
 }
 
 SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<unsigned int>& layout_in,
-                                         const miopen::InlineVector<std::size_t, 5>& lens_in,
+                                         const LensStrides<std::size_t>& lens_in,
                                          bool with_padded_seq_layout)
     : SeqTensorDescriptor(t, layout_in, lens_in, {}, with_padded_seq_layout)
 {
@@ -180,7 +177,7 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
 
 SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<unsigned int>& layout_in,
-                                         const miopen::InlineVector<int, 5>& lens_in,
+                                         const LensStrides<int>& lens_in,
                                          const std::vector<int>& seq_len,
                                          const std::vector<char>& padding_marker_in,
                                          bool use_seq_len,
@@ -198,7 +195,7 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
 
 SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<unsigned int>& layout_in,
-                                         const miopen::InlineVector<std::size_t, 5>& lens_in,
+                                         const LensStrides<std::size_t>& lens_in,
                                          const std::vector<std::size_t>& seq_len,
                                          const std::vector<char>& padding_marker_in,
                                          bool use_seq_len,
@@ -216,8 +213,8 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
 
 SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<unsigned int>& layout_in,
-                                         const miopen::InlineVector<std::size_t, 5>& lens_in,
-                                         const miopen::InlineVector<std::size_t, 5>& padding_in,
+                                         const LensStrides<std::size_t>& lens_in,
+                                         const LensStrides<std::size_t>& padding_in,
                                          bool with_padded_seq_layout)
     : SeqTensorDescriptor(t, layout_in, lens_in, {}, padding_in, {}, false, with_padded_seq_layout)
 {
@@ -225,9 +222,9 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
 
 SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
                                          const std::vector<unsigned int>& layout_in,
-                                         const miopen::InlineVector<std::size_t, 5>& lens_in,
+                                         const LensStrides<std::size_t>& lens_in,
                                          const std::vector<std::size_t>& seq_len,
-                                         const miopen::InlineVector<std::size_t, 5>& padding_in,
+                                         const LensStrides<std::size_t>& padding_in,
                                          const std::vector<char>& padding_marker_in,
                                          bool use_seq_len,
                                          bool with_padded_seq_layout)
@@ -247,7 +244,7 @@ SeqTensorDescriptor::SeqTensorDescriptor(miopenDataType_t t,
 
     if(padding_in.empty())
     {
-        padds = miopen::InlineVector<std::size_t, 5>(dims, 0);
+        padds = LensStrides<std::size_t>(dims, 0);
     }
     else
     {
@@ -276,12 +273,9 @@ void SeqTensorDescriptor::SetDimOrder(const std::vector<unsigned int>& dims_orde
 
 const std::vector<unsigned int>& SeqTensorDescriptor::GetLayoutVector() const { return dim_order; };
 
-const miopen::InlineVector<std::size_t, 5>& SeqTensorDescriptor::GetLengths() const { return lens; }
+const LensStrides<std::size_t>& SeqTensorDescriptor::GetLengths() const { return lens; }
 
-const miopen::InlineVector<std::size_t, 5>& SeqTensorDescriptor::GetPadding() const
-{
-    return padds;
-}
+const LensStrides<std::size_t>& SeqTensorDescriptor::GetPadding() const { return padds; }
 
 const std::vector<std::size_t>& SeqTensorDescriptor::GetSequenceLengthsVector() const
 {
@@ -293,9 +287,9 @@ const std::vector<char>& SeqTensorDescriptor::GetPaddingMarkerHolder() const
     return padding_marker;
 }
 
-miopen::InlineVector<std::size_t, 5> SeqTensorDescriptor::GetPaddedStrides() const
+LensStrides<std::size_t> SeqTensorDescriptor::GetPaddedStrides() const
 {
-    miopen::InlineVector<std::size_t, 5> byte_strides(lens.size());
+    LensStrides<std::size_t> byte_strides(lens.size());
     byte_strides.back() = 1 + padds.back();
 
     for(size_t i = byte_strides.size() - 1; i > 0; i--)

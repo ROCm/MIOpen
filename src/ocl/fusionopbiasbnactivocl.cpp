@@ -114,7 +114,7 @@ BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(const Handle& /*handle*/,
 /// END BN inference ------------------------------------------
 
 // BN Bwd Training start
-void BatchNormBwdTrainFusionOpDescriptor::calcBNParams(miopen::InlineVector<std::size_t, 5> in_lens,
+void BatchNormBwdTrainFusionOpDescriptor::calcBNParams(LensStrides<std::size_t> in_lens,
                                                        int& variant,
                                                        size_t& in_cstride,
                                                        size_t& in_nstride,
@@ -246,7 +246,7 @@ std::vector<size_t> BatchNormBwdTrainFusionOpDescriptor::GetGlobalWGSz()
 
 /// BATCH NORMALIZATION training forward start ================
 
-void BatchNormFwdTrainFusionOpDescriptor::calcBNParams(miopen::InlineVector<std::size_t, 5> in_lens,
+void BatchNormFwdTrainFusionOpDescriptor::calcBNParams(LensStrides<std::size_t> in_lens,
                                                        int& variant,
                                                        size_t& in_cstride,
                                                        size_t& in_nstride,

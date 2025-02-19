@@ -71,31 +71,31 @@ constexpr TElement GetW3(unsigned spatial_dims, const std::vector<TElement>& dat
     return std::get<2>(GetDHW(spatial_dims, data));
 }
 template <class TElement>
-constexpr auto GetCHWN(const miopen::InlineVector<TElement, 5>& data)
+constexpr auto GetCHWN(const LensStrides<TElement>& data)
 {
     return miopen::tien<4>(data, 1);
 }
 
 template <class TElement>
-constexpr TElement GetNofCHWN(const miopen::InlineVector<TElement, 5>& data)
+constexpr TElement GetNofCHWN(const LensStrides<TElement>& data)
 {
     return std::get<3>(GetCHWN(data));
 }
 
 template <class TElement>
-constexpr TElement GetCofCHWN(const miopen::InlineVector<TElement, 5>& data)
+constexpr TElement GetCofCHWN(const LensStrides<TElement>& data)
 {
     return std::get<0>(GetCHWN(data));
 }
 
 template <class TElement>
-constexpr TElement GetHofCHWN(const miopen::InlineVector<TElement, 5>& data)
+constexpr TElement GetHofCHWN(const LensStrides<TElement>& data)
 {
     return std::get<1>(GetCHWN(data));
 }
 
 template <class TElement>
-constexpr TElement GetWofCHWN(const miopen::InlineVector<TElement, 5>& data)
+constexpr TElement GetWofCHWN(const LensStrides<TElement>& data)
 {
     return std::get<2>(GetCHWN(data));
 }

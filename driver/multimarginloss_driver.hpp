@@ -212,33 +212,33 @@ template <typename Tgpu, typename Tref>
 int MultiMarginLossDriver<Tgpu, Tref>::GetandSetData()
 {
     // Set tensor description
-    miopen::InlineVector<int, 5> in_len = inflags.GetValueTensor("dim").lengths;
+    miopen::LensStrides<int> in_len = inflags.GetValueTensor("dim").lengths;
     size_t N = in_len[0], C = in_len[1];
     if(inflags.GetValueInt("contiguous") == 1)
     {
         SetTensorNd(iDesc, in_len, data_type);
 
-        miopen::InlineVector<int, 5> t_len = {N};
+        miopen::LensStrides<int> t_len = {N};
         SetTensorNd(tDesc, t_len, miopenInt64);
 
-        miopen::InlineVector<int, 5> w_len = {C};
+        miopen::LensStrides<int> w_len = {C};
         SetTensorNd(wDesc, w_len, data_type);
     }
     else
     {
-        miopen::InlineVector<int, 5> in_strides(in_len.size());
+        miopen::LensStrides<int> in_strides(in_len.size());
         in_strides.back() = 1;
         for(int i = in_len.size() - 2; i >= 0; --i)
             in_strides[i] = in_strides[i + 1] * in_len[i + 1];
         in_strides[0] *= 2;
         SetTensorNd(iDesc, in_len, in_strides, data_type);
 
-        miopen::InlineVector<int, 5> t_strides = {2};
-        miopen::InlineVector<int, 5> t_len     = {N};
+        miopen::LensStrides<int> t_strides = {2};
+        miopen::LensStrides<int> t_len     = {N};
         SetTensorNd(tDesc, t_len, t_strides, miopenInt64);
 
-        miopen::InlineVector<int, 5> w_lens    = {C};
-        miopen::InlineVector<int, 5> w_strides = {2};
+        miopen::LensStrides<int> w_lens    = {C};
+        miopen::LensStrides<int> w_strides = {2};
         SetTensorNd(wDesc, w_lens, w_strides, data_type);
     }
 
@@ -261,12 +261,12 @@ int MultiMarginLossDriver<Tgpu, Tref>::GetandSetData()
     {
         if(reduction == "none")
         {
-            miopen::InlineVector<int, 5> o_lens = {N};
+            miopen::LensStrides<int> o_lens = {N};
             SetTensorNd(oDesc, o_lens, data_type);
         }
         else
         {
-            miopen::InlineVector<int, 5> o_lens = {1};
+            miopen::LensStrides<int> o_lens = {1};
             SetTensorNd(oDesc, o_lens, data_type);
         }
     }

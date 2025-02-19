@@ -47,8 +47,8 @@ struct Input
 
 struct TensorParameters
 {
-    miopen::InlineVector<int, 5> lengths = {};
-    miopen::InlineVector<int, 5> strides = {};
+    miopen::LensStrides<int> lengths = {};
+    miopen::LensStrides<int> strides = {};
     std::string layout       = "";
 
     TensorParameters FillMissing(const TensorParameters& other) const
@@ -66,8 +66,8 @@ struct TensorParameters
 
 struct TensorParametersUint64
 {
-    miopen::InlineVector<uint64_t, 5> lengths = {};
-    miopen::InlineVector<uint64_t, 5> strides = {};
+    miopen::LensStrides<uint64_t> lengths = {};
+    miopen::LensStrides<uint64_t> strides = {};
     std::string layout            = "";
 
     TensorParametersUint64 FillMissing(const TensorParametersUint64& other) const

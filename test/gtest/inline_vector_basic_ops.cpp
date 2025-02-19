@@ -33,7 +33,7 @@
 
 TEST(CPU_InlineVectorSizeAndAccumulate_NONE, Test)
 {
-    miopen::InlineVector<int, 5> in_v1{4, 2, 1};
+    miopen::LensStrides<int> in_v1{4, 2, 1};
     std::vector<int> v1{4, 2, 1};
 
     EXPECT_EQ(in_v1.size(), v1.size());
@@ -52,7 +52,7 @@ TEST(CPU_InlineVectorSizeAndAccumulate_NONE, Test)
 TEST(CPU_InlineVectorFindIfAndDistance_NONE, Test)
 {
     std::initializer_list<size_t> init_list_2{4, 1, 2, 2};
-    miopen::InlineVector<size_t, 5> in_v2 = init_list_2;
+    miopen::LensStrides<size_t> in_v2     = init_list_2;
     std::vector<size_t> v2                = init_list_2;
 
     auto first_not_one_in_v2 =
@@ -69,7 +69,7 @@ TEST(CPU_InlineVectorFindIfAndDistance_NONE, Test)
 TEST(CPU_InlineVecotrTie_NONE, Test)
 {
     std::initializer_list<size_t> init_list_3{4, 1, 2, 2};
-    miopen::InlineVector<size_t, 5> in_v3 = init_list_3;
+    miopen::LensStrides<size_t> in_v3     = init_list_3;
     std::vector<size_t> v3                = init_list_3;
 
     std::array<size_t, 4> arr_in_v3;
@@ -85,7 +85,7 @@ TEST(CPU_InlineVecotrTie_NONE, Test)
 
 TEST(CPU_InlineVectorCapacityAndEmpty_NONE, Test)
 {
-    miopen::InlineVector<size_t, 5> in_v4{};
+    miopen::LensStrides<size_t> in_v4{};
     std::vector<size_t> v4{};
 
     ASSERT_EQ(in_v4.capacity(), 5);
@@ -97,7 +97,7 @@ TEST(CPU_InlineVectorCapacityAndEmpty_NONE, Test)
 TEST(CPU_InlineVectorIteratorsConstructor_NONE, Test)
 {
     std::vector<size_t> vv = {1, 2, 4, 1};
-    miopen::InlineVector<size_t, 5> in_v5(vv.begin(), vv.end());
+    miopen::LensStrides<size_t> in_v5(vv.begin(), vv.end());
     std::vector<size_t> v5(vv.begin(), vv.end());
 
     for(uint8_t i = 0; i < in_v5.size(); i++)
@@ -110,16 +110,16 @@ TEST(CPU_InlineVectorConstructorException_NONE, Test)
 {
     std::initializer_list<size_t> init_list_v6{1, 2, 3, 4, 5, 6};
     auto constructor_1 = [init_list_v6]() {
-        miopen::InlineVector<size_t, 5> v6(init_list_v6.begin(), init_list_v6.end());
+        miopen::LensStrides<size_t> v6(init_list_v6.begin(), init_list_v6.end());
     };
-    auto constructor_2 = [init_list_v6]() { miopen::InlineVector<size_t, 5> v6(init_list_v6); };
+    auto constructor_2 = [init_list_v6]() { miopen::LensStrides<size_t> v6(init_list_v6); };
     ASSERT_ANY_THROW(constructor_1());
     ASSERT_ANY_THROW(constructor_2());
 }
 
 TEST(CPU_InlineVectorAllOf_NONE, Test)
 {
-    miopen::InlineVector<size_t, 5> in_v7({3, 1, 1});
+    miopen::LensStrides<size_t> in_v7({3, 1, 1});
     std::vector<size_t> v7{3, 2, 1};
 
     bool all_of_in_v7 = std::all_of(in_v7.cbegin(), in_v7.cend(), [](size_t x) { return x > 0; });
@@ -130,7 +130,7 @@ TEST(CPU_InlineVectorAllOf_NONE, Test)
 
 TEST(CPU_InlineVectorResize_NONE, Test)
 {
-    miopen::InlineVector<size_t, 5> in_v8({2, 2, 2, 2, 2});
+    miopen::LensStrides<size_t> in_v8({2, 2, 2, 2, 2});
     in_v8.resize(2);
 
     EXPECT_EQ(in_v8.size(), 2);
@@ -149,7 +149,7 @@ TEST(CPU_InlineVectorResize_NONE, Test)
 
 TEST(CPU_InlineVectorPushBackPopBack_NONE, Test)
 {
-    miopen::InlineVector<size_t, 5> in_v9 = {8, 7, 6};
+    miopen::LensStrides<size_t> in_v9 = {8, 7, 6};
     std::vector<size_t> v9{8, 7, 6, 5};
 
     in_v9.push_back(5);
@@ -176,7 +176,7 @@ TEST(CPU_InlineVectorPushBackPopBack_NONE, Test)
 
 TEST(CPU_InlineVectorAt_NONE, Test)
 {
-    miopen::InlineVector<size_t, 5> in_v10{2, 4, 6};
+    miopen::LensStrides<size_t> in_v10{2, 4, 6};
     std::vector<size_t> v10{2, 4, 6};
 
     EXPECT_ANY_THROW(in_v10.at(3));
@@ -186,7 +186,7 @@ TEST(CPU_InlineVectorAt_NONE, Test)
 
 TEST(CPU_InlineVectorFrontBack_NONE, Test)
 {
-    miopen::InlineVector<size_t, 5> in_v11{};
+    miopen::LensStrides<size_t> in_v11{};
 
     EXPECT_ANY_THROW(in_v11.front());
     EXPECT_ANY_THROW(in_v11.back());
@@ -197,14 +197,14 @@ TEST(CPU_InlineVectorFrontBack_NONE, Test)
 
 TEST(CPU_InlineVectorClear_NONE, Test)
 {
-    miopen::InlineVector<size_t, 5> in_v12{1, 2, 3, 4, 5};
+    miopen::LensStrides<size_t> in_v12{1, 2, 3, 4, 5};
     in_v12.clear();
     EXPECT_EQ(in_v12.size(), 0);
 }
 
 TEST(CPU_InlineVectorInsert_NONE, Test)
 {
-    miopen::InlineVector<size_t, 5> iv13_1{1, 2, 3};
+    miopen::LensStrides<size_t> iv13_1{1, 2, 3};
     std::vector<size_t> v13_1{1, 2, 3};
     iv13_1.insert(iv13_1.begin(), 0);
     v13_1.insert(v13_1.begin(), 0);
@@ -213,7 +213,7 @@ TEST(CPU_InlineVectorInsert_NONE, Test)
         EXPECT_EQ(iv13_1[i], v13_1[i]);
     }
 
-    miopen::InlineVector<size_t, 5> iv13_2{1, 2, 3};
+    miopen::LensStrides<size_t> iv13_2{1, 2, 3};
     std::vector<size_t> v13_2{1, 2, 3};
     iv13_2.insert(iv13_2.end(), 4);
     v13_2.insert(v13_2.end(), 4);
@@ -222,7 +222,7 @@ TEST(CPU_InlineVectorInsert_NONE, Test)
         EXPECT_EQ(iv13_2[i], v13_2[i]);
     }
 
-    miopen::InlineVector<size_t, 5> iv13_3{1, 2, 3, 4};
+    miopen::LensStrides<size_t> iv13_3{1, 2, 3, 4};
     std::vector<size_t> v13_3{1, 2, 3, 4};
     iv13_3.insert(iv13_3.begin() + 2, 0);
     v13_3.insert(v13_3.begin() + 2, 0);
@@ -231,7 +231,7 @@ TEST(CPU_InlineVectorInsert_NONE, Test)
         EXPECT_EQ(iv13_3[i], v13_3[i]);
     }
 
-    miopen::InlineVector<size_t, 5> iv13_4{1, 2, 3};
+    miopen::LensStrides<size_t> iv13_4{1, 2, 3};
     std::vector<size_t> v13_4{1, 2, 3};
     iv13_4.insert(iv13_4.begin() + iv13_4.size(), 4);
     v13_4.insert(v13_4.begin() + v13_4.size(), 4);
@@ -243,7 +243,7 @@ TEST(CPU_InlineVectorInsert_NONE, Test)
 
 TEST(CPU_InlineVectorErase_NONE, Test)
 {
-    miopen::InlineVector<size_t, 5> iv14_1{1, 2, 3};
+    miopen::LensStrides<size_t> iv14_1{1, 2, 3};
     std::vector<size_t> v14_1{1, 2, 3};
     iv14_1.erase(iv14_1.begin());
     v14_1.erase(v14_1.begin());
@@ -252,10 +252,10 @@ TEST(CPU_InlineVectorErase_NONE, Test)
         EXPECT_EQ(iv14_1[i], v14_1[i]);
     }
 
-    miopen::InlineVector<size_t, 5> iv14_2{1, 2, 3};
+    miopen::LensStrides<size_t> iv14_2{1, 2, 3};
     EXPECT_ANY_THROW(iv14_2.erase(iv14_2.end()));
 
-    miopen::InlineVector<size_t, 5> iv14_3{1, 2, 3, 4};
+    miopen::LensStrides<size_t> iv14_3{1, 2, 3, 4};
     std::vector<size_t> v14_3{1, 2, 3, 4};
     iv14_3.erase(iv14_3.begin() + 2);
     v14_3.erase(v14_3.begin() + 2);
@@ -264,7 +264,7 @@ TEST(CPU_InlineVectorErase_NONE, Test)
         EXPECT_EQ(iv14_3[i], v14_3[i]);
     }
 
-    miopen::InlineVector<size_t, 5> iv14_4{1, 2, 3};
+    miopen::LensStrides<size_t> iv14_4{1, 2, 3};
     std::vector<size_t> v14_4{1, 2, 3};
     iv14_4.erase(std::prev(iv14_4.end()));
     v14_4.erase(std::prev(v14_4.end()));

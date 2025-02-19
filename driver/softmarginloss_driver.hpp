@@ -241,10 +241,10 @@ template <typename Tgpu, typename Tref>
 int SoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
 {
     // Set input tensor description
-    miopen::InlineVector<int, 5> in_len = inflags.GetValueTensor("dim").lengths;
+    miopen::LensStrides<int> in_len = inflags.GetValueTensor("dim").lengths;
     if(inflags.GetValueStr("stride") != "-1")
     {
-        miopen::InlineVector<int, 5> in_stride = inflags.GetValueTensor("stride").lengths;
+        miopen::LensStrides<int> in_stride = inflags.GetValueTensor("stride").lengths;
         SetTensorNd(inputDesc, in_len, in_stride, data_type);
     }
     else
@@ -255,7 +255,7 @@ int SoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
         }
         else
         {
-            miopen::InlineVector<int, 5> in_strides(in_len.size());
+            miopen::LensStrides<int> in_strides(in_len.size());
             in_strides.back() = 1;
             for(int i = in_len.size() - 2; i >= 0; --i)
                 in_strides[i] = in_strides[i + 1] * in_len[i + 1];
@@ -286,7 +286,7 @@ int SoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
             SetTensorNd(outputDesc, in_len, data_type);
         else
         {
-            miopen::InlineVector<int, 5> out_lens = {1};
+            miopen::LensStrides<int> out_lens = {1};
             SetTensorNd(outputDesc, out_lens, data_type);
         }
     }

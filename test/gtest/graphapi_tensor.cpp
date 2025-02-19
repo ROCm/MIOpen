@@ -236,8 +236,8 @@ namespace graph_api_tensor_test {
 
 static bool TestIsApplicable() { return true; }
 
-using TestCase = std::tuple<miopen::InlineVector<size_t, 5>,
-                            miopen::InlineVector<size_t, 5>,
+using TestCase = std::tuple<miopen::LensStrides<size_t>,
+                            miopen::LensStrides<size_t>,
                             miopenDataType_t,
                             std::optional<miopenTensorLayout_t>>;
 static std::vector<TestCase> TestConfigs()
@@ -264,8 +264,8 @@ public:
 
     void Run()
     {
-        miopen::InlineVector<size_t, 5> dimensions;
-        miopen::InlineVector<size_t, 5> strides;
+        miopen::LensStrides<size_t> dimensions;
+        miopen::LensStrides<size_t> strides;
         miopenDataType_t dataType;
         std::optional<miopenTensorLayout_t> layout;
 

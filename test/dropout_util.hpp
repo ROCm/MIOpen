@@ -68,14 +68,14 @@ inline void InitKernelStateEmulator(std::vector<rocrand_state_xorwow>& states,
 }
 
 template <typename T>
-inline void ExpandTensorDim(miopen::InlineVector<T, 5> x_len,
-                            miopen::InlineVector<T, 5> x_str,
-                            miopen::InlineVector<T, 5> y_len,
-                            miopen::InlineVector<T, 5> y_str,
-                            miopen::InlineVector<T, 5>& in_len,
-                            miopen::InlineVector<T, 5>& in_str,
-                            miopen::InlineVector<T, 5>& out_len,
-                            miopen::InlineVector<T, 5>& out_str)
+inline void ExpandTensorDim(miopen::LensStrides<T> x_len,
+                            miopen::LensStrides<T> x_str,
+                            miopen::LensStrides<T> y_len,
+                            miopen::LensStrides<T> y_str,
+                            miopen::LensStrides<T>& in_len,
+                            miopen::LensStrides<T>& in_str,
+                            miopen::LensStrides<T>& out_len,
+                            miopen::LensStrides<T>& out_str)
 {
     int xl_idx = x_len.size() - 1;
     int yl_idx = y_len.size() - 1;
@@ -122,10 +122,10 @@ void DropoutForwardVerify(const miopen::Handle& handle,
     auto dropout_rate = DropoutDesc.dropout;
 
     // support up to 5D tensor
-    miopen::InlineVector<std::size_t, 5> in_len(5, 1);
-    miopen::InlineVector<std::size_t, 5> in_str(5, 1);
-    miopen::InlineVector<std::size_t, 5> out_len(5, 1);
-    miopen::InlineVector<std::size_t, 5> out_str(5, 1);
+    miopen::LensStrides<std::size_t> in_len(5, 1);
+    miopen::LensStrides<std::size_t> in_str(5, 1);
+    miopen::LensStrides<std::size_t> out_len(5, 1);
+    miopen::LensStrides<std::size_t> out_str(5, 1);
 
     ExpandTensorDim(inputTensor.GetLengths(),
                     inputTensor.GetStrides(),
@@ -191,10 +191,10 @@ void DropoutBackwardVerify(const miopen::DropoutDescriptor& DropoutDesc,
     auto dropout_rate = DropoutDesc.dropout;
 
     // support up to 5D tensor
-    miopen::InlineVector<std::size_t, 5> in_len(5, 1);
-    miopen::InlineVector<std::size_t, 5> in_str(5, 1);
-    miopen::InlineVector<std::size_t, 5> out_len(5, 1);
-    miopen::InlineVector<std::size_t, 5> out_str(5, 1);
+    miopen::LensStrides<std::size_t> in_len(5, 1);
+    miopen::LensStrides<std::size_t> in_str(5, 1);
+    miopen::LensStrides<std::size_t> out_len(5, 1);
+    miopen::LensStrides<std::size_t> out_str(5, 1);
 
     ExpandTensorDim(inputTensor.GetLengths(),
                     inputTensor.GetStrides(),

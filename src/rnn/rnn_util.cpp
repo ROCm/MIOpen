@@ -50,7 +50,7 @@ void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
     auto max_batch_size = bsize_per_time[0];
     auto vector_size    = padded_tensor_desc.GetLengths()[1];
 
-    const miopen::InlineVector<std::size_t, 5> padded_stride //= single_desc.GetStrides();
+    const LensStrides<std::size_t> padded_stride //= single_desc.GetStrides();
         {static_cast<size_t>(max_batch_size) * vector_size, static_cast<size_t>(vector_size), 1};
 
     unsigned int left_id    = 0;
@@ -63,9 +63,9 @@ void RNNTensorPaddingConverter::ConvertTensorData(const Handle& handle,
             auto copy_seq_cnt = i - left_id;
             auto copy_bsize   = bsize_per_time[left_id];
 
-            const miopen::InlineVector<std::size_t, 5> copy_size{static_cast<size_t>(copy_seq_cnt),
-                                                                 static_cast<size_t>(copy_bsize),
-                                                                 static_cast<size_t>(vector_size)};
+            const LensStrides<std::size_t> copy_size{static_cast<size_t>(copy_seq_cnt),
+                                                     static_cast<size_t>(copy_bsize),
+                                                     static_cast<size_t>(vector_size)};
 
             auto packed_desc = miopen::TensorDescriptor(padded_tensor_desc.GetType(), copy_size);
             auto padded_desc =
@@ -125,11 +125,11 @@ RNNTensorBaseLayoutConverter::GetSamplesDescendingOrder(const SeqTensorDescripto
 }
 
 void ReorderTensorGPUData(const Handle& handle,
-                          const miopen::InlineVector<std::size_t, 5>& tensor_lens,
+                          const LensStrides<std::size_t>& tensor_lens,
                           int reordering_dim,
                           const std::vector<size_t>& sample_order,
-                          miopen::InlineVector<std::size_t, 5> src_stride,
-                          miopen::InlineVector<std::size_t, 5> dst_stride,
+                          LensStrides<std::size_t> src_stride,
+                          LensStrides<std::size_t> dst_stride,
                           ConstData_t src,
                           Data_t dst,
                           miopenDataType_t data_type)
@@ -137,15 +137,13 @@ void ReorderTensorGPUData(const Handle& handle,
     if(tensor_lens[reordering_dim] != sample_order.size())
         MIOPEN_THROW(miopenStatusInternalError, "Wrong tensor lens");
 
-    auto get_single_samlpe_lens = [](const miopen::InlineVector<std::size_t, 5>& lens,
-                                     int reordering_dim) {
-        miopen::InlineVector<std::size_t, 5> new_lens = lens;
+    auto get_single_samlpe_lens = [](const LensStrides<std::size_t>& lens, int reordering_dim) {
+        LensStrides<std::size_t> new_lens = lens;
         new_lens[reordering_dim]     = 1;
         return new_lens;
     };
 
-    const miopen::InlineVector<std::size_t, 5> copy_size =
-        get_single_samlpe_lens(tensor_lens, reordering_dim);
+    const LensStrides<std::size_t> copy_size = get_single_samlpe_lens(tensor_lens, reordering_dim);
 
     const auto src_desc = miopen::TensorDescriptor(data_type, copy_size, src_stride);
     const auto dst_desc = miopen::TensorDescriptor(data_type, copy_size, dst_stride);
@@ -180,9 +178,8 @@ void RNNTensorBaseLayoutConverter::ReorderInputTensorGPUData(
     // const std::vector<size_t> copy_size =
     // get_single_samlpe_lens(padded_tensor_desc.GetLengths());
 
-    const miopen::InlineVector<std::size_t, 5> src_stride = padded_tensor_desc.GetPaddedStrides();
-    const miopen::InlineVector<std::size_t, 5> dst_stride =
-        dst_padded_tensor_desc.GetPaddedStrides();
+    const LensStrides<std::size_t> src_stride = padded_tensor_desc.GetPaddedStrides();
+    const LensStrides<std::size_t> dst_stride = dst_padded_tensor_desc.GetPaddedStrides();
 
     ReorderTensorGPUData(handle,
                          padded_tensor_desc.GetLengths(),
@@ -220,8 +217,8 @@ void RNNTensorBaseLayoutConverter::ReorderHiddenTensorGPUData(const Handle& hand
     if(lens[reordering_dim] != sample_order.size())
         MIOPEN_THROW(miopenStatusInternalError, "Wrong tensor lens");
 
-    const miopen::InlineVector<std::size_t, 5> src_stride = tensor_desc.GetStrides();
-    const miopen::InlineVector<std::size_t, 5> dst_stride = tensor_desc.GetStrides();
+    const LensStrides<std::size_t> src_stride = tensor_desc.GetStrides();
+    const LensStrides<std::size_t> dst_stride = tensor_desc.GetStrides();
 
     ReorderTensorGPUData(handle,
                          lens,
@@ -271,11 +268,11 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
     auto r_it_end = seq_lens_per_sample.rend();
 
     const size_t vector_size                = tensor_desc.GetLengths()[2];
-    const miopen::InlineVector<std::size_t, 5> padded_stride = tensor_desc.GetPaddedStrides();
+    const LensStrides<std::size_t> padded_stride = tensor_desc.GetPaddedStrides();
 
-    auto get_packed_stride = [](const miopen::InlineVector<std::size_t, 5>& copy_size,
+    auto get_packed_stride = [](const LensStrides<std::size_t>& copy_size,
                                 const std::vector<unsigned>& dim_order) {
-        miopen::InlineVector<std::size_t, 5> byte_strides(copy_size.size());
+        LensStrides<std::size_t> byte_strides(copy_size.size());
         byte_strides.back() = 1;
 
         for(size_t i = byte_strides.size() - 1; i > 0; i--)
@@ -318,11 +315,11 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
         else
             std::tie(copy_seq_cnt, copy_bsize) = get_box_size_batch_major(it, it_end);
 
-        const miopen::InlineVector<std::size_t, 5> copy_size{static_cast<size_t>(copy_bsize),
-                                                             static_cast<size_t>(copy_seq_cnt),
-                                                             static_cast<size_t>(vector_size)};
+        const LensStrides<std::size_t> copy_size{static_cast<size_t>(copy_bsize),
+                                                 static_cast<size_t>(copy_seq_cnt),
+                                                 static_cast<size_t>(vector_size)};
 
-        const miopen::InlineVector<std::size_t, 5> packed_stride =
+        const LensStrides<std::size_t> packed_stride =
             get_packed_stride(copy_size, tensor_desc.GetLayoutVector());
 
         // Nothing to copy, avoiding error with zero lens in TensorDescriptor
@@ -378,15 +375,15 @@ void RNNTensorBaseLayoutConverter::ChangePaddedTensorGPUDataLayout(
                      "Wrong tensor descriptor, Dst data type should match src data type.");
     }
 
-    const miopen::InlineVector<std::size_t, 5> copy_size = src_padded_desc.GetLengths();
+    const LensStrides<std::size_t> copy_size = src_padded_desc.GetLengths();
     if(dst_padded_desc.GetLengths() != copy_size)
     {
         MIOPEN_THROW(miopenStatusInternalError,
                      "Wrong tensor descriptor, Dst desc size should match Src desc size.");
     }
 
-    const miopen::InlineVector<std::size_t, 5> src_stride = src_padded_desc.GetPaddedStrides();
-    const miopen::InlineVector<std::size_t, 5> dst_stride = dst_padded_desc.GetPaddedStrides();
+    const LensStrides<std::size_t> src_stride = src_padded_desc.GetPaddedStrides();
+    const LensStrides<std::size_t> dst_stride = dst_padded_desc.GetPaddedStrides();
 
     auto src_desc = miopen::TensorDescriptor(data_type, copy_size, src_stride);
     auto dst_desc = miopen::TensorDescriptor(data_type, copy_size, dst_stride);

@@ -283,8 +283,8 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
     {
         miopenTensorDescriptor_t indexDesc;
         miopenCreateTensorDescriptor(&indexDesc);
-        miopen::InlineVector<int, 5> indexTensorLength_iv(indexTensorLength.begin(),
-                                                          indexTensorLength.end());
+        miopen::LensStrides<int> indexTensorLength_iv(indexTensorLength.begin(),
+                                                      indexTensorLength.end());
         if(SetTensorNd(indexDesc, indexTensorLength_iv, miopenInt32) != miopenStatusSuccess)
             MIOPEN_THROW("Error parsing indexs tensor: " + inflags.GetValueStr("indexs") + ".");
         indexDescs.push_back(indexDesc);
@@ -293,7 +293,7 @@ int GetitemDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(dxDesc, dxTensorParam.lengths, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing dinput tensor: " + inflags.GetValueStr("dinput") + ".");
 
-    miopen::InlineVector<int, 5> error_length;
+    miopen::LensStrides<int> error_length;
     error_length.push_back(indexCountParam);
     if(SetTensorNd(errorDesc, error_length, miopen_type<int32_t>{}) != miopenStatusSuccess)
         MIOPEN_THROW("Error making error tensor: " + inflags.GetValueStr("indexcount") + ".");

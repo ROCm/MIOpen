@@ -215,12 +215,12 @@ void PoolingDescriptor::GetForwardOutputDimNd(const TensorDescriptor& xDesc,
 
 TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescriptor& xDesc) const
 {
-    miopen::InlineVector<int, 5> out_dim(xDesc.GetNumDims());
+    LensStrides<int> out_dim(xDesc.GetNumDims());
     GetForwardOutputDimNd(xDesc, xDesc.GetNumDims(), out_dim.data());
 
     const std::string default_layout = tensor_layout_get_default(xDesc.GetNumDims());
     const std::string in_layout      = xDesc.GetLayout(default_layout);
-    miopen::InlineVector<int, 5> out_strides;
+    LensStrides<int> out_strides;
     tensor_layout_to_strides(out_dim, default_layout, in_layout, out_strides);
 
     return {xDesc.GetType(), out_dim, out_strides};
@@ -239,7 +239,7 @@ std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& yDesc) c
     if(yDesc.GetLayout(labels) != labels)
     {
         const auto e_size       = get_data_size(yDesc.GetType());
-        auto transposed_strides = miopen::InlineVector<std::size_t, 5>{};
+        auto transposed_strides = LensStrides<std::size_t>{};
         const auto in_layout    = yDesc.GetLayout(labels);
         tensor_layout_to_strides(yDesc.GetLengths(), labels, in_layout, transposed_strides);
         const auto transposed_y =

@@ -44,9 +44,9 @@ struct NonPackTestCase : Conv3DTestCase
     size_t o2;
     size_t o3;
     size_t o4;
-    miopen::InlineVector<size_t, 5> GetInputStrides() { return {i0, i1, i2, i3, i4}; }
-    miopen::InlineVector<size_t, 5> GetWeightStrides() { return {w0, w1, w2, w3, w4}; }
-    miopen::InlineVector<size_t, 5> GetOutputStrides() { return {o0, o1, o2, o3, o4}; }
+    miopen::LensStrides<size_t> GetInputStrides() { return {i0, i1, i2, i3, i4}; }
+    miopen::LensStrides<size_t> GetWeightStrides() { return {w0, w1, w2, w3, w4}; }
+    miopen::LensStrides<size_t> GetOutputStrides() { return {o0, o1, o2, o3, o4}; }
 };
 
 template <>

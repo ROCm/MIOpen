@@ -43,15 +43,15 @@ struct ConvTestCase
 {
     ConvTestCase();
 
-    ConvTestCase(miopen::InlineVector<size_t, 5>&& x,
-                 miopen::InlineVector<size_t, 5>&& w,
+    ConvTestCase(miopen::LensStrides<size_t>&& x,
+                 miopen::LensStrides<size_t>&& w,
                  std::vector<int>&& pad,
                  std::vector<int>&& stride,
                  std::vector<int>&& dilation,
                  miopenDataType_t type);
 
-    ConvTestCase(miopen::InlineVector<size_t, 5>&& x,
-                 miopen::InlineVector<size_t, 5>&& w,
+    ConvTestCase(miopen::LensStrides<size_t>&& x,
+                 miopen::LensStrides<size_t>&& w,
                  std::vector<int>&& pad,
                  std::vector<int>&& stride,
                  std::vector<int>&& dilation,

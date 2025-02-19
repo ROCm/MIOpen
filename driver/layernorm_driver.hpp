@@ -200,13 +200,13 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     MIOPEN_THROW_IF(dim < 0 || static_cast<size_t>(dim) >= in_len.size(),
                     "normalized_dim out of range");
 
-    miopen::InlineVector<int, 5> inner_len;
+    miopen::LensStrides<int> inner_len;
     if(dim == in_len.size())
         inner_len = {1};
     else
         inner_len = {in_len.begin() + dim, in_len.end()};
 
-    miopen::InlineVector<int, 5> outer_len;
+    miopen::LensStrides<int> outer_len;
     if(dim == 0)
         outer_len = {1};
     else

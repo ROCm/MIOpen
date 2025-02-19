@@ -97,7 +97,7 @@ MIOPEN_INTERNALS_EXPORT float transpose_CNHW2NCHW(const Handle& handle,
                                                   miopenDataType_t type);
 
 MIOPEN_INTERNALS_EXPORT float transpose_NCHW2Vec(const Handle& handle,
-                                                 const miopen::InlineVector<size_t, 5>& lens,
+                                                 const LensStrides<size_t>& lens,
                                                  ConstData_t in,
                                                  Data_t out,
                                                  std::size_t vec_size,

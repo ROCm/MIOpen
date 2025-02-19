@@ -65,7 +65,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    miopen::InlineVector<int, 5> GetInputTensorLengthsFromCmdLine();
+    miopen::LensStrides<int> GetInputTensorLengthsFromCmdLine();
 
     int SetActivationDescriptorFromCmdLineArgs();
 
@@ -130,7 +130,7 @@ int ActivationDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int ActivationDriver<Tgpu, Tref>::GetandSetData()
 {
-    miopen::InlineVector<int, 5> in_len = GetInputTensorLengthsFromCmdLine();
+    miopen::LensStrides<int> in_len = GetInputTensorLengthsFromCmdLine();
 
     SetTensor4d(inputTensor, in_len, data_type);
 
@@ -166,14 +166,14 @@ int ActivationDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-miopen::InlineVector<int, 5> ActivationDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+miopen::LensStrides<int> ActivationDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
 
-    return miopen::InlineVector<int, 5>({in_n, in_c, in_h, in_w});
+    return miopen::LensStrides<int>({in_n, in_c, in_h, in_w});
 }
 
 template <typename Tgpu, typename Tref>

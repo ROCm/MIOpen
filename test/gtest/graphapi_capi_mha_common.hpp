@@ -704,9 +704,9 @@ protected:
         std::vector<int64_t> dims = {n, h, s, d};
 
         miopen::TensorDescriptor td(dtype, {n, h, s, d});
-        const miopen::InlineVector<size_t, 5>& tdStrides = td.GetStrides();
+        const miopen::LensStrides<size_t>& tdStrides = td.GetStrides();
 
-        miopen::InlineVector<size_t, 5> strides(tdStrides.size());
+        miopen::LensStrides<size_t> strides(tdStrides.size());
         std::copy_n(tdStrides.begin(), tdStrides.size(), strides.begin());
 
         if(transpose)

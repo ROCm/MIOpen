@@ -341,7 +341,7 @@ template <typename Tgpu, typename Tref>
 int RNNSeqDriver<Tgpu, Tref>::CheckDescriptor(miopenTensorDescriptor_t src_desc,
                                               const std::vector<int>& src_lens)
 {
-    const miopen::InlineVector<int, 5> lens = GetTensorLengths(src_desc);
+    const miopen::LensStrides<int> lens = GetTensorLengths(src_desc);
 
     if(lens.size() != src_lens.size() ||
        !std::equal(src_lens.begin(), src_lens.end(), lens.begin()))

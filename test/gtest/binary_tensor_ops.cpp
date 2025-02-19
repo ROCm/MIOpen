@@ -73,14 +73,14 @@ protected:
 
         ASSERT_GE(dstSuperTensor.desc.GetNumDims(), lens.size());
 
-        const miopen::InlineVector<size_t, 5>& dstSuperStrides = dstSuperTensor.desc.GetStrides();
-        miopen::InlineVector<size_t, 5> dstStrides(
-            dstSuperStrides.begin() + (dstSuperTensor.desc.GetNumDims() - lens.size()),
-            dstSuperStrides.end());
+        const miopen::LensStrides<size_t>& dstSuperStrides = dstSuperTensor.desc.GetStrides();
+        miopen::LensStrides<size_t> dstStrides(dstSuperStrides.begin() +
+                                                   (dstSuperTensor.desc.GetNumDims() - lens.size()),
+                                               dstSuperStrides.end());
 
         dstDesc =
             miopen::TensorDescriptor(miopen_type<DstType>{},
-                                     miopen::InlineVector<std::size_t, 5>(lens.begin(), lens.end()),
+                                     miopen::LensStrides<std::size_t>(lens.begin(), lens.end()),
                                      dstStrides);
         dstDataSize = dstDesc.GetElementSpace() + offsets[1];
 
@@ -88,14 +88,14 @@ protected:
 
         ASSERT_GE(srcSuperTensor.desc.GetNumDims(), lens.size());
 
-        const miopen::InlineVector<size_t, 5>& srcSuperStrides = srcSuperTensor.desc.GetStrides();
-        miopen::InlineVector<size_t, 5> srcStrides(
-            srcSuperStrides.begin() + (srcSuperTensor.desc.GetNumDims() - lens.size()),
-            srcSuperStrides.end());
+        const miopen::LensStrides<size_t>& srcSuperStrides = srcSuperTensor.desc.GetStrides();
+        miopen::LensStrides<size_t> srcStrides(srcSuperStrides.begin() +
+                                                   (srcSuperTensor.desc.GetNumDims() - lens.size()),
+                                               srcSuperStrides.end());
 
         srcDesc =
             miopen::TensorDescriptor(miopen_type<SrcType>{},
-                                     miopen::InlineVector<std::size_t, 5>(lens.begin(), lens.end()),
+                                     miopen::LensStrides<std::size_t>(lens.begin(), lens.end()),
                                      srcStrides);
         srcDataSize = srcDesc.GetElementSpace() + offsets[0];
 

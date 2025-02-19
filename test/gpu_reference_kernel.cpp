@@ -275,7 +275,7 @@ static std::string miopen_type_to_string(miopenDataType_t type)
 
 /// input: a vector of lengths of dims in a tensor
 /// multiply each element with a random constant integer
-void pad_tensor_strides(miopen::InlineVector<int, 5>& strides)
+void pad_tensor_strides(miopen::LensStrides<int>& strides)
 {
     constexpr int min_stride_multiplier = 1;
     constexpr int max_stride_multiplier = 5;
@@ -320,13 +320,13 @@ struct gpu_reference_conv_2d : gpu_reference_kernel_base
             int wo          = conv_out_size(wi, px, dx, fx, sx);
             int c_per_group = c / g;
 
-            miopen::InlineVector<int, 5> in_len({n, c, hi, wi});
-            miopen::InlineVector<int, 5> wei_len({k, c_per_group, fy, fx});
-            miopen::InlineVector<int, 5> out_len({n, k, ho, wo});
+            miopen::LensStrides<int> in_len({n, c, hi, wi});
+            miopen::LensStrides<int> wei_len({k, c_per_group, fy, fx});
+            miopen::LensStrides<int> out_len({n, k, ho, wo});
 
-            miopen::InlineVector<int, 5> in_strides;
-            miopen::InlineVector<int, 5> wei_strides;
-            miopen::InlineVector<int, 5> out_strides;
+            miopen::LensStrides<int> in_strides;
+            miopen::LensStrides<int> wei_strides;
+            miopen::LensStrides<int> out_strides;
 
             std::string layout_default = miopen::tensor_layout_get_default(4);
             std::string layout_string  = miopen::TensorDescriptor::LayoutEnumToStr(tensor_layout);
@@ -688,13 +688,13 @@ struct gpu_reference_conv_3d : gpu_reference_kernel_base
             int do_         = conv_out_size(di, pz, dz, fz, sz);
             int c_per_group = c / g;
 
-            miopen::InlineVector<int, 5> in_len({n, c, di, hi, wi});
-            miopen::InlineVector<int, 5> wei_len({k, c_per_group, fz, fy, fx});
-            miopen::InlineVector<int, 5> out_len({n, k, do_, ho, wo});
+            miopen::LensStrides<int> in_len({n, c, di, hi, wi});
+            miopen::LensStrides<int> wei_len({k, c_per_group, fz, fy, fx});
+            miopen::LensStrides<int> out_len({n, k, do_, ho, wo});
 
-            miopen::InlineVector<int, 5> in_strides;
-            miopen::InlineVector<int, 5> wei_strides;
-            miopen::InlineVector<int, 5> out_strides;
+            miopen::LensStrides<int> in_strides;
+            miopen::LensStrides<int> wei_strides;
+            miopen::LensStrides<int> out_strides;
 
             std::string layout_default = miopen::tensor_layout_get_default(5);
             std::string layout_string  = miopen::TensorDescriptor::LayoutEnumToStr(tensor_layout);

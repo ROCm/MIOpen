@@ -368,13 +368,13 @@ struct tensor_transform_driver : test_driver
             srcSuper_pad   = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             dstSuper_depad = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             srcDesc        = miopen::TensorDescriptor(
-                this->type, miopen::InlineVector<int, 5>(srcLens.begin(), srcLens.end()));
+                this->type, miopen::LensStrides<int>(srcLens.begin(), srcLens.end()));
 
             srcLens[1]     = (srcLens[1] % 4 == 0) ? srcLens[1] : ((srcLens[1] + 3) / 4) * 4;
             dstSuper_pad   = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             srcSuper_depad = tensor<T>{srcLens}.generate(tensor_elem_gen_integer{max_value});
             dstDesc        = miopen::TensorDescriptor(
-                this->type, miopen::InlineVector<int, 5>(srcLens.begin(), srcLens.end()));
+                this->type, miopen::LensStrides<int>(srcLens.begin(), srcLens.end()));
 
             if(srcDesc.GetLengths().size() == dstDesc.GetLengths().size())
             {
@@ -399,23 +399,19 @@ struct tensor_transform_driver : test_driver
         printf("\n DST: \n");
         show_tensor(super_dst);
 #endif
-        miopen::InlineVector<size_t, 5> superStrides_src = super_src.desc.GetStrides();
-        miopen::InlineVector<size_t, 5> superStrides_dst = super_dst.desc.GetStrides();
-        miopen::InlineVector<int, 5> subStrides_src(
-            superStrides_src.begin() + (super_src.desc.GetNumDims() - subLens.size()),
-            superStrides_src.end());
-        miopen::InlineVector<int, 5> subStrides_dst(
-            superStrides_dst.begin() + (super_dst.desc.GetNumDims() - subLens.size()),
-            superStrides_dst.end());
+        miopen::LensStrides<size_t> superStrides_src = super_src.desc.GetStrides();
+        miopen::LensStrides<size_t> superStrides_dst = super_dst.desc.GetStrides();
+        miopen::LensStrides<int> subStrides_src(superStrides_src.begin() +
+                                                    (super_src.desc.GetNumDims() - subLens.size()),
+                                                superStrides_src.end());
+        miopen::LensStrides<int> subStrides_dst(superStrides_dst.begin() +
+                                                    (super_dst.desc.GetNumDims() - subLens.size()),
+                                                superStrides_dst.end());
 
-        subDesc_src =
-            miopen::TensorDescriptor(this->type,
-                                     miopen::InlineVector<int, 5>(srcLens.begin(), srcLens.end()),
-                                     subStrides_src);
-        subDesc_dst =
-            miopen::TensorDescriptor(this->type,
-                                     miopen::InlineVector<int, 5>(srcLens.begin(), srcLens.end()),
-                                     subStrides_dst);
+        subDesc_src = miopen::TensorDescriptor(
+            this->type, miopen::LensStrides<int>(srcLens.begin(), srcLens.end()), subStrides_src);
+        subDesc_dst = miopen::TensorDescriptor(
+            this->type, miopen::LensStrides<int>(srcLens.begin(), srcLens.end()), subStrides_dst);
 
         verify_equals(verify_tensor_transform_scale<T>{
             super_src, subDesc_src, super_dst, subDesc_dst, offset, offset, T(alpha), T(beta)});

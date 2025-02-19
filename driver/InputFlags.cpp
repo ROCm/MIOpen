@@ -258,7 +258,7 @@ TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
         return {};
 
     auto parse = [](auto line) {
-        auto ret        = miopen::InlineVector<int, 5>{};
+        auto ret        = miopen::LensStrides<int>{};
         const auto strs = miopen::SplitDelim(line, 'x');
         for(auto&& str : strs)
         {
@@ -280,7 +280,7 @@ TensorParameters InputFlags::GetValueTensor(const std::string& long_name) const
         return {lens};
 
     auto layout  = std::string{};
-    auto strides = miopen::InlineVector<int, 5>{};
+    auto strides = miopen::LensStrides<int>{};
 
     if(std::isdigit(components[1][0]))
         strides = parse(components[1]);
@@ -302,7 +302,7 @@ TensorParametersUint64 InputFlags::GetValueTensorUint64(const std::string& long_
         return {};
 
     auto parse = [](auto line) {
-        auto ret        = miopen::InlineVector<uint64_t, 5>{};
+        auto ret        = miopen::LensStrides<uint64_t>{};
         const auto strs = miopen::SplitDelim(line, 'x');
         for(auto&& str : strs)
         {
@@ -324,7 +324,7 @@ TensorParametersUint64 InputFlags::GetValueTensorUint64(const std::string& long_
         return {lens};
 
     auto layout  = std::string{};
-    auto strides = miopen::InlineVector<uint64_t, 5>{};
+    auto strides = miopen::LensStrides<uint64_t>{};
 
     if(std::isdigit(components[1][0]))
         strides = parse(components[1]);

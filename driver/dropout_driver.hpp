@@ -70,7 +70,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    miopen::InlineVector<int, 5> GetInputTensorLengthsFromCmdLine(std::string input_str);
+    miopen::LensStrides<int> GetInputTensorLengthsFromCmdLine(std::string input_str);
 
     int AllocateBuffersAndCopy() override;
 
@@ -135,7 +135,7 @@ int DropoutDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int DropoutDriver<Tgpu, Tref>::GetandSetData()
 {
-    miopen::InlineVector<int, 5> in_len =
+    miopen::LensStrides<int> in_len =
         GetInputTensorLengthsFromCmdLine(inflags.GetValueStr("input_dim"));
     SetTensorNd(inputTensor, in_len, data_type);
     SetTensorNd(outputTensor, in_len, data_type);
@@ -184,10 +184,10 @@ int DropoutDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-miopen::InlineVector<int, 5>
+miopen::LensStrides<int>
 DropoutDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine(std::string input_str)
 {
-    miopen::InlineVector<int, 5> in_lens;
+    miopen::LensStrides<int> in_lens;
     std::stringstream ss(input_str);
 
     int cont = 0;

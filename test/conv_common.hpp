@@ -740,10 +740,10 @@ struct verify_forward_conv : conv_base<T, Tout>
 
                 bool is_transform = (input.desc.GetLengths()[1] % 4 != 0 || is_vect);
 
-                miopen::InlineVector<std::size_t, 5> in_len(input.desc.GetLengths().begin(),
-                                                            input.desc.GetLengths().end());
-                miopen::InlineVector<std::size_t, 5> wei_len(weights.desc.GetLengths().begin(),
-                                                             weights.desc.GetLengths().end());
+                miopen::LensStrides<std::size_t> in_len(input.desc.GetLengths().begin(),
+                                                        input.desc.GetLengths().end());
+                miopen::LensStrides<std::size_t> wei_len(weights.desc.GetLengths().begin(),
+                                                         weights.desc.GetLengths().end());
                 in_len[1]  = ((in_len[1] + 3) / 4) * 4;
                 wei_len[1] = ((wei_len[1] + 3) / 4) * 4;
 
@@ -1657,10 +1657,10 @@ struct verify_forward_conv_int8 : conv_base<T>
 
         bool is_transform = (input.desc.GetLengths()[1] % 4 != 0 || is_vect);
 
-        miopen::InlineVector<std::size_t, 5> in_len(input.desc.GetLengths().begin(),
-                                                    input.desc.GetLengths().end());
-        miopen::InlineVector<std::size_t, 5> wei_len(weights.desc.GetLengths().begin(),
-                                                     weights.desc.GetLengths().end());
+        miopen::LensStrides<std::size_t> in_len(input.desc.GetLengths().begin(),
+                                                input.desc.GetLengths().end());
+        miopen::LensStrides<std::size_t> wei_len(weights.desc.GetLengths().begin(),
+                                                 weights.desc.GetLengths().end());
         in_len[1]  = ((in_len[1] + 3) / 4) * 4;
         wei_len[1] = ((wei_len[1] + 3) / 4) * 4;
 
@@ -1796,8 +1796,8 @@ struct conv_driver : test_driver
     std::string conv_mode;
     std::string pad_mode;
     std::vector<std::size_t> spatial_dim_elements{};
-    miopen::InlineVector<std::size_t, 5> input_dims{};
-    miopen::InlineVector<std::size_t, 5> weight_tensor_dims{};
+    miopen::LensStrides<std::size_t> input_dims{};
+    miopen::LensStrides<std::size_t> weight_tensor_dims{};
     std::vector<std::size_t> filter_dims{};
     std::size_t batch_size{};
     std::size_t input_channels{};
@@ -2081,8 +2081,8 @@ struct conv_driver : test_driver
         // but this requires the dimensions come from commandline, which is hard for non-NCHW layout
         if(in_layout != "NCHW" && in_layout != "NCDHW")
         {
-            const miopen::InlineVector<size_t, 5> dim_lens = input.desc.GetLengths();
-            miopen::InlineVector<size_t, 5> dim_strides;
+            const miopen::LensStrides<size_t> dim_lens = input.desc.GetLengths();
+            miopen::LensStrides<size_t> dim_strides;
             miopen::tensor_layout_to_strides(
                 dim_lens,
                 miopen::tensor_layout_get_default(weights.desc.GetNumDims()),
@@ -2093,8 +2093,8 @@ struct conv_driver : test_driver
         }
         if(fil_layout != "NCHW" && fil_layout != "NCDHW" && fil_layout != "CHWN")
         {
-            const miopen::InlineVector<std::size_t, 5> dim_lens = weights.desc.GetLengths();
-            miopen::InlineVector<std::size_t, 5> dim_strides;
+            const miopen::LensStrides<std::size_t> dim_lens = weights.desc.GetLengths();
+            miopen::LensStrides<std::size_t> dim_strides;
             miopen::tensor_layout_to_strides(
                 dim_lens,
                 miopen::tensor_layout_get_default(weights.desc.GetNumDims()),

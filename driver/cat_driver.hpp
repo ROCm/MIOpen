@@ -106,7 +106,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<miopen::InlineVector<int, 5>> GetInputTensorLengthsFromCmdLine();
+    std::vector<miopen::LensStrides<int>> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -203,10 +203,10 @@ int CatDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<miopen::InlineVector<int, 5>> CatDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+std::vector<miopen::LensStrides<int>> CatDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     const int max_input_count = 8;
-    std::vector<miopen::InlineVector<int, 5>> ret;
+    std::vector<miopen::LensStrides<int>> ret;
     std::string name = "input";
     for(int i = 1; i < max_input_count; i++)
     {

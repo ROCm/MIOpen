@@ -100,8 +100,8 @@ GetConsistentFlattenedTensorDescriptors(const TDescriptors&... real_descriptor_p
     }
 
     // start flattening tensors
-    std::array<miopen::InlineVector<std::size_t, 5>, NTensor> array_of_flat_lengths;
-    std::array<miopen::InlineVector<std::size_t, 5>, NTensor> array_of_flat_strides;
+    std::array<LensStrides<std::size_t>, NTensor> array_of_flat_lengths;
+    std::array<LensStrides<std::size_t>, NTensor> array_of_flat_strides;
 
     auto i               = non1_length_strides.begin();
     std::size_t flat_len = boost::get<0>(*i);

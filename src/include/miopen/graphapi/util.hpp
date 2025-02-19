@@ -165,8 +165,7 @@ struct PatternGraphGenerator
     inline Tensor* makeDummyTensor(std::string_view name)
     {
 
-        return mAlloc.allocate(
-            makeTensor<true>(name, miopenFloat, miopen::InlineVector<size_t, 5>({1})));
+        return mAlloc.allocate(makeTensor<true>(name, miopenFloat, LensStrides<size_t>({1})));
     }
 
 private:

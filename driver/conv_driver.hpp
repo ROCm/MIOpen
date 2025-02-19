@@ -284,13 +284,13 @@ public:
 
     int GetandSetData() override;
     bool TensorsCasted() const;
-    miopen::InlineVector<int, 5> GetInputTensorLengthsFromCmdLine();
-    miopen::InlineVector<int, 5> GetWeightTensorLengthsFromCmdLine();
-    miopen::InlineVector<int, 5> GetBiasTensorLengthsFromCmdLine();
+    miopen::LensStrides<int> GetInputTensorLengthsFromCmdLine();
+    miopen::LensStrides<int> GetWeightTensorLengthsFromCmdLine();
+    miopen::LensStrides<int> GetBiasTensorLengthsFromCmdLine();
 
     int SetConvDescriptorFromCmdLineArgs();
 
-    miopen::InlineVector<int, 5> GetOutputTensorLengths();
+    miopen::LensStrides<int> GetOutputTensorLengths();
 
     int AllocateBuffersAndCopy() override;
 
@@ -769,8 +769,8 @@ bool ConvDriver<Tgpu, Tref>::TensorsCasted() const
 template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::GetandSetData()
 {
-    miopen::InlineVector<int, 5> in_len  = GetInputTensorLengthsFromCmdLine();
-    miopen::InlineVector<int, 5> wei_len = GetWeightTensorLengthsFromCmdLine();
+    miopen::LensStrides<int> in_len  = GetInputTensorLengthsFromCmdLine();
+    miopen::LensStrides<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
     SetTensorNd(inputTensor, in_len, inflags.GetValueStr("in_layout"), data_type);
     if(inflags.GetValueStr("in_cast_type") != "-1")
@@ -792,7 +792,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
 
     if(IsInputTensorTransform())
     {
-        miopen::InlineVector<int, 5> in_len_vect4(in_len.begin(), in_len.end()),
+        miopen::LensStrides<int> in_len_vect4(in_len.begin(), in_len.end()),
             wei_len_vect4(wei_len.begin(), wei_len.end());
         in_len_vect4[1] = ((in_len[1] + 3) / 4) * 4;
         SetTensorNd(inputTensor_vect4, in_len_vect4, data_type);
@@ -801,7 +801,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     }
     SetConvDescriptorFromCmdLineArgs();
 
-    miopen::InlineVector<int, 5> out_len = GetOutputTensorLengths();
+    miopen::LensStrides<int> out_len = GetOutputTensorLengths();
     if(miopen::deref(inputTensor).GetLayoutEnum() == miopenTensorNCHWc4 ||
        miopen::deref(inputTensor).GetLayoutEnum() == miopenTensorNCHWc8)
     {
@@ -821,15 +821,15 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
 
     if(inflags.GetValueInt("bias") != 0)
     {
-        miopen::InlineVector<int, 5> bias_len = GetBiasTensorLengthsFromCmdLine();
+        miopen::LensStrides<int> bias_len = GetBiasTensorLengthsFromCmdLine();
         SetTensorNd(biasTensor, bias_len, data_type);
     }
 
     if(warmup_enabled)
     {
         AutoMiopenWarmupMode warmupMode;
-        miopen::InlineVector<int, 5> warmup_in_len  = {1, 1, 16, 16}; // NCHW
-        miopen::InlineVector<int, 5> warmup_wei_len = {1, 1, 1, 1};   // KCYX
+        miopen::LensStrides<int> warmup_in_len  = {1, 1, 16, 16}; // NCHW
+        miopen::LensStrides<int> warmup_wei_len = {1, 1, 1, 1};   // KCYX
         SetTensorNd(warmupInputTensor, warmup_in_len, warmup_data_type);
         SetTensorNd(warmupWeightTensor, warmup_wei_len, warmup_data_type);
 
@@ -851,7 +851,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
         miopenSetConvolutionGroupCount(warmupConvDesc, group_count);
 
         int warmup_out_len_size = miopen::deref(warmupInputTensor).GetNumDims();
-        miopen::InlineVector<int, 5> warmup_out_len(warmup_out_len_size);
+        miopen::LensStrides<int> warmup_out_len(warmup_out_len_size);
         miopenGetConvolutionNdForwardOutputDim(warmupConvDesc,
                                                warmupInputTensor,
                                                warmupWeightTensor,
@@ -1000,9 +1000,9 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-miopen::InlineVector<int, 5> ConvDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+miopen::LensStrides<int> ConvDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
-    miopen::InlineVector<int, 5> in_lens;
+    miopen::LensStrides<int> in_lens;
 
     int spatial_dim = inflags.GetValueInt("spatial_dim");
     in_lens.resize(2 + spatial_dim);
@@ -1032,9 +1032,9 @@ miopen::InlineVector<int, 5> ConvDriver<Tgpu, Tref>::GetInputTensorLengthsFromCm
 }
 
 template <typename Tgpu, typename Tref>
-miopen::InlineVector<int, 5> ConvDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
+miopen::LensStrides<int> ConvDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
 {
-    miopen::InlineVector<int, 5> wei_lens;
+    miopen::LensStrides<int> wei_lens;
 
     int spatial_dim = inflags.GetValueInt("spatial_dim");
     wei_lens.resize(2 + spatial_dim);
@@ -1086,11 +1086,11 @@ miopen::InlineVector<int, 5> ConvDriver<Tgpu, Tref>::GetWeightTensorLengthsFromC
 }
 
 template <typename Tgpu, typename Tref>
-miopen::InlineVector<int, 5> ConvDriver<Tgpu, Tref>::GetBiasTensorLengthsFromCmdLine()
+miopen::LensStrides<int> ConvDriver<Tgpu, Tref>::GetBiasTensorLengthsFromCmdLine()
 {
     int spatial_dim = inflags.GetValueInt("spatial_dim");
 
-    miopen::InlineVector<int, 5> bias_lens(2 + spatial_dim, 1);
+    miopen::LensStrides<int> bias_lens(2 + spatial_dim, 1);
 
     bias_lens[1] = inflags.GetValueInt("out_channels");
 
@@ -1203,11 +1203,11 @@ int ConvDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-miopen::InlineVector<int, 5> ConvDriver<Tgpu, Tref>::GetOutputTensorLengths()
+miopen::LensStrides<int> ConvDriver<Tgpu, Tref>::GetOutputTensorLengths()
 {
     int ndim = miopen::deref(inputTensor).GetNumDims();
 
-    miopen::InlineVector<int, 5> out_lens(ndim);
+    miopen::LensStrides<int> out_lens(ndim);
 
     miopenGetConvolutionNdForwardOutputDim(
         convDesc, inputTensor, weightTensor, &ndim, out_lens.data());

@@ -72,7 +72,7 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    miopen::InlineVector<int, 5> GetInputTensorLengthsFromCmdLine();
+    miopen::LensStrides<int> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -179,7 +179,7 @@ int TransformersAdamWDriver<Tgpu, Tref, Tgrad>::GetandSetData()
         found_inf  = inflags.GetValueInt("found_inf");
     }
 
-    miopen::InlineVector<int, 5> one_size = {1};
+    miopen::LensStrides<int> one_size = {1};
     SetTensorNd(paramDesc, param_len, data_type);
     SetTensorNd(paramOutDesc, param_len, data_type);
     SetTensorNd(gradDesc, param_len, grad_type);
@@ -226,10 +226,10 @@ int TransformersAdamWDriver<Tgpu, Tref, Tgrad>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref, typename Tgrad>
-miopen::InlineVector<int, 5>
+miopen::LensStrides<int>
 TransformersAdamWDriver<Tgpu, Tref, Tgrad>::GetInputTensorLengthsFromCmdLine()
 {
-    miopen::InlineVector<int, 5> ret;
+    miopen::LensStrides<int> ret;
     auto tensor = inflags.GetValueTensor("dims");
     if(!tensor.lengths.empty())
         return tensor.lengths;

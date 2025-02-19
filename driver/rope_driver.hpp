@@ -197,7 +197,7 @@ int RoPEDriver<Tgpu, Tref>::GetandSetData()
     auto inTensorParam = inflags.GetValueTensorUint64("input");
 
     auto in_len                      = inTensorParam.lengths;
-    miopen::InlineVector<uint64_t, 5> rotary_dim = {in_len[1], in_len[2], in_len[3]};
+    miopen::LensStrides<uint64_t> rotary_dim = {in_len[1], in_len[2], in_len[3]};
 
     if(SetTensorNd(x_dyDesc, in_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");

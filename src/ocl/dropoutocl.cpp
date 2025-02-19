@@ -45,14 +45,14 @@
 namespace miopen {
 
 template <typename T>
-inline void SquashPairedTensor(const miopen::InlineVector<T, 5> x_len,
-                               const miopen::InlineVector<T, 5> x_str,
-                               const miopen::InlineVector<T, 5> y_len,
-                               const miopen::InlineVector<T, 5> y_str,
-                               miopen::InlineVector<T, 5>& in_len,
-                               miopen::InlineVector<T, 5>& in_str,
-                               miopen::InlineVector<T, 5>& out_len,
-                               miopen::InlineVector<T, 5>& out_str)
+inline void SquashPairedTensor(const LensStrides<T> x_len,
+                               const LensStrides<T> x_str,
+                               const LensStrides<T> y_len,
+                               const LensStrides<T> y_str,
+                               LensStrides<T>& in_len,
+                               LensStrides<T>& in_str,
+                               LensStrides<T>& out_len,
+                               LensStrides<T>& out_str)
 {
     if(!std::equal(x_len.begin(), x_len.end(), y_len.begin()))
     {
@@ -240,10 +240,10 @@ void DropoutDescriptor::Dropout(const Handle& handle,
     }
 
     // support up to 5D tensor
-    miopen::InlineVector<std::size_t, 5> in_len(5, 1);
-    miopen::InlineVector<std::size_t, 5> in_str(5, 1);
-    miopen::InlineVector<std::size_t, 5> out_len(5, 1);
-    miopen::InlineVector<std::size_t, 5> out_str(5, 1);
+    LensStrides<std::size_t> in_len(5, 1);
+    LensStrides<std::size_t> in_str(5, 1);
+    LensStrides<std::size_t> out_len(5, 1);
+    LensStrides<std::size_t> out_str(5, 1);
 
     SquashPairedTensor(xDesc.GetLengths(),
                        xDesc.GetStrides(),

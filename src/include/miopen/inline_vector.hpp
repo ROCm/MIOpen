@@ -108,13 +108,13 @@ public:
     // Compare operators
     bool operator==(const InlineVector& riv) const
     {
-        return (std::equal(begin(), end(), riv.begin())) && (size() == riv.size());
+        return ((size() == riv.size()) && (std::equal(begin(), end(), riv.begin())));
     }
     bool operator!=(const InlineVector& riv) const { return !(*this == riv); }
     bool operator<(const InlineVector& riv) const
     {
-        return ((std::lexicographical_compare(begin(), end(), riv.begin(), riv.end())) &&
-                (size() < riv.size()));
+        return ((size() < riv.size()) &&
+                (std::lexicographical_compare(begin(), end(), riv.begin(), riv.end())));
     }
     bool operator>(const InlineVector& riv) const { return riv < *this; }
 

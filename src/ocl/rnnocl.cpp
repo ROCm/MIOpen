@@ -173,9 +173,8 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
             int m = 1, n = ws_desc.GetLengths()[2], k = ws_desc.GetLengths()[1];
             int lda = k, ldb = ws_desc.GetStrides()[1], ldc = n;
 
-            const miopen::TensorDescriptor red_matrix{red_type,
-                                                      miopen::InlineVector<int, 5>{1, 1, k},
-                                                      miopen::InlineVector<int, 5>{k, k, 1}};
+            const miopen::TensorDescriptor red_matrix{
+                red_type, LensStrides<int>{1, 1, k}, LensStrides<int>{k, k, 1}};
 
             SetTensor(handle, red_matrix, red_workSpace, &alpha1);
 
@@ -582,15 +581,15 @@ void RNNDescriptor::RNNForwardMS(const Handle& handle,
         float alpha1           = 1;
         const auto bias_stride = WeiBuf.bias_stride();
 
-        const auto bias_desc = miopen::TensorDescriptor(
-            wDesc.GetType(),
-            miopen::InlineVector<int, 5>{1, 1, WeiBuf.bias_vector_mul_gate()},
-            miopen::InlineVector<int, 5>{bias_stride, bias_stride, 1});
+        const auto bias_desc =
+            miopen::TensorDescriptor(wDesc.GetType(),
+                                     LensStrides<int>{1, 1, WeiBuf.bias_vector_mul_gate()},
+                                     LensStrides<int>{bias_stride, bias_stride, 1});
 
         const auto hidden_interim_desc = miopen::TensorDescriptor(
             wDesc.GetType(),
-            miopen::InlineVector<int, 5>{1, RBuff.batches, WeiBuf.bias_vector_mul_gate()},
-            miopen::InlineVector<int, 5>{
+            LensStrides<int>{1, RBuff.batches, WeiBuf.bias_vector_mul_gate()},
+            LensStrides<int>{
                 RBuff.batches * RBuff.gemm_write_stride(), RBuff.gemm_write_stride(), 1});
 
         const auto RB_layer_out_off       = RBuff.layer_offset(layer);
@@ -779,15 +778,15 @@ void RNNDescriptor::RNNForwardMS(const Handle& handle,
 
             auto hcy_layer_offset = get_HxBuff_offset(layer_id);
 
-            const miopen::InlineVector<std::size_t, 5> hcy_src_stride{
+            const LensStrides<std::size_t> hcy_src_stride{
                 RBuff.layer_stride(), static_cast<size_t>(RBuff.gemm_write_stride()), 1};
-            const miopen::InlineVector<std::size_t, 5> hcy_dst_stride{
+            const LensStrides<std::size_t> hcy_dst_stride{
                 static_cast<size_t>(hidden_size * max_batch), static_cast<size_t>(hidden_size), 1};
 
             if(in_n.at(0) < max_batch)
             {
                 float beta = 0.;
-                const miopen::InlineVector<std::size_t, 5> zero_set_size{
+                const LensStrides<std::size_t> zero_set_size{
                     1,
                     static_cast<size_t>(max_batch - in_n.at(0)),
                     static_cast<size_t>(hidden_size)};
@@ -819,7 +818,7 @@ void RNNDescriptor::RNNForwardMS(const Handle& handle,
                     auto src_batch_offset = RBuff.layer_offset(layer_id) +
                                             RBuff.gemm_write_relative_offset(batch_id_abs);
 
-                    const miopen::InlineVector<std::size_t, 5> hcy_copy_size{
+                    const LensStrides<std::size_t> hcy_copy_size{
                         1, static_cast<size_t>(copy_batch), static_cast<size_t>(hidden_size)};
 
                     auto src_desc =
@@ -1130,13 +1129,13 @@ void RNNDescriptor::RNNForwardMS(const Handle& handle,
 
     // output tensor copy
     {
-        const miopen::InlineVector<std::size_t, 5> y_copy_size{
+        const LensStrides<std::size_t> y_copy_size{
             1, static_cast<size_t>(total_batch_size), static_cast<size_t>(out_vec)};
 
-        const miopen::InlineVector<std::size_t, 5> y_src_stride{
+        const LensStrides<std::size_t> y_src_stride{
             RBuff.layer_stride(), static_cast<size_t>(RBuff.gemm_write_stride()), 1};
 
-        const miopen::InlineVector<std::size_t, 5> y_dst_stride{
+        const LensStrides<std::size_t> y_dst_stride{
             static_cast<size_t>(out_vec * total_batch_size), static_cast<size_t>(out_vec), 1};
 
         auto src_desc   = miopen::TensorDescriptor(wDesc.GetType(), y_copy_size, y_src_stride);
@@ -1423,9 +1422,8 @@ void RNNDescriptor::RNNForwardInferencePacked(const Handle& handle,
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
 
-    miopen::InlineVector<int, 5> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1),
-        x_size(3, 1), x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1),
-        hx_stride(3, 1);
+    LensStrides<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1), x_size(3, 1),
+        x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc, x_desc, y_desc, hx_desc;
 
     sp_size[2]   = workSpaceSize / GetTypeSize(wDesc.GetType());
@@ -2860,8 +2858,8 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
 
-    miopen::InlineVector<int, 5> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1),
-        x_size(3, 1), x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
+    LensStrides<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1), x_size(3, 1),
+        x_stride(3, 1), y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc, x_desc, y_desc, hx_desc;
 
     sp_size[2]   = reserveSpaceSize / GetTypeSize(wDesc.GetType());
@@ -3008,7 +3006,7 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
 
             if(use_dropout)
             {
-                miopen::InlineVector<int, 5> drop_size(2), drop_in_str(2, 1), drop_out_str(2, 1);
+                LensStrides<int> drop_size(2), drop_in_str(2, 1), drop_out_str(2, 1);
                 drop_size[0]    = batch_n;
                 drop_size[1]    = hy_h * bi;
                 drop_in_str[0]  = hy_stride;
@@ -4370,8 +4368,8 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     float alpha0, alpha1, beta_t;
     float alpha = 1, beta = 0;
 
-    miopen::InlineVector<int, 5> sp_size(3, 1), sp_stride(3, 1), x_size(3, 1), x_stride(3, 1),
-        y_size(3, 1), y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
+    LensStrides<int> sp_size(3, 1), sp_stride(3, 1), x_size(3, 1), x_stride(3, 1), y_size(3, 1),
+        y_stride(3, 1), hx_size(3, 1), hx_stride(3, 1);
     miopen::TensorDescriptor sp_desc, x_desc, y_desc, hx_desc;
 
     sp_size[2]   = workSpaceSize / GetTypeSize(rnn_data_type);
@@ -4522,7 +4520,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
 
             if(use_dropout)
             {
-                miopen::InlineVector<int, 5> drop_size(2), drop_in_str(2, 1);
+                LensStrides<int> drop_size(2), drop_in_str(2, 1);
                 drop_size[0]   = batch_n;
                 drop_size[1]   = hy_h * bi;
                 drop_in_str[0] = hy_stride;
@@ -5710,7 +5708,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     // dinput
     if(inputMode == miopenRNNskip)
     {
-        const miopen::InlineVector<int, 5> dx_size{1, batch_n, hy_h};
+        const LensStrides<int> dx_size{1, batch_n, hy_h};
         x_desc  = miopen::TensorDescriptor(rnn_data_type, dx_size, x_stride);
         sp_desc = miopen::TensorDescriptor(rnn_data_type, dx_size, sp_stride);
 
@@ -6044,8 +6042,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
 
     float alpha0, alpha1, beta_t = 0;
 
-    miopen::InlineVector<int, 5> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1),
-        w_stride(3, 1);
+    LensStrides<int> sp_size(3, 1), sp_stride(3, 1), w_size(3, 1), w_stride(3, 1);
     miopen::TensorDescriptor sp_desc, w_desc;
 
     sp_stride[0] = batch_n * hy_stride;
@@ -6170,14 +6167,14 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
 
         if(biasMode != 0u)
         {
-            const miopen::InlineVector<std::size_t, 5> ws_bias_strides{
+            const LensStrides<std::size_t> ws_bias_strides{
                 static_cast<size_t>(batch_n) * hy_stride, static_cast<size_t>(hy_stride), 1};
             const miopen::TensorDescriptor ws_desc{
                 rnn_data_t,
                 {1, static_cast<size_t>(batch_n), static_cast<size_t>(wei_stride)},
                 ws_bias_strides};
 
-            const miopen::InlineVector<std::size_t, 5> dw_bias_strides{
+            const LensStrides<std::size_t> dw_bias_strides{
                 static_cast<size_t>(wei_stride), static_cast<size_t>(wei_stride), 1};
             const miopen::TensorDescriptor dw_desc{
                 rnn_data_t, {1, 1, static_cast<size_t>(wei_stride)}, dw_bias_strides};
@@ -6266,7 +6263,7 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                 else
                 {
                     // second dw bias equal to the first, so just copy reduction result
-                    const miopen::InlineVector<int, 5> dw_bias_strides{wei_stride, wei_stride, 1};
+                    const LensStrides<int> dw_bias_strides{wei_stride, wei_stride, 1};
                     const miopen::TensorDescriptor dw_desc{
                         rnn_data_t, {1, 1, wei_stride}, dw_bias_strides};
 

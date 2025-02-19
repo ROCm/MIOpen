@@ -40,7 +40,7 @@ TensorBuilder& TensorBuilder::setDataType(miopenDataType_t dataType) &
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setDim(const miopen::InlineVector<std::size_t, 5>& dimensions) &
+TensorBuilder& TensorBuilder::setDim(const LensStrides<std::size_t>& dimensions) &
 {
     if(dimensions.empty() || miopen::any_of(dimensions, [](std::size_t val) { return val <= 0; }))
     {
@@ -52,7 +52,7 @@ TensorBuilder& TensorBuilder::setDim(const miopen::InlineVector<std::size_t, 5>&
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setDim(miopen::InlineVector<std::size_t, 5>&& dimensions) &
+TensorBuilder& TensorBuilder::setDim(LensStrides<std::size_t>&& dimensions) &
 {
     if(dimensions.empty() || miopen::any_of(dimensions, [](std::size_t val) { return val <= 0; }))
     {
@@ -64,7 +64,7 @@ TensorBuilder& TensorBuilder::setDim(miopen::InlineVector<std::size_t, 5>&& dime
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setStride(const miopen::InlineVector<std::size_t, 5>& strides) &
+TensorBuilder& TensorBuilder::setStride(const LensStrides<std::size_t>& strides) &
 {
     if(strides.empty() || miopen::any_of(strides, [](std::size_t val) { return val <= 0; }))
     {
@@ -76,7 +76,7 @@ TensorBuilder& TensorBuilder::setStride(const miopen::InlineVector<std::size_t, 
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setStride(miopen::InlineVector<std::size_t, 5>&& strides) &
+TensorBuilder& TensorBuilder::setStride(LensStrides<std::size_t>&& strides) &
 {
     if(strides.empty() || miopen::any_of(strides, [](std::size_t val) { return val <= 0; }))
     {
@@ -162,9 +162,9 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_DIMENSIONS:
         if(attributeType == MIOPEN_TYPE_INT64 && elementCount > 0)
         {
-            mBuilder.setDim(miopen::InlineVector<std::size_t, 5>(
-                static_cast<int64_t*>(arrayOfElements),
-                static_cast<int64_t*>(arrayOfElements) + elementCount));
+            mBuilder.setDim(
+                LensStrides<std::size_t>(static_cast<int64_t*>(arrayOfElements),
+                                         static_cast<int64_t*>(arrayOfElements) + elementCount));
             return;
         }
         else
@@ -175,9 +175,9 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_STRIDES:
         if(attributeType == MIOPEN_TYPE_INT64 && elementCount > 0)
         {
-            mBuilder.setStride(miopen::InlineVector<std::size_t, 5>(
-                static_cast<int64_t*>(arrayOfElements),
-                static_cast<int64_t*>(arrayOfElements) + elementCount));
+            mBuilder.setStride(
+                LensStrides<std::size_t>(static_cast<int64_t*>(arrayOfElements),
+                                         static_cast<int64_t*>(arrayOfElements) + elementCount));
             return;
         }
         else

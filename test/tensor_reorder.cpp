@@ -331,12 +331,12 @@ struct tensor_reorder_driver : tensor_reorder_base_driver
                               uint32_t order_2,
                               uint32_t order_3) {
             int tensor_sz = dim_0 * dim_1 * dim_2 * dim_3;
-            miopen::InlineVector<int, 5> tensor_len({static_cast<int>(dim_0),
-                                                     static_cast<int>(dim_1),
-                                                     static_cast<int>(dim_2),
-                                                     static_cast<int>(dim_3)});
+            miopen::LensStrides<int> tensor_len({static_cast<int>(dim_0),
+                                                 static_cast<int>(dim_1),
+                                                 static_cast<int>(dim_2),
+                                                 static_cast<int>(dim_3)});
 
-            miopen::InlineVector<int, 5> tensor_strides;
+            miopen::LensStrides<int> tensor_strides;
 
             std::string layout_default = miopen::tensor_layout_get_default(4);
             std::string layout_string = miopen::TensorDescriptor::LayoutEnumToStr(miopenTensorNCHW);

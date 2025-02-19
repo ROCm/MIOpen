@@ -169,7 +169,7 @@ int ReduceCalculationDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(inputDesc, in_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
 
-    miopen::InlineVector<int, 5> out_len;
+    miopen::LensStrides<int> out_len;
 
     for(int i = 0; i < in_len.size(); ++i)
     {

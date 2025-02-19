@@ -1994,13 +1994,13 @@ struct verify_forward_infer_gru
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
 
-        miopen::InlineVector<int, 5> hlens(3, 0);
+        miopen::LensStrides<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
 
-        miopen::InlineVector<int, 5> wlen(1, 0);
+        miopen::LensStrides<int> wlen(1, 0);
         wlen[0] = weights.size();
         miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen);
 
@@ -2284,13 +2284,13 @@ struct verify_forward_train_gru
         std::fill(hy.begin(), hy.end(), 0.);
         auto hy_dev = handle.Write(hy);
 
-        miopen::InlineVector<int, 5> hlens(3, 0);
+        miopen::LensStrides<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
 
-        miopen::InlineVector<int, 5> wlen(1, 0);
+        miopen::LensStrides<int> wlen(1, 0);
         wlen[0] = weights.size();
         miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen);
 
@@ -2585,13 +2585,13 @@ struct verify_backward_data_gru
         Workspace rspace{};
         rspace.Write(reserveSpace);
 
-        miopen::InlineVector<int, 5> hlens(3, 0);
+        miopen::LensStrides<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
         miopen::TensorDescriptor hiddenDesc(miopen::deref(rnnDesc).dataType, hlens);
 
-        miopen::InlineVector<int, 5> wlen(1, 0);
+        miopen::LensStrides<int> wlen(1, 0);
         wlen[0] = weights.size();
         miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, wlen);
 
@@ -2846,7 +2846,7 @@ struct verify_backward_weights_gru
         auto dweights_dev = handle.Write(dweights);
         miopen::TensorDescriptor weightDesc(miopen::deref(rnnDesc).dataType, {weightSize});
 
-        miopen::InlineVector<int, 5> hlens(3, 0);
+        miopen::LensStrides<int> hlens(3, 0);
         hlens[0] = nLayers * (dirMode != 0 ? 2 : 1);
         hlens[1] = batch_seq[0];
         hlens[2] = hiddenSize;
@@ -3066,7 +3066,7 @@ struct gru_basic_driver : test_driver
         std::vector<T> dhyin(hx_sz);
 
         size_t wei_bytes = 0;
-        miopen::InlineVector<int, 5> inlens(2, 0);
+        miopen::LensStrides<int> inlens(2, 0);
         inlens.at(0)        = batchSeq.at(0);
         inlens.at(1)        = inVecReal;
         auto firstInputDesc = miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens);

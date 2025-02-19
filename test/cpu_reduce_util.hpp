@@ -310,7 +310,7 @@ get_all_indexes(const std::vector<T>& dimLengths, int dim, std::vector<std::vect
 };
 
 template <typename T>
-static void get_all_indexes(const miopen::InlineVector<T, 5>& dimLengths,
+static void get_all_indexes(const miopen::LensStrides<T>& dimLengths,
                             int dim,
                             std::vector<std::vector<T>>& indexes)
 {
@@ -353,8 +353,7 @@ static void get_all_indexes(const miopen::InlineVector<T, 5>& dimLengths,
 };
 
 template <typename T>
-static T get_offset_from_index(const miopen::InlineVector<T, 5>& strides,
-                               const std::vector<T>& index)
+static T get_offset_from_index(const miopen::LensStrides<T>& strides, const std::vector<T>& index)
 {
     T offset = 0;
 
@@ -390,7 +389,7 @@ static T get_flatten_offset(const std::vector<T>& lengths, const std::vector<T>&
 };
 
 template <typename T>
-static T get_flatten_offset(const miopen::InlineVector<T, 5>& lengths, const std::vector<T>& index)
+static T get_flatten_offset(const miopen::LensStrides<T>& lengths, const std::vector<T>& index)
 {
     T offset = 0;
 

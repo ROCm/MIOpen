@@ -1031,7 +1031,7 @@ float transpose_CNHW2NCHW(const Handle& handle,
 
 // NCHW (or NCDHW) to NCHW_C4 (or NCDHW_C4)
 float transpose_NCHW2Vec(const Handle& handle,
-                         const miopen::InlineVector<size_t, 5>& lens,
+                         const LensStrides<size_t>& lens,
                          ConstData_t in,
                          Data_t out,
                          std::size_t vec_size,

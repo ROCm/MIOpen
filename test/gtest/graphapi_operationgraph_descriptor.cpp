@@ -51,13 +51,13 @@ private:
 public:
     GMockNode()
         : mIn(std::make_shared<Tensor>(miopenFloat,
-                                       miopen::InlineVector<std::size_t, 5>{8, 64, 64},
-                                       miopen::InlineVector<std::size_t, 5>{64 * 64, 64, 1},
+                                       miopen::LensStrides<std::size_t>{8, 64, 64},
+                                       miopen::LensStrides<std::size_t>{64 * 64, 64, 1},
                                        ++id,
                                        false)),
           mOut(std::make_shared<Tensor>(miopenFloat,
-                                        miopen::InlineVector<std::size_t, 5>{8, 64, 64},
-                                        miopen::InlineVector<std::size_t, 5>{64 * 64, 64, 1},
+                                        miopen::LensStrides<std::size_t>{8, 64, 64},
+                                        miopen::LensStrides<std::size_t>{64 * 64, 64, 1},
                                         ++id,
                                         false))
     {

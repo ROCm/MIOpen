@@ -418,8 +418,7 @@ public:
                                                      convInvalidCWeightTensorDesc.GetLengths(),
                                                      convInvalidCWeightTensorDesc.GetStrides()));
 
-        miopen::InlineVector<size_t, 5> allOnes{
-            size_t{1}, size_t{1}, size_t{1}, size_t{1}, size_t{1}};
+        miopen::LensStrides<size_t> allOnes{size_t{1}, size_t{1}, size_t{1}, size_t{1}, size_t{1}};
         auto convOutput =
             allocator.allocate(gr::makeTensor<true>(convOutputName, dataType, allOnes, allOnes));
 

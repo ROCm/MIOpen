@@ -334,9 +334,9 @@ public:
     // 2 dims batch, vec
     inline miopen::TensorDescriptor BuildHxCxDesc2D(size_t batch_size) const
     {
-        const miopen::InlineVector<size_t, 5> hx_size{batch_size, hiddenHxCxInfo.getHiddenSize()};
-        const miopen::InlineVector<size_t, 5> hx_stride{hiddenHxCxInfo.getStrides()[1],
-                                                        hiddenHxCxInfo.getStrides()[2]};
+        const LensStrides<size_t> hx_size{batch_size, hiddenHxCxInfo.getHiddenSize()};
+        const LensStrides<size_t> hx_stride{hiddenHxCxInfo.getStrides()[1],
+                                            hiddenHxCxInfo.getStrides()[2]};
 
         return miopen::TensorDescriptor{rnnDesc.dataType, hx_size, hx_stride};
     }
@@ -344,28 +344,26 @@ public:
     // 3 dims layer, batch, vec
     inline miopen::TensorDescriptor BuildHxCxDesc3D(size_t layer_size, size_t batch_size) const
     {
-        const miopen::InlineVector<size_t, 5> hx_accum_size{
+        const LensStrides<size_t> hx_accum_size{
             layer_size, batch_size, hiddenHxCxInfo.getHiddenSize()};
 
         return miopen::TensorDescriptor{
             rnnDesc.dataType,
             hx_accum_size,
-            miopen::InlineVector<std::size_t, 5>(hiddenHxCxInfo.getStrides().begin(),
-                                                 hiddenHxCxInfo.getStrides().end())};
+            LensStrides<std::size_t>(hiddenHxCxInfo.getStrides().begin(),
+                                     hiddenHxCxInfo.getStrides().end())};
     }
 
     // 3 dims layer, batch, vec
     inline miopen::TensorDescriptor BuildTempDhtDesc3D(size_t layer_size, size_t batch_size) const
     {
-        const miopen::InlineVector<size_t, 5> dy_dhy_accum_size{
+        const LensStrides<size_t> dy_dhy_accum_size{
             layer_size, batch_size, hiddenHxCxInfo.getHiddenSize()};
 
-        const auto ws_dy_stride =
-            [](const auto& ws_4dim_strides) -> miopen::InlineVector<size_t, 5> {
+        const auto ws_dy_stride = [](const auto& ws_4dim_strides) -> LensStrides<size_t> {
             // convert 4dim stride to 3 dim without direction
             // TODO change hiddenBufferDesc
-            return miopen::InlineVector<size_t, 5>{
-                ws_4dim_strides[0], ws_4dim_strides[1], ws_4dim_strides[3]};
+            return LensStrides<size_t>{ws_4dim_strides[0], ws_4dim_strides[1], ws_4dim_strides[3]};
         }(workspaceInfo.getHiddenStateStride());
 
         return miopen::TensorDescriptor{rnnDesc.dataType, dy_dhy_accum_size, ws_dy_stride};
@@ -376,16 +374,14 @@ public:
     static miopen::TensorDescriptor BuildWeiBiasDesc2D(WeiType weights_layout,
                                                        miopenDataType_t data_type)
     {
-        const miopen::InlineVector<size_t, 5> bias_size =
-            [](const auto& wei_4dim_size) -> miopen::InlineVector<size_t, 5> {
+        const LensStrides<size_t> bias_size = [](const auto& wei_4dim_size) -> LensStrides<size_t> {
             // wei_4dim_size{layer, dir, gate, vec}
             return {1, wei_4dim_size[1] * wei_4dim_size[2] * wei_4dim_size[3]};
         }(weights_layout.getBiasSize());
 
-        const auto bias_stride =
-            [](const auto& wei_4dim_strides) -> miopen::InlineVector<size_t, 5> {
+        const auto bias_stride = [](const auto& wei_4dim_strides) -> LensStrides<size_t> {
             // convert 4dim stride to 2 dim without direction
-            return miopen::InlineVector<size_t, 5>{wei_4dim_strides[0], wei_4dim_strides[3]};
+            return LensStrides<size_t>{wei_4dim_strides[0], wei_4dim_strides[3]};
         }(weights_layout.getBiasStride());
 
         return miopen::TensorDescriptor{data_type, bias_size, bias_stride};

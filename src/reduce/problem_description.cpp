@@ -37,7 +37,7 @@ namespace reduce {
 NetworkConfig ProblemDescriptionExtreme::MakeNetworkConfig() const
 {
     auto xlength = xDesc.GetLengths();
-    InlineVector<std::size_t, 5> outputlength;
+    LensStrides<std::size_t> outputlength;
     if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
        (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
         outputlength = yDesc.GetLengths();
@@ -74,7 +74,7 @@ NetworkConfig ProblemDescriptionExtreme::MakeNetworkConfig() const
 NetworkConfig ProblemDescriptionCalculation::MakeNetworkConfig() const
 {
     auto xlength = xDesc.GetLengths();
-    InlineVector<std::size_t, 5> outputlength;
+    LensStrides<std::size_t> outputlength;
     outputlength = yDesc.GetLengths();
 
     auto size         = xlength[dim];

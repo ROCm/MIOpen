@@ -1397,7 +1397,7 @@ inline size_t get_RNN_params_byteSize(miopen::Handle& handle,
                                       miopen::SeqTensorDescriptor& inTensor)
 {
     auto& in_lens                     = inTensor.GetLengths();
-    const miopen::InlineVector<size_t, 5> in_dims = {in_lens[0], in_lens[2]};
+    const miopen::LensStrides<size_t> in_dims = {in_lens[0], in_lens[2]};
     miopen::TensorDescriptor baseInputDesc(rnnDesc.dataType, in_dims);
     size_t wei_bytes = 0;
 

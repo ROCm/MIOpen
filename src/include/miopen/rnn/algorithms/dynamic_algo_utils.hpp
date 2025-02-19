@@ -145,7 +145,7 @@ private:
 
 } // namespace rnn_dynamic
 
-inline miopen::InlineVector<std::size_t, 5> roundedDynamicLengths(const SeqTensorDescriptor& desc)
+inline LensStrides<std::size_t> roundedDynamicLengths(const SeqTensorDescriptor& desc)
 {
     auto src_lens     = desc.GetLengths();
     auto real_seq_len = src_lens[1];
@@ -257,7 +257,7 @@ public:
                                    const SeqTensorDescriptor& xDesc)
     {
         auto y_desc = [](const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc) {
-            miopen::InlineVector<std::size_t, 5> y_lenghts{xDesc.GetLengths()};
+            LensStrides<std::size_t> y_lenghts{xDesc.GetLengths()};
             y_lenghts[2] = rnnD.hsize * (rnnD.dirMode == miopenRNNbidirection ? 2 : 1);
             return SeqTensorDescriptor{xDesc.GetType(), y_lenghts};
         }(rnnD, xDesc);
@@ -378,7 +378,7 @@ public:
                                    const SeqTensorDescriptor& xDesc)
     {
         auto y_desc = [](const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc) {
-            miopen::InlineVector<std::size_t, 5> y_lenghts{xDesc.GetLengths()};
+            LensStrides<std::size_t> y_lenghts{xDesc.GetLengths()};
             y_lenghts[2] = rnnD.hsize * (rnnD.dirMode == miopenRNNbidirection ? 2 : 1);
             return SeqTensorDescriptor{xDesc.GetType(), y_lenghts};
         }(rnnD, xDesc);
@@ -502,7 +502,7 @@ public:
                                    const SeqTensorDescriptor& xDesc)
     {
         auto y_desc = [](const RNNDescriptor& rnnD, const SeqTensorDescriptor& xDesc) {
-            miopen::InlineVector<std::size_t, 5> y_lenghts{xDesc.GetLengths()};
+            LensStrides<std::size_t> y_lenghts{xDesc.GetLengths()};
             y_lenghts[2] = rnnD.hsize * (rnnD.dirMode == miopenRNNbidirection ? 2 : 1);
             return SeqTensorDescriptor{xDesc.GetType(), y_lenghts};
         }(rnnD, xDesc);

@@ -68,14 +68,14 @@ static void InitKernelStateEmulator(std::vector<rocrand_state_xorwow>& states,
 }
 
 template <typename T>
-inline void ExpandTensorDim(miopen::InlineVector<T, 5> x_len,
-                            miopen::InlineVector<T, 5> x_str,
-                            miopen::InlineVector<T, 5> y_len,
-                            miopen::InlineVector<T, 5> y_str,
-                            miopen::InlineVector<T, 5>& in_len,
-                            miopen::InlineVector<T, 5>& in_str,
-                            miopen::InlineVector<T, 5>& out_len,
-                            miopen::InlineVector<T, 5>& out_str)
+inline void ExpandTensorDim(miopen::LensStrides<T> x_len,
+                            miopen::LensStrides<T> x_str,
+                            miopen::LensStrides<T> y_len,
+                            miopen::LensStrides<T> y_str,
+                            miopen::LensStrides<T>& in_len,
+                            miopen::LensStrides<T>& in_str,
+                            miopen::LensStrides<T>& out_len,
+                            miopen::LensStrides<T>& out_str)
 {
     auto itr_xl = x_len.end() - 1;
     auto itr_yl = y_len.end() - 1;
@@ -151,10 +151,10 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
     }
 
     // support up to 5D tensor
-    miopen::InlineVector<size_t, 5> in_len(5, 1);
-    miopen::InlineVector<size_t, 5> in_str(5, 1);
-    miopen::InlineVector<size_t, 5> out_len(5, 1);
-    miopen::InlineVector<size_t, 5> out_str(5, 1);
+    miopen::LensStrides<size_t> in_len(5, 1);
+    miopen::LensStrides<size_t> in_str(5, 1);
+    miopen::LensStrides<size_t> out_len(5, 1);
+    miopen::LensStrides<size_t> out_str(5, 1);
 
     ExpandTensorDim(miopen::deref(inputTensor).GetLengths(),
                     miopen::deref(inputTensor).GetStrides(),
@@ -233,10 +233,10 @@ void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
     }
 
     // support up to 5D tensor
-    miopen::InlineVector<size_t, 5> in_len(5, 1);
-    miopen::InlineVector<size_t, 5> in_str(5, 1);
-    miopen::InlineVector<size_t, 5> out_len(5, 1);
-    miopen::InlineVector<size_t, 5> out_str(5, 1);
+    miopen::LensStrides<size_t> in_len(5, 1);
+    miopen::LensStrides<size_t> in_str(5, 1);
+    miopen::LensStrides<size_t> out_len(5, 1);
+    miopen::LensStrides<size_t> out_str(5, 1);
 
     ExpandTensorDim(miopen::deref(inputTensor).GetLengths(),
                     miopen::deref(inputTensor).GetStrides(),

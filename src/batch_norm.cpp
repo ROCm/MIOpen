@@ -44,7 +44,7 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
 {
 
     auto lengths = xDesc.GetLengths();
-    miopen::InlineVector<int, 5> newlens(lengths.size());
+    LensStrides<int> newlens(lengths.size());
     newlens[1] = lengths[1];
     if(bn_mode == miopenBNSpatial)
     {
@@ -66,7 +66,7 @@ void DeriveBNTensorDescriptor(TensorDescriptor& derivedBnDesc,
 
 TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor& tDesc)
 {
-    miopen::InlineVector<std::size_t, 5> dims(tDesc.GetLengths());
+    LensStrides<std::size_t> dims(tDesc.GetLengths());
 
     auto dataType = tDesc.GetType();
     auto layout   = tDesc.GetLayout_t();

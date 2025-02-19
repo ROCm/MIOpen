@@ -48,7 +48,7 @@ std::string get_vect_config(const std::vector<T>& v)
 }
 
 template <typename T>
-std::string get_vect_config(const miopen::InlineVector<T, 5>& v)
+std::string get_vect_config(const LensStrides<T>& v)
 {
     std::string str;
     for(auto itr = v.begin(); itr < v.end(); itr++)

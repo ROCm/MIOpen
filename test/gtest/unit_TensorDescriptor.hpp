@@ -33,30 +33,29 @@ namespace unit_tests {
 
 struct TensorDescriptorParams
 {
-    TensorDescriptorParams(miopenDataType_t datatype_in,
-                           miopen::InlineVector<std::size_t, 5>&& lens_in)
+    TensorDescriptorParams(miopenDataType_t datatype_in, miopen::LensStrides<std::size_t>&& lens_in)
         : datatype(datatype_in), lens(std::move(lens_in))
     {
     }
 
     TensorDescriptorParams(miopenDataType_t datatype_in,
                            miopenTensorLayout_t layout_in,
-                           miopen::InlineVector<std::size_t, 5>&& lens_in)
+                           miopen::LensStrides<std::size_t>&& lens_in)
         : datatype(datatype_in), layout(layout_in), lens(std::move(lens_in))
     {
     }
 
     TensorDescriptorParams(miopenDataType_t datatype_in,
-                           miopen::InlineVector<std::size_t, 5>&& lens_in,
-                           miopen::InlineVector<std::size_t, 5>&& strides_in)
+                           miopen::LensStrides<std::size_t>&& lens_in,
+                           miopen::LensStrides<std::size_t>&& strides_in)
         : datatype(datatype_in), lens(std::move(lens_in)), strides(std::move(strides_in))
     {
     }
 
     TensorDescriptorParams(miopenDataType_t datatype_in,
                            miopenTensorLayout_t layout_in,
-                           miopen::InlineVector<std::size_t, 5>&& lens_in,
-                           miopen::InlineVector<std::size_t, 5>&& strides_in)
+                           miopen::LensStrides<std::size_t>&& lens_in,
+                           miopen::LensStrides<std::size_t>&& strides_in)
         : datatype(datatype_in),
           layout(layout_in),
           lens(std::move(lens_in)),
@@ -66,7 +65,7 @@ struct TensorDescriptorParams
 
     std::size_t GetNumDims() const { return lens.size(); }
 
-    const miopen::InlineVector<std::size_t, 5>& GetLens() const { return lens; }
+    const miopen::LensStrides<std::size_t>& GetLens() const { return lens; }
 
     miopenDataType_t GetDataType() const { return datatype; }
 
@@ -103,8 +102,8 @@ struct TensorDescriptorParams
 private:
     miopenDataType_t datatype;
     std::optional<miopenTensorLayout_t> layout;
-    miopen::InlineVector<std::size_t, 5> lens;
-    miopen::InlineVector<std::size_t, 5> strides;
+    miopen::LensStrides<std::size_t> lens;
+    miopen::LensStrides<std::size_t> strides;
 };
 
 } // namespace unit_tests

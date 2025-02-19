@@ -63,9 +63,8 @@ SplitBufferToWorkspace(size_t S, size_t D, size_t NHS, miopenDataType_t out_type
         out_type == miopenFloat ? 0 : NHS * S * get_data_size(out_type)}; // fp8 dS
 }
 
-MultiBufferWorkspaceTraits
-SplitBufferToWorkspace(const miopen::InlineVector<std::size_t, 5>& lengths,
-                       miopenDataType_t out_type)
+MultiBufferWorkspaceTraits SplitBufferToWorkspace(const LensStrides<std::size_t>& lengths,
+                                                  miopenDataType_t out_type)
 {
     const auto [N, H, S, D] = miopen::tien<4>(lengths);
     return SplitBufferToWorkspace(S, D, N * H * S, out_type);
