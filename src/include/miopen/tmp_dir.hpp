@@ -20,7 +20,7 @@ struct MIOPEN_INTERNALS_EXPORT TmpDir
     operator const fs::path&() const { return path; }
     operator std::string() const { return path.string(); }
 
-    int Execute(std::string_view cmd, std::string_view args) const;
+    int Execute(std::string_view cmd, std::string_view args, bool allowChangingCwd = true) const;
 
     ~TmpDir();
 };

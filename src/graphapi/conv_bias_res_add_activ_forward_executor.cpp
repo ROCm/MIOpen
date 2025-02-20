@@ -25,10 +25,11 @@
  *******************************************************************************/
 
 #include <miopen/errors.hpp>
-#include <miopen/graphapi/conv_bias_res_add_activ_forward_executor.hpp>
 #include <miopen/fusion.hpp>
+#include <miopen/graphapi/conv_bias_res_add_activ_forward_executor.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/visit_float.hpp>
+#include <nlohmann/json.hpp>
 
 namespace miopen {
 
@@ -60,39 +61,71 @@ ConvolutionDescriptor Convert(const Convolution& conv, int groupCount)
 }
 } // namespace
 
+ConvBiasResAddActivForwardExecutor::ConvBiasResAddActivForwardExecutor(const nlohmann::json& json)
+    : GraphPatternExecutor(),
+      mXTensor(json.at(JsonFields::XTensor)),
+      mWTensor(json.at(JsonFields::WTensor)),
+      mConvolution(json.at(JsonFields::Convolution)),
+      mGroupCount(json.at(JsonFields::GroupCount)),
+      mZTensor(json.at(JsonFields::ZTensor)),
+      mBiasTensor(json.at(JsonFields::BiasTensor)),
+      mYTensor(json.at(JsonFields::YTensor)),
+      mAlpha1(json.at(JsonFields::Alpha1)),
+      mAlpha2(json.at(JsonFields::Alpha2)),
+      mActivationAlpha(json.at(JsonFields::ActivationAlpha))
+{
+}
+
 void ConvBiasResAddActivForwardExecutor::execute(miopenHandle_t handle, const VariantPack& vpk)
 {
-    auto convDesc = Convert(*mConvolution, mGroupCount);
+    auto convDesc = Convert(mConvolution, mGroupCount);
 
     ActivationDescriptor activDesc{miopenActivationRELU, mActivationAlpha, 1.0, 1.0};
 
-    auto* xData    = vpk.getDataPointer(mXTensor->getId());
-    auto* wData    = vpk.getDataPointer(mWTensor->getId());
-    auto* zData    = vpk.getDataPointer(mZTensor->getId());
-    auto* biasData = vpk.getDataPointer(mBiasTensor->getId());
-    auto* yData    = vpk.getDataPointer(mYTensor->getId());
+    auto* xData    = vpk.getDataPointer(mXTensor.getId());
+    auto* wData    = vpk.getDataPointer(mWTensor.getId());
+    auto* zData    = vpk.getDataPointer(mZTensor.getId());
+    auto* biasData = vpk.getDataPointer(mBiasTensor.getId());
+    auto* yData    = vpk.getDataPointer(mYTensor.getId());
 
     auto status =
         ConvBiasActivFusion(miopen::deref(handle),
                             &mAlpha1,
-                            *mXTensor,
+                            mXTensor,
                             xData,
-                            *mWTensor,
+                            mWTensor,
                             wData,
                             convDesc,
                             miopenConvFwdAlgorithm_t::miopenConvolutionFwdAlgoImplicitGEMM,
                             nullptr,
                             0,
                             &mAlpha2,
-                            *mZTensor,
+                            mZTensor,
                             zData,
-                            *mBiasTensor,
+                            mBiasTensor,
                             biasData,
                             activDesc,
-                            *mYTensor,
+                            mYTensor,
                             yData);
 
     MIOPEN_THROW_IF(status != miopenStatusSuccess, "execute failed");
+}
+
+nlohmann::json ConvBiasResAddActivForwardExecutor::getJson()
+{
+    return {
+        {GraphPatternExecutor::JsonFields::Name, name},
+        {JsonFields::XTensor, mXTensor},
+        {JsonFields::WTensor, mWTensor},
+        {JsonFields::Convolution, mConvolution},
+        {JsonFields::GroupCount, mGroupCount},
+        {JsonFields::ZTensor, mZTensor},
+        {JsonFields::BiasTensor, mBiasTensor},
+        {JsonFields::YTensor, mYTensor},
+        {JsonFields::Alpha1, mAlpha1},
+        {JsonFields::Alpha2, mAlpha2},
+        {JsonFields::ActivationAlpha, mActivationAlpha},
+    };
 }
 
 } // namespace graphapi

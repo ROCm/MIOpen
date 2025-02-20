@@ -34,7 +34,7 @@
 
 namespace miopen {
 
-miopenStatus_t KthvalueForward(Handle& handle,
+miopenStatus_t KthvalueForward(const Handle& handle,
                                const TensorDescriptor& inputDesc,
                                ConstData_t input,
                                const TensorDescriptor& outputDesc,
