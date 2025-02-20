@@ -761,8 +761,8 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
             index = n * MIO_BN_CHW + ygid * ystride * VEC_SIZE_Y + xgid * xstride * VEC_SIZE_X;
             read4 = *((const __global _FLOAT_LS*)(in + index));
             value = FLOAT2FLOATPREC_VEC(read4);
-            _ACCUMULATE(mean, value);
-            _ACCUMULATE_MAD(variance, value, value, variance);
+            _ACCUMULATE(mean, value)
+            _ACCUMULATE_MAD(variance, value, value, variance)
         }
     }
 
@@ -884,12 +884,12 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
             index   = n * MIO_BN_CHW + ygid * ystride * VEC_SIZE_Y + xgid * xstride * VEC_SIZE_X;
             read4   = *((const __global _FLOAT_LS*)(dy_in + index));
             value1  = FLOAT2FLOATPREC_VEC(read4);
-            _ACCUMULATE(dbias, value1);
+            _ACCUMULATE(dbias, value1)
             read4   = *((const __global _FLOAT_LS*)(x_in + index));
             value2  = FLOAT2FLOATPREC_VEC(read4);
             elemStd = value2 - mean;
             xhat    = elemStd * invVar;
-            _ACCUMULATE_MAD(dscale, xhat, value1, dscale);
+            _ACCUMULATE_MAD(dscale, xhat, value1, dscale)
         }
     }
 

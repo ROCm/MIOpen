@@ -683,8 +683,8 @@ MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
             index = n * MIO_BN_CHW + ygid * ystride * VEC_SIZE_Y + xgid * xstride * VEC_SIZE_X;
             read4 = *((const global _FLOAT_LS*)(in + index));
             value = FLOAT2FLOATPREC_VEC(read4);
-            _ACCUMULATE(mean, value);
-            _ACCUMULATE_MAD(variance, value, value, variance);
+            _ACCUMULATE(mean, value)
+            _ACCUMULATE_MAD(variance, value, value, variance)
         }
     }
 
