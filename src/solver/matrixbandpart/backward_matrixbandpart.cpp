@@ -40,6 +40,8 @@ namespace solver {
 
 namespace matrixbandpart {
 
+namespace {
+
 bool IsOverRocmBwd(const miopen::matrixbandpart::ProblemDescription& problem)
 {
     uint64_t mul_dims = 1;
@@ -53,6 +55,8 @@ bool IsOverRocmBwd(const miopen::matrixbandpart::ProblemDescription& problem)
     }
     return false;
 }
+
+} // namespace
 
 bool MatrixBandPartBackward::IsApplicable(
     const ExecutionContext&, const miopen::matrixbandpart::ProblemDescription& problem) const

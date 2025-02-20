@@ -30,7 +30,6 @@
 
 #include "float_types.h"
 #include "tensor_view.hpp"
-#include "block_reduce.hpp"
 
 #ifndef N_TYPE
 #define N_TYPE int32_t

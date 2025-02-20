@@ -49,7 +49,7 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
         localsize.push_back(1);
     while(gridsize.size() < 3)
         gridsize.push_back(1);
-    for(int i = 0; i < localsize.size(); ++i)
+    for(size_t i = 0; i < localsize.size(); ++i)
         gridsize[i] = AlignUp(gridsize[i], localsize[i]);
     return KernelInfo{
         build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};
