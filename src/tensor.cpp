@@ -159,7 +159,7 @@ std::size_t GetVectorLengthForLayout(const std::optional<miopenTensorLayout_t>& 
 
 void ReorderVector(LensStrides<size_t>& lens, const std::initializer_list<size_t>& indices)
 {
-    LensStrides<size_t> out_lens(indices.size());
+    LensStrides<size_t> out_lens;
     for(size_t index : indices)
     {
         assert(index < lens.size());
