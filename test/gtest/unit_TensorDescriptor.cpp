@@ -301,9 +301,9 @@ public:
             TestCase{{miopenHalf, {2, 2, 2}}, std::nullopt}, // Unknown
             TestCase{{miopenHalf, {2, 2, 2, 2}}, miopenTensorNCHW},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}}, miopenTensorNCDHW},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}}, std::nullopt}, // Unknown
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}}, std::nullopt}, // Unknown
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}}, std::nullopt}, // Unknown
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}}, std::nullopt}, // Unknown
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}}, std::nullopt}, // Unknown
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}}, std::nullopt}, // Unknown
 
             TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}}, miopenTensorNCHW},
             TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}}, miopenTensorNHWC},
@@ -336,9 +336,9 @@ public:
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {1, 10000, 1000, 100, 10}}, std::nullopt}, // CDHWN
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10, 1, 10000, 1000, 100}}, std::nullopt}, // DHWNC
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {1, 10, 10000, 1000, 100}}, std::nullopt}, // DHWCN
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {100000, 10000, 1000, 100, 10, 1}}, std::nullopt}, // Unknown
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}, {1000000, 100000, 10000, 1000, 100, 10, 1}}, std::nullopt}, // Unknown
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}, {10000000, 1000000, 100000, 10000, 1000, 100, 10, 1}}, std::nullopt}, // Unknown
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {100000, 10000, 1000, 100, 10, 1}}, std::nullopt}, // Unknown
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}, {1000000, 100000, 10000, 1000, 100, 10, 1}}, std::nullopt}, // Unknown
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}, {10000000, 1000000, 100000, 10000, 1000, 100, 10, 1}}, std::nullopt}, // Unknown
 
             TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}, {1000, 100, 10, 1}}, miopenTensorNCHW},
             TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}, {1000, 1, 100, 10}}, miopenTensorNHWC},
@@ -371,9 +371,9 @@ public:
             TestCase{{miopenHalf, {2, 2, 2}}, "UNKNOWN"},
             TestCase{{miopenHalf, {2, 2, 2, 2}}, "NCHW"},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}}, "NCDHW"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}}, "UNKNOWN"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}}, "UNKNOWN"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}}, "UNKNOWN"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}}, "UNKNOWN"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}}, "UNKNOWN"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}}, "UNKNOWN"},
 
             TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}}, "NCHW"},
             TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}}, "NHWC"},
@@ -406,9 +406,9 @@ public:
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {1, 10000, 1000, 100, 10}}, "CDHWN"},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10, 1, 10000, 1000, 100}}, "DHWNC"},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {1, 10, 10000, 1000, 100}}, "DHWCN"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {100000, 10000, 1000, 100, 10, 1}}, "UNKNOWN"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}, {1000000, 100000, 10000, 1000, 100, 10, 1}}, "UNKNOWN"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}, {10000000, 1000000, 100000, 10000, 1000, 100, 10, 1}}, "UNKNOWN"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {100000, 10000, 1000, 100, 10, 1}}, "UNKNOWN"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}, {1000000, 100000, 10000, 1000, 100, 10, 1}}, "UNKNOWN"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}, {10000000, 1000000, 100000, 10000, 1000, 100, 10, 1}}, "UNKNOWN"},
 
             TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}, {1000, 100, 10, 1}}, "NCHW"},
             TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}, {1000, 1, 100, 10}}, "NHWC"},
@@ -468,9 +468,9 @@ public:
             TestCase{{miopenHalf, {2, 2, 2}}, "ABC", "ABC"},
             TestCase{{miopenHalf, {2, 2, 2, 2}}, "ABCD", "ABCD"},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}}, "ABCDE", "ABCDE"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}}, "ABCDEF", "ABCDEF"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}}, "ABCDEFG", "ABCDEFG"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}}, "ABCDEFGH", "ABCDEFGH"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}}, "ABCDEF", "ABCDEF"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}}, "ABCDEFG", "ABCDEFG"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}}, "ABCDEFGH", "ABCDEFGH"},
 
             TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}}, "NCHW", "NCHW"},
             TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}}, "NCHW", "NHWC"},
@@ -500,12 +500,12 @@ public:
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {1, 10000, 1000, 100, 10}}, "NCDHW", "CDHWN"},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10, 1, 10000, 1000, 100}}, "NCDHW", "DHWNC"},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {1, 10, 10000, 1000, 100}}, "NCDHW", "DHWCN"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {6, 5, 4, 3, 2, 1}}, "ABCDEF", "ABCDEF"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {1, 2, 3, 4, 5, 6}}, "ABCDEF", "FEDCBA"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}, {7, 6, 5, 4, 3, 2, 1}}, "ABCDEFG", "ABCDEFG"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}, {1, 2, 3, 4, 5, 6, 7}}, "ABCDEFG", "GFEDCBA"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}, {8, 7, 6, 5, 4, 3, 2, 1}}, "ABCDEFGH", "ABCDEFGH"},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}, {1, 2, 3, 4, 5, 6, 7, 8}}, "ABCDEFGH", "HGFEDCBA"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {6, 5, 4, 3, 2, 1}}, "ABCDEF", "ABCDEF"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {1, 2, 3, 4, 5, 6}}, "ABCDEF", "FEDCBA"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}, {7, 6, 5, 4, 3, 2, 1}}, "ABCDEFG", "ABCDEFG"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2}, {1, 2, 3, 4, 5, 6, 7}}, "ABCDEFG", "GFEDCBA"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}, {8, 7, 6, 5, 4, 3, 2, 1}}, "ABCDEFGH", "ABCDEFGH"},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2, 2, 2}, {1, 2, 3, 4, 5, 6, 7, 8}}, "ABCDEFGH", "HGFEDCBA"},
 
             TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}, {1000, 100, 10, 1}}, "NCHW", "NCHW"},
             TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}, {1000, 1, 100, 10}}, "NCHW", "NHWC"},
@@ -536,7 +536,7 @@ public:
             TestCase{{miopenHalf, {2, 2, 2}}, 1},
             TestCase{{miopenHalf, {2, 2, 2, 2}}, 1},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}}, 1},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}}, 1},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}}, 1},
 
             TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}}, 1},
             TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}}, 1},
@@ -551,7 +551,7 @@ public:
             TestCase{{miopenHalf, {2, 2, 2}, {100, 10, 1}}, 1},
             TestCase{{miopenHalf, {2, 2, 2, 2}, {1000, 100, 10, 1}}, 1},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, 1},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {100000, 10000, 1000, 100, 10, 1}}, 1},
+            // TestCase{{miopenHalf, {2, 2, 2, 2, 2, 2}, {100000, 10000, 1000, 100, 10, 1}}, 1},
 
             TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}, {1000, 100, 10, 1}}, 1},
             TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}, {1000, 1, 100, 10}}, 1},

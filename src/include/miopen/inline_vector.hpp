@@ -58,7 +58,18 @@ public:
     InlineVector(const InlineVector& inline_vec)     = default;
     InlineVector(InlineVector&& inline_vec) noexcept = default;
 
-    InlineVector(const size_type cnt, const T& val = T()) : real_size(cnt)
+    InlineVector(const size_type cnt)
+    {
+        if(cnt > N)
+        {
+            MIOPEN_THROW("Input data size is bigger than InlineVector's capacity");
+        }
+
+        real_size = 0;
+        std::fill_n(storage.begin(), cnt, T());
+    }
+
+    InlineVector(const size_type cnt, const T& val) : real_size(cnt)
     {
         if(real_size > N)
         {
