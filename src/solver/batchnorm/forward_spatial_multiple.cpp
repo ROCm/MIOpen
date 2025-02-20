@@ -39,7 +39,7 @@ namespace solver {
 namespace batchnorm {
 
 bool BnFwdTrainingSpatialMultiple::IsApplicable(
-    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
+    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& problem) const
 {
     if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
        problem.GetMode() != miopenBNSpatial)
@@ -59,23 +59,33 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
     unsigned int stash_values = 2;
     if(problem.IsLayoutNHWC())
     {
-        // TODO: For now enable variant 2 for NHWC because other variants are slower.
-        // Remove when other variants are optimized
-        unsigned int xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
-        unsigned int ylocalsize = 1024 / xlocalsize;
-        unsigned int last_ylocalsize =
-            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
-        if(problem.GetXDesc().GetType() == miopenFloat)
+        // Variant 2 is the primary choice for NHWC
+        size_t xlocalsize, ylocalsize, vectorsize;
+
+        // Apply vectorization if possible, given the size of C
+        vectorsize = c % 4 == 0 ? 4 : 1;
+
+        // Check if variant 2 is applicable (with possible vectorization)
+        bool valid = GetLocalConfigNHWC(problem,
+                                        context.GetStream().GetMaxHardwareComputeUnits(),
+                                        2,
+                                        xlocalsize,
+                                        ylocalsize,
+                                        vectorsize);
+
+        // If vectorization is used but variant 2 is not applicable,
+        // check if it's applicable without vectorization
+        if(!valid && vectorsize > 1)
         {
-            if(last_ylocalsize < stash_values)
-                return false;
+            vectorsize = 1;
+            valid      = GetLocalConfigNHWC(problem,
+                                       context.GetStream().GetMaxHardwareComputeUnits(),
+                                       2,
+                                       xlocalsize,
+                                       ylocalsize,
+                                       vectorsize);
         }
-        else
-        {
-            // Even threads use 2 values at even rows, odd threads - at odd rows.
-            if(c % 2 != 0 || last_ylocalsize < stash_values * 2)
-                return false;
-        }
+        return valid;
     }
     else
     {
@@ -141,36 +151,45 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
         bfp32parm    = false;
     }
 
-    size_t xlocalsize;
-    size_t ylocalsize;
-    size_t xgridsize;
-    size_t ygridsize;
-
-    size_t max_localsize = 1024;
-    if(((in_cstride < 256) && (n < 256)) || ((in_cstride < 100) && (n <= 256)))
-        max_localsize = 256;
-    int variant           = 2;
-    unsigned int ldsgcn   = max_localsize / 64;
-    unsigned int ldsnogcn = max_localsize;
-    bool vectorize;
+    int variant = 2;
+    unsigned int ldsgcn;
+    unsigned int ldsnogcn;
+    size_t xlocalsize, ylocalsize, xgridsize, ygridsize, vectorsize;
     if(problem.IsLayoutNHWC())
     {
-        vectorize       = c % 4 == 0;
-        int vector_size = vectorize ? 4 : 1;
-        xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c / vector_size)))}, size_t{64});
-        xgridsize  = xlocalsize * ((c / vector_size + xlocalsize - 1) / xlocalsize);
-        ylocalsize = max_localsize / xlocalsize;
+        vectorsize = c % 4 == 0 ? 4 : 1;
+        bool valid = GetLocalConfigNHWC(problem,
+                                        context.GetStream().GetMaxHardwareComputeUnits(),
+                                        2,
+                                        xlocalsize,
+                                        ylocalsize,
+                                        vectorsize);
+        if(!valid && vectorsize > 1)
+        {
+            vectorsize = 1;
+            valid      = GetLocalConfigNHWC(problem,
+                                       context.GetStream().GetMaxHardwareComputeUnits(),
+                                       2,
+                                       xlocalsize,
+                                       ylocalsize,
+                                       vectorsize);
+        }
+        assert(valid);
+
+        xgridsize  = xlocalsize * ((c / vectorsize + xlocalsize - 1) / xlocalsize);
         ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
     }
     else
     {
-        vectorize       = in_cstride % 4 == 0;
-        int vector_size = vectorize ? 4 : 1;
+        size_t max_localsize = 1024;
+        vectorsize           = in_cstride % 4 == 0 ? 4 : 1;
         xlocalsize = 1;
         xgridsize  = c;
         ylocalsize = max_localsize;
-        ygridsize       = ylocalsize * ((in_cstride / vector_size + ylocalsize - 1) / ylocalsize);
+        ygridsize = ylocalsize * ((in_cstride / vectorsize + ylocalsize - 1) / ylocalsize);
     }
+    ldsgcn   = (xlocalsize * ylocalsize) / 64;
+    ldsnogcn = xlocalsize * ylocalsize;
 
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -207,7 +226,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
-            {"MIO_BN_VECTORIZE", static_cast<int>(vectorize)},
+            {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});

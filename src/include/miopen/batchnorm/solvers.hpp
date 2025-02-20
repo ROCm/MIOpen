@@ -341,6 +341,63 @@ struct BnCKFwdTraining final : BatchNormTunableSolver<PerformanceConfigBnCKFwdTr
                 const PerformanceConfigBnCKFwdTraining& config) const override;
 };
 
+inline void GetWGSize(size_t c,
+                      size_t h,
+                      size_t w,
+                      size_t maxCUs,
+                      bool bfp32parm,
+                      size_t vectorsize,
+                      size_t& xlocalsize,
+                      size_t& ylocalsize)
+{
+    unsigned int xlocalsize_limit = vectorsize > 1 ? (bfp32parm ? 16 : 32) : 64;
+    // shared memory size per workgroup is fixed
+    unsigned int max_localsize = 1024 / vectorsize;
+
+    size_t nworkgroups = 0;
+    // decrease max_localsize until the number of workgroups is greater than the CUs
+    while(nworkgroups < maxCUs && max_localsize >= xlocalsize_limit)
+    {
+        // xlocalsize must be power of 2 as reductions in the kernels rely on it, here c is rounded
+        // up to next power of 2.
+        xlocalsize  = std::min(size_t{1 << int(std::ceil(std::log2(c / vectorsize)))},
+                              size_t{xlocalsize_limit});
+        ylocalsize  = max_localsize / xlocalsize;
+        nworkgroups = ((c / vectorsize + xlocalsize - 1) / xlocalsize) *
+                      ((h * w + ylocalsize - 1) / ylocalsize);
+        max_localsize >>= 1;
+    }
+}
+
+inline bool GetLocalConfigNHWC(const miopen::batchnorm::ProblemDescription& problem,
+                               size_t maxCUs,
+                               unsigned int stash_values,
+                               size_t& xlocalsize,
+                               size_t& ylocalsize,
+                               size_t vectorsize)
+{
+
+    bool bfp32parm =
+        problem.GetXDesc().GetType() == miopenHalf || problem.GetXDesc().GetType() == miopenBFloat16
+            ? false
+            : true;
+
+    size_t n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
+
+    GetWGSize(c, h, w, maxCUs, bfp32parm, vectorsize, xlocalsize, ylocalsize);
+
+    unsigned int last_ylocalsize = (h * w) % ylocalsize == 0 ? ylocalsize : (h * w) % ylocalsize;
+    if((((problem.GetXDesc().GetType() == miopenFloat) && (last_ylocalsize < stash_values)) ||
+        (!(problem.GetXDesc().GetType() == miopenFloat) &&
+         (c % 2 != 0 || last_ylocalsize < stash_values * 2))))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 } // namespace batchnorm
 
 } // namespace solver
