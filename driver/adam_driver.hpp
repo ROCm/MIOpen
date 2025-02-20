@@ -42,28 +42,28 @@
 #include <vector>
 
 template <typename Tref>
-void mloAdamRunHost(miopenTensorDescriptor_t paramDesc,
-                    Tref* params,
-                    Tref* grads,
-                    Tref* exp_avgs,
-                    Tref* exp_avg_sqs,
-                    Tref* max_exp_avg_sqs,
-                    int32_t step,
-                    float lr,
-                    float beta1,
-                    float beta2,
-                    float weight_decay,
-                    float eps,
-                    bool amsgrad,
-                    bool maximize,
-                    bool nesterov,
-                    bool adamw,
-                    bool is_amp,
-                    int32_t grad_scale,
-                    bool found_inf)
+int32_t mloAdamRunHost(miopenTensorDescriptor_t paramDesc,
+                       Tref* params,
+                       Tref* grads,
+                       Tref* exp_avgs,
+                       Tref* exp_avg_sqs,
+                       Tref* max_exp_avg_sqs,
+                       int32_t step,
+                       float lr,
+                       float beta1,
+                       float beta2,
+                       float weight_decay,
+                       float eps,
+                       bool amsgrad,
+                       bool maximize,
+                       bool nesterov,
+                       bool adamw,
+                       bool is_amp,
+                       int32_t grad_scale,
+                       bool found_inf)
 {
     if(is_amp && found_inf)
-        return;
+        return miopenStatusBadParm;
 
     size_t numel = miopen::deref(paramDesc).GetElementSize();
     for(int i = 0; i < numel; i++)
@@ -119,6 +119,7 @@ void mloAdamRunHost(miopenTensorDescriptor_t paramDesc,
             params[i] = param - (lr / bias_correction1) * exp_avg / denom;
         }
     }
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref = Tgpu, typename Tgrad = Tgpu>
