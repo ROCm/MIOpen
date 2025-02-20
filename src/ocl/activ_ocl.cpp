@@ -34,7 +34,7 @@
 
 namespace miopen {
 
-miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
+miopenStatus_t ActivationDescriptor::Forward(const Handle& handle,
                                              const void* alpha,
                                              const TensorDescriptor& xDesc,
                                              ConstData_t x,
@@ -74,7 +74,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
+miopenStatus_t ActivationDescriptor::Backward(const Handle& handle,
                                               const void* alpha,
                                               const TensorDescriptor& yDesc,
                                               ConstData_t y,

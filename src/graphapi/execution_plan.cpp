@@ -32,8 +32,11 @@ namespace graphapi {
 
 std::string ExecutionPlan::getJsonRepresentation() const
 {
-    /// \todo Implement ExecutionPlan::getJsonRepresentation --Sergei May, 2024
-    return {};
+    std::string result;
+    nlohmann::json json = *this;
+    // We don't support text/json as we have binary data inside
+    nlohmann::json::to_msgpack(json, result);
+    return result;
 }
 
 ExecutionPlanBuilder& ExecutionPlanBuilder::setHandle(miopenHandle_t handle) &
@@ -70,14 +73,15 @@ ExecutionPlanBuilder& ExecutionPlanBuilder::setIntermediateIds(std::vector<int64
 
 ExecutionPlanBuilder& ExecutionPlanBuilder::setJsonRepresentation(const std::string_view& s) &
 {
-    // TODO: Implement ExecutionPlanBuilder::setJsonRepresentation
-    (void)s;
+    nlohmann::json json = nlohmann::json::from_msgpack(s);
+    json.get_to(mExecutionPlan);
+    mJsonRepresentationSet = true;
     return *this;
 }
 
 ExecutionPlan ExecutionPlanBuilder::build() &
 {
-    if(mExecutionPlan.mHandle != nullptr && mEngineCfgSet)
+    if((mExecutionPlan.mHandle != nullptr && mEngineCfgSet) || mJsonRepresentationSet)
     {
         return mExecutionPlan;
     }
@@ -89,7 +93,7 @@ ExecutionPlan ExecutionPlanBuilder::build() &
 
 ExecutionPlan ExecutionPlanBuilder::build() &&
 {
-    if(mExecutionPlan.mHandle != nullptr && mEngineCfgSet)
+    if((mExecutionPlan.mHandle != nullptr && mEngineCfgSet) || mJsonRepresentationSet)
     {
         return std::move(mExecutionPlan);
     }

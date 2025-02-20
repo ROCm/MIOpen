@@ -107,8 +107,6 @@ size_t Metadata::EncodePrecision(miopenDataType_t data_type) const
 
 size_t Metadata::EncodeLayout(const std::string& layout) const
 {
-    if(layout != "NCDHW" && layout != "NCHW") // TunaNet supports NCHW and NCDHW layouts only atm
-        MIOPEN_THROW("Unsupported layout passed to TunaNet");
     return layout_encodings.at(layout);
 }
 
@@ -412,7 +410,7 @@ public:
             MIOPEN_LOG_I2("TunaNet Inapplicable: Problem not 2D");
             return false;
         }
-        if(problem.GetInLayout() != "NCHW")
+        if(problem.GetInLayout() != "NCHW" && problem.GetInLayout() != "NHWC")
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Layout not supported");
             return false;
@@ -480,6 +478,7 @@ protected:
             static_cast<float>(problem.GetDilationH()),
             static_cast<float>(problem.GetDilationW()),
             static_cast<float>(problem.GetOutBatchSize()),
+            static_cast<float>(metadata.EncodeLayout(problem.GetInLayout())),
             static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
             static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
             static_cast<float>(problem.GetGroupCount())};
@@ -705,7 +704,17 @@ bool ModelSetParams(const std::string& arch,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator)
 {
-    auto model = GetModel(arch, solver);
+    using model_type = decltype(GetModel(arch, solver));
+    model_type model;
+    try
+    {
+        model = GetModel(arch, solver);
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_I2("[Warning] Could not retrieve model: (" << ex.what() << ")");
+        return false;
+    }
 
     // get context
     int dim = 0;
@@ -730,7 +739,6 @@ bool ModelSetParams(const std::string& arch,
     // run decoder to set kernel parameters
     for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params; ++i)
     {
-
         if(i == 0 && (model->metadata.predict_type == 0u))
             num_tuning_params = model->metadata.num_tuning_params[dir];
 
@@ -740,7 +748,9 @@ bool ModelSetParams(const std::string& arch,
         // order tokens according to their scores
         std::priority_queue<std::pair<float, int>> pq;
         for(int j = 0; j < token_scores.size(); j++)
+        {
             pq.push(std::make_pair(token_scores[j], j)); // sort by value at index
+        }
 
         // find a token whose value is a valid kernel parameter for the i-th position
         int output_token_index = -1;
@@ -755,7 +765,7 @@ bool ModelSetParams(const std::string& arch,
             {
                 auto stop     = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-                MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
+                MIOPEN_LOG_I2("KTN ran for " << duration.count() << " micro-seconds. Ended at -1.");
                 return false;
             }
             if(validator(i, value)) // if token-value is a valid kernel parameter, it's set
@@ -773,7 +783,7 @@ bool ModelSetParams(const std::string& arch,
 
     auto stop     = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
+    MIOPEN_LOG_I2("KTN ran for " << duration.count() << " micro-seconds");
     return true;
 }
 

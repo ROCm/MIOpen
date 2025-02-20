@@ -290,7 +290,7 @@ void RNNForwardDataModularAlgo::PropHiddenHt(const Handle& handle,
 
     const auto filter_offset = weightsLayout.getMatrixHidOff(layer, static_cast<int>(direction));
 
-    const miopen::TensorDescriptor& ht_dest_dsc = BuildWsHtDesc2D(gemm_batch_size);
+    const miopen::TensorDescriptor& ht_dest_dsc = BuildTmpHtDesc2D(workspaceInfo, gemm_batch_size);
 
     const miopen::TensorDescriptor tmp_block_src_dsc =
         BuildLstmTmpBlockDesc2D(workspaceInfo, gemm_batch_size);
@@ -418,13 +418,12 @@ void RNNForwardDataModularAlgo::PropHyCy(const Handle& handle,
 void RNNForwardDataModularAlgo::PropHiddenY(const Handle& handle,
                                             const runtimeArgsFwd& runtimeArgs,
                                             size_t layer,
-                                            SequenceDirection direction) const
+                                            SequenceDirection direction,
+                                            size_t gemm_batch_offset,
+                                            size_t gemm_batch_size) const
 {
     if(layer == 0)
         return;
-
-    const auto gemm_batch_size   = batchController.getTotalBatchSum();
-    const auto gemm_batch_offset = 0;
 
     // rnnocl 1512
 
@@ -437,7 +436,7 @@ void RNNForwardDataModularAlgo::PropHiddenY(const Handle& handle,
     const miopen::TensorDescriptor tmp_block_src_dsc =
         BuildLstmTmpBlockDesc2D(reservLayout, gemm_batch_size);
 
-    const auto tmp_ht_desc = BuildWsHtDesc2D(gemm_batch_size);
+    const auto tmp_ht_desc = BuildTmpHtDesc2D(reservLayout, gemm_batch_size);
 
     if(rnnDesc.rnnMode == miopenLSTM)
     {
@@ -527,9 +526,150 @@ void RNNForwardDataModularAlgo::PropY(const Handle& handle, const runtimeArgsFwd
     }
 }
 
-//
-//
-//
+void RNNModuleAlgoDynamic::realXProp(const Handle& handle,
+                                     const runtimeArgsFwdDynamicExt& runtimeArgsExt) const
+{
+
+    RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
+        handle, realXDesc, runtimeArgsExt.realX, tmpMapXDesc, runtimeArgsExt.tempX, nullptr, false);
+}
+
+void RNNModuleAlgoDynamic::realYProp(const Handle& handle,
+                                     const runtimeArgsFwdDynamicExt& runtimeArgsExt) const
+{
+    RNNTensorBaseLayoutConverter::ConvertInputTensorGPUData(
+        handle, tmpMapYDesc, runtimeArgsExt.tempY, realYDesc, runtimeArgsExt.realY, nullptr, false);
+}
+
+void RNNModuleAlgoDynamic::PrepareWriteBuffers(const Handle& handle,
+                                               const runtimeArgsFwdDynamicExt& runtimeArgsExt,
+                                               const runtimeArgsFwd& runtimeArgs) const
+{
+    RNNForwardDataModularAlgo::PrepareWriteBuffers(handle, runtimeArgs);
+
+    {
+        float beta       = 0;
+        auto temp_x_size = buildDynamicVirtual(realXDesc).GetElementCount();
+        miopen::TensorDescriptor temp_x_desk{rnnDesc.dataType, {1, temp_x_size}, {temp_x_size, 1}};
+        SetTensor(handle, temp_x_desk, runtimeArgsExt.tempX, &beta);
+    }
+
+    realXProp(handle, runtimeArgsExt);
+}
+
+void RNNModuleAlgoDynamic::PropX(const Handle& handle, const runtimeArgsFwd& runtimeArgs) const
+{
+
+    const size_t total_seq_cnt = getTimeSeqSize();
+
+    size_t seq_it = 0;
+    for(auto step_size : rnn_dynamic::MaskedPow2Range(total_seq_cnt))
+    {
+        const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+        const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                              ? batchController.getTotalBatchSum()
+                                              : batchController.getBatchSum(seq_it + step_size)) -
+                                       gemm_batch_offset;
+
+        RNNForwardDataModularAlgo::PropX(handle, runtimeArgs, gemm_batch_offset, gemm_batch_size);
+        seq_it += step_size;
+    }
+}
+
+void RNNModuleAlgoDynamic::PropHiddenY(const Handle& handle,
+                                       const runtimeArgsFwd& runtimeArgs,
+                                       size_t layer,
+                                       SequenceDirection direction) const
+{
+
+    const size_t total_seq_cnt = getTimeSeqSize();
+    auto step_size             = rnn_dynamic::getLowerBoundPow2(total_seq_cnt);
+
+    for(size_t seq_it = 0; seq_it < total_seq_cnt; step_size >>= 1)
+    {
+        if((total_seq_cnt - seq_it & step_size) != 0)
+        {
+            const size_t gemm_batch_offset = batchController.getBatchSum(seq_it);
+            const size_t gemm_batch_size   = (seq_it + step_size == total_seq_cnt
+                                                  ? batchController.getTotalBatchSum()
+                                                  : batchController.getBatchSum(seq_it + step_size)) -
+                                           gemm_batch_offset;
+
+            RNNForwardDataModularAlgo::PropHiddenY(
+                handle, runtimeArgs, layer, direction, gemm_batch_offset, gemm_batch_size);
+            seq_it += step_size;
+        }
+    }
+}
+
+void RNNModuleAlgoDynamic::PropHyCy(const Handle& handle,
+                                    const runtimeArgsFwdDynamicExt& runtimeArgs,
+                                    size_t layer,
+                                    const SequenceIterator& currentSeq,
+                                    SequenceDirection direction) const
+{
+    if(runtimeArgs.hy != nullptr || (runtimeArgs.cy != nullptr))
+    {
+        const auto gap_batch_size = [&]() {
+            if(currentSeq.isLast())
+            {
+                return realBatchController.getBatchSize(currentSeq.getPhisVal());
+            }
+            else
+            {
+                if(direction == SequenceDirection::Forward)
+                {
+                    return realBatchController.getBatchSize(currentSeq.getPhisVal()) -
+                           realBatchController.getBatchSize(currentSeq.getNext().getPhisVal());
+                }
+                else
+                    return static_cast<size_t>(0);
+            }
+        }();
+
+        const auto gap_batch_offset = [&]() {
+            if(currentSeq.isLast())
+                return static_cast<size_t>(0);
+            else
+                return realBatchController.getBatchSize(currentSeq.getPhisVal()) - gap_batch_size;
+        }();
+
+        if(gap_batch_size > 0)
+        {
+
+            auto src_desc = BuildTempDhtDesc3D(1, gap_batch_size);
+
+            auto dst_desc = BuildHxCxDesc3D(1, gap_batch_size);
+
+            size_t tmp_batch_offset =
+                batchController.getBatchSum(currentSeq.getPhisVal()) + gap_batch_offset;
+
+            if(runtimeArgs.hy != nullptr)
+            {
+                CopyTensor(handle,
+                           src_desc,
+                           runtimeArgs.reserveSpace,
+                           dst_desc,
+                           runtimeArgs.hy,
+                           reservLayout.getGasOffset(
+                               layer, tmp_batch_offset, direction, LstmGateAndState::Ht),
+                           hiddenHxCxInfo.getOffset(layer, gap_batch_offset));
+            }
+
+            if(runtimeArgs.cy != nullptr)
+            {
+                CopyTensor(handle,
+                           src_desc,
+                           runtimeArgs.reserveSpace,
+                           dst_desc,
+                           runtimeArgs.cy,
+                           reservLayout.getGasOffset(
+                               layer, tmp_batch_offset, direction, LstmGateAndState::St),
+                           hiddenHxCxInfo.getOffset(layer, gap_batch_offset));
+            }
+        }
+    }
+}
 
 } // namespace rnn_base
 } // namespace miopen
