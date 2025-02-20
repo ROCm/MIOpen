@@ -58,7 +58,8 @@ using GPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1Fwd_FP32 = GPU_UnitTest
 using CPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1DevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
-TEST_P(GPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1Fwd_FP32, ConvAsm7x7c3h224w224k64u2v2p3q3f1)
+TEST_P(GPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1Fwd_FP32,
+       ConvAsm7x7c3h224w224k64u2v2p3q3f1)
 {
     this->RunTest(miopen::solver::conv::ConvAsm7x7c3h224w224k64u2v2p3q3f1{});
 };
@@ -77,7 +78,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1DevApplicabilityFwd_NONE,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(GetConvTestCases(miopenFloat)[0])));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    CPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1DevApplicabilityFwd_NONE,
+    testing::Combine(testing::Values(GetTestParams()),
+                     testing::Values(GetConvTestCases(miopenFloat)[0])));
