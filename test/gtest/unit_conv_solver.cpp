@@ -257,10 +257,7 @@ void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
 
 void UnitTestConvSolverParams::CheckXnackDisabled() { check_xnack_disabled = true; }
 
-void UnitTestConvSolverParams::SetConvAttrFp16Alt(uint64_t value)
-{
-    conv_attr_fp16_alt = value;
-}
+void UnitTestConvSolverParams::SetConvAttrFp16Alt(uint64_t value) { conv_attr_fp16_alt = value; }
 
 namespace {
 
