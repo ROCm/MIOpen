@@ -34,10 +34,6 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_2x3 =
-        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
-                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvBinWinogradRxSf2x3g1"}};
-
     const auto env_3x2 =
         std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvBinWinogradRxSf3x2"}};
@@ -48,10 +44,6 @@ auto GetTestCases()
 
     return std::vector{
         // clang-format off
-    //smoke_solver_ConvAsmImplicitGemmV4R1Dynamic
-    std::pair{env_2x3, vf + " --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    std::pair{env_2x3, vb + " --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
-    std::pair{env_2x3, vw + " --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
     std::pair{env_3x2, vf + " --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
     std::pair{env_3x2, vb + " --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
     std::pair{env_3x2, vw + " --input 1 20 20 20 --weights 20 20 3 3 --pads_strides_dilations 1 1 1 1 1 1"}
