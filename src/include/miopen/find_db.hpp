@@ -90,7 +90,7 @@ public:
     FindDbRecord_t& operator=(const FindDbRecord_t&) = delete;
 
     template <class TProblemDescription, class TTestDb = TDb>
-    FindDbRecord_t(Handle& handle,
+    FindDbRecord_t(const Handle& handle,
                    const TProblemDescription& problem,
                    const std::string& path_suffix = "",
                    is_immediate_t<TTestDb>        = 0)
@@ -111,7 +111,7 @@ public:
     }
 
     template <class TProblemDescription, class TTestDb = TDb>
-    FindDbRecord_t(Handle& handle,
+    FindDbRecord_t(const Handle& handle,
                    const TProblemDescription& problem,
                    const std::string& path_suffix = "",
                    is_find_t<TTestDb>             = 0)
@@ -147,7 +147,7 @@ public:
     bool empty() const { return !content.is_initialized(); }
 
     template <class TProblemDescription>
-    static std::vector<Solution> TryLoad(Handle& handle,
+    static std::vector<Solution> TryLoad(const Handle& handle,
                                          const TProblemDescription& problem,
                                          const std::function<FindCoreResult()>& regenerator,
                                          const std::string& path_suffix = "")
@@ -192,13 +192,13 @@ private:
     bool in_sync    = false;
     bool dont_store = false; // E.g. to skip writing sub-optimal find-db records to disk.
 
-    static fs::path GetInstalledPath(Handle& handle, const std::string& path_suffix);
-    static fs::path GetInstalledPathEmbed(Handle& handle, const std::string& path_suffix);
-    static fs::path GetInstalledPathFile(Handle& handle, const std::string& path_suffix);
-    static fs::path GetUserPath(Handle& handle, const std::string& path_suffix);
+    static fs::path GetInstalledPath(const Handle& handle, const std::string& path_suffix);
+    static fs::path GetInstalledPathEmbed(const Handle& handle, const std::string& path_suffix);
+    static fs::path GetInstalledPathFile(const Handle& handle, const std::string& path_suffix);
+    static fs::path GetUserPath(const Handle& handle, const std::string& path_suffix);
 
     // Returns true if rebuild is required
-    bool Validate(Handle& handle, const NetworkConfig& config) const;
+    bool Validate(const Handle& handle, const NetworkConfig& config) const;
     void CopyTo(std::vector<Solution>& to) const;
 
     void LogFindDbItem(const std::pair<std::string, FindDbData>& item) const;

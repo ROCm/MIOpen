@@ -30,8 +30,6 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
-
 namespace deepbench_conv {
 
 auto GetTestCases()
@@ -82,9 +80,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return env::disabled(MIOPEN_TEST_DEEPBENCH); }
-
-class GPU_Conv2d_deepbench_FP32 : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2d_DeepBench_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
@@ -97,11 +93,11 @@ bool IsTestSupportedForDevice()
 } // namespace deepbench_conv
 using namespace deepbench_conv;
 
-TEST_P(GPU_Conv2d_deepbench_FP32, FloatTest_deepbench_conv)
+TEST_P(GPU_Conv2d_DeepBench_FP32, FloatTest_deepbench_conv)
 {
-    if(IsTestSupportedForDevice() && !SkipTest())
+    if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, GPU_Conv2d_deepbench_FP32>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2d_DeepBench_FP32>(default_check);
     }
     else
     {
@@ -109,4 +105,4 @@ TEST_P(GPU_Conv2d_deepbench_FP32, FloatTest_deepbench_conv)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2d_deepbench_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2d_DeepBench_FP32, testing::Values(GetTestCases()));

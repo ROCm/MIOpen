@@ -65,6 +65,12 @@
 #define USE_SOFTMAX_LOG 0
 #endif
 
+#if USE_SOFTMAX_LOG && MIOPEN_USE_FP16
+#define _FLOAT_ACCUM float
+#else
+#define _FLOAT_ACCUM _FLOAT
+#endif
+
 #ifndef USE_SOFTMAX_ACCURATE
 #define USE_SOFTMAX_ACCURATE 0
 #endif
@@ -689,7 +695,8 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
 {
 
 #if NUM_BATCH == 1 // CSR-Vector like appraoch
-    local _FLOAT l_helper[256];
+
+    local _FLOAT_ACCUM l_helper[256];
 
     int gid = get_group_id(0);
     int lid = get_local_id(0);
@@ -705,7 +712,7 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
         int s1 = s % input_w;
 #endif
 
-        _FLOAT channel_dot = (_FLOAT)0; // thread_local helper var
+        _FLOAT_ACCUM channel_dot = (_FLOAT_ACCUM)0; // thread_local helper var
 
         // Compute dot product per channel
         // Iterate over all the channels one thread is supposed to loop over
@@ -815,7 +822,7 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
 
             _FLOAT value = dy[dy_gidx];
 #if USE_SOFTMAX_LOG
-            value -= channel_dot * exp(y[y_gidx]);
+            value -= channel_dot * exp((_FLOAT_ACCUM)y[y_gidx]);
 #else
             value = (value - channel_dot) * y[y_gidx];
 #endif
@@ -835,7 +842,7 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
 
 #else
 
-    local _FLOAT l_helper[256];
+    local _FLOAT_ACCUM l_helper[256];
 
     int gid = get_group_id(0);
     int lid = get_local_id(0);
@@ -845,13 +852,13 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
     int batch     = lid / BATCH_SIZE;       // which spatial_dim or pixel
 
     // Batch specific n and s
-    int batch_n        = (NUM_BATCH * gid + batch) / spatial_dim; // nth image
-    int batch_s        = (NUM_BATCH * gid + batch) % spatial_dim; // which spatial_dim/pixel
+    int batch_n              = (NUM_BATCH * gid + batch) / spatial_dim; // nth image
+    int batch_s              = (NUM_BATCH * gid + batch) % spatial_dim; // which spatial_dim/pixel
 #if(!IS_DINPUT_PACKED || !IS_DOUTPUT_PACKED || !IS_OUTPUT_PACKED) && USE_SOFTMAX_MODE_CHANNEL
-    int batch_s0       = batch_s / input_w;
-    int batch_s1       = batch_s % input_w;
+    int batch_s0             = batch_s / input_w;
+    int batch_s1             = batch_s % input_w;
 #endif
-    _FLOAT channel_dot = (_FLOAT)(0); // thread_local helper var
+    _FLOAT_ACCUM channel_dot = (_FLOAT)0; // thread_local helper var
 
 // stores all the values touched by one thread so that we do not have load
 // again as the CSR-Vector approach
@@ -980,7 +987,7 @@ __kernel void SoftmaxBackward(global _FLOAT* y,
         if(mad24(batch_n, vector_size, i) * spatial_dim + batch_s < vector_size * grid_size)
         {
 #if USE_SOFTMAX_LOG
-            dx_value[v_idx] -= channel_dot * exp(y_value[v_idx]);
+            dx_value[v_idx] -= channel_dot * exp((_FLOAT_ACCUM)y_value[v_idx]);
 #else
             dx_value[v_idx] = (dx_value[v_idx] - channel_dot) * y_value[v_idx];
 #endif

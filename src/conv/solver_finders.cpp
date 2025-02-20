@@ -214,7 +214,7 @@ const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders()
 } // namespace conv
 
 /// Register invoker only for the best solution within algorithm.
-static std::vector<Solution> EvaluateInvokers(Handle& handle,
+static std::vector<Solution> EvaluateInvokers(const Handle& handle,
                                               const std::vector<solver::ConvSolution>& solutions,
                                               const AlgorithmName& algorithm_name,
                                               const NetworkConfig& network_config,
@@ -273,14 +273,22 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
             {
                 invoker(handle, invoke_ctx);
                 elapsed += handle.GetKernelTime();
-                if(i < N_RUNS_DISCARD)
-                    first_elapsed += elapsed;
+                if(i == (N_RUNS_DISCARD - 1))
+                    first_elapsed = elapsed;
                 ++i;
             }
             // If the execution time was not too long,
             // then the 1st run is not counted (assume it's warm-up):
-            if(i > 1)
+            if(i > N_RUNS_DISCARD)
+            {
                 elapsed = (elapsed - first_elapsed) / static_cast<elapsed_t>(i - N_RUNS_DISCARD);
+            }
+            else if(i > 0)
+            {
+                elapsed /= i;
+            }
+
+            MIOPEN_THROW_IF(elapsed <= 0, "Invalid elapsed time detected in EvaluateInvokers");
 
             MIOPEN_LOG_I(sol << ": " << elapsed << (elapsed < best ? " < " : " >= ") << best);
             if(elapsed < best)
@@ -290,7 +298,7 @@ static std::vector<Solution> EvaluateInvokers(Handle& handle,
                 best_invoker = invoker;
             }
 
-            auto solution = Solution{solver::Id{selected.solver_id}, best, selected.workspace_sz};
+            auto solution = Solution{solver::Id{sol.solver_id}, elapsed, sol.workspace_sz};
             if(force_attach_binary)
                 solution.SetInvoker(invoker, programs, selected.construction_params);
             else
