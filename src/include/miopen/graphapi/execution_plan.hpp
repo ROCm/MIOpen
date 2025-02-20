@@ -28,6 +28,7 @@
 
 #include <miopen/graphapi/enginecfg.hpp>
 #include <miopen/graphapi/variant_pack.hpp>
+#include <nlohmann/json.hpp>
 
 #include <cstdint>
 #include <string>
@@ -73,13 +74,88 @@ public:
     {
         return mEngineCfg.getEngine().getExecutor()->getWorkspaceSize();
     }
+
+    struct SerializationMetadata
+    {
+        uint64_t mMagicNumber;
+        uint64_t mVersion;
+
+        constexpr static SerializationMetadata current() { return {0xA4C9C1597ED9E1AC, 1}; }
+
+        struct JsonFields
+        {
+            static constexpr const char* MagicNumber = "magic_number";
+            static constexpr const char* Version     = "version";
+        };
+
+        friend void to_json(nlohmann::json& json, const SerializationMetadata& metadata)
+        {
+            json = nlohmann::json{
+                {JsonFields::MagicNumber, metadata.mMagicNumber},
+                {JsonFields::Version, metadata.mVersion},
+            };
+        }
+
+        friend void from_json(const nlohmann::json& json, SerializationMetadata& metadata)
+        {
+            json.at(JsonFields::MagicNumber).get_to(metadata.mMagicNumber);
+            json.at(JsonFields::Version).get_to(metadata.mVersion);
+        }
+    };
+
+    struct JsonFields
+    {
+        static constexpr const char* Metadata        = "header";
+        static constexpr const char* EngineCfg       = "engine_cfg";
+        static constexpr const char* IntermediateIds = "intermediate_ids";
+    };
+
+    friend void to_json(nlohmann::json& json, const ExecutionPlan& executionPlan)
+    {
+        json = nlohmann::json{
+            {JsonFields::Metadata, SerializationMetadata::current()},
+            {JsonFields::EngineCfg, executionPlan.mEngineCfg},
+            {JsonFields::IntermediateIds, executionPlan.mIntermediateIds},
+        };
+    }
+
+    friend void from_json(const nlohmann::json& json, ExecutionPlan& executionPlan)
+    {
+        constexpr auto supportedMetadata = SerializationMetadata::current();
+
+        auto metadataIterator = json.find(JsonFields::Metadata);
+        if(metadataIterator == json.end())
+        {
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "Unsupported JSON has been passed as an ExecutionPlan");
+        }
+
+        const auto metadata = metadataIterator->get<SerializationMetadata>();
+
+        if(metadata.mMagicNumber != supportedMetadata.mMagicNumber)
+        {
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "JSON with unsupported magic number has been passed as an ExecutionPlan");
+        }
+
+        if(metadata.mVersion != supportedMetadata.mVersion)
+        {
+            MIOPEN_THROW(miopenStatusVersionMismatch,
+                         "JSON of an invalid version has been passed as an ExecutionPlan");
+        }
+
+        json.at(JsonFields::EngineCfg).get_to(executionPlan.mEngineCfg);
+        json.at(JsonFields::IntermediateIds).get_to(executionPlan.mIntermediateIds);
+        executionPlan.mHandle = nullptr;
+    }
 };
 
 class MIOPEN_INTERNALS_EXPORT ExecutionPlanBuilder
 {
 private:
     ExecutionPlan mExecutionPlan;
-    bool mEngineCfgSet = false;
+    bool mEngineCfgSet          = false;
+    bool mJsonRepresentationSet = false;
 
 public:
     ExecutionPlanBuilder& setHandle(miopenHandle_t handle) &;

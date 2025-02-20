@@ -139,7 +139,7 @@ private:
     miopen::TensorDescriptor bias_des;
     miopen::TensorDescriptor weights_des;
 
-    miopen::Handle& handle;
+    const miopen::Handle& handle;
 
     miopen::ConvolutionDescriptor conv_desc;
     miopen::ActivationDescriptor activ_desc;
