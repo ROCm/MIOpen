@@ -58,7 +58,7 @@ public:
     InlineVector(const InlineVector& inline_vec)     = default;
     InlineVector(InlineVector&& inline_vec) noexcept = default;
 
-    InlineVector(const size_type& cnt, const T& val = T()) : real_size(cnt)
+    InlineVector(const size_type cnt, const T& val = T()) : real_size(cnt)
     {
         if(real_size > N)
         {
