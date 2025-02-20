@@ -409,9 +409,9 @@ struct tensor_transform_driver : test_driver
                                                 superStrides_dst.end());
 
         subDesc_src = miopen::TensorDescriptor(
-            this->type, miopen::LensStrides<int>(srcLens.begin(), srcLens.end()), subStrides_src);
+            this->type, miopen::LensStrides<int>(subLens.begin(), subLens.end()), subStrides_src);
         subDesc_dst = miopen::TensorDescriptor(
-            this->type, miopen::LensStrides<int>(srcLens.begin(), srcLens.end()), subStrides_dst);
+            this->type, miopen::LensStrides<int>(subLens.begin(), subLens.end()), subStrides_dst);
 
         verify_equals(verify_tensor_transform_scale<T>{
             super_src, subDesc_src, super_dst, subDesc_dst, offset, offset, T(alpha), T(beta)});
