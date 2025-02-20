@@ -768,7 +768,7 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
         const auto supported = IsDeviceSupported(params.supported_devs, dev);
         // std::cout << "Test " << dev_descr << " (supported: " << supported << ")" << std::endl;
 
-        auto handle    = MockHandle{dev_descr};
+        auto handle    = MockHandle{dev_descr, params.check_xnack_disabled};
         const auto ctx = [&] {
             auto tmp = miopen::ExecutionContext{&handle};
             problem.SetupFloats(tmp);
