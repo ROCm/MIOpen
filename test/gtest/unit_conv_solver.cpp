@@ -80,6 +80,41 @@ private:
     bool changed = false;
 };
 
+class ConvAttrFp16AltScopedSetter
+{
+public:
+    ConvAttrFp16AltScopedSetter() noexcept {}
+    ConvAttrFp16AltScopedSetter(const ConvAttrFp16AltScopedSetter&) = delete;
+    ConvAttrFp16AltScopedSetter(ConvAttrFp16AltScopedSetter&&)      = delete;
+    ConvAttrFp16AltScopedSetter& operator=(const ConvAttrFp16AltScopedSetter&) = delete;
+    ConvAttrFp16AltScopedSetter& operator=(ConvAttrFp16AltScopedSetter&&) = delete;
+
+    ~ConvAttrFp16AltScopedSetter()
+    {
+        if(changed)
+        {
+            if(prev)
+                env::update(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, prev.value());
+            else
+                env::clear(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
+        }
+    }
+
+    void SetValue(uint64_t value)
+    {
+        if(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+            prev = env::value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
+        if(value == prev)
+            return;
+        env::update(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, value);
+        changed = true;
+    }
+
+private:
+    std::optional<uint64_t> prev;
+    bool changed = false;
+};
+
 bool IsDeviceSupported(Gpu supported_devs, Gpu dev)
 {
     if((supported_devs & dev) != Gpu::None)
@@ -221,6 +256,11 @@ void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
 }
 
 void UnitTestConvSolverParams::CheckXnackDisabled() { check_xnack_disabled = true; }
+
+void UnitTestConvSolverParams::SetConvAttrFp16Alt(uint64_t value)
+{
+    conv_attr_fp16_alt = value;
+}
 
 namespace {
 
@@ -741,6 +781,10 @@ void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverI
         deprecated_solv_enabler.Enable();
     }
 
+    ConvAttrFp16AltScopedSetter conv_attr_fp16_alt_setter;
+    if(params.conv_attr_fp16_alt)
+        conv_attr_fp16_alt_setter.SetValue(params.conv_attr_fp16_alt.value());
+
     RunSolver(solver, params, direction, conv_config, algo);
 }
 
@@ -759,6 +803,10 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     {
         deprecated_solv_enabler.Enable();
     }
+
+    ConvAttrFp16AltScopedSetter conv_attr_fp16_alt_setter;
+    if(params.conv_attr_fp16_alt)
+        conv_attr_fp16_alt_setter.SetValue(params.conv_attr_fp16_alt.value());
 
     const auto problem = conv_config.GetProblemDescription(direction);
 
