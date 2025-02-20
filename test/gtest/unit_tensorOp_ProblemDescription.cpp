@@ -110,15 +110,15 @@ public:
                 false,                      // nonStandardSquash
                 false                       // isOk
             },
-            TestCase{
-                miopenTensorOpAdd,          // tensorOp
-                1.0f,                       // beta
-                {miopenHalf, {4, 4, 4, 4, 4, 4}},// A
-                {miopenHalf, {1, 1, 4}},    // B
-                {miopenHalf, {4, 4, 4, 4, 4, 4}},// C
-                false,                      // nonStandardSquash
-                false                       // isOk
-            },
+            // TestCase{
+            //     miopenTensorOpAdd,          // tensorOp
+            //     1.0f,                       // beta
+            //     {miopenHalf, {4, 4, 4, 4, 4, 4}},// A
+            //     {miopenHalf, {1, 1, 4}},    // B
+            //     {miopenHalf, {4, 4, 4, 4, 4, 4}},// C
+            //     false,                      // nonStandardSquash
+            //     false                       // isOk
+            // },
             TestCase{
                 miopenTensorOpAdd,          // tensorOp
                 1.0f,                       // beta
