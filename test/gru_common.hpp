@@ -2943,9 +2943,70 @@ struct gru_basic_driver : test_driver
 
     gru_basic_driver() {}
 
+    void fill_buffers(std::vector<T>& input, std::vector<T>& hx, std::vector<T>& weights)
+    {
+        auto fill_array_via_gen = [](std::vector<T>& dst, auto gen, int seed_offset = 0) {
+            prng::reset_seed(seed_offset);
+            size_t dst_sz = dst.size();
+            for(size_t it = 0; it < dst_sz; it++)
+                dst[it] = gen();
+        };
+
+        auto pos_gen = [](double scale, int range) {
+            return [=]() -> T { return prng::gen_descreet_unsigned<T>(scale, range); };
+        };
+
+        auto sign_gen = [](double scale, int range) {
+            return [=]() -> T { return prng::gen_descreet_uniform_sign<T>(scale, range); };
+        };
+
+        const double data_max_v = sqrt(1. / hiddenSize);
+        int data_range          = 100;
+        const double data_scale = data_max_v / data_range;
+        fill_array_via_gen(input, pos_gen(data_scale, data_range), 0);
+
+        if(!nohx)
+        {
+            fill_array_via_gen(hx, pos_gen(data_scale, data_range), 1);
+        }
+
+        // filter
+        const double weights_max_v = sqrt(1. / hiddenSize);
+        int weights_range          = 64;
+        const double weights_scale = weights_max_v / weights_range;
+
+        fill_array_via_gen(weights, sign_gen(weights_scale, weights_range), 2);
+    }
+
+    void fill_bwd_buffers(std::vector<T>& dy, std::vector<T>& dhy)
+    {
+        auto fill_array_via_gen = [](std::vector<T>& dst, auto gen, int seed_offset = 0) {
+            prng::reset_seed(seed_offset);
+            size_t dst_sz = dst.size();
+
+            for(size_t it = 0; it < dst_sz; it++)
+                dst[it] = gen();
+        };
+
+        auto sign_gen = [](double scale, int range) {
+            return [=]() { return prng::gen_descreet_uniform_sign<T>(scale, range); };
+        };
+
+        const double bwd_data_max_v = sqrt(1. / hiddenSize) / 8;
+        int bwd_data_range          = 100;
+        const double bwd_data_scale = bwd_data_max_v / bwd_data_range;
+
+        if(!nodhy)
+        {
+            fill_array_via_gen(dhy, sign_gen(bwd_data_scale, bwd_data_range), 3);
+        }
+
+        fill_array_via_gen(dy, sign_gen(bwd_data_scale, bwd_data_range), 4);
+        prng::reset_seed();
+    }
+
     void run()
     {
-        const double Data_scale = 0.001;
 #if(MIOPEN_BACKEND_OPENCL == 1)
         if(type == miopenHalf)
             exit(EXIT_SUCCESS); // NOLINT (concurrency-mt-unsafe)
@@ -2975,12 +3036,6 @@ struct gru_basic_driver : test_driver
 
         auto&& handle = get_handle();
 
-#if(MIO_GRU_TEST_DEBUG == 2)
-        for(int i = 0; i < seqLength; i++)
-        {
-            std::cout << "batch seq[" << i << "]: " << batchSeq.at(i) << std::endl;
-        }
-#endif
         int batch_n = std::accumulate(batchSeq.begin(), batchSeq.end(), 0);
 
         miopenRNNDescriptor_t rnnDesc;
@@ -3055,55 +3110,23 @@ struct gru_basic_driver : test_driver
         // If we are in skip mode, take the real input size to be the vector length.
         auto inVecReal    = (inputMode != 0) ? hiddenSize : inVecLen;
         std::size_t in_sz = static_cast<std::size_t>(inVecReal) * batch_n;
-        std::vector<T> input(in_sz);
-        for(std::size_t i = 0; i < in_sz; i++)
-        {
-            input[i] = prng::gen_descreet_unsigned<T>(Data_scale, 100);
-        }
-
         std::size_t hx_sz = ((dirMode != 0) ? 2ULL : 1ULL) * hiddenSize * batchSize * numLayers;
-        std::vector<T> hx(hx_sz);
-        std::vector<T> dhyin(hx_sz);
 
-        size_t wei_bytes = 0;
-        std::vector<int> inlens(2, 0);
-        inlens.at(0)        = batchSeq.at(0);
-        inlens.at(1)        = inVecReal;
-        auto firstInputDesc = miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens);
-        miopenGetRNNParamsSize(
-            &handle, rnnDesc, &firstInputDesc, &wei_bytes, miopen::deref(rnnDesc).dataType);
+        std::vector<T> input(in_sz), hx(hx_sz), dhyin(hx_sz);
+
+        size_t wei_bytes = [&]() {
+            size_t filter_bytes;
+            std::vector<int> inlens(2, 0);
+            inlens.at(0)        = batchSeq.at(0);
+            inlens.at(1)        = inVecReal;
+            auto firstInputDesc = miopen::TensorDescriptor(miopen::deref(rnnDesc).dataType, inlens);
+            miopenGetRNNParamsSize(
+                &handle, rnnDesc, &firstInputDesc, &filter_bytes, miopen::deref(rnnDesc).dataType);
+            return filter_bytes;
+        }();
+
         auto wei_sz = wei_bytes / sizeof(T);
         std::vector<T> weights(wei_sz);
-        for(std::size_t i = 0; i < wei_sz; i++)
-        {
-            weights[i] = prng::gen_descreet_uniform_sign<T>(Data_scale, 100);
-        }
-
-#if(MIO_GRU_TEST_DEBUG > 0)
-        printf("inputMode: %d, biasMode: %d, dirMode: %d\n", inputMode, biasMode, dirMode);
-        printf("hz: %d, batch_n: %d, seqLength: %d, inputLen: %d, numLayers: %d\n",
-               hiddenSize,
-               batch_n,
-               seqLength,
-               inVecLen,
-               numLayers);
-#endif
-
-        if(!nohx)
-        {
-            for(std::size_t i = 0; i < hx_sz; i++)
-            {
-                hx[i] = prng::gen_descreet_unsigned<T>(Data_scale, 100);
-            }
-        }
-
-        if(!nodhy)
-        {
-            for(std::size_t i = 0; i < hx_sz; i++)
-            {
-                dhyin[i] = prng::gen_descreet_unsigned<T>(Data_scale, 100);
-            }
-        }
 
         std::vector<miopen::TensorDescriptor> inputCPPDescs;
         std::vector<miopenTensorDescriptor_t> inputDescs;
@@ -3139,6 +3162,8 @@ struct gru_basic_driver : test_driver
                       << " Bytes of memory." << std::endl;
         }
 
+        fill_buffers(input, hx, weights);
+
         auto fwdTrainOutputPair = verify(verify_forward_train_gru<T>{rnnDesc,
                                                                      input,
                                                                      hx,
@@ -3163,14 +3188,9 @@ struct gru_basic_driver : test_driver
         auto reserveSpaceFwdTrain = std::get<2>(fwdTrainOutputPair.second);
 
         std::vector<T> dyin(yin.size());
-        for(std::size_t i = 0; i < yin.size(); i++)
-        {
-            dyin[i] = prng::gen_descreet_unsigned<T>(Data_scale, 100);
-        }
 
-#if(MIO_GRU_TEST_DEBUG > 0)
-        printf("Running backward data GRU.\n");
-#endif
+        fill_bwd_buffers(dyin, dhyin);
+
         auto bwdDataOutputPair = verify(verify_backward_data_gru<T>{
             rnnDesc,   yin,        dyin,    dhyin,     hx,        weights,  reserveSpaceFwdTrain,
             batchSeq,  hiddenSize, batch_n, seqLength, numLayers, biasMode, dirMode,
