@@ -41,6 +41,28 @@ auto GetConvSmokeTestCases(miopenDataType_t datatype)
     };
 }
 
+auto GetConvFullTestCases(miopenDataType_t datatype)
+{
+    using TestCase = miopen::unit_tests::ConvTestCase;
+
+    return std::vector{
+        // clang-format off
+        TestCase{{datatype, miopenTensorNHWC, {1, 64, 8, 8}},
+                 {datatype, miopenTensorNHWC, {96, 64, 1, 1}},
+                 datatype, {{1, 1}, {1, 1}, {1, 1}}}, // non-zero padding
+        TestCase{{datatype, miopenTensorNHWC, {1, 64, 8, 8}},
+                 {datatype, miopenTensorNHWC, {96, 64, 1, 1}},
+                 datatype, {{0, 0}, {2, 2}, {1, 1}}}, // stride > 1
+        TestCase{{datatype, miopenTensorNHWC, {1, 64, 8, 8}},
+                 {datatype, miopenTensorNHWC, {96, 64, 1, 1}},
+                 datatype, {{0, 0}, {1, 1}, {2, 2}}}, // dilation > 1
+        TestCase{{datatype, miopenTensorNHWC, {1, 64, 24, 48}},
+                 {datatype, miopenTensorNHWC, {384, 64, 1, 1}},
+                 datatype, {{0, 0}, {1, 1}, {1, 1}}}, // some different NCHW and k parameters
+        // clang-format on
+    };
+}
+
 const auto& GetTestParams()
 {
     static const auto params = [] {
@@ -112,6 +134,31 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvSmokeTestCases(miopenFloat))));
+
+// Full tests
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverImplicitGemmFwdXdlops_I8,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoImplicitGEMM),
+                                          testing::ValuesIn(GetConvFullTestCases(miopenInt8))));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverImplicitGemmFwdXdlops_FP16,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoImplicitGEMM),
+                                          testing::ValuesIn(GetConvFullTestCases(miopenHalf))));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverImplicitGemmFwdXdlops_BFP16,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoImplicitGEMM),
+                                          testing::ValuesIn(GetConvFullTestCases(miopenBFloat16))));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverImplicitGemmFwdXdlops_FP32,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoImplicitGEMM),
+                                          testing::ValuesIn(GetConvFullTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
