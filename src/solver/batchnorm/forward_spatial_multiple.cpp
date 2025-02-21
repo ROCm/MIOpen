@@ -68,7 +68,7 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
         // Check if variant 2 is applicable (with possible vectorization)
         bool valid = GetLocalConfigNHWC(problem,
                                         context.GetStream().GetMaxHardwareComputeUnits(),
-                                        2,
+                                        stash_values,
                                         xlocalsize,
                                         ylocalsize,
                                         vectorsize);
@@ -80,7 +80,7 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
             vectorsize = 1;
             valid      = GetLocalConfigNHWC(problem,
                                        context.GetStream().GetMaxHardwareComputeUnits(),
-                                       2,
+                                       stash_values,
                                        xlocalsize,
                                        ylocalsize,
                                        vectorsize);
@@ -97,6 +97,7 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
         {
             bfpmixparm = true;
         }
+        // First check heuristic
         if(!((n >= 3 && in_cstride > 512 && (in_nhw >= 33554432 || in_cstride <= 1024) &&
               ((n < 256) || (in_cstride <= 60) || !bfpmixparm) &&
               (!bfpmixparm || in_cstride <= 512)) ||
@@ -108,8 +109,15 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
         unsigned int ylocalsize = 1024;
         unsigned int last_ylocalsize =
             in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
-        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+        // Restrictions:
+        //  - last block must have enough space to stash intermediate results in HW dimension
+        //  - if last block doesn't fit, intermediate results are stored in N dimension which must
+        //    be large enough
+        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2) &&
+           n < (size_t)stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+        {
             return false;
+        }
     }
     return true;
 }
@@ -152,15 +160,16 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
     }
 
     int variant = 2;
-    unsigned int ldsgcn;
-    unsigned int ldsnogcn;
-    size_t xlocalsize, ylocalsize, xgridsize, ygridsize, vectorsize;
+    int stash_method          = 0;
+    unsigned int stash_values = 2;
+
+    size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize, vectorsize;
     if(problem.IsLayoutNHWC())
     {
         vectorsize = c % 4 == 0 ? 4 : 1;
         bool valid = GetLocalConfigNHWC(problem,
                                         context.GetStream().GetMaxHardwareComputeUnits(),
-                                        2,
+                                        stash_values,
                                         xlocalsize,
                                         ylocalsize,
                                         vectorsize);
@@ -169,27 +178,49 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
             vectorsize = 1;
             valid      = GetLocalConfigNHWC(problem,
                                        context.GetStream().GetMaxHardwareComputeUnits(),
-                                       2,
+                                       stash_values,
                                        xlocalsize,
                                        ylocalsize,
                                        vectorsize);
         }
         assert(valid);
 
+        unsigned int last_ylocalsize =
+            (in_cstride) % ylocalsize == 0 ? ylocalsize : (in_cstride) % ylocalsize;
+        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2) &&
+           n >= (size_t)stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+        {
+            stash_method = 1;
+        }
+        if(!(problem.GetXDesc().GetType() == miopenFloat) && (c % 2 != 0) &&
+           (n >= stash_values * 2))
+        {
+            stash_method = 2;
+        }
         xgridsize  = xlocalsize * ((c / vectorsize + xlocalsize - 1) / xlocalsize);
         ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
     }
     else
     {
-        size_t max_localsize = 1024;
-        vectorsize           = in_cstride % 4 == 0 ? 4 : 1;
+        vectorsize = in_cstride % 4 == 0 ? 4 : 1;
         xlocalsize = 1;
         xgridsize  = c;
-        ylocalsize = max_localsize;
+        ylocalsize = 1024;
         ygridsize = ylocalsize * ((in_cstride / vectorsize + ylocalsize - 1) / ylocalsize);
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+
+        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2) &&
+           n >= stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+        {
+            stash_method = 1;
+        }
     }
-    ldsgcn   = (xlocalsize * ylocalsize) / 64;
-    ldsnogcn = xlocalsize * ylocalsize;
+    zlocalsize = 1;
+    zgridsize  = 1;
+
+    unsigned int ldsnogcn = xlocalsize * ylocalsize;
+    unsigned int ldsgcn   = xlocalsize * ylocalsize / 64;
 
     auto result = ConvSolution{miopenStatusSuccess};
 
@@ -198,9 +229,6 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
 
         kernel.kernel_name = "MIOpenBatchNormFwdTrainSpatial";
         kernel.kernel_file = "MIOpenBatchNormFwdTrainSpatial.cl";
-
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
 
         auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
@@ -227,6 +255,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
             {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
+            {"MIO_BN_STASH_METHOD", stash_method},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});

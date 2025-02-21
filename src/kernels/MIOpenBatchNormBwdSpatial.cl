@@ -681,7 +681,7 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
             xstride);
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1 || MIO_BN_LDSGCN_SIZE == 1
     // TODO: this simple approach has many bank conflicts, optimize if it affects performance
     local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDS_SIZE];
@@ -766,7 +766,7 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
         }
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1 || MIO_BN_LDSGCN_SIZE == 1
     local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2_2d(&mean,
@@ -893,7 +893,7 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
         }
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1 || MIO_BN_LDSGCN_SIZE == 1
     local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2_2d(&dscale,
@@ -976,7 +976,7 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(const __global _FLOAT* __restrict buff
                 xstride);
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1 || MIO_BN_LDSGCN_SIZE == 1
     local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2_2d(&dscale,

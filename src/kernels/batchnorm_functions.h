@@ -211,6 +211,10 @@
 #define MIO_BN_VECTORIZE 0
 #endif
 
+#ifndef MIO_BN_STASH_METHOD
+#define MIO_BN_STASH_METHOD 0
+#endif
+
 #define FLOATPREC4_2_FLOAT4(val)       \
     ((_FLOAT4)(FLOATPREC2FLOAT(val.x), \
                FLOATPREC2FLOAT(val.y), \
@@ -298,29 +302,37 @@
 #define UNUSED __attribute__((__unused__))
 
 #if(MIO_BN_VARIANT == 2)
-    inline unsigned int
-    getStashIndex(unsigned int vindex,
-                  unsigned int ygroupoffset,
-                  unsigned int ystride,
-                  unsigned int xgrp_sz,
-                  unsigned int xgrp_id,
-                  unsigned int xlid,
-                  unsigned int xstride)
+
+#if(MIO_BN_STASH_METHOD == 0)
+// store values in HW dimension
+#define NSTRIDE ystride
+#else
+// store values in N dimension
+#define NSTRIDE (MIO_BN_C / VEC_SIZE_X * MIO_BN_HW)
+#endif
+
+inline unsigned int getStashIndex(unsigned int vindex,
+                                  unsigned int ygroupoffset,
+                                  unsigned int ystride,
+                                  unsigned int xgrp_sz,
+                                  unsigned int xgrp_id,
+                                  unsigned int xlid,
+                                  unsigned int xstride)
 {
 #if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
     // 2 _FLOAT values are used to store 1 _FLOAT_PREC value.
-#if MIO_LAYOUT_NHWC
+#if MIO_LAYOUT_NHWC && (MIO_BN_C % 2 == 0)
     // xgrp_sz values are split in two parts: even threads use 2 values at even rows, odd threads -
     // at odd rows.
     // The only restriction for C and xgrp_sz is that they must be even.
-    return (ygroupoffset + vindex * 2 + xlid % 2) * ystride +
+    return (vindex * 2 + xlid % 2) * NSTRIDE + ygroupoffset * ystride +
            (xgrp_sz * xgrp_id + xlid / 2 * 2) * xstride;
 #else
     // Values are stored consecutively in y dim.
-    return (ygroupoffset + vindex * 2) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+    return (vindex * 2) * NSTRIDE + ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
 #endif
 #else
-    return (ygroupoffset + vindex) * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+    return vindex * NSTRIDE + ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
 #endif
 }
 
@@ -335,7 +347,17 @@ inline _FLOAT_PREC_C loadFromStash(const __global _FLOAT_C* stash,
 {
     unsigned int index =
         getStashIndex(vindex, ygroupoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+
+#if(MIO_BN_STASH_METHOD == 0 || MIO_BN_STASH_METHOD == 1)
     return *((const __global _FLOAT_PREC_C*)(stash + index));
+#else
+    _FLOAT_PREC_C value;
+    *((_FLOAT_C*)(&value)) = *(stash + index);
+    index += NSTRIDE;
+    *((_FLOAT_C*)(&value) + 1) = *(stash + index);
+
+    return value;
+#endif
 }
 
 inline void storeToStash(_FLOAT_PREC_C value,
@@ -350,7 +372,14 @@ inline void storeToStash(_FLOAT_PREC_C value,
 {
     unsigned int index =
         getStashIndex(vindex, ygroupoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+
+#if(MIO_BN_STASH_METHOD == 0 || MIO_BN_STASH_METHOD == 1)
     *((__global _FLOAT_PREC_C*)(stash + index)) = value;
+#else
+    *(stash + index) = *((_FLOAT_C*)(&value));
+    index += NSTRIDE;
+    *(stash + index) = *((_FLOAT_C*)(&value) + 1);
+#endif
 }
 #endif
 

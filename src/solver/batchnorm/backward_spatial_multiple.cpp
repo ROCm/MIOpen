@@ -71,7 +71,7 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
         // Check if variant 2 is applicable (with possible vectorization)
         bool valid = GetLocalConfigNHWC(problem,
                                         context.GetStream().GetMaxHardwareComputeUnits(),
-                                        4,
+                                        stash_values,
                                         xlocalsize,
                                         ylocalsize,
                                         vectorsize);
@@ -83,7 +83,7 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
             vectorsize = 1;
             valid      = GetLocalConfigNHWC(problem,
                                        context.GetStream().GetMaxHardwareComputeUnits(),
-                                       4,
+                                       stash_values,
                                        xlocalsize,
                                        ylocalsize,
                                        vectorsize);
@@ -92,15 +92,25 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
     }
     else
     {
+        // First check heuristic
         if(!((in_nhw >= static_cast<size_t>(32 * 1024 * 1024) || in_cstride <= 1024) &&
              in_cstride > 512))
+        {
             return false;
+        }
 
         unsigned int ylocalsize = 1024;
         unsigned int last_ylocalsize =
             in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
-        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+        // Restrictions:
+        //  - last block must have enough space to stash intermediate results in HW dimension
+        //  - if last block doesn't fit, intermediate results are stored in N dimension which must
+        //    be large enough
+        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2) &&
+           n < (size_t)stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+        {
             return false;
+        }
     }
 
     return true;
@@ -145,6 +155,8 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
     auto inhw = float(1.0 / in_nhw);
 
     int variant = 2;
+    int stash_method          = 0;
+    unsigned int stash_values = 4;
 
     size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize, vectorsize;
     if(problem.IsLayoutNHWC())
@@ -167,16 +179,36 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
                                        vectorsize);
         }
         assert(valid);
+        unsigned int last_ylocalsize =
+            (in_cstride) % ylocalsize == 0 ? ylocalsize : (in_cstride) % ylocalsize;
+        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2) &&
+           n >= (size_t)stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+        {
+            stash_method = 1;
+        }
+        if(!(problem.GetXDesc().GetType() == miopenFloat) && (c % 2 != 0) &&
+           (n >= stash_values * 2))
+        {
+            stash_method = 2;
+        }
         xgridsize  = xlocalsize * ((c / vectorsize + xlocalsize - 1) / xlocalsize);
         ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
     }
     else
     {
-        vectorsize = c % 4 == 0 ? 4 : 1;
+        vectorsize = in_cstride % 4 == 0 ? 4 : 1;
         xlocalsize = 1;
         xgridsize  = c;
         ylocalsize = 1024;
         ygridsize  = ylocalsize * ((in_cstride / vectorsize + ylocalsize - 1) / ylocalsize);
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+
+        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2) &&
+           n >= stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+        {
+            stash_method = 1;
+        }
     }
     zlocalsize = 1;
     zgridsize  = 1;
@@ -216,6 +248,7 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
             {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
+            {"MIO_BN_STASH_METHOD", stash_method},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});

@@ -583,7 +583,7 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
             xstride);
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1 || MIO_BN_LDSGCN_SIZE == 1
     // TODO: this simple approach has many bank conflicts, optimize if it affects performance
     local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDS_SIZE];
@@ -687,7 +687,7 @@ MIOpenBatchNormFwdTrainSpatialMeanVariance(const __global _FLOAT* __restrict in,
         }
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1 || MIO_BN_LDSGCN_SIZE == 1
     // TODO: this simple approach has many bank conflicts, optimize if it affects performance
     local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDS_SIZE];

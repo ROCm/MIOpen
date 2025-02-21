@@ -388,9 +388,24 @@ inline bool GetLocalConfigNHWC(const miopen::batchnorm::ProblemDescription& prob
     GetWGSize(c, h, w, maxCUs, bfp32parm, vectorsize, xlocalsize, ylocalsize);
 
     unsigned int last_ylocalsize = (h * w) % ylocalsize == 0 ? ylocalsize : (h * w) % ylocalsize;
-    if((((problem.GetXDesc().GetType() == miopenFloat) && (last_ylocalsize < stash_values)) ||
-        (!(problem.GetXDesc().GetType() == miopenFloat) &&
-         (c % 2 != 0 || last_ylocalsize < stash_values * 2))))
+    // FP32:
+    //  - last block must have enough space to stash intermediate results in HW dimension
+    //  - if last block doesn't fit, intermediate results are stored in N dimension which must
+    //    be large enough
+    if((problem.GetXDesc().GetType() == miopenFloat) && (last_ylocalsize < stash_values) &&
+       (n < stash_values))
+    {
+        return false;
+    }
+    // Mix precision:
+    //  - last block must have enough space to stash intermediate results in HW dimension
+    //  - if last block doesn't fit, intermediate results are stored in N dimension which must
+    //    be large enough
+    //  - if C is not multiple of 2, intermediate results are stored in N dimension splitting
+    //    float values in group of 2 bytes. N must be large enough
+    if(((!(problem.GetXDesc().GetType() == miopenFloat) &&
+         ((c % 2 != 0 && n < (size_t)stash_values * 2) ||
+          ((last_ylocalsize < stash_values * 2) && (n < (size_t)stash_values * 2))))))
     {
         return false;
     }
