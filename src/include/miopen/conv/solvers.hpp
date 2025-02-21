@@ -1867,21 +1867,23 @@ struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinograd
         return dbId;
     }
 
-    PerformanceConfigConvBinWinogradRxS
-    GetDefaultPerformanceConfig(const ExecutionContext&,
-                                const miopen::conv::ProblemDescription&) const override;
-    bool IsValidPerformanceConfig(const ExecutionContext&,
-                                  const miopen::conv::ProblemDescription&,
-                                  const PerformanceConfigConvBinWinogradRxS&) const override;
-    PerformanceConfigConvBinWinogradRxS Search(const ExecutionContext&,
-                                               const miopen::conv::ProblemDescription&,
-                                               const AnyInvokeParams& invoke_ctx) const override;
-    bool IsApplicable(const ExecutionContext&,
-                      const miopen::conv::ProblemDescription&) const override;
-    bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ExecutionContext&,
+    PerformanceConfigConvBinWinogradRxS GetDefaultPerformanceConfig(
+        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool
+    IsValidPerformanceConfig(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceConfigConvBinWinogradRxS&) const override;
+    PerformanceConfigConvBinWinogradRxS
+    Search(const ExecutionContext&,
+           const miopen::conv::ProblemDescription&,
+           const AnyInvokeParams& invoke_ctx) const override;
+    bool
+    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    ConvSolution
+    GetSolution(const ExecutionContext&,
+                const miopen::conv::ProblemDescription&,
+                const PerformanceConfigConvBinWinogradRxS&) const override;
 
 private:
     static size_t GetNGroups(const size_t group_conv, const size_t grid_group_size)
