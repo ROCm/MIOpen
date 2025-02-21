@@ -1867,20 +1867,20 @@ struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinograd
         return dbId;
     }
 
-    PerformanceConfigConvBinWinogradRxS GetDefaultPerformanceConfig(
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigConvBinWinogradRxS GetDefaultPerformanceConfig(
         const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    bool
+    MIOPEN_INTERNALS_EXPORT bool
     IsValidPerformanceConfig(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
                              const PerformanceConfigConvBinWinogradRxS&) const override;
-    PerformanceConfigConvBinWinogradRxS
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigConvBinWinogradRxS
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
-    bool
+    MIOPEN_INTERNALS_EXPORT bool
     IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
-    ConvSolution
+    MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&,
                 const miopen::conv::ProblemDescription&,
                 const PerformanceConfigConvBinWinogradRxS&) const override;
@@ -1893,9 +1893,17 @@ private:
     }
 };
 
-#ifndef CONV_WINO_RXS_CPP
+// Suppress misleading clang warnings
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wweak-template-vtables"
+#endif
+
 extern template struct ConvBinWinoRxS<2, 3>;
 extern template struct ConvBinWinoRxS<3, 2>;
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
 #endif
 
 struct ConvBinWinogradRxSf2x3g1 final : ConvSolver
