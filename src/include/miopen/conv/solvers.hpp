@@ -1856,7 +1856,10 @@ struct PerformanceConfigConvBinWinogradRxS : PerfConfigBase<PerformanceConfigCon
 template <int Winodata, int Winofilter>
 struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinogradRxS>
 {
-    MIOPEN_INTERNALS_EXPORT const std::string& SolverDbId() const override { return GetSolverDbId(); }
+    MIOPEN_INTERNALS_EXPORT const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId();
+    }
 
     static const std::string& GetSolverDbId()
     {
