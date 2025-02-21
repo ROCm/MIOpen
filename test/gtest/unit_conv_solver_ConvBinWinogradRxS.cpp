@@ -37,7 +37,7 @@ auto GetConvTestCasesHalfFwd()
 
     return std::vector{
         // clang-format off
-        TestCase{{1, 40, 20, 20}, { 20, 40, 3, 3}, {1, 1}, {1, 1}, {1, 1}, miopenHalf},
+        TestCase{{1, 40, 20, 20}, {20, 40, 3, 3}, {1, 1}, {1, 1}, {1, 1}, miopenHalf},
         // clang-format on
     };
 }
