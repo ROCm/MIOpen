@@ -47,7 +47,7 @@ struct MIOPEN_INTERNALS_EXPORT LRNDescriptor : miopenLRNDescriptor
     double GetBeta() const;
     double GetK() const;
 
-    miopenStatus_t Forward(Handle& handle,
+    miopenStatus_t Forward(const Handle& handle,
                            const void* alpha,
                            const TensorDescriptor& xDesc,
                            ConstData_t x,
@@ -57,7 +57,7 @@ struct MIOPEN_INTERNALS_EXPORT LRNDescriptor : miopenLRNDescriptor
                            bool do_backward,
                            Data_t workSpace) const;
 
-    miopenStatus_t Backward(Handle& handle,
+    miopenStatus_t Backward(const Handle& handle,
                             const void* alpha,
                             const TensorDescriptor& yDesc,
                             ConstData_t y,
