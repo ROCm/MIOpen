@@ -171,7 +171,7 @@ ConvTestCase::ConvTestCase(TensorDescriptorParams&& x_,
 {
     const auto num_spatial_dims = conv.GetNumSpatialDims();
     const auto num_tensor_dims  = num_spatial_dims + 2;
-    const auto group_count = conv.GetGroupCount();
+    const auto group_count      = conv.GetGroupCount();
 
     if(x.GetNumDims() != num_tensor_dims || w.GetNumDims() != num_tensor_dims ||
        x.GetLens()[1] != w.GetLens()[1] * group_count)
