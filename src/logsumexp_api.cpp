@@ -30,7 +30,23 @@
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdLogsumexp(const miopenTensorDescriptor_t inputDesc,
+#include <vector>
+
+inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
+{
+    os << '{';
+    for(int i = 0; i < v.size(); ++i)
+    {
+        if(i != 0)
+            os << ',';
+        os << v[i];
+    }
+    os << '}';
+    return os;
+}
+
+static void LogCmdLogSumExp(const miopenTensorDescriptor_t inputDesc,
+                            const miopenTensorDescriptor_t outputDesc,
                             const int* dims,
                             const int num_dims,
                             bool is_fwd)
@@ -52,31 +68,8 @@ static void LogCmdLogsumexp(const miopenTensorDescriptor_t inputDesc,
             ss << "logsumexpbfp16";
         }
 
-        int32_t size = {0};
-        miopenGetTensorDescriptorSize(inputDesc, &size);
-        ss << " -n " << miopen::deref(inputDesc).GetLengths()[0];
-        if(size == 5)
-        {
-            ss << " - c " << miopen::deref(inputDesc).GetLengths()[1] << " -D "
-               << miopen::deref(inputDesc).GetLengths()[2] << " -H "
-               << miopen::deref(inputDesc).GetLengths()[3] << " -W "
-               << miopen::deref(inputDesc).GetLengths()[4];
-        }
-        else if(size == 4)
-        {
-            ss << " - c " << miopen::deref(inputDesc).GetLengths()[1] << " -D "
-               << miopen::deref(inputDesc).GetLengths()[2] << " -H "
-               << miopen::deref(inputDesc).GetLengths()[3];
-        }
-        else if(size == 3)
-        {
-            ss << " - c " << miopen::deref(inputDesc).GetLengths()[1] << " -D "
-               << miopen::deref(inputDesc).GetLengths()[2];
-        }
-        else if(size == 2)
-        {
-            ss << " - c " << miopen::deref(inputDesc).GetLengths()[1];
-        }
+        ss << " -iShape " << miopen::deref(inputDesc).GetLengths();
+        ss << " -oShape " << miopen::deref(outputDesc).GetLengths();
 
         ss << " -dims ";
         for(int i = 0; i < num_dims; i++)
@@ -90,20 +83,19 @@ static void LogCmdLogsumexp(const miopenTensorDescriptor_t inputDesc,
     }
 };
 
-extern "C" miopenStatus_t miopenLogsumexpForward(miopenHandle_t handle,
+extern "C" miopenStatus_t miopenLogSumExpForward(miopenHandle_t handle,
                                                  const miopenTensorDescriptor_t inputDesc,
                                                  const void* input,
                                                  const miopenTensorDescriptor_t outputDesc,
                                                  void* output,
                                                  const int* dims,
-                                                 const int num_dims)
+                                                 const size_t num_dims)
 {
     MIOPEN_LOG_FUNCTION(handle, inputDesc, input, outputDesc, output, dims, num_dims);
 
-    LogCmdLogsumexp(inputDesc, dims, num_dims, true);
-
+    LogCmdLogSumExp(inputDesc, outputDesc, dims, num_dims, true);
     return miopen::try_([&] {
-        miopen::LogsumexpForward(miopen::deref(handle),
+        miopen::LogSumExpForward(miopen::deref(handle),
                                  miopen::deref(inputDesc),
                                  DataCast(input),
                                  miopen::deref(outputDesc),
@@ -113,42 +105,41 @@ extern "C" miopenStatus_t miopenLogsumexpForward(miopenHandle_t handle,
     });
 }
 
-extern "C" miopenStatus_t miopenLogsumexpBackward(miopenHandle_t handle,
+extern "C" miopenStatus_t miopenLogSumExpBackward(miopenHandle_t handle,
                                                   const miopenTensorDescriptor_t inputDesc,
                                                   const void* input,
-                                                  const miopenTensorDescriptor_t inputGradDesc,
-                                                  void* inputGrad,
                                                   const miopenTensorDescriptor_t outputDesc,
                                                   const void* output,
                                                   const miopenTensorDescriptor_t outputGradDesc,
                                                   const void* outputGrad,
+                                                  const miopenTensorDescriptor_t inputGradDesc,
+                                                  void* inputGrad,
                                                   const int* dims,
-                                                  const int num_dims)
+                                                  const size_t num_dims)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         inputDesc,
                         input,
-                        inputGradDesc,
-                        inputGrad,
                         outputDesc,
                         output,
                         outputGradDesc,
                         outputGrad,
+                        inputGradDesc,
+                        inputGrad,
                         dims,
                         num_dims);
 
-    LogCmdLogsumexp(inputDesc, dims, num_dims, false);
-
+    LogCmdLogSumExp(inputDesc, outputDesc, dims, num_dims, false);
     return miopen::try_([&] {
-        miopen::LogsumexpBackward(miopen::deref(handle),
+        miopen::LogSumExpBackward(miopen::deref(handle),
                                   miopen::deref(inputDesc),
                                   DataCast(input),
-                                  miopen::deref(inputGradDesc),
-                                  DataCast(inputGrad),
                                   miopen::deref(outputDesc),
                                   DataCast(output),
                                   miopen::deref(outputGradDesc),
                                   DataCast(outputGrad),
+                                  miopen::deref(inputGradDesc),
+                                  DataCast(inputGrad),
                                   dims,
                                   num_dims);
     });

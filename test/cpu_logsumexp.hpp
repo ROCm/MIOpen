@@ -24,14 +24,13 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_CPU_LOGSUMEXP_HPP
-#define GUARD_CPU_LOGSUMEXP_HPP
+#pragma once
 
 #include "tensor_holder.hpp"
 #include <vector>
 
 template <class T>
-void cpu_logsumexp_forward(tensor<T> input, tensor<T>& output, std::vector<int32_t> dims_vector)
+void cpu_logsumexp_forward(tensor<T> input, tensor<T>& output, std::vector<int> dims_vector)
 {
     auto input_dims     = input.desc.GetLengths();
     auto input_strides  = input.desc.GetStrides();
@@ -40,7 +39,7 @@ void cpu_logsumexp_forward(tensor<T> input, tensor<T>& output, std::vector<int32
 
     for(int64_t d = input_dims.size() - 1; d >= 0; --d)
     {
-        if(!(std::find(dims_vector.begin(), dims_vector.end(), d) != dims_vector.end()))
+        if(std::find(dims_vector.begin(), dims_vector.end(), d) == dims_vector.end())
             continue;
         for(int64_t dd = input_dims.size() - 1; dd > d; --dd)
         {
@@ -105,8 +104,8 @@ void cpu_logsumexp_backward(tensor<T> input,
                             tensor<T>& input_grad,
                             tensor<T> output,
                             tensor<T> output_grad,
-                            int32_t* dims,
-                            int32_t num_dims)
+                            int* dims,
+                            int num_dims)
 {
     auto input_dims          = input.desc.GetLengths();
     auto input_strides       = input.desc.GetStrides();
@@ -161,5 +160,3 @@ void cpu_logsumexp_backward(tensor<T> input,
         input_grad[input_grad_index] = static_cast<T>(dy * std::exp(x - y));
     });
 }
-
-#endif

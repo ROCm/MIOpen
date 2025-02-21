@@ -26,16 +26,19 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/target_properties.hpp>
+#include <miopen/tensor_view_utils.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/logsumexp/invoke_params.hpp>
 #include <miopen/logsumexp/solvers.hpp>
 #include <miopen/logsumexp.hpp>
-#include <miopen/target_properties.hpp>
-#include <miopen/tensor_view_utils.hpp>
-#include "../../kernels/dims_utils.hpp"
+#include "miopen/logsumexp/problem_description.hpp"
 
 #define LOCAL_SIZE 1024
-#define LOCAL_SIZE_64 64
+#define LOCAL_SIZE_LARGE_K_64 64
 #define LIMIT_SMALL_K 16
+
+#define VIEW_DIMS 5
 
 namespace miopen {
 
@@ -43,73 +46,63 @@ namespace solver {
 
 namespace logsumexp {
 
-std::size_t sizeof_kernel_FLOAT_ACCUM(const miopen::logsumexp::ProblemDescription& problem)
+namespace {
+
+std::size_t sizeof_local_memory(const miopen::logsumexp::ProblemDescriptionForward& problem)
 {
-    const auto datatype = problem.GetInputDesc().GetType();
-    return get_data_size(datatype);
+    return LOCAL_SIZE_LARGE_K_64 * get_data_size(problem.GetInputDesc().GetType());
 }
 
-std::size_t sizeof_local_memory(const miopen::logsumexp::ProblemDescription& problem)
-{
-    return LOCAL_SIZE_64 * sizeof_kernel_FLOAT_ACCUM(problem);
-}
-
-bool IsImprovementOverROCmForward(const miopen::logsumexp::ProblemDescription& problem)
+bool IsImprovementOverROCmForward(const miopen::logsumexp::ProblemDescriptionForward& problem)
 {
     constexpr size_t max_input_numel = 1000000;
-    constexpr size_t max_K           = 1024;
-
-    auto input_grad_dims = problem.GetInputDesc().GetLengths();
-    auto K               = 1;
+    constexpr size_t max_reduce_size = 1024;
 
     if(problem.GetInputDesc().GetElementSize() > max_input_numel)
         return false;
 
-    for(auto dim : problem.GetDims())
-        K *= input_grad_dims[dim];
+    size_t reduce_size =
+        problem.GetInputDesc().GetElementSize() / problem.GetOutputDesc().GetElementSize();
+    if(reduce_size > max_reduce_size)
+        return false;
 
-    if(K > max_K)
+    if(!problem.IsAllPacked())
         return false;
 
     return true;
 }
+} // namespace
 
-bool LogsumexpForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
-                                    const miopen::logsumexp::ProblemDescription& problem) const
+bool LogSumExpForward::IsApplicable(
+    const ExecutionContext& /*context*/,
+    const miopen::logsumexp::ProblemDescriptionForward& problem) const
 {
-    if(!problem.IsValidDims())
+    if(!(problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
         return false;
-    if(!problem.IsSameType())
-        return false;
-    if(!problem.IsAllPacked())
-        return false;
-    if(!IsImprovementOverROCmForward(problem))
+    if(problem.GetInputDesc().GetNumDims() > VIEW_DIMS)
         return false;
     if(!(sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize()))
+        return false;
+    if(!IsImprovementOverROCmForward(problem))
         return false;
     return true;
 }
 
 ConvSolution
-LogsumexpForward::GetSolution([[maybe_unused]] const ExecutionContext& context,
-                              const miopen::logsumexp::ProblemDescription& problem) const
+LogSumExpForward::GetSolution(const ExecutionContext& /*context*/,
+                              const miopen::logsumexp::ProblemDescriptionForward& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype            = problem.GetInputDesc().GetType();
-    auto input_grad_dims  = problem.GetInputDesc().GetLengths();
-    auto input_grad_numel = std::accumulate(
-        input_grad_dims.begin(), input_grad_dims.end(), 1ULL, std::multiplies<size_t>());
-    auto dims_vector = problem.GetDims();
-
-    int64_t K = 1;
-    for(auto dim : dims_vector)
     {
-        K *= input_grad_dims[dim];
-    }
-    int64_t N = static_cast<int64_t>(input_grad_numel) / K;
+        auto dtype = problem.GetInputDesc().GetType();
 
-    {
+        auto input_numel  = problem.GetInputDesc().GetElementSize();
+        auto output_numel = problem.GetOutputDesc().GetElementSize();
+        auto reduce_size  = input_numel / output_numel;
+
         size_t xlocalsize;
         size_t xgridsize;
         size_t ylocalsize;
@@ -117,10 +110,10 @@ LogsumexpForward::GetSolution([[maybe_unused]] const ExecutionContext& context,
         size_t zlocalsize;
         size_t zgridsize;
 
-        if(K > LIMIT_SMALL_K)
+        if(reduce_size > LIMIT_SMALL_K)
         {
-            xlocalsize = LOCAL_SIZE_64;
-            xgridsize  = N * LOCAL_SIZE_64;
+            xlocalsize = LOCAL_SIZE_LARGE_K_64;
+            xgridsize  = output_numel * LOCAL_SIZE_LARGE_K_64;
             ylocalsize = 1;
             ygridsize  = 1;
             zlocalsize = 1;
@@ -129,7 +122,7 @@ LogsumexpForward::GetSolution([[maybe_unused]] const ExecutionContext& context,
         else
         {
             xlocalsize = LOCAL_SIZE;
-            xgridsize  = AlignUp(N, xlocalsize);
+            xgridsize  = AlignUp(output_numel, xlocalsize);
             ylocalsize = 1;
             ygridsize  = 1;
             zlocalsize = 1;
@@ -138,15 +131,15 @@ LogsumexpForward::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        if(K > LIMIT_SMALL_K)
+        if(reduce_size > LIMIT_SMALL_K)
         {
-            kernel.kernel_file = "MIOpenLogsumexp.cpp";
-            kernel.kernel_name = "LogsumexpLargeKForward";
+            kernel.kernel_file = "MIOpenLogSumExp.cpp";
+            kernel.kernel_name = "LogSumExpLargeKForward";
         }
         else
         {
-            kernel.kernel_file = "MIOpenLogsumexp.cpp";
-            kernel.kernel_name = "LogsumexpSmallKForward";
+            kernel.kernel_file = "MIOpenLogSumExp.cpp";
+            kernel.kernel_name = "LogSumExpSmallKForward";
         }
 
         const auto build_params = KernelBuildParameters{
@@ -154,6 +147,9 @@ LogsumexpForward::GetSolution([[maybe_unused]] const ExecutionContext& context,
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+            {"LOCAL_SIZE_LARGE_K_64", LOCAL_SIZE_LARGE_K_64},
+            {"LIMIT_SMALL_K", LIMIT_SMALL_K},
+            {"VIEW_DIMS", VIEW_DIMS},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -173,24 +169,18 @@ LogsumexpForward::GetSolution([[maybe_unused]] const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params =
-                raw_params.CastTo<miopen::logsumexp::LogsumexpForwardInvokeParams>();
+                raw_params.CastTo<miopen::logsumexp::LogSumExpForwardInvokeParams>();
 
-            auto input_dims  = params.inputDesc->GetLengths();
-            auto output_dims = params.outputDesc->GetLengths();
-            auto dims_vector = *(params.dims);
+            uint64_t input_numel  = deref(params.inputDesc).GetElementSize();
+            uint64_t output_numel = deref(params.outputDesc).GetElementSize();
+            uint64_t reduce_size  = input_numel / output_numel;
 
-            auto input_grad_numel = std::accumulate(
-                input_dims.begin(), input_dims.end(), 1ULL, std::multiplies<size_t>());
-            int64_t K = 1;
-            for(auto dim : dims_vector)
-            {
-                K *= input_dims[dim];
-            }
-            int64_t N = static_cast<int64_t>(input_grad_numel) / K;
+            auto input_dims     = deref(params.inputDesc).GetLengths();
+            auto output_dims    = deref(params.outputDesc).GetLengths();
+            auto input_strides  = deref(params.inputDesc).GetStrides();
+            auto output_strides = deref(params.outputDesc).GetStrides();
 
-            auto input_strides  = params.inputDesc->GetStrides();
-            auto output_strides = params.outputDesc->GetStrides();
-
+            std::vector<int> dims_vector(params.dims, params.dims + params.num_dims);
             for(int64_t d = input_dims.size() - 1; d >= 0; --d)
             {
                 if(!(std::find(dims_vector.begin(), dims_vector.end(), d) != dims_vector.end()))
@@ -211,10 +201,15 @@ LogsumexpForward::GetSolution([[maybe_unused]] const ExecutionContext& context,
             auto new_outputDesc =
                 TensorDescriptor(params.outputDesc->GetType(), output_dims, output_strides);
 
-            auto input_tv  = get_inner_expanded_tv<5>(new_inputDesc);
-            auto output_tv = get_inner_expanded_tv<5>(new_outputDesc);
+            auto input_tv  = get_inner_expanded_tv<VIEW_DIMS>(new_inputDesc);
+            auto output_tv = get_inner_expanded_tv<VIEW_DIMS>(new_outputDesc);
 
-            kernel(params.input, params.output, N, K, input_tv, output_tv);
+            kernel(params.input,
+                   params.output,
+                   static_cast<uint64_t>(output_numel),
+                   static_cast<uint64_t>(reduce_size),
+                   input_tv,
+                   output_tv);
         };
     };
 

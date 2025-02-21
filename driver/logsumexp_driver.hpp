@@ -32,7 +32,7 @@
 #include "timer.hpp"
 #include "random.hpp"
 #include "../test/verify.hpp"
-#include "mloLogsumexpHost.hpp"
+#include "mloLogSumExpHost.hpp"
 
 #include <algorithm>
 #include <cstdlib>
@@ -44,10 +44,10 @@
 #include <../test/tensor_holder.hpp>
 
 template <typename Tgpu, typename Tref>
-class LogsumexpDriver : public Driver
+class LogSumExpDriver : public Driver
 {
 public:
-    LogsumexpDriver() : Driver()
+    LogSumExpDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputDesc);
         miopenCreateTensorDescriptor(&inputGradDesc);
@@ -77,7 +77,7 @@ public:
     int VerifyForward() override;
     int VerifyBackward() override;
 
-    ~LogsumexpDriver()
+    ~LogSumExpDriver()
     {
         miopenDestroyTensorDescriptor(inputDesc);
         miopenDestroyTensorDescriptor(inputGradDesc);
@@ -109,7 +109,7 @@ private:
 };
 
 template <typename Tgpu, typename Tref>
-int LogsumexpDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
+int LogSumExpDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
@@ -122,7 +122,7 @@ int LogsumexpDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 }
 
 template <typename Tgpu, typename Tref>
-int LogsumexpDriver<Tgpu, Tref>::GetandSetData()
+int LogSumExpDriver<Tgpu, Tref>::GetandSetData()
 {
     std::vector<int> input_len = GetInputTensorLengthsFromCmdLine();
     std::vector<int> input_grad_len(input_len.size());
@@ -150,7 +150,7 @@ int LogsumexpDriver<Tgpu, Tref>::GetandSetData()
 }
 
 template <typename Tgpu, typename Tref>
-int LogsumexpDriver<Tgpu, Tref>::AddCmdLineArgs()
+int LogSumExpDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only forward pass (Default=1)", "int");
     inflags.AddInputFlag("InputDims",
@@ -169,7 +169,7 @@ int LogsumexpDriver<Tgpu, Tref>::AddCmdLineArgs()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> LogsumexpDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+std::vector<int> LogSumExpDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 {
     std::string input_dims_str = inflags.GetValueStr("InputDims");
 
@@ -199,7 +199,7 @@ std::vector<int> LogsumexpDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> LogsumexpDriver<Tgpu, Tref>::GetDimsFromCmdLine()
+std::vector<int> LogSumExpDriver<Tgpu, Tref>::GetDimsFromCmdLine()
 {
     std::string dims_str = inflags.GetValueStr("Dims");
 
@@ -229,7 +229,7 @@ std::vector<int> LogsumexpDriver<Tgpu, Tref>::GetDimsFromCmdLine()
 }
 
 template <typename Tgpu, typename Tref>
-int LogsumexpDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
+int LogSumExpDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
     size_t input_sz       = GetTensorSize(inputDesc);
     size_t input_grad_sz  = GetTensorSize(inputGradDesc);
@@ -287,7 +287,7 @@ int LogsumexpDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 }
 
 template <typename Tgpu, typename Tref>
-int LogsumexpDriver<Tgpu, Tref>::RunForwardGPU()
+int LogSumExpDriver<Tgpu, Tref>::RunForwardGPU()
 {
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
@@ -297,7 +297,7 @@ int LogsumexpDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenLogsumexpForward(GetHandle(),
+        miopenLogSumExpForward(GetHandle(),
                                inputDesc,
                                input_dev->GetMem(),
                                outputDesc,
@@ -316,11 +316,11 @@ int LogsumexpDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward Logsumexp Elapsed: %f ms\n", t.gettime_ms() / iter);
+            printf("Wall-clock Time Forward LogSumExp Elapsed: %f ms\n", t.gettime_ms() / iter);
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Forward Logsumexp Elapsed: %f ms\n", kernel_average_time);
+        printf("GPU Kernel Time Forward LogSumExp Elapsed: %f ms\n", kernel_average_time);
     }
 
     output_dev->FromGPU(GetStream(), output.data());
@@ -329,16 +329,16 @@ int LogsumexpDriver<Tgpu, Tref>::RunForwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
-int LogsumexpDriver<Tgpu, Tref>::RunForwardCPU()
+int LogSumExpDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloLogsumexpForwardRunHost<Tgpu, Tref>(
+    mloLogSumExpForwardRunHost<Tgpu, Tref>(
         inputDesc, outputDesc, input.data(), output_host.data(), dims);
 
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
-int LogsumexpDriver<Tgpu, Tref>::RunBackwardGPU()
+int LogSumExpDriver<Tgpu, Tref>::RunBackwardGPU()
 {
     float kernel_total_time = 0.0;
     float kernel_first_time = 0.0;
@@ -348,7 +348,7 @@ int LogsumexpDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenLogsumexpBackward(GetHandle(),
+        miopenLogSumExpBackward(GetHandle(),
                                 inputDesc,
                                 input_dev->GetMem(),
                                 inputGradDesc,
@@ -371,11 +371,11 @@ int LogsumexpDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backward Logsumexp Elapsed: %f ms\n", t.gettime_ms() / iter);
+            printf("Wall-clock Time Backward LogSumExp Elapsed: %f ms\n", t.gettime_ms() / iter);
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Backward Logsumexp Elapsed: %f ms\n", kernel_average_time);
+        printf("GPU Kernel Time Backward LogSumExp Elapsed: %f ms\n", kernel_average_time);
     }
 
     input_grad_dev->FromGPU(GetStream(), input_grad.data());
@@ -384,9 +384,9 @@ int LogsumexpDriver<Tgpu, Tref>::RunBackwardGPU()
 }
 
 template <typename Tgpu, typename Tref>
-int LogsumexpDriver<Tgpu, Tref>::RunBackwardCPU()
+int LogSumExpDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloLogsumexpBackwardRunHost<Tgpu, Tref>(inputDesc,
+    mloLogSumExpBackwardRunHost<Tgpu, Tref>(inputDesc,
                                             inputGradDesc,
                                             outputDesc,
                                             outputGradDesc,
@@ -401,7 +401,7 @@ int LogsumexpDriver<Tgpu, Tref>::RunBackwardCPU()
 }
 
 template <typename Tgpu, typename Tref>
-Tref LogsumexpDriver<Tgpu, Tref>::GetTolerance()
+Tref LogSumExpDriver<Tgpu, Tref>::GetTolerance()
 {
     auto tolerance = std::is_same<Tgpu, float>{} ? 1.5e-6 : 8.2e-3;
 
@@ -412,7 +412,7 @@ Tref LogsumexpDriver<Tgpu, Tref>::GetTolerance()
 }
 
 template <typename Tgpu, typename Tref>
-int LogsumexpDriver<Tgpu, Tref>::VerifyForward()
+int LogSumExpDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
     const Tref tolerance = GetTolerance();
@@ -420,19 +420,19 @@ int LogsumexpDriver<Tgpu, Tref>::VerifyForward()
 
     if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Logsumexp Failed: " << error << std::endl;
+        std::cout << "Forward LogSumExp Failed: " << error << std::endl;
         return EC_VerifyFwd;
     }
     else
     {
-        printf("\nForward Logsumexp Verifies on CPU and GPU (err=%f)\n\n", error);
+        printf("\nForward LogSumExp Verifies on CPU and GPU (err=%f)\n\n", error);
     }
 
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
-int LogsumexpDriver<Tgpu, Tref>::VerifyBackward()
+int LogSumExpDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
@@ -440,12 +440,12 @@ int LogsumexpDriver<Tgpu, Tref>::VerifyBackward()
 
     if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Backward Logsumexp Failed: " << error << std::endl;
+        std::cout << "Backward LogSumExp Failed: " << error << std::endl;
         return EC_VerifyBwd;
     }
     else
     {
-        printf("\nBackward Logsumexp Verifies on CPU and GPU (err=%f)\n\n", error);
+        printf("\nBackward LogSumExp Verifies on CPU and GPU (err=%f)\n\n", error);
     }
 
     return miopenStatusSuccess;

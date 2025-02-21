@@ -33,34 +33,30 @@ namespace miopen {
 
 namespace logsumexp {
 
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+NetworkConfig ProblemDescriptionForward::MakeNetworkConfig() const
 {
     std::ostringstream ss;
-    ss << (isForward ? "logsumexp_fwd-" : "logsumexp_bwd-");
 
-    const auto input_lengths  = inputDesc.GetLengths();
-    const auto output_lengths = outputDesc.GetLengths();
-    const auto dtype          = inputDesc.GetType();
+    ss << "logsumexp_fwd-";
+    ss << "dtype-" << inputDesc.GetType() << "-";
+    ss << "ndims-" << inputDesc.GetNumDims() << "-";
+    ss << "isize-" << GetInputDesc().GetElementSize() << "-";
+    ss << "osize-" << GetOutputDesc().GetElementSize() << "-";
+    ss << "allpacked-" << IsAllPacked() << "-";
 
-    ss << "input-";
-    for(auto len : input_lengths)
-    {
-        ss << len << "-";
-    }
+    return NetworkConfig{ss.str()};
+}
 
-    ss << "output-";
-    for(auto len : output_lengths)
-    {
-        ss << len << "-";
-    }
+NetworkConfig ProblemDescriptionBackward::MakeNetworkConfig() const
+{
+    std::ostringstream ss;
 
-    ss << "dims-";
-    for(auto dim : dims)
-    {
-        ss << dim << "-";
-    }
-
-    ss << "dtype-" << dtype << "-";
+    ss << "logsumexp_bwd-";
+    ss << "dtype-" << inputDesc.GetType() << "-";
+    ss << "ndims-" << inputDesc.GetNumDims() << "-";
+    ss << "isize-" << GetInputDesc().GetElementSize() << "-";
+    ss << "osize-" << GetOutputDesc().GetElementSize() << "-";
+    ss << "allpacked-" << IsAllPacked() << "-";
 
     return NetworkConfig{ss.str()};
 }

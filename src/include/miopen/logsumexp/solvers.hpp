@@ -34,29 +34,32 @@ namespace solver {
 
 namespace logsumexp {
 
-using LogsumexpSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::logsumexp::ProblemDescription>;
+using LogSumExpForwardSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::logsumexp::ProblemDescriptionForward>;
 
-struct LogsumexpForward final : LogsumexpSolver
+struct LogSumExpForward final : LogSumExpForwardSolverBase
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<LogsumexpForward>(); }
+    const std::string& SolverDbId() const override { return GetSolverDbId<LogSumExpForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::logsumexp::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::logsumexp::ProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return false; }
+                      const miopen::logsumexp::ProblemDescriptionForward& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::logsumexp::ProblemDescriptionForward& problem) const override;
 };
 
-struct LogsumexpBackward final : LogsumexpSolver
+using LogSumExpBackwardSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::logsumexp::ProblemDescriptionBackward>;
+
+struct LogSumExpBackward final : LogSumExpBackwardSolverBase
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId<LogsumexpBackward>(); }
+    const std::string& SolverDbId() const override { return GetSolverDbId<LogSumExpBackward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::logsumexp::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::logsumexp::ProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return false; }
+                      const miopen::logsumexp::ProblemDescriptionBackward& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::logsumexp::ProblemDescriptionBackward& problem) const override;
 };
 
 } // namespace logsumexp

@@ -488,7 +488,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/block_reduce.hpp
         kernels/conv_common.inc
         kernels/conv_sizes.inc
-        kernels/dims_utils.hpp
         kernels/float_types.h
         kernels/gpr_alloc.inc
         kernels/hip_atomic.hpp
@@ -547,7 +546,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenGetitem.cpp
         kernels/MIOpenKthvalue.cpp
         kernels/MIOpenLayerNorm.cpp
-        kernels/MIOpenLogsumexp.cpp
+        kernels/MIOpenLogSumExp.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
         kernels/MIOpenMultiMarginLoss.cpp

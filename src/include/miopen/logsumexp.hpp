@@ -34,25 +34,25 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t LogsumexpForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t LogSumExpForward(const Handle& handle,
                                                         const TensorDescriptor& inputDesc,
                                                         ConstData_t input,
                                                         const TensorDescriptor& outputDesc,
                                                         Data_t output,
                                                         const int* dims,
-                                                        int num_dims);
+                                                        size_t num_dims);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t LogsumexpBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t LogSumExpBackward(const Handle& handle,
                                                          const TensorDescriptor& inputDesc,
                                                          ConstData_t input,
-                                                         const TensorDescriptor& inputGradDesc,
-                                                         Data_t inputGrad,
                                                          const TensorDescriptor& outputDesc,
                                                          ConstData_t output,
                                                          const TensorDescriptor& outputGradDesc,
                                                          ConstData_t outputGrad,
+                                                         const TensorDescriptor& inputGradDesc,
+                                                         Data_t inputGrad,
                                                          const int* dims,
-                                                         int num_dims);
+                                                         size_t num_dims);
 
 } // namespace miopen
 

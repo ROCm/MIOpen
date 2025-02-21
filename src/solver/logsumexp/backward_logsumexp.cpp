@@ -26,14 +26,17 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/target_properties.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <miopen/logsumexp/invoke_params.hpp>
 #include <miopen/logsumexp/solvers.hpp>
 #include <miopen/logsumexp.hpp>
-#include <miopen/target_properties.hpp>
-#include <miopen/tensor_view_utils.hpp>
-#include "../../kernels/dims_utils.hpp"
+#include "miopen/logsumexp/problem_description.hpp"
 
 #define LOCAL_SIZE 1024
+
+#define VIEW_DIMS 5
 
 namespace miopen {
 
@@ -41,7 +44,8 @@ namespace solver {
 
 namespace logsumexp {
 
-bool IsImprovementOverROCmBackward(const miopen::logsumexp::ProblemDescription& problem)
+namespace {
+bool IsImprovementOverROCmBackward(const miopen::logsumexp::ProblemDescriptionBackward& problem)
 {
     constexpr size_t max_input_numel = 1000000;
     constexpr size_t min_input_numel = 300;
@@ -50,17 +54,22 @@ bool IsImprovementOverROCmBackward(const miopen::logsumexp::ProblemDescription& 
     if(problem.GetInputDesc().GetElementSize() < min_input_numel)
         return false;
 
+    if(!problem.IsAllPacked())
+        return false;
+
     return true;
 }
+} // namespace
 
-bool LogsumexpBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
-                                     const miopen::logsumexp::ProblemDescription& problem) const
+bool LogSumExpBackward::IsApplicable(
+    const ExecutionContext& /*context*/,
+    const miopen::logsumexp::ProblemDescriptionBackward& problem) const
 {
-    if(!problem.IsValidDims())
+    if(!(problem.GetInputDesc().GetType() == miopenFloat ||
+         problem.GetInputDesc().GetType() == miopenHalf ||
+         problem.GetInputDesc().GetType() == miopenBFloat16))
         return false;
-    if(!problem.IsSameType())
-        return false;
-    if(!problem.IsAllPacked())
+    if(problem.GetInputDesc().GetNumDims() > VIEW_DIMS)
         return false;
     if(!IsImprovementOverROCmBackward(problem))
         return false;
@@ -68,19 +77,18 @@ bool LogsumexpBackward::IsApplicable([[maybe_unused]] const ExecutionContext& co
 }
 
 ConvSolution
-LogsumexpBackward::GetSolution([[maybe_unused]] const ExecutionContext& context,
-                               const miopen::logsumexp::ProblemDescription& problem) const
+LogSumExpBackward::GetSolution(const ExecutionContext& /*context*/,
+                               const miopen::logsumexp::ProblemDescriptionBackward& problem) const
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype           = problem.GetInputDesc().GetType();
-    auto input_grad_dims = problem.GetInputDesc().GetLengths();
-    auto N               = std::accumulate(
-        input_grad_dims.begin(), input_grad_dims.end(), 1ULL, std::multiplies<size_t>());
-
     {
+        auto dtype = problem.GetInputDesc().GetType();
+
+        auto input_numel = problem.GetInputDesc().GetElementSize();
+
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = AlignUp(N, xlocalsize);
+        size_t xgridsize  = AlignUp(input_numel, xlocalsize);
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
@@ -88,14 +96,15 @@ LogsumexpBackward::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenLogsumexp.cpp";
-        kernel.kernel_name = "LogsumexpBackward";
+        kernel.kernel_file = "MIOpenLogSumExp.cpp";
+        kernel.kernel_name = "LogSumExpBackward";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+            {"VIEW_DIMS", VIEW_DIMS},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
@@ -115,34 +124,27 @@ LogsumexpBackward::GetSolution([[maybe_unused]] const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params =
-                raw_params.CastTo<miopen::logsumexp::LogsumexpBackwardInvokeParams>();
+                raw_params.CastTo<miopen::logsumexp::LogSumExpBackwardInvokeParams>();
 
-            auto input_dims       = params.inputDesc->GetLengths();
-            auto input_grad_dims  = params.inputGradDesc->GetLengths();
-            auto output_dims      = params.outputDesc->GetLengths();
-            auto output_grad_dims = params.outputGradDesc->GetLengths();
+            auto input_dims       = deref(params.inputDesc).GetLengths();
+            auto input_grad_dims  = deref(params.inputGradDesc).GetLengths();
+            auto output_dims      = deref(params.outputDesc).GetLengths();
+            auto output_grad_dims = deref(params.outputGradDesc).GetLengths();
 
-            int64_t N = std::accumulate(
-                input_dims.begin(), input_dims.end(), 1, std::multiplies<int64_t>());
-            auto dims_vector = *(params.dims);
+            auto input_numel = deref(params.inputDesc).GetElementSize();
 
-            dims_5d_t selection_info;
-            for(auto dim : dims_vector)
-            {
-                selection_info.x[dim] = 1;
-            }
+            std::vector<int> dims_vector(params.dims, params.dims + params.num_dims);
 
-            auto input_tv       = get_inner_expanded_tv<5>(*(params.inputDesc));
-            auto input_grad_tv  = get_inner_expanded_tv<5>(*(params.inputGradDesc));
-            auto output_tv      = get_inner_expanded_tv<5>(*(params.outputDesc));
-            auto output_grad_tv = get_inner_expanded_tv<5>(*(params.outputGradDesc));
+            auto input_tv       = get_inner_expanded_tv<VIEW_DIMS>(*(params.inputDesc));
+            auto input_grad_tv  = get_inner_expanded_tv<VIEW_DIMS>(*(params.inputGradDesc));
+            auto output_tv      = get_inner_expanded_tv<VIEW_DIMS>(*(params.outputDesc));
+            auto output_grad_tv = get_inner_expanded_tv<VIEW_DIMS>(*(params.outputGradDesc));
 
             kernel(params.input,
                    params.inputGrad,
                    params.output,
                    params.outputGrad,
-                   selection_info,
-                   N,
+                   static_cast<uint64_t>(input_numel),
                    input_tv,
                    input_grad_tv,
                    output_tv,

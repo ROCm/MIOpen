@@ -25,143 +25,59 @@
  *******************************************************************************/
 
 #include "logsumexp.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace env = miopen::env;
+#include <miopen/bfloat16.hpp>
 
 namespace logsumexp {
 
-std::string GetFloatArg()
-{
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-        return "";
-    return tmp;
-}
-
-struct LogsumexpForwardTestFloat : LogsumexpForwardTest<float>
-{
-};
-
-struct LogsumexpForwardTestHalf : LogsumexpForwardTest<half_float::half>
-{
-};
-
-struct LogsumexpForwardTestBFloat16 : LogsumexpForwardTest<bfloat16>
-{
-};
-
-struct LogsumexpBackwardTestFloat : LogsumexpBackwardTest<float>
-{
-};
-
-struct LogsumexpBackwardTestHalf : LogsumexpBackwardTest<half_float::half>
-{
-};
-
-struct LogsumexpBackwardTestBFloat16 : LogsumexpBackwardTest<bfloat16>
-{
-};
+using GPU_LogSumExp_fwd_FP32  = LogSumExpForwardTest<float>;
+using GPU_LogSumExp_fwd_FP16  = LogSumExpForwardTest<half_float::half>;
+using GPU_LogSumExp_fwd_BFP16 = LogSumExpForwardTest<bfloat16>;
+using GPU_LogSumExp_bwd_FP32  = LogSumExpBackwardTest<float>;
+using GPU_LogSumExp_bwd_FP16  = LogSumExpBackwardTest<half_float::half>;
+using GPU_LogSumExp_bwd_BFP16 = LogSumExpBackwardTest<bfloat16>;
 
 } // namespace logsumexp
 using namespace logsumexp;
 
-TEST_P(LogsumexpForwardTestFloat, LogsumexpTestFW)
+TEST_P(GPU_LogSumExp_fwd_FP32, Test)
 {
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(LogsumexpForwardTestHalf, LogsumexpTestFW)
+TEST_P(GPU_LogSumExp_fwd_FP16, Test)
 {
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--half")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(LogsumexpForwardTestBFloat16, LogsumexpTestFW)
+TEST_P(GPU_LogSumExp_fwd_BFP16, Test)
 {
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--bfloat16")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(LogsumexpBackwardTestFloat, LogsumexpTestBW)
+TEST_P(GPU_LogSumExp_bwd_FP32, Test)
 {
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(LogsumexpBackwardTestHalf, LogsumexpTestBW)
+TEST_P(GPU_LogSumExp_bwd_FP16, Test)
 {
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--half")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(LogsumexpBackwardTestBFloat16, LogsumexpTestBW)
+TEST_P(GPU_LogSumExp_bwd_BFP16, Test)
 {
-    if(!MIOPEN_TEST_ALL || (env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--bfloat16")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(LogsumexpTestSet,
-                         LogsumexpForwardTestFloat,
-                         testing::ValuesIn(LogsumexpTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(LogsumexpTestSet,
-                         LogsumexpForwardTestHalf,
-                         testing::ValuesIn(LogsumexpTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(LogsumexpTestSet,
-                         LogsumexpForwardTestBFloat16,
-                         testing::ValuesIn(LogsumexpTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(LogsumexpTestSet,
-                         LogsumexpBackwardTestFloat,
-                         testing::ValuesIn(LogsumexpTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(LogsumexpTestSet,
-                         LogsumexpBackwardTestHalf,
-                         testing::ValuesIn(LogsumexpTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(LogsumexpTestSet,
-                         LogsumexpBackwardTestBFloat16,
-                         testing::ValuesIn(LogsumexpTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_LogSumExp_fwd_FP32, testing::ValuesIn(LogSumExpTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_LogSumExp_fwd_FP16, testing::ValuesIn(LogSumExpTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_LogSumExp_fwd_BFP16, testing::ValuesIn(LogSumExpTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_LogSumExp_bwd_FP32, testing::ValuesIn(LogSumExpTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_LogSumExp_bwd_FP16, testing::ValuesIn(LogSumExpTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_LogSumExp_bwd_BFP16, testing::ValuesIn(LogSumExpTestConfigs()));

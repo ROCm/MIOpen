@@ -27,7 +27,7 @@
 #define MLO_LOGSUMEXPHOST_H_
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloLogsumexpForwardRunHost(miopenTensorDescriptor_t inputDesc,
+int32_t mloLogSumExpForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                    miopenTensorDescriptor_t outputDesc,
                                    Tgpu* input,
                                    Tcheck* output,
@@ -104,7 +104,7 @@ int32_t mloLogsumexpForwardRunHost(miopenTensorDescriptor_t inputDesc,
 }
 
 template <typename Tgpu, typename Tcheck>
-int32_t mloLogsumexpBackwardRunHost(miopenTensorDescriptor_t inputDesc,
+int32_t mloLogSumExpBackwardRunHost(miopenTensorDescriptor_t inputDesc,
                                     miopenTensorDescriptor_t inputGradDesc,
                                     miopenTensorDescriptor_t outputDesc,
                                     miopenTensorDescriptor_t outputGradDesc,

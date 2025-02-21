@@ -28,8 +28,10 @@
 #include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
+
 #include <cassert>
-#include <string>
+#include <sstream>
+#include <vector>
 
 namespace miopen {
 
@@ -37,95 +39,130 @@ struct NetworkConfig;
 
 namespace logsumexp {
 
-struct ProblemDescription : ProblemDescriptionBase
+struct ProblemDescriptionForward : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& inputDesc_,
-                       const TensorDescriptor& outputDesc_,
-                       const std::vector<int>& dims_)
-        : inputDesc(inputDesc_), outputDesc(outputDesc_), dims(dims_), isForward(true)
+    ProblemDescriptionForward(const TensorDescriptor& inputDesc_,
+                              const TensorDescriptor& outputDesc_,
+                              const std::vector<int>& dims_)
+        : inputDesc(inputDesc_), outputDesc(outputDesc_), dims(dims_)
     {
-    }
-
-    ProblemDescription(const TensorDescriptor& inputDesc_,
-                       const TensorDescriptor& inputGradDesc_,
-                       const TensorDescriptor& outputDesc_,
-                       const TensorDescriptor& outputGradDesc_,
-                       const std::vector<int>& dims_)
-        : inputDesc(inputDesc_),
-          inputGradDesc(inputGradDesc_),
-          outputDesc(outputDesc_),
-          outputGradDesc(outputGradDesc_),
-          dims(dims_),
-          isForward(false)
-    {
+        IsSameType();
+        IsValidDims();
+        IsValidOutputSize();
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
-    const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
-
-    const std::vector<int>& GetDims() const { return dims; }
-
-    bool IsValidDims() const
-    {
-        auto size = inputDesc.GetLengths().size();
-        return std::all_of(
-            dims.begin(), dims.end(), [size](int dim) { return dim >= 0 && dim < size; });
-    }
 
     bool IsSameType() const
     {
-        if(isForward)
+        if(!(inputDesc.GetType() == outputDesc.GetType()))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "LogCumSumExp: Input and Output tensor type do not match.");
+        return true;
+    }
+
+    bool IsValidDims() const
+    {
+        for(auto dim : dims)
         {
-            if(!(inputDesc.GetType() == outputDesc.GetType()))
-            {
-                return false;
-            }
+            if(dim + inputDesc.GetNumDims() < 1 || dim > inputDesc.GetNumDims())
+                MIOPEN_THROW(
+                    miopenStatusBadParm,
+                    (std::stringstream() << "LogCumSumExp: Invalid reduce dimension=" << dim << ".")
+                        .str());
+            else if(dim < 0)
+                dim += inputDesc.GetNumDims();
         }
-        else
+        return true;
+    }
+
+    bool IsValidOutputSize() const
+    {
+        auto expected_output_dims_1 = inputDesc.GetLengths();
+        auto expected_output_dims_2 = expected_output_dims_1;
+        for(auto dim : dims)
+            expected_output_dims_1[dim] = expected_output_dims_2[dim] = 0;
+        for(int i = inputDesc.GetNumDims() - 1; i >= 0; --i)
         {
-            if(!(inputDesc.GetType() == outputDesc.GetType() &&
-                 inputDesc.GetType() == inputGradDesc.GetType() &&
-                 inputDesc.GetType() == outputGradDesc.GetType()))
-            {
-                return false;
-            }
+            if(expected_output_dims_1[i] == 0)
+                expected_output_dims_1[i] = 1;
+            if(expected_output_dims_2[i] == 0)
+                expected_output_dims_2.erase(expected_output_dims_2.begin() + i);
         }
+        if(expected_output_dims_2.size() == 0)
+            expected_output_dims_2 = {1};
+        if(expected_output_dims_1 != outputDesc.GetLengths() &&
+           expected_output_dims_2 != outputDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm, "LogCumSumExp: Invalid Output tensor size.");
+        return true;
+    }
+
+    bool IsAllPacked() const { return inputDesc.IsPacked() && outputDesc.IsPacked(); }
+
+    NetworkConfig MakeNetworkConfig() const override;
+
+protected:
+    TensorDescriptor inputDesc;
+    TensorDescriptor outputDesc;
+
+    std::vector<int> dims;
+};
+
+struct ProblemDescriptionBackward : ProblemDescriptionForward
+{
+    ProblemDescriptionBackward(const TensorDescriptor& inputDesc_,
+                               const TensorDescriptor& outputDesc_,
+                               const TensorDescriptor& outputGradDesc_,
+                               const TensorDescriptor& inputGradDesc_,
+                               const std::vector<int>& dims_)
+        : ProblemDescriptionForward(inputDesc_, outputDesc_, dims_),
+          outputGradDesc(outputGradDesc_),
+          inputGradDesc(inputGradDesc_)
+    {
+        IsSameType();
+        IsSameSize();
+        IsValidDims();
+        IsValidOutputSize();
+    }
+
+    const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
+    const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
+
+    bool IsSameType() const
+    {
+        ProblemDescriptionForward::IsSameType();
+        if(!(inputDesc.GetType() == inputGradDesc.GetType()))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "LogCumSumExp: Input and Input Gradient tensor type do not match.");
+        if(!(outputDesc.GetType() == outputGradDesc.GetType()))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "LogCumSumExp: Output and Output Gradient tensor type do not match.");
+        return true;
+    }
+
+    bool IsSameSize() const
+    {
+        if(!(inputDesc.GetLengths() == inputGradDesc.GetLengths()))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "LogCumSumExp: Input and Input Gradient tensor size do not match.");
+        if(!(outputDesc.GetLengths() == outputGradDesc.GetLengths()))
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "LogCumSumExp: Output and Output Gradient tensor size do not match.");
         return true;
     }
 
     bool IsAllPacked() const
     {
-        if(isForward)
-        {
-            if(!(inputDesc.IsPacked() && outputDesc.IsPacked()))
-            {
-                return false;
-            }
-        }
-        else
-        {
-            if(!(inputDesc.IsPacked() && inputGradDesc.IsPacked() && outputDesc.IsPacked() &&
-                 outputGradDesc.IsPacked()))
-            {
-                return false;
-            }
-        }
-        return true;
+        return ProblemDescriptionForward::IsAllPacked() && inputGradDesc.IsPacked() &&
+               outputGradDesc.IsPacked();
     }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    TensorDescriptor inputDesc;
-    TensorDescriptor inputGradDesc;
-    TensorDescriptor outputDesc;
     TensorDescriptor outputGradDesc;
-
-    std::vector<int> dims;
-
-    const bool isForward;
+    TensorDescriptor inputGradDesc;
 };
 
 } // namespace logsumexp

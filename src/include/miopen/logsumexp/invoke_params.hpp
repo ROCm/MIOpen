@@ -32,40 +32,39 @@ namespace miopen {
 
 namespace logsumexp {
 
-struct LogsumexpForwardInvokeParams : public miopen::InvokeParams
+struct LogSumExpBaseInvokeParams : public miopen::InvokeParams
 {
-    LogsumexpForwardInvokeParams() = default;
+    LogSumExpBaseInvokeParams() = default;
 
     const TensorDescriptor* inputDesc  = nullptr;
     const TensorDescriptor* outputDesc = nullptr;
 
     ConstData_t input = nullptr;
-    Data_t output     = nullptr;
 
-    const std::vector<int>* dims = nullptr;
+    const int* dims = nullptr;
+    size_t num_dims = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-struct LogsumexpBackwardInvokeParams : public miopen::InvokeParams
+struct LogSumExpForwardInvokeParams : public LogSumExpBaseInvokeParams
 {
-    LogsumexpBackwardInvokeParams() = default;
+    LogSumExpForwardInvokeParams() = default;
 
-    const TensorDescriptor* inputDesc      = nullptr;
-    const TensorDescriptor* inputGradDesc  = nullptr;
-    const TensorDescriptor* outputDesc     = nullptr;
+    Data_t output = nullptr;
+};
+
+struct LogSumExpBackwardInvokeParams : public LogSumExpBaseInvokeParams
+{
+    LogSumExpBackwardInvokeParams() = default;
+
     const TensorDescriptor* outputGradDesc = nullptr;
+    const TensorDescriptor* inputGradDesc  = nullptr;
 
-    ConstData_t input      = nullptr;
-    Data_t inputGrad       = nullptr;
     ConstData_t output     = nullptr;
     ConstData_t outputGrad = nullptr;
-
-    const std::vector<int>* dims = nullptr;
-
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    Data_t inputGrad       = nullptr;
 };
 
 } // namespace logsumexp

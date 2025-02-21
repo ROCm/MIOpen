@@ -24,209 +24,141 @@
  *
  *******************************************************************************/
 
-#include "../driver/tensor_driver.hpp"
+#pragma once
+
 #include "cpu_logsumexp.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
+
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/logsumexp.hpp>
 
-struct LogsumexpTestCase
+struct LogSumExpTestCase
 {
-    size_t N;
-    size_t C;
-    size_t D;
-    size_t H;
-    size_t W;
-    int32_t* dims;
-    int32_t num_dims;
+    std::vector<size_t> input_size;
+    std::vector<int> reduce_dims;
+    bool isContiguous;
 
-    friend std::ostream& operator<<(std::ostream& os, const LogsumexpTestCase& tc)
+    friend std::ostream& operator<<(std::ostream& os, const LogSumExpTestCase& tc)
     {
-        return os << "N: " << tc.N << " C: " << tc.C << " D: " << tc.D << " H: " << tc.H
-                  << " W: " << tc.W << " num_dims: " << tc.num_dims;
-    }
-
-    std::vector<size_t> GetInput()
-    {
-        if((N != 0) && (C != 0) && (D != 0) && (H != 0) && (W != 0))
-        {
-            return std::vector<size_t>{N, C, D, H, W};
-        }
-        else if((N != 0) && (C != 0) && (H != 0) && (W != 0))
-        {
-            return std::vector<size_t>{N, C, H, W};
-        }
-        else if((N != 0) && (C != 0) && (W != 0))
-        {
-            return std::vector<size_t>{N, C, W};
-        }
-        else if((N != 0) && (C != 0))
-        {
-            return std::vector<size_t>{N, C};
-        }
-        else if((N != 0))
-        {
-            return std::vector<size_t>{N};
-        }
-        else
-        {
-            std::cout << "Error Input Tensor Lengths\n" << std::endl;
-            return std::vector<size_t>({0});
-        }
-    }
-
-    std::vector<int32_t> GetDims()
-    {
-        if((N != 0) && (C != 0) && (D != 0) && (H != 0) && (W != 0))
-        {
-            std::vector<int32_t> adjusted_dims;
-            for(int i = 0; i < num_dims; i++)
-            {
-                adjusted_dims.push_back(dims[i]);
-            }
-            return adjusted_dims;
-        }
-        else if((N != 0) && (C != 0) && (H != 0) && (W != 0))
-        {
-            std::vector<int32_t> adjusted_dims;
-            for(int i = 0; i < num_dims; i++)
-            {
-                int32_t dim = dims[i];
-                if(dim == 3 || dim == 4)
-                {
-                    adjusted_dims.push_back(dim - 1);
-                }
-                else if(dim == 2)
-                {
-                    std::cout << "Incorrect Dims\n" << std::endl;
-                    return std::vector<int32_t>({0});
-                }
-                else
-                {
-                    adjusted_dims.push_back(dim);
-                }
-            }
-            return adjusted_dims;
-        }
-        else if((N != 0) && (C != 0) && (W != 0))
-        {
-            std::vector<int32_t> adjusted_dims;
-            for(int i = 0; i < num_dims; i++)
-            {
-                int32_t dim = dims[i];
-                if(dim == 4)
-                {
-                    adjusted_dims.push_back(dim - 2);
-                }
-                else if(dim == 3 || dim == 2)
-                {
-                    std::cout << "Incorrect Dims\n" << std::endl;
-                    return std::vector<int32_t>({0});
-                }
-                else
-                {
-                    adjusted_dims.push_back(dim);
-                }
-            }
-            return adjusted_dims;
-        }
-        else if((N != 0) && (C != 0))
-        {
-            std::vector<int32_t> adjusted_dims;
-            for(int i = 0; i < num_dims; i++)
-            {
-                int32_t dim = dims[i];
-                if(dim == 2 || dim == 3 || dim == 4)
-                {
-                    std::cout << "Incorrect Dims\n" << std::endl;
-                    return std::vector<int32_t>({0});
-                }
-                else
-                {
-                    adjusted_dims.push_back(dim);
-                }
-            }
-            return adjusted_dims;
-        }
-        else if((N != 0))
-        {
-            std::vector<int32_t> adjusted_dims;
-            for(int i = 0; i < num_dims; i++)
-            {
-                int32_t dim = dims[i];
-                if(dim == 1 || dim == 2 || dim == 3 || dim == 4)
-                {
-                    std::cout << "Incorrect Dims\n" << std::endl;
-                    return std::vector<int32_t>({0});
-                }
-                else
-                {
-                    adjusted_dims.push_back(dim);
-                }
-            }
-            return adjusted_dims;
-        }
-        else
-        {
-            std::cout << "Incorrect Dims\n" << std::endl;
-            return std::vector<int32_t>({0});
-        }
+        os << "input_size: ";
+        for(auto d : tc.input_size)
+            os << d << " ";
+        os << "reduce_dims: ";
+        for(auto d : tc.reduce_dims)
+            os << d << " ";
+        os << "is_contiguous: " << tc.isContiguous;
+        return os;
     }
 };
 
-std::vector<LogsumexpTestCase> LogsumexpTestConfigs()
+inline std::vector<size_t> ComputeStrides(std::vector<size_t> dims, const bool isContiguous)
+{
+    if(!isContiguous)
+        std::swap(dims.front(), dims.back());
+    std::vector<size_t> strides(dims.size());
+    strides.back() = 1;
+    for(int i = dims.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * dims[i + 1];
+    if(!isContiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
+}
+
+inline std::vector<LogSumExpTestCase> LogSumExpTestConfigs()
 {
     return {
-        {400, 0, 0, 0, 0, new int32_t[1]{0}, 1},
-        {800, 0, 0, 0, 0, new int32_t[1]{0}, 1},
-        {12, 40, 0, 0, 0, new int32_t[1]{0}, 1},
-        {16, 120, 0, 0, 0, new int32_t[1]{0}, 1},
-        {256, 32, 0, 0, 0, new int32_t[1]{0}, 1},
-        {1000, 48, 0, 0, 0, new int32_t[1]{0}, 1},
-        {32, 24, 0, 0, 0, new int32_t[2]{0, 1}, 2},
-        {12, 36, 0, 0, 0, new int32_t[2]{0, 1}, 2},
-        {12, 18, 0, 0, 10, new int32_t[1]{0}, 1},
-        {256, 32, 0, 0, 5, new int32_t[1]{0}, 1},
-        {32, 80, 0, 0, 5, new int32_t[1]{1}, 1},
-        {32, 96, 0, 0, 16, new int32_t[1]{4}, 1},
-        {16, 32, 0, 0, 12, new int32_t[2]{0, 1}, 2},
-        {36, 256, 0, 0, 6, new int32_t[2]{0, 4}, 2},
-        {12, 24, 0, 0, 2, new int32_t[3]{0, 1, 4}, 3},
-        {6, 6, 0, 6, 6, new int32_t[1]{0}, 1},
-        {16, 32, 0, 16, 32, new int32_t[1]{3}, 1},
-        {32, 64, 0, 16, 16, new int32_t[2]{0, 3}, 2},
-        {128, 128, 0, 4, 8, new int32_t[2]{0, 3}, 2},
-        {256, 256, 0, 2, 4, new int32_t[2]{0, 3}, 2},
-        {512, 512, 0, 1, 2, new int32_t[2]{0, 3}, 2},
-        {124, 1024, 0, 1, 1, new int32_t[2]{0, 3}, 2},
-        {12, 6, 0, 10, 5, new int32_t[3]{0, 1, 3}, 3},
-        {6, 6, 6, 6, 6, new int32_t[1]{0}, 1},
-        {12, 12, 12, 12, 12, new int32_t[1]{3}, 1},
-        {16, 16, 8, 32, 8, new int32_t[1]{4}, 1},
-        {16, 16, 16, 8, 16, new int32_t[2]{0, 1}, 2},
-        {12, 16, 2, 6, 6, new int32_t[3]{0, 1, 2}, 3},
-        {16, 256, 6, 2, 12, new int32_t[3]{0, 3, 4}, 3},
-        {2, 3, 2, 10, 5, new int32_t[3]{0, 1, 2}, 3},
-        {8, 16, 24, 10, 5, new int32_t[3]{0, 1, 4}, 3},
-        {6, 3, 3, 5, 16, new int32_t[4]{0, 1, 2, 3}, 4},
-        {12, 6, 3, 2, 6, new int32_t[4]{0, 1, 2, 3}, 4},
-        {16, 8, 16, 2, 2, new int32_t[4]{0, 1, 3, 4}, 4},
-        {11, 16, 2, 2, 5, new int32_t[4]{0, 1, 2, 3}, 4},
-        {14, 6, 2, 10, 5, new int32_t[4]{0, 1, 2, 4}, 4},
-        {16, 2, 2, 2, 4, new int32_t[5]{0, 1, 2, 3, 4}, 5},
-        {6, 6, 4, 2, 2, new int32_t[5]{0, 1, 2, 3, 4}, 5},
-        {12, 2, 4, 2, 2, new int32_t[5]{0, 1, 2, 3, 4}, 5},
-        {2, 3, 12, 1, 5, new int32_t[5]{0, 1, 2, 3, 4}, 5},
-        {2, 2, 6, 12, 2, new int32_t[5]{0, 1, 2, 3, 4}, 5},
+        {{400}, {0}, true},
+        {{800}, {0}, true},
+        {{12, 40}, {0}, true},
+        {{16, 120}, {0}, true},
+        {{256, 32}, {0}, true},
+        {{1000, 48}, {0}, true},
+        {{32, 24}, {0, 1}, true},
+        {{12, 36}, {0, 1}, true},
+        {{12, 18, 10}, {0}, true},
+        {{256, 32, 5}, {0}, true},
+        {{32, 80, 5}, {1}, true},
+        {{32, 96, 16}, {2}, true},
+        {{16, 32, 12}, {0, 1}, true},
+        {{36, 256, 6}, {0, 2}, true},
+        {{12, 24, 2}, {0, 1, 2}, true},
+        {{6, 6, 6, 6}, {0}, true},
+        {{16, 32, 16, 32}, {3}, true},
+        {{32, 64, 16, 16}, {0, 3}, true},
+        {{128, 128, 4, 8}, {0, 3}, true},
+        {{256, 256, 2, 4}, {0, 3}, true},
+        {{512, 512, 1, 2}, {0, 3}, true},
+        {{124, 1024, 1, 1}, {0, 3}, true},
+        {{12, 6, 10, 5}, {0, 1, 3}, true},
+        {{6, 6, 6, 6, 6}, {0}, true},
+        {{12, 12, 12, 12, 12}, {3}, true},
+        {{16, 16, 8, 32, 8}, {4}, true},
+        {{16, 16, 16, 8, 16}, {0, 1}, true},
+        {{12, 16, 2, 6, 6}, {0, 1, 2}, true},
+        {{16, 256, 6, 2, 12}, {0, 3, 4}, true},
+        {{2, 3, 2, 10, 5}, {0, 1, 2}, true},
+        {{8, 16, 24, 10, 5}, {0, 1, 4}, true},
+        {{6, 3, 3, 5, 16}, {0, 1, 2, 3}, true},
+        {{12, 6, 3, 2, 6}, {0, 1, 2, 3}, true},
+        {{16, 8, 16, 2, 2}, {0, 1, 3, 4}, true},
+        {{11, 16, 2, 2, 5}, {0, 1, 2, 3}, true},
+        {{14, 6, 2, 10, 5}, {0, 1, 2, 4}, true},
+        {{16, 2, 2, 2, 4}, {0, 1, 2, 3, 4}, true},
+        {{6, 6, 4, 2, 2}, {0, 1, 2, 3, 4}, true},
+        {{12, 2, 4, 2, 2}, {0, 1, 2, 3, 4}, true},
+        {{2, 3, 12, 1, 5}, {0, 1, 2, 3, 4}, true},
+        {{2, 2, 6, 12, 2}, {0, 1, 2, 3, 4}, true},
+
+        {{400}, {0}, false},
+        {{800}, {0}, false},
+        {{12, 40}, {0}, false},
+        {{16, 120}, {0}, false},
+        {{256, 32}, {0}, false},
+        {{1000, 48}, {0}, false},
+        {{32, 24}, {0, 1}, false},
+        {{12, 36}, {0, 1}, false},
+        {{12, 18, 10}, {0}, false},
+        {{256, 32, 5}, {0}, false},
+        {{32, 80, 5}, {1}, false},
+        {{32, 96, 16}, {2}, false},
+        {{16, 32, 12}, {0, 1}, false},
+        {{36, 256, 6}, {0, 2}, false},
+        {{12, 24, 2}, {0, 1, 2}, false},
+        {{6, 6, 6, 6}, {0}, false},
+        {{16, 32, 16, 32}, {3}, false},
+        {{32, 64, 16, 16}, {0, 3}, false},
+        {{128, 128, 4, 8}, {0, 3}, false},
+        {{256, 256, 2, 4}, {0, 3}, false},
+        {{512, 512, 1, 2}, {0, 3}, false},
+        {{124, 1024, 1, 1}, {0, 3}, false},
+        {{12, 6, 10, 5}, {0, 1, 3}, false},
+        {{6, 6, 6, 6, 6}, {0}, false},
+        {{12, 12, 12, 12, 12}, {3}, false},
+        {{16, 16, 8, 32, 8}, {4}, false},
+        {{16, 16, 16, 8, 16}, {0, 1}, false},
+        {{12, 16, 2, 6, 6}, {0, 1, 2}, false},
+        {{16, 256, 6, 2, 12}, {0, 3, 4}, false},
+        {{2, 3, 2, 10, 5}, {0, 1, 2}, false},
+        {{8, 16, 24, 10, 5}, {0, 1, 4}, false},
+        {{6, 3, 3, 5, 16}, {0, 1, 2, 3}, false},
+        {{12, 6, 3, 2, 6}, {0, 1, 2, 3}, false},
+        {{16, 8, 16, 2, 2}, {0, 1, 3, 4}, false},
+        {{11, 16, 2, 2, 5}, {0, 1, 2, 3}, false},
+        {{14, 6, 2, 10, 5}, {0, 1, 2, 4}, false},
+        {{16, 2, 2, 2, 4}, {0, 1, 2, 3, 4}, false},
+        {{6, 6, 4, 2, 2}, {0, 1, 2, 3, 4}, false},
+        {{12, 2, 4, 2, 2}, {0, 1, 2, 3, 4}, false},
+        {{2, 3, 12, 1, 5}, {0, 1, 2, 3, 4}, false},
+        {{2, 2, 6, 12, 2}, {0, 1, 2, 3, 4}, false},
     };
 }
 
 template <typename T = float>
-struct LogsumexpForwardTest : public ::testing::TestWithParam<LogsumexpTestCase>
+struct LogSumExpForwardTest : public ::testing::TestWithParam<LogSumExpTestCase>
 {
 protected:
     void SetUp() override
@@ -235,32 +167,22 @@ protected:
         logsumexp_config = GetParam();
         auto gen_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-        dims_vector = logsumexp_config.GetDims();
+        dims_vector = logsumexp_config.reduce_dims;
 
-        dims     = logsumexp_config.dims;
-        num_dims = logsumexp_config.num_dims;
+        auto input_dims    = logsumexp_config.input_size;
+        auto input_strides = ComputeStrides(input_dims, logsumexp_config.isContiguous);
 
-        for(int i = 0; i < num_dims; i++)
-        {
-            dims[i] = dims_vector[i];
-        }
-
-        auto input_dims = logsumexp_config.GetInput();
-
-        std::vector<size_t> output_dims(input_dims.size());
-        std::copy(input_dims.begin(), input_dims.end(), output_dims.begin());
-
+        std::vector<size_t> output_dims(input_dims);
         for(const auto& dim : dims_vector)
-        {
             output_dims[dim] = 1;
-        }
+        auto output_strides = ComputeStrides(output_dims, logsumexp_config.isContiguous);
 
-        input = tensor<T>{input_dims}.generate(gen_value);
+        input = tensor<T>{input_dims, input_strides}.generate(gen_value);
 
-        output = tensor<T>{output_dims};
+        output = tensor<T>{output_dims, output_strides};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        ref_output = tensor<T>{output_dims};
+        ref_output = tensor<T>{output_dims, output_strides};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
         input_dev  = handle.Write(input.data);
@@ -274,8 +196,13 @@ protected:
         cpu_logsumexp_forward(input, ref_output, dims_vector);
         miopenStatus_t status;
 
-        status = miopen::LogsumexpForward(
-            handle, input.desc, input_dev.get(), output.desc, output_dev.get(), dims, num_dims);
+        status = miopen::LogSumExpForward(handle,
+                                          input.desc,
+                                          input_dev.get(),
+                                          output.desc,
+                                          output_dev.get(),
+                                          dims_vector.data(),
+                                          dims_vector.size());
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -295,7 +222,7 @@ protected:
             << "Error output beyond tolerance Error: " << error << ",   Threshold " << threshold;
     }
 
-    LogsumexpTestCase logsumexp_config;
+    LogSumExpTestCase logsumexp_config;
 
     tensor<T> input;
     tensor<T> output;
@@ -305,50 +232,40 @@ protected:
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
 
-    int32_t* dims;
-    int32_t num_dims;
-
-    std::vector<int32_t> dims_vector;
+    std::vector<int> dims_vector;
 };
 
 template <typename T = float>
-struct LogsumexpBackwardTest : public ::testing::TestWithParam<LogsumexpTestCase>
+struct LogSumExpBackwardTest : public ::testing::TestWithParam<LogSumExpTestCase>
 {
 protected:
     void SetUp() override
     {
         auto&& handle    = get_handle();
         logsumexp_config = GetParam();
-        auto gen_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_value1   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_value2   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 101); };
 
-        std::vector<int32_t> dims_vector = logsumexp_config.GetDims();
+        dims_vector = logsumexp_config.reduce_dims;
 
-        dims     = logsumexp_config.dims;
-        num_dims = logsumexp_config.num_dims;
+        auto input_dims = logsumexp_config.input_size;
+        auto input_grad_dims(input_dims);
+        auto input_strides = ComputeStrides(input_dims, logsumexp_config.isContiguous);
 
-        for(int i = 0; i < num_dims; i++)
-        {
-            dims[i] = dims_vector[i];
-        }
-
-        auto input_dims = logsumexp_config.GetInput();
-
-        std::vector<size_t> input_grad_dims(input_dims.size());
-        std::copy(input_dims.begin(), input_dims.end(), input_grad_dims.begin());
-        std::vector<size_t> output_dims(input_dims.size());
-        std::copy(input_dims.begin(), input_dims.end(), output_dims.begin());
-        std::vector<size_t> output_grad_dims(input_dims.size());
-        std::copy(input_dims.begin(), input_dims.end(), output_grad_dims.begin());
-
+        auto output_dims(input_dims);
+        auto output_grad_dims(input_dims);
         for(const auto& dim : dims_vector)
         {
             output_dims[dim]      = 1;
             output_grad_dims[dim] = 1;
         }
+        auto output_strides = ComputeStrides(output_dims, logsumexp_config.isContiguous);
 
-        input       = tensor<T>{input_dims}.generate(gen_value);
-        output      = tensor<T>{output_dims}.generate(gen_value);
-        output_grad = tensor<T>{output_grad_dims}.generate(gen_value);
+        input       = tensor<T>{input_dims, input_strides}.generate(gen_value1);
+        output      = tensor<T>{output_dims, output_strides};
+        cpu_logsumexp_forward(input, output, dims_vector);
+
+        output_grad = tensor<T>{output_grad_dims}.generate(gen_value2);
 
         input_grad = tensor<T>{input_grad_dims};
         std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
@@ -367,20 +284,21 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_logsumexp_backward(input, ref_input_grad, output, output_grad, dims, num_dims);
+        cpu_logsumexp_backward(
+            input, ref_input_grad, output, output_grad, dims_vector.data(), dims_vector.size());
         miopenStatus_t status;
 
-        status = miopen::LogsumexpBackward(handle,
+        status = miopen::LogSumExpBackward(handle,
                                            input.desc,
                                            input_dev.get(),
-                                           input_grad.desc,
-                                           input_grad_dev.get(),
                                            output.desc,
                                            output_dev.get(),
                                            output_grad.desc,
                                            output_grad_dev.get(),
-                                           dims,
-                                           num_dims);
+                                           input_grad.desc,
+                                           input_grad_dev.get(),
+                                           dims_vector.data(),
+                                           dims_vector.size());
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -400,7 +318,7 @@ protected:
                                        << ",   Threshold " << threshold;
     }
 
-    LogsumexpTestCase logsumexp_config;
+    LogSumExpTestCase logsumexp_config;
 
     tensor<T> input;
     tensor<T> input_grad;
@@ -414,6 +332,5 @@ protected:
     miopen::Allocator::ManageDataPtr output_dev;
     miopen::Allocator::ManageDataPtr output_grad_dev;
 
-    int32_t* dims;
-    int32_t num_dims;
+    std::vector<int> dims_vector;
 };

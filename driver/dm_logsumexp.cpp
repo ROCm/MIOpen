@@ -30,11 +30,11 @@
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "logsumexp")
-        return new LogsumexpDriver<float, float>();
+        return new LogSumExpDriver<float, float>();
     if(base_arg == "logsumexpfp16")
-        return new LogsumexpDriver<float16, float>();
+        return new LogSumExpDriver<float16, float>();
     if(base_arg == "logsumexpbfp16")
-        return new LogsumexpDriver<bfloat16, float>();
+        return new LogSumExpDriver<bfloat16, float>();
     return nullptr;
 }
 

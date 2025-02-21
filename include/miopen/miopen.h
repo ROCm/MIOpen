@@ -72,7 +72,7 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
- * @defgroup logsumexp
+ * @defgroup LogSumExp
  *
  */
 
@@ -8234,60 +8234,60 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 
 #ifdef MIOPEN_BETA_API
 // LogSumExp APIs
-/** @addtogroup logsumexp
+/** @addtogroup LogSumExp
  *
  *  @{
  */
 /*!
- * @brief Execute a logsumexp forward layer
+ * @brief Execute a LogSumExp forward layer
  *
- * @param handle        MIOpen handle (input)
- * @param inputDesc     Tensor descriptor for the input tensor (input)
- * @param input         Input tensor (input)
- * @param outputDesc    Tensor descriptor for the output tensor (input)
- * @param output        Output tensor (output)
- * @param dims          Dimensions to reduce (input)
- * @param num_dims      Number of dimensions to reduce (input)
- * @return              miopenStatus_t
+ * @param [in]  handle              MIOpen handle (input)
+ * @param [in]  inputDesc           Tensor descriptor for the input tensor (input)
+ * @param [in]  input               Input tensor (input)
+ * @param [in]  outputDesc          Tensor descriptor for the output tensor (input)
+ * @param [out] output              Output tensor (output)
+ * @param [in]  dims                Dimensions to reduce (input)
+ * @param [in]  num_dims            Number of dimensions to reduce (input)
+ * @return                          miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenLogsumexpForward(miopenHandle_t handle,
+MIOPEN_EXPORT miopenStatus_t miopenLogSumExpForward(miopenHandle_t handle,
                                                     const miopenTensorDescriptor_t inputDesc,
                                                     const void* input,
                                                     const miopenTensorDescriptor_t outputDesc,
                                                     void* output,
                                                     const int* dims,
-                                                    const int num_dims);
+                                                    const size_t num_dims);
 
 /*!
- * @brief Execute a logsumexp backward layer
+ * @brief Execute a LogSumExp backward layer
  *
- * @param handle            MIOpen handle (input)
- * @param inputDesc         Tensor descriptor for the input tensor (input)
- * @param input             Input tensor (input)
- * @param inputGradDesc     Tensor descriptor for the input gradient tensor (input)
- * @param inputGrad         Input gradient tensor (output)
- * @param outputDesc        Tensor descriptor for the output tensor (input)
- * @param output            Output tensor (input)
- * @param outputGradDesc    Tensor descriptor for the output gradient tensor (input)
- * @param outputGrad        Output gradient tensor (input)
- * @param dims              Dimensions to reduce (input)
- * @param num_dims          Number of dimensions to reduce (input)
- * @return                  miopenStatus_t
+ * @param [in]  handle              MIOpen handle
+ * @param [in]  inputDesc           Tensor descriptor for the input tensor
+ * @param [in]  input               Input tensor
+ * @param [in]  outputDesc          Tensor descriptor for the output tensor
+ * @param [in]  output              Output tensor
+ * @param [in]  outputGradDesc      Tensor descriptor for the output gradient tensor
+ * @param [in]  outputGrad          Output gradient tensor
+ * @param [in]  inputGradDesc       Tensor descriptor for the input gradient tensor
+ * @param [out] inputGrad           Input gradient tensor
+ * @param [in]  dims                Dimensions to reduce
+ * @param [in]  num_dims            Number of dimensions to reduce
+ * @return                          miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t miopenLogsumexpBackward(miopenHandle_t handle,
+MIOPEN_EXPORT miopenStatus_t miopenLogSumExpBackward(miopenHandle_t handle,
                                                      const miopenTensorDescriptor_t inputDesc,
                                                      const void* input,
-                                                     const miopenTensorDescriptor_t inputGradDesc,
-                                                     void* inputGrad,
                                                      const miopenTensorDescriptor_t outputDesc,
                                                      const void* output,
                                                      const miopenTensorDescriptor_t outputGradDesc,
                                                      const void* outputGrad,
+                                                     const miopenTensorDescriptor_t inputGradDesc,
+                                                     void* inputGrad,
                                                      const int* dims,
-                                                     const int num_dims);
+                                                     const size_t num_dims);
 
 /** @} */
-// CLOSEOUT LOGSUMEXP DOXYGEN GROUP
+// CLOSEOUT LogSumExp DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

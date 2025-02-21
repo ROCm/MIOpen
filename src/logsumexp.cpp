@@ -28,78 +28,84 @@
 #include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/kernel_cache.hpp>
+#include <miopen/logsumexp/problem_description.hpp>
 #include <miopen/logsumexp/invoke_params.hpp>
 #include <miopen/logsumexp/solvers.hpp>
 #include <miopen/logsumexp.hpp>
 #include <miopen/tensor.hpp>
 
+#include <vector>
+
 namespace miopen {
 
-miopenStatus_t LogsumexpForward(Handle& handle,
+miopenStatus_t LogSumExpForward(const Handle& handle,
                                 const TensorDescriptor& inputDesc,
                                 ConstData_t input,
                                 const TensorDescriptor& outputDesc,
                                 Data_t output,
                                 const int* dims,
-                                int num_dims)
+                                const size_t num_dims)
 {
-    std::vector dims_vector(dims, dims + num_dims);
-
-    const auto problem = logsumexp::ProblemDescription{inputDesc, outputDesc, dims_vector};
+    const auto problem = logsumexp::ProblemDescriptionForward{
+        inputDesc, outputDesc, std::vector<int>(dims, dims + num_dims)};
 
     const auto invoke_params = [&]() {
-        auto tmp       = logsumexp::LogsumexpForwardInvokeParams{};
+        auto tmp       = logsumexp::LogSumExpForwardInvokeParams{};
         tmp.type       = InvokeType::Run;
         tmp.inputDesc  = &inputDesc;
         tmp.outputDesc = &outputDesc;
         tmp.input      = input;
         tmp.output     = output;
-        tmp.dims       = &dims_vector;
+        tmp.dims       = dims;
+        tmp.num_dims   = num_dims;
         return tmp;
     }();
 
-    const auto algo    = AlgorithmName{"LogsumexpForward"};
-    const auto solvers = solver::SolverContainer<solver::logsumexp::LogsumexpForward>{};
+    const auto algo    = AlgorithmName{"LogSumExpForward"};
+    const auto solvers = solver::SolverContainer<solver::logsumexp::LogSumExpForward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;
 }
 
-miopenStatus_t LogsumexpBackward(Handle& handle,
+miopenStatus_t LogSumExpBackward(const Handle& handle,
                                  const TensorDescriptor& inputDesc,
                                  ConstData_t input,
-                                 const TensorDescriptor& inputGradDesc,
-                                 Data_t inputGrad,
                                  const TensorDescriptor& outputDesc,
                                  ConstData_t output,
                                  const TensorDescriptor& outputGradDesc,
                                  ConstData_t outputGrad,
+                                 const TensorDescriptor& inputGradDesc,
+                                 Data_t inputGrad,
                                  const int* dims,
-                                 int num_dims)
+                                 const size_t num_dims)
 {
-    std::vector dims_vector(dims, dims + num_dims);
-
-    const auto problem = logsumexp::ProblemDescription{
-        inputDesc, inputGradDesc, outputDesc, outputGradDesc, dims_vector};
+    const auto problem =
+        logsumexp::ProblemDescriptionBackward{inputDesc,
+                                              outputDesc,
+                                              outputGradDesc,
+                                              inputGradDesc,
+                                              std::vector<int>(dims, dims + num_dims)};
 
     const auto invoke_params = [&]() {
-        auto tmp           = logsumexp::LogsumexpBackwardInvokeParams{};
+        auto tmp           = logsumexp::LogSumExpBackwardInvokeParams{};
         tmp.type           = InvokeType::Run;
         tmp.inputDesc      = &inputDesc;
-        tmp.inputGradDesc  = &inputGradDesc;
         tmp.outputDesc     = &outputDesc;
         tmp.outputGradDesc = &outputGradDesc;
+        tmp.inputGradDesc  = &inputGradDesc;
         tmp.input          = input;
-        tmp.inputGrad      = inputGrad;
         tmp.output         = output;
         tmp.outputGrad     = outputGrad;
-        tmp.dims           = &dims_vector;
+        tmp.inputGrad      = inputGrad;
+        tmp.dims           = dims;
+        tmp.num_dims       = num_dims;
         return tmp;
     }();
 
-    const auto algo    = AlgorithmName{"LogsumexpBackward"};
-    const auto solvers = solver::SolverContainer<solver::logsumexp::LogsumexpBackward>{};
+    const auto algo    = AlgorithmName{"LogSumExpBackward"};
+    const auto solvers = solver::SolverContainer<solver::logsumexp::LogSumExpBackward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
