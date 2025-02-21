@@ -24,6 +24,8 @@
  *
  *******************************************************************************/
 
+#define CONV_WINO_RXS_CPP
+
 #include <miopen/conv/solvers.hpp>
 
 #include <miopen/buffer_info.hpp>
@@ -1159,8 +1161,8 @@ ConvSolution ConvBinWinogradRxSf2x3g1::GetSolution(const ExecutionContext& ctx,
     return tunable.GetSolution(ctx, problem, tunable.GetDefaultPerformanceConfig(ctx, problem));
 }
 
-template struct ConvBinWinoRxS<2, 3>;
-template struct ConvBinWinoRxS<3, 2>;
+template struct MIOPEN_INTERNALS_EXPORT ConvBinWinoRxS<2, 3>;
+template struct MIOPEN_INTERNALS_EXPORT ConvBinWinoRxS<3, 2>;
 
 } // namespace conv
 } // namespace solver
