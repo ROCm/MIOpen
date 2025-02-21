@@ -57,7 +57,7 @@ inline miopenTensorLayout_t StringToLayoutType(std::string layout)
 
 inline void LengthReorder(miopen::LensStrides<int>& lens, const std::initializer_list<int>& indices)
 {
-    miopen::LensStrides<int> out_lens(indices.size());
+    miopen::LensStrides<int> out_lens;
     for(int index : indices)
     {
         assert(0 <= index && index < lens.size());
@@ -99,7 +99,8 @@ inline miopen::LensStrides<int> GetTensorLengths(const miopenTensorDescriptor_t&
         return miopen::LensStrides<int>({n, c, h, w});
     }
 
-    miopen::LensStrides<int> tensor_len(miopen::deref(tensor).GetNumDims());
+    miopen::LensStrides<int> tensor_len;
+    tensor_len.resize(miopen::deref(tensor).GetNumDims());
     miopenGetTensorDescriptor(tensor, nullptr, tensor_len.data(), nullptr);
 
     return tensor_len;
@@ -128,7 +129,8 @@ inline miopen::LensStrides<int> GetTensorStrides(const miopenTensorDescriptor_t&
         return miopen::LensStrides<int>({nstride, cstride, hstride, wstride});
     }
 
-    miopen::LensStrides<int> tensor_strides(miopen::deref(tensor).GetNumDims());
+    miopen::LensStrides<int> tensor_strides;
+    tensor_strides.resize(miopen::deref(tensor).GetNumDims());
 
     miopenGetTensorDescriptor(tensor, nullptr, nullptr, tensor_strides.data());
 
