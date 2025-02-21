@@ -32,6 +32,7 @@
 #include <miopen/perf_field.hpp>
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/solution.hpp>
+#include <miopen/utility/modified_z.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_GEMM)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT)
@@ -230,6 +231,7 @@ static std::vector<Solution> EvaluateInvokers(const Handle& handle,
     auto best         = std::numeric_limits<float>::max();
     auto best_invoker = Invoker{};
     auto ret          = std::vector<Solution>{};
+    std::vector<float> samples;
 
     for(const auto& sol : solutions)
     {
@@ -261,31 +263,40 @@ static std::vector<Solution> EvaluateInvokers(const Handle& handle,
 
         try
         {
-            // Run invoker max 6 times, with ~5 sec time limit.
+            // Run invoker max 8 times, with ~5 sec time limit.
             using elapsed_t                 = decltype(handle.GetKernelTime());
             constexpr elapsed_t TIME_MS_MAX = 5000.0;
             constexpr int N_RUNS_MAX        = 8;
-            constexpr int N_RUNS_DISCARD    = 3;
             auto elapsed                    = static_cast<elapsed_t>(0);
             auto first_elapsed              = static_cast<elapsed_t>(0);
             int i                           = 0;
+            samples.clear();
             while(i < N_RUNS_MAX && elapsed < TIME_MS_MAX)
             {
                 invoker(handle, invoke_ctx);
-                elapsed += handle.GetKernelTime();
-                if(i == (N_RUNS_DISCARD - 1))
-                    first_elapsed = elapsed;
+
+                // don't include warm-up run in our samples.
+                if(i > 0)
+                {
+                    samples.push_back(handle.GetKernelTime());
+                }
+                else
+                {
+                    // Keep first run just in case we go over the limit, and have no samples.
+                    first_elapsed = handle.GetKernelTime();
+                }
                 ++i;
             }
-            // If the execution time was not too long,
-            // then the 1st run is not counted (assume it's warm-up):
-            if(i > N_RUNS_DISCARD)
+
+            if(samples.size() > 0)
             {
-                elapsed = (elapsed - first_elapsed) / static_cast<elapsed_t>(i - N_RUNS_DISCARD);
+                // Remove outliers that are more than 2 positive modified z-score's away, and get
+                // the mean.
+                elapsed = miopen::removeHighOutliersAndGetMean(samples, 2.0f);
             }
-            else if(i > 0)
+            else
             {
-                elapsed /= i;
+                elapsed = first_elapsed;
             }
 
             MIOPEN_THROW_IF(elapsed <= 0, "Invalid elapsed time detected in EvaluateInvokers");
