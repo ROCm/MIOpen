@@ -34,7 +34,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
-        TestCase{{1, 3, 224, 224}, {64, 3, 7, 7}, {3, 3}, {2, 2}, {1, 1}, datatype},
+        TestCase{{1, 16, 14, 14}, {48, 16, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype},
         // clang-format on
     };
 }
@@ -42,10 +42,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        // gfx90A is not enabled because of WORKAROUND_ISSUE_1146
-        Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908;
-        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
-        p.CheckXnackDisabled();
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
         return p;
     }();
     return params;
@@ -53,31 +50,36 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1_FP32 = GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverFFTFwd_FP32 = GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverFFTBwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
 
-using CPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1DevApplicability_NONE =
+using CPU_UnitTestConvSolverFFTDevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
-TEST_P(GPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1_FP32, ConvAsm7x7c3h224w224k64u2v2p3q3f1)
-{
-    this->RunTest(miopen::solver::conv::ConvAsm7x7c3h224w224k64u2v2p3q3f1{});
-};
+TEST_P(GPU_UnitTestConvSolverFFTFwd_FP32, fft) { this->RunTest(miopen::solver::conv::fft{}); };
 
-TEST_P(CPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1DevApplicability_NONE,
-       ConvAsm7x7c3h224w224k64u2v2p3q3f1)
+TEST_P(GPU_UnitTestConvSolverFFTBwd_FP32, fft) { this->RunTest(miopen::solver::conv::fft{}); };
+
+TEST_P(CPU_UnitTestConvSolverFFTDevApplicabilityFwd_NONE, fft)
 {
-    this->RunTest(miopen::solver::conv::ConvAsm7x7c3h224w224k64u2v2p3q3f1{});
+    this->RunTest(miopen::solver::conv::fft{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1_FP32,
+                         GPU_UnitTestConvSolverFFTFwd_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::Values(miopenConvolutionAlgoFFT),
+                                          testing::ValuesIn(GetConvTestCases(miopenFloat))));
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_UnitTestConvSolverFFTBwd_FP32,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoFFT),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1DevApplicability_NONE,
+                         CPU_UnitTestConvSolverFFTDevApplicabilityFwd_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));

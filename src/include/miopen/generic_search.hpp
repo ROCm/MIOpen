@@ -38,6 +38,7 @@
 #include <miopen/timer.hpp>
 #include <miopen/mt_queue.hpp>
 #include <miopen/generic_search_controls.hpp>
+#include <miopen/utility/modified_z.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -400,10 +401,11 @@ auto GenericSearch(const Solver s,
         }
     }
 
-    bool is_passed  = false; // left false only if all iterations failed.
-    float best_time = std::numeric_limits<float>::max();
-    size_t n_failed = 0;
-    size_t n_best   = 0;
+    bool is_passed   = false; // left false only if all iterations failed.
+    float best_time  = std::numeric_limits<float>::max();
+    float worst_time = std::numeric_limits<float>::max();
+    size_t n_failed  = 0;
+    size_t n_best    = 0;
     HeartBeat<PerformanceConfig> heartbeat;
     heartbeat.Start();
 
@@ -429,6 +431,7 @@ auto GenericSearch(const Solver s,
         size_t n_current       = 0;
         size_t last_imprv      = 0;
         auto threads_remaining = total_threads;
+        std::vector<float> samples;
         while(true)
         {
             if(n_current >= n_runs_total)
@@ -461,6 +464,7 @@ auto GenericSearch(const Solver s,
                 }
             }
 
+            samples.clear();
             float elapsed_time = 0.0f;
             int ret            = 0;
             MIOPEN_LOG_I2('#' << n_current << '/' << n_failed << '/' << n_runs_total << ' '
@@ -481,8 +485,18 @@ auto GenericSearch(const Solver s,
 
                 invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
                                                    current_solution.construction_params);
+
+                // Warm-up run for first time invoker is used
+                if(n_current == 0)
+                {
+                    invoker(profile_h, invoke_ctx);
+                    profile_h.ResetKernelTime();
+                }
+
                 invoker(profile_h, invoke_ctx);
                 elapsed_time = profile_h.GetKernelTime();
+                samples.push_back(elapsed_time);
+                profile_h.ResetKernelTime();
             }
             catch(const std::exception& e)
             {
@@ -503,11 +517,11 @@ auto GenericSearch(const Solver s,
             if(ret == 0)
             {
                 // Smooth the jitter of measurements:
-                // If the 1st probe is NOT too bad (measured time <= 1.10 * best known time),
-                // then re-run it 9 times more and compute average time,
-                // and decide using average of all 10 attempts vs. the best.
+                // If the 1st probe is NOT too bad (measured time <= 1.10 * worst sample of the best
+                // config), then gather 9 more samples, and remove positive z-score outliers. Use
+                // the mean value with outliers removed for calculating best config.
                 constexpr int N_RUNS = 10;
-                if(elapsed_time / best_time < 1.10f)
+                if(elapsed_time / worst_time < 1.10f)
                 {
                     MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time
                                                           << " = " << (elapsed_time / best_time));
@@ -517,7 +531,8 @@ auto GenericSearch(const Solver s,
                         for(int i = 1; i < N_RUNS; ++i)
                         {
                             invoker(profile_h, invoke_ctx);
-                            elapsed_time += profile_h.GetKernelTime();
+                            samples.push_back(profile_h.GetKernelTime());
+                            profile_h.ResetKernelTime();
                         }
                     }
                     catch(...)
@@ -528,7 +543,10 @@ auto GenericSearch(const Solver s,
                     if(ret == 0)
                     {
                         is_passed = true;
-                        elapsed_time /= N_RUNS;
+
+                        // Remove outliers that are more than 2 positive modified z-score's away,
+                        // and get the mean.
+                        elapsed_time = miopen::removeHighOutliersAndGetMean(samples, 2.0f);
                         if(elapsed_time < best_time)
                         {
                             MIOPEN_LOG_I('#' << n_current << '/' << n_failed << '/' << n_runs_total
@@ -536,13 +554,17 @@ auto GenericSearch(const Solver s,
                                              << current_config);
                             best_config = current_config;
                             best_time   = elapsed_time;
-                            n_best      = n_current;
-                            last_imprv  = 0;
+
+                            // Samples gets sorted by the RemoveOutliers call so the last element
+                            // will be the slowest.
+                            worst_time = samples.back();
+                            n_best     = n_current;
+                            last_imprv = 0;
                         }
                         else
                         {
-                            MIOPEN_LOG_I2("Average is not better: " << elapsed_time
-                                                                    << " >= " << best_time);
+                            MIOPEN_LOG_I2("Mean is not better: " << elapsed_time
+                                                                 << " >= " << best_time);
                         }
                     }
                 }
