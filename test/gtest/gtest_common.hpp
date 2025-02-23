@@ -69,6 +69,12 @@ enum class Gpu : int
     All     = -1
 };
 
+inline Gpu operator~(Gpu lhs)
+{
+    using T = std::underlying_type_t<Gpu>;
+    return static_cast<Gpu>(~static_cast<T>(lhs));
+}
+
 inline Gpu operator|(Gpu lhs, Gpu rhs)
 {
     using T = std::underlying_type_t<Gpu>;
