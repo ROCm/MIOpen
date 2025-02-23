@@ -34,7 +34,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
-        TestCase{{1, 3, 224, 224}, {64, 3, 7, 7}, {3, 3}, {2, 2}, {1, 1}, datatype},
+        TestCase{{1, 16, 14, 14}, {16, 16, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
         // clang-format on
     };
 }
@@ -42,10 +42,10 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        // gfx90A is not enabled because of WORKAROUND_ISSUE_1146
-        Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908;
+        // gfx10 and gfx11 are disabled due to WORKAROUND_SWDEV_266868
+        Gpu supported_gpus = Gpu::All & ~(Gpu::gfx103X | Gpu::gfx110X);
         auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
-        p.CheckXnackDisabled();
+        p.EnableDeprecatedSolvers();
         return p;
     }();
     return params;
@@ -53,31 +53,54 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1_FP32 = GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverOclBwdWrW1x1_FP16  = GPU_UnitTestConvSolverWrw_FP16;
+using GPU_UnitTestConvSolverOclBwdWrW1x1_BFP16 = GPU_UnitTestConvSolverWrw_BFP16;
+using GPU_UnitTestConvSolverOclBwdWrW1x1_FP32  = GPU_UnitTestConvSolverWrw_FP32;
 
-using CPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1DevApplicability_NONE =
-    CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
+using CPU_UnitTestConvSolverOclBwdWrW1x1DevApplicability_NONE =
+    CPU_UnitTestConvSolverDevApplicabilityWrw_NONE;
 
-TEST_P(GPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1_FP32, ConvAsm7x7c3h224w224k64u2v2p3q3f1)
+TEST_P(GPU_UnitTestConvSolverOclBwdWrW1x1_FP16, ConvOclBwdWrW1x1)
 {
-    this->RunTest(miopen::solver::conv::ConvAsm7x7c3h224w224k64u2v2p3q3f1{});
+    this->RunTest(miopen::solver::conv::ConvOclBwdWrW1x1{});
 };
 
-TEST_P(CPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1DevApplicability_NONE,
-       ConvAsm7x7c3h224w224k64u2v2p3q3f1)
+TEST_P(GPU_UnitTestConvSolverOclBwdWrW1x1_BFP16, ConvOclBwdWrW1x1)
 {
-    this->RunTest(miopen::solver::conv::ConvAsm7x7c3h224w224k64u2v2p3q3f1{});
+    this->RunTest(miopen::solver::conv::ConvOclBwdWrW1x1{});
+};
+
+TEST_P(GPU_UnitTestConvSolverOclBwdWrW1x1_FP32, ConvOclBwdWrW1x1)
+{
+    this->RunTest(miopen::solver::conv::ConvOclBwdWrW1x1{});
+};
+
+TEST_P(CPU_UnitTestConvSolverOclBwdWrW1x1DevApplicability_NONE, ConvOclBwdWrW1x1)
+{
+    this->RunTest(miopen::solver::conv::ConvOclBwdWrW1x1{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1_FP32,
+                         GPU_UnitTestConvSolverOclBwdWrW1x1_FP16,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCases(miopenHalf))));
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_UnitTestConvSolverOclBwdWrW1x1_BFP16,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_UnitTestConvSolverOclBwdWrW1x1_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverAsm7x7c3h224w224k64u2v2p3q3f1DevApplicability_NONE,
+                         CPU_UnitTestConvSolverOclBwdWrW1x1DevApplicability_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
