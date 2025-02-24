@@ -27,10 +27,7 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace regression_half_mi200 {
 void SetupEnvVar(void)
@@ -47,10 +44,9 @@ std::vector<std::string> GetArgs(const std::string& param)
     return {begin, end};
 }
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& float_arg)
 {
-    const std::string& cmd       = "test_conv2d ";
-    const std::string& float_arg = env::value(MIOPEN_TEST_FLOAT_ARG);
+    const std::string& cmd = "test_conv2d ";
     const std::string& args =
         " --verbose --disable-forward --disable-backward-data --disable-validation";
 
@@ -61,7 +57,7 @@ std::vector<std::string> GetTestCases(void)
     // clang-format on
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using TestCase = decltype(GetTestCases(std::string{}))::value_type;
 
 class GPU_regression_mi200_FP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
@@ -76,10 +72,11 @@ bool IsTestSupportedForDevice()
 
 void Run2dDriver(void)
 {
-    if(!(IsTestSupportedForDevice() && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
+    if(!IsTestSupportedForDevice())
     {
         GTEST_SKIP();
     }
+
     SetupEnvVar();
     std::vector<std::string> params = GPU_regression_mi200_FP16::GetParam();
 
@@ -103,4 +100,4 @@ using namespace regression_half_mi200;
 
 TEST_P(GPU_regression_mi200_FP16, FloatTest_regression_half_mi200) { Run2dDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_regression_mi200_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_regression_mi200_FP16, testing::Values(GetTestCases("--half")));

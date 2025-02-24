@@ -106,6 +106,7 @@ struct GenWeights
 template <typename T, typename Tacc>
 struct GenConvData
 {
+    /// \note CHWNc filter layout is not supported (different storage layout)
     GenConvData(const std::vector<std::size_t>& filter, unsigned group_count = 1)
     {
         static_assert(std::is_integral_v<T> == std::is_integral_v<Tacc>);
@@ -144,6 +145,7 @@ struct GenConvData
             // Limit the range of FP
             constexpr auto limit = static_cast<float>(std::numeric_limits<uint32_t>::max());
             if(B > limit)
+                // cppcheck-suppress floatConversionOverflow
                 B = limit;
         }
 

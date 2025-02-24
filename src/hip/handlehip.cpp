@@ -453,7 +453,7 @@ void Handle::Copy(ConstData_t src, Data_t dest, std::size_t size) const
 {
     MIOPEN_HANDLE_LOCK
     this->impl->set_ctx();
-    auto status = hipMemcpy(dest, src, size, hipMemcpyDeviceToDevice);
+    auto status = hipMemcpyWithStream(dest, src, size, hipMemcpyDeviceToDevice, this->GetStream());
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Hip error copying buffer: ");
 }
@@ -518,8 +518,8 @@ void Handle::ClearKernels(const std::string& algorithm, const std::string& netwo
     this->impl->cache.ClearKernels(algorithm, network_config);
 }
 
-const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
-                                                  const std::string& network_config) const
+std::vector<Kernel> Handle::GetKernelsImpl(const std::string& algorithm,
+                                           const std::string& network_config) const
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
@@ -755,7 +755,7 @@ std::size_t Handle::GetWavefrontWidth() const
 
 // No HIP API that could return maximum memory allocation size
 // for a single object.
-std::size_t Handle::GetMaxMemoryAllocSize()
+std::size_t Handle::GetMaxMemoryAllocSize() const
 {
     if(m_MaxMemoryAllocSizeCached == 0)
     {
@@ -782,7 +782,7 @@ bool Handle::CooperativeLaunchSupported() const
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
 
-std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
+std::string Handle::GetDeviceName() const { return this->GetTargetProperties().Name(); }
 
 const TargetProperties& Handle::GetTargetProperties() const
 {

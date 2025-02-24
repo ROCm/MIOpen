@@ -41,9 +41,6 @@ endif()
 option( MIOPEN_USE_RNE_BFLOAT16 "Sets rounding scheme for bfloat16 type" ON )
 option( MIOPEN_FP8_IEEE_EXPONENT_BIAS "Sets the FP8 exponent bias to IEEE" OFF)
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
-set ( MIOPEN_DEFAULT_FIND_MODE "DynamicHybrid" CACHE STRING "Sets the default find mode")
-set_property(CACHE MIOPEN_DEFAULT_FIND_MODE PROPERTY STRINGS
-    Normal Fast Hybrid FastHybrid DynamicHybrid)
 
 option( MIOPEN_FP8_CLIPPING "Sets the FP8 clipping" ON)
 
@@ -89,6 +86,7 @@ set( MIOpen_Source
     adam_api.cpp
     addlayernorm_api.cpp
     api/find2_0_commons.cpp
+    base64.cpp
     batch_norm.cpp
     batch_norm_api.cpp
     batchnorm/problem_description.cpp
@@ -122,6 +120,7 @@ set( MIOpen_Source
     env.cpp
     execution_context.cpp
     expanduser.cpp
+    fin/fin_interface.cpp
     find_controls.cpp
     find_db.cpp
     fused_api.cpp
@@ -154,6 +153,8 @@ set( MIOpen_Source
     getitem/problem_description.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
+    kthvalue/problem_description.cpp
+    kthvalue_api.cpp
     layernorm_api.cpp
     layernorm/problem_description.cpp
     load_file.cpp
@@ -162,6 +163,8 @@ set( MIOpen_Source
     lrn_api.cpp
     mha/mha_descriptor.cpp
     mha/problem_description.cpp
+    multimarginloss/problem_description.cpp
+    multimarginloss_api.cpp
     op_args.cpp
     operator.cpp
     performance_config.cpp
@@ -183,8 +186,10 @@ set( MIOpen_Source
     rnn/rnn_util.cpp
     rnn/selector.cpp
     rnn/Solutions/rnn_transformer.cpp
+    rnn/Solutions/Base/fw_data_modular.cpp
     rnn/Solutions/Base/bw_weights_modular.cpp
     rnn/Solutions/Base/bw_data_modular.cpp
+    rnn/Solutions/fwd_s_stream.cpp
     rnn/Solutions/bwd_s_stream.cpp
     rnn/Solutions/bwd_multi_stream.cpp
     rnn/Solutions/bww_s_steam.cpp
@@ -192,6 +197,8 @@ set( MIOpen_Source
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
+    softmarginloss/problem_description.cpp 
+    softmarginloss_api.cpp
     softmax.cpp
     softmax_api.cpp
     softmax/problem_description.cpp
@@ -262,9 +269,6 @@ set( MIOpen_Source
     solver/conv/conv_hip_implicit_gemm_3d_grouped_fwd_xdlops.cpp
     solver/conv/conv_hip_implicit_gemm_3d_grouped_wrw_xdlops.cpp
     solver/conv/conv_hip_implicit_gemm_3d_grouped_bwd_xdlops.cpp
-    solver/conv/conv_hip_implicit_gemm_f16f8f16_fwd_xdlops.cpp
-    solver/conv/conv_hip_implicit_gemm_f16f8f16_bwd_xdlops.cpp
-    solver/conv/conv_hip_implicit_gemm_f16f8f16_wrw_xdlops.cpp
     solver/conv/conv_hip_implicit_gemm_nonxdlops_common.cpp
     solver/conv/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
@@ -302,14 +306,17 @@ set( MIOpen_Source
     solver/glu/forward_glu.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/getitem/backward_getitem.cpp
+    solver/kthvalue/forward_kthvalue.cpp
     solver/layernorm/backward_t5layernorm.cpp
     solver/layernorm/forward_addlayernorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/layernorm/forward_t5layernorm.cpp
+    solver/mha/mha_ck_fa_v2_solver_forward.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
+    solver/multimarginloss/forward_multimarginloss.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp
@@ -326,13 +333,26 @@ set( MIOpen_Source
     solver/reduce/forward_sum.cpp
     solver/rope/backward_rope.cpp
     solver/rope/forward_rope.cpp
+    solver/softmarginloss/backward_softmarginloss.cpp
+    solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
+    solver/tensorOp/Op1dTensorGeneric.cpp
+    solver/tensorOp/Op2dTensorGeneric.cpp
+    solver/tensorOp/Op2dTensorLite.cpp
+    solver/tensorOp/Op2dTensorSquash.cpp
+    solver/tensorOp/Op3dTensorGeneric.cpp
+    solver/tensorOp/Op4dTensorGeneric.cpp
+    solver/tensorOp/Op4dTensorLite.cpp
+    solver/tensorOp/Op5dTensorGeneric.cpp
+    solver/tensorOp/OpTensorFwdBias.cpp
+    solver/tensorOp/OpTensorLeadingOnes.cpp
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
     temp_file.cpp
     tensor.cpp
+    tensorOp/problem_description.cpp
     tensor_api.cpp
     transformers_adam_w_api.cpp
     seq_tensor.cpp
@@ -480,16 +500,16 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/miopen_type_traits.hpp
         kernels/miopen_utility.hpp
         kernels/neuron.inc
+        kernels/radix.hpp
         kernels/rocm_version.inc
         kernels/stride_array.hpp
         kernels/tensor_view.hpp
         kernels/utilities.inc
+        kernels/warp_reduce.hpp
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c32_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1024vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_metadata.inc
-        kernels/workaround_issue_1431.hpp
-        kernels/warp_reduce.hpp
         kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
@@ -525,9 +545,11 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenGLU.cpp
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenGetitem.cpp
+        kernels/MIOpenKthvalue.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl
+        kernels/MIOpenMultiMarginLoss.cpp
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPReLU.cpp
         kernels/MIOpenPooling.cl
@@ -540,8 +562,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenConv1x1J1_stride.cl
         kernels/MIOpenReduceCalculation.cpp
         kernels/MIOpenReduceExtreme.cpp
-        kernels/MIOpenRoPE.cpp
         kernels/MIOpenReduceSum.cpp
+        kernels/MIOpenRoPE.cpp
+        kernels/MIOpenSoftMarginLoss.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
         kernels/MIOpenUtilKernels3.cl
@@ -658,21 +681,22 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         addlayernorm.cpp
         cartesianprod.cpp
         cat.cpp
+        exec_utils.cpp
         groupnorm.cpp
         getitem.cpp
         glu.cpp
         kernel_cache.cpp
+        kthvalue.cpp
         layernorm.cpp
         lrn.cpp
         mlo_dir_conv.cpp
-        exec_utils.cpp
+        multimarginloss.cpp
         ocl/activ_ocl.cpp
         ocl/batchnormocl.cpp
         ocl/convolutionocl.cpp
         ocl/lrn_ocl.cpp
         ocl/mloNorm.cpp
         ocl/pooling_ocl.cpp
-        ocl/tensorocl.cpp
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/ctcocl.cpp
@@ -690,6 +714,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         reducecalculation.cpp
         reduceextreme.cpp
         rope.cpp
+        softmarginloss.cpp
         transformers_adam_w.cpp
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
@@ -834,7 +859,7 @@ target_include_directories(MIOpen PUBLIC
 )
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_reduction_operations hip::host)
+set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_reduction_operations composable_kernel::device_mha_operations hip::host)
 endif()
 
 if(WIN32)
