@@ -42,6 +42,7 @@ struct ForceInit
 namespace solver {
 
 struct AnySolver;
+struct SolverBase;
 
 enum class Primitive
 {
@@ -79,6 +80,7 @@ struct MIOPEN_INTERNALS_EXPORT Id
 
     std::string ToString() const;
     AnySolver GetSolver() const;
+    const SolverBase* GetSolverBase() const;
     std::string GetAlgo(conv::Direction dir) const;
     miopenConvAlgorithm_t GetAlgo() const;
     Primitive GetPrimitive() const;
