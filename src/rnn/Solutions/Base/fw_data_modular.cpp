@@ -80,17 +80,17 @@ void RNNForwardDataModularAlgo::PropX(const Handle& handle,
 
     const miopen::TensorDescriptor tmp_block_src_dsc =
         BuildLstmTmpBlockDesc2D(reservLayout, gemm_batch_size);
-    const auto ht_x_desc =
-        [](const miopenDataType_t dType, const auto& buf_info, const size_t batch_size) {
-            const auto& ht_stride = buf_info.getFullSeqMajorStrides();
-            const auto& ht_size   = buf_info.getFullSeqMajorSize();
+    const auto ht_x_desc = [](const miopenDataType_t dType,
+                              const auto& buf_info,
+                              const size_t batch_size) {
+        const auto& ht_stride = buf_info.getFullSeqMajorStrides();
+        const auto& ht_size   = buf_info.getFullSeqMajorSize();
 
-            // batch, vec_elements
-            return miopen::TensorDescriptor{
-                dType,
-                {batch_size, ht_size[1]},
-                LensStrides<size_t>(ht_stride.begin(), ht_stride.end())};
-        }(rnnDesc.dataType, xInfo, gemm_batch_size);
+        // batch, vec_elements
+        return miopen::TensorDescriptor{dType,
+                                        {batch_size, ht_size[1]},
+                                        LensStrides<size_t>(ht_stride.begin(), ht_stride.end())};
+    }(rnnDesc.dataType, xInfo, gemm_batch_size);
 
     if(rnnDesc.inputMode == miopenRNNskip)
     {

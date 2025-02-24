@@ -49,7 +49,7 @@ struct TensorParameters
 {
     miopen::LensStrides<int> lengths = {};
     miopen::LensStrides<int> strides = {};
-    std::string layout       = "";
+    std::string layout               = "";
 
     TensorParameters FillMissing(const TensorParameters& other) const
     {
@@ -68,7 +68,7 @@ struct TensorParametersUint64
 {
     miopen::LensStrides<uint64_t> lengths = {};
     miopen::LensStrides<uint64_t> strides = {};
-    std::string layout            = "";
+    std::string layout                    = "";
 
     TensorParametersUint64 FillMissing(const TensorParametersUint64& other) const
     {

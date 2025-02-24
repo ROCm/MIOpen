@@ -142,8 +142,8 @@ template <typename Tgpu, typename Tref>
 int ReduceDriver<Tgpu, Tref>::GetandSetData()
 {
     miopen::LensStrides<int> inLengths  = GetInputTensorLengthsFromCmdLine();
-    std::vector<int> toReduceDims = GetDimsToReduceFromCmdLine();
-    miopen::LensStrides<int> outLengths   = inLengths;
+    std::vector<int> toReduceDims       = GetDimsToReduceFromCmdLine();
+    miopen::LensStrides<int> outLengths = inLengths;
     std::vector<int> invariantDims;
 
     assert(toReduceDims.size() <= inLengths.size());

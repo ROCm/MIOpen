@@ -306,7 +306,7 @@ struct ProblemTensorTransposeDescriptor
 
     inline TensorDescriptor Transpose(const TensorDescriptor& in) const
     {
-        const auto labels    = tensor_layout_get_default(in.GetNumDims());
+        const auto labels = tensor_layout_get_default(in.GetNumDims());
         LensStrides<std::size_t> derived_strides{};
         tensor_layout_to_strides(
             in.GetLengths(), labels, SyncLayoutDims(labels.c_str(), to), derived_strides);

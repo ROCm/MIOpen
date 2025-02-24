@@ -543,13 +543,22 @@ GetConv3DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
                 primitive_parameters.CastTo<::miopen::conv::DataInvokeParams>();
             const auto& tensors = data_ctx.tensors;
             float elapsed       = 0;
-            auto in_strides     = MakeStrideArray<6>(
-                SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+            /*
+                LensStrides has capacity 5, which here isn't enough so this is a workaround for that
+               issue
+            */
+            auto inDesc_strides = miopen::InlineVector<size_t, 6>(
+                tensors.inDesc.GetStrides().begin(), tensors.inDesc.GetStrides().end());
+            auto in_strides =
+                MakeStrideArray<6>(SplitStrideCtoGC(group, inDesc_strides, G_stride_idx));
             // For weights, we split K to (G, K_per_group), which is always index 0
-            auto wei_strides =
-                MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
-            auto out_strides = MakeStrideArray<6>(
-                SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+            auto wDesc_strides = miopen::InlineVector<size_t, 6>(tensors.wDesc.GetStrides().begin(),
+                                                                 tensors.wDesc.GetStrides().end());
+            auto wei_strides = MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, wDesc_strides));
+            auto outDesc_strides = miopen::InlineVector<size_t, 6>(
+                tensors.outDesc.GetStrides().begin(), tensors.outDesc.GetStrides().end());
+            auto out_strides =
+                MakeStrideArray<6>(SplitStrideCtoGC(group, outDesc_strides, G_stride_idx));
 
             double alpha_val = data_ctx.alpha.GetAsDouble();
             double beta_val  = data_ctx.beta.GetAsDouble();
@@ -785,13 +794,22 @@ GetConv3DWRWSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             float elapsed           = 0;
-            auto in_strides         = MakeStrideArray<6>(
-                SplitStrideCtoGC(group, tensors.xDesc.GetStrides(), G_stride_idx));
+            /*
+                LensStrides has capacity 5, which here isn't enough so this is a workaround for that
+               issue
+            */
+            auto xDesc_strides = miopen::InlineVector<size_t, 6>(tensors.xDesc.GetStrides().begin(),
+                                                                 tensors.xDesc.GetStrides().end());
+            auto in_strides =
+                MakeStrideArray<6>(SplitStrideCtoGC(group, xDesc_strides, G_stride_idx));
             // For weights, we split K to (G, K_per_group), which is always index 0
-            auto wei_strides =
-                MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, tensors.dwDesc.GetStrides()));
-            auto out_strides = MakeStrideArray<6>(
-                SplitStrideCtoGC(group, tensors.dyDesc.GetStrides(), G_stride_idx));
+            auto dwDesc_strides = miopen::InlineVector<size_t, 6>(
+                tensors.dwDesc.GetStrides().begin(), tensors.dwDesc.GetStrides().end());
+            auto wei_strides = MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, dwDesc_strides));
+            auto dyDesc_strides = miopen::InlineVector<size_t, 6>(
+                tensors.dyDesc.GetStrides().begin(), tensors.dyDesc.GetStrides().end());
+            auto out_strides =
+                MakeStrideArray<6>(SplitStrideCtoGC(group, dyDesc_strides, G_stride_idx));
 
             double alpha_val = data_ctx.alpha.GetAsDouble();
             double beta_val  = data_ctx.beta.GetAsDouble();
@@ -1052,13 +1070,22 @@ GetConv3DBWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
             decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::DataInvokeParams>();
             const auto& tensors     = data_ctx.tensors;
             float elapsed           = 0;
-            auto in_strides         = MakeStrideArray<6>(
-                SplitStrideCtoGC(group, tensors.inDesc.GetStrides(), G_stride_idx));
+            /*
+                LensStrides has capacity 5, which here isn't enough so this is a workaround for that
+               issue
+            */
+            auto inDesc_strides = miopen::InlineVector<size_t, 6>(
+                tensors.inDesc.GetStrides().begin(), tensors.inDesc.GetStrides().end());
+            auto in_strides =
+                MakeStrideArray<6>(SplitStrideCtoGC(group, inDesc_strides, G_stride_idx));
             // For weights, we split K to (G, K_per_group), which is always index 0
-            auto wei_strides =
-                MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, tensors.wDesc.GetStrides()));
-            auto out_strides = MakeStrideArray<6>(
-                SplitStrideCtoGC(group, tensors.outDesc.GetStrides(), G_stride_idx));
+            auto wDesc_strides = miopen::InlineVector<size_t, 6>(tensors.wDesc.GetStrides().begin(),
+                                                                 tensors.wDesc.GetStrides().end());
+            auto wei_strides = MakeStrideArray<6>(SplitWeiStrideKtoGK(k_per_group, wDesc_strides));
+            auto outDesc_strides = miopen::InlineVector<size_t, 6>(
+                tensors.outDesc.GetStrides().begin(), tensors.outDesc.GetStrides().end());
+            auto out_strides =
+                MakeStrideArray<6>(SplitStrideCtoGC(group, outDesc_strides, G_stride_idx));
             /// \anchor backward_tensors_reversed_why
             /// \todo Someone made the silly decision of swapping in and
             /// out pointers in ConvTensors for backward pass, so now I have to

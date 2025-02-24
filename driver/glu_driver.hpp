@@ -192,7 +192,7 @@ template <typename Tgpu, typename Tref>
 int GLUDriver<Tgpu, Tref>::GetandSetData()
 {
     miopen::LensStrides<int> in_len = inflags.GetValueTensor("dim_lengths").lengths;
-    dim                     = inflags.GetValueInt("dim_to_split");
+    dim                             = inflags.GetValueInt("dim_to_split");
 
     SetTensorNd(inputTensor, in_len, data_type);
 

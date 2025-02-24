@@ -139,8 +139,8 @@ int PReLUDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int PReLUDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto inTensorParam             = inflags.GetValueTensor("input");
-    auto input_length              = inTensorParam.lengths;
+    auto inTensorParam                     = inflags.GetValueTensor("input");
+    auto input_length                      = inTensorParam.lengths;
     miopen::LensStrides<int> weight_length = {inflags.GetValueInt("NumParameters")};
 
     if(SetTensorNd(inputDesc, input_length, data_type) != miopenStatusSuccess)

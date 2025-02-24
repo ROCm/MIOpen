@@ -174,9 +174,9 @@ int KthvalueDriver<TIO>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename TIO>
 int KthvalueDriver<TIO>::GetandSetData()
 {
-    auto inDims               = inflags.GetValueTensor("dim-lengths").lengths;
+    auto inDims                       = inflags.GetValueTensor("dim-lengths").lengths;
     miopen::LensStrides<int> inStride = ComputeStrides(inDims);
-    auto outDims              = inflags.GetValueTensor("dim-lengths").lengths;
+    auto outDims                      = inflags.GetValueTensor("dim-lengths").lengths;
 
     if(dim < 0)
     {

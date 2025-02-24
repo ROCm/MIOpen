@@ -273,7 +273,7 @@ static std::string miopen_type_to_string(miopenDataType_t type)
     return "n/a";
 }
 
-/// input: a vector of lengths of dims in a tensor
+/// input: a LensStrides of lengths of dims in a tensor
 /// multiply each element with a random constant integer
 void pad_tensor_strides(miopen::LensStrides<int>& strides)
 {

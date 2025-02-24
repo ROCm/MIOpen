@@ -52,8 +52,8 @@ TEST(CPU_InlineVectorSizeAndAccumulate_NONE, Test)
 TEST(CPU_InlineVectorFindIfAndDistance_NONE, Test)
 {
     std::initializer_list<size_t> init_list_2{4, 1, 2, 2};
-    miopen::LensStrides<size_t> in_v2     = init_list_2;
-    std::vector<size_t> v2                = init_list_2;
+    miopen::LensStrides<size_t> in_v2 = init_list_2;
+    std::vector<size_t> v2            = init_list_2;
 
     auto first_not_one_in_v2 =
         std::find_if(in_v2.rbegin(), in_v2.rend(), [](int i) { return i != 1; });
@@ -69,8 +69,8 @@ TEST(CPU_InlineVectorFindIfAndDistance_NONE, Test)
 TEST(CPU_InlineVecotrTie_NONE, Test)
 {
     std::initializer_list<size_t> init_list_3{4, 1, 2, 2};
-    miopen::LensStrides<size_t> in_v3     = init_list_3;
-    std::vector<size_t> v3                = init_list_3;
+    miopen::LensStrides<size_t> in_v3 = init_list_3;
+    std::vector<size_t> v3            = init_list_3;
 
     std::array<size_t, 4> arr_in_v3;
     std::array<size_t, 4> arr_v3;

@@ -139,7 +139,7 @@ void ReorderTensorGPUData(const Handle& handle,
 
     auto get_single_samlpe_lens = [](const LensStrides<std::size_t>& lens, int reordering_dim) {
         LensStrides<std::size_t> new_lens = lens;
-        new_lens[reordering_dim]     = 1;
+        new_lens[reordering_dim]          = 1;
         return new_lens;
     };
 
@@ -267,7 +267,7 @@ void RNNTensorBaseLayoutConverter::ChangeTensorGPUDataPadding(
     auto r_it     = seq_lens_per_sample.rbegin();
     auto r_it_end = seq_lens_per_sample.rend();
 
-    const size_t vector_size                = tensor_desc.GetLengths()[2];
+    const size_t vector_size                     = tensor_desc.GetLengths()[2];
     const LensStrides<std::size_t> padded_stride = tensor_desc.GetPaddedStrides();
 
     auto get_packed_stride = [](const LensStrides<std::size_t>& copy_size,
