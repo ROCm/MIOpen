@@ -101,23 +101,6 @@ MIOPEN_DECLARE_ENV_VAR_STR(ROCM_PATH)
 #error "AMD COMgr older than 1.7.0 is not supported"
 #endif
 
-#define COMGR_SUPPORTS_PCH (COMGR_VERSION >= 1008000)
-
-#if COMGR_SUPPORTS_PCH
-#if defined(__HIP_HAS_GET_PCH) && __HIP_HAS_GET_PCH
-#define HIP_SUPPORTS_PCH 1
-#else
-#define HIP_SUPPORTS_PCH 0
-#endif
-#endif // COMGR_SUPPORTS_PCH
-
-#define PCH_IS_SUPPORTED (COMGR_SUPPORTS_PCH && HIP_SUPPORTS_PCH)
-
-/// It seems like precompiled headers are built with "warpSize" fixed to 64.
-/// This leads to issues in HIP kernels that use "warpSize" on devices that
-/// have wavesize != 64 (currently gfx10 with default build settings).
-#define WORKAROUND_ISSUE_1431 PCH_IS_SUPPORTED
-
 #define EC_BASE(comgrcall, info, action)                                  \
     do                                                                    \
     {                                                                     \
@@ -589,14 +572,6 @@ static void SetIsaName(const ActionInfo& action,
     action.SetIsaName(isaName);
 }
 
-#if WORKAROUND_ISSUE_1431
-static inline bool IsWave64Enforced(const OptionList& opts)
-{
-    return std::any_of(
-        opts.begin(), opts.end(), [](const std::string& s) { return s == "-mwavefrontsize64"; });
-}
-#endif
-
 void BuildOcl(const std::string& name,
               std::string_view text,
               const std::string& options,
@@ -965,11 +940,6 @@ void BuildHip(const std::string& name,
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS");
 #if HIP_PACKAGE_VERSION_FLAT < 6001024000ULL && !defined(_WIN32)
         opts.push_back("-DWORKAROUND_DONT_USE_CUSTOM_LIMITS=1");
-#endif
-#if WORKAROUND_ISSUE_1431
-        if((StartsWith(target.Name(), "gfx10") || StartsWith(target.Name(), "gfx11")) &&
-           !miopen::comgr::IsWave64Enforced(opts))
-            opts.push_back("-DWORKAROUND_ISSUE_1431=1");
 #endif
 #if WORKAROUND_ISSUE_HIPRTC_HIPRTC_HEADER_H
         opts.push_back("-Wno-newline-eof");
