@@ -180,6 +180,7 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
 {
     const auto args      = CKArgsType{problem};
     const auto conv_ptrs = DeviceOpType::GetInstances();
+    std::cout<<"~~~~~ ck instances vector size: "<<conv_ptrs.size()<<std::endl;
     assert(!conv_ptrs.empty());
 
     std::vector<std::string> valid_kernels;
@@ -269,6 +270,7 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
     const auto args = CKArgsType{problem};
 
     const auto ptrs = DeviceOpType::GetInstances();
+    std::cout<<"ptrs.size(): "<<ptrs.size()<<std::endl;
     return std::any_of(
         ptrs.begin(), ptrs.end(), [&args](auto& ptr) { return args.IsSupportedBy(ptr); });
 }
@@ -1055,6 +1057,11 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                                        data_ctx.tensors,
                                                        data_ctx.alpha.GetAsFloat(),
                                                        data_ctx.beta.GetAsFloat());
+
+                if(data_ctx.workSpace)
+                {
+                    sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
+                }
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
 
                 // Zero out the buffer for output data since it won't always write all output
@@ -1083,6 +1090,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 }
             };
         };
+        result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
         return result;
     }
 }
@@ -1185,6 +1193,42 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         MIOPEN_THROW(
             miopenStatusInternalError,
             "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this data type");
+    }
+#else
+    return {};
+#endif
+}
+
+template <typename InvokerFactoryMakerNCHW>
+ConvSolution
+MakeSolutionGroupConvImplicitGemmCKNCHWXdlops(const miopen::conv::ProblemDescription& problem,
+                                        InvokerFactoryMakerNCHW&& invoker_factory_maker_ncdhw)
+{
+
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    if(problem.IsLayoutDefault())
+    {
+        switch(problem.GetInDataType())
+        {
+        case miopenInt8: return invoker_factory_maker_ncdhw(int8_t{});
+        case miopenHalf: return invoker_factory_maker_ncdhw(ck::half_t{});
+        case miopenFloat: return invoker_factory_maker_ncdhw(float{});
+        case miopenBFloat16: return invoker_factory_maker_ncdhw(ck::bhalf_t{});
+        case miopenInt64:
+        case miopenInt32:
+        case miopenDouble:
+        case miopenFloat8:
+        case miopenBFloat8:
+        default:
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "convolution operation not implemented for this data type");
+        }
+    }
+    else
+    {
+        MIOPEN_THROW(
+            miopenStatusInternalError,
+            "convolution operation not implemented for this layout type");
     }
 #else
     return {};

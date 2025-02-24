@@ -50,10 +50,10 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 template <typename DataType>
 using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
     2,
-    ck::tensor_layout::convolution::NHWGC,
+    ck::tensor_layout::convolution::NGCHW,
     ck::tensor_layout::convolution::GKYXC,
     ck::Tuple<>,
-    ck::tensor_layout::convolution::NHWGK,
+    ck::tensor_layout::convolution::NGKHW,
     DataType,
     DataType,
     ck::Tuple<>,
@@ -88,9 +88,9 @@ struct CKArgs
         output = {G, N, K, Ho, Wo};
         weight = {G, K, C, Y, X};
 
-        // strides from NHWGC to GNCHW laout
-        in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-        out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
+        // strides from NGCHW to GNCHW layout
+        in_strides  = {Hi * Wi * C, Hi * Wi * G * C, Hi * Wi, Wi, 1};
+        out_strides = {Ho * Wo * K, Ho * Wo * G * K, Ho * Wo, Wo, 1};
         wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
         strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
@@ -150,6 +150,9 @@ struct CKArgs
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
         auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+
+        int dummy_var = 1;
+        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);       
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -529,6 +532,7 @@ bool ConvHipImplicitGemmGroupFwdCKNCHWXdlops::IsApplicable(
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
+    std::cout<<"~~~ pass here~~~~"<<std::endl;
     switch(problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
@@ -551,21 +555,13 @@ ConvSolution ConvHipImplicitGemmGroupFwdCKNCHWXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeSolutionGroupConvImplicitGemmXdlops(
+    return MakeSolutionGroupConvImplicitGemmCKNCHWXdlops(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryFwdNCHW<2,
-                                             DeviceOpGFwdPtrs<T>,
+            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>,
                                              CKArgs,
                                              miopen::conv::DataInvokeParams>(
-                ctx, problem, config.kernel_id);
-        },
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>,
-                                          CKArgs,
-                                          miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
 #else
