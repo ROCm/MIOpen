@@ -58,8 +58,8 @@ bool IsDataTypeSupported(miopenDataType_t t)
     case miopenHalf:
     case miopenFloat:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenBFloat16:
     case miopenDouble:
@@ -847,10 +847,10 @@ std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t)
     {
         stream << "cast_type: ";
         const auto ct = *t.cast_type;
-        if(ct == miopenFloat8)
-            stream << "miopenFloat8";
-        else if(ct == miopenBFloat8)
-            stream << "miopenBFloat8";
+        if(ct == miopenFloat8_fnuz)
+            stream << "miopenFloat8_fnuz";
+        else if(ct == miopenBFloat8_fnuz)
+            stream << "miopenBFloat8_fnuz";
         else
             stream << "Other";
     }

@@ -25,7 +25,7 @@
  *******************************************************************************/
 #include "solver_wrw.hpp"
 
-struct GPU_ConvWrwNaive_FP8 : ConvWrwSolverTest<float8, float, true>
+struct GPU_ConvWrwNaive_FP8 : ConvWrwSolverTest<float8_fnuz, float, true>
 {
 };
 

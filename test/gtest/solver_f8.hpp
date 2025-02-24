@@ -85,7 +85,7 @@ protected:
         weights = tensor<T>{conv_config.k, conv_config.C, conv_config.y, conv_config.x};
 
         auto gen_fp8_value = [=](auto...) {
-            return prng::gen_A_to_B(static_cast<float8>(-0.5), static_cast<float8>(0.5));
+            return prng::gen_A_to_B(static_cast<float8_fnuz>(-0.5), static_cast<float8_fnuz>(0.5));
         };
 
         input.generate(gen_fp8_value);
