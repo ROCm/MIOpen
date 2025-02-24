@@ -8243,6 +8243,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * call
  *
  * @param handle                   MIOpen Handle (input)
+ * @param inputCount               Number of input tensors (input)
  * @param inputDescs               Tensor descriptor for input tensor (input)
  * @param outputDesc               Tensor descriptor for output tensor (input)
  * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)

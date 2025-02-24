@@ -73,7 +73,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
     bool IsSameType() const
     {
         const auto dtype = outputDesc.GetType();
-        for(int i = 0; i < inputCount; i++)
+        for(size_t i = 0; i < inputCount; i++)
         {
             if(GetInputDesc(i).GetType() != dtype)
             {
@@ -86,7 +86,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidDims() const
     {
-        for(int i = 0; i < inputCount; i++)
+        for(size_t i = 0; i < inputCount; i++)
         {
             if(GetInputDesc(i).GetLengths().size() != 1)
             {
@@ -107,7 +107,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
                 MIOPEN_THROW(miopenStatusBadParm, "CartesianProdForward: Invalid output dim.");
             }
             uint64_t outputDim0 = 1;
-            for(int i = 0; i < inputCount; i++)
+            for(size_t i = 0; i < inputCount; i++)
             {
                 outputDim0 *= GetInputDesc(i).GetLengths()[0];
             }
@@ -122,7 +122,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
     bool IsAllPacked() const
     {
-        for(int i = 0; i < inputCount; i++)
+        for(size_t i = 0; i < inputCount; i++)
         {
             if(!GetInputDesc(i).IsPacked())
             {
@@ -182,7 +182,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
     bool IsSameType() const
     {
         const auto dtype = outputGradDesc.GetType();
-        for(int i = 0; i < inputCount; i++)
+        for(size_t i = 0; i < inputCount; i++)
         {
             if(GetInputGradDesc(i).GetType() != dtype)
             {
@@ -195,7 +195,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidDims() const
     {
-        for(int i = 0; i < inputCount; i++)
+        for(size_t i = 0; i < inputCount; i++)
         {
             if(GetInputGradDesc(i).GetLengths().size() != 1)
             {
@@ -218,7 +218,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
                              "CartesianProdBackward: Invalid output grad dim.");
             }
             uint64_t outputDim0 = 1;
-            for(int i = 0; i < inputCount; i++)
+            for(size_t i = 0; i < inputCount; i++)
             {
                 outputDim0 *= GetInputGradDesc(i).GetLengths()[0];
             }
@@ -235,7 +235,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
 
     bool IsAllPacked() const
     {
-        for(int i = 0; i < inputCount; i++)
+        for(size_t i = 0; i < inputCount; i++)
         {
             if(!GetInputGradDesc(i).IsPacked())
             {

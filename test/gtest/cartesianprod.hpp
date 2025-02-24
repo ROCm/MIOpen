@@ -35,7 +35,7 @@ template <class T>
 inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -301,7 +301,7 @@ protected:
     void Verify()
     {
         double threshold = std::numeric_limits<T>::epsilon();
-        for(int i = 0; i < input_grads.size(); i++)
+        for(size_t i = 0; i < input_grads.size(); i++)
         {
             auto& input_grad     = input_grads[i];
             auto& ref_input_grad = ref_input_grads[i];

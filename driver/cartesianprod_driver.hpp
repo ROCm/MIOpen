@@ -236,7 +236,7 @@ int CartesianProdDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         auto& input    = inputs.back();
         auto input_dev = inputs_dev.back().get();
 
-        for(int i = 0; i < in_sz; i++)
+        for(size_t i = 0; i < in_sz; i++)
         {
             input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
@@ -269,7 +269,7 @@ int CartesianProdDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     status |= output_dev->ToGPU(GetStream(), output.data());
 
-    for(int i = 0; i < output_sz; i++)
+    for(size_t i = 0; i < output_sz; i++)
     {
         output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
@@ -396,7 +396,7 @@ int CartesianProdDriver<Tgpu, Tref>::RunBackwardGPU()
                   << " ms" << std::endl;
     }
 
-    for(int i = 0; i < input_grads_dev.size(); i++)
+    for(size_t i = 0; i < input_grads_dev.size(); i++)
     {
         auto input_grad_dev = input_grads_dev[i].get();
         auto& input_grad    = input_grads[i];
@@ -465,7 +465,7 @@ int CartesianProdDriver<Tgpu, Tref>::VerifyBackward()
     RunBackwardCPU();
     const Tref tolerance = GetTolerance();
     double mean_error    = 0;
-    for(int i = 0; i < input_grads_host.size(); i++)
+    for(size_t i = 0; i < input_grads_host.size(); i++)
     {
         auto error = miopen::rms_range(input_grads_host[i], input_grads[i]);
         mean_error += error;

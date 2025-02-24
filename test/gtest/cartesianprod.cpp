@@ -43,11 +43,20 @@ TEST_P(GPU_CartesianProd_fwd_FP16, CartesianProdTestFwd)
     Verify();
 };
 
+TEST_P(GPU_CartesianProd_fwd_BFP16, CartesianProdTestFwd)
+{
+    RunTest();
+    Verify();
+};
+
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_CartesianProd_fwd_FP32,
                          testing::ValuesIn(CartesianProdTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_CartesianProd_fwd_FP16,
+                         testing::ValuesIn(CartesianProdTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CartesianProd_fwd_BFP16,
                          testing::ValuesIn(CartesianProdTestConfigs()));
 
 // BACKWARD TEST
