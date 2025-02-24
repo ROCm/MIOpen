@@ -40,8 +40,11 @@ namespace solver {
 namespace batchnorm {
 
 bool BnBwdTrainingSpatialSingle::IsApplicable(
-    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& bn_problem) const
+    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
+    if(BnBwdTrainingSpatialMultiple{}.IsApplicable(context, bn_problem))
+        return false;
+
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
        bn_problem.GetMode() != miopenBNSpatial)
         return false;
@@ -61,14 +64,7 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
     if(!IsOCLBwdTypeValid(bn_problem))
         return false;
 
-    int n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(bn_problem.GetXDesc().GetLengths());
-
-    unsigned int in_cstride = h * w;
-    unsigned int in_nhw     = n * in_cstride;
-
-    return (in_cstride > 1024 && in_nhw < (32 * 1024 * 1024)) ||
-           (in_cstride > 512 && in_nhw < (32 * 1024 * 1024)) || in_cstride <= 512;
+    return true;
 }
 
 ConvSolution
@@ -130,6 +126,10 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     }
     else
     {
+        xlocalsize = 1024;
+        xgridsize  = c * xlocalsize;
+        ldsgcn     = xlocalsize / wavesize;
+        ldsnogcn   = xlocalsize;
         //*************************************************************************************************
         // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize
         // work groups over channels and loop through NHW.
@@ -178,20 +178,6 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
                 ldsnogcn   = xlocalsize;
             }
         }
-        //*************************************************************************************************
-        // N*H*W > 32M, use batchnorm variant#2 implementation which parallelize
-        // work groups over channels and data segments.
-        //*************************************************************************************************
-        else
-        {
-            variant      = 2;
-            ylocalsize   = 1024;
-            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
-            ldsgcn       = ylocalsize / wavesize;
-            ldsnogcn     = ylocalsize;
-        }
         if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
         {
             variant    = 1;
@@ -238,7 +224,8 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
 #if WORKAROUND_ISSUE_1146
              && (handle.GetDeviceName() != "gfx90a")
 #endif
-             && (!StartsWith(handle.GetDeviceName(), "gfx94")))) &&
+             && (!StartsWith(handle.GetDeviceName(), "gfx908")) &&
+             (!StartsWith(handle.GetDeviceName(), "gfx94")))) &&
            (!handle.GetTargetProperties().Xnack() || !*handle.GetTargetProperties().Xnack()))
         {
             kernel.kernel_file = "gcnAsmBNBwdTrainSpatial.s";
