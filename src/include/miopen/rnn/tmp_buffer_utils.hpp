@@ -902,8 +902,9 @@ public:
     {
         //{batch, seq_cnt, vector}
         auto lens = std::vector<size_t>(xyDesc.GetLengths().begin(), xyDesc.GetLengths().end());
+        auto paddedStrides = xyDesc.GetPaddedStrides();
         auto strides =
-            std::vector<size_t>(xyDesc.GetPaddedStrides().begin(), xyDesc.GetPaddedStrides().end());
+            std::vector<size_t>(paddedStrides.begin(), paddedStrides.end());
 
         //{ combine(batch, seq_cnt), vector}
         std::vector<size_t> packed_lens{xyDesc.GetTotalSequenceLen(), lens[2]};
