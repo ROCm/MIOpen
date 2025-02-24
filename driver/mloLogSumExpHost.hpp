@@ -23,26 +23,35 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MLO_LOGSUMEXPHOST_H_
-#define MLO_LOGSUMEXPHOST_H_
+#pragma once
+
+#include <miopen/errors.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+
+#include <numeric>
+#include <vector>
+#include <limits>
+#include <algorithm>
+#include <cmath>
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloLogSumExpForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                    miopenTensorDescriptor_t outputDesc,
                                    Tgpu* input,
                                    Tcheck* output,
-                                   std::vector<int32_t> dims_vector)
+                                   std::vector<int> dims_vector)
 {
     auto input_dims     = miopen::deref(inputDesc).GetLengths();
     auto input_strides  = miopen::deref(inputDesc).GetStrides();
     auto output_dims    = miopen::deref(outputDesc).GetLengths();
     auto output_strides = miopen::deref(outputDesc).GetStrides();
 
-    for(int64_t d = input_dims.size() - 1; d >= 0; --d)
+    for(int d = input_dims.size() - 1; d >= 0; --d)
     {
         if(!(std::find(dims_vector.begin(), dims_vector.end(), d) != dims_vector.end()))
             continue;
-        for(int64_t dd = input_dims.size() - 1; dd > d; --dd)
+        for(int dd = input_dims.size() - 1; dd > d; --dd)
         {
             if(std::find(dims_vector.begin(), dims_vector.end(), dd) != dims_vector.end())
                 continue;
@@ -54,9 +63,9 @@ int32_t mloLogSumExpForwardRunHost(miopenTensorDescriptor_t inputDesc,
     }
 
     auto input_numel =
-        std::accumulate(input_dims.begin(), input_dims.end(), 1LL, std::multiplies<int64_t>());
+        std::accumulate(input_dims.begin(), input_dims.end(), 1LL, std::multiplies<size_t>());
     auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
+        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<size_t>());
 
     auto K = input_numel / output_numel;
 
@@ -65,10 +74,10 @@ int32_t mloLogSumExpForwardRunHost(miopenTensorDescriptor_t inputDesc,
         std::vector<float> vals(K);
         float max = std::numeric_limits<float>::lowest();
 
-        for(int64_t k = 0; k < K; ++k)
+        for(size_t k = 0; k < K; ++k)
         {
-            std::vector<int64_t> input_idx(input_dims.size(), 0);
-            int64_t tmp_gid = gid * K + k;
+            std::vector<size_t> input_idx(input_dims.size(), 0);
+            size_t tmp_gid = gid * K + k;
             for(int i = input_dims.size() - 1; i >= 0; --i)
             {
                 input_idx[i] = tmp_gid % input_dims[i];
@@ -81,14 +90,14 @@ int32_t mloLogSumExpForwardRunHost(miopenTensorDescriptor_t inputDesc,
         }
 
         float logsum = static_cast<float>(0.0);
-        for(int64_t k = 0; k < K; ++k)
+        for(size_t k = 0; k < K; ++k)
         {
             logsum += std::exp(vals[k] - max);
         }
 
-        std::vector<int64_t> output_idx(input_dims.size(), 0);
+        std::vector<size_t> output_idx(input_dims.size(), 0);
 
-        int64_t tmp_gid = gid;
+        size_t tmp_gid = gid;
         for(int i = output_dims.size() - 1; i >= 0; --i)
         {
             output_idx[i] = tmp_gid % output_dims[i];
@@ -112,8 +121,7 @@ int32_t mloLogSumExpBackwardRunHost(miopenTensorDescriptor_t inputDesc,
                                     Tcheck* input_grad,
                                     Tgpu* output,
                                     Tgpu* output_grad,
-                                    int32_t* dims,
-                                    int32_t num_dims)
+                                    std::vector<int> reduce_dims)
 {
     auto input_dims          = miopen::deref(inputDesc).GetLengths();
     auto input_strides       = miopen::deref(inputDesc).GetStrides();
@@ -125,12 +133,12 @@ int32_t mloLogSumExpBackwardRunHost(miopenTensorDescriptor_t inputDesc,
     auto output_grad_strides = miopen::deref(outputGradDesc).GetStrides();
 
     auto input_grad_numel = std::accumulate(
-        input_grad_dims.begin(), input_grad_dims.end(), 1LL, std::multiplies<int64_t>());
+        input_grad_dims.begin(), input_grad_dims.end(), 1LL, std::multiplies<size_t>());
 
     for(size_t gid = 0; gid < input_grad_numel; ++gid)
     {
-        std::vector<int64_t> input_idx(input_dims.size(), 0);
-        int64_t tmp_gid = gid;
+        std::vector<size_t> input_idx(input_dims.size(), 0);
+        size_t tmp_gid = gid;
 
         for(int i = input_dims.size() - 1; i >= 0; --i)
         {
@@ -138,22 +146,22 @@ int32_t mloLogSumExpBackwardRunHost(miopenTensorDescriptor_t inputDesc,
             tmp_gid /= input_dims[i];
         }
 
-        std::vector<int64_t> reduced_idx(input_dims.size(), 0);
+        std::vector<size_t> reduced_idx(input_dims.size(), 0);
         for(int i = 0; i < input_dims.size(); ++i)
         {
-            if(std::find(dims, dims + num_dims, i) == dims + num_dims)
+            if(std::find(reduce_dims.begin(), reduce_dims.end(), i) == reduce_dims.end())
             {
                 reduced_idx[i] = input_idx[i];
             }
         }
 
-        int64_t input_index = std::inner_product(
+        size_t input_index = std::inner_product(
             input_idx.begin(), input_idx.end(), input_strides.begin(), static_cast<size_t>(0));
-        int64_t input_grad_index = std::inner_product(
+        size_t input_grad_index = std::inner_product(
             input_idx.begin(), input_idx.end(), input_grad_strides.begin(), static_cast<size_t>(0));
-        int64_t output_index = std::inner_product(
+        size_t output_index = std::inner_product(
             reduced_idx.begin(), reduced_idx.end(), output_strides.begin(), static_cast<size_t>(0));
-        int64_t output_grad_index = std::inner_product(reduced_idx.begin(),
+        size_t output_grad_index = std::inner_product(reduced_idx.begin(),
                                                        reduced_idx.end(),
                                                        output_grad_strides.begin(),
                                                        static_cast<size_t>(0));
@@ -167,5 +175,3 @@ int32_t mloLogSumExpBackwardRunHost(miopenTensorDescriptor_t inputDesc,
 
     return 0;
 }
-
-#endif // MLO_LOGSUMEXPHOST_H_
