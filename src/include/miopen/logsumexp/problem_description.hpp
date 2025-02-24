@@ -46,6 +46,7 @@ struct ProblemDescriptionForward : ProblemDescriptionBase
                               const std::vector<int>& dims_)
         : inputDesc(inputDesc_), outputDesc(outputDesc_), dims(dims_)
     {
+        EliminateNegativeDims();
         IsSameType();
         IsValidDims();
         IsValidOutputSize();
@@ -62,17 +63,22 @@ struct ProblemDescriptionForward : ProblemDescriptionBase
         return true;
     }
 
+    void EliminateNegativeDims()
+    {
+        for(auto& dim : dims)
+            if(dim < 0)
+                dim += inputDesc.GetNumDims();
+    }
+
     bool IsValidDims() const
     {
-        for(auto dim : dims)
+        for(auto& dim : dims)
         {
             if(dim + inputDesc.GetNumDims() < 1 || dim > inputDesc.GetNumDims())
                 MIOPEN_THROW(
                     miopenStatusBadParm,
                     (std::stringstream() << "LogCumSumExp: Invalid reduce dimension=" << dim << ".")
                         .str());
-            else if(dim < 0)
-                dim += inputDesc.GetNumDims();
         }
         return true;
     }
