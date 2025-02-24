@@ -89,8 +89,8 @@ extern "C" miopenStatus_t miopenSGDForward(miopenHandle_t handle,
                         momentum,
                         dampening,
                         weightDecay,
-                        (int)nesterov,
-                        (int)momentum_initialized);
+                        nesterov,
+                        momentum_initialized);
     LogCmdSGD(paramInDesc, true);
     return miopen::try_([&] {
         miopen::SGD::SGDForward(miopen::deref(handle),

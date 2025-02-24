@@ -38,7 +38,7 @@ template <class T>
 inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -63,8 +63,8 @@ struct SGDTestCase
     {
         return os << " dims:" << tc.dims << " LearningRate:" << tc.lr << " Momentum:" << tc.momentum
                   << " Dampening:" << tc.dampening << " WeightDecay:" << tc.weightDecay
-                  << " Nesterov:" << (int)tc.nesterov
-                  << " MomentumInitialized:" << (int)tc.momentumInitialized
+                  << " Nesterov:" << tc.nesterov
+                  << " MomentumInitialized:" << tc.momentumInitialized
                   << " is_contiguous:" << tc.is_contiguous;
     }
 

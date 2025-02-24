@@ -297,7 +297,7 @@ int SGDDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     param_outhost           = std::vector<Tref>(param_size, static_cast<Tref>(0));
     momentum_buffer_outhost = std::vector<Tref>(param_size, static_cast<Tref>(0));
 
-    for(int i = 0; i < param_size; i++)
+    for(size_t i = 0; i < param_size; i++)
     {
         param_in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         grad[i]     = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
