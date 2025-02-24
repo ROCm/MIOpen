@@ -884,10 +884,10 @@ private:
 class IOBufferDescriptor
 {
     IOBufferDescriptor() = default;
-    IOBufferDescriptor(std::vector<size_t>&& buffer_lens,
-                       std::vector<size_t>&& buffer_strides,
-                       std::vector<size_t>&& packed_lens,
-                       std::vector<size_t>&& packed_strides,
+    IOBufferDescriptor(LensStrides<size_t>&& buffer_lens,
+                       LensStrides<size_t>&& buffer_strides,
+                       LensStrides<size_t>&& packed_lens,
+                       LensStrides<size_t>&& packed_strides,
                        std::vector<size_t>&& seq_lens_per_sample)
         : lens{std::move(buffer_lens)},
           strides{std::move(buffer_strides)},
@@ -901,13 +901,12 @@ public:
     static IOBufferDescriptor build(const SeqTensorDescriptor& xyDesc)
     {
         //{batch, seq_cnt, vector}
-        auto lens = std::vector<size_t>(xyDesc.GetLengths().begin(), xyDesc.GetLengths().end());
-        auto paddedStrides = xyDesc.GetPaddedStrides();
-        auto strides       = std::vector<size_t>(paddedStrides.begin(), paddedStrides.end());
+        auto lens    = xyDesc.GetLengths();
+        auto strides = xyDesc.GetPaddedStrides();
 
         //{ combine(batch, seq_cnt), vector}
-        std::vector<size_t> packed_lens{xyDesc.GetTotalSequenceLen(), lens[2]};
-        std::vector<size_t> packed_strides(2);
+        LensStrides<size_t> packed_lens{xyDesc.GetTotalSequenceLen(), lens[2]};
+        LensStrides<size_t> packed_strides(2);
 
         WA_RHEL::exclusive_scan_wa(packed_lens.crbegin(),
                                    std::next(packed_lens.crbegin(), packed_strides.size()),
@@ -928,8 +927,8 @@ public:
         return packedStrides[0] * batch_id;
     }
 
-    inline std::vector<size_t> getFullSeqMajorStrides() const { return packedStrides; }
-    inline std::vector<size_t> getFullSeqMajorSize() const { return packedLens; }
+    inline LensStrides<size_t> getFullSeqMajorStrides() const { return packedStrides; }
+    inline LensStrides<size_t> getFullSeqMajorSize() const { return packedLens; }
 
     inline size_t getMiniBatchSize() const { return lens[0]; }
     inline size_t getMaxSeqSize() const { return lens[1]; }
@@ -938,7 +937,7 @@ public:
     inline size_t getSeqSize(size_t sample_id) const { return seqLensPerSample[sample_id]; }
     inline size_t getTotalSeqCnt() const { return packedLens[0]; }
 
-    static std::vector<size_t> MakeStrides(const std::vector<size_t>& lengths)
+    static LensStrides<size_t> MakeStrides(const std::vector<size_t>& lengths)
     {
         return {lengths[1] * lengths[2], lengths[2], 1};
     }
@@ -946,11 +945,11 @@ public:
     // private:
     //  local caching
 
-    const std::vector<size_t> lens;
-    const std::vector<size_t> strides;
+    const LensStrides<size_t> lens;
+    const LensStrides<size_t> strides;
 
-    const std::vector<size_t> packedLens;
-    const std::vector<size_t> packedStrides;
+    const LensStrides<size_t> packedLens;
+    const LensStrides<size_t> packedStrides;
 
     const std::vector<size_t> seqLensPerSample;
 };
