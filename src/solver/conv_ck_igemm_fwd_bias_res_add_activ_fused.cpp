@@ -97,9 +97,12 @@ struct CKArgs
         bias_strides = {K, 0, 1, 0, 0, 0};
 
         // miopen filter_stride to CK filter_stride
-        auto miopen_in_strides  = problem.GetIn().GetStrides();
-        auto miopen_out_strides = problem.GetOut().GetStrides();
-        auto miopen_wei_strides = problem.GetWeights().GetStrides();
+        auto miopen_in_strides  = InlineVector<size_t, 6>(problem.GetIn().GetStrides().begin(),
+                                                         problem.GetIn().GetStrides().end());
+        auto miopen_out_strides = InlineVector<size_t, 6>(problem.GetOut().GetStrides().begin(),
+                                                          problem.GetOut().GetStrides().end());
+        auto miopen_wei_strides = InlineVector<size_t, 6>(problem.GetWeights().GetStrides().begin(),
+                                                          problem.GetWeights().GetStrides().end());
         miopen_in_strides.insert(miopen_in_strides.begin(), C);
         miopen_out_strides.insert(miopen_out_strides.begin(), K);
         miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
