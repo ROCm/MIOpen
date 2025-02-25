@@ -162,9 +162,9 @@ int32_t mloLogSumExpBackwardRunHost(miopenTensorDescriptor_t inputDesc,
         size_t output_index = std::inner_product(
             reduced_idx.begin(), reduced_idx.end(), output_strides.begin(), static_cast<size_t>(0));
         size_t output_grad_index = std::inner_product(reduced_idx.begin(),
-                                                       reduced_idx.end(),
-                                                       output_grad_strides.begin(),
-                                                       static_cast<size_t>(0));
+                                                      reduced_idx.end(),
+                                                      output_grad_strides.begin(),
+                                                      static_cast<size_t>(0));
 
         float x  = input[input_index];
         float y  = output[output_index];

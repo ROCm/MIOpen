@@ -243,8 +243,8 @@ protected:
     {
         auto&& handle    = get_handle();
         logsumexp_config = GetParam();
-        auto gen_value1   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        auto gen_value2   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 101); };
+        auto gen_value1  = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+        auto gen_value2  = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 101); };
 
         dims_vector = logsumexp_config.reduce_dims;
 
@@ -261,8 +261,8 @@ protected:
         }
         auto output_strides = ComputeStrides(output_dims, logsumexp_config.isContiguous);
 
-        input       = tensor<T>{input_dims, input_strides}.generate(gen_value1);
-        output      = tensor<T>{output_dims, output_strides};
+        input  = tensor<T>{input_dims, input_strides}.generate(gen_value1);
+        output = tensor<T>{output_dims, output_strides};
         cpu_logsumexp_forward(input, output, dims_vector);
 
         output_grad = tensor<T>{output_grad_dims}.generate(gen_value2);
