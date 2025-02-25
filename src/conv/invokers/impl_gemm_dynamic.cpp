@@ -949,7 +949,7 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
             auto cast_buf = cast_size == 0
                                 ? null_buf
                                 : handle.CreateSubBuffer(workSpace, cast_offset, cast_size);
-
+            
             if(need_set_zero)
             {
                 auto zero_buf = need_cast
@@ -989,12 +989,44 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                 }
             }
 
+            // Allocate 2MB which should give us a full page of memory for testing with.
+            const size_t memoryPageSize = 2097152;
+
+            // Can change this to have extra offset room from the end of the page.
+            // This can be used to find how far past the end of the buffer is being accessed.
+            // Increasing extraOffset will eventually stop the memory faults, can use this to approximate how far past the end of a buffer is being accessed.
+            const size_t extraOffset = 50;
+
+            // Calculate an offset that will place the W buffer at the end of our allocated memory.
+            // This will cause a memory access fault if memory is accessed outside the page boundary.
+            // Essentially, doing this to flag memory access faults that typically are hidden due to the large page size.
+            const size_t offsetIntoMemory = memoryPageSize - tensors.wDesc.GetNumBytes() - extraOffset;
+            
+            // Allocate an empty wMem buffer to use that is memoryPageSize big
+            void* wMem = nullptr;
+            auto status = hipMalloc(static_cast<void**>(&wMem), memoryPageSize);
+
+            // Offset wMem to be at the end of the page of allocated memory
+            auto cdata = reinterpret_cast<char*>(wMem);
+            void* wOffset = reinterpret_cast<void*>(cdata + offsetIntoMemory);
+
+            // Log addresses, and sizes.
+            // w bytes is how many bytes W is.
+            // offsetSize is how much we are offsetting from the start of the allocated page
+            // allocated address is where the address of the page start
+            // wOffset memory address is where the offset address starts
+            std::cout << "w bytes: " << tensors.wDesc.GetNumBytes() << std::endl;
+            std::cout << "offsetSize: " << offsetIntoMemory << std::endl;
+            std::cout << "Allocated address; " << wMem << std::endl;
+            std::cout << "wOffset memory address: " << wOffset << std::endl;
+
             opArgs[0] = need_cast ? OpKernelArg(cast_buf.get())
                                   : ((is_nchw && !trans_input_skippable)
                                          ? OpKernelArg(trans_input_buf.get())
                                          : OpKernelArg(tensors.out));
-            opArgs[1] = (is_nchw && !trans_weight_skippable) ? OpKernelArg(trans_weight_buf.get())
-                                                             : OpKernelArg(tensors.w);
+
+            // Force using wOffset pointer for this example
+            opArgs[1] = OpKernelArg(wOffset);
             opArgs[2] = (is_nchw && !trans_output_skippable) ? OpKernelArg(trans_output_buf.get())
                                                              : OpKernelArg(tensors.in);
 
