@@ -72,7 +72,7 @@ bool MhaCKFlashAttentionV2Forward::IsApplicable(
     }
 
     auto deviceName = context.GetStream().GetDeviceName();
-    if(!StartsWith(deviceName, "gfx94") && deviceName != "gfx90a")
+    if(deviceName != "gfx942" && deviceName != "gfx90a")
     {
         return false;
     }

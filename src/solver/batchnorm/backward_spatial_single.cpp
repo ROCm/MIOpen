@@ -225,7 +225,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
              && (handle.GetDeviceName() != "gfx90a")
 #endif
              && (!StartsWith(handle.GetDeviceName(), "gfx908")) &&
-             (!StartsWith(handle.GetDeviceName(), "gfx94")))) &&
+             (handle.GetDeviceName() != "gfx942"))) &&
            (!handle.GetTargetProperties().Xnack() || !*handle.GetTargetProperties().Xnack()))
         {
             kernel.kernel_file = "gcnAsmBNBwdTrainSpatial.s";

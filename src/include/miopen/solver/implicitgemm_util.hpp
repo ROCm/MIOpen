@@ -213,7 +213,7 @@ static inline bool IsXdlopsSupport(const ExecutionContext& ctx)
     // 2) llvm intrin may has incorrect results
     const bool is_xdlops_supported = StartsWith(ctx.GetStream().GetDeviceName(), "gfx908") ||
                                      StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a") ||
-                                     StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
+                                     StartsWith(ctx.GetStream().GetDeviceName(), "gfx942");
     return is_xdlops_supported && !env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS);
 }
 
@@ -579,7 +579,7 @@ static inline bool IsComposableKernelSupportedHardware(const ExecutionContext& c
            StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx94") ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx942") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx103");
 }
 

@@ -581,7 +581,7 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
     }
     break;
     case miopenFloat8: {
-        const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+        const auto is_gfx94x = handle.GetDeviceName() == "gfx942";
         if(is_gfx94x)
         {
             miopen_hipblasLt_gemm<hipblaslt_f8_fnuz, hipblaslt_f8_fnuz>(handle,
@@ -604,7 +604,7 @@ static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
     }
     break;
     case miopenBFloat8: {
-        const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+        const auto is_gfx94x = handle.GetDeviceName() == "gfx942";
         if(is_gfx94x)
         {
 #ifdef ENABLE_HIPBLASLT_BF8
@@ -754,7 +754,7 @@ miopenStatus_t CallGemm(const Handle& handle,
         break;
         case miopenInt32: break;
         case miopenHalf: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+            const auto is_gfx94x = handle.GetDeviceName() == "gfx942";
             // We need ex3 API if any of the dataType or the cast type is an 8-bit floating type
             const auto needs_ex3 = [&]() {
                 if((gemm_desc.dataType == miopenFloat8 || gemm_desc.dataType == miopenBFloat8) ||
@@ -887,7 +887,7 @@ miopenStatus_t CallGemm(const Handle& handle,
 
         case miopenFloat8:
         case miopenBFloat8: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+            const auto is_gfx94x = handle.GetDeviceName() == "gfx942";
             if(is_gfx94x)
             {
                 rb_status = miopen_rocblas_gemm_ex3<char>(
@@ -1028,7 +1028,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         case miopenInt32: break;
 
         case miopenHalf: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+            const auto is_gfx94x = handle.GetDeviceName() == "gfx942";
             // We need ex3 API if any of the dataType or the cast type is an 8-bit floating type
             const auto needs_ex3 = [&]() {
                 if((gemm_desc.dataType == miopenFloat8 || gemm_desc.dataType == miopenBFloat8) ||
@@ -1174,7 +1174,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 
         case miopenFloat8:
         case miopenBFloat8: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+            const auto is_gfx94x = handle.GetDeviceName() == "gfx942";
             if(is_gfx94x)
             {
                 rb_status = miopen_rocblas_gemm_strided_batched_ex3<char>(
@@ -1316,7 +1316,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         break;
         case miopenInt32: break;
         case miopenHalf: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+            const auto is_gfx94x = handle.GetDeviceName() == "gfx942";
             // We need ex3 API if any of the dataType or the cast type is an 8-bit floating type
             const auto needs_ex3 = [&]() {
                 if((gemm_desc.dataType == miopenFloat8 || gemm_desc.dataType == miopenBFloat8) ||
@@ -1459,7 +1459,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 
         case miopenFloat8:
         case miopenBFloat8: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+            const auto is_gfx94x = handle.GetDeviceName() == "gfx942";
             if(is_gfx94x)
             {
                 rb_status = miopen_rocblas_gemm_strided_batched_ex3<char>(

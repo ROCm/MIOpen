@@ -132,7 +132,7 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(const Exec
             // clang-format on
         };
         const auto device_name = ctx.GetStream().GetDeviceName();
-        if(StartsWith(device_name, "gfx94"))
+        if(device_name == "gfx942")
             return half_kernel_list_gfx94x;
         else
             return half_kernel_list;

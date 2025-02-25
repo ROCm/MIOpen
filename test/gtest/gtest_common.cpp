@@ -78,7 +78,7 @@ Gpu GetDevGpuType()
             return Gpu::gfx908;
         else if(dev_name == "gfx90a")
             return Gpu::gfx90A;
-        else if(miopen::StartsWith(dev_name, "gfx94"))
+        else if(dev_name == "gfx942")
             return Gpu::gfx94X;
         else if(miopen::StartsWith(dev_name, "gfx103"))
             return Gpu::gfx103X;
