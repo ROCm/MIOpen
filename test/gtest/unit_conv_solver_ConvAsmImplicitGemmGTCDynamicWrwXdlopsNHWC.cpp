@@ -88,34 +88,34 @@ auto GetFullTestParams(miopenDataType_t datatype)
 
 } // namespace
 
-using GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_FP16 =
+using GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_FP16 =
     GPU_UnitTestConvSolverWrw_FP16;
-using GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_BFP16 =
+using GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_BFP16 =
     GPU_UnitTestConvSolverWrw_BFP16;
-using GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_FP32 =
+using GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_FP32 =
     GPU_UnitTestConvSolverWrw_FP32;
-using CPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCDevApplicabilityWrw_NONE =
+using CPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCDevApplicability_NONE =
     CPU_UnitTestConvSolverDevApplicabilityWrw_NONE;
 
-TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_FP16,
+TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_FP16,
        ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC)
 {
     this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC{});
 };
 
-TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_BFP16,
+TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_BFP16,
        ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC)
 {
     this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC{});
 };
 
-TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_FP32,
+TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_FP32,
        ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC)
 {
     this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC{});
 };
 
-TEST_P(CPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCDevApplicabilityWrw_NONE,
+TEST_P(CPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCDevApplicability_NONE,
        ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC)
 {
     this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC{});
@@ -123,39 +123,39 @@ TEST_P(CPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCDevApplicabil
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_FP16,
+                         GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_FP16,
                          testing::Combine(testing::Values(GetSmokeTestParams(miopenHalf)),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvSmokeTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
-    GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_BFP16,
+    GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_BFP16,
     testing::Combine(testing::Values(GetSmokeTestParams(miopenBFloat16)),
                      testing::Values(miopenConvolutionAlgoImplicitGEMM),
                      testing::ValuesIn(GetConvSmokeTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_FP32,
+                         GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_FP32,
                          testing::Combine(testing::Values(GetSmokeTestParams(miopenFloat)),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvSmokeTestCases(miopenFloat))));
 
 // Full tests
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_FP16,
+                         GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_FP16,
                          testing::Combine(testing::Values(GetFullTestParams(miopenHalf)),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvFullTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_BFP16,
+                         GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_BFP16,
                          testing::Combine(testing::Values(GetFullTestParams(miopenBFloat16)),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvFullTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCWrw_FP32,
+                         GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWC_FP32,
                          testing::Combine(testing::Values(GetFullTestParams(miopenFloat)),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvFullTestCases(miopenFloat))));
@@ -163,6 +163,6 @@ INSTANTIATE_TEST_SUITE_P(Full,
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
-    CPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCDevApplicabilityWrw_NONE,
+    CPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicWrwXdlopsNHWCDevApplicability_NONE,
     testing::Combine(testing::Values(GetSmokeTestParams(miopenFloat)),
                      testing::Values(GetConvSmokeTestCases(miopenFloat)[0])));
