@@ -40,50 +40,17 @@ namespace solver {
 namespace batchnorm {
 
 bool BnFwdTrainingSpatialSingle::IsApplicable(
-    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& bn_problem) const
+    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
+    if(BnFwdTrainingSpatialMultiple{}.IsApplicable(context, bn_problem))
+        return false;
+
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
        bn_problem.GetMode() != miopenBNSpatial)
         return false;
 
     if(!IsOCLFwdTrainTypeValid(bn_problem))
         return false;
-
-    int n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(bn_problem.GetXDesc().GetLengths());
-
-    unsigned int in_cstride = h * w;
-    unsigned int in_nhw     = n * in_cstride;
-
-    bool bfpmixparm = false;
-    bool bfp32parm  = true;
-
-    if(bn_problem.GetXDesc().GetType() == miopenHalf &&
-       bn_problem.GetBnScale().GetType() == miopenHalf)
-    {
-        bfp32parm = false;
-    }
-    else if((bn_problem.GetXDesc().GetType() == miopenHalf ||
-             bn_problem.GetXDesc().GetType() == miopenBFloat16) &&
-            bn_problem.GetBnScale().GetType() == miopenFloat)
-    {
-        bfpmixparm = true;
-        bfp32parm  = false;
-    }
-
-    // clang-format off
-    if(!(WORKAROUND_SWDEV_253606 == 0 && n < 3) &&
-        !((in_nhw < 33554432 && in_cstride > 1024) ||
-          ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
-          ((in_cstride > 512) && bfpmixparm) ||
-          in_cstride <= 512))
-        return false;
-    // clang-format on
-
-    if((n > 768) && (in_cstride > 150) && bfp32parm)
-    {
-        return false;
-    }
 
     return true;
 }
@@ -139,6 +106,8 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     unsigned int ldsgcn   = xlocalsize / 64;
     unsigned int ldsnogcn = xlocalsize;
 
+    // forward_spatial_single supports variant 0, 1, 3, and 4
+    // forward_spatial_multiple supports variant 2 with multiple kernel launches
     if(!problem.IsLayoutNHWC())
     {
 #if(WORKAROUND_SWDEV_253606 == 0)
@@ -165,30 +134,6 @@ BnFwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             else if(in_cstride <= 512)
             {
                 variant = 0;
-            }
-            else
-            {
-                variant      = 2;
-                xlocalsize   = 1;
-                ylocalsize   = 1024;
-                auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-                xgridsize    = c;
-                ygridsize    = segment * ylocalsize;
-                ldsgcn       = ylocalsize / 64;
-                ldsnogcn     = ylocalsize;
-            }
-            // clang-format on
-
-            if((n > 768) && (in_cstride > 150) && bfp32parm)
-            {
-                variant      = 2;
-                xlocalsize   = 1;
-                ylocalsize   = 1024;
-                auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-                xgridsize    = c;
-                ygridsize    = segment * ylocalsize;
-                ldsgcn       = ylocalsize / 64;
-                ldsnogcn     = ylocalsize;
             }
         }
     }
