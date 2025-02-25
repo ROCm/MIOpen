@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,42 +35,47 @@
 #include "batchnorm_functions.h"
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
-MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* in,
-                                        __global _FLOAT* __restrict out,
-                                        __global _FLOAT_PREC* __restrict estimatedMean,
-                                        __global _FLOAT_PREC* __restrict estimatedVariance,
+MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* __restrict in, /* x input */
+                                        __global _FLOAT* __restrict out,      /* y output */
+                                        const __global _FLOAT_PREC* __restrict estimatedMean,
+                                        const __global _FLOAT_PREC* __restrict estimatedVariance,
                                         const __global _FLOAT_PREC* __restrict scale,
                                         const __global _FLOAT_PREC* __restrict bias,
                                         double epsilon,
+                                        unsigned int c,
+                                        unsigned int hw,
                                         unsigned int batchSize,
-                                        unsigned int imageDims,
+                                        unsigned int cStride,
+                                        unsigned int hwStride,
                                         unsigned int batchStride)
 {
+    int xgid = get_global_id(0);
+    int ygid = get_global_id(1);
+
+    if(xgid >= c)
+        return;
+
+    unsigned int adjIndex, index;
 
     // PER ACTIVATION
-    _FLOAT_PREC mean, variance;
-    _FLOAT_PREC invVariance, elemStd, inhat;
-    _FLOAT_PREC pvt_scale, pvt_bias;
-    unsigned int adjIndex, index;
-    int ygid    = get_global_id(1);
-    int yglb_sz = get_global_size(1);
-    int grpid   = get_group_id(0);
+    _FLOAT_PREC mean, variance, invVariance;
+    _FLOAT_PREC inhat;
+    _FLOAT_PREC pscale, pbias;
 
-    for(int img_offset = ygid; img_offset < imageDims; img_offset += yglb_sz)
+    for(int idx = ygid; idx < hw; idx += get_global_size(1))
     {
-        adjIndex    = (grpid * imageDims) + img_offset;
-        mean        = estimatedMean[adjIndex];
-        variance    = estimatedVariance[adjIndex];
+        adjIndex    = (xgid * cStride) + (idx * hwStride);
+        mean        = *(estimatedMean + adjIndex);
+        variance    = *(estimatedVariance + adjIndex);
+        pscale      = *(scale + adjIndex);
+        pbias       = *(bias + adjIndex);
         invVariance = rsqrt(fabs(variance + epsilon));
-        pvt_scale   = *(scale + adjIndex);
-        pvt_bias    = *(bias + adjIndex);
 
         for(int n = 0; n < batchSize; n++)
         {
-            index      = (batchStride * n) + adjIndex;
-            elemStd    = FLOAT2FLOATPREC(*(in + index)) - mean;
-            inhat      = elemStd * invVariance;
-            out[index] = FLOATPREC2FLOAT(mad(pvt_scale, inhat, pvt_bias));
+            index      = (n * batchStride) + adjIndex;
+            inhat      = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
+            out[index] = FLOATPREC2FLOAT(mad(pscale, inhat, pbias));
         }
     }
 }
