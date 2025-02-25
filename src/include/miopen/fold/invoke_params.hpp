@@ -29,8 +29,6 @@
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
-#include <limits>
-
 namespace miopen {
 
 namespace fold {

@@ -211,11 +211,11 @@ int FoldDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     int status;
 
-    for(int i = 0; i < input_sz; i++)
+    for(size_t i = 0; i < input_sz; i++)
         input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     status = input_dev->ToGPU(GetStream(), input.data());
 
-    for(int i = 0; i < doutput_sz; i++)
+    for(size_t i = 0; i < doutput_sz; i++)
     {
         doutput[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
     }
@@ -401,7 +401,7 @@ int FoldDriver<Tgpu, Tref>::VerifyBackward()
     if(!std::isfinite(error_dinput) || error_dinput > tolerance)
     {
         std::cout << "Backward Fold FAILED: {" << error_dinput << "} > " << tolerance << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {

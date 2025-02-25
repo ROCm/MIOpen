@@ -66,7 +66,7 @@ ConvSolution FoldBwd::GetSolution([[maybe_unused]] const ExecutionContext& conte
     uint64_t spatial_dim_size = output_grad_dims.size() - 2;
     uint64_t P = 1, L = 1;
     std::vector<uint64_t> ls;
-    for(int i = 0; i < spatial_dim_size; ++i)
+    for(uint64_t i = 0; i < spatial_dim_size; ++i)
     {
         P *= problem.kernel_size[i];
         uint64_t l = (static_cast<uint64_t>(output_grad_dims[i + 2]) + 2 * problem.padding[i] -

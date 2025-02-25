@@ -25,13 +25,13 @@
  *******************************************************************************/
 #include "cpu_unfold.hpp"
 #include "get_handle.hpp"
-#include <miopen/allocator.hpp>
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
+#include <miopen/allocator.hpp>
 #include <miopen/fold.hpp>
+#include <miopen/miopen.h>
 
 struct FoldTestCase
 {

@@ -25,9 +25,9 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/activ.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/miopen.h>
-#include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 
@@ -68,13 +68,9 @@ struct UnfoldFwdProblemDescription : ProblemDescriptionBase
 
     bool IsValidSize() const
     {
-        if(inputDesc.GetNumDims() != 4)
+        if(inputDesc.GetNumDims() > 4)
         {
-#if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
-            MIOPEN_THROW(miopenStatusBadParm, "Unfold: The input tensor should be 4D.");
-#else
-            return false;
-#endif
+            MIOPEN_THROW(miopenStatusBadParm, "Unfold: The input tensor should be <= 4D.");
         }
         uint64_t spatial_dim_size = inputDesc.GetNumDims() - 2;
         if(kernel_size_size != spatial_dim_size || stride_size != spatial_dim_size ||
