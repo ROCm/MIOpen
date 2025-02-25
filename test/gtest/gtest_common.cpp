@@ -106,8 +106,6 @@ const std::multimap<Gpu, DevDescription>& GetAllKnownDevices()
         {Gpu::gfx908,  {"gfx908",  120}},
         {Gpu::gfx90A,  {"gfx90a",  104}},
         {Gpu::gfx90A,  {"gfx90a",  110}},
-        {Gpu::gfx94X,  {"gfx940",  228}},
-        {Gpu::gfx94X,  {"gfx941",  304}},
         {Gpu::gfx94X,  {"gfx942",  228}},
         {Gpu::gfx94X,  {"gfx942",  304}},
         {Gpu::gfx103X, {"gfx1030", 30}},

@@ -221,11 +221,9 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    const auto force_cache_bypass = (name == "gfx940") || (name == "gfx941");
-
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", 5},
-        {"FORCE_CACHE_BYPASS_ON_STORE", force_cache_bypass},
+        {"FORCE_CACHE_BYPASS_ON_STORE", false},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
