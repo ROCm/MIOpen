@@ -107,8 +107,6 @@ size_t Metadata::EncodePrecision(miopenDataType_t data_type) const
 
 size_t Metadata::EncodeLayout(const std::string& layout) const
 {
-    if(layout != "NCDHW" && layout != "NCHW") // TunaNet supports NCHW and NCDHW layouts only atm
-        MIOPEN_THROW("Unsupported layout passed to TunaNet");
     return layout_encodings.at(layout);
 }
 
@@ -412,7 +410,7 @@ public:
             MIOPEN_LOG_I2("TunaNet Inapplicable: Problem not 2D");
             return false;
         }
-        if(problem.GetInLayout() != "NCHW")
+        if(problem.GetInLayout() != "NCHW" && problem.GetInLayout() != "NHWC")
         {
             MIOPEN_LOG_I2("TunaNet Inapplicable: Layout not supported");
             return false;
@@ -480,6 +478,7 @@ protected:
             static_cast<float>(problem.GetDilationH()),
             static_cast<float>(problem.GetDilationW()),
             static_cast<float>(problem.GetOutBatchSize()),
+            static_cast<float>(metadata.EncodeLayout(problem.GetInLayout())),
             static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
             static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
             static_cast<float>(problem.GetGroupCount())};
@@ -705,12 +704,17 @@ bool ModelSetParams(const std::string& arch,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator)
 {
-    auto model = GetModel(arch, solver);
-
-    std::stringstream ss;
-    for(int i = 0; i < 17; ++i)
-        ss << features[i * 17 + i] << ", ";
-    MIOPEN_LOG_I2("Features: " << ss.str());
+    using model_type = decltype(GetModel(arch, solver));
+    model_type model;
+    try
+    {
+        model = GetModel(arch, solver);
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_I2("[Warning] Could not retrieve model: (" << ex.what() << ")");
+        return false;
+    }
 
     // get context
     int dim = 0;
@@ -731,8 +735,6 @@ bool ModelSetParams(const std::string& arch,
     case miopen::conv::Direction::BackwardWeights: dir = "wrw"; break;
     default: return false;
     }
-
-    MIOPEN_LOG_I2("PREDICT TYPE: " << model->metadata.predict_type);
 
     // run decoder to set kernel parameters
     for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params; ++i)
@@ -759,7 +761,6 @@ bool ModelSetParams(const std::string& arch,
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
 
-            MIOPEN_LOG_I2(std::to_string((int)i) + ": " + std::to_string(token) + " " + value);
             if(value == "-1") // if token-value is "-1", then decoding has finished
             {
                 auto stop     = std::chrono::high_resolution_clock::now();
