@@ -73,27 +73,22 @@ TensorDescriptor BuildReshaped4DTensorDescriptor(const miopen::TensorDescriptor&
     if(layout == miopenTensorNCDHW)
     {
         layout = miopenTensorNCHW;
-
-        // NxCxDxHxW -> NxCx(D*H)xW
-        dims[2] *= dims[3];
-        dims[3] = dims[4];
-        dims.pop_back();
     }
     else if(layout == miopenTensorNDHWC)
     {
         layout = miopenTensorNHWC;
-
-        // NxDxHxWxC -> Nx(D*H)xWxC
-        dims[1] *= dims[2];
-        dims[2] = dims[3];
-        dims[3] = dims[4];
-        dims.pop_back();
     }
     else
     {
         std::cout << "Cannot handle layout : " << layout << "\n";
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
+
+    // Both NCDHW and NDHWC layout store the lens in NCHDW form
+    // hence : NxCxDxHxW -> NxCx(D*H)xW
+    dims[2] *= dims[3];
+    dims[3] = dims[4];
+    dims.pop_back();
 
     return {dataType, layout, dims};
 }
@@ -109,14 +104,11 @@ void profileSequence(const Handle& handle, unsigned char select, float* ctime)
     case 0:
         if(handle.IsProfilingEnabled())
         {
-            *ctime = 0.;
-            handle.ResetKernelTime();
             ktime  = handle.GetKernelTime();
             *ctime = ktime;
 
 #if(MIO_BN_CPP_PROF == 1)
-            printf("ktime0: %lf\n", ktime);
-            printf("ctime: %f\n", *ctime);
+            printf("kernel0: %7.3f ms   total: %7.3f ms\n", ktime, *ctime);
 #endif
         }
 #if(MIOPEN_BN_SYNCH == 1)
@@ -133,8 +125,7 @@ void profileSequence(const Handle& handle, unsigned char select, float* ctime)
             *ctime += ktime;
 
 #if(MIO_BN_CPP_PROF == 1)
-            printf("ktime1: %lf\n", ktime);
-            printf("ctime: %f\n", *ctime);
+            printf("kernel1: %7.3f ms   total: %7.3f ms\n", ktime, *ctime);
 #endif
         }
 #if(MIOPEN_BN_SYNCH == 1)
@@ -148,15 +139,12 @@ void profileSequence(const Handle& handle, unsigned char select, float* ctime)
     case 2:
         if(handle.IsProfilingEnabled())
         {
-
-#if(MIO_BN_CPP_PROF == 1)
             ktime = handle.GetKernelTime();
+            *ctime += ktime;
+            handle.ResetKernelTime();
             handle.AccumKernelTime(*ctime);
-            printf("ktime2: %lf\n", ktime);
-            printf("ctime: %f\n", *ctime + ktime);
-#else
-            handle.GetKernelTime();
-            handle.AccumKernelTime(*ctime);
+#if(MIO_BN_CPP_PROF == 1)
+            printf("kernel2: %7.3f ms   total: %7.3f ms\n", ktime, *ctime);
 #endif
         }
         break;
