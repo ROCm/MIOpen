@@ -229,58 +229,22 @@ struct verify_tensor_transform_scale
         beta        = betaIn;
     }
 
-    static T multadd_elem(T aelem, T acte, T belem, T bcte)
-    {
-        return ((acte * aelem) + (bcte * belem));
-    }
-    void tensor_multadd_for_loop(tensor<T>& superCpu_src,
-                                 tensor<T>& superCpu_dst,
-                                 int src_offset_index,
-                                 int dst_offset_index,
-                                 T acte,
-                                 T bcte,
-                                 int dim) const
-    {
-        auto src_stride  = subDesc_src.GetStrides()[dim];
-        auto dst_stride  = subDesc_dst.GetStrides()[dim];
-        size_t srcOffset = src_offset;
-        size_t dstOffset = dst_offset;
-
-        for(int idx = 0; idx < subDesc_src.GetLengths()[dim]; idx++)
-        {
-            std::size_t src_super_index =
-                ((dim == 0) ? srcOffset : 0) + src_offset_index + src_stride * idx;
-            std::size_t dst_super_index =
-                ((dim == 0) ? dstOffset : 0) + dst_offset_index + dst_stride * idx;
-
-            if(dim < (subDesc_src.GetLengths().size() - 1))
-            {
-                tensor_multadd_for_loop(superCpu_src,
-                                        superCpu_dst,
-                                        src_super_index,
-                                        dst_super_index,
-                                        acte,
-                                        bcte,
-                                        dim + 1);
-            }
-            else if(dst_super_index < superCpu_dst.desc.GetElementSpace() &&
-                    src_super_index < superCpu_src.desc.GetElementSpace())
-            {
-                superCpu_dst[dst_super_index] = multadd_elem(T(superCpu_src[src_super_index]),
-                                                             alpha,
-                                                             T(superCpu_dst[dst_super_index]),
-                                                             beta);
-            }
-        }
-    }
-
     tensor<T> cpu() const
     {
 
         tensor<T> superCpu_src = super_src;
         tensor<T> superCpu_dst = super_dst;
 
-        tensor_multadd_for_loop(superCpu_src, superCpu_dst, 0, 0, alpha, beta, 0);
+        operate_over_subtensor(
+            [a = alpha, b = beta](auto& dst, auto src) {
+                dst = static_cast<T>(src) * a + static_cast<T>(dst) * b;
+            },
+            superCpu_dst,
+            superCpu_src,
+            subDesc_dst,
+            subDesc_src,
+            dst_offset,
+            src_offset);
 
 #if(MIO_TRANSFORM_DEBUG)
         printf("\n CPU: \n");

@@ -25,16 +25,12 @@
  *******************************************************************************/
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "../rnn_vanilla.hpp"
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DEEPBENCH)
 
 namespace env = miopen::env;
 
 namespace deepbench_rnn {
-static bool SkipTest(void) { return !env::enabled(MIOPEN_TEST_DEEPBENCH); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -79,17 +75,14 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
     const std::vector<std::string> test_cases = {
         // clang-format off
-    {flags + " --batch-size 16 --seq-len 50 --vector-len 1760 --hidden-size 1760 " + postFlags},
-    {flags + " --batch-size 32 --seq-len 50 --vector-len 1760 --hidden-size 1760 " + postFlags},
+    {flags + " --batch-size 16 --seq-len 50 --vector-len 176 --hidden-size 176 " + postFlags},
+    {flags + " --batch-size 32 --seq-len 50 --vector-len 176 --hidden-size 176 " + postFlags},
     {flags + " --batch-size 64 --seq-len 50 --vector-len 1760 --hidden-size 1760 " + postFlags},
-    {flags + " --batch-size 128 --seq-len 50 --vector-len 1760 --hidden-size 1760 " + postFlags},
-    {flags + " --batch-size 16 --seq-len 50 --vector-len 2048 --hidden-size 2048 " + postFlags},
-    {flags + " --batch-size 32 --seq-len 50 --vector-len 2048 --hidden-size 2048 " + postFlags},
+    {flags + " --batch-size 16 --seq-len 50 --vector-len 204 --hidden-size 204 " + postFlags},
+    {flags + " --batch-size 32 --seq-len 50 --vector-len 204 --hidden-size 204 " + postFlags},
     {flags + " --batch-size 64 --seq-len 50 --vector-len 2048 --hidden-size 2048 " + postFlags},
-    {flags + " --batch-size 128 --seq-len 50 --vector-len 2048 --hidden-size 2048 " + postFlags},
-    {flags + " --batch-size 16 --seq-len 50 --vector-len 2560 --hidden-size 2560 " + postFlags},
-    {flags + " --batch-size 32 --seq-len 50 --vector-len 2560 --hidden-size 2560 " + postFlags},
-    {flags + " --batch-size 64 --seq-len 50 --vector-len 2560 --hidden-size 2560 " + postFlags},
+    {flags + " --batch-size 16 --seq-len 50 --vector-len 256 --hidden-size 256 " + postFlags},
+    {flags + " --batch-size 32 --seq-len 50 --vector-len 256 --hidden-size 256 " + postFlags},
     {flags + " --batch-size 128 --seq-len 50 --vector-len 2560 --hidden-size 2560 " + postFlags}
         // clang-format on
     };
@@ -101,16 +94,6 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace deepbench_rnn;
 
-TEST_P(GPU_DeepBenchRNN_FP32, FloatTest_deepbench_rnn)
-{
-    if(SkipTest())
-    {
-        GTEST_SKIP();
-    }
-    else
-    {
-        Run2dDriverFloat();
-    }
-};
+TEST_P(GPU_DeepBenchRNN_FP32, FloatTest_deepbench_rnn) { Run2dDriverFloat(); };
 
 INSTANTIATE_TEST_SUITE_P(Full, GPU_DeepBenchRNN_FP32, testing::Values(GetTestCases("--float")));

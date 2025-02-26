@@ -32,7 +32,6 @@
 #include <functional>
 
 #include <miopen/logger.hpp>
-#include <miopen/each_args.hpp>
 #include <numeric>
 #include <sstream>
 #include <stdexcept>
@@ -183,14 +182,14 @@ struct any_value
 };
 
 template <class T, std::size_t... Ns, class Data>
-auto any_construct_impl(miopen::rank<1>, miopen::detail::seq<Ns...>, const Data& d)
+auto any_construct_impl(miopen::rank<1>, std::index_sequence<Ns...>, const Data& d)
     -> decltype(T(any_value{d[Ns]}...))
 {
     return T(any_value{d[Ns]}...);
 }
 
 template <class T, std::size_t... Ns, class Data>
-T any_construct_impl(miopen::rank<0>, miopen::detail::seq<Ns...>, const Data&)
+T any_construct_impl(miopen::rank<0>, std::index_sequence<Ns...>, const Data&)
 {
     throw std::runtime_error("Cannot construct: " + miopen::get_type_name<T>());
 }
@@ -198,7 +197,7 @@ T any_construct_impl(miopen::rank<0>, miopen::detail::seq<Ns...>, const Data&)
 template <class T, std::size_t N, class Data>
 T any_construct(const Data& d)
 {
-    return any_construct_impl<T>(miopen::rank<1>{}, typename miopen::detail::gens<N>::type{}, d);
+    return any_construct_impl<T>(miopen::rank<1>{}, std::make_index_sequence<N>(), d);
 }
 
 struct write_value
