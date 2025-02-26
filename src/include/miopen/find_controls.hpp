@@ -119,6 +119,7 @@ public:
         Hybrid               = miopenConvolutionFindModeHybrid,
         DeprecatedFastHybrid = 4,
         DynamicHybrid        = miopenConvolutionFindModeDynamicHybrid,
+        TrustVerify          = miopenConvolutionFindModeTrustVerify,
         End_,
         Default_ = miopenConvolutionFindModeDefault,
     };
@@ -152,13 +153,19 @@ public:
     template <class Context>
     bool IsHybrid(const Context& context) const
     {
-        return (value == Values::Hybrid || value == Values::DynamicHybrid) && IsEnabled(context);
+        return (value == Values::Hybrid || value == Values::DynamicHybrid || value == Values::TrustVerify) && IsEnabled(context);
     }
 
     template <class Context>
     bool IsDynamicHybrid(const Context& context) const
     {
-        return value == Values::DynamicHybrid && IsEnabled(context);
+        return value == (Values::DynamicHybrid || value == Values::TrustVerify) && IsEnabled(context);
+    }
+
+    template <class Context>
+    bool IsTrustVerify(const Context& context) const
+    {
+        return value == Values::TrustVerify && IsEnabled(context);
     }
 
     MIOPEN_INTERNALS_EXPORT friend std::ostream& operator<<(std::ostream&, const FindMode&);

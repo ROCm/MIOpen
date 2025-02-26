@@ -164,12 +164,89 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
 
     if(sol.has_value())
     {
+        if(findMode.IsTrustVerify(ctx))
+        {
+            //is user find db record?
+            //const UserFindDbRecord ufdb_record{ctx.GetStream(), problem};
+            //if(ufdb_record.empty()) //or ufdb sol != fdb sol
+            auto ufdb_sols = miopen::GetSolutions(ctx, problem, 1, &invoke_ctx, true);
+            if(ufdb_sols.empty())
+            {
+                //solution is from system db, verify for current machine
+                results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
+                    auto ctx_copy                       = ctx;
+                    ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
+                    const auto params =
+                        conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
+
+                    const auto id = solver::Id{sol->solution_id};
+                    const auto& solver = id.GetSolver();
+                    CompileSolution(id, ctx, problem);
+
+                    ConvSolution conv_sol = conv.FindSolution(solver, ctx, problem, miopen::MakeConvDbGetter(ctx), {}); // auto tune is not expected here
+                    std::vector<solver::ConvSolution> conv_sols;
+                    conv_sols.emplace_back(std::move(conv_sol));
+
+                    //test timing of solver reported by system db
+                    static std::vector<Solution> eval_sols = EvaluateInvokers(handle,
+                                                  conv_sols,
+                                                  solver.GetAlgo(),
+                                                  problem.MakeNetworkConfig(),
+                                                  ctx_copy,
+                                                  NULL,
+                                                  false)
+
+
+                    const float eval_time = eval_sols.front().GetTime();
+                    constexpr float VERIFY_TOLERANCE  = 1.10f;
+                    if(sol.time / eval_time < VERIFY_TOLERANCE)
+                    {
+                        // system db result is good
+                        // add to user fdb so this check is skipped next time
+                        auto ret       = FindCoreResult();
+                        ret.is_optimal = true;
+                        auto sols = conv.GetSolutions(ctx, problem, 6, &fallback, &invoke_ctx);
+                        for(const auto& s : sols)
+                        {
+                            auto solution = Solution{solver::Id{s.solution_id}, s.time, s.workspace_sz};
+                            ret.solutions.emplace_back(std::move(solution));
+                        }
+                        return ret
+                    }
+                    else
+                    {
+                        // time is slower than VERIFY_TOLERANCE, trigger find
+                        // if enforce is searching ignore system db and update user db
+                        const FindEnforce enforce = FindEnforce{};
+                        if(enforce.IsSearch(context))
+                        {
+                            ctx_copy.do_search = true;
+                            ctx_copy.db_update = true;
+                        }
+
+                        return FindCore(invoke_ctx,
+                                        ctx_copy,
+                                        problem,
+                                        params,
+                                        conv::GetConvSolverFinders(),
+                                        std::nullopt,
+                                        force_attach_binary);
+                    }
+                });
+            }
+            else if(ufdb_sols.front().solution_id != sol.solution_id)
+            {
+                //solution is from system db, use user db instead
+                sol = ufdb_sols.front()
+            }
+        }
+
         /// It is possible to measure actual execution time and return it to the caller.
         /// \todo Consider if we need (and want to spend time) for this.
         const auto id = solver::Id{sol->solution_id};
-        const auto& s = id.GetSolver();
+        const auto& solver = id.GetSolver();
         CompileSolution(id, ctx, problem);
-        results.push_back({id, sol->time, s.GetWorkspaceSize(ctx, problem)});
+        results.push_back({id, sol->time, solver.GetWorkspaceSize(ctx, problem)});
     }
     else
     {
@@ -692,7 +769,8 @@ namespace {
 std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
                                                const conv::ProblemDescription& problem,
                                                const size_t maxSolutionCount,
-                                               const AnyInvokeParams* const invokeParams)
+                                               const AnyInvokeParams* const invokeParams,
+                                               const bool ufdb_only = false)
 {
     auto algo_resolver = std::function<int(const std::string&)>{};
 
@@ -705,7 +783,13 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
         break;
     }
 
-    const FindDbRecord fdb_record{ctx.GetStream(), problem};
+    FindDbRecord_t record;
+    if(ufdb_only)
+        record = UserFindDbRecord{ctx.GetStream(), problem};
+    else
+        record = FindDbRecord{ctx.GetStream(), problem};
+
+    const auto fdb_record = record;
 
     if(fdb_record.empty())
         return {};
