@@ -34,7 +34,6 @@
 #include <miopen/search_options.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/solver_id.hpp>
-#include <miopen/type_name.hpp>
 
 #include <nlohmann/json.hpp>
 #include <boost/hof/match.hpp>

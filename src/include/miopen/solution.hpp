@@ -109,7 +109,7 @@ struct MIOPEN_INTERNALS_EXPORT Solution : miopenSolution
     const ProblemContainer& GetProblem() const { return problem; }
     void SetProblem(ProblemContainer value) { problem = std::move(value); }
 
-    void Run(Handle& handle,
+    void Run(const Handle& handle,
              const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
              Data_t workspace,
              size_t workspace_size);
@@ -157,25 +157,25 @@ private:
     std::optional<Invoker> invoker;
     std::vector<KernelInfo> kernels;
 
-    void RunImpl(Handle& handle,
+    void RunImpl(const Handle& handle,
                  const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                  Data_t workspace,
                  std::size_t workspace_size,
                  const ConvolutionDescriptor& conv_desc);
 
-    void RunImpl(Handle& handle,
+    void RunImpl(const Handle& handle,
                  const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                  Data_t /*workspace*/,
                  std::size_t /*workspace_size*/,
                  const SoftmaxDescriptor& softmax_desc);
 
-    void RunImpl(Handle& handle,
+    void RunImpl(const Handle& handle,
                  const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                  Data_t workspace,
                  std::size_t workspace_size,
                  const MhaDescriptor& mha_desc);
 
-    void RunImpl(Handle& handle,
+    void RunImpl(const Handle& handle,
                  const std::unordered_map<miopenTensorArgumentId_t, RunInput>& inputs,
                  Data_t workspace,
                  std::size_t workspace_size,
