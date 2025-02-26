@@ -39,7 +39,7 @@ namespace solver {
 namespace batchnorm {
 
 bool BnBwdTrainingSpatialMultiple::IsApplicable(
-    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& problem) const
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
 {
     if(problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
        problem.GetMode() != miopenBNSpatial)
@@ -51,17 +51,50 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
     if(!IsOCLBwdTypeValid(problem))
         return false;
 
-#if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
-    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
-    {
-        // bfp16parm = true;
-        // Unsupported kernel mode, error in kernel code
-        // MIOpenBatchNormBwdSpatial.cl:526 issue#1549
-        return false;
-    }
-#endif
+    size_t n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
 
-    return !BnBwdTrainingSpatialSingle{}.IsApplicable(context, problem);
+    unsigned int in_cstride = h * w;
+    unsigned int in_nhw     = n * in_cstride;
+
+    // Variant 2 needs space for 4 fp32 elements per each x thread (including the last workgroup)
+    // to stash intermediate mean, variance and scales
+    unsigned int stash_values = 4;
+    if(problem.IsLayoutNHWC())
+    {
+        // TODO: For now enable variant 2 for NHWC because other variants are slower.
+        // Remove when other variants are optimized
+
+        unsigned int xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
+        unsigned int ylocalsize = 1024 / xlocalsize;
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+        if(problem.GetXDesc().GetType() == miopenFloat)
+        {
+            if(last_ylocalsize < stash_values)
+                return false;
+        }
+        else
+        {
+            // Even threads use 2 values at even rows, odd threads - at odd rows.
+            if(c % 2 != 0 || last_ylocalsize < stash_values * 2)
+                return false;
+        }
+    }
+    else
+    {
+        if(!((in_nhw >= static_cast<size_t>(32 * 1024 * 1024) || in_cstride <= 1024) &&
+             in_cstride > 512))
+            return false;
+
+        unsigned int ylocalsize = 1024;
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+            return false;
+    }
+
+    return true;
 }
 
 ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
@@ -102,116 +135,38 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
 
     auto inhw = float(1.0 / in_nhw);
 
-    size_t xlocalsize = 1;
-    size_t ylocalsize = 1;
+    int variant = 2;
 
-    size_t xgridsize = 1;
-    size_t ygridsize = 1;
-
-    unsigned int ldsgcn   = 0;
-    unsigned int ldsnogcn = 0;
-    int variant           = 1;
-
+    size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize;
     if(problem.IsLayoutNHWC())
     {
-        xlocalsize = 1024;
-        xgridsize  = c * xlocalsize;
-        ldsgcn     = xlocalsize / 64;
-        ldsnogcn   = xlocalsize;
+        // ylocalsize must be power of 2 as reductions in the kernels rely on it, here c is rounded
+        // up to next power of 2.
+        xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
+        xgridsize  = xlocalsize * ((c + xlocalsize - 1) / xlocalsize);
+        ylocalsize = 1024 / xlocalsize;
+        ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
     }
     else
     {
-        //*************************************************************************************************
-        // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize
-        // work groups over channels and loop through NHW.
-        //*************************************************************************************************
-        if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024))
-        {
-            variant    = 1;
-            xlocalsize = 1024;
-            xgridsize  = c * xlocalsize;
-            ldsgcn     = xlocalsize / 64;
-            ldsnogcn   = xlocalsize;
-        }
-        //*************************************************************************************************
-        // N*H*W < 32M and H*W > 512  use batchnorm variant#1 or variant#3 implementation which
-        // parallelize
-        // work groups over channels and loop through N.
-        //*************************************************************************************************
-        else if(in_nhw < (32 * 1024 * 1024) && in_cstride > 512)
-        {
-            variant    = (n >= 32) ? 1 : 3;
-            xlocalsize = std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
-            xgridsize  = c * xlocalsize;
-            ldsgcn     = xlocalsize / 64;
-            ldsnogcn   = xlocalsize;
-        }
-        //*************************************************************************************************
-        // H*W < 512  use batchnorm variant#0 or variant#3 implementation based on batch size and
-        // H*W
-        //*************************************************************************************************
-        else if(in_cstride <= 512)
-        {
-            if((n > 64) && (in_cstride > 160))
-            {
-                variant = 3;
-                xlocalsize =
-                    std::min(64 * ((in_cstride + 63) / 64), static_cast<unsigned int>(1024));
-                xgridsize = c * xlocalsize;
-                ldsgcn    = xlocalsize / 64;
-                ldsnogcn  = xlocalsize;
-            }
-            else
-            {
-                variant = 0;
-                if(bfp32parm)
-                {
-                    xlocalsize = 1024;
-                    xgridsize  = static_cast<size_t>(1024) * c;
-                }
-                else
-                {
-                    xlocalsize = 256;
-                    xgridsize  = static_cast<size_t>(256) * c;
-                }
-                ldsgcn   = xlocalsize / 64;
-                ldsnogcn = xlocalsize;
-            }
-        }
-        //*************************************************************************************************
-        // N*H*W > 32M, use batchnorm variant#2 implementation which parallelize
-        // work groups over channels and data segments.
-        //*************************************************************************************************
-        else
-        {
-            variant      = 2;
-            ylocalsize   = 1024;
-            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
-            ldsgcn       = ylocalsize / 64;
-            ldsnogcn     = ylocalsize;
-        }
-        if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
-        {
-            variant    = 1;
-            xlocalsize = 1024;
-            xgridsize  = c * xlocalsize;
-            ldsgcn     = xlocalsize / 64;
-            ldsnogcn   = xlocalsize;
-        }
+        xlocalsize = 1;
+        xgridsize  = c;
+        ylocalsize = 1024;
+        ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
     }
+    zlocalsize = 1;
+    zgridsize  = 1;
+
+    unsigned int ldsnogcn = xlocalsize * ylocalsize;
+    unsigned int ldsgcn   = xlocalsize * ylocalsize / 64;
 
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
-
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenBatchNormBwdSpatial.cl";
-        kernel.kernel_name = "MIOpenBatchNormBwdSpatial";
+        kernel.kernel_file      = "MIOpenBatchNormBwdSpatial.cl";
+        std::string kernel_name = "MIOpenBatchNormBwdSpatial";
 
         auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
@@ -225,7 +180,7 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_NHW", static_cast<int>(in_nhw)},
             {"MIO_BN_CHW", in_nstride},
             {"MIO_BN_NCHW", in_nchw},
-            {"MIO_BN_NGRPS", int(std::ceil(float(ygridsize) / ylocalsize))},
+            {"MIO_BN_NGRPS", ygridsize / ylocalsize},
             {"MIO_BN_LDS_SIZE", ldsnogcn},
             {"MIO_BN_LDSGCN_SIZE", ldsgcn},
             {"MIO_BN_VARIANT", variant},
@@ -248,38 +203,27 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
         kernel.g_wk.push_back(ygridsize);
         kernel.g_wk.push_back(zgridsize);
 
-        if(problem.UseSaved())
+        auto single_ygroup_kernel = kernel;
+
+        single_ygroup_kernel.g_wk[1] = single_ygroup_kernel.l_wk[1];
+
+        if(!problem.UseSaved())
         {
-            auto copy = kernel;
+            kernel.kernel_name = kernel_name + "MeanVariance";
+            result.construction_params.push_back(kernel);
 
-            copy.kernel_name = kernel.kernel_name + "DScaleDBias";
-            result.construction_params.push_back(copy);
-
-            copy.kernel_name = kernel.kernel_name + "FinalDScaleDBias";
-            result.construction_params.push_back(copy);
-
-            copy.kernel_name = kernel.kernel_name + "DX";
-            result.construction_params.push_back(copy);
+            single_ygroup_kernel.kernel_name = kernel_name + "FinalMeanVariance";
+            result.construction_params.push_back(single_ygroup_kernel);
         }
-        else
-        {
-            auto copy = kernel;
 
-            copy.kernel_name = kernel.kernel_name + "MeanVariance";
-            result.construction_params.push_back(copy);
+        kernel.kernel_name = kernel_name + "DScaleDBias";
+        result.construction_params.push_back(kernel);
 
-            copy.kernel_name = kernel.kernel_name + "FinalMeanVariance";
-            result.construction_params.push_back(copy);
+        single_ygroup_kernel.kernel_name = kernel_name + "FinalDScaleDBias";
+        result.construction_params.push_back(single_ygroup_kernel);
 
-            copy.kernel_name = kernel.kernel_name + "DScaleDBias";
-            result.construction_params.push_back(copy);
-
-            copy.kernel_name = kernel.kernel_name + "FinalDScaleDBias";
-            result.construction_params.push_back(copy);
-
-            copy.kernel_name = kernel.kernel_name + "DX";
-            result.construction_params.push_back(copy);
-        }
+        kernel.kernel_name = kernel_name + "DX";
+        result.construction_params.push_back(kernel);
     }
 
     const auto dtype    = problem.GetBnScale().GetType();
