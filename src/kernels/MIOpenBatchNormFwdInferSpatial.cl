@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2017-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,13 +42,18 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
                                   const __global _FLOAT_PREC* __restrict scale,
                                   const __global _FLOAT_PREC* __restrict bias,
                                   double epsilon,
+                                  unsigned int c,
+                                  unsigned int hw,
                                   unsigned int batchSize,
-                                  unsigned int imageDims,
+                                  unsigned int cStride,
+                                  unsigned int hwStride,
                                   unsigned int batchStride)
 {
-
     int xgid = get_global_id(0);
     int ygid = get_global_id(1);
+
+    if(xgid >= c)
+        return;
 
     unsigned int index;
 
@@ -62,11 +67,11 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
     pbias       = *(bias + xgid);
     invVariance = rsqrt(fabs(variance + epsilon));
 
-    for(int idx = ygid; idx < imageDims; idx += get_global_size(1))
+    for(int idx = ygid; idx < hw; idx += get_global_size(1))
     {
         for(int n = 0; n < batchSize; n++)
         {
-            index      = (n * batchStride) + (xgid * imageDims) + idx;
+            index      = (n * batchStride) + (xgid * cStride) + (idx * hwStride);
             inhat      = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
             out[index] = FLOATPREC2FLOAT(mad(pscale, inhat, pbias));
         }
