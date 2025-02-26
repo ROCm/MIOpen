@@ -50,8 +50,8 @@ auto GetConvFullTestCases(miopenDataType_t datatype)
         TestCase{{datatype, miopenTensorNHWC, {1, 32, 8, 8}},
                  {datatype, miopenTensorNHWC, {32, 32, 3, 3}},
                  datatype, {{1, 1}, {1, 1}, {1, 1}}}, // non-zero padding
-        TestCase{{datatype, miopenTensorNHWC, {1, 128, 24, 48}},
-                 {datatype, miopenTensorNHWC, {384, 128, 1, 1}},
+        TestCase{{datatype, miopenTensorNHWC, {1, 64, 24, 48}},
+                 {datatype, miopenTensorNHWC, {96, 64, 1, 1}},
                  datatype, {{0, 0}, {2, 2}, {1, 1}}}, // stride > 1
         TestCase{{datatype, miopenTensorNHWC, {1, 32, 8, 8}},
                  {datatype, miopenTensorNHWC, {32, 32, 3, 3}},
