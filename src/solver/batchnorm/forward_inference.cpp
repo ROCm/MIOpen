@@ -93,7 +93,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
         bool vectorize;
         if(problem.GetXDesc().GetLayout_t() == miopenTensorNHWC)
         {
-            vectorize       = c % 4 == 0;
+            vectorize       = c % 4 == 0 && problem.GetMode() == miopenBNSpatial;
             int vector_size = vectorize ? 4 : 1;
             xlocalsize      = std::min(size_t{c / vector_size}, max_localsize);
             xgridsize       = xlocalsize * ((c / vector_size + xlocalsize - 1) / xlocalsize);
@@ -102,7 +102,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
         }
         else
         {
-            vectorize       = in_cstride % 4 == 0;
+            vectorize       = in_cstride % 4 == 0 && problem.GetMode() == miopenBNSpatial;
             int vector_size = vectorize ? 4 : 1;
             xlocalsize = 1;
             xgridsize  = c;
