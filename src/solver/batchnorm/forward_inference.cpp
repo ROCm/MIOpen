@@ -93,20 +93,20 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
         bool vectorize;
         if(problem.GetXDesc().GetLayout_t() == miopenTensorNHWC)
         {
-            vectorize       = c % 4 == 0 && problem.GetMode() == miopenBNSpatial;
+            vectorize       = c % 4 == 0;
             int vector_size = vectorize ? 4 : 1;
             xlocalsize      = std::min(size_t{c / vector_size}, max_localsize);
             xgridsize       = xlocalsize * ((c / vector_size + xlocalsize - 1) / xlocalsize);
-            ylocalsize = max_localsize / xlocalsize;
-            ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+            ylocalsize      = max_localsize / xlocalsize;
+            ygridsize       = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
         }
         else
         {
-            vectorize       = in_cstride % 4 == 0 && problem.GetMode() == miopenBNSpatial;
+            vectorize       = in_cstride % 4 == 0;
             int vector_size = vectorize ? 4 : 1;
-            xlocalsize = 1;
-            xgridsize  = c;
-            ylocalsize = max_localsize;
+            xlocalsize      = 1;
+            xgridsize       = c;
+            ylocalsize      = max_localsize;
             ygridsize = ylocalsize * ((in_cstride / vector_size + ylocalsize - 1) / ylocalsize);
         }
         zlocalsize = 1;
@@ -159,8 +159,6 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InfInvokeParams>();
-
-            // std::cout << "params.epsilon: " << params.epsilon << std::endl;
 
             int n_, c_, h_, w_;
             std::tie(n_, c_, h_, w_) = tien<4>(params.xDesc->GetLengths());

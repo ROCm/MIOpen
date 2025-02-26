@@ -48,8 +48,9 @@ inline void GetWGSizeNHWC(size_t c,
     unsigned int max_localsize = 1024 / vectorsize;
 
     size_t nworkgroups = 0;
-    // decrease max_localsize until the number of workgroups is greater than the number of CUs
-    while(nworkgroups < maxCUs && max_localsize >= xlocalsize_limit)
+    // decrease max_localsize until the number of workgroups is greater than 80%
+    // of the available CUs
+    while((float)nworkgroups < 0.8f * maxCUs && max_localsize >= xlocalsize_limit)
     {
         // xlocalsize must be power of 2 as reductions in the kernels rely on it, here c is rounded
         // up to next power of 2.

@@ -432,14 +432,13 @@ static inline void running_stash_pa(global _FLOAT_PREC* resultRunningMean,
 
 #else
 
-    static inline void
-    running_stash_dyn(global _FLOAT_PREC* resultRunningMean,
-                      global _FLOAT_PREC* resultRunningVariance,
-                      double expAvgFactor,
-                      _FLOAT_ACCUM mean,
-                      _FLOAT_ACCUM variance,
-                      uint channel,
-                      _FLOAT_ACCUM inhw)
+static inline void running_stash_dyn(global _FLOAT_PREC* resultRunningMean,
+                                     global _FLOAT_PREC* resultRunningVariance,
+                                     double expAvgFactor,
+                                     _FLOAT_ACCUM mean,
+                                     _FLOAT_ACCUM variance,
+                                     uint channel,
+                                     _FLOAT_ACCUM inhw)
 {
     _FLOAT_ACCUM pvt_runMean = (_FLOAT_ACCUM)(*(resultRunningMean + channel));
     _FLOAT_ACCUM pvt_newRunMean =
