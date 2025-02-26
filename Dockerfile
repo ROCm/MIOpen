@@ -115,7 +115,7 @@ DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
 
 # TODO: it should be able to automatically get commit hash from requirements.txt
 #TODO: swap my branch CK commit out with the proper commit once my branch in CK is merged
-ARG CK_COMMIT=5574422afe4a357e1e5be60cc58ab42645553b93
+ARG CK_COMMIT=c9bcfd755ed4d2102d76a6f545ac6e9a030d7d8e
 RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
