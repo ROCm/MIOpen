@@ -65,13 +65,14 @@ auto GetConvFullTestCases(miopenDataType_t datatype)
 
 auto GetTestParams(miopenDataType_t datatype)
 {
-    Gpu supportedDevices = Gpu::gfx908 | Gpu::gfx94X;
-    if(datatype != miopenHalf)
-    {
-        supportedDevices = supportedDevices | Gpu::gfx90A;
-    }
-    auto params = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
+    Gpu supportedDevices = Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X;
+    auto params          = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
     params.Tunable(5);
+    if(datatype == miopenHalf)
+    {
+        // Enable the backward solver on MI200 for fp16 by disabling the alternate implementation
+        params.SetConvAttrFp16Alt(0);
+    }
 
     return params;
 }
