@@ -62,12 +62,23 @@ static std::string ApiVerisonToString(int api_version)
     }
 }
 
+static std::string BNModeToString(int bn_mode)
+{
+    switch(bn_mode)
+    {
+    case miopenBNPerActivation: return "BNPerActivation";
+    case miopenBNSpatial: return "BNSpatial";
+    default: return "UnknownBNMode";
+    }
+}
+
 // Custom test name generator to handle enums
 template <typename TestCase>
 struct TestNameGenerator
 {
-    std::string operator()(
-        const testing::TestParamInfo<std::tuple<TestCase, miopenTensorLayout_t, BNApiType>>& info)
+    std::string
+    operator()(const testing::TestParamInfo<
+               std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>& info)
         const
     {
         constexpr int dimension = std::is_same<TestCase, BN2DTestCase>::value   ? 2
@@ -75,15 +86,17 @@ struct TestNameGenerator
                                                                                 : -1;
         static_assert(dimension > 0);
 
-        const auto& layout_type = std::get<1>(info.param);
-        const auto& api_type    = std::get<2>(info.param);
+        const auto& layout_type    = std::get<1>(info.param);
+        const auto& batchnorm_mode = std::get<2>(info.param);
+        const auto& api_type       = std::get<3>(info.param);
 
-        std::string tensor_name = LayoutToString(layout_type);
-        std::string api_name    = ApiVerisonToString(api_type);
+        std::string tensor_name  = LayoutToString(layout_type);
+        std::string bn_mode_name = BNModeToString(batchnorm_mode);
+        std::string api_name     = ApiVerisonToString(api_type);
 
         std::ostringstream oss;
-        oss << tensor_name + "_" + api_name + "_Dim_" + std::to_string(dimension) + "_test_id_" +
-                   std::to_string(info.index);
+        oss << tensor_name + "_" + bn_mode_name + "_" + api_name + "_Dim_" +
+                   std::to_string(dimension) + "_test_id_" + std::to_string(info.index);
         return oss.str();
     }
 };
@@ -93,15 +106,17 @@ template <typename XDataType,
           typename ScaleDataType,
           typename BiasDataType,
           typename MeanVarDataType,
+          typename AccDataType,
           typename TestCase>
 struct BNInferTest
-    : public ::testing::TestWithParam<std::tuple<TestCase, miopenTensorLayout_t, BNApiType>>
+    : public ::testing::TestWithParam<
+          std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, api_type) = this->GetParam();
-        bn_infer_test_data.SetUpImpl(bn_config, tensor_layout);
+        std::tie(bn_config, tensor_layout, bn_mode, api_type) = this->GetParam();
+        bn_infer_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
 
         auto&& handle = get_handle();
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
@@ -113,7 +128,7 @@ protected:
         if(api_type == BNApiType::testBNAPIV1)
         {
             res = miopenBatchNormalizationForwardInference(&handle,
-                                                           bn_config.mode,
+                                                           bn_mode,
                                                            &bn_infer_test_data.alpha,
                                                            &bn_infer_test_data.beta,
                                                            &bn_infer_test_data.input.desc,
@@ -131,7 +146,7 @@ protected:
         {
             res = miopenBatchNormalizationForwardInference_V2(
                 &handle,
-                bn_config.mode,
+                bn_mode,
                 &bn_infer_test_data.alpha,
                 &bn_infer_test_data.beta,
                 &bn_infer_test_data.input.desc,
@@ -172,33 +187,40 @@ protected:
             bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
         test::ComputeCPUBNInference(bn_infer_test_data);
         // 4e-3 is tolerance used by CK kernel.
-        test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.ref_out, 4e-3);
+        test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.out_ref, 4e-3);
     }
 
     TestCase bn_config;
     bool test_skipped = false;
-    BNInferTestData<XDataType, YDataType, ScaleDataType, BiasDataType, MeanVarDataType, TestCase>
+    BNInferTestData<XDataType,
+                    YDataType,
+                    ScaleDataType,
+                    BiasDataType,
+                    MeanVarDataType,
+                    AccDataType,
+                    TestCase>
         bn_infer_test_data;
     miopenTensorLayout_t tensor_layout;
+    miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
 };
 
 template <typename XDataType,
           typename DxDataType,
           typename DyDataType,
-          typename AccDataType,
           typename ScaleDataType,
           typename DscaleDbiasDataType,
           typename MeanVarDataType,
+          typename AccDataType,
           typename TestCase>
-struct BNBwdTest
-    : public ::testing::TestWithParam<std::tuple<TestCase, miopenTensorLayout_t, BNApiType>>
+struct BNBwdTest : public ::testing::TestWithParam<
+                       std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, api_type) = this->GetParam();
-        bn_bwd_test_data.SetUpImpl(bn_config, tensor_layout);
+        std::tie(bn_config, tensor_layout, bn_mode, api_type) = this->GetParam();
+        bn_bwd_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
 
         auto&& handle = get_handle();
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
@@ -210,7 +232,7 @@ protected:
         if(api_type == BNApiType::testBNAPIV1)
         {
             res = miopenBatchNormalizationBackward(&handle,
-                                                   bn_config.mode,
+                                                   bn_mode,
                                                    &bn_bwd_test_data.alphaDataDiff,
                                                    &bn_bwd_test_data.betaDataDiff,
                                                    &bn_bwd_test_data.alphaParamDiff,
@@ -232,7 +254,7 @@ protected:
         else if(api_type == BNApiType::testBNAPIV2)
         {
             res = miopenBatchNormalizationBackward_V2(&handle,
-                                                      bn_config.mode,
+                                                      bn_mode,
                                                       &bn_bwd_test_data.alphaDataDiff,
                                                       &bn_bwd_test_data.betaDataDiff,
                                                       &bn_bwd_test_data.alphaParamDiff,
@@ -283,10 +305,11 @@ protected:
 
         test::ComputeCPUBNBwd(bn_bwd_test_data);
 
-        test::CompareTensor<DxDataType>(bn_bwd_test_data.output, bn_bwd_test_data.ref_out, bwd_tol);
-        test::CompareTensor<DscaleDbiasDataType>(
+        test::CompareTensor<DxDataType, AccDataType>(
+            bn_bwd_test_data.output, bn_bwd_test_data.out_ref, bwd_tol);
+        test::CompareTensor<DscaleDbiasDataType, AccDataType>(
             bn_bwd_test_data.dScale, bn_bwd_test_data.dScale_ref, bwd_tol);
-        test::CompareTensor<DscaleDbiasDataType>(
+        test::CompareTensor<DscaleDbiasDataType, AccDataType>(
             bn_bwd_test_data.dBias, bn_bwd_test_data.dBias_ref, bwd_tol);
     }
 
@@ -295,13 +318,14 @@ protected:
     BNBwdTestData<XDataType,
                   DxDataType,
                   DyDataType,
-                  AccDataType,
                   ScaleDataType,
                   DscaleDbiasDataType,
                   MeanVarDataType,
+                  AccDataType,
                   TestCase>
         bn_bwd_test_data;
     miopenTensorLayout_t tensor_layout;
+    miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
     double bwd_tol = 4e-3;
 };
@@ -310,16 +334,18 @@ template <typename XDataType,
           typename YDataType,
           typename ScaleDataType,
           typename BiasDataType,
+          typename RunSaveDataType,
           typename AccDataType,
           typename TestCase>
 struct BNFwdTrainTest
-    : public ::testing::TestWithParam<std::tuple<TestCase, miopenTensorLayout_t, BNApiType>>
+    : public ::testing::TestWithParam<
+          std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, api_type) = this->GetParam();
-        bn_fwd_train_test_data.SetUpImpl(bn_config, tensor_layout);
+        std::tie(bn_config, tensor_layout, bn_mode, api_type) = this->GetParam();
+        bn_fwd_train_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
 
         auto&& handle = get_handle();
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
@@ -332,7 +358,7 @@ protected:
         {
             res = miopenBatchNormalizationForwardTraining(
                 &handle,
-                bn_config.mode,
+                bn_mode,
                 &bn_fwd_train_test_data.alpha,
                 &bn_fwd_train_test_data.beta,
                 &bn_fwd_train_test_data.input.desc,
@@ -353,7 +379,7 @@ protected:
         {
             res = miopenBatchNormalizationForwardTraining_V2(
                 &handle,
-                bn_config.mode,
+                bn_mode,
                 &bn_fwd_train_test_data.alpha,
                 &bn_fwd_train_test_data.beta,
                 &bn_fwd_train_test_data.input.desc,
@@ -402,35 +428,42 @@ protected:
         bn_fwd_train_test_data.output.data = handle.Read<YDataType>(
             bn_fwd_train_test_data.out_dev, bn_fwd_train_test_data.output.data.size());
 
-        bn_fwd_train_test_data.saveMean.data = handle.Read<AccDataType>(
+        bn_fwd_train_test_data.saveMean.data = handle.Read<RunSaveDataType>(
             bn_fwd_train_test_data.saveMean_dev, bn_fwd_train_test_data.saveMean.data.size());
         bn_fwd_train_test_data.saveVariance.data =
-            handle.Read<AccDataType>(bn_fwd_train_test_data.saveVariance_dev,
-                                     bn_fwd_train_test_data.saveVariance_ref.data.size());
-        bn_fwd_train_test_data.runMean.data = handle.Read<AccDataType>(
+            handle.Read<RunSaveDataType>(bn_fwd_train_test_data.saveVariance_dev,
+                                         bn_fwd_train_test_data.saveVariance_ref.data.size());
+        bn_fwd_train_test_data.runMean.data = handle.Read<RunSaveDataType>(
             bn_fwd_train_test_data.runMean_dev, bn_fwd_train_test_data.runMean_ref.data.size());
         bn_fwd_train_test_data.runVariance.data =
-            handle.Read<AccDataType>(bn_fwd_train_test_data.runVariance_dev,
-                                     bn_fwd_train_test_data.runVariance_ref.data.size());
+            handle.Read<RunSaveDataType>(bn_fwd_train_test_data.runVariance_dev,
+                                         bn_fwd_train_test_data.runVariance_ref.data.size());
         test::ComputeCPUBNFwdTrain(bn_fwd_train_test_data);
 
         // 4e-3 is tolerance used by CK kernel.
         test::CompareTensor<YDataType>(
-            bn_fwd_train_test_data.output, bn_fwd_train_test_data.ref_out, 4e-3);
-        test::CompareTensor<AccDataType>(
+            bn_fwd_train_test_data.output, bn_fwd_train_test_data.out_ref, 4e-3);
+        test::CompareTensor<RunSaveDataType>(
             bn_fwd_train_test_data.saveMean, bn_fwd_train_test_data.saveMean_ref, 4e-3);
-        test::CompareTensor<AccDataType>(
+        test::CompareTensor<RunSaveDataType>(
             bn_fwd_train_test_data.saveVariance, bn_fwd_train_test_data.saveVariance_ref, 4e-3);
-        test::CompareTensor<AccDataType>(
+        test::CompareTensor<RunSaveDataType>(
             bn_fwd_train_test_data.runMean, bn_fwd_train_test_data.runMean_ref, 4e-3);
-        test::CompareTensor<AccDataType>(
+        test::CompareTensor<RunSaveDataType>(
             bn_fwd_train_test_data.runVariance, bn_fwd_train_test_data.runVariance_ref, 4e-3);
     }
 
     TestCase bn_config;
     bool test_skipped = false;
-    BNFwdTrainTestData<XDataType, YDataType, ScaleDataType, BiasDataType, AccDataType, TestCase>
+    BNFwdTrainTestData<XDataType,
+                       YDataType,
+                       ScaleDataType,
+                       BiasDataType,
+                       RunSaveDataType,
+                       AccDataType,
+                       TestCase>
         bn_fwd_train_test_data;
     miopenTensorLayout_t tensor_layout;
+    miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
 };
