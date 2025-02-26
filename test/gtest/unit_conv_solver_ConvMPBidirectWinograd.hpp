@@ -46,11 +46,9 @@
 #define MAKE_SUFFIX_UPPER(wino_data_h, wino_filter_h) MAKE_SUFFIX(wino_data_h, wino_filter_h, X)
 #define MAKE_SUFFIX_LOWER(wino_data_h, wino_filter_h) MAKE_SUFFIX(wino_data_h, wino_filter_h, x)
 
-#define SHORT_SOLVER_NAME \
-    CONCAT(MPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
+#define SHORT_SOLVER_NAME CONCAT(MPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
 
-#define SOLVER_NAME \
-    CONCAT(ConvMPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
+#define SOLVER_NAME CONCAT(ConvMPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
 
 #define TESTSUITE_NAME_GENERIC(hw_type, name, datatype) \
     CONCAT(CONCAT(CONCAT(CONCAT(hw_type, _), name), _), datatype)
@@ -59,10 +57,15 @@
     TESTSUITE_NAME_GENERIC(hw_type, CONCAT(name, direction), datatype)
 
 #define TESTSUITE_NAME(hw_type, direction, datatype) \
-    TESTSUITE_NAME_GENERIC_DIR(hw_type, CONCAT(UnitTestConvSolver, SHORT_SOLVER_NAME), direction, datatype)
+    TESTSUITE_NAME_GENERIC_DIR(                      \
+        hw_type, CONCAT(UnitTestConvSolver, SHORT_SOLVER_NAME), direction, datatype)
 
-#define TESTSUITE_NAME_DEV_APP(hw_type, direction, datatype) \
-    TESTSUITE_NAME_GENERIC_DIR(hw_type, CONCAT(CONCAT(UnitTestConvSolver, SHORT_SOLVER_NAME), DevApplicability), direction, datatype)
+#define TESTSUITE_NAME_DEV_APP(hw_type, direction, datatype)                     \
+    TESTSUITE_NAME_GENERIC_DIR(                                                  \
+        hw_type,                                                                 \
+        CONCAT(CONCAT(UnitTestConvSolver, SHORT_SOLVER_NAME), DevApplicability), \
+        direction,                                                               \
+        datatype)
 
 #define TESTSUITE_NAME_FWD_FP16 TESTSUITE_NAME(GPU, Fwd, FP16)
 #define TESTSUITE_NAME_BWD_FP16 TESTSUITE_NAME(GPU, Bwd, FP16)
@@ -136,8 +139,7 @@ using TESTSUITE_NAME_BWD_FP16 = GPU_UnitTestConvSolverBwd_FP16;
 using TESTSUITE_NAME_FWD_FP32 = GPU_UnitTestConvSolverFwd_FP32;
 using TESTSUITE_NAME_BWD_FP32 = GPU_UnitTestConvSolverBwd_FP32;
 
-using TESTSUITE_NAME_DEVAPP =
-    CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
+using TESTSUITE_NAME_DEVAPP = CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
 TEST_P(TESTSUITE_NAME_FWD_FP16, SOLVER_NAME)
 {
