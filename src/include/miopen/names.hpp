@@ -34,6 +34,7 @@ struct NetworkConfig
 {
     NetworkConfig() = default;
     explicit NetworkConfig(const std::string& value_) : value(value_) {}
+    explicit NetworkConfig(std::string&& value_) noexcept : value(std::move(value_)) {}
     operator std::string() const { return value; }
     const std::string& ToString() const { return value; }
 

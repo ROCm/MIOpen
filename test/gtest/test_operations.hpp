@@ -29,55 +29,165 @@ namespace test {
 template <typename DLModule>
 void ComputeCPUBNInference(DLModule& dl_module)
 {
-    batchNormSpatialHostInference(dl_module.input,
-                                  dl_module.ref_out,
-                                  dl_module.scale,
-                                  dl_module.shift,
-                                  dl_module.epsilon,
-                                  dl_module.estMean,
-                                  dl_module.estVariance);
+    int size{0};
+    miopenGetTensorDescriptorSize(&dl_module.input.desc, &size);
+    // In case of NxCxDxHxW
+    auto ReshapeIfNeeded = [size](auto& desc) {
+        if(size == 5)
+        {
+            desc = miopen::BuildReshaped4DTensorDescriptor(desc);
+        }
+    };
+    ReshapeIfNeeded(dl_module.input.desc);
+    ReshapeIfNeeded(dl_module.out_ref.desc);
+    ReshapeIfNeeded(dl_module.scale.desc);
+    ReshapeIfNeeded(dl_module.shift.desc);
+    ReshapeIfNeeded(dl_module.estMean.desc);
+    ReshapeIfNeeded(dl_module.estVariance.desc);
+
+    if(dl_module.bn_mode == miopenBNSpatial)
+    {
+        batchNormSpatialHostInference(dl_module.input,
+                                      dl_module.out_ref,
+                                      dl_module.scale,
+                                      dl_module.shift,
+                                      dl_module.epsilon,
+                                      dl_module.estMean,
+                                      dl_module.estVariance);
+    }
+    else if(dl_module.bn_mode == miopenBNPerActivation)
+    {
+        batchNormPerActivHostInference(dl_module.input,
+                                       dl_module.out_ref,
+                                       dl_module.scale,
+                                       dl_module.shift,
+                                       dl_module.epsilon,
+                                       dl_module.estMean,
+                                       dl_module.estVariance);
+    }
+    else
+    {
+        std::cout << "\nUnknown inference batch miopenBatchNormMode_t\n";
+        exit(EXIT_FAILURE);
+    }
 }
 
 template <typename DLModule>
 void ComputeCPUBNBwd(DLModule& dl_module)
 {
-    batchNormSpatialHostBwdTrain(dl_module.input,
-                                 dl_module.dy,
-                                 dl_module.ref_out,
-                                 dl_module.bnScale,
-                                 dl_module.dScale_ref,
-                                 dl_module.dBias_ref,
-                                 dl_module.savedMean,
-                                 dl_module.savedInvVar);
+    int size{0};
+    miopenGetTensorDescriptorSize(&dl_module.input.desc, &size);
+    // In case of NxCxDxHxW
+    auto ReshapeIfNeeded = [size](auto& desc) {
+        if(size == 5)
+        {
+            desc = miopen::BuildReshaped4DTensorDescriptor(desc);
+        }
+    };
+    ReshapeIfNeeded(dl_module.input.desc);
+    ReshapeIfNeeded(dl_module.dy.desc);
+    ReshapeIfNeeded(dl_module.out_ref.desc);
+    ReshapeIfNeeded(dl_module.bnScale.desc);
+    ReshapeIfNeeded(dl_module.dScale_ref.desc);
+    ReshapeIfNeeded(dl_module.dBias_ref.desc);
+    ReshapeIfNeeded(dl_module.savedMean.desc);
+    ReshapeIfNeeded(dl_module.savedInvVar.desc);
+
+    if(dl_module.bn_mode == miopenBNSpatial)
+    {
+        batchNormSpatialHostBwdTrain(dl_module.input,
+                                     dl_module.dy,
+                                     dl_module.out_ref,
+                                     dl_module.bnScale,
+                                     dl_module.dScale_ref,
+                                     dl_module.dBias_ref,
+                                     dl_module.savedMean,
+                                     dl_module.savedInvVar);
+    }
+    else if(dl_module.bn_mode == miopenBNPerActivation)
+    {
+        batchNormPerActHostBwdTrain(dl_module.input,
+                                    dl_module.dy,
+                                    dl_module.out_ref,
+                                    dl_module.bnScale,
+                                    dl_module.dScale_ref,
+                                    dl_module.dBias_ref,
+                                    dl_module.savedMean,
+                                    dl_module.savedInvVar);
+    }
+    else
+    {
+        std::cout << "\nUnknown BwdTrain batch miopenBatchNormMode_t\n";
+        exit(EXIT_FAILURE);
+    }
 }
 
 template <typename DLModule>
 void ComputeCPUBNFwdTrain(DLModule& dl_module)
 {
-    batchNormSpatialHostFwdTrain(dl_module.input,
-                                 dl_module.ref_out,
-                                 dl_module.scale,
-                                 dl_module.shift,
-                                 dl_module.epsilon,
-                                 dl_module.averageFactor,
-                                 dl_module.saveMean_ref,
-                                 dl_module.saveVariance_ref,
-                                 dl_module.runMean_ref,
-                                 dl_module.runVariance_ref);
+    int size{0};
+    miopenGetTensorDescriptorSize(&dl_module.input.desc, &size);
+    // In case of NxCxDxHxW
+    auto ReshapeIfNeeded = [size](auto& desc) {
+        if(size == 5)
+        {
+            desc = miopen::BuildReshaped4DTensorDescriptor(desc);
+        }
+    };
+    ReshapeIfNeeded(dl_module.input.desc);
+    ReshapeIfNeeded(dl_module.out_ref.desc);
+    ReshapeIfNeeded(dl_module.scale.desc);
+    ReshapeIfNeeded(dl_module.shift.desc);
+    ReshapeIfNeeded(dl_module.saveMean_ref.desc);
+    ReshapeIfNeeded(dl_module.saveVariance_ref.desc);
+    ReshapeIfNeeded(dl_module.runMean_ref.desc);
+    ReshapeIfNeeded(dl_module.runVariance_ref.desc);
+
+    if(dl_module.bn_mode == miopenBNSpatial)
+    {
+        batchNormSpatialHostFwdTrain(dl_module.input,
+                                     dl_module.out_ref,
+                                     dl_module.scale,
+                                     dl_module.shift,
+                                     dl_module.epsilon,
+                                     dl_module.averageFactor,
+                                     dl_module.saveMean_ref,
+                                     dl_module.saveVariance_ref,
+                                     dl_module.runMean_ref,
+                                     dl_module.runVariance_ref);
+    }
+    else if(dl_module.bn_mode == miopenBNPerActivation)
+    {
+        batchNormPerActHostFwdTrain(dl_module.input,
+                                    dl_module.out_ref,
+                                    dl_module.scale,
+                                    dl_module.shift,
+                                    dl_module.epsilon,
+                                    dl_module.averageFactor,
+                                    dl_module.saveMean_ref,
+                                    dl_module.saveVariance_ref,
+                                    dl_module.runMean_ref,
+                                    dl_module.runVariance_ref);
+    }
+    else
+    {
+        std::cout << "\nUnknown FwdTrain batch miopenBatchNormMode_t\n";
+        exit(EXIT_FAILURE);
+    }
 }
 
-template <typename T>
+template <typename T, typename U = double>
 void CompareTensor(const tensor<T>& output,
-                   const tensor<T>& ref_out,
+                   const tensor<U>& out_ref,
                    const double threshold = std::numeric_limits<T>::epsilon())
 {
-    EXPECT_FALSE(miopen::range_zero(ref_out)) << "CPU data is all zeros";
+    EXPECT_FALSE(miopen::range_zero(out_ref)) << "CPU data is all zeros";
     EXPECT_FALSE(miopen::range_zero(output)) << "GPU data is all zeros";
     EXPECT_FALSE(miopen::find_idx(output, miopen::not_finite) >= 0)
         << "Non finite number found in the GPU data";
-    EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
-    auto error = miopen::rms_range(ref_out, output);
-    EXPECT_FALSE(miopen::find_idx(ref_out, miopen::not_finite) >= 0)
+    EXPECT_TRUE(miopen::range_distance(out_ref) == miopen::range_distance(output));
+    auto error = miopen::rms_range(out_ref, output);
+    EXPECT_FALSE(miopen::find_idx(out_ref, miopen::not_finite) >= 0)
         << "Non finite number found in the CPU data";
     EXPECT_TRUE(error < threshold)
         << "Error beyond tolerance Error:" << error << ",  Threshold: " << threshold;
@@ -127,7 +237,7 @@ void AddActiv(miopen::FusionPlanDescriptor& fusePlanDesc,
               miopenStatusSuccess);
 }
 
-inline bool Skip(miopen::Handle& handle)
+inline bool Skip(const miopen::Handle& handle)
 {
     const std::string arch = handle.GetDeviceName();
     bool skip_test         = (arch != "gfx908" && arch != "gfx90a");

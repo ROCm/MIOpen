@@ -32,8 +32,6 @@
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
 
-#define WORKAROUND_SWDEV_253606 1
-
 namespace miopen {
 
 namespace solver {
@@ -41,7 +39,7 @@ namespace solver {
 namespace batchnorm {
 
 bool BnFwdTrainingSpatialMultiple::IsApplicable(
-    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& problem) const
+    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
 {
     if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardTraining ||
        problem.GetMode() != miopenBNSpatial)
@@ -50,7 +48,60 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
     if(!IsOCLFwdTrainTypeValid(problem))
         return false;
 
-    return !BnFwdTrainingSpatialSingle{}.IsApplicable(context, problem);
+    size_t n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
+
+    unsigned int in_cstride = h * w;
+    unsigned int in_nhw     = n * in_cstride;
+
+    // Variant 2 needs space for 2 fp32 elements per each x thread (including the last workgroup)
+    // to stash intermediate mean and variance
+    unsigned int stash_values = 2;
+    if(problem.IsLayoutNHWC())
+    {
+        // TODO: For now enable variant 2 for NHWC because other variants are slower.
+        // Remove when other variants are optimized
+        unsigned int xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
+        unsigned int ylocalsize = 1024 / xlocalsize;
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+        if(problem.GetXDesc().GetType() == miopenFloat)
+        {
+            if(last_ylocalsize < stash_values)
+                return false;
+        }
+        else
+        {
+            // Even threads use 2 values at even rows, odd threads - at odd rows.
+            if(c % 2 != 0 || last_ylocalsize < stash_values * 2)
+                return false;
+        }
+    }
+    else
+    {
+        bool bfpmixparm = false;
+
+        if((problem.GetXDesc().GetType() == miopenHalf ||
+            problem.GetXDesc().GetType() == miopenBFloat16) &&
+           problem.GetBnScale().GetType() == miopenFloat)
+        {
+            bfpmixparm = true;
+        }
+        if(!((n >= 3 && in_cstride > 512 && (in_nhw >= 33554432 || in_cstride <= 1024) &&
+              ((n < 256) || (in_cstride <= 60) || !bfpmixparm) &&
+              (!bfpmixparm || in_cstride <= 512)) ||
+             ((n > 768) && (in_cstride > 150))))
+        {
+            return false;
+        }
+
+        unsigned int ylocalsize = 1024;
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
+            return false;
+    }
+    return true;
 }
 
 ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
@@ -68,15 +119,6 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
     unsigned int in_nhw     = n * in_cstride;
     unsigned int in_nchw    = n * in_nstride;
     auto inhw               = float(1.0 / in_nhw);
-
-    size_t xlocalsize = 1024;
-    if(((in_cstride < 256) && (n < 256)) || ((in_cstride < 100) && (n <= 256)))
-        xlocalsize = 256;
-
-    size_t ylocalsize = 1;
-
-    size_t xgridsize = c * xlocalsize;
-    size_t ygridsize = 1;
 
     bool bfpmixparm   = false;
     bool bbfpmixparam = false;
@@ -99,61 +141,30 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
         bfp32parm    = false;
     }
 
-    int variant           = 1;
-    unsigned int ldsgcn   = xlocalsize / 64;
-    unsigned int ldsnogcn = xlocalsize;
+    size_t xlocalsize;
+    size_t ylocalsize;
+    size_t xgridsize;
+    size_t ygridsize;
 
-    if(!problem.IsLayoutNHWC())
+    size_t max_localsize = 1024;
+    if(((in_cstride < 256) && (n < 256)) || ((in_cstride < 100) && (n <= 256)))
+        max_localsize = 256;
+    int variant           = 2;
+    unsigned int ldsgcn   = max_localsize / 64;
+    unsigned int ldsnogcn = max_localsize;
+    if(problem.IsLayoutNHWC())
     {
-#if(WORKAROUND_SWDEV_253606 == 0)
-        if(n < 3)
-        {
-            variant    = 4;
-            xlocalsize = 256;
-            xgridsize  = c * xlocalsize;
-            ylocalsize = 1;
-            ygridsize  = 1;
-            ldsgcn     = xlocalsize / 64;
-            ldsnogcn   = xlocalsize;
-        }
-        else
-#endif
-
-            // clang-format off
-        if((in_nhw < 33554432 && in_cstride > 1024) ||
-            ((n >= 256) && (in_cstride > 60) && bfpmixparm) ||
-            ((in_cstride > 512) && bfpmixparm))
-        {
-            variant = 1;
-        }
-        else if(in_cstride <= 512)
-        {
-            variant = 0;
-        }
-        else
-        {
-            variant      = 2;
-            xlocalsize   = 1;
-            ylocalsize   = 1024;
-            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
-            ldsgcn       = ylocalsize / 64;
-            ldsnogcn     = ylocalsize;
-        }
-        // clang-format on
-
-        if((n > 768) && (in_cstride > 150) && bfp32parm)
-        {
-            variant      = 2;
-            xlocalsize   = 1;
-            ylocalsize   = 1024;
-            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
-            ldsgcn       = ylocalsize / 64;
-            ldsnogcn     = ylocalsize;
-        }
+        xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
+        xgridsize  = xlocalsize * ((c + xlocalsize - 1) / xlocalsize);
+        ylocalsize = max_localsize / xlocalsize;
+        ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+    }
+    else
+    {
+        xlocalsize = 1;
+        xgridsize  = c;
+        ylocalsize = max_localsize;
+        ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
     }
 
     auto result = ConvSolution{miopenStatusSuccess};
@@ -180,7 +191,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_NHW", in_nhw},
             {"MIO_BN_CHW", in_nstride},
             {"MIO_BN_NCHW", in_nchw},
-            {"MIO_BN_NGRPS", int(std::ceil(float(ygridsize) / ylocalsize))},
+            {"MIO_BN_NGRPS", ygridsize / ylocalsize},
             {"MIO_BN_LDS_SIZE", ldsnogcn},
             {"MIO_BN_LDSGCN_SIZE", ldsgcn},
             {"MIO_BN_VARIANT", variant},
@@ -208,9 +219,11 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
         result.construction_params.push_back(copy);
 
         copy.kernel_name = kernel.kernel_name + "FinalMeanVariance";
+        copy.g_wk[1]     = kernel.l_wk[1];
         result.construction_params.push_back(copy);
 
         copy.kernel_name = kernel.kernel_name + "Norm";
+        copy.g_wk[1]     = kernel.g_wk[1];
         result.construction_params.push_back(copy);
     }
 
