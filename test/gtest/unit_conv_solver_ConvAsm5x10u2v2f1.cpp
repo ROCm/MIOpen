@@ -53,30 +53,30 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverAsm5x10u2v2f1_FP32 = GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverAsm5x10u2v2f1Fwd_FP32 = GPU_UnitTestConvSolverFwd_FP32;
 
-using CPU_UnitTestConvSolverAsm5x10u2v2f1DevApplicability_NONE =
+using CPU_UnitTestConvSolverAsm5x10u2v2f1DevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
-TEST_P(GPU_UnitTestConvSolverAsm5x10u2v2f1_FP32, ConvAsm5x10u2v2f1)
+TEST_P(GPU_UnitTestConvSolverAsm5x10u2v2f1Fwd_FP32, ConvAsm5x10u2v2f1)
 {
     this->RunTest(miopen::solver::conv::ConvAsm5x10u2v2f1{});
 };
 
-TEST_P(CPU_UnitTestConvSolverAsm5x10u2v2f1DevApplicability_NONE, ConvAsm5x10u2v2f1)
+TEST_P(CPU_UnitTestConvSolverAsm5x10u2v2f1DevApplicabilityFwd_NONE, ConvAsm5x10u2v2f1)
 {
     this->RunTest(miopen::solver::conv::ConvAsm5x10u2v2f1{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverAsm5x10u2v2f1_FP32,
+                         GPU_UnitTestConvSolverAsm5x10u2v2f1Fwd_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverAsm5x10u2v2f1DevApplicability_NONE,
+                         CPU_UnitTestConvSolverAsm5x10u2v2f1DevApplicabilityFwd_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
