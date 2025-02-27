@@ -121,7 +121,7 @@ protected:
     {
         prng::reset_seed();
         auto [n, h, s, d, drop] = GetParam();
-        Handle& handle          = get_handle();
+        const Handle& handle    = get_handle();
 
         if((drop > 0.0f))
         {
@@ -204,7 +204,7 @@ protected:
 
         // proper O, M and zInv tensors are required for backward pass.
         // randomly generated M and zInv may lead to nan\inf values
-        test::cpu::MultiHeadAttentionfp8(
+        test::cpu::MultiHeadAttentionForwardfp8(
             std::get<tensor<T>>(tensors[miopenTensorMhaQ]->m_cpu_tensor),
             std::get<tensor<T>>(tensors[miopenTensorMhaK]->m_cpu_tensor),
             std::get<tensor<T>>(tensors[miopenTensorMhaV]->m_cpu_tensor),

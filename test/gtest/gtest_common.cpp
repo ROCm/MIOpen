@@ -31,13 +31,37 @@ std::ostream& operator<<(std::ostream& os, const DevDescription& dd)
     return os << dd.name << "(" << dd.cu_cnt << ")";
 }
 
-MockHandle::MockHandle(const DevDescription& dev_description) : dev_descr{dev_description} {}
+MockTargetProperties::MockTargetProperties(const TargetProperties& target_properties,
+                                           const DevDescription& dev_description,
+                                           bool disable_xnack)
+    : TargetProperties{target_properties}, name{dev_description.name}, xnack_disabled{disable_xnack}
+{
+}
 
-std::string MockHandle::GetDeviceName() const { return std::string{dev_descr.name}; }
+const std::string& MockTargetProperties::Name() const { return name; }
+
+boost::optional<bool> MockTargetProperties::Xnack() const
+{
+    return xnack_disabled ? boost::none : TargetProperties::Xnack();
+}
+
+MockHandle::MockHandle(const DevDescription& dev_description, bool disable_xnack)
+    : dev_descr{dev_description},
+      target_properties{Handle::GetTargetProperties(), dev_description, disable_xnack}
+{
+}
+
+const miopen::TargetProperties& MockHandle::GetTargetProperties() const
+{
+    return target_properties;
+}
 
 std::size_t MockHandle::GetMaxComputeUnits() const { return dev_descr.cu_cnt; }
 
-std::size_t MockHandle::GetMaxMemoryAllocSize() { return std::numeric_limits<std::size_t>::max(); }
+std::size_t MockHandle::GetMaxMemoryAllocSize() const
+{
+    return std::numeric_limits<std::size_t>::max();
+}
 
 bool MockHandle::CooperativeLaunchSupported() const { return false; }
 

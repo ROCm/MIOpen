@@ -53,14 +53,8 @@ auto GetTestCases()
     const std::string dis_fwd     = " --disable-forward";
     const std::string dis_vali    = " --disable-validation";
 
-    auto basic_tests = std::vector
-    {
+    auto basic_tests = std::vector{
         // clang-format off
-#if CODECOV_TEST
-    std::pair{env    , v +  " --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1" + dis_bk_data + dis_bk_wei + dis_vali},
-    std::pair{env_wrw, v + " --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data + dis_vali},
-    std::pair{env_bwd, v + " --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei + dis_vali},
-#else
     std::pair{env    , v + " --input  16  16 56 56 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     std::pair{env    , v + " --input  16  64 34 34 --weights 64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     std::pair{env    , v + " --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1" + dis_bk_data + dis_bk_wei},
@@ -69,7 +63,6 @@ auto GetTestCases()
     std::pair{env_wrw, v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
     std::pair{env_bwd, v + " --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
     std::pair{env_bwd, v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei}
-#endif
         // clang-format on
     };
 

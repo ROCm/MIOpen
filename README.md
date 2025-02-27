@@ -2,9 +2,10 @@
 
 MIOpen is AMD's library for high-performance machine learning primitives.
 
-You can find sources and binaries in our [GitHub repository](https://github.com/ROCm/MIOpen) and
-our documentation on
-[ROCm docs](https://rocm.docs.amd.com/projects/MIOpen/en/latest/index.html).
+You can find sources and binaries in our [GitHub repository](https://github.com/ROCm/MIOpen).
+
+> [!NOTE]
+> The published MIOpen documentation is available at [MIOpen](https://rocm.docs.amd.com/projects/MIOpen/en/latest/index.html) in an organized, easy-to-read format, with search and a table of contents. The documentation source files reside in the MIOpen/docs folder of this repository. As with all ROCm projects, the documentation is open source. For more information, see [Contribute to ROCm documentation](https://rocm.docs.amd.com/en/latest/contribute/contributing.html).
 
 MIOpen supports these programming models (backends):
 
@@ -77,11 +78,10 @@ kernels don't reduce startup time on subsequent runs.
 To install the kernels package for your GPU architecture, use the following command:
 
 ``` shell
-apt-get install miopenkernels-<arch>-<num cu>
+apt-get install miopen-hip-<arch>kdb
 ```
 
-Where ``<arch>`` is the GPU architecture (e.g., `gfx900`, `gfx906`, `gfx1030` ) and `<num cu>` is the
-number of CUs available in the GPU (e.g., `56`, `64`).
+Where ``<arch>`` is the GPU architecture (e.g., `gfx900`, `gfx906`, `gfx1030` ).
 
 >[!NOTE]
 >Not installing these packages doesn't impact the functioning of MIOpen, since MIOpen compiles

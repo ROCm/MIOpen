@@ -45,7 +45,7 @@ void BatchNormFunctionSpatial(const uint n,
 {
     for(uint i = 0; i < n; ++i)
     {
-        out[i] = mad(scale, ((_FLOAT_PREC)in[i] - mean) * invVariance, bias);
+        out[i] = mad(scale, (FLOAT2FLOATPREC(in[i]) - mean) * invVariance, bias);
     }
 }
 
@@ -99,10 +99,15 @@ MIOpenBatchNormActivInferSpatialEst(const _FLOAT alpha,
         _FLOAT_PREC bnRes[MIOPEN_READ_UNIT];
         _FLOAT_PREC actRes[MIOPEN_READ_UNIT];
         BatchNormFunctionSpatial(MIOPEN_READ_UNIT, bnRes, data, pmean, invVariance, pscale, pbias);
-        ActivationFunction(MIOPEN_READ_UNIT, actRes, bnRes, gamma, beta, alpha);
+        ActivationFunction(MIOPEN_READ_UNIT,
+                           actRes,
+                           bnRes,
+                           FLOAT2FLOATPREC(gamma),
+                           FLOAT2FLOATPREC(beta),
+                           FLOAT2FLOATPREC(alpha));
         for(int i = 0; i < MIOPEN_READ_UNIT; i++)
         {
-            out[index + i] = (_FLOAT)actRes[i];
+            out[index + i] = FLOATPREC2FLOAT(actRes[i]);
         }
     }
 } // end spatial norm
@@ -117,7 +122,7 @@ void BatchNormFunctionPerAct(const uint n,
 {
     for(uint i = 0; i < n; ++i)
     {
-        out[i] = mad(scale[i], ((_FLOAT_PREC)in[i] - mean[i]) * invVariance[i], bias[i]);
+        out[i] = mad(scale[i], (FLOAT2FLOATPREC(in[i]) - mean[i]) * invVariance[i], bias[i]);
     }
 }
 
@@ -156,7 +161,7 @@ MIOpenBatchNormActivInferPerActEst(const _FLOAT alpha,
     _FLOAT_PREC invVariance[MIOPEN_READ_UNIT];
 
     for(int i = 0; i < MIOPEN_READ_UNIT; i++)
-        invVariance[i] = rsqrt((_FLOAT_PREC)pvar[i] + epsilon);
+        invVariance[i] = rsqrt(pvar[i] + epsilon);
 
     __attribute__((opencl_unroll_hint(2))) for(uint n_i = 0; n_i < MIO_BN_N; n_i++)
     {
@@ -165,10 +170,15 @@ MIOpenBatchNormActivInferPerActEst(const _FLOAT alpha,
         _FLOAT_PREC bnRes[MIOPEN_READ_UNIT];
         _FLOAT_PREC actRes[MIOPEN_READ_UNIT];
         BatchNormFunctionPerAct(MIOPEN_READ_UNIT, bnRes, data, pmean, invVariance, pscale, pbias);
-        ActivationFunction(MIOPEN_READ_UNIT, actRes, bnRes, gamma, beta, alpha);
+        ActivationFunction(MIOPEN_READ_UNIT,
+                           actRes,
+                           bnRes,
+                           FLOAT2FLOATPREC(gamma),
+                           FLOAT2FLOATPREC(beta),
+                           FLOAT2FLOATPREC(alpha));
         for(int i = 0; i < MIOPEN_READ_UNIT; i++)
         {
-            out[index + i] = (_FLOAT)actRes[i];
+            out[index + i] = FLOATPREC2FLOAT(actRes[i]);
         }
     }
 }

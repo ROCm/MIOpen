@@ -33,6 +33,7 @@
 #include "random.hpp"
 #include <algorithm>
 #include <cfloat>
+#include <cmath>
 #include <cstdlib>
 #include <memory>
 #include <miopen/miopen.h>
@@ -77,7 +78,7 @@ int32_t mloReduceCalculationForwardRunHost(miopenTensorDescriptor_t inputDesc,
         for(size_t i = 0; i < reduce_size; ++i)
         {
             Tcheck val = static_cast<Tcheck>(input[input_idx]);
-            if(nanPropagation && isnan(val))
+            if(nanPropagation && std::isnan(val))
             {
                 val = 0.0f;
             }

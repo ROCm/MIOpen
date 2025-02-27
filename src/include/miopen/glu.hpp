@@ -34,14 +34,14 @@ struct TensorDescriptor;
 
 namespace glu {
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t GLUForward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t GLUForward(const Handle& handle,
                                                   const TensorDescriptor& inputDesc,
                                                   ConstData_t input,
                                                   const TensorDescriptor& outputDesc,
                                                   Data_t output,
                                                   uint32_t dim);
 
-MIOPEN_INTERNALS_EXPORT miopenStatus_t GLUBackward(Handle& handle,
+MIOPEN_INTERNALS_EXPORT miopenStatus_t GLUBackward(const Handle& handle,
                                                    const TensorDescriptor& inputDesc,
                                                    ConstData_t input,
                                                    const TensorDescriptor& outputGradDesc,

@@ -77,8 +77,8 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* in,
         {
             // per (x-dims) channel load a block of data into LDS
             index  = in_nstride * n + adjIndex;
-            xhat   = (_FLOAT_PREC)(in[index] - mean) * invVar;
-            dyelem = (_FLOAT_PREC)(dy_in[index]);
+            xhat   = (FLOAT2FLOATPREC(in[index]) - mean) * invVar;
+            dyelem = FLOAT2FLOATPREC(dy_in[index]);
             pvt_dbias += dyelem;
             pvt_dscale = mad(xhat, dyelem, pvt_dscale);
             tmp1       = pvt_scale * dyelem;
@@ -89,11 +89,11 @@ __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* in,
         for(int n = 0; n < N; n++)
         {
             index         = in_nstride * n + adjIndex;
-            xhat          = (_FLOAT_PREC)(in[index] - mean) * invVar;
+            xhat          = (FLOAT2FLOATPREC(in[index]) - mean) * invVar;
             tmp1          = mad(xhat, dxhathat, dxhat);
-            tmp2          = mad((_FLOAT_PREC)N, dy_in[index] * pvt_scale, -tmp1);
+            tmp2          = mad((_FLOAT_PREC)N, FLOAT2FLOATPREC(dy_in[index]) * pvt_scale, -tmp1);
             tmp3          = invVar / ((_FLOAT_PREC)N);
-            dx_out[index] = (_FLOAT)(tmp3 * tmp2);
+            dx_out[index] = FLOATPREC2FLOAT(tmp3 * tmp2);
         }
         // Write out data
         delta_bias[adjIndex]  = pvt_dbias;
@@ -136,7 +136,7 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* in,
         for(int n = 0; n < MIO_BN_N; n++)
         {
             index = in_nstride * n + adjIndex;
-            mean += (_FLOAT_PREC)in[index];
+            mean += FLOAT2FLOATPREC(in[index]);
         } // end for(n)
         mean /= (_FLOAT_PREC)N;
         variance = 0.;
@@ -144,7 +144,7 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* in,
         for(int n = 0; n < MIO_BN_N; n++)
         {
             index             = in_nstride * n + adjIndex;
-            _FLOAT_PREC xdiff = (_FLOAT_PREC)(in[index] - mean);
+            _FLOAT_PREC xdiff = FLOAT2FLOATPREC(in[index]) - mean;
             variance += (xdiff * xdiff);
         } // end for(n)
         variance /= (_FLOAT_PREC)N;
@@ -160,8 +160,8 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* in,
         {
             // per (x-dims) channel load a block of data into LDS
             index  = in_nstride * n + adjIndex;
-            xhat   = (_FLOAT_PREC)(in[index] - mean) * invVar;
-            dyelem = (_FLOAT_PREC)(dy_in[index]);
+            xhat   = (FLOAT2FLOATPREC(in[index]) - mean) * invVar;
+            dyelem = FLOAT2FLOATPREC(dy_in[index]);
             pvt_dbias += dyelem;
             pvt_dscale = mad(xhat, dyelem, pvt_dscale);
             tmp1       = pvt_scale * dyelem;
@@ -172,11 +172,11 @@ __kernel void MIOpenBatchNormBwdPerActivation(const __global _FLOAT* in,
         for(int n = 0; n < MIO_BN_N; n++)
         {
             index         = in_nstride * n + adjIndex;
-            xhat          = (_FLOAT_PREC)(in[index] - mean) * invVar;
+            xhat          = (FLOAT2FLOATPREC(in[index]) - mean) * invVar;
             tmp1          = mad(xhat, dxhathat, dxhat);
-            tmp2          = mad((_FLOAT_PREC)N, dy_in[index] * pvt_scale, -tmp1);
+            tmp2          = mad((_FLOAT_PREC)N, FLOAT2FLOATPREC(dy_in[index]) * pvt_scale, -tmp1);
             tmp3          = invVar / ((_FLOAT_PREC)N);
-            dx_out[index] = (_FLOAT)(tmp3 * tmp2);
+            dx_out[index] = FLOATPREC2FLOAT(tmp3 * tmp2);
         }
         // Write out data
         delta_bias[adjIndex]  = pvt_dbias;
