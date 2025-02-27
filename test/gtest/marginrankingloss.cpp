@@ -49,13 +49,13 @@ TEST_P(GPU_MarginRankingLoss_fwd_BFP16, MarginRankingLossTest)
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MarginRankingLoss_fwd_FP32,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MarginRankingLoss_fwd_FP16,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MarginRankingLoss_fwd_BFP16,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
 
@@ -82,12 +82,12 @@ TEST_P(GPU_MarginRankingLoss_bwd_BFP16, MarginRankingLossTestBwd)
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MarginRankingLoss_bwd_FP32,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MarginRankingLoss_bwd_FP16,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
+INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_MarginRankingLoss_bwd_BFP16,
                          testing::ValuesIn(MarginRankingLossTestConfigs()));

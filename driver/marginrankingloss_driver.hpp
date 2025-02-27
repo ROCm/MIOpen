@@ -263,7 +263,7 @@ int MarginRankingLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     in1Grad_host = std::vector<Tref>(element_size, static_cast<Tref>(0));
     in2Grad_host = std::vector<Tref>(element_size, static_cast<Tref>(0));
 
-    for(int i = 0; i < element_size; i++)
+    for(size_t i = 0; i < element_size; i++)
     {
         input1[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         input2[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
@@ -309,7 +309,7 @@ int MarginRankingLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     }
     if(is_forward == 0 || is_forward == 2)
     {
-        for(int i = 0; i < out_element_size; i++)
+        for(size_t i = 0; i < out_element_size; i++)
         {
             outGrad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
