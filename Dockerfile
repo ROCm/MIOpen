@@ -89,7 +89,7 @@ ADD dev-requirements.txt /dev-requirements.txt
 # Install dependencies
 # TODO: Add --std=c++14
 # GPU_ARCH can be defined in docker build process
-ARG GPU_ARCHS=gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201
+ARG GPU_ARCHS=gfx908;gfx90a;gfx942;gfx1100
 # install to /opt/rocm will cause permission issue
 ARG PREFIX=/usr/local
 ARG USE_FIN="OFF"
@@ -123,9 +123,9 @@ RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK
     -D CMAKE_PREFIX_PATH=/opt/rocm \
     -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
     -D CMAKE_BUILD_TYPE=Release \
-    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201" \
+    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j $(nproc) install
+    make -j 64 install
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 # this can minimize build time
