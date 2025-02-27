@@ -74,7 +74,7 @@ __device__ void sparseSoftmaxCrossEntropyWithLogitsForward(const T* input,
     if(lid == 0)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx({gid, label})]);
-        output[gid]     = CVT_ACCUM2FLOAT(log(lsum) - val + lmax);
+        output[output_tv.get_tensor_view_idx({gid})] = CVT_ACCUM2FLOAT(log(lsum) - val + lmax);
     }
 
     for(uint64_t i = lid; i < num_class; i += LOCAL_SIZE)
