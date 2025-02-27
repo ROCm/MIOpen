@@ -89,7 +89,7 @@ ADD dev-requirements.txt /dev-requirements.txt
 # Install dependencies
 # TODO: Add --std=c++14
 # GPU_ARCH can be defined in docker build process
-ARG GPU_ARCHS=gfx908;gfx90a;gfx942;gfx1100
+ARG GPU_ARCHS=gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201
 # install to /opt/rocm will cause permission issue
 ARG PREFIX=/usr/local
 ARG USE_FIN="OFF"
@@ -114,7 +114,7 @@ DEBIAN_FRONTEND=noninteractive apt-get purge -y --allow-unauthenticated \
     miopen-hip
 
 # TODO: it should be able to automatically get commit hash from requirements.txt
-ARG CK_COMMIT=e9ee56868191830d9169bc1596ae1cbc2ee2cf62
+ARG CK_COMMIT=a8c5bd9b9ad950c3e742877e01cb784da91664e3
 RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
@@ -123,9 +123,9 @@ RUN wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK
     -D CMAKE_PREFIX_PATH=/opt/rocm \
     -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
     -D CMAKE_BUILD_TYPE=Release \
-    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100" \
+    -D GPU_ARCHS="gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201" \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j 64 install
+    make -j $(nproc) install
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 # this can minimize build time
