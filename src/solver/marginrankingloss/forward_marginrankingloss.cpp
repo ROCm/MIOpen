@@ -45,30 +45,10 @@ namespace solver {
 
 namespace marginrankingloss {
 
-namespace {
-
-bool IsOverRocmFwd(const miopen::marginrankingloss::ProblemDescriptionForward& problem)
-{
-    auto dims             = problem.GetInput1Desc().GetLengths();
-    size_t total_elements = std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
-    for(size_t dim : dims)
-    {
-        if(total_elements == dim)
-            return false;
-    }
-    return true;
-}
-
-} // namespace
-
 bool MarginRankingLossForward::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     const miopen::marginrankingloss::ProblemDescriptionForward& problem) const
 {
-    if(!IsOverRocmFwd(problem))
-    {
-        return false;
-    }
     if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
          problem.GetOutputDesc().GetType() == miopenFloat ||
          problem.GetOutputDesc().GetType() == miopenBFloat16))
