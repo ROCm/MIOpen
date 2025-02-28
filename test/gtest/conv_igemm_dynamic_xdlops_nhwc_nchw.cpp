@@ -28,7 +28,7 @@
 #include <gtest/gtest.h>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
-#include <miopen/env.hpp>
+#include "miopen_ext_env_var.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)

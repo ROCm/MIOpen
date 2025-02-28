@@ -27,11 +27,11 @@
 #include "test.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
+#include "miopen_ext_env_var.hpp"
 #include "workspace.hpp"
 
 #include <miopen/convolution.hpp>
 #include <miopen/conv/problem_description.hpp>
-#include <miopen/env.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/find_db.hpp>
 #include <miopen/logger.hpp>

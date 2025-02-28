@@ -26,11 +26,11 @@
 #include <gtest/gtest.h>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
-#include <miopen/env.hpp>
 
 #include "tensor_holder.hpp"
 #include "get_handle.hpp"
 #include "conv_test_base.hpp"
+#include "miopen_ext_env_var.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_ENFORCE)
 

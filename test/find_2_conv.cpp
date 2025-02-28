@@ -27,8 +27,8 @@
 #include "test.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
+#include "miopen_ext_env_var.hpp"
 #include "workspace.hpp"
-#include <miopen/env.hpp>
 
 #include <miopen/miopen.h>
 
