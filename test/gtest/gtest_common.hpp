@@ -37,7 +37,7 @@
 #include <vector>
 
 #include "../driver.hpp"
-#include "miopen_ext_env_var.hpp"
+#include "lib_env_var.hpp"
 
 inline void default_check(const std::string& err) { std::cout << err; }
 

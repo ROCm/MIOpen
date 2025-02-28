@@ -35,7 +35,7 @@
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
 #include "cba.hpp"
-#include "miopen_ext_env_var.hpp"
+#include "lib_env_var.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_ENFORCE)
 

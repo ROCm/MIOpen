@@ -25,6 +25,44 @@
  *******************************************************************************/
 #pragma once
 
+#include <string_view>
+
 #include <miopen/env.hpp> // \todo remove
 
-//#define MIOPEN_ENV_VAR
+namespace lib_env {
+
+struct LibEnvVar {
+    constexpr LibEnvVar(std::string_view name_in) : name(name_in) {}
+
+    operator bool() const
+    {
+        return true; // \todo
+    }
+
+private:
+    std::string_view name;
+};
+
+template <class T>
+inline T value(const LibEnvVar& env);
+
+template <>
+inline bool value<bool>(const LibEnvVar& env)
+{
+    return true; // \todo
+}
+
+inline void update(const LibEnvVar& env, bool value)
+{
+    return; // \todo
+}
+
+inline void clear(const LibEnvVar& env)
+{
+    return; // \todo
+}
+
+} // namespace miopen_ext_env
+
+#define LIB_ENV_VAR(name) \
+    [[maybe_unused]] constexpr lib_env::LibEnvVar name(#name);

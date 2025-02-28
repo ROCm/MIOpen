@@ -26,7 +26,7 @@
 #include "log.hpp"
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
-#include "miopen_ext_env_var.hpp"
+#include "lib_env_var.hpp"
 
 #include <miopen/config.h>
 #include <miopen/fusion_plan.hpp>

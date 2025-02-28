@@ -37,7 +37,7 @@
 
 #include "../workspace.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+LIB_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
 
 namespace miopen {
 namespace unit_tests {
@@ -58,19 +58,19 @@ public:
         if(changed)
         {
             if(prev)
-                env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, false);
+                lib_env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, false);
             else
-                env::clear(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+                lib_env::clear(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
         }
     }
 
     void Enable()
     {
         if(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
-            prev = env::value(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+            prev = lib_env::value<bool>(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
         if(prev != true)
         {
-            env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, true);
+            lib_env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, true);
             changed = true;
         }
     }
