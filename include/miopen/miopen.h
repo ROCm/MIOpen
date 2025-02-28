@@ -6092,14 +6092,14 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateBatchnormProblem(miopenProblem_t* probl
  * problems are disposed in the process, so the problem2 should be destroyed manually if it is not
  * needed anymore.
  * @details
- * miopenProblem_t problem = makeSomeProblem1();\n 
- * miopenProblem_t problem2 = makeSomeProblem2();\n 
- * miopenProblem_t problem3 = makeSomeProblem3();\n 
- * miopenFuseProblems(problem, problem2);\n 
- * // Now problem contains {problem1, problem2}\n 
- * miopenFuseProblems(problem, problem3);\n 
- * // Now problem contains {problem1, problem2, problem3}\n 
- * miopenDestroyProblem(problem2);\n 
+ * miopenProblem_t problem = makeSomeProblem1();\n
+ * miopenProblem_t problem2 = makeSomeProblem2();\n
+ * miopenProblem_t problem3 = makeSomeProblem3();\n
+ * miopenFuseProblems(problem, problem2);\n
+ * // Now problem contains {problem1, problem2}\n
+ * miopenFuseProblems(problem, problem3);\n
+ * // Now problem contains {problem1, problem2, problem3}\n
+ * miopenDestroyProblem(problem2);\n
  * miopenDestroyProblem(problem3);
  * @note As of now there is no way to actually get any solution for this kind of problem.
  *
