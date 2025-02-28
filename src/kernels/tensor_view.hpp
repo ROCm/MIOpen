@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+<<<<<<< HEAD
 #ifndef GUARD_TENSOR_VIEW_H
 #define GUARD_TENSOR_VIEW_H
 
@@ -112,3 +113,68 @@ using tensor_view_5d_t = struct
     }
 
 #endif // GUARD_TENSOR_VIEW_H
+=======
+#ifndef GUARD_TENSOR_VIEW_HPP
+#define GUARD_TENSOR_VIEW_HPP
+
+#include <initializer_list>
+
+template <int N>
+struct tensor_layout_t;
+
+template <int N>
+struct tensor_view_t
+{
+    // Get index in tensor view at tensor layout
+    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
+    {
+        static_assert(N > 0);
+        uint64_t idx = 0;
+        for(auto i = 0; i < N; ++i)
+        {
+            idx += stride[i] * tensor_layout.layout[i];
+        }
+        return idx;
+    }
+    uint64_t stride[N];
+    uint64_t size[N];
+};
+
+template <int N>
+struct tensor_layout_t
+{
+    // Make tensor layout at index using tensor view
+    constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
+    {
+        static_assert(N > 0);
+        uint64_t temp = idx;
+        if constexpr(N == 1)
+        {
+            layout[0] = idx;
+        }
+        else
+        {
+            for(auto i = N - 1; i > 1; --i)
+            {
+                layout[i] = temp % tensor_view.size[i];
+                temp      = temp / tensor_view.size[i];
+            }
+            layout[1] = temp % tensor_view.size[1];
+            layout[0] = temp / tensor_view.size[1];
+        }
+    }
+
+    constexpr tensor_layout_t(std::initializer_list<uint64_t> layout_)
+    {
+        static_assert(N > 0);
+        for(auto i = 0; i < N; ++i)
+        {
+            layout[i] = layout_.begin()[i];
+        }
+    }
+
+    uint64_t layout[N];
+};
+
+#endif // GUARD_TENSOR_VIEW_HPP
+>>>>>>> MIOpen/develop

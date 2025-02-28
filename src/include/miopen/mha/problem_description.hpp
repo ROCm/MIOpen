@@ -36,23 +36,54 @@ struct NetworkConfig;
 
 namespace mha {
 
-struct ProblemDescription : ProblemDescriptionBase
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
 {
     // softmax forward constructor
     ProblemDescription(const MhaInputDescsForward& descs)
-        : isForward(true), mhaInputDescsForward(descs)
+        : isForward(true), mhaInputDescsForwardPtr(std::make_shared<MhaInputDescsForward>(descs))
+    {
+    }
+
+    // softmax backward constructor
+    ProblemDescription(const MhaInputDescsBackward& descs)
+        : isForward(false), mhaInputDescsBackwardPtr(std::make_shared<MhaInputDescsBackward>(descs))
     {
     }
 
     bool IsForward() const { return isForward; }
-    const MhaInputDescsForward& GetDescs() const { return mhaInputDescsForward; }
+    const MhaInputDescsForward& GetDescsForward() const
+    {
+        assert(mhaInputDescsForwardPtr && isForward);
+
+        if(mhaInputDescsForwardPtr == nullptr)
+        {
+            MIOPEN_THROW("Mha ProblemDescription GetDescsForward() failed: PD was initialized with "
+                         "a backward direction ctor");
+        }
+
+        return *mhaInputDescsForwardPtr;
+    }
+
+    const MhaInputDescsBackward& GetDescsBackward() const
+    {
+        assert(mhaInputDescsBackwardPtr && !isForward);
+
+        if(mhaInputDescsBackwardPtr == nullptr)
+        {
+            MIOPEN_THROW("Mha ProblemDescription GetDescsBackward() failed: PD was initialized "
+                         "with a forward direction ctor");
+        }
+
+        return *mhaInputDescsBackwardPtr;
+    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     const bool isForward;
 
-    MhaInputDescsForward mhaInputDescsForward;
+    std::shared_ptr<MhaInputDescsForward> mhaInputDescsForwardPtr;
+    std::shared_ptr<MhaInputDescsBackward> mhaInputDescsBackwardPtr;
 };
 
 } // namespace mha

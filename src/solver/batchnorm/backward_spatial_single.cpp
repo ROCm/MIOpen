@@ -40,15 +40,20 @@ namespace solver {
 namespace batchnorm {
 
 bool BnBwdTrainingSpatialSingle::IsApplicable(
-    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
+    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-    if(problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
-       problem.GetMode() != miopenBNSpatial)
+    if(BnBwdTrainingSpatialMultiple{}.IsApplicable(context, bn_problem))
+        return false;
+
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
+       bn_problem.GetMode() != miopenBNSpatial)
+        return false;
+    if(!bn_problem.Is2D())
         return false;
 
 #if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    if(bn_problem.GetXDesc().GetType() == miopenHalf &&
+       bn_problem.GetBnScale().GetType() == miopenHalf)
     {
         // bfp16parm = true;
         // Unsupported kernel mode, error in kernel code
@@ -56,18 +61,10 @@ bool BnBwdTrainingSpatialSingle::IsApplicable(
         return false;
     }
 #endif
+    if(!IsOCLBwdTypeValid(bn_problem))
+        return false;
 
-    if(problem.IsLayoutNHWC())
-        return true;
-
-    int n, c, h, w;
-    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
-
-    unsigned int in_cstride = h * w;
-    unsigned int in_nhw     = n * in_cstride;
-
-    return (in_cstride > 1024 && in_nhw < (32 * 1024 * 1024)) ||
-           (in_cstride > 512 && in_nhw < (32 * 1024 * 1024)) || in_cstride <= 512;
+    return true;
 }
 
 ConvSolution
@@ -77,21 +74,27 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     const auto& handle      = context.GetStream();
     const unsigned wavesize = (miopen::StartsWith(handle.GetDeviceName(), "gfx10") ? 32 : 64);
 
-    bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
+    bool bfpmixparm   = false;
+    bool bbfpmixparam = false;
+    bool bfp16parm    = false;
+    bool bfp32parm    = true;
 
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
     else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetScaleBiasDiffDesc().GetType() == miopenFloat)
+            problem.GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;
+    }
+    else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
+            problem.GetBnScale().GetType() == miopenFloat)
+    {
+        bbfpmixparam = true;
+        bfp32parm    = false;
     }
 
     int n, c, h, w;
@@ -123,6 +126,10 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
     }
     else
     {
+        xlocalsize = 1024;
+        xgridsize  = c * xlocalsize;
+        ldsgcn     = xlocalsize / wavesize;
+        ldsnogcn   = xlocalsize;
         //*************************************************************************************************
         // N*H*W < 32M and H*W > 1024, use batchnorm variant#1 implementation which parallelize
         // work groups over channels and loop through NHW.
@@ -171,20 +178,6 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
                 ldsnogcn   = xlocalsize;
             }
         }
-        //*************************************************************************************************
-        // N*H*W > 32M, use batchnorm variant#2 implementation which parallelize
-        // work groups over channels and data segments.
-        //*************************************************************************************************
-        else
-        {
-            variant      = 2;
-            ylocalsize   = 1024;
-            auto segment = int(std::ceil(double(in_cstride) / double(ylocalsize)));
-            xgridsize    = c;
-            ygridsize    = segment * ylocalsize;
-            ldsgcn       = ylocalsize / wavesize;
-            ldsnogcn     = ylocalsize;
-        }
         if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
         {
             variant    = 1;
@@ -206,6 +199,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+            {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
             {"MIO_BN_USESAVED", static_cast<int>(problem.UseSaved())},
             {"MIO_BN_N", static_cast<int>(n)},
             {"MIO_BN_C", static_cast<int>(c)},
@@ -230,7 +224,8 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
 #if WORKAROUND_ISSUE_1146
              && (handle.GetDeviceName() != "gfx90a")
 #endif
-             && (!StartsWith(handle.GetDeviceName(), "gfx94")))) &&
+             && (!StartsWith(handle.GetDeviceName(), "gfx908")) &&
+             (!StartsWith(handle.GetDeviceName(), "gfx94")))) &&
            (!handle.GetTargetProperties().Xnack() || !*handle.GetTargetProperties().Xnack()))
         {
             kernel.kernel_file = "gcnAsmBNBwdTrainSpatial.s";
@@ -257,8 +252,9 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
             kernel.kernel_name = "MIOpenBatchNormBwdSpatial";
 
             build_params << KernelBuildParameters{
-                {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
                 {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
+                {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
+                {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             };
 
             kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
@@ -275,7 +271,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
         result.construction_params.push_back(kernel);
     }
 
-    const auto dtype    = problem.GetScaleBiasDiffDesc().GetType();
+    const auto dtype    = problem.GetBnScale().GetType();
     const auto useSaved = problem.UseSaved();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {

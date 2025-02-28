@@ -45,11 +45,11 @@ using ramdb_clock = std::chrono::steady_clock;
 
 class LockFile;
 
-class RamDb : protected PlainTextDb
+class MIOPEN_INTERNALS_EXPORT RamDb : protected PlainTextDb
 {
 public:
     RamDb(DbKinds db_kind_,
-          std::string path,
+          const fs::path& path,
           bool is_system,
           const std::string& /*arch*/,
           std::size_t /*num_cu*/)
@@ -57,18 +57,18 @@ public:
     {
     }
 
-    RamDb(DbKinds db_kind_, std::string path, bool is_system = false);
+    RamDb(DbKinds db_kind_, const fs::path& path, bool is_system = false);
 
     RamDb(const RamDb&) = delete;
     RamDb(RamDb&&)      = delete;
     RamDb& operator=(const RamDb&) = delete;
     RamDb& operator=(RamDb&&) = delete;
 
-    static std::string GetTimeFilePath(const std::string& path);
-    static RamDb& GetCached(DbKinds db_kind_, const std::string& path, bool is_system);
+    static fs::path GetTimeFilePath(const fs::path& path);
+    static RamDb& GetCached(DbKinds db_kind_, const fs::path& path, bool is_system);
 
     static RamDb& GetCached(DbKinds db_kind_,
-                            const std::string& path,
+                            const fs::path& path,
                             bool is_system,
                             const std::string& /*arch*/,
                             std::size_t /*num_cu*/)

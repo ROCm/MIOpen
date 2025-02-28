@@ -35,7 +35,8 @@ struct conv3d_bias_driver : public conv_bias_driver<T>
                    tensor_elem_gen_checkboard_sign{}(is...);
         };
 
-        this->add(this->output, "output", this->get_tensor(get_3d_conv_input_shapes, gen_value));
+        this->add(
+            this->output, "output", this->get_tensor(get_3d_conv_input_shapes<int>, gen_value));
     }
 };
 

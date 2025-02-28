@@ -42,14 +42,14 @@
 
 namespace miopen {
 
-std::string RamDb::GetTimeFilePath(const std::string& path) { return path + ".time"; }
+fs::path RamDb::GetTimeFilePath(const fs::path& path) { return path + ".time"; }
 
-static ramdb_clock::time_point GetDbModificationTime(const std::string& path)
+static ramdb_clock::time_point GetDbModificationTime(const fs::path& path)
 {
     const auto time_file_path = RamDb::GetTimeFilePath(path);
     auto file                 = std::ifstream{time_file_path};
 
-    if(!file)
+    if(!file.is_open())
         // Zero time from epoch, considering file ancient if time can't be retrieved.
         return {};
 
@@ -58,7 +58,7 @@ static ramdb_clock::time_point GetDbModificationTime(const std::string& path)
     return ramdb_clock::time_point{ramdb_clock::duration{time}};
 }
 
-static void UpdateDbModificationTime(const std::string& path)
+static void UpdateDbModificationTime(const fs::path& path)
 {
     MIOPEN_LOG_I2("Updating db modification time for " << path);
 
@@ -68,7 +68,7 @@ static void UpdateDbModificationTime(const std::string& path)
 
     if(!file)
     {
-        MIOPEN_LOG_E("Cannot update database modification time: " + time_file_path);
+        MIOPEN_LOG_E("Cannot update database modification time: " << time_file_path);
         return;
     }
 
@@ -86,12 +86,12 @@ static std::chrono::seconds GetLockTimeout() { return std::chrono::seconds{60}; 
 
 using exclusive_lock = std::unique_lock<LockFile>;
 
-RamDb::RamDb(DbKinds db_kind_, std::string path, bool is_system)
+RamDb::RamDb(DbKinds db_kind_, const fs::path& path, bool is_system)
     : PlainTextDb(db_kind_, path, is_system)
 {
 }
 
-RamDb& RamDb::GetCached(DbKinds db_kind_, const std::string& path, bool is_system)
+RamDb& RamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool is_system)
 {
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
     static std::mutex mutex;
@@ -99,28 +99,21 @@ RamDb& RamDb::GetCached(DbKinds db_kind_, const std::string& path, bool is_syste
 
     // We don't have to store kind to properly index as different dbs would have different paths
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static auto instances = std::map<std::string, RamDb*>{};
+    static auto instances = std::map<fs::path, std::unique_ptr<RamDb>>{};
     const auto it         = instances.find(path);
 
     if(it != instances.end())
         return *it->second;
 
-    // The ReadonlyRamDb objects allocated here by "new" shall be alive during
-    // the calling app lifetime. Size of each is very small, and there couldn't
-    // be many of them (max number is number of _different_ GPU board installed
-    // in the user's system, which is _one_ for now). Therefore the total
-    // footprint in heap is very small. That is why we can omit deletion of
-    // these objects thus avoiding bothering with MP/MT syncronization.
-    // These will be destroyed altogether with heap.
-    auto instance = new RamDb{db_kind_, path, is_system};
-    instances.emplace(path, instance);
-    if(!DisableUserDbFileIO)
+    auto& instance =
+        *instances.emplace(path, std::make_unique<RamDb>(db_kind_, path, is_system)).first->second;
+    if constexpr(!DisableUserDbFileIO)
     {
-        const auto prefetch_lock = exclusive_lock(instance->GetLockFile(), GetLockTimeout());
+        const auto prefetch_lock = exclusive_lock(instance.GetLockFile(), GetLockTimeout());
         MIOPEN_VALIDATE_LOCK(prefetch_lock);
-        instance->Prefetch();
+        instance.Prefetch();
     }
-    return *instance;
+    return instance;
 }
 
 boost::optional<DbRecord> RamDb::FindRecord(const std::string& problem)
@@ -145,7 +138,7 @@ bool RamDb::StoreRecord(const DbRecord& record)
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
-    if(!DisableUserDbFileIO)
+    if constexpr(!DisableUserDbFileIO)
     {
         if(!StoreRecordUnsafe(record))
             return false;
@@ -168,7 +161,7 @@ bool RamDb::UpdateRecord(DbRecord& record)
     const auto lock = exclusive_lock(GetLockFile(), GetLockTimeout());
     MIOPEN_VALIDATE_LOCK(lock);
 
-    if(!DisableUserDbFileIO)
+    if constexpr(!DisableUserDbFileIO)
     {
         if(!UpdateRecordUnsafe(record))
             return false;
@@ -194,7 +187,7 @@ bool RamDb::RemoveRecord(const std::string& key)
     const auto is_valid = ValidateUnsafe();
 #endif
 
-    if(!DisableUserDbFileIO)
+    if constexpr(!DisableUserDbFileIO)
     {
         if(!RemoveRecordUnsafe(key))
             return false;
@@ -230,7 +223,7 @@ bool RamDb::Remove(const std::string& key, const std::string& id)
     if(!record || !record->EraseValues(id))
         return false;
 
-    if(!DisableUserDbFileIO)
+    if constexpr(!DisableUserDbFileIO)
     {
         if(!StoreRecordUnsafe(*record))
             return false;
@@ -360,7 +353,7 @@ void RamDb::UpdateCacheEntryUnsafe(const DbRecord& record)
 {
     const auto is_valid = ValidateUnsafe();
 
-    if(!DisableUserDbFileIO)
+    if constexpr(!DisableUserDbFileIO)
         UpdateDbModificationTime(GetFileName());
 
     if(is_valid)
