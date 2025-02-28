@@ -26,6 +26,7 @@
 
 #include "mha_common.hpp"
 
+#include <miopen/env.hpp>
 #include <miopen/mha/solvers.hpp>
 
 #include <miopen/mha/invoke_params.hpp>

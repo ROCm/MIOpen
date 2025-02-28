@@ -28,6 +28,7 @@
 #include <cstdint>
 
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
@@ -38,6 +39,7 @@
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
 namespace miopen {
