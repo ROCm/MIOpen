@@ -138,7 +138,7 @@ inline std::vector<BN2DTestCase> Network2DLarge()
 // These are very large tensors which caused memory insufficient error
 // when ran parallely by ctest. Hence, these are run serially.
 // Shape: (2, 2048, 16, 128, 128) --> Size: 1.07e+09
-// For now any test case with tensor size greater then 1e09 need to be run serailly.
+// For now any test case with tensor size greater then 1e09 need to be run serially.
 template <>
 inline std::vector<BN3DTestCase> Network3DSerialCase()
 {
