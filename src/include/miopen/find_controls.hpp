@@ -153,13 +153,16 @@ public:
     template <class Context>
     bool IsHybrid(const Context& context) const
     {
-        return (value == Values::Hybrid || value == Values::DynamicHybrid || value == Values::TrustVerify) && IsEnabled(context);
+        return (value == Values::Hybrid || value == Values::DynamicHybrid ||
+                value == Values::TrustVerify) &&
+               IsEnabled(context);
     }
 
     template <class Context>
     bool IsDynamicHybrid(const Context& context) const
     {
-        return value == (Values::DynamicHybrid || value == Values::TrustVerify) && IsEnabled(context);
+        return (value == Values::DynamicHybrid || value == Values::TrustVerify) &&
+               IsEnabled(context);
     }
 
     template <class Context>
