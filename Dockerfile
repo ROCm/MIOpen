@@ -8,8 +8,8 @@ ARG CCACHE_SECONDARY_STORAGE=""
 ARG CCACHE_DIR="/tmp"
 ARG CCACHE_COMMIT=7f1572ae9ca958fa923a66235f6a64a360b03523
 
-# GPU_ARCH can be defined in docker build process
-ARG GPU_ARCHS=gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201
+# GPU_ARCHS should be defined as a build arg rather than hardcoded here. 
+ARG GPU_ARCHS=none
 ARG CK_BUILD_THREADS=32
 
 ARG INSTALL_MIOPEN=OFF
