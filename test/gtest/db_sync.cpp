@@ -52,9 +52,8 @@
 /// src/solver/conv_winoRxS.cpp
 #define WORKAROUND_ISSUE_2492 1
 
-#if WORKAROUND_ISSUE_2492 && defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#if WORKAROUND_ISSUE_2492
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)
 #endif
 
 #define WORKAROUND_ISSUE_1987 0      // Allows testing FDB on gfx1030 (legacy fdb).
@@ -85,14 +84,6 @@ struct std::hash<KDBKey>
                (hash<string>()(k.program_args) << 1) >> 1;
     }
 };
-
-#if WORKAROUND_ISSUE_2492 && !defined(_WIN32)
-static void SetEnvironmentVariable(std::string_view name, std::string_view value)
-{
-    const auto ret = setenv(name.data(), value.data(), 1);
-    ASSERT_TRUE(ret == 0);
-}
-#endif // WORKAROUND_ISSUE_2492
 
 #if WORKAROUND_ISSUE_1987
 /// \todo Copied from src/db_record.cpp
@@ -530,7 +521,7 @@ TEST(CPU_DBSync_NONE, KDBTargetID)
 {
     fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
-    SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2492", "0");
+    miopen::env::update(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492, "0");
 #endif
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
     std::ignore = fdb_file_path;
