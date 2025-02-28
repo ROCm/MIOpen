@@ -42,12 +42,8 @@
 #include <miopen/mha/solvers.hpp>
 #include <miopen/softmarginloss/solvers.hpp>
 #include <miopen/softmax/solvers.hpp>
-<<<<<<< HEAD
 #include <miopen/softmaxcrossentropywithlogits/solvers.hpp>
-=======
 #include <miopen/multimarginloss/solvers.hpp>
->>>>>>> MIOpen/develop
-
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/db.hpp>
 #include <miopen/env.hpp>
@@ -669,19 +665,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Softmax, softmax::Softmax{}.SolverDbId());
     Register(registry, ++id, Primitive::Softmax, softmax::AttnSoftmax{}.SolverDbId());
 
-<<<<<<< HEAD
-    Register(registry,
-             ++id,
-             Primitive::SoftmaxCrossEntropyWithLogits,
-             softmaxcrossentropywithlogits::SoftmaxCrossEntropyWithLogitsForwardContiguous{}
-                 .SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::SoftmaxCrossEntropyWithLogits,
-             softmaxcrossentropywithlogits::SoftmaxCrossEntropyWithLogitsBackwardContiguous{}
-                 .SolverDbId());
-    // IMPORTANT: New solvers should be added to the end of the function!
-=======
     Register(registry, ++id, Primitive::Reduce, reduce::ArgminForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::MaxForward{}.SolverDbId());
     Register(registry, ++id, Primitive::Reduce, reduce::MinForward{}.SolverDbId());
@@ -724,9 +707,18 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
-    // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
-    // space between this comment and the newly registered solver(s)!
->>>>>>> MIOpen/develop
+    Register(registry,
+             ++id,
+             Primitive::SoftmaxCrossEntropyWithLogits,
+             softmaxcrossentropywithlogits::SoftmaxCrossEntropyWithLogitsForwardContiguous{}
+                 .SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::SoftmaxCrossEntropyWithLogits,
+             softmaxcrossentropywithlogits::SoftmaxCrossEntropyWithLogitsBackwardContiguous{}
+                 .SolverDbId());
+    // IMPORTANT: New solvers should be added to the end of the function, and don't leave a
+    // white space between this comment and the newly registered solver(s)!
 }
 
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)

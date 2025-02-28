@@ -58,17 +58,14 @@ enum class Primitive
     Cat,
     Mha,
     Softmax,
-<<<<<<< HEAD
-    SoftmaxCrossEntropyWithLogits
-=======
     Adam,
     Item,
     RoPE,
     ReLU,
     Kthvalue,
     SoftMarginLoss,
-    MultiMarginLoss
->>>>>>> MIOpen/develop
+    MultiMarginLoss,
+    SoftmaxCrossEntropyWithLogits,
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id

@@ -24,96 +24,6 @@
  *
  *******************************************************************************/
 
-<<<<<<< HEAD
-#ifndef GUARD_TENSOR_VIEW_H
-#define GUARD_TENSOR_VIEW_H
-
-using tensor_view_1d_t = struct
-{
-    uint64_t stride[1];
-    uint64_t size[1];
-};
-
-using tensor_view_2d_t = struct
-{
-    uint64_t stride[2];
-    uint64_t size[2];
-};
-
-using tensor_view_3d_t = struct
-{
-    uint64_t stride[3];
-    uint64_t size[3];
-};
-
-using tensor_view_4d_t = struct
-{
-    uint64_t stride[4];
-    uint64_t size[4];
-};
-
-using tensor_view_5d_t = struct
-{
-    uint64_t stride[5];
-    uint64_t size[5];
-};
-
-#define TV_IDX(tv, d, n) (tv.stride[d] * (n))
-
-#define TV1D_IDX(tv, n0) (TV_IDX(tv, 0, n0))
-
-#define TV2D_IDX(tv, n0, n1) (TV_IDX(tv, 1, n1) + TV1D_IDX(tv, n0))
-
-#define TV3D_IDX(tv, n0, n1, n2) (TV_IDX(tv, 2, n2) + TV2D_IDX(tv, n0, n1))
-
-#define TV4D_IDX(tv, n0, n1, n2, n3) (TV_IDX(tv, 3, n3) + TV3D_IDX(tv, n0, n1, n2))
-
-#define TV5D_IDX(tv, n0, n1, n2, n3, n4) (TV_IDX(tv, 4, n4) + TV4D_IDX(tv, n0, n1, n2, n3))
-
-#define TV_1D_AT(x, idx) (x[IDX_TO_TV1D_IDX(x##_tv, idx)])
-#define TV_2D_AT(x, n0, n1) (x[TV2D_IDX(x##_tv, n0, n1)])
-#define TV_3D_AT(x, n0, n1, n2) (x[TV3D_IDX(x##_tv, n0, n1, n2)])
-#define TV_4D_AT(x, n0, n1, n2, n3) (x[TV4D_IDX(x##_tv, n0, n1, n2, n3)])
-#define TV_5D_AT(x, n0, n1, n2, n3, n4) (x[TV5D_IDX(x##_tv, n0, n1, n2, n3, n4)])
-
-#define GET_NCDHW(n, c, d, h, w, idx, tv) \
-    {                                     \
-        ulong ncdh = (idx) / tv.size[4];  \
-        w          = (idx) % tv.size[4];  \
-        ulong ncd  = ncdh / tv.size[3];   \
-        h          = ncdh % tv.size[3];   \
-        ulong nc   = ncd / tv.size[2];    \
-        d          = ncd % tv.size[2];    \
-        n          = nc / tv.size[1];     \
-        c          = nc % tv.size[1];     \
-    }
-
-#define GET_NCDH(n, c, d, h, idx, tv)   \
-    {                                   \
-        ulong ncd = (idx) / tv.size[3]; \
-        h         = (idx) % tv.size[3]; \
-        ulong nc  = ncd / tv.size[2];   \
-        d         = ncd % tv.size[2];   \
-        n         = nc / tv.size[1];    \
-        c         = nc % tv.size[1];    \
-    }
-
-#define GET_NCD(n, c, d, idx, tv)      \
-    {                                  \
-        ulong nc = (idx) / tv.size[2]; \
-        d        = (idx) % tv.size[2]; \
-        n        = nc / tv.size[1];    \
-        c        = nc % tv.size[1];    \
-    }
-
-#define GET_ND(n, d, idx, tv)   \
-    {                           \
-        n = (idx) / tv.size[1]; \
-        d = (idx) % tv.size[1]; \
-    }
-
-#endif // GUARD_TENSOR_VIEW_H
-=======
 #ifndef GUARD_TENSOR_VIEW_HPP
 #define GUARD_TENSOR_VIEW_HPP
 
@@ -177,4 +87,3 @@ struct tensor_layout_t
 };
 
 #endif // GUARD_TENSOR_VIEW_HPP
->>>>>>> MIOpen/develop

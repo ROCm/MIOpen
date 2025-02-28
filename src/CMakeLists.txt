@@ -335,10 +335,8 @@ set( MIOpen_Source
     solver/softmarginloss/forward_softmarginloss.cpp
     solver/softmax/attn_softmax.cpp
     solver/softmax/softmax.cpp
-<<<<<<< HEAD
     solver/softmaxcrossentropywithlogits/fwd_con_softmaxcrossentropywithlogits.cpp
     solver/softmaxcrossentropywithlogits/bwd_con_softmaxcrossentropywithlogits.cpp
-=======
     solver/tensorOp/Op1dTensorGeneric.cpp
     solver/tensorOp/Op2dTensorGeneric.cpp
     solver/tensorOp/Op2dTensorLite.cpp
@@ -349,7 +347,6 @@ set( MIOpen_Source
     solver/tensorOp/Op5dTensorGeneric.cpp
     solver/tensorOp/OpTensorFwdBias.cpp
     solver/tensorOp/OpTensorLeadingOnes.cpp
->>>>>>> MIOpen/develop
     subbuffers.cpp
     t5layernorm_api.cpp
     target_properties.cpp
@@ -569,11 +566,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenSoftMarginLoss.cpp
         kernels/MIOpenSoftmax.cl
         kernels/MIOpenSoftmaxAttn.cpp
-<<<<<<< HEAD
         kernels/MIOpenSoftmaxCrossEntropyWithLogits.cpp
         kernels/MIOpenSum.cpp
-=======
->>>>>>> MIOpen/develop
         kernels/MIOpenUtilKernels3.cl
         kernels/MIOpenUtilKernels4.cl
         kernels/MIOpenUtilKernels5.cl
@@ -716,17 +710,13 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         t5layernorm.cpp
         ocl/fusionopconvocl.cpp
         ocl/fusionopbiasbnactivocl.cpp
-<<<<<<< HEAD
-        sum.cpp
-        softmaxcrossentropywithlogits.cpp
-=======
         prelu.cpp
         reducecalculation.cpp
         reduceextreme.cpp
         rope.cpp
         softmarginloss.cpp
+        softmaxcrossentropywithlogits.cpp
         transformers_adam_w.cpp
->>>>>>> MIOpen/develop
         ${PROJECT_BINARY_DIR}/db_path.cpp
         )
 
