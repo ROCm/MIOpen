@@ -115,7 +115,7 @@ using namespace pooling2d_asymmetric;
 TEST_P(GPU_AsymPooling2d_FP32, FloatTest_pooling2d_asymmetric)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenFloat);
     }
