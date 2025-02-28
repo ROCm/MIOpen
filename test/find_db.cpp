@@ -41,6 +41,10 @@
 #include <chrono>
 #include <functional>
 
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_LOG_LEVEL)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_COMPILE_PARALLEL_LEVEL)
+
 namespace env = miopen::env;
 
 namespace miopen {
@@ -226,9 +230,9 @@ private:
 
 int main(int argc, const char* argv[])
 {
-    env::setEnvironmentVariable("MIOPEN_ENABLE_LOGGING_ELAPSED_TIME", "1");
-    env::setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
-    env::setEnvironmentVariable("MIOPEN_COMPILE_PARALLEL_LEVEL", "1");
+    env::update(MIOPEN_ENABLE_LOGGING_ELAPSED_TIME, 1);
+    env::update(MIOPEN_LOG_LEVEL, 6);
+    env::update(MIOPEN_COMPILE_PARALLEL_LEVEL, 1);
 
     test_drive<miopen::FindDbTest>(argc, argv);
 }

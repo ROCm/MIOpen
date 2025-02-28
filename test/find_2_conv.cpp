@@ -41,6 +41,8 @@
 
 #include <vector>
 
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_LOG_LEVEL)
+
 namespace miopen {
 struct Find2Test : test_driver
 {
@@ -367,6 +369,6 @@ private:
 
 int main(int argc, const char* argv[])
 {
-    miopen::env::setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
+    miopen::env::update(MIOPEN_LOG_LEVEL, 6);
     test_drive<miopen::Find2Test>(argc, argv);
 }
