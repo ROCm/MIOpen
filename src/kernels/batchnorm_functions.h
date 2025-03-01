@@ -321,7 +321,8 @@ inline unsigned int getStashIndex(unsigned int vindex,
 {
 #if MIOPEN_USE_FPMIX || MIOPEN_USE_BFPMIX
     // 2 _FLOAT values are used to store 1 _FLOAT_PREC value.
-#if MIO_LAYOUT_NHWC && (MIO_BN_C % 2 == 0)
+#if MIO_LAYOUT_NHWC
+#if MIO_BN_C % 2 == 0
     // xgrp_sz values are split in two parts: even threads use 2 values at even rows, odd threads -
     // at odd rows.
     // The only restriction for C and xgrp_sz is that they must be even.
@@ -330,6 +331,12 @@ inline unsigned int getStashIndex(unsigned int vindex,
 #else
     // Values are stored consecutively in y dim.
     return (vindex * 2) * NSTRIDE + ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+#endif
+#else // !MIO_LAYOUT_NHWC
+    // Values are stored consecutively in y dim, indices are aligned up by 2 (_FLOAT_PREC).
+    return ((vindex * 2) * NSTRIDE + ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride +
+            1) /
+           2 * 2;
 #endif
 #else
     return vindex * NSTRIDE + ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
