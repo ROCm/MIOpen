@@ -189,6 +189,12 @@ inline void GetSpatialMultipleConfig(const miopen::batchnorm::ProblemDescription
         xlocalsize = 1;
         xgridsize  = c;
         ylocalsize = 1024;
+        if(ylocalsize > in_cstride / vectorsize)
+        {
+            // No need to use workgroups larger than the HW dimension
+            ylocalsize = std::max(size_t{64},
+                                  size_t{1 << int(std::ceil(std::log2(in_cstride / vectorsize)))});
+        }
         ygridsize  = ylocalsize * ((in_cstride / vectorsize + ylocalsize - 1) / ylocalsize);
     }
     stash_method = GetStashMethod(problem.IsLayoutNHWC(),
