@@ -30,7 +30,8 @@
 
 namespace lib_env {
 
-struct LibEnvVar {
+struct LibEnvVar
+{
     constexpr LibEnvVar(std::string_view name_in) : name(name_in) {}
 
     operator bool() const
@@ -90,5 +91,4 @@ inline void clear(const LibEnvVar& env)
 
 } // namespace lib_env
 
-#define MIOPEN_LIB_ENV_VAR(name) \
-    [[maybe_unused]] inline constexpr lib_env::LibEnvVar name(#name);
+#define MIOPEN_LIB_ENV_VAR(name) [[maybe_unused]] inline constexpr lib_env::LibEnvVar name(#name);

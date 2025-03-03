@@ -192,7 +192,8 @@ template <typename Case>
 std::vector<std::string> get_args(const Case& param)
 {
     const auto& [env_tuple, cmd] = param;
-    std::apply([](const auto&... env) { (lib_env::update(env.first, env.second), ...); }, env_tuple);
+    std::apply([](const auto&... env) { (lib_env::update(env.first, env.second), ...); },
+               env_tuple);
 
     std::stringstream ss(cmd);
     std::istream_iterator<std::string> begin(ss);

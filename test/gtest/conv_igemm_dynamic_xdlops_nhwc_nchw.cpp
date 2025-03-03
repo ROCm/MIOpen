@@ -39,9 +39,9 @@ void SetupEnvVar()
 {
     lib_env::update(MIOPEN_FIND_MODE, "normal");
     lib_env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
-                "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-                "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
+                    "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
+                    "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+                    "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
