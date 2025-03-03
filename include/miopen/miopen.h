@@ -371,17 +371,12 @@ typedef enum
     miopenInt32 = 2, /*!< 32-bit integer (Partially supported) */
     miopenInt8  = 3, /*!< 8-bit integer (Partially supported) */
     // miopenInt8x4   = 4, /*!< Pack of 4x Int8 in NCHW_VECT_C format (Support discontinued) */
-    miopenBFloat16 = 5, /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
-                           (Partially supported) */
-    miopenDouble = 6,   /*!< 64-bit floating point (Partially supported) */
-#ifdef MIOPEN_BETA_API
-    miopenFloat8  = 7,
-    miopenBFloat8 = 8,
-#else
-// miopenReserved1 = 7,
-// miopenReserved2 = 8,
-#endif
-    miopenInt64 = 9,
+    miopenBFloat16 = 5,     /*!< 16-bit binary floating point (8-bit exponent, 7-bit fraction)
+                               (Partially supported) */
+    miopenDouble       = 6, /*!< 64-bit floating point (Partially supported) */
+    miopenFloat8_fnuz  = 7,
+    miopenBFloat8_fnuz = 8,
+    miopenInt64        = 9,
 } miopenDataType_t;
 
 /*! @ingroup tensor
@@ -6092,14 +6087,14 @@ MIOPEN_EXPORT miopenStatus_t miopenCreateBatchnormProblem(miopenProblem_t* probl
  * problems are disposed in the process, so the problem2 should be destroyed manually if it is not
  * needed anymore.
  * @details
- * miopenProblem_t problem = makeSomeProblem1();\n 
- * miopenProblem_t problem2 = makeSomeProblem2();\n 
- * miopenProblem_t problem3 = makeSomeProblem3();\n 
- * miopenFuseProblems(problem, problem2);\n 
- * // Now problem contains {problem1, problem2}\n 
- * miopenFuseProblems(problem, problem3);\n 
- * // Now problem contains {problem1, problem2, problem3}\n 
- * miopenDestroyProblem(problem2);\n 
+ * miopenProblem_t problem = makeSomeProblem1();\n
+ * miopenProblem_t problem2 = makeSomeProblem2();\n
+ * miopenProblem_t problem3 = makeSomeProblem3();\n
+ * miopenFuseProblems(problem, problem2);\n
+ * // Now problem contains {problem1, problem2}\n
+ * miopenFuseProblems(problem, problem3);\n
+ * // Now problem contains {problem1, problem2, problem3}\n
+ * miopenDestroyProblem(problem2);\n
  * miopenDestroyProblem(problem3);
  * @note As of now there is no way to actually get any solution for this kind of problem.
  *

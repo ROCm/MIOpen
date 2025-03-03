@@ -54,8 +54,8 @@ void Run2dDriver(miopenDataType_t prec)
     {
     case miopenFloat: params = GPU_conv_trans_FP32::GetParam(); break;
     case miopenHalf:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:

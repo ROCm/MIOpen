@@ -50,14 +50,14 @@ void Run2dDriver(miopenDataType_t prec)
     {
     case miopenFloat: params = GPU_Conv2d_MIOpenTestConv_FP32::GetParam(); break;
     case miopenInt8:
-    case miopenBFloat8:
-    case miopenFloat8:
+    case miopenBFloat8_fnuz:
+    case miopenFloat8_fnuz:
     case miopenHalf:
     case miopenBFloat16:
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-        FAIL() << "miopenInt8, miopenBFloat8, miopenFloat8, miopenHalf, miopenBFloat16, "
+        FAIL() << "miopenInt8, miopenBFloat8_fnuz, miopenFloat8_fnuz, miopenHalf, miopenBFloat16, "
                   "miopenInt32, "
                   "miopenDouble data "
                   "type not supported by "
