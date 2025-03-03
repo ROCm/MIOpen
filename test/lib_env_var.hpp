@@ -25,9 +25,8 @@
  *******************************************************************************/
 #pragma once
 
+#include <string>
 #include <string_view>
-
-#include <miopen/env.hpp> // \todo remove
 
 namespace lib_env {
 
@@ -52,7 +51,34 @@ inline bool value<bool>(const LibEnvVar& env)
     return true; // \todo
 }
 
+template <>
+inline std::uint64_t value<std::uint64_t>(const LibEnvVar& env)
+{
+    return true; // \todo
+}
+
+template <>
+inline std::string value<std::string>(const LibEnvVar& env)
+{
+    return ""; // \todo
+}
+
 inline void update(const LibEnvVar& env, bool value)
+{
+    return; // \todo
+}
+
+inline void update(const LibEnvVar& env, int value)
+{
+    return; // \todo
+}
+
+inline void update(const LibEnvVar& env, std::uint64_t value)
+{
+    return; // \todo
+}
+
+inline void update(const LibEnvVar& env, const std::string& value)
 {
     return; // \todo
 }
@@ -62,7 +88,7 @@ inline void clear(const LibEnvVar& env)
     return; // \todo
 }
 
-} // namespace miopen_ext_env
+} // namespace lib_env
 
-#define LIB_ENV_VAR(name) \
-    [[maybe_unused]] constexpr lib_env::LibEnvVar name(#name);
+#define MIOPEN_LIB_ENV_VAR(name) \
+    [[maybe_unused]] inline constexpr lib_env::LibEnvVar name(#name);

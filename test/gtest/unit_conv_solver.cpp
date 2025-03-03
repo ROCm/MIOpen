@@ -37,7 +37,7 @@
 
 #include "../workspace.hpp"
 
-LIB_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
 
 namespace miopen {
 namespace unit_tests {
@@ -94,19 +94,19 @@ public:
         if(changed)
         {
             if(prev)
-                env::update(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, prev.value());
+                lib_env::update(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, prev.value());
             else
-                env::clear(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
+                lib_env::clear(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
         }
     }
 
     void SetValue(uint64_t value)
     {
-        if(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
-            prev = env::value(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
+        if(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+            prev = lib_env::value<uint64_t>(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
         if(value == prev)
             return;
-        env::update(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, value);
+        lib_env::update(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, value);
         changed = true;
     }
 
