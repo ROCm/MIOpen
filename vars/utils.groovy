@@ -172,20 +172,6 @@ def cmake_fin_build_cmd(prefixpath){
     return fin_cmd
 }
 
-def getNumThreadsForCKBuild() {
-    def nproc = sh(returnStdout: true, script: 'nproc')
-    echo "Number of cores: ${nproc}"
-    def n = nproc.toInteger()
-    if (n > 32){
-        n /= 2
-    }
-    if (n > 64){
-        n = 64
-    }
-    echo "Number of threads used for building CK: ${n}"
-    return n
-}
-
 def getDockerImageName(dockerArgs)
 {
     checkout scm
@@ -212,7 +198,6 @@ def getDockerImage(Map conf=[:])
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
     def gpu_arch = "gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def mlir_build = conf.get("mlir_build", "ON") // always ON
-    def num_threads_for_ck_build = getNumThreadsForCKBuild()
 
     def install_miopen = 'OFF'
     def freckle = 0
@@ -222,7 +207,7 @@ def getDockerImage(Map conf=[:])
         freckle = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
     }
 
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg CK_BUILD_THREADS=${num_threads_for_ck_build} --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg FRECKLE=${freckle}"
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg FRECKLE=${freckle}"
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()

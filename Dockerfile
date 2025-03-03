@@ -10,7 +10,6 @@ ARG CCACHE_COMMIT=7f1572ae9ca958fa923a66235f6a64a360b03523
 
 # GPU_ARCHS should be defined as a build arg rather than hardcoded here. 
 ARG GPU_ARCHS=none
-ARG CK_BUILD_THREADS=32
 
 ARG INSTALL_MIOPEN=OFF
 ARG FRECKLE=0
@@ -115,13 +114,20 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
+    num_threads=$(nproc) && \
+    if [ "$num_threads" -gt 128 ]; then \
+        num_threads=64; \
+    elif [ "$num_threads" -gt 32 ]; then \
+        num_threads=$(( num_threads / 2 )); \
+    fi && \
+    echo Building CK with ${num_threads} threads && \
     CXX=/opt/rocm/bin/amdclang++ cmake \
     -D CMAKE_PREFIX_PATH=/opt/rocm \
     -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
     -D CMAKE_BUILD_TYPE=Release \
     -D GPU_ARCHS="${GPU_ARCHS}" \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j ${CK_BUILD_THREADS} install
+    make -j ${num_threads} install
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 RUN sed -i '/composable_kernel/d' /requirements.txt
