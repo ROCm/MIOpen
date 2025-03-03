@@ -157,6 +157,5 @@ RUN set -e; \
     fi
 
 # Utilize multi-stage build in order to squash the container.
-# https://stackoverflow.com/a/77052183
 FROM ubuntu:22.04
 COPY --from=miopen / /
