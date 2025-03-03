@@ -130,8 +130,8 @@ inline void gemm(const Handle& handle,
         switch(miopen)
         {
         case miopenFloat: return rocblas_datatype::rocblas_datatype_f32_r;
-        case miopenFloat8: return rocblas_datatype::rocblas_datatype_f8_r;
-        case miopenBFloat8: return rocblas_datatype::rocblas_datatype_bf8_r;
+        case miopenFloat8_fnuz: return rocblas_datatype::rocblas_datatype_f8_r;
+        case miopenBFloat8_fnuz: return rocblas_datatype::rocblas_datatype_bf8_r;
         default: return rocblas_datatype::rocblas_datatype_invalid;
         }
     };
@@ -172,9 +172,9 @@ inline void gemm(const Handle& handle,
             0);
     }
     // only bfp8 x fp32, fp32 x bfp8 and [b]fp8 x [b]fp8 combinations are supported
-    else if(cvtMiopen2Rocblas(AType) != rocblas_datatype::rocblas_datatype_invalid    //
-            && cvtMiopen2Rocblas(BType) != rocblas_datatype::rocblas_datatype_invalid //
-            && (AType == BType || AType == miopenBFloat8 || BType == miopenBFloat8))  //
+    else if(cvtMiopen2Rocblas(AType) != rocblas_datatype::rocblas_datatype_invalid             //
+            && cvtMiopen2Rocblas(BType) != rocblas_datatype::rocblas_datatype_invalid          //
+            && (AType == BType || AType == miopenBFloat8_fnuz || BType == miopenBFloat8_fnuz)) //
     {
         assert(miopen::StartsWith(handle.GetDeviceName(), "gfx94"));
 #if USE_ROCBLAS_EX3

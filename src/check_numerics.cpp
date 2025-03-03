@@ -60,8 +60,8 @@ std::string GetKernelName(miopenDataType_t data_type)
     case miopenFloat: return {"check_numerics_fp32"};
     case miopenHalf: return {"check_numerics_fp16"};
     case miopenBFloat16: return {"check_numerics_bf16"};
-    case miopenFloat8: return {"check_numerics_fp8"};
-    case miopenBFloat8: return {"check_numerics_bf8"};
+    case miopenFloat8_fnuz: return {"check_numerics_fp8"};
+    case miopenBFloat8_fnuz: return {"check_numerics_bf8"};
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
