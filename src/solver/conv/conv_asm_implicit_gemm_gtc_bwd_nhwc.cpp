@@ -940,8 +940,8 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a") &&
-       (device_name != "gfx942") && (!StartsWith(device_name, "gfx95")))
+    if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx942") &&
+       (!StartsWith(device_name, "gfx95")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -960,8 +960,8 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16() &&
-       !(problem.IsBfp16() && (device_name == "gfx90a" || device_name == "gfx942" ||
-                               StartsWith(device_name, "gfx95"))))
+       !(problem.IsBfp16() &&
+         (device_name == "gfx90a" || device_name == "gfx942" || StartsWith(device_name, "gfx95"))))
         return false;
 
     if(problem.IsTensorsCasted())
