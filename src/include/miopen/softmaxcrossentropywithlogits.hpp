@@ -23,9 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_SOFTMAXCROSSENTROPYWITHLOGITS_HPP_
-#define MIOPEN_SOFTMAXCROSSENTROPYWITHLOGITS_HPP_
-
+#pragma once
 #include <miopen/common.hpp>
 
 namespace miopen {
@@ -33,27 +31,32 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t SoftmaxCrossEntropyWithLogitsForward(Handle& handle,
-                                                    const TensorDescriptor& inputDesc,
-                                                    ConstData_t input,
-                                                    const TensorDescriptor& targetDesc,
-                                                    ConstData_t target,
-                                                    const TensorDescriptor& outputDesc,
-                                                    Data_t output,
-                                                    const TensorDescriptor& backpropDesc,
-                                                    Data_t backprop);
+namespace softmaxcrossentropywithlogits {
 
-miopenStatus_t SoftmaxCrossEntropyWithLogitsBackward(Handle& handle,
-                                                     const TensorDescriptor& outputGradDesc,
-                                                     ConstData_t output_grad,
-                                                     const TensorDescriptor& backpropDesc,
-                                                     ConstData_t backprop,
-                                                     const TensorDescriptor& inputDesc,
-                                                     ConstData_t input,
-                                                     const TensorDescriptor& inputGradDesc,
-                                                     Data_t input_grad,
-                                                     const TensorDescriptor& targetGradDesc,
-                                                     Data_t target_grad);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+SoftmaxCrossEntropyWithLogitsForward(Handle& handle,
+                                     const TensorDescriptor& inputDesc,
+                                     ConstData_t input,
+                                     const TensorDescriptor& targetDesc,
+                                     ConstData_t target,
+                                     const TensorDescriptor& outputDesc,
+                                     Data_t output,
+                                     const TensorDescriptor& backpropDesc,
+                                     Data_t backprop);
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t
+SoftmaxCrossEntropyWithLogitsBackward(Handle& handle,
+                                      const TensorDescriptor& outputGradDesc,
+                                      ConstData_t output_grad,
+                                      const TensorDescriptor& backpropDesc,
+                                      ConstData_t backprop,
+                                      const TensorDescriptor& inputDesc,
+                                      ConstData_t input,
+                                      const TensorDescriptor& inputGradDesc,
+                                      Data_t input_grad,
+                                      const TensorDescriptor& targetGradDesc,
+                                      Data_t target_grad);
+
+} // namespace softmaxcrossentropywithlogits
 
 } // namespace miopen
-#endif // MIOPEN_SOFTMAXCROSSENTROPYWITHLOGITS_HPP_

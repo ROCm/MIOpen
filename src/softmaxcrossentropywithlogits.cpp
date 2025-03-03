@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
 #include <miopen/softmaxcrossentropywithlogits.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
@@ -34,6 +33,8 @@
 #include <miopen/find_solution.hpp>
 
 namespace miopen {
+
+namespace softmaxcrossentropywithlogits {
 
 miopenStatus_t SoftmaxCrossEntropyWithLogitsForward(Handle& handle,
                                                     const TensorDescriptor& inputDesc,
@@ -110,5 +111,7 @@ miopenStatus_t SoftmaxCrossEntropyWithLogitsBackward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+} // namespace softmaxcrossentropywithlogits
 
 } // namespace miopen

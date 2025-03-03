@@ -23,22 +23,19 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "../driver/tensor_driver.hpp"
 #include "cpu_softmaxcrossentropywithlogits.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <cstdint>
 #include <gtest/gtest.h>
-#include <miopen/softmaxcrossentropywithlogits.hpp>
 #include <miopen/miopen.h>
-#include <vector>
+#include <miopen/softmaxcrossentropywithlogits.hpp>
 
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -86,7 +83,7 @@ inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous
 
 // FORWARD TEST
 template <typename T = float>
-struct SoftmaxCrossEntropyWithLogitsTest
+struct SoftmaxCrossEntropyWithLogitsTestFwd
     : public ::testing::TestWithParam<SoftmaxCrossEntropyWithLogitsTestCase>
 {
 protected:
@@ -111,9 +108,9 @@ protected:
 
         auto tar_strides = GetStrides(tar_dim, true);
         target           = tensor<T>{tar_dim, tar_strides};
-        for(int i = 0; i < tar_dim[0]; i++)
+        for(size_t i = 0; i < tar_dim[0]; i++)
         {
-            for(int j = 0; j < tar_dim[1]; j++)
+            for(size_t j = 0; j < tar_dim[1]; j++)
             {
                 if(j == i % num_classes)
                     target[i * num_classes + j] = (static_cast<T>(1.0f));
@@ -150,17 +147,16 @@ protected:
 
         cpu_softmaxcrossentropywithlogits_forward<T>(input, target, ref_output, ref_backprop);
 
-        status = miopen::SoftmaxCrossEntropyWithLogitsForward(handle,
-                                                              input.desc,
-                                                              input_dev.get(),
-                                                              target.desc,
-                                                              target_dev.get(),
-                                                              output.desc,
-                                                              output_dev.get(),
-                                                              backprop.desc,
-                                                              backprop_dev.get());
-
-        fflush(stdout);
+        status = miopen::softmaxcrossentropywithlogits::SoftmaxCrossEntropyWithLogitsForward(
+            handle,
+            input.desc,
+            input_dev.get(),
+            target.desc,
+            target_dev.get(),
+            output.desc,
+            output_dev.get(),
+            backprop.desc,
+            backprop_dev.get());
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -172,14 +168,14 @@ protected:
     {
         double threshold = std::numeric_limits<T>::epsilon();
 
-        auto error = miopen::rms_range(ref_output, output);
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
-                                            << ",  Thresholdx10: " << threshold * 10;
-
+        auto error          = miopen::rms_range(ref_output, output);
         auto backprop_error = miopen::rms_range(ref_backprop, backprop);
-        EXPECT_TRUE(miopen::range_distance(ref_backprop) == miopen::range_distance(backprop));
-        EXPECT_TRUE(backprop_error < threshold * 10)
+
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, threshold * 10) << "Error output beyond tolerance Error:" << error
+                                         << ",  Thresholdx10: " << threshold * 10;
+        ASSERT_EQ(miopen::range_distance(ref_backprop), miopen::range_distance(backprop));
+        EXPECT_LT(backprop_error, threshold * 10)
             << "Error backprop beyond tolerance Error:" << backprop_error
             << ",  Thresholdx10: " << threshold * 10;
     }
@@ -266,19 +262,18 @@ protected:
         cpu_softmaxcrossentropywithlogits_backward<T>(
             output_grad, backprop, input, ref_input_grad, ref_target_grad, true, true);
 
-        status = miopen::SoftmaxCrossEntropyWithLogitsBackward(handle,
-                                                               output_grad.desc,
-                                                               output_grad_dev.get(),
-                                                               backprop.desc,
-                                                               backprop_dev.get(),
-                                                               input.desc,
-                                                               input_dev.get(),
-                                                               input_grad.desc,
-                                                               input_grad_dev.get(),
-                                                               target_grad.desc,
-                                                               target_grad_dev.get());
-
-        fflush(stdout);
+        status = miopen::softmaxcrossentropywithlogits::SoftmaxCrossEntropyWithLogitsBackward(
+            handle,
+            output_grad.desc,
+            output_grad_dev.get(),
+            backprop.desc,
+            backprop_dev.get(),
+            input.desc,
+            input_dev.get(),
+            input_grad.desc,
+            input_grad_dev.get(),
+            target_grad.desc,
+            target_grad_dev.get());
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -291,17 +286,16 @@ protected:
         double threshold = std::numeric_limits<T>::epsilon();
 
         auto error1 = miopen::rms_range(ref_input_grad, input_grad);
-
-        EXPECT_TRUE(miopen::range_distance(ref_input_grad) == miopen::range_distance(input_grad));
-        EXPECT_TRUE(error1 < threshold * 10) << "Error input grad beyond tolerance Error:" << error1
-                                             << ",  Thresholdx10: " << threshold * 10;
-
         auto error2 = miopen::rms_range(ref_target_grad, target_grad);
 
-        EXPECT_TRUE(miopen::range_distance(ref_target_grad) == miopen::range_distance(target_grad));
-        EXPECT_TRUE(error2 < threshold * 10)
-            << "Error target grad beyond tolerance Error:" << error2
-            << ",  Thresholdx10: " << threshold * 10;
+        ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));
+        EXPECT_LT(error1, threshold * 10)
+            << "Error input gradient beyond tolerance Error: " << error1
+            << ",  Tolerance: " << threshold * 10;
+        ASSERT_EQ(miopen::range_distance(ref_target_grad), miopen::range_distance(target_grad));
+        EXPECT_LT(error2, threshold * 10)
+            << "Error target gradient beyond tolerance Error: " << error2
+            << ",  Tolerance: " << threshold * 10;
     }
     SoftmaxCrossEntropyWithLogitsTestCase softmaxcrossentropywithlogits_config;
 

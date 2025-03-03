@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,16 +24,17 @@
  *
  *******************************************************************************/
 
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include <miopen/softmaxcrossentropywithlogits/solvers.hpp>
-
-#include <miopen/softmaxcrossentropywithlogits/invoke_params.hpp>
+#include <miopen/softmaxcrossentropywithlogits/problem_description.hpp>
+#include <miopen/buffer_info.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
 #include <miopen/softmaxcrossentropywithlogits.hpp>
+#include <miopen/softmaxcrossentropywithlogits/invoke_params.hpp>
+#include <miopen/softmaxcrossentropywithlogits/solvers.hpp>
+#include <miopen/miopen.h>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/tensor_view.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <limits>
 
 #define LOCAL_SIZE_CON_FWD 128
@@ -48,9 +49,14 @@ bool SoftmaxCrossEntropyWithLogitsForwardContiguous::IsApplicable(
     const ExecutionContext&,
     const miopen::softmaxcrossentropywithlogits::FwdProblemDescription& problem) const
 {
+    if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
+         problem.GetOutputDesc().GetType() == miopenFloat ||
+         problem.GetOutputDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
     if(!problem.IsAllContiguous())
         return false;
-
     return true;
 }
 
@@ -60,9 +66,8 @@ ConvSolution SoftmaxCrossEntropyWithLogitsForwardContiguous::GetSolution(
 {
     std::ignore = context;
 
-    auto result       = ConvSolution{miopenStatusSuccess};
-    auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
+    auto result      = ConvSolution{miopenStatusSuccess};
+    auto input_dtype = miopen::GetDataType(problem.GetInputDesc().GetType());
 
     {
         auto dtype     = problem.GetOutputDesc().GetType();
@@ -76,8 +81,7 @@ ConvSolution SoftmaxCrossEntropyWithLogitsForwardContiguous::GetSolution(
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"D_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"LOCAL_SIZE", LOCAL_SIZE_CON_FWD},
             {"INFINITY", infinity},
         };
@@ -96,14 +100,10 @@ ConvSolution SoftmaxCrossEntropyWithLogitsForwardContiguous::GetSolution(
             decltype(auto) params =
                 raw_params.CastTo<miopen::softmaxcrossentropywithlogits::FwdInvokeParams>();
 
-            auto input_tv    = get_inner_expanded_tv_2d(deref(params.inputDesc));
+            auto input_tv    = get_inner_expanded_tv<2>(deref(params.inputDesc));
             size_t num_class = input_tv.size[1];
 
-            kernel(params.input,
-                   params.target,
-                   params.output,
-                   params.backprop,
-                   num_class);
+            kernel(params.input, params.target, params.output, params.backprop, num_class);
         };
     };
 

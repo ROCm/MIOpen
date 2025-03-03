@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,11 +26,10 @@
 
 #pragma once
 
-#include <miopen/problem_description_base.hpp>
+#include <miopen/miopen.h>
 #include <miopen/activ.hpp>
+#include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
-#include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -50,28 +49,25 @@ struct FwdProblemDescription : ProblemDescriptionBase
           backpropDesc(backpropDesc_)
     {
         IsValidLength();
-        IsAllValidStride();
+        IsSameType();
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
-    const TensorDescriptor& GetTargetDesc() const { return targetDesc; }
     const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
-    const TensorDescriptor& GetBackpropDesc() const { return backpropDesc; }
 
     size_t GetBatchSize() const { return inputDesc.GetLengths()[0]; }
-    size_t GetNumClasses() const { return inputDesc.GetLengths()[1]; }
-    size_t GetInputTotal() const { return inputDesc.GetElementSize(); }
 
     bool IsValidLength() const
     {
-        if(inputDesc.GetSize() != 2 || targetDesc.GetSize() != 2 || backpropDesc.GetSize() != 2)
+        if(inputDesc.GetNumDims() != 2 || targetDesc.GetNumDims() != 2 ||
+           backpropDesc.GetNumDims() != 2)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "SoftmaxCrossEntropyWithLogits: Input, target, and backprop tensors size "
                          "!= 2 is not valid.");
         }
 
-        if(outputDesc.GetSize() != 1)
+        if(outputDesc.GetNumDims() != 1)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "SoftmaxCrossEntropyWithLogits: Output tensor size != 1 is not valid.");
@@ -81,7 +77,7 @@ struct FwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "SoftmaxCrossEntropyWithLogits: Tensor sizes do not match.");
         }
-        for(int i = 0; i < inputDesc.GetSize(); ++i)
+        for(size_t i = 0; i < inputDesc.GetNumDims(); ++i)
         {
             if(inputDesc.GetLengths()[i] != targetDesc.GetLengths()[i] ||
                inputDesc.GetLengths()[i] != backpropDesc.GetLengths()[i])
@@ -93,49 +89,22 @@ struct FwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsValidStride(TensorDescriptor td) const
+    bool IsSameType() const
     {
-        auto strides = td.GetStrides();
-        auto lengths = td.GetLengths();
-        std::vector<std::pair<size_t, size_t>> p;
-        p.reserve(td.GetSize());
-        std::transform(strides.begin(),
-                       strides.end(),
-                       lengths.begin(),
-                       std::back_inserter(p),
-                       [](size_t a, size_t b) { return std::make_pair(a, b); });
-        std::sort(p.begin(), p.end());
-        for(int i = 1; i < p.size(); ++i)
+        if(!(inputDesc.GetType() == targetDesc.GetType() &&
+             inputDesc.GetType() == outputDesc.GetType() &&
+             inputDesc.GetType() == backpropDesc.GetType()))
         {
-            if(p[i].first != p[i - 1].first * p[i - 1].second)
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "SoftmaxCrossEntropyWithLogits: Tensor strides do not valid.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "SoftmaxCrossEntropyWithLogits: Tensor types do not match.");
         }
         return true;
     }
 
-    bool IsAllValidStride() const
-    {
-        return IsValidStride(inputDesc) && IsValidStride(targetDesc) && IsValidStride(outputDesc) &&
-               IsValidStride(backpropDesc);
-    }
-
     bool IsAllContiguous() const
     {
-        auto isContiguous = [](TensorDescriptor td) {
-            size_t s = 1;
-            for(int i = td.GetSize() - 1; i >= 0; --i)
-            {
-                if(s != td.GetStrides()[i])
-                {
-                    return false;
-                }
-                s *= td.GetLengths()[i];
-            }
-            return true;
-        };
-        return isContiguous(inputDesc) && isContiguous(targetDesc) && isContiguous(outputDesc) &&
-               isContiguous(backpropDesc);
+        return inputDesc.IsContiguous() && targetDesc.IsContiguous() && outputDesc.IsContiguous() &&
+               backpropDesc.IsContiguous();
     }
 
     NetworkConfig MakeNetworkConfig() const override;
@@ -161,32 +130,28 @@ struct BwdProblemDescription : ProblemDescriptionBase
           targetGradDesc(targetGradDesc_)
     {
         IsValidLength();
-        IsAllValidStride();
+        IsSameType();
     }
 
     const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
-    const TensorDescriptor& GetBackpropDesc() const { return backpropDesc; }
-    const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
-    const TensorDescriptor& GetTargetGradDesc() const { return targetGradDesc; }
 
     size_t GetBatchSize() const { return inputDesc.GetLengths()[0]; }
-    size_t GetNumClasses() const { return inputDesc.GetLengths()[1]; }
-    size_t GetInputTotal() const { return inputDesc.GetElementSize(); }
 
     bool IsValidLength() const
     {
-        if(backpropDesc.GetSize() != 2 || inputDesc.GetSize() != 2 || inputGradDesc.GetSize() != 2)
+        if(backpropDesc.GetNumDims() != 2 || inputDesc.GetNumDims() != 2 ||
+           inputGradDesc.GetNumDims() != 2)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "SoftmaxCrossEntropyWithLogits: Input tensor size != 2 is not valid.");
         }
-        if(targetGradDesc.GetSize() != 0 && targetGradDesc.GetSize() != 2)
+        if(targetGradDesc.GetNumDims() != 0 && targetGradDesc.GetNumDims() != 2)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "SoftmaxCrossEntropyWithLogits: Target Grad tensor sizes is not valid.");
         }
-        if(outputGradDesc.GetSize() != 1)
+        if(outputGradDesc.GetNumDims() != 1)
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
@@ -197,7 +162,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm,
                          "SoftmaxCrossEntropyWithLogits: Tensor sizes do not match.");
         }
-        for(int i = 0; i < inputDesc.GetSize(); ++i)
+        for(size_t i = 0; i < inputDesc.GetNumDims(); ++i)
         {
             if(inputDesc.GetLengths()[i] != backpropDesc.GetLengths()[i] ||
                inputDesc.GetLengths()[i] != inputGradDesc.GetLengths()[i])
@@ -206,7 +171,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
                              "SoftmaxCrossEntropyWithLogits: Tensor sizes do not match.");
             }
         }
-        if(targetGradDesc.GetSize() == 2)
+        if(targetGradDesc.GetNumDims() == 2)
         {
             if(inputDesc.GetLengths()[0] != targetGradDesc.GetLengths()[0] ||
                inputDesc.GetLengths()[1] != targetGradDesc.GetLengths()[1])
@@ -218,51 +183,24 @@ struct BwdProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsValidStride(TensorDescriptor td) const
+    bool IsSameType() const
     {
-        auto strides = td.GetStrides();
-        auto lengths = td.GetLengths();
-        std::vector<std::pair<size_t, size_t>> p;
-        p.reserve(td.GetSize());
-        std::transform(strides.begin(),
-                       strides.end(),
-                       lengths.begin(),
-                       std::back_inserter(p),
-                       [](size_t a, size_t b) { return std::make_pair(a, b); });
-        std::sort(p.begin(), p.end());
-        for(int i = 1; i < p.size(); ++i)
+        if(!(inputDesc.GetType() == inputGradDesc.GetType() &&
+             inputDesc.GetType() == targetGradDesc.GetType() &&
+             inputDesc.GetType() == outputGradDesc.GetType() &&
+             inputDesc.GetType() == backpropDesc.GetType()))
         {
-            if(p[i].first != p[i - 1].first * p[i - 1].second)
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "SoftmaxCrossEntropyWithLogits: Tensor strides do not valid.");
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "SoftmaxCrossEntropyWithLogits: Tensor types do not match.");
         }
         return true;
     }
 
-    bool IsAllValidStride() const
-    {
-        return IsValidStride(outputGradDesc) && IsValidStride(backpropDesc) &&
-               IsValidStride(inputDesc) && IsValidStride(inputGradDesc) &&
-               IsValidStride(targetGradDesc);
-    }
-
     bool IsAllContiguous() const
     {
-        auto isContiguous = [](TensorDescriptor td) {
-            size_t s = 1;
-            for(int i = td.GetSize() - 1; i >= 0; --i)
-            {
-                if(s != td.GetStrides()[i])
-                {
-                    return false;
-                }
-                s *= td.GetLengths()[i];
-            }
-            return true;
-        };
-        return isContiguous(outputGradDesc) && isContiguous(backpropDesc) &&
-               isContiguous(inputDesc) && isContiguous(inputGradDesc) &&
-               isContiguous(targetGradDesc);
+        return outputGradDesc.IsContiguous() && backpropDesc.IsContiguous() &&
+               inputDesc.IsContiguous() && inputGradDesc.IsContiguous() &&
+               targetGradDesc.IsContiguous();
     }
 
     NetworkConfig MakeNetworkConfig() const override;

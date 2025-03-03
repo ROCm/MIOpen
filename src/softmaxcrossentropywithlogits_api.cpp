@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
 #include <miopen/softmaxcrossentropywithlogits.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -34,7 +33,7 @@
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -91,15 +90,16 @@ miopenSoftmaxCrossEntropyWithLogitsForward(miopenHandle_t handle,
     LogCmdSoftmaxCrossEntropyWithLogits(inputDesc, true);
 
     return miopen::try_([&] {
-        miopen::SoftmaxCrossEntropyWithLogitsForward(miopen::deref(handle),
-                                                     miopen::deref(inputDesc),
-                                                     DataCast(input),
-                                                     miopen::deref(targetDesc),
-                                                     DataCast(target),
-                                                     miopen::deref(outputDesc),
-                                                     DataCast(output),
-                                                     miopen::deref(backpropDesc),
-                                                     DataCast(backprop));
+        miopen::softmaxcrossentropywithlogits::SoftmaxCrossEntropyWithLogitsForward(
+            miopen::deref(handle),
+            miopen::deref(inputDesc),
+            DataCast(input),
+            miopen::deref(targetDesc),
+            DataCast(target),
+            miopen::deref(outputDesc),
+            DataCast(output),
+            miopen::deref(backpropDesc),
+            DataCast(backprop));
     });
 }
 
@@ -131,16 +131,17 @@ miopenSoftmaxCrossEntropyWithLogitsBackward(miopenHandle_t handle,
     LogCmdSoftmaxCrossEntropyWithLogits(inputDesc, false);
 
     return miopen::try_([&] {
-        miopen::SoftmaxCrossEntropyWithLogitsBackward(miopen::deref(handle),
-                                                      miopen::deref(outputGradDesc),
-                                                      DataCast(output_grad),
-                                                      miopen::deref(backpropDesc),
-                                                      DataCast(backprop),
-                                                      miopen::deref(inputDesc),
-                                                      DataCast(input),
-                                                      miopen::deref(inputGradDesc),
-                                                      DataCast(input_grad),
-                                                      miopen::deref(targetGradDesc),
-                                                      DataCast(target_grad));
+        miopen::softmaxcrossentropywithlogits::SoftmaxCrossEntropyWithLogitsBackward(
+            miopen::deref(handle),
+            miopen::deref(outputGradDesc),
+            DataCast(output_grad),
+            miopen::deref(backpropDesc),
+            DataCast(backprop),
+            miopen::deref(inputDesc),
+            DataCast(input),
+            miopen::deref(inputGradDesc),
+            DataCast(input_grad),
+            miopen::deref(targetGradDesc),
+            DataCast(target_grad));
     });
 }

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -15,7 +15,7 @@
  * copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * IMPLIED, INCLUDING BUT NOT LIMITED T THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
@@ -30,11 +30,11 @@
 
 #include "float_types.h"
 
-template <typename TI, typename TO>
-__device__ void softmaxcrossentropywithlogitsForwardContiguous(const TI* __restrict__ input,
-                                                               const TI* __restrict__ target,
-                                                               TO* __restrict__ output,
-                                                               TO* __restrict__ backprop,
+template <typename T>
+__device__ void softmaxcrossentropywithlogitsForwardContiguous(const T* __restrict__ input,
+                                                               const T* __restrict__ target,
+                                                               T* __restrict__ output,
+                                                               T* __restrict__ backprop,
                                                                size_t num_class)
 {
     uint64_t gid = blockIdx.x;
@@ -46,7 +46,7 @@ __device__ void softmaxcrossentropywithlogitsForwardContiguous(const TI* __restr
     lloss[lid]          = 0.0f;
     size_t batch_offset = gid * num_class;
 
-    for(int i = lid; i < num_class; i += LOCAL_SIZE)
+    for(size_t i = lid; i < num_class; i += LOCAL_SIZE)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[i + batch_offset]);
         lmax[lid]       = max(lmax[lid], val);
@@ -62,7 +62,7 @@ __device__ void softmaxcrossentropywithlogitsForwardContiguous(const TI* __restr
         __syncthreads();
     }
 
-    for(int i = lid; i < num_class; i += LOCAL_SIZE)
+    for(size_t i = lid; i < num_class; i += LOCAL_SIZE)
     {
         FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[i + batch_offset]);
         lsum[lid] += exp(val - lmax[0]);
@@ -79,7 +79,7 @@ __device__ void softmaxcrossentropywithlogitsForwardContiguous(const TI* __restr
     }
 
     FLOAT_ACCUM log_val = log(lsum[0]);
-    for(int i = lid; i < num_class; i += LOCAL_SIZE)
+    for(size_t i = lid; i < num_class; i += LOCAL_SIZE)
     {
         FLOAT_ACCUM val   = CVT_FLOAT2ACCUM(input[i + batch_offset]);
         FLOAT_ACCUM label = CVT_FLOAT2ACCUM(target[i + batch_offset]);
@@ -101,7 +101,7 @@ __device__ void softmaxcrossentropywithlogitsForwardContiguous(const TI* __restr
         output[gid] = CVT_ACCUM2FLOAT(lloss[0]);
     }
 
-    for(int i = lid; i < num_class; i += LOCAL_SIZE)
+    for(size_t i = lid; i < num_class; i += LOCAL_SIZE)
     {
         FLOAT_ACCUM val            = CVT_FLOAT2ACCUM(input[i + batch_offset]);
         FLOAT_ACCUM label          = CVT_FLOAT2ACCUM(target[i + batch_offset]);
@@ -111,22 +111,22 @@ __device__ void softmaxcrossentropywithlogitsForwardContiguous(const TI* __restr
 }
 
 extern "C" __global__ void
-SoftmaxCrossEntropyWithLogitsForwardContiguous(const INPUT_TYPE* __restrict__ input,
-                                               const INPUT_TYPE* __restrict__ target,
-                                               OUTPUT_TYPE* __restrict__ output,
-                                               OUTPUT_TYPE* __restrict__ backprop,
+SoftmaxCrossEntropyWithLogitsForwardContiguous(const D_TYPE* __restrict__ input,
+                                               const D_TYPE* __restrict__ target,
+                                               D_TYPE* __restrict__ output,
+                                               D_TYPE* __restrict__ backprop,
                                                size_t num_class)
 {
-    softmaxcrossentropywithlogitsForwardContiguous<INPUT_TYPE, OUTPUT_TYPE>(
+    softmaxcrossentropywithlogitsForwardContiguous<D_TYPE>(
         input, target, output, backprop, num_class);
 }
 
-template <typename TI, typename TO>
-__device__ void softmaxcrossentropywithlogitsBackwardContiguous(const TI* __restrict__ output_grad,
-                                                                const TI* __restrict__ backprop,
-                                                                const TI* __restrict__ input,
-                                                                TO* __restrict__ input_grad,
-                                                                TO* __restrict__ target_grad,
+template <typename T>
+__device__ void softmaxcrossentropywithlogitsBackwardContiguous(const T* __restrict__ output_grad,
+                                                                const T* __restrict__ backprop,
+                                                                const T* __restrict__ input,
+                                                                T* __restrict__ input_grad,
+                                                                T* __restrict__ target_grad,
                                                                 size_t num_class)
 {
     uint64_t gid = blockIdx.x;
@@ -147,7 +147,7 @@ __device__ void softmaxcrossentropywithlogitsBackwardContiguous(const TI* __rest
 
     if(input_grad)
     {
-        for(int i = lid; i < num_class; i += LOCAL_SIZE)
+        for(size_t i = lid; i < num_class; i += LOCAL_SIZE)
         {
             FLOAT_ACCUM backprop_val     = CVT_FLOAT2ACCUM(backprop[i + batch_offset]);
             input_grad[i + batch_offset] = CVT_ACCUM2FLOAT(output_grad_val * backprop_val);
@@ -156,7 +156,7 @@ __device__ void softmaxcrossentropywithlogitsBackwardContiguous(const TI* __rest
 
     if(target_grad)
     {
-        for(int i = lid; i < num_class; i += LOCAL_SIZE)
+        for(size_t i = lid; i < num_class; i += LOCAL_SIZE)
         {
             FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[i + batch_offset]);
             lmax[lid]       = max(lmax[lid], val);
@@ -172,7 +172,7 @@ __device__ void softmaxcrossentropywithlogitsBackwardContiguous(const TI* __rest
             __syncthreads();
         }
 
-        for(int i = lid; i < num_class; i += LOCAL_SIZE)
+        for(size_t i = lid; i < num_class; i += LOCAL_SIZE)
         {
             FLOAT_ACCUM val = CVT_FLOAT2ACCUM(input[i + batch_offset]);
             lsum[lid] += exp(val - lmax[0]);
@@ -189,7 +189,7 @@ __device__ void softmaxcrossentropywithlogitsBackwardContiguous(const TI* __rest
         }
 
         FLOAT_ACCUM log_val = log(lsum[0]);
-        for(int i = lid; i < num_class; i += LOCAL_SIZE)
+        for(size_t i = lid; i < num_class; i += LOCAL_SIZE)
         {
             FLOAT_ACCUM logit_val = CVT_FLOAT2ACCUM(input[i + batch_offset]);
             target_grad[i + batch_offset] =
@@ -199,13 +199,13 @@ __device__ void softmaxcrossentropywithlogitsBackwardContiguous(const TI* __rest
 }
 
 extern "C" __global__ void
-SoftmaxCrossEntropyWithLogitsBackwardContiguous(const INPUT_TYPE* __restrict__ output_grad,
-                                                const INPUT_TYPE* __restrict__ backprop,
-                                                const INPUT_TYPE* __restrict__ input,
-                                                OUTPUT_TYPE* __restrict__ input_grad,
-                                                OUTPUT_TYPE* __restrict__ target_grad,
+SoftmaxCrossEntropyWithLogitsBackwardContiguous(const D_TYPE* __restrict__ output_grad,
+                                                const D_TYPE* __restrict__ backprop,
+                                                const D_TYPE* __restrict__ input,
+                                                D_TYPE* __restrict__ input_grad,
+                                                D_TYPE* __restrict__ target_grad,
                                                 size_t num_class)
 {
-    softmaxcrossentropywithlogitsBackwardContiguous<INPUT_TYPE, OUTPUT_TYPE>(
+    softmaxcrossentropywithlogitsBackwardContiguous<D_TYPE>(
         output_grad, backprop, input, input_grad, target_grad, num_class);
 }

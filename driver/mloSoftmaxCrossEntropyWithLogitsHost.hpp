@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MLO_SOFTMAXCROSSENTROPYWITHLOGITS_H_
-#define MLO_SOFTMAXCROSSENTROPYWITHLOGITS_H_
+#pragma once
 
 #include <miopen/tensor.hpp>
-#include <miopen/tensor_view.hpp>
+#include <miopen/tensor_view_utils.hpp>
+#include <../test/ford.hpp>
 
 template <typename Tgpu, typename Tcheck>
 int32_t mloSoftmaxCrossEntropyWithLogitsForward(const miopenTensorDescriptor_t inputDesc,
@@ -39,10 +39,10 @@ int32_t mloSoftmaxCrossEntropyWithLogitsForward(const miopenTensorDescriptor_t i
                                                 Tcheck* output,
                                                 Tcheck* backprop)
 {
-    auto I_tv = get_inner_expanded_tv_2d(miopen::deref(inputDesc));
-    auto T_tv = get_inner_expanded_tv_2d(miopen::deref(targetDesc));
-    auto O_tv = get_inner_expanded_tv_1d(miopen::deref(outputDesc));
-    auto B_tv = get_inner_expanded_tv_2d(miopen::deref(backpropDesc));
+    auto I_tv = get_inner_expanded_tv<2>(miopen::deref(inputDesc));
+    auto T_tv = get_inner_expanded_tv<2>(miopen::deref(targetDesc));
+    auto O_tv = get_inner_expanded_tv<1>(miopen::deref(outputDesc));
+    auto B_tv = get_inner_expanded_tv<2>(miopen::deref(backpropDesc));
 
     size_t num_batches = miopen::deref(inputDesc).GetLengths()[0];
     size_t num_class   = miopen::deref(inputDesc).GetLengths()[1];
@@ -53,7 +53,7 @@ int32_t mloSoftmaxCrossEntropyWithLogitsForward(const miopenTensorDescriptor_t i
 
         for(size_t i = 0; i < num_class; ++i)
         {
-            size_t Iidx = TV2D_IDX(I_tv, gid, i);
+            size_t Iidx = I_tv.get_tensor_view_idx({gid, i});
             float val   = static_cast<float>(input[Iidx]);
             max_val     = std::max(max_val, val);
         }
@@ -61,7 +61,7 @@ int32_t mloSoftmaxCrossEntropyWithLogitsForward(const miopenTensorDescriptor_t i
         float sum = 0.0f;
         for(size_t i = 0; i < num_class; ++i)
         {
-            size_t Iidx = TV2D_IDX(I_tv, gid, i);
+            size_t Iidx = I_tv.get_tensor_view_idx({gid, i});
             sum += std::exp(static_cast<float>(input[Iidx]) - max_val);
         }
 
@@ -69,21 +69,21 @@ int32_t mloSoftmaxCrossEntropyWithLogitsForward(const miopenTensorDescriptor_t i
         float loss    = 0.0f;
         for(size_t i = 0; i < num_class; ++i)
         {
-            size_t Iidx = TV2D_IDX(I_tv, gid, i);
-            size_t Tidx = TV2D_IDX(T_tv, gid, i);
+            size_t Iidx = I_tv.get_tensor_view_idx({gid, i});
+            size_t Tidx = T_tv.get_tensor_view_idx({gid, i});
             float val   = static_cast<float>(input[Iidx]);
             float label = static_cast<float>(target[Tidx]);
             loss += label * (log_sum - val + max_val);
         }
 
-        size_t Oidx  = TV1D_IDX(O_tv, gid);
+        size_t Oidx  = O_tv.get_tensor_view_idx({gid});
         output[Oidx] = static_cast<Tcheck>(loss);
 
         for(size_t i = 0; i < num_class; ++i)
         {
-            size_t Iidx        = TV2D_IDX(I_tv, gid, i);
-            size_t Tidx        = TV2D_IDX(T_tv, gid, i);
-            size_t Bidx        = TV2D_IDX(B_tv, gid, i);
+            size_t Iidx        = I_tv.get_tensor_view_idx({gid, i});
+            size_t Tidx        = T_tv.get_tensor_view_idx({gid, i});
+            size_t Bidx        = B_tv.get_tensor_view_idx({gid, i});
             float val          = static_cast<float>(input[Iidx]);
             float label        = static_cast<float>(target[Tidx]);
             float backprop_val = std::exp(val - max_val) / sum - label;
@@ -107,25 +107,25 @@ int32_t mloSoftmaxCrossEntropyWithLogitsBackward(const miopenTensorDescriptor_t 
                                                  bool input_grad_out,
                                                  bool target_grad_out)
 {
-    auto dO_tv = get_inner_expanded_tv_1d(miopen::deref(outputGradDesc));
-    auto B_tv  = get_inner_expanded_tv_2d(miopen::deref(backpropDesc));
-    auto I_tv  = get_inner_expanded_tv_2d(miopen::deref(inputDesc));
+    auto dO_tv = get_inner_expanded_tv<1>(miopen::deref(outputGradDesc));
+    auto B_tv  = get_inner_expanded_tv<2>(miopen::deref(backpropDesc));
+    auto I_tv  = get_inner_expanded_tv<2>(miopen::deref(inputDesc));
 
     size_t num_batches = miopen::deref(inputDesc).GetLengths()[0];
     size_t num_class   = miopen::deref(inputDesc).GetLengths()[1];
 
     for(size_t gid = 0; gid < num_batches; ++gid)
     {
-        size_t dOidx          = TV1D_IDX(dO_tv, gid);
+        size_t dOidx          = dO_tv.get_tensor_view_idx({gid});
         float output_grad_val = static_cast<float>(output_grad[dOidx]);
 
         if(input_grad_out)
         {
-            auto dI_tv = get_inner_expanded_tv_2d(miopen::deref(inputGradDesc));
+            auto dI_tv = get_inner_expanded_tv<2>(miopen::deref(inputGradDesc));
             for(size_t i = 0; i < num_class; ++i)
             {
-                size_t Bidx        = TV2D_IDX(B_tv, gid, i);
-                size_t dIidx       = TV2D_IDX(dI_tv, gid, i);
+                size_t Bidx        = B_tv.get_tensor_view_idx({gid, i});
+                size_t dIidx       = dI_tv.get_tensor_view_idx({gid, i});
                 float backprop_val = static_cast<float>(backprop[Bidx]);
                 input_grad[dIidx]  = static_cast<Tcheck>(output_grad_val * backprop_val);
             }
@@ -133,11 +133,11 @@ int32_t mloSoftmaxCrossEntropyWithLogitsBackward(const miopenTensorDescriptor_t 
 
         if(target_grad_out)
         {
-            auto dT_tv    = get_inner_expanded_tv_2d(miopen::deref(targetGradDesc));
+            auto dT_tv    = get_inner_expanded_tv<2>(miopen::deref(targetGradDesc));
             float max_val = -std::numeric_limits<float>::infinity();
             for(size_t i = 0; i < num_class; ++i)
             {
-                size_t Iidx = TV2D_IDX(I_tv, gid, i);
+                size_t Iidx = I_tv.get_tensor_view_idx({gid, i});
                 float val   = static_cast<float>(input[Iidx]);
                 max_val     = std::max(max_val, val);
             }
@@ -145,7 +145,7 @@ int32_t mloSoftmaxCrossEntropyWithLogitsBackward(const miopenTensorDescriptor_t 
             float sum = 0.0f;
             for(size_t i = 0; i < num_class; ++i)
             {
-                size_t Iidx = TV2D_IDX(I_tv, gid, i);
+                size_t Iidx = I_tv.get_tensor_view_idx({gid, i});
                 float val   = static_cast<float>(input[Iidx]);
                 sum += std::exp(val - max_val);
             }
@@ -153,9 +153,9 @@ int32_t mloSoftmaxCrossEntropyWithLogitsBackward(const miopenTensorDescriptor_t 
             float log_val = std::log(sum);
             for(size_t i = 0; i < num_class; ++i)
             {
-                size_t Iidx     = TV2D_IDX(I_tv, gid, i);
+                size_t Iidx     = I_tv.get_tensor_view_idx({gid, i});
                 float logit_val = static_cast<float>(input[Iidx]);
-                size_t Tidx     = TV2D_IDX(dT_tv, gid, i);
+                size_t Tidx     = dT_tv.get_tensor_view_idx({gid, i});
                 target_grad[Tidx] =
                     static_cast<Tcheck>((max_val + log_val - logit_val) * output_grad_val);
             }
@@ -163,5 +163,3 @@ int32_t mloSoftmaxCrossEntropyWithLogitsBackward(const miopenTensorDescriptor_t 
     }
     return 0;
 }
-
-#endif // MLO_SOFTMAXCROSSENTROPYWITHLOGITS_H_

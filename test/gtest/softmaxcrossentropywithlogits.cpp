@@ -23,154 +23,71 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/bfloat16.hpp"
-#include <miopen/env.hpp>
 #include "softmaxcrossentropywithlogits.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace softmaxcrossentropywithlogits {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct SoftmaxCrossEntropyWithLogitsTestFloat : SoftmaxCrossEntropyWithLogitsTest<float>
-{
-};
-
-struct SoftmaxCrossEntropyWithLogitsTestHalf : SoftmaxCrossEntropyWithLogitsTest<half>
-{
-};
-
-struct SoftmaxCrossEntropyWithLogitsTestBFloat16 : SoftmaxCrossEntropyWithLogitsTest<bfloat16>
-{
-};
-
-struct SoftmaxCrossEntropyWithLogitsTestFloatBwd : SoftmaxCrossEntropyWithLogitsTestBwd<float>
-{
-};
-
-struct SoftmaxCrossEntropyWithLogitsTestHalfBwd : SoftmaxCrossEntropyWithLogitsTestBwd<half>
-{
-};
-
-struct SoftmaxCrossEntropyWithLogitsTestBFloat16Bwd : SoftmaxCrossEntropyWithLogitsTestBwd<bfloat16>
-{
-};
-
-} // namespace softmaxcrossentropywithlogits
-using namespace softmaxcrossentropywithlogits;
+using float16 = half_float::half;
 
 // FORWARD TEST
-TEST_P(SoftmaxCrossEntropyWithLogitsTestFloat, SoftmaxCrossEntropyWithLogitsTest)
+using GPU_SoftmaxCrossEntropyWithLogits_fwd_FP32  = SoftmaxCrossEntropyWithLogitsTestFwd<float>;
+using GPU_SoftmaxCrossEntropyWithLogits_fwd_FP16  = SoftmaxCrossEntropyWithLogitsTestFwd<float16>;
+using GPU_SoftmaxCrossEntropyWithLogits_fwd_BFP16 = SoftmaxCrossEntropyWithLogitsTestFwd<bfloat16>;
+
+TEST_P(GPU_SoftmaxCrossEntropyWithLogits_fwd_FP32, SoftmaxCrossEntropyWithLogitsTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(SoftmaxCrossEntropyWithLogitsTestHalf, SoftmaxCrossEntropyWithLogitsTest)
+TEST_P(GPU_SoftmaxCrossEntropyWithLogits_fwd_FP16, SoftmaxCrossEntropyWithLogitsTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(SoftmaxCrossEntropyWithLogitsTestBFloat16, SoftmaxCrossEntropyWithLogitsTest)
+TEST_P(GPU_SoftmaxCrossEntropyWithLogits_fwd_BFP16, SoftmaxCrossEntropyWithLogitsTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(SoftmaxCrossEntropyWithLogitsTestSet,
-                         SoftmaxCrossEntropyWithLogitsTestFloat,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_SoftmaxCrossEntropyWithLogits_fwd_FP32,
                          testing::ValuesIn(SoftmaxCrossEntropyWithLogitsTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftmaxCrossEntropyWithLogitsTestSet,
-                         SoftmaxCrossEntropyWithLogitsTestHalf,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_SoftmaxCrossEntropyWithLogits_fwd_FP16,
                          testing::ValuesIn(SoftmaxCrossEntropyWithLogitsTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftmaxCrossEntropyWithLogitsTestSet,
-                         SoftmaxCrossEntropyWithLogitsTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_SoftmaxCrossEntropyWithLogits_fwd_BFP16,
                          testing::ValuesIn(SoftmaxCrossEntropyWithLogitsTestConfigs()));
 
 // BACKWARD TEST
-TEST_P(SoftmaxCrossEntropyWithLogitsTestFloatBwd, SoftmaxCrossEntropyWithLogitsTestBwd)
+using GPU_SoftmaxCrossEntropyWithLogits_bwd_FP32  = SoftmaxCrossEntropyWithLogitsTestBwd<float>;
+using GPU_SoftmaxCrossEntropyWithLogits_bwd_FP16  = SoftmaxCrossEntropyWithLogitsTestBwd<float16>;
+using GPU_SoftmaxCrossEntropyWithLogits_bwd_BFP16 = SoftmaxCrossEntropyWithLogitsTestBwd<bfloat16>;
+
+TEST_P(GPU_SoftmaxCrossEntropyWithLogits_bwd_FP32, SoftmaxCrossEntropyWithLogitsTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(SoftmaxCrossEntropyWithLogitsTestHalfBwd, SoftmaxCrossEntropyWithLogitsTestBwd)
+TEST_P(GPU_SoftmaxCrossEntropyWithLogits_bwd_FP16, SoftmaxCrossEntropyWithLogitsTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(SoftmaxCrossEntropyWithLogitsTestBFloat16Bwd, SoftmaxCrossEntropyWithLogitsTestBwd)
+TEST_P(GPU_SoftmaxCrossEntropyWithLogits_bwd_BFP16, SoftmaxCrossEntropyWithLogitsTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(SoftmaxCrossEntropyWithLogitsTestSet,
-                         SoftmaxCrossEntropyWithLogitsTestFloatBwd,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_SoftmaxCrossEntropyWithLogits_bwd_FP32,
                          testing::ValuesIn(SoftmaxCrossEntropyWithLogitsTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftmaxCrossEntropyWithLogitsTestSet,
-                         SoftmaxCrossEntropyWithLogitsTestHalfBwd,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_SoftmaxCrossEntropyWithLogits_bwd_FP16,
                          testing::ValuesIn(SoftmaxCrossEntropyWithLogitsTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(SoftmaxCrossEntropyWithLogitsTestSet,
-                         SoftmaxCrossEntropyWithLogitsTestBFloat16Bwd,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_SoftmaxCrossEntropyWithLogits_bwd_BFP16,
                          testing::ValuesIn(SoftmaxCrossEntropyWithLogitsTestConfigs()));

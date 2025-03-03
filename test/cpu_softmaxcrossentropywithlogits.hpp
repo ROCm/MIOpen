@@ -23,11 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_SOFTMAXCROSSENTROPYWITHLOGITS_HPP
-#define GUARD_CPU_SOFTMAXCROSSENTROPYWITHLOGITS_HPP
+#pragma once
 
 #include "tensor_holder.hpp"
-#include <miopen/tensor_view.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 template <class T>
 void cpu_softmaxcrossentropywithlogits_forward(tensor<T> input,
@@ -35,10 +34,10 @@ void cpu_softmaxcrossentropywithlogits_forward(tensor<T> input,
                                                tensor<T>& output,
                                                tensor<T>& backprop)
 {
-    auto I_tv = get_inner_expanded_tv_2d(input.desc);
-    auto T_tv = get_inner_expanded_tv_2d(target.desc);
-    auto O_tv = get_inner_expanded_tv_1d(output.desc);
-    auto B_tv = get_inner_expanded_tv_2d(backprop.desc);
+    auto I_tv = get_inner_expanded_tv<2>(input.desc);
+    auto T_tv = get_inner_expanded_tv<2>(target.desc);
+    auto O_tv = get_inner_expanded_tv<1>(output.desc);
+    auto B_tv = get_inner_expanded_tv<2>(backprop.desc);
 
     size_t num_batches = I_tv.size[0];
     size_t num_class   = I_tv.size[1];
@@ -49,7 +48,7 @@ void cpu_softmaxcrossentropywithlogits_forward(tensor<T> input,
 
         for(size_t i = 0; i < num_class; ++i)
         {
-            size_t Iidx = TV2D_IDX(I_tv, gid, i);
+            size_t Iidx = I_tv.get_tensor_view_idx({gid, i});
             float val   = static_cast<float>(input[Iidx]);
             max_val     = std::max(max_val, val);
         }
@@ -57,7 +56,7 @@ void cpu_softmaxcrossentropywithlogits_forward(tensor<T> input,
         float sum = 0.0f;
         for(size_t i = 0; i < num_class; ++i)
         {
-            size_t Iidx = TV2D_IDX(I_tv, gid, i);
+            size_t Iidx = I_tv.get_tensor_view_idx({gid, i});
             sum += std::exp(static_cast<float>(input[Iidx]) - max_val);
         }
 
@@ -70,21 +69,21 @@ void cpu_softmaxcrossentropywithlogits_forward(tensor<T> input,
         float loss = 0.0f;
         for(size_t i = 0; i < num_class; ++i)
         {
-            size_t Iidx = TV2D_IDX(I_tv, gid, i);
-            size_t Tidx = TV2D_IDX(T_tv, gid, i);
+            size_t Iidx = I_tv.get_tensor_view_idx({gid, i});
+            size_t Tidx = T_tv.get_tensor_view_idx({gid, i});
             float val   = static_cast<float>(input[Iidx]);
             float label = static_cast<float>(target[Tidx]);
             loss += label * (log_sum - val + max_val);
         }
 
-        size_t Oidx  = TV1D_IDX(O_tv, gid);
+        size_t Oidx  = O_tv.get_tensor_view_idx({gid});
         output[Oidx] = static_cast<T>(loss);
 
         for(size_t i = 0; i < num_class; ++i)
         {
-            size_t Iidx        = TV2D_IDX(I_tv, gid, i);
-            size_t Tidx        = TV2D_IDX(T_tv, gid, i);
-            size_t Bidx        = TV2D_IDX(B_tv, gid, i);
+            size_t Iidx        = I_tv.get_tensor_view_idx({gid, i});
+            size_t Tidx        = T_tv.get_tensor_view_idx({gid, i});
+            size_t Bidx        = B_tv.get_tensor_view_idx({gid, i});
             float val          = static_cast<float>(input[Iidx]);
             float label        = static_cast<float>(target[Tidx]);
             float backprop_val = std::exp(val - max_val) / sum - label;
@@ -102,26 +101,26 @@ void cpu_softmaxcrossentropywithlogits_backward(tensor<T> output_grad,
                                                 bool input_grad_out,
                                                 bool target_grad_out)
 {
-    auto dO_tv = get_inner_expanded_tv_1d(output_grad.desc);
-    auto B_tv  = get_inner_expanded_tv_2d(backprop.desc);
-    auto I_tv  = get_inner_expanded_tv_2d(input.desc);
+    auto dO_tv = get_inner_expanded_tv<1>(output_grad.desc);
+    auto B_tv  = get_inner_expanded_tv<2>(backprop.desc);
+    auto I_tv  = get_inner_expanded_tv<2>(input.desc);
 
     size_t num_batches = I_tv.size[0];
     size_t num_class   = I_tv.size[1];
 
     for(size_t gid = 0; gid < num_batches; ++gid)
     {
-        size_t dOidx          = TV1D_IDX(dO_tv, gid);
+        size_t dOidx          = dO_tv.get_tensor_view_idx({gid});
         float output_grad_val = static_cast<float>(output_grad[dOidx]);
 
         if(input_grad_out)
         {
-            auto dI_tv = get_inner_expanded_tv_2d(input_grad.desc);
+            auto dI_tv = get_inner_expanded_tv<2>(input_grad.desc);
 
             for(size_t i = 0; i < num_class; ++i)
             {
-                size_t Bidx        = TV2D_IDX(B_tv, gid, i);
-                size_t dIidx       = TV2D_IDX(dI_tv, gid, i);
+                size_t Bidx        = B_tv.get_tensor_view_idx({gid, i});
+                size_t dIidx       = dI_tv.get_tensor_view_idx({gid, i});
                 float backprop_val = static_cast<float>(backprop[Bidx]);
                 input_grad[dIidx]  = static_cast<T>(output_grad_val * backprop_val);
             }
@@ -129,12 +128,12 @@ void cpu_softmaxcrossentropywithlogits_backward(tensor<T> output_grad,
 
         if(target_grad_out)
         {
-            auto dT_tv = get_inner_expanded_tv_2d(target_grad.desc);
+            auto dT_tv = get_inner_expanded_tv<2>(target_grad.desc);
 
             float max_val = -std::numeric_limits<float>::infinity();
             for(size_t i = 0; i < num_class; ++i)
             {
-                size_t Iidx = TV2D_IDX(I_tv, gid, i);
+                size_t Iidx = I_tv.get_tensor_view_idx({gid, i});
                 float val   = static_cast<float>(input[Iidx]);
                 max_val     = std::max(max_val, val);
             }
@@ -142,7 +141,7 @@ void cpu_softmaxcrossentropywithlogits_backward(tensor<T> output_grad,
             float sum = 0.0f;
             for(size_t i = 0; i < num_class; ++i)
             {
-                size_t Iidx = TV2D_IDX(I_tv, gid, i);
+                size_t Iidx = I_tv.get_tensor_view_idx({gid, i});
                 float val   = static_cast<float>(input[Iidx]);
                 sum += std::exp(val - max_val);
             }
@@ -155,14 +154,12 @@ void cpu_softmaxcrossentropywithlogits_backward(tensor<T> output_grad,
 
             for(size_t i = 0; i < num_class; ++i)
             {
-                size_t Iidx     = TV2D_IDX(I_tv, gid, i);
+                size_t Iidx     = I_tv.get_tensor_view_idx({gid, i});
                 float logit_val = static_cast<float>(input[Iidx]);
-                size_t Tidx     = TV2D_IDX(dT_tv, gid, i);
+                size_t Tidx     = dT_tv.get_tensor_view_idx({gid, i});
                 target_grad[Tidx] =
                     static_cast<T>((max_val + log_val - logit_val) * output_grad_val);
             }
         }
     }
 }
-
-#endif // GUARD_CPU_SOFTMAXCROSSENTROPYWITHLOGITS_HPP

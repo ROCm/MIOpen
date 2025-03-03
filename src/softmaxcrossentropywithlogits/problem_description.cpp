@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include <cstddef>
 #include <miopen/softmaxcrossentropywithlogits/problem_description.hpp>
 #include <miopen/names.hpp>
 
@@ -37,7 +36,7 @@ namespace softmaxcrossentropywithlogits {
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -51,20 +50,12 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
     auto input_dims  = inputDesc.GetLengths();
     auto input_dtype = inputDesc.GetType();
-    auto Si          = inputDesc.GetStrides();
-    auto St          = targetDesc.GetStrides();
-    auto So          = outputDesc.GetStrides();
-    auto Sb          = backpropDesc.GetStrides();
 
     std::ostringstream ss;
-    ss << "softmaxcrossentropywithlogits";
-    ss << "is_fwd" << true;
+    ss << "softmaxcrossentropywithlogits_fwd";
     ss << "input_dtype" << input_dtype;
     ss << "input_dims" << input_dims;
-    ss << "input1_stride" << Si;
-    ss << "target_stride" << St;
-    ss << "output_stride" << So;
-    ss << "backprop_stride" << Sb;
+    ss << "is_contiguous" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }
@@ -73,22 +64,12 @@ NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 {
     auto input_dims  = inputDesc.GetLengths();
     auto input_dtype = inputDesc.GetType();
-    auto Sdo         = outputGradDesc.GetStrides();
-    auto Sb          = backpropDesc.GetStrides();
-    auto Si          = inputDesc.GetStrides();
-    auto Sdi         = inputGradDesc.GetStrides();
-    auto Sdt         = targetGradDesc.GetStrides();
 
     std::ostringstream ss;
-    ss << "softmaxcrossentropywithlogits";
-    ss << "is_fwd" << false;
+    ss << "softmaxcrossentropywithlogits_bwd";
     ss << "input_dtype" << input_dtype;
     ss << "input_dims" << input_dims;
-    ss << "output_grad_stride" << Sdo;
-    ss << "backprop_stride" << Sb;
-    ss << "input_stride" << Si;
-    ss << "input_grad_stride" << Sdi;
-    ss << "target_grad_stride" << Sdt;
+    ss << "is_contiguous" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }
