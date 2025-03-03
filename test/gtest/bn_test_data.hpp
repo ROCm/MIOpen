@@ -81,9 +81,6 @@ template <typename T>
 std::vector<T> Network2DLarge();
 
 template <typename T>
-std::vector<T> Network2DSerialCase();
-
-template <typename T>
 std::vector<T> Network3DBN();
 
 template <typename T>
@@ -122,31 +119,26 @@ inline std::vector<BN2DTestCase> Network2DLarge()
         {64, 64, 56, 56, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 64, 56, 56, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 64, 56, 56, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 2048, 7, 7, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 2048, 17, 17, miopen::batchnorm::Direction::Backward, 0, 1},
+        {128, 256, 14, 14, miopen::batchnorm::Direction::Backward, 0, 1},
+        {128, 256, 16, 16, miopen::batchnorm::Direction::Backward, 0, 1},
         {670, 1, 224, 224, miopen::batchnorm::Direction::Backward, 0, 1},
         {768, 1, 14, 14, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {768, 1, 23, 23, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {832, 1, 14, 14, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {832, 1, 28, 28, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        // edge cases
+        {69328, 1, 22, 22, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        {69328, 1, 13, 79, miopen::batchnorm::Direction::ForwardTraining, 1, 1}
         };
     // clang-format on
 }
 
 // These are very large tensors which caused memory insufficient error
 // when ran parallely by ctest. Hence, these are run serially.
-template <>
-inline std::vector<BN2DTestCase> Network2DSerialCase()
-{
-    return {
-        {64, 2048, 7, 7, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 2048, 17, 17, miopen::batchnorm::Direction::Backward, 0, 1},
-        // edge cases
-        {69328, 1, 22, 22, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {69328, 1, 13, 79, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {128, 256, 14, 14, miopen::batchnorm::Direction::Backward, 0, 1},
-        {128, 256, 16, 16, miopen::batchnorm::Direction::Backward, 0, 1},
-    };
-}
-
+// Shape: (2, 2048, 16, 128, 128) --> Size: 1.07e+09
+// For now any test case with tensor size greater then 1e09 need to be run serially.
 template <>
 inline std::vector<BN3DTestCase> Network3DSerialCase()
 {
