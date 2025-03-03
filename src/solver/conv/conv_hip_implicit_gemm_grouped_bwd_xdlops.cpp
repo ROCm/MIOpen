@@ -379,7 +379,8 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::RunParameterPredictionModel
 bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsModelApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942")
+    if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942" &&
+       !StartsWith(ctx.GetStream().GetDeviceName(), "gfx95"))
         return false;
     if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf &&
        problem.GetInDataType() != miopenBFloat16)
@@ -425,8 +426,8 @@ void PerformanceConfigHipImplicitGemmGroupBwdXdlops::HeuristicInit(
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -445,8 +446,8 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::SetNextValue(const ProblemD
         case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
         case miopenInt64:
         case miopenInt32:
-        case miopenFloat8:
-        case miopenBFloat8:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
         case miopenDouble: break;
         }
         assert(!valid_kernels.empty());
@@ -480,8 +481,8 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsValid(
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -557,8 +558,8 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif

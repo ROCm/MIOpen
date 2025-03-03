@@ -182,8 +182,8 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
@@ -224,8 +224,8 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
@@ -305,8 +305,8 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
@@ -340,8 +340,8 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     case miopenInt64:
     case miopenBFloat16:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
