@@ -69,10 +69,10 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenBFloat16: params = CPU_ConvEmbedConfig_BFP16::GetParam(); break;
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble:
-        FAIL() << "miopenInt32, miopenFloat8, miopenBFloat8, miopenDouble data type "
+        FAIL() << "miopenInt32, miopenFloat8_fnuz, miopenBFloat8_fnuz, miopenDouble data type "
                   "not supported by conv_embed_db test";
 
     default: params = CPU_ConvEmbedConfig_FP32::GetParam();

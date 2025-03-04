@@ -59,7 +59,8 @@ struct TensorStruct
 
     ~TensorStruct() = default;
 
-    std::variant<tensor<float>, tensor<float8>, tensor<bfloat8>, tensor<int64_t>> m_cpu_tensor;
+    std::variant<tensor<float>, tensor<float8_fnuz>, tensor<bfloat8_fnuz>, tensor<int64_t>>
+        m_cpu_tensor;
     Allocator::ManageDataPtr m_gpu_buffer;
 };
 
@@ -112,10 +113,10 @@ inline std::vector<TestCase> GetFullTestCases()
 template <typename T>
 class Test_Bwd_Mha : public testing::TestWithParam<TestCase>
 {
-    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8>);
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8_fnuz>);
 
 protected:
-    using dO_T = std::conditional_t<std::is_same_v<T, float>, float, bfloat8>;
+    using dO_T = std::conditional_t<std::is_same_v<T, float>, float, bfloat8_fnuz>;
 
     void SetUp() override
     {
@@ -336,8 +337,9 @@ protected:
             return cpu_tensor;
         };
 
-        const double error_threshold     = 5e-5;
-        const double fp8_error_threshold = (std::is_same_v<T, float8>) ? 3e-3 : error_threshold;
+        const double error_threshold = 5e-5;
+        const double fp8_error_threshold =
+            (std::is_same_v<T, float8_fnuz>) ? 3e-3 : error_threshold;
 
         auto checkAmax = [GetResult, error_threshold](
                              miopenTensorArgumentId_t id, std::string_view name, float refAmax) {
@@ -404,7 +406,7 @@ class GPU_Bwd_Mha_FP32 : public Test_Bwd_Mha<float>
 {
 };
 
-class GPU_Bwd_Mha_FP8 : public Test_Bwd_Mha<float8>
+class GPU_Bwd_Mha_FP8 : public Test_Bwd_Mha<float8_fnuz>
 {
     void SetUp() override
     {
@@ -415,7 +417,7 @@ class GPU_Bwd_Mha_FP8 : public Test_Bwd_Mha<float8>
             GTEST_SKIP() << "FP8 is unsupported on this HW";
         }
 
-        Test_Bwd_Mha<float8>::SetUp();
+        Test_Bwd_Mha<float8_fnuz>::SetUp();
     }
 };
 
@@ -425,7 +427,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Bwd_Mha_FP32, testing::ValuesIn(GetSmokeCase
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Bwd_Mha_FP32, testing::ValuesIn(GetFullTestCases()));
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Bwd_Mha_FP32);
 
-TEST_P(GPU_Bwd_Mha_FP8, Test_float) { return Test_Bwd_Mha<float8>::TestBody(); };
+TEST_P(GPU_Bwd_Mha_FP8, Test_float) { return Test_Bwd_Mha<float8_fnuz>::TestBody(); };
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Bwd_Mha_FP8, testing::ValuesIn(GetSmokeCases()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Bwd_Mha_FP8, testing::ValuesIn(GetFullTestCases()));
