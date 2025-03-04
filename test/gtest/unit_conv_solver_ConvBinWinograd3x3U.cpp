@@ -34,7 +34,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
-        TestCase{{1, 16, 36, 284}, {16, 16, 5, 10}, {0, 0}, {2, 2}, {1, 1}, datatype},
+        TestCase{{1, 20, 20, 20}, {20, 20, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype},
         // clang-format on
     };
 }
@@ -42,7 +42,6 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        // gfx90A is not enabled because of WORKAROUND_ISSUE_1146
         Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908;
         auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.CheckXnackDisabled();
@@ -53,31 +52,42 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverAsm5x10u2v2b1Bwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
+using GPU_UnitTestConvSolverBinWinograd3x3UFwd_FP32 = GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverBinWinograd3x3UBwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
 
-using CPU_UnitTestConvSolverAsm5x10u2v2b1DevApplicabilityBwd_NONE =
-    CPU_UnitTestConvSolverDevApplicabilityBwd_NONE;
+using CPU_UnitTestConvSolverBinWinograd3x3UDevApplicabilityFwd_NONE =
+    CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
-// This test is temporary disabled due to numerical issues
-TEST_P(GPU_UnitTestConvSolverAsm5x10u2v2b1Bwd_FP32, DISABLED_ConvAsm5x10u2v2b1)
+TEST_P(GPU_UnitTestConvSolverBinWinograd3x3UFwd_FP32, ConvBinWinograd3x3U)
 {
-    this->RunTest(miopen::solver::conv::ConvAsm5x10u2v2b1{});
+    this->RunTest(miopen::solver::conv::ConvBinWinograd3x3U{});
 };
 
-TEST_P(CPU_UnitTestConvSolverAsm5x10u2v2b1DevApplicabilityBwd_NONE, ConvAsm5x10u2v2b1)
+TEST_P(GPU_UnitTestConvSolverBinWinograd3x3UBwd_FP32, ConvBinWinograd3x3U)
 {
-    this->RunTest(miopen::solver::conv::ConvAsm5x10u2v2b1{});
+    this->RunTest(miopen::solver::conv::ConvBinWinograd3x3U{});
+};
+
+TEST_P(CPU_UnitTestConvSolverBinWinograd3x3UDevApplicabilityFwd_NONE, ConvBinWinograd3x3U)
+{
+    this->RunTest(miopen::solver::conv::ConvBinWinograd3x3U{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverAsm5x10u2v2b1Bwd_FP32,
+                         GPU_UnitTestConvSolverBinWinograd3x3UFwd_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::Values(miopenConvolutionAlgoWinograd),
+                                          testing::ValuesIn(GetConvTestCases(miopenFloat))));
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_UnitTestConvSolverBinWinograd3x3UBwd_FP32,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverAsm5x10u2v2b1DevApplicabilityBwd_NONE,
+                         CPU_UnitTestConvSolverBinWinograd3x3UDevApplicabilityFwd_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
