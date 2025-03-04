@@ -68,9 +68,9 @@ MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* in,
         for(int n = 0; n < batchSize; n++)
         {
             index      = (batchStride * n) + adjIndex;
-            elemStd    = (_FLOAT_PREC)(*(in + index)) - mean;
+            elemStd    = FLOAT2FLOATPREC(*(in + index)) - mean;
             inhat      = elemStd * invVariance;
-            out[index] = (_FLOAT)(mad(pvt_scale, inhat, pvt_bias));
+            out[index] = FLOATPREC2FLOAT(mad(pvt_scale, inhat, pvt_bias));
         }
     }
 }

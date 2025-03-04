@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/errors.hpp>
@@ -250,7 +250,7 @@ ConvSolution GemmWrw1x1_stride1::GetSolution(const ExecutionContext&,
 
             if(group_count > 1)
             {
-                auto time = 0;
+                float time = 0.0f;
 
                 for(std::size_t i = 0; i < in_n; i++)
                 {

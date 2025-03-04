@@ -27,7 +27,7 @@
 #include <vector>
 #include <cstdint>
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
@@ -337,7 +337,6 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel
         index     = heuristic_indexes[0];
         kernel_id = valid_kernels[index];
         MIOPEN_LOG_I("Params set by AI: " << ToString());
-        std::cout << "Params set by AI: " << ToString() << std::endl;
         return true;
     }
     return false;

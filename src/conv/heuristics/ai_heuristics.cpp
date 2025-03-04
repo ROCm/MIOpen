@@ -102,16 +102,24 @@ size_t Metadata::EncodePrecision(miopenDataType_t data_type) const
         return precision_encodings.at("FP16");
     else if(data_type == miopenFloat)
         return precision_encodings.at("FP32");
-    MIOPEN_THROW("Unsupported data type passed through TunaNet applicability check");
+    MIOPEN_THROW("Unsupported data type passed to TunaNet");
 }
 
 size_t Metadata::EncodeLayout(const std::string& layout) const
 {
-    if(layout != "NCDHW" && layout != "NCHW")
-        MIOPEN_THROW("Unsupported layout passed through TunaNet applicability check");
+    if(layout != "NCDHW" && layout != "NCHW") // TunaNet supports NCHW and NCDHW layouts only atm
+        MIOPEN_THROW("Unsupported layout passed to TunaNet");
     return layout_encodings.at(layout);
 }
 
+/** `Model` encapuslates the machinery required to run inference on a TunaNet model
+ *
+ * The `Model` class encapuslates all the machinery needed to run inference on a
+ * TunaNet model, including loading the TunaNet model, formatting a problem so that it
+ * can be fed into TunaNet for inference, and getting TunaNet's predictions etc.
+ *
+ * @param arch Architecture
+ */
 class Model
 {
 public:
@@ -123,9 +131,30 @@ public:
           offset(metadata.num_outputs - metadata.num_solvers)
     {
     }
-    virtual ~Model()                                                   = default;
+    virtual ~Model() = default;
+    /** Is given problem supported by TunaNet?
+     *
+     * A TunaNet model can only work with problems "similar" to the problems it was trained on.
+     * Since our training data has changed over time, a TunaNet model trained for an earlier
+     * GPU might not support the same set of problems as a TunaNet model trained for a later
+     * GPU might. Thus, each subclass of `Model`, specializing `Model` to a specific GPU, must
+     * implement its own `IsProblemSupported` function.
+     *
+     * @param problem Problem
+     * @param ctx Execution context
+     */
     virtual bool IsProblemSupported(const conv::ProblemDescription& problem,
                                     const ExecutionContext& ctx) const = 0;
+    /** Forward (i.e., run inference on) problem through TunaNet
+     *
+     * This function takes in a problem, converts it to a numeric vector and feeds it TunaNet
+     * for inference. Its output is a numeric vector that represents a probability distribution.
+     * Each index in this vector represents a solver (as given in metadata.solver_map) and the
+     * value at each index represents the probability that that solver is the fastest for given
+     * convolution problem.
+     *
+     * @param problem Problem
+     */
     std::vector<float> Forward(const conv::ProblemDescription& problem) const
     {
         std::vector<float> features       = ToFeatures(problem);
@@ -136,9 +165,18 @@ public:
     }
 
 protected:
-    const fdeep::model model;
-    const fdeep::tensor_shape input_shape;
-    const size_t offset;
+    const fdeep::model model;              // TunaNet model
+    const fdeep::tensor_shape input_shape; // Shape of input tensor required by TunaNet
+    const size_t offset; // Some TunaNet models output some "fluff" before they output kernel
+                         // probabilites. This offset tells how many indexes of fluff need to
+                         // be skipped in order to get to kernel probabilities.
+    /** Path to model file for given GPU
+     *
+     * The model files for each GPU are identified by the GPU architecture. This function takes
+     * in a GPU architecture and returns the path to its TunaNet model.
+     *
+     * @param arch Architecture
+     */
     static std::string ModelPath(const std::string& arch)
     {
         const auto file_path = GetSystemDbPath() / (arch + ".tn.model");
@@ -146,6 +184,15 @@ protected:
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load AI model file:" + file_path);
         return file_path.string();
     }
+    /** Convert given problem to a numeric vector
+     *
+     * TunaNet takes in a numeric vector representing the given problem. The exact details
+     * of this vector vary from one TunaNet model to another, and thus this function, which
+     * converts a problem into a numeric vector that can be fed to TunaNet, must be implemented
+     * by each sub-class of `Model` on its own.
+     *
+     * @param problem Problem
+     */
     virtual std::vector<float> ToFeatures(const conv::ProblemDescription& problem) const = 0;
 };
 
@@ -433,7 +480,6 @@ protected:
             static_cast<float>(problem.GetDilationH()),
             static_cast<float>(problem.GetDilationW()),
             static_cast<float>(problem.GetOutBatchSize()),
-            static_cast<float>(metadata.EncodeLayout(problem.GetInLayout())),
             static_cast<float>(metadata.EncodePrecision(problem.GetInDataType())),
             static_cast<float>(metadata.EncodeDirection(problem.GetDirection())),
             static_cast<float>(problem.GetGroupCount())};
@@ -453,7 +499,7 @@ std::unique_ptr<Model> GetModel(const std::string& device)
         return std::make_unique<Gfx942Model>();
     if(device == "gfx90a")
         return std::make_unique<Gfx90aModel>();
-    return std::make_unique<Gfx908Model>();
+    return std::make_unique<Gfx908Model>(); // default model if GPU-specific model is not available
 }
 
 std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
@@ -486,13 +532,14 @@ std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
     }
 
     MIOPEN_LOG_I2("Evaluating TunaNet");
+    std::vector<float> res = model->Forward(problem); // res[i] gives the probability that the
+                                                      // i-th solver is the fastest for given
+                                                      // problem. ( The exact name of the i-th
+                                                      // solver may be obtained as follows:
+                                                      // model->metadata.solver_map.at(i) )
 
-    std::vector<float> res = model->Forward(problem);
+    // sort solvers in order of their probabilities
     std::vector<std::pair<int, float>> sort_res(res.size());
-    // sorts result based upon magnitude of result in vector, returned from Model,
-    // paired with original index (idx). Sort magnitudes in descending order.
-    // Greater magnitude = better solver. Indexes (idx), which will be used to map to solvers,
-    // with greater corresponding magnitude are at front of the vector so they get priority.
     for(auto idx = 0; idx < res.size(); idx++)
         sort_res[idx] = {idx, res[idx]};
     const auto cmp = [](const std::pair<int, float>& a, const std::pair<int, float>& b) -> bool {
@@ -500,12 +547,12 @@ std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
     };
     std::sort(sort_res.begin(), sort_res.end(), cmp);
 
-    // map idx to solver id and then anysolver
+    // map solver idx to solver id and then to anysolver
     std::vector<uint64_t> sol;
     std::vector<boost::any> any_sol;
     for(const auto& kinder : sort_res)
     {
-        const auto id     = kinder.first;
+        const auto id     = kinder.first; // index of solver in probability vector
         const auto sol_id = solver::Id{model->metadata.solver_map.at(id)};
         if(!sol_id.IsValid())
         {
@@ -553,13 +600,36 @@ public:
     {
     }
     virtual ~Model() = default;
+    /**
+     * Encode the input features into a "context" tensor
+     *
+     * @param features Input features
+     * @param dim Dimension (must be equal to len(features) if transform
+     *            is True and sqrt(len(features)) otherwise)
+     * @param transform Reshape input features into a square matrix?
+     */
     fdeep::tensors Encode(const std::vector<float>& features, std::size_t dim, bool transform) const
     {
+        // if transform==True, reshape input features into a matrix of `dim x dim` dimensions.
+        // otherwise, have them as a vector of size `dim`.
         const auto tensor_shape_depth = transform ? dim : 1;
         fdeep::tensor input_tensor =
             fdeep::tensor(fdeep::tensor_shape(dim, tensor_shape_depth), features);
+
         return encoder.predict({input_tensor});
     }
+    /**
+     * Decode the next token based on the previous token and the encoded context.
+     *
+     * Decoder predicts the next token based on the previous token and the context predicted
+     * by the Encoder. A token is a representation of a kernel parameter, i.e., each unique
+     * token maps to a unique kernel parameter, with the only exception being the token '-1'
+     * which signals the end of the decoding process (i.e., all kernel parameters have been
+     * obtained).
+     *
+     * @param prev_token Previous token
+     * @param context Context vector obtained from encoder
+     */
     fdeep::tensors Decode(const float prev_token, const fdeep::tensors& context) const
     {
         return decoder.predict(
@@ -589,6 +659,17 @@ private:
     }
 };
 
+/**
+ * Return the KernelTuningNet model for given architecture and solver
+ *
+ * KernelTuningNet models are specific to each solver and are fine-tuned for each
+ * GPU skew. This function constructs the KernelTuningNet model for the given
+ * architecture and solver and stores it in a static map, so that the next time
+ * the same model is required it doesn't have to be constructed anew.
+ *
+ * @param arch GPU Architecture
+ * @param solver Solver
+ */
 std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solver)
 {
     static std::map<std::string, std::shared_ptr<Model>> models;
@@ -605,6 +686,18 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
     }
 }
 
+/**
+ * Set kernel parameters for given solver
+ *
+ * @param arch GPU Architecture
+ * @param solver Solver
+ * @param direction Convolution Direction
+ * @param features Input features for KernelTuningNet model
+ * @param transform_features Whether or not to reshape features into a square
+ *                           matrix before feeding them to KernelTuningNet
+ * @param validator A boolean function that accepts an index `i` and a string `v`, and returns
+ *                  True iff `v` is a valid kernel parameter value at index `i`
+ */
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
                     miopen::conv::Direction direction,
@@ -613,7 +706,9 @@ bool ModelSetParams(const std::string& arch,
                     std::function<bool(std::size_t, std::string)> validator)
 {
     auto model = GetModel(arch, solver);
-    int dim    = 0;
+
+    // get context
+    int dim = 0;
     if(transform_features)
         dim = std::sqrt(features.size());
     else
@@ -621,6 +716,8 @@ bool ModelSetParams(const std::string& arch,
     auto start             = std::chrono::high_resolution_clock::now();
     fdeep::tensors context = model->Encode(features, dim, transform_features);
     float decoder_input    = 0.0;
+
+    // set direction string
     std::string dir;
     switch(direction)
     {
@@ -630,33 +727,38 @@ bool ModelSetParams(const std::string& arch,
     default: return false;
     }
 
+    // run decoder to set kernel parameters
     for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params; ++i)
     {
 
         if(i == 0 && (model->metadata.predict_type == 0u))
             num_tuning_params = model->metadata.num_tuning_params[dir];
-        fdeep::tensors decoder_output = model->Decode(decoder_input, context);
 
-        auto token_scores = decoder_output[0].to_vector();
+        fdeep::tensors decoder_output = model->Decode(decoder_input, context);
+        auto token_scores             = decoder_output[0].to_vector(); // token_scores[k] gives the
+                                                                       // score of the k-th token
+        // order tokens according to their scores
         std::priority_queue<std::pair<float, int>> pq;
         for(int j = 0; j < token_scores.size(); j++)
             pq.push(std::make_pair(token_scores[j], j)); // sort by value at index
 
+        // find a token whose value is a valid kernel parameter for the i-th position
         int output_token_index = -1;
         while(!pq.empty())
         {
-            int token = pq.top().second;
-            // convert index to token value
+            // get the token with the highest score and look up its value
+            int token         = pq.top().second;
             std::string value = model->metadata.tuning_decodings[std::to_string(token)];
             pq.pop();
-            if(value == "-1")
+
+            if(value == "-1") // if token-value is "-1", then decoding has finished
             {
                 auto stop     = std::chrono::high_resolution_clock::now();
                 auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
                 MIOPEN_LOG_I2("Model ran for " << duration.count() << " micro-seconds");
                 return false;
             }
-            if(validator(i, value))
+            if(validator(i, value)) // if token-value is a valid kernel parameter, it's set
             {
                 output_token_index =
                     token; // index with largest value that is valid = predicted index

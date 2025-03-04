@@ -370,6 +370,25 @@ private:
                                        miopenRNNFWDMode_t fwdMode) const;
 
     // TODO rename
+
+    void ModularForward(Handle& handle,
+                        miopenRNNFWDMode_t fwdMode,
+                        ConstData_t w,
+                        const SeqTensorDescriptor& xDesc,
+                        ConstData_t x,
+                        const TensorDescriptor& hDesc,
+                        ConstData_t hx,
+                        Data_t hy,
+                        const TensorDescriptor& cDesc,
+                        ConstData_t cx,
+                        Data_t cy,
+                        const SeqTensorDescriptor& yDesc,
+                        Data_t y,
+                        Data_t workSpace,
+                        size_t workSpaceSize,
+                        Data_t reserveSpace,
+                        size_t reserveSpaceSize) const;
+
     void ModularBackward(Handle& handle,
                          const SeqTensorDescriptor& yDesc,
                          ConstData_t dy,
@@ -388,6 +407,18 @@ private:
                          size_t workSpaceSize,
                          Data_t reserveSpace,
                          size_t reserveSpaceSize) const;
+
+    void ModularBackwardWeights(Handle& handle,
+                                const SeqTensorDescriptor& xDesc,
+                                ConstData_t x,
+                                const TensorDescriptor& hDesc,
+                                ConstData_t hx,
+                                const SeqTensorDescriptor& yDesc,
+                                Data_t w,
+                                Data_t workSpace,
+                                size_t workSpaceSize,
+                                ConstData_t reserveSpace,
+                                size_t /*reserveSpaceSize*/) const;
 
     void RNNTransformerForward(Handle& handle,
                                miopenRNNFWDMode_t fwdMode,

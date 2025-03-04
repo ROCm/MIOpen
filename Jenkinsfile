@@ -33,13 +33,19 @@ def cmake_build(Map conf=[:]){
     def debug_flags = "-g -fno-omit-frame-pointer -fsanitize=undefined -fno-sanitize-recover=undefined -Wno-option-ignored " + conf.get("extradebugflags", "")
     def build_envs = "CTEST_PARALLEL_LEVEL=4 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/opt/rocm")
+    def build_type_debug = (conf.get("build_type",'release') == 'debug')
+
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
+    // WORKAROUND_ISSUE_3192 Disabling MLIR for debug builds since MLIR generates sanitizer errors.
+    if (build_type_debug)
+    {
+        mlir_args = " -DMIOPEN_USE_MLIR=OFF"
+    }
+
     def setup_args = mlir_args + " -DMIOPEN_GPU_SYNC=Off " + conf.get("setup_flags","")
     def build_fin = conf.get("build_fin", "OFF")
 
     setup_args = setup_args + " -DCMAKE_PREFIX_PATH=${prefixpath} "
-
-    def build_type_debug = (conf.get("build_type",'release') == 'debug')
 
     //cmake_env can overwrite default CXX variables.
     def cmake_envs = "CXX=${compiler} CXXFLAGS='-Werror' " + conf.get("cmake_ex_env","")
@@ -47,7 +53,7 @@ def cmake_build(Map conf=[:]){
     def package_build = (conf.get("package_build","") == "true")
 
     if (package_build == true) {
-        make_targets = "miopen_gtest package"
+        make_targets = "miopen_gtest package miopen_gtest_check"
         setup_args = " -DMIOPEN_TEST_DISCRETE=OFF " + setup_args
     }
 
@@ -72,9 +78,7 @@ def cmake_build(Map conf=[:]){
         test_flags = " --disable-verification-cache " + test_flags
     }
 
-    if(conf.get("codecov", false)){ //Need
-        setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags} -fprofile-arcs -ftest-coverage' -DCODECOV_TEST=On " + setup_args
-    }else if(build_type_debug){
+    if(build_type_debug){
         setup_args = " -DCMAKE_BUILD_TYPE=debug -DCMAKE_CXX_FLAGS_DEBUG='${debug_flags}'" + setup_args
     }else{
         setup_args = " -DCMAKE_BUILD_TYPE=release" + setup_args
@@ -194,9 +198,9 @@ def getDockerImage(Map conf=[:])
 {
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
-    def gpu_arch = "gfx900;gfx906;gfx908;gfx90a;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
+    def gpu_arch = "gfx908;gfx90a;gfx942;gfx1100" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
     def mlir_build = conf.get("mlir_build", "ON") // always ON
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCH='${gpu_arch}' --build-arg USE_MLIR='${mlir_build}' "
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' "
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
@@ -240,7 +244,6 @@ def buildHipClangJob(Map conf=[:]){
         show_node_info()
         miopenCheckout()
         env.HSA_ENABLE_SDMA=0
-        env.CODECOV_TOKEN="aec031be-7673-43b5-9840-d8fb71a2354e"
         env.DOCKER_BUILDKIT=1
         def image
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
@@ -250,12 +253,11 @@ def buildHipClangJob(Map conf=[:]){
 
         def variant = env.STAGE_NAME
 
-        def codecov = conf.get("codecov", false)
         def needs_gpu = conf.get("needs_gpu", true)
         def lfs_pull = conf.get("lfs_pull", false)
 
         def retimage
-        gitStatusWrapper(credentialsId: "${env.status_wrapper_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCm', repo: 'MIOpen') {
+        gitStatusWrapper(credentialsId: "${env.miopen_git_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCm', repo: 'MIOpen') {
             try {
                 (retimage, image) = getDockerImage(conf)
                 if (needs_gpu) {
@@ -284,24 +286,13 @@ def buildHipClangJob(Map conf=[:]){
             }
 
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
-                timeout(time: 210, unit:'MINUTES')
+                timeout(time: 420, unit:'MINUTES')
                 {
                     if (lfs_pull) {
                         sh "git lfs pull --exclude="
                     }
 
                     cmake_build(conf)
-
-                    if (codecov) {
-                        sh '''
-                            cd build
-                            lcov --directory . --capture --output-file $(pwd)/coverage.info
-                            lcov --remove $(pwd)/coverage.info '/usr/*' --output-file $(pwd)/coverage.info
-                            lcov --list $(pwd)/coverage.info
-                            curl -s https://codecov.io/bash | bash
-                            echo "Uploaded"
-                        '''
-                    }
                 }
             }
         }
@@ -410,10 +401,9 @@ def CheckPerfDbValid(Map conf=[:]){
 /// BuildType := { Release* | Debug | Install } [ BuildTypeModifier ]
 ///   * BuildTypeModifier := { NOCOMGR | Embedded | Static | Normal-Find | Fast-Find
 ///                            NOCK | NOMLIR | Tensile | Tensile-Latest | Package | ... }
-/// TestSet := { All | Smoke* | <Performance Dataset> | Build-only } [ Codecov ]
+/// TestSet := { All | Smoke* | <Performance Dataset> | Build-only }
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
-///   * "Codecov" is optional code coverage analysis.
 ///   * "Performance Dataset" is a performance test with a specified dataset.
 /// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
 ///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
@@ -550,7 +540,7 @@ pipeline {
         NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
     }
     triggers{
-        
+
         cron(env.BRANCH_NAME == env.NIGHTLY_BRANCH ? env.NIGHTLY_SCHEDULE : '')
     }
     stages{
@@ -558,7 +548,7 @@ pipeline {
             when {
                 expression { params.BUILD_DOCKER && params.TARGET_NOGPU && params.DATATYPE_NA }
             }
-            agent{ label rocmnode("nogpu") }
+            agent{ label rocmnode("gfx90a") }
             steps{
                 getDockerImage()
             }
@@ -648,7 +638,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug gfx90a') {
@@ -661,7 +651,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug gfx908') {
@@ -674,7 +664,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug gfx94X') {
@@ -687,7 +677,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false)
+                        buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: "true")
                     }
                 }
             }
@@ -711,7 +701,7 @@ pipeline {
                         NOCOMGR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
                     }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCOMGR_flags, build_cmd: NOCOMGR_build_cmd, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOCOMGR_flags, build_cmd: NOCOMGR_build_cmd, test_flags: ' --verbose ', build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug NOMLIR gfx90a') {
@@ -728,7 +718,7 @@ pipeline {
                         NOMLIR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
                     }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ', build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug NOCK gfx90a Build-Only') {
@@ -741,7 +731,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", make_targets: "")
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", make_targets: "", build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Debug Embedded Vega20') {
@@ -757,7 +747,7 @@ pipeline {
                         Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60'"
                     }
                     steps{
-                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ')
+                        buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ', build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Static gfx90a') {
@@ -770,7 +760,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF')
+                        buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF', build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Normal-Find gfx90a') {
@@ -787,7 +777,7 @@ pipeline {
                         execute_cmd = "bin/test_conv2d --disable-verification-cache"
                     }
                     steps{
-                        buildHipClangJobAndReboot(make_targets: make_targets, execute_cmd: execute_cmd, find_mode: "Normal")
+                        buildHipClangJobAndReboot(make_targets: make_targets, execute_cmd: execute_cmd, find_mode: "Normal", build_install: "true")
                     }
                 }
                 stage('Fp32 Hip Fast-Find gfx90a') {
@@ -804,7 +794,7 @@ pipeline {
                         execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4 bin/test_conv2d --disable-verification-cache"
                     }
                     steps{
-                        buildHipClangJobAndReboot( make_targets: make_targets, execute_cmd: execute_cmd)
+                        buildHipClangJobAndReboot( make_targets: make_targets, execute_cmd: execute_cmd, build_install: "true")
                     }
                 }
                 stage('Fp32 Hip gfx90a') {
@@ -830,7 +820,22 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On")
+                        buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On", build_install: "true")
+                    }
+                }
+                stage('Fp32 Hip Fin Interface gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        buildHipClangJobAndReboot(setup_flags: "-DMIOPEN_ENABLE_FIN_INTERFACE=On",
+                                                  make_targets: "test_unit_FinInterface",
+                                                  execute_cmd: "bin/test_unit_FinInterface")
                     }
                 }
             }
@@ -850,7 +855,7 @@ pipeline {
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip Vega20') {
@@ -863,7 +868,7 @@ pipeline {
                     }
                     agent{ label rocmnode("vega20") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip gfx908') {
@@ -876,7 +881,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip gfx908') {
@@ -889,7 +894,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip gfx90a') {
@@ -902,7 +907,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip gfx90a') {
@@ -915,7 +920,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: "true")
                     }
                 }
                 stage('Fp16 Hip gfx94X') {
@@ -928,7 +933,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, needs_reboot:false)
+                        buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, needs_reboot:false, build_install: "true")
                     }
                 }
                 stage('Bf16 Hip gfx94X') {
@@ -941,7 +946,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx94X") }
                     steps{
-                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, needs_reboot:false)
+                        buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, needs_reboot:false, build_install: "true")
                     }
                 }
             }
@@ -969,7 +974,7 @@ pipeline {
                         buildHipClangJobAndReboot(lfs_pull: true,
                                                   setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
                                                   make_targets: 'test_db_sync',
-                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
                                                   build_install: "true")
@@ -988,7 +993,7 @@ pipeline {
                         buildHipClangJobAndReboot(lfs_pull: true,
                                                   setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
                                                   make_targets: 'test_db_sync',
-                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
                                                   build_install: "true")
@@ -1007,7 +1012,7 @@ pipeline {
                         buildHipClangJobAndReboot(lfs_pull: true,
                                                   setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
                                                   make_targets: 'test_db_sync',
-                                                  execute_cmd: 'MIOPEN_TEST_DBSYNC=1 ./bin/test_db_sync',
+                                                  execute_cmd: './bin/test_db_sync',
                                                   needs_gpu:false,
                                                   needs_reboot:false,
                                                   build_install: "true")

@@ -230,7 +230,7 @@ protected:
             return it->second->m_tensorVariant;
         };
 
-        test::cpu::MultiHeadAttentionfp8(
+        test::cpu::MultiHeadAttentionForwardfp8(
             GetTensor<T>(lookup(miopenTensorMhaQ)),
             GetTensor<T>(lookup(miopenTensorMhaK)),
             GetTensor<T>(lookup(miopenTensorMhaV)),
@@ -277,11 +277,11 @@ protected:
     }
 };
 
-class MhaForwardTestFp32 : public MhaForwardTest<float>
+class GPU_MhaForward_FP32 : public MhaForwardTest<float>
 {
 };
 
-class MhaForwardTestFp8 : public MhaForwardTest<float8>
+class GPU_MhaForward_FP8 : public MhaForwardTest<float8>
 {
     void SetUp() override
     {
@@ -296,8 +296,56 @@ class MhaForwardTestFp8 : public MhaForwardTest<float8>
     }
 };
 
-TEST_P(MhaForwardTestFp32, TestFloat) { Run(); }
-TEST_P(MhaForwardTestFp8, TestFloat) { Run(); }
+class GPU_MhaForward_FP16 : public MhaForwardTest<half_float::half>
+{
+    void SetUp() override
+    {
+        if(!IsTestSupportedByDevice(Gpu::gfx90A | Gpu::gfx94X))
+        {
+            GTEST_SKIP() << "FP16 is unsupported on this HW";
+        }
+
+        MhaForwardTest<half_float::half>::SetUp();
+
+        if(m_bernulliProbability != 0.0f)
+        {
+            GTEST_SKIP() << "Dropout not currently supported for FP16";
+        }
+    }
+
+    void RunCPUverify(miopen::Handle& handle) override
+    {
+        auto softmaxRef  = tensor<float>{m_testN, m_testH, m_testS, m_testS};
+        auto oDescRef    = tensor<half_float::half>{m_testN, m_testH, m_testS, m_testD};
+        auto mDescRef    = tensor<float>{m_testN, m_testH, m_testS, 1};
+        auto zInvDescRef = tensor<float>{m_testN, m_testH, m_testS, 1};
+
+        auto lookup = [this](const int64_t id) -> TensorVariant& {
+            auto it = m_realTensorMap.find(id);
+            assert(it != m_realTensorMap.cend());
+            return it->second->m_tensorVariant;
+        };
+
+        test::cpu::MultiHeadAttentionForwardfp16(
+            GetTensor<half_float::half>(lookup(miopenTensorMhaQ)),
+            GetTensor<half_float::half>(lookup(miopenTensorMhaK)),
+            GetTensor<half_float::half>(lookup(miopenTensorMhaV)),
+            softmaxRef,
+            mDescRef,
+            zInvDescRef,
+            oDescRef);
+
+        const double errorThreshold = 4e-4;
+
+        auto oRes     = GetResult<half_float::half>(miopenTensorMhaO, handle);
+        double oError = miopen::rms_range(oDescRef, oRes);
+        EXPECT_LT(oError, errorThreshold);
+    }
+};
+
+TEST_P(GPU_MhaForward_FP32, TestFloat) { Run(); }
+TEST_P(GPU_MhaForward_FP16, TestFloat16) { Run(); }
+TEST_P(GPU_MhaForward_FP8, TestFloat8) { Run(); }
 
 inline auto GetCases()
 {
@@ -308,6 +356,8 @@ inline auto GetCases()
                             testing::ValuesIn({0.0f, 0.5f})); // bernulli probability
 }
 
-INSTANTIATE_TEST_SUITE_P(MhaFwdSuiteFp32, MhaForwardTestFp32, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP32, GetCases());
 
-INSTANTIATE_TEST_SUITE_P(MhaFwdSuiteFp8, MhaForwardTestFp8, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP16, GetCases());
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP8, GetCases());

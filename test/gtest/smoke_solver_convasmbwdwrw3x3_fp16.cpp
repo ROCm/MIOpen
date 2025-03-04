@@ -61,15 +61,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningAsmBwdWrw3x3_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
+TEST_P(GPU_Conv2dTuningAsmBwdWrw3x3_FP16, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningAsmBwdWrw3x3_FP16>(tuning_check);
     }
     else
     {
@@ -77,6 +77,4 @@ TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_convasmbwdwrw3x3_fp16)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmBwdWrw3x3Fp16,
-                         Conv2dTuningHalf,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningAsmBwdWrw3x3_FP16, testing::Values(GetTestCases()));

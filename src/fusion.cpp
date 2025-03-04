@@ -390,13 +390,17 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
     if(bn_op != nullptr)
     {
         str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr,
                                         bn_op->mode,
                                         nullptr,
                                         nullptr,
                                         nullptr,
                                         nullptr,
                                         miopen::debug::BatchNormDirection_t::ForwardInference,
-                                        false);
+                                        false); // having false allows safe handling of nullptrs
     }
     else
     {
@@ -822,7 +826,8 @@ protected:
              const FusionFindParameters&,
              const std::optional<FindOptions>& options) const override
     {
-        return solvers.SearchForAllSolutions(dynamic_cast<const FusionContext&>(ctx),
+        const auto fusion_ctx = FusionContext(ctx);
+        return solvers.SearchForAllSolutions(fusion_ctx,
                                              problem,
                                              miopen::GetDb(ctx),
                                              invoke_ctx,
@@ -865,9 +870,8 @@ FindFusion(const ExecutionContext& ctx,
             // fusion_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(fusion_ctx);
 
             // We need buffers for find, thus we lazily get them, possibly allocating.
-            auto fusion_ctx = FusionContext(ctx.GetStream());
             return FindCore(invoke_params(),
-                            fusion_ctx,
+                            ctx,
                             fusion_problem,
                             FusionFindParameters{},
                             GetFusionSolverFinders(),
@@ -1097,7 +1101,10 @@ FusionPlanDescriptor::Find(Handle& handle,
                            const std::function<fusion::FusionInvokeParams()>& invoke_params,
                            const std::optional<FindOptions>& options) const
 {
-    return FindFusion(&handle, this, invoke_params, options);
+    auto ctx = ExecutionContext(&handle);
+    if(options)
+        ctx.do_search = options->exhaustive_search;
+    return FindFusion(ctx, this, invoke_params, options);
 }
 
 miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,

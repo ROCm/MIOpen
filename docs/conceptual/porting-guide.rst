@@ -543,8 +543,6 @@ Convolution operations
                     int *returnedAlgoCount,
                     cudnnConvolutionFwdAlgoPerf_t *perfResults)
 
-            .. code-block:: cpp
-
                 cudnnStatus_t
                 cudnnFindConvolutionForwardAlgorithmEx(
                     cudnnHandle_t handle,
@@ -560,8 +558,6 @@ Convolution operations
                     cudnnConvolutionFwdAlgoPerf_t *perfResults,
                     void *workSpace,
                     size_t workSpaceSizeInBytes)
-
-            .. code-block:: cpp
 
                 cudnnStatus_t
                 cudnnGetConvolutionForwardAlgorithm(
@@ -636,8 +632,6 @@ Convolution operations
                     int *returnedAlgoCount,
                     cudnnConvolutionBwdFilterAlgoPerf_t *perfResults)
 
-            .. code-block:: cpp
-
                 cudnnStatus_t
                 cudnnFindConvolutionBackwardFilterAlgorithmEx(
                     cudnnHandle_t handle,
@@ -653,8 +647,6 @@ Convolution operations
                     cudnnConvolutionBwdFilterAlgoPerf_t *perfResults,
                     void *workSpace,
                     size_t workSpaceSizeInBytes)
-
-            .. code-block:: cpp
 
                 cudnnStatus_t
                 cudnnGetConvolutionBackwardFilterAlgorithm(
@@ -705,8 +697,6 @@ Convolution operations
                     int *returnedAlgoCount,
                     cudnnConvolutionBwdDataAlgoPerf_t *perfResults)
 
-            .. code-block:: cpp
-
                 cudnnStatus_t
                 cudnnFindConvolutionBackwardDataAlgorithmEx(
                     cudnnHandle_t handle,
@@ -722,8 +712,6 @@ Convolution operations
                     cudnnConvolutionBwdDataAlgoPerf_t *perfResults,
                     void *workSpace,
                     size_t workSpaceSizeInBytes)
-
-            .. code-block:: cpp
 
                 cudnnStatus_t
                 cudnnGetConvolutionBackwardDataAlgorithm(

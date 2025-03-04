@@ -25,86 +25,42 @@
  *******************************************************************************/
 
 #include "getitem.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace getitem {
 
-std::string GetFloatArg()
-{
-    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct GetitemBwdTestFloat : GetitemBwdTest<float>
+struct GPU_GetitemBwd_FP32 : GetitemBwdTest<float>
 {
 };
 
-struct GetitemBwdTestHalf : GetitemBwdTest<half_float::half>
+struct GPU_GetitemBwd_FP16 : GetitemBwdTest<half_float::half>
 {
 };
 
-struct GetitemBwdTestBFloat16 : GetitemBwdTest<bfloat16>
+struct GPU_GetitemBwd_BFP16 : GetitemBwdTest<bfloat16>
 {
 };
 
 } // namespace getitem
 using namespace getitem;
 
-TEST_P(GetitemBwdTestFloat, GetitemBwdTest)
+TEST_P(GPU_GetitemBwd_FP32, GetitemBwdTest)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(GetitemBwdTestHalf, GetitemBwdTest)
+TEST_P(GPU_GetitemBwd_FP16, GetitemBwdTest)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(GetitemBwdTestBFloat16, GetitemBwdTest)
+TEST_P(GPU_GetitemBwd_BFP16, GetitemBwdTest)
 {
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
-                         GetitemBwdTestFloat,
-                         testing::ValuesIn(GetitemTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
-                         GetitemBwdTestHalf,
-                         testing::ValuesIn(GetitemTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(GetitemTestSet,
-                         GetitemBwdTestBFloat16,
-                         testing::ValuesIn(GetitemTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GetitemBwd_FP32, testing::ValuesIn(GetitemTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GetitemBwd_FP16, testing::ValuesIn(GetitemTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_GetitemBwd_BFP16, testing::ValuesIn(GetitemTestConfigs()));

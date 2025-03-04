@@ -116,8 +116,11 @@ set(MIOPEN_ENABLE_SQLITE_BACKOFF On CACHE BOOL "")
 
 option( BUILD_DEV "Build for development only" OFF)
 option(MIOPEN_ENABLE_FIN "Enable the fin driver for MIOpen"  OFF)
+option(MIOPEN_ENABLE_FIN_INTERFACE "Enable internal interface for the fin" ${MIOPEN_ENABLE_FIN})
 option(MIOPEN_STRIP_SYMBOLS "Strip symbols in release mode" ON)
 
+option(MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM "Workaround: Use boost::filesystem instead of std::filesystem" OFF)
+message(STATUS "MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM ${MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM}")
 
 # Strip symbols for release
 if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
@@ -125,7 +128,7 @@ if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.2.0)
+rocm_setup_version(VERSION 3.3.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -147,9 +150,9 @@ else()
     set(MIOPEN_DEFAULT_BACKEND "OpenCL")
 endif()
 
-if(NOT WIN32)
+if(NOT WIN32 AND NOT MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM)
     include(CheckCXXLinkerFlag)
-    check_cxx_linker_flag(stdc++fs HAS_LIB_STD_FILESYSTEM)
+    check_cxx_linker_flag(-lstdc++fs HAS_LIB_STD_FILESYSTEM)
 endif()
 
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_INSTALL_PREFIX} ${CMAKE_INSTALL_PREFIX}/llvm ${CMAKE_INSTALL_PREFIX}/hip /opt/rocm /opt/rocm/llvm /opt/rocm/hip)
@@ -227,6 +230,10 @@ if( MIOPEN_BACKEND STREQUAL "OpenCL")
     set (HIP_CXX_COMPILER ${MIOPEN_HIP_COMPILER})
 endif()
 
+# HIP SDK on Windows does not detect platform correctly, defaulting to "amd"
+if(NOT HIP_PLATFORM AND CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(HIP_PLATFORM "amd")
+endif()
 
 # HIP is always required
 find_package(hip REQUIRED PATHS /opt/rocm)
@@ -321,7 +328,7 @@ add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPI
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     if(MIOPEN_USE_COMPOSABLEKERNEL)
-        find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_gemm_operations device_conv_operations device_reduction_operations)
+        find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_gemm_operations device_conv_operations device_reduction_operations device_mha_operations)
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
@@ -467,8 +474,10 @@ if(MIOPEN_BUILD_DRIVER)
     # boost core is a header only component that can't be found by find_package
     # list(APPEND BOOST_COMPONENTS core)
 endif()
+
+# The FindBoost module has been removed since CMake 3.30. Use the Boost 1.83 configuration file instead.
 add_definitions(-DBOOST_ALL_NO_LIB=1)
-find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS})
+find_package(Boost REQUIRED COMPONENTS ${BOOST_COMPONENTS} CONFIG)
 
 find_path(HALF_INCLUDE_DIR half/half.hpp)
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
@@ -576,7 +585,7 @@ endif()
 
 set(KERNELS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/kernels)
 
-find_program(UNZIPPER lbzcat bzcat REQUIRED)
+find_program(UNZIPPER bzip2 REQUIRED)
 file(MAKE_DIRECTORY ${KERNELS_BINARY_DIR})
 
 add_custom_target(generate_kernels ALL)
@@ -591,7 +600,7 @@ endif()
 function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
     add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
-                       COMMAND ${UNZIPPER} -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
+                       COMMAND ${UNZIPPER} -dc -k ${db_bzip2_file} > ${KERNELS_BINARY_DIR}/${__fname})
     string(REPLACE "." "_" __tname ${__fname})
     add_custom_target(generate_${__tname} ALL DEPENDS ${KERNELS_BINARY_DIR}/${__fname})
 
@@ -611,7 +620,7 @@ function(unpack_db db_bzip2_file)
     set(__fname ${__fname} PARENT_SCOPE)
 endfunction()
 
-file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2")
+file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2" "${KERNELS_SOURCE_DIR}/*.db.txt.bz2")
 file(GLOB FIND_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.fdb.txt.bz2")
 
 foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES} ${FIND_DB_BZIP_FILES})
@@ -644,8 +653,8 @@ function(install_kdb FILE_NAME COMPONENT_NAME)
 endfunction()
 
 # Both the lists below should be in sync always
-set(KDB_BZ2_FILES gfx90a.kdb.bz2 gfx1030.kdb.bz2 gfx908.kdb.bz2 gfx906.kdb.bz2 gfx900.kdb.bz2)
-set(COMPONENT_LST gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
+set(KDB_BZ2_FILES gfx942.kdb.bz2 gfx90a.kdb.bz2 gfx1030.kdb.bz2 gfx908.kdb.bz2 gfx906.kdb.bz2 gfx900.kdb.bz2)
+set(COMPONENT_LST gfx942kdb gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
 
 if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.17)
     foreach(__file __component IN ZIP_LISTS KDB_BZ2_FILES COMPONENT_LST)
@@ -673,7 +682,7 @@ endif()
 # End KDB package creation
 
 if(NOT MIOPEN_TEST_DISCRETE)
-list(APPEND CPACK_COMPONENTS_ALL client)
+list(APPEND CPACK_COMPONENTS_ALL clients)
 endif()
 
 rocm_create_package(

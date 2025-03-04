@@ -29,6 +29,7 @@
 #include <miopen/mha/solvers.hpp>
 
 #include <miopen/mha/invoke_params.hpp>
+#include <miopen/buffer_info.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/target_properties.hpp>
@@ -86,8 +87,10 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
            && descsFwd.oDesc.IsPacked()                             //
            && descsFwd.mDesc.IsPacked()                             //
            && descsFwd.zInvDesc.IsPacked()                          //
+           && descsFwd.biasDesc.IsPacked()                          //
            && descsFwd.mDesc.GetType() == miopenFloat               //
            && descsFwd.zInvDesc.GetType() == miopenFloat            //
+           && descsFwd.biasDesc.GetType() == miopenFloat            //
            && descsFwd.kDesc.GetType() == descsFwd.qDesc.GetType()  //
            && descsFwd.kDesc.GetType() == descsFwd.vDesc.GetType()  //
            && descsFwd.kDesc.GetType() == descsFwd.oDesc.GetType()  //
@@ -211,6 +214,7 @@ ConvSolution MhaForward::GetSolution(const ExecutionContext& context,
                            fp8_ws,
                            dataFwd.mData,
                            dataFwd.zInvData,
+                           dataFwd.biasData,
                            dataFwd.amaxSData,
                            dataFwd.descaleQData,
                            dataFwd.descaleKData,

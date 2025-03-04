@@ -28,12 +28,12 @@
 
 #include <miopen/common.hpp>
 #include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/problem.hpp>
 #include <miopen/search_options.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/solver_id.hpp>
-#include <miopen/type_name.hpp>
 
 #include <nlohmann/json.hpp>
 #include <boost/hof/match.hpp>
@@ -349,6 +349,8 @@ inline std::ostream& operator<<(std::ostream& stream, const miopenTensorArgument
     case miopenTensorMhaAmaxDK: stream << "miopenTensorMhaAmaxDK"; break;
     case miopenTensorMhaAmaxDV: stream << "miopenTensorMhaAmaxDV"; break;
     case miopenTensorMhaAmaxDS: stream << "miopenTensorMhaAmaxDS"; break;
+    case miopenTensorMhaBias: stream << "miopenTensorMhaBias"; break;
+    case miopenTensorMhaMask: stream << "miopenTensorMhaMask"; break;
     case miopenTensorSoftmaxX: stream << "SoftmaxX"; break;
     case miopenTensorSoftmaxY: stream << "SoftmaxY"; break;
     case miopenTensorSoftmaxDX: stream << "SoftmaxDX"; break;

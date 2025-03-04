@@ -29,6 +29,7 @@
 #include <miopen/mha/solvers.hpp>
 
 #include <miopen/mha/invoke_params.hpp>
+#include <miopen/buffer_info.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/target_properties.hpp>
@@ -377,28 +378,28 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                  true);
             HipEventPtr event_bwd2 = recordSyncEvent();
 
-            decltype(auto) scale_reduce_kernel = handle_.Run(kernels[2]);
-
             handle_.SetStreamFromPool(1);
+            decltype(auto) scale_reduce_kerneldSxK = handle_.Run(kernels[2]);
             waitSyncEvent(std::move(event_bwd1));
-            scale_reduce_kernel(fp32_dSxK_ws,
-                                dataBwd.dqData,
-                                dataBwd.amaxDQData,
-                                dataBwd.descaleDSData,
-                                dataBwd.descaleKData,
-                                dataBwd.scaleDQData,
-                                nhsd);
+            scale_reduce_kerneldSxK(fp32_dSxK_ws,
+                                    dataBwd.dqData,
+                                    dataBwd.amaxDQData,
+                                    dataBwd.descaleDSData,
+                                    dataBwd.descaleKData,
+                                    dataBwd.scaleDQData,
+                                    nhsd);
             HipEventPtr event_bwd3 = recordSyncEvent();
 
             handle_.SetStreamFromPool(2);
+            decltype(auto) scale_reduce_kerneldSxQ = handle_.Run(kernels[2]);
             waitSyncEvent(std::move(event_bwd2));
-            scale_reduce_kernel(fp32_dSxQ_ws,
-                                dataBwd.dkData,
-                                dataBwd.amaxDKData,
-                                dataBwd.descaleDSData,
-                                dataBwd.descaleQData,
-                                dataBwd.scaleDKData,
-                                nhsd);
+            scale_reduce_kerneldSxQ(fp32_dSxQ_ws,
+                                    dataBwd.dkData,
+                                    dataBwd.amaxDKData,
+                                    dataBwd.descaleDSData,
+                                    dataBwd.descaleQData,
+                                    dataBwd.scaleDKData,
+                                    nhsd);
             HipEventPtr event_bwd4 = recordSyncEvent();
 
             handle_.SetStreamFromPool(0);
@@ -423,13 +424,14 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                  fp32_dOxO_SxdO_ws,
                  true);
 
-            scale_reduce_kernel(fp32_dOxO_SxdO_ws,
-                                dataBwd.dvData,
-                                dataBwd.amaxDVData,
-                                dataBwd.descaleSData,
-                                dataBwd.descaleDOData,
-                                dataBwd.scaleDVData,
-                                nhsd);
+            decltype(auto) scale_reduce_kernelSxdO = handle_.Run(kernels[2]);
+            scale_reduce_kernelSxdO(fp32_dOxO_SxdO_ws,
+                                    dataBwd.dvData,
+                                    dataBwd.amaxDVData,
+                                    dataBwd.descaleSData,
+                                    dataBwd.descaleDOData,
+                                    dataBwd.scaleDVData,
+                                    nhsd);
 
             waitSyncEvent(std::move(event_bwd3));
             waitSyncEvent(std::move(event_bwd4));
