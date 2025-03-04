@@ -527,6 +527,15 @@ void SetupPaths(fs::path& fdb_file_path,
 
 TEST(CPU_DBSync_NONE, KDBTargetID)
 {
+    // Skip this test for gfx11 and gfx12 to avoid test failure (we don't have databases for those
+    // devices yet)
+    const auto& handle = get_handle();
+    if(miopen::StartsWith(handle.GetDeviceName(), "gfx11") ||
+       miopen::StartsWith(handle.GetDeviceName(), "gfx12"))
+    {
+        GTEST_SKIP();
+    }
+
     fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
     SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2492", "0");
