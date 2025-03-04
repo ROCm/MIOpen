@@ -503,7 +503,7 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
         invVariance = lcl_ivar[xlid];
         pvt_scale   = lcl_scale[xlid];
         pvt_bias    = lcl_bias[xlid];
-#if (MIO_BN_HW > MIO_BN_LOOP_UNROLL_MAXHW)
+#if(MIO_BN_HW > MIO_BN_LOOP_UNROLL_MAXHW)
         for(unsigned int n = 0; n < MIO_BN_N; n++)
 #else
         __attribute__((opencl_unroll_hint(2))) for(unsigned int n = 0; n < MIO_BN_N; n++)
@@ -518,14 +518,14 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
             // #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
             *((__global _FLOAT_LS*)(out + index)) = value;
         } // end for(n)
-    } // end if(inImgIndex)
+    }     // end if(inImgIndex)
 } // end spatial norm
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
     __global _FLOAT* __restrict meanvarbuff,
     _FLOAT_PREC INHW
-#if (MIO_RUNNING_RESULT == 1)
+#if(MIO_RUNNING_RESULT == 1)
     ,
     double expAvgFactor /* input momentum */
     ,
@@ -534,7 +534,7 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
 #endif
     ,
     double epsilon
-#if (MIO_SAVE_MEAN_VARIANCE == 1)
+#if(MIO_SAVE_MEAN_VARIANCE == 1)
     ,
     __global _FLOAT_PREC* __restrict resultSaveMean /*output only*/
     ,
@@ -626,7 +626,7 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
     // Save mean and calculate and save running mean
     if(ygid == commitID)
     {
-#if (MIO_RUNNING_RESULT == 1)
+#if(MIO_RUNNING_RESULT == 1)
         running_stash((global _FLOAT_PREC_C*)resultRunningMean,
                       (global _FLOAT_PREC_C*)resultRunningVariance,
                       expAvgFactor,
@@ -635,7 +635,7 @@ MIOpenBatchNormFwdTrainSpatialFinalMeanVariance(
                       xgid);
 #endif
 
-#if (MIO_SAVE_MEAN_VARIANCE == 1)
+#if(MIO_SAVE_MEAN_VARIANCE == 1)
         saved_stash((global _FLOAT_PREC_C*)resultSaveMean,
                     (global _FLOAT_PREC_C*)resultSaveInvVariance,
                     mean,

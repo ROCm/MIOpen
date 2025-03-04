@@ -1035,7 +1035,7 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
         unsigned int xgrp_sz = get_local_size(0);
         unsigned int ygrp_sz = get_local_size(1);
 
-        lmean[xlid] = loadFromStash((__global _FLOAT_C*)dx_out,
+        lmean[xlid]   = loadFromStash((__global _FLOAT_C*)dx_out,
                                     0,
                                     ygrp_sz * ygrp_id * VEC_SIZE_Y,
                                     ystride / VEC_SIZE_X,
@@ -1043,7 +1043,7 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
                                     xgrp_id,
                                     xlid,
                                     xstride);
-        livar[xlid] = loadFromStash((__global _FLOAT_C*)dx_out,
+        livar[xlid]   = loadFromStash((__global _FLOAT_C*)dx_out,
                                     1,
                                     ygrp_sz * ygrp_id * VEC_SIZE_Y,
                                     ystride / VEC_SIZE_X,
