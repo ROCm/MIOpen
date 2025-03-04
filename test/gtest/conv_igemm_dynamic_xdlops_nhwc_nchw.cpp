@@ -81,11 +81,11 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         FAIL() << "miopenInt8, miopenBFloat16, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "miopenDouble, miopenFloat8_fnuz, miopenBFloat8_fnuz "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_nchw test";
     }
 
@@ -111,7 +111,7 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
-    const auto target   = handle.GetTargetProperties();
+    const auto& target  = handle.GetTargetProperties();
     std::string devName = handle.GetDeviceName();
     if(target.Xnack() && *target.Xnack())
         return false;

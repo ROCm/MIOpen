@@ -1232,10 +1232,14 @@ main_loop:
         .if slot == 0
             loop_entrance:
         .endif
+        .noaltmacro
         normalize_nchw_idx_u16 v[vcur_n], v[vcur_c], v[vcur_th], v[vcur_tw], v[vtmp]
+        .altmacro
         v_cmp_lt_u32 vcc, v[vcur_n], s[NK]
         _s_cbranch vccz, set_epilogue_state, %slot
+        .noaltmacro
         compute_voff v[voff_d], v[voff_o], v[vcur_w], v[vcur_n], v[vcur_c], v[vcur_th], v[vcur_tw], v[vtmp]
+        .altmacro
         _s_branch skip_frontend, %slot
 
 label set_epilogue_state, %slot
