@@ -34,7 +34,7 @@
 #include <miopen/convolution.hpp> // MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL
 #include <miopen/env.hpp>
 #include <miopen/env_debug.hpp>
-#include <miopen/errors.hpp> // MIOPEN_THROW
+#include <miopen/errors.hpp>                  // MIOPEN_THROW
 #include <miopen/generic_search_controls.hpp> // MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, MIOPEN_COMPILE_PARALLEL_LEVEL
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
@@ -68,33 +68,26 @@ struct LibEnvVar
     template <class T>
     LibEnvVar(const T& var_in) : impl(std::make_shared<LibEnvVarImpl<T>>(var_in)){};
 
-    std::optional<std::string> Get() const
-    {
-        return impl->Get();
-    }
-    void Update(std::string_view value) const
-    {
-        impl->Update(value);
-    }
-    void Clear() const
-    {
-        impl->Clear();
-    }
+    std::optional<std::string> Get() const { return impl->Get(); }
+    void Update(std::string_view value) const { impl->Update(value); }
+    void Clear() const { impl->Clear(); }
 
 private:
     struct LibEnvVarBase
     {
         virtual ~LibEnvVarBase(){};
-        virtual std::optional<std::string> Get() const = 0;
+        virtual std::optional<std::string> Get() const    = 0;
         virtual void Update(std::string_view value) const = 0;
-        virtual void Clear() const = 0;
+        virtual void Clear() const                        = 0;
     };
 
     template <class T>
     struct LibEnvVarImpl : LibEnvVarBase
     {
         using value_type = T::value_type;
-        static_assert(std::is_same_v<value_type, bool> || std::is_same_v<value_type, unsigned long long> || std::is_same_v<value_type, std::string>);
+        static_assert(std::is_same_v<value_type, bool> ||
+                      std::is_same_v<value_type, unsigned long long> ||
+                      std::is_same_v<value_type, std::string>);
 
         LibEnvVarImpl(const T& var_in) : var(var_in){};
 
@@ -128,10 +121,13 @@ private:
             else if constexpr(std::is_same_v<value_type, unsigned long long>)
             {
                 unsigned long long ullvalue;
-                const auto res = std::from_chars(value.data(), value.data() + value.size(), ullvalue);
-                if(res.ec == std::errc::invalid_argument || res.ec == std::errc::result_out_of_range)
+                const auto res =
+                    std::from_chars(value.data(), value.data() + value.size(), ullvalue);
+                if(res.ec == std::errc::invalid_argument ||
+                   res.ec == std::errc::result_out_of_range)
                 {
-                    MIOPEN_THROW(miopenStatusInvalidValue, "Invalid value for env variable: " + value);
+                    MIOPEN_THROW(miopenStatusInvalidValue,
+                                 "Invalid value for env variable: " + value);
                 }
                 miopen::env::update(var, ullvalue);
             }
@@ -141,15 +137,12 @@ private:
             }
         }
 
-        void Clear() const
-        {
-            miopen::env::clear(var);
-        }
+        void Clear() const { miopen::env::clear(var); }
 
     private:
         const T& var;
     };
-    
+
     const std::shared_ptr<LibEnvVarBase> impl;
 };
 
@@ -202,10 +195,7 @@ void UpdateEnvVariable(std::string_view name, std::string_view value)
     FindEnvVariable(name).Update(value);
 }
 
-void ClearEnvVariable(std::string_view name)
-{
-    FindEnvVariable(name).Clear();
-}
+void ClearEnvVariable(std::string_view name) { FindEnvVariable(name).Clear(); }
 
 } // namespace env
 } // namespace debug

@@ -38,15 +38,15 @@ struct LibEnvVar
 {
     constexpr LibEnvVar(std::string_view name_in) : name(name_in) {}
 
-    explicit operator bool() const
-    {
-        return miopen::debug::env::GetEnvVariable(name).has_value();
-    }
+    explicit operator bool() const { return miopen::debug::env::GetEnvVariable(name).has_value(); }
 
     std::string_view name;
 };
 
-template <class T, std::enable_if_t<std::is_same_v<T, bool> || std::is_same_v<T, std::string> || std::is_same_v<T, std::uint64_t>, bool> = true>
+template <class T,
+          std::enable_if_t<std::is_same_v<T, bool> || std::is_same_v<T, std::string> ||
+                               std::is_same_v<T, std::uint64_t>,
+                           bool> = true>
 inline T value(const LibEnvVar& env)
 {
     const auto value = miopen::debug::env::GetEnvVariable(env.name);
@@ -63,10 +63,12 @@ inline T value(const LibEnvVar& env)
     else if constexpr(std::is_same_v<T, std::uint64_t>)
     {
         std::uint64_t ullvalue;
-        const auto res = std::from_chars(value.value().data(), value.value().data() + value.value().size(), ullvalue);
+        const auto res = std::from_chars(
+            value.value().data(), value.value().data() + value.value().size(), ullvalue);
         if(res.ec == std::errc::invalid_argument || res.ec == std::errc::result_out_of_range)
         {
-            MIOPEN_THROW(miopenStatusInvalidValue, "Invalid value for env variable: " + value.value());
+            MIOPEN_THROW(miopenStatusInvalidValue,
+                         "Invalid value for env variable: " + value.value());
         }
         return ullvalue;
     }
@@ -86,20 +88,11 @@ inline void update(const LibEnvVar& env, std::uint64_t value)
     update(env, std::to_string(value));
 }
 
-inline void update(const LibEnvVar& env, int value)
-{
-    update(env, std::to_string(value));
-}
+inline void update(const LibEnvVar& env, int value) { update(env, std::to_string(value)); }
 
-inline void update(const LibEnvVar& env, bool value)
-{
-    update(env, value ? 1 : 0);
-}
+inline void update(const LibEnvVar& env, bool value) { update(env, value ? 1 : 0); }
 
-inline void clear(const LibEnvVar& env)
-{
-    miopen::debug::env::ClearEnvVariable(env.name);
-}
+inline void clear(const LibEnvVar& env) { miopen::debug::env::ClearEnvVariable(env.name); }
 
 } // namespace lib_env
 
