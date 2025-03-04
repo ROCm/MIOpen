@@ -47,6 +47,9 @@ bool BnFwdTrainingSpatialMultiple::IsApplicable(
        problem.GetMode() != miopenBNSpatial)
         return false;
 
+    if(!IsOCLFwdTrainTypeValid(problem))
+        return false;
+
     return !BnFwdTrainingSpatialSingle{}.IsApplicable(context, problem);
 }
 
@@ -55,7 +58,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
 {
     const auto& handle                 = context.GetStream();
     const auto& xDesc                  = problem.GetXDesc();
-    const auto& bnScaleBiasMeanVarDesc = problem.GetBnScaleBiasMeanVarDesc();
+    const auto& bnScaleBiasMeanVarDesc = problem.GetBnScale();
 
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
@@ -75,9 +78,10 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
     size_t xgridsize = c * xlocalsize;
     size_t ygridsize = 1;
 
-    bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
+    bool bfpmixparm   = false;
+    bool bbfpmixparam = false;
+    bool bfp16parm    = false;
+    bool bfp32parm    = true;
     if(xDesc.GetType() == miopenHalf && bnScaleBiasMeanVarDesc.GetType() == miopenHalf)
     {
         bfp16parm = true;
@@ -87,6 +91,12 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
     {
         bfpmixparm = true;
         bfp32parm  = false;
+    }
+    else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
+            problem.GetBnScale().GetType() == miopenFloat)
+    {
+        bbfpmixparam = true;
+        bfp32parm    = false;
     }
 
     int variant           = 1;
@@ -161,6 +171,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+            {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
             {"MIO_SAVE_MEAN_VARIANCE", static_cast<int>(problem.GetResultSave())},
             {"MIO_RUNNING_RESULT", static_cast<int>(problem.GetResultRunning())},
             {"MIO_BN_N", n},
@@ -178,6 +189,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_GRP2", zlocalsize},
             {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
+            {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
         };
 
@@ -207,7 +219,7 @@ ConvSolution BnFwdTrainingSpatialMultiple::GetSolution(
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InvokeParams>();
+            decltype(auto) params = raw_params.CastTo<miopen::batchnorm::FwdTrainInvokeParams>();
             const auto resultsave =
                 params.resultSaveMean != nullptr && params.resultSaveInvVariance != nullptr;
             const auto resultrunning =

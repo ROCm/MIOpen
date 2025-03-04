@@ -38,13 +38,12 @@ auto GetTestCases()
     // However we still want to check that solver is not broken and therefore use
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS=1 to enable it.
     const auto env_bwd = std::tuple{
-        std::pair{ENV(MIOPEN_FIND_ENFORCE), std::string_view("SEARCH_DB_UPDATE")},
-        std::pair{ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX), std::string_view("5")},
-        std::pair{ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS), std::string_view("1")},
-        std::pair{ENV(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL), std::string_view("0")},
-        std::pair{ENV(MIOPEN_FIND_MODE), std::string_view("normal")},
-        std::pair{ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-                  std::string_view("ConvHipImplicitGemmBwdDataV1R1Xdlops")}};
+        std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
+        std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+        std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS, true},
+        std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+        std::pair{MIOPEN_FIND_MODE, "normal"},
+        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmBwdDataV1R1Xdlops"}};
 
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";
 
@@ -66,23 +65,23 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningV1R1XFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningV1R1X_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dTuningV1R1XHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningV1R1X_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dTuningV1R1XBf16 : public Bf16TestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningV1R1X_BFP16 : public Bf16TestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningV1R1XFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
+TEST_P(GPU_Conv2dTuningV1R1X_FP32, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningV1R1XFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningV1R1X_FP32>(tuning_check);
     }
     else
     {
@@ -90,11 +89,11 @@ TEST_P(Conv2dTuningV1R1XFloat, FloatTest_smoke_solver_ConvHipImplicitGemmBwdData
     }
 };
 
-TEST_P(Conv2dTuningV1R1XHalf, HalfTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
+TEST_P(GPU_Conv2dTuningV1R1X_FP16, HalfTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningV1R1XHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningV1R1X_FP16>(tuning_check);
     }
     else
     {
@@ -102,11 +101,11 @@ TEST_P(Conv2dTuningV1R1XHalf, HalfTest_smoke_solver_ConvHipImplicitGemmBwdDataV1
     }
 };
 
-TEST_P(Conv2dTuningV1R1XBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
+TEST_P(GPU_Conv2dTuningV1R1X_BFP16, Bf16Test_smoke_solver_ConvHipImplicitGemmBwdDataV1R1Xdlops)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningV1R1XBf16>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningV1R1X_BFP16>(tuning_check);
     }
     else
     {
@@ -114,14 +113,8 @@ TEST_P(Conv2dTuningV1R1XBf16, Bf16Test_smoke_solver_ConvHipImplicitGemmBwdDataV1
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmBwdDataV1R1Xdlops,
-                         Conv2dTuningV1R1XFloat,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningV1R1X_FP32, testing::Values(GetTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmBwdDataV1R1Xdlops,
-                         Conv2dTuningV1R1XHalf,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningV1R1X_FP16, testing::Values(GetTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvHipImplicitGemmBwdDataV1R1Xdlops,
-                         Conv2dTuningV1R1XBf16,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningV1R1X_BFP16, testing::Values(GetTestCases()));

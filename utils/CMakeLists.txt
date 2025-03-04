@@ -25,7 +25,6 @@
 ################################################################################
 
 if( NOT ENABLE_ASAN_PACKAGING AND NOT WIN32 )
-  install(FILES install_precompiled_kernels.sh
-      PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-      DESTINATION ${CMAKE_INSTALL_BINDIR})
+  install(PROGRAMS install_precompiled_kernels.sh
+      DESTINATION ${CMAKE_INSTALL_LIBEXECDIR}/${MIOPEN_INSTALL_DIR})
 endif()

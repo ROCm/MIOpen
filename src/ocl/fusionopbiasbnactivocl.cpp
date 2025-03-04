@@ -30,17 +30,6 @@
 
 namespace miopen {
 
-namespace fusion {
-
-bool IsWinograd(const std::vector<solver::AnySolver>& ss)
-{
-    assert(ss.size() == 1);
-    auto solverId = ss[0].GetSolverDbId();
-    return (solverId == "ConvBinWinogradRxSFused" || solverId == "ConvBinWinogradRxSf2x3g1Fused");
-}
-
-} // namespace fusion
-
 miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::ostringstream& /*network_config*/)
 {
     return miopenStatusSuccess;

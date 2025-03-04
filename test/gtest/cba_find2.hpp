@@ -46,7 +46,7 @@ template <typename T = float>
 struct ConvBiasActivInferFind2Test
     : public ::testing::TestWithParam<
           std::tuple<miopenActivationMode_t, ConvTestCaseBase, miopenTensorLayout_t>>,
-      ConvFwdSolverTestBase<T>
+      ConvFwdSolverTestBase<T, T>
 {
 protected:
     ConvTestCaseBase conv_config;
@@ -69,7 +69,7 @@ protected:
     miopen::FusedProblem fused_problem;
     miopen::AnyInvokeParams invoke_params;
 
-    using cfsb = ConvFwdSolverTestBase<T>;
+    using cfsb = ConvFwdSolverTestBase<T, T>;
 
     void SetUp() override
     {

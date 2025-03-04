@@ -27,9 +27,7 @@
 #ifndef MIOPEN_GUARD_MLOPEN_FUSION_OPS_HPP
 #define MIOPEN_GUARD_MLOPEN_FUSION_OPS_HPP
 
-#include <string>
-#include <unordered_map>
-#include <vector>
+#include <ostream>
 #include <boost/any.hpp>
 
 namespace miopen {
@@ -47,34 +45,8 @@ enum miopenFusionOp_t
     miopenFusionOpTensorScaleAdd     = 7,
 };
 
-enum MDGraph_op_t
-{
-    OpEqual,    // of the same type and equal
-    OpNotEqual, // Not Equal
-    OpAny,      // Dont care, used for metadata
-    OpModulo,   // op_val.val % edg_val.val == edg_val.result (only supported for ints)
-    OpGTE,      // op_val.val >= edg_val.val (only supported for ints)
-    OpLTE,      // op_val.val <= edg_val.val (only supported for ints)
-    OpEval,     // Evaluate the string expression
-    OpAdd,
-    OpSub,
-    OpMul,
-    OpDiv,
-    OpPow,
-    OpAnd,
-    OpOr,
-    OpCeil,
-    OpAssign,
-    OpGT,
-    OpLT,
-};
-
-std::ostream& operator<<(std::ostream& stream, const MDGraph_op_t& o);
 std::ostream& operator<<(std::ostream& stream, const boost::any& a);
 
-// using FusionMDGraph_Op_Map       = std::unordered_map<std::string, EdgeOp>;
-using FusionMDGraph_Edge_Map     = std::unordered_map<std::string, std::vector<std::string>>;
-using FusionMDGraph_Edge_Map_Vec = std::vector<FusionMDGraph_Edge_Map>;
 } // namespace miopen
 
 #endif

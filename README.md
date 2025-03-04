@@ -2,9 +2,10 @@
 
 MIOpen is AMD's library for high-performance machine learning primitives.
 
-You can find sources and binaries in our [GitHub repository](https://github.com/ROCm/MIOpen) and
-our documentation on
-[ROCm docs](https://rocm.docs.amd.com/projects/MIOpen/en/latest/index.html).
+You can find sources and binaries in our [GitHub repository](https://github.com/ROCm/MIOpen).
+
+> [!NOTE]
+> The published MIOpen documentation is available at [MIOpen](https://rocm.docs.amd.com/projects/MIOpen/en/latest/index.html) in an organized, easy-to-read format, with search and a table of contents. The documentation source files reside in the MIOpen/docs folder of this repository. As with all ROCm projects, the documentation is open source. For more information, see [Contribute to ROCm documentation](https://rocm.docs.amd.com/en/latest/contribute/contributing.html).
 
 MIOpen supports these programming models (backends):
 
@@ -45,6 +46,9 @@ To install MIOpen, you must first install these prerequisites:
   (BLAS) on the ROCm platform.
   * Minimum version branch for pre-ROCm 3.5 [master-rocm-2.10](https://github.com/ROCm/rocBLAS/tree/master-rocm-2.10)
   * Minimum version branch for post-ROCm 3.5 [master-rocm-3.5](https://github.com/ROCm/rocBLAS/tree/master-rocm-3.5)
+* [hipBLASLt](https://github.com/ROCm/hipBLASLt): AMD's flexible Basic Linear Algebra Subprograms
+  (BLAS) API.
+* [hipBLAS](https://github.com/ROCm/hipBLAS): AMD's (BLAS) marshalling library.
 * [Multi-Level Intermediate Representation (MLIR)](https://github.com/ROCm/rocMLIR) with its
   MIOpen dialect to support and complement kernel development
 * [Composable Kernel](https://github.com/ROCm/composable_kernel): A C++ templated device library
@@ -74,11 +78,10 @@ kernels don't reduce startup time on subsequent runs.
 To install the kernels package for your GPU architecture, use the following command:
 
 ``` shell
-apt-get install miopenkernels-<arch>-<num cu>
+apt-get install miopen-hip-<arch>kdb
 ```
 
-Where ``<arch>`` is the GPU architecture (e.g., `gfx900`, `gfx906`, `gfx1030` ) and `<num cu>` is the
-number of CUs available in the GPU (e.g., `56`, `64`).
+Where ``<arch>`` is the GPU architecture (e.g., `gfx900`, `gfx906`, `gfx1030` ).
 
 >[!NOTE]
 >Not installing these packages doesn't impact the functioning of MIOpen, since MIOpen compiles
@@ -120,6 +123,12 @@ You can use this prefix to specify the dependency path during the configuration 
 MIOpen's HIP backend uses [rocBLAS](https://github.com/ROCm/rocBLAS) by default. You can install
 rocBLAS' minimum release using `apt-get install rocblas`. To disable rocBLAS, set the configuration flag
 `-DMIOPEN_USE_ROCBLAS=Off`. rocBLAS is **not** available with OpenCL.
+
+MIOpen's HIP backend can use [hipBLASLt](https://github.com/ROCm/hipBLASLt). You can install hipBLASLt's minimum
+release using ``apt-get install hipblaslt``. In addition to needing hipblaslt, you will also need to install [hipBLAS](https://github.com/ROCm/hipBLAS).
+You can install hipBLAS's minimum release using ``apt-get install hipblas``.
+To disable hipBLASLt, set the configuration flag ``-DMIOPEN_USE_HIPBLASLT=Off``.
+hipBLASLt is **not** available with OpenCL.
 
 ## Building MIOpen from source
 

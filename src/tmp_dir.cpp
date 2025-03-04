@@ -52,12 +52,12 @@ TmpDir::TmpDir(std::string_view prefix) : path{fs::temp_directory_path()}
 
 int TmpDir::Execute(std::string_view cmd, std::string_view args) const
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
+    if(env::enabled(MIOPEN_DEBUG_SAVE_TEMP_DIR))
     {
         MIOPEN_LOG_I2(path);
     }
     auto status = Process{cmd}(args, path);
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR)))
+    if(env::enabled(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR))
     {
         MIOPEN_LOG_I2(status);
     }
@@ -66,7 +66,7 @@ int TmpDir::Execute(std::string_view cmd, std::string_view args) const
 
 TmpDir::~TmpDir()
 {
-    if(!miopen::IsEnabled(ENV(MIOPEN_DEBUG_SAVE_TEMP_DIR)))
+    if(!env::enabled(MIOPEN_DEBUG_SAVE_TEMP_DIR))
     {
 #ifdef _WIN32
         constexpr int remove_max_retries = 5;

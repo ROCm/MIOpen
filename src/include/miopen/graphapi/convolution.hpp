@@ -26,8 +26,9 @@
 #pragma once
 
 #include <miopen/graphapi/graphapi.hpp>
-#include <miopen/graphapi/operation.hpp>
+#include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/tensor.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <cstdint>
 
@@ -93,11 +94,25 @@ public:
     const std::vector<int64_t>& getPrePaddings() const noexcept { return mPrePaddings; }
     const std::vector<int64_t>& getPostPaddings() const noexcept { return mPostPaddings; }
 
+    friend void to_json(nlohmann::json& json, const Convolution& conv);
+    friend void from_json(const nlohmann::json& json, Convolution& conv);
+
+    struct JsonFields
+    {
+        static constexpr const char* SpatialDims   = "spatial_dims";
+        static constexpr const char* Dilations     = "dilations";
+        static constexpr const char* FilterStrides = "filter_dtrides";
+        static constexpr const char* PrePaddings   = "pre_paddings";
+        static constexpr const char* PostPaddings  = "post_paddings";
+        static constexpr const char* CompType      = "comp_type";
+        static constexpr const char* Mode          = "mode";
+    };
+
 private:
     friend class ConvolutionBuilder;
 };
 
-class ConvolutionBuilder
+class MIOPEN_INTERNALS_EXPORT ConvolutionBuilder
 {
 private:
     Convolution mConvolution;
@@ -174,7 +189,7 @@ private:
     bool validate() const;
 };
 
-class BackendConvolutionDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendConvolutionDescriptor : public BackendDescriptor
 {
 private:
     ConvolutionBuilder mBuilder;
@@ -291,6 +306,11 @@ public:
         : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
     }
+    virtual const std::string& signName() const override
+    {
+        static const std::string name = "OP_CONVOLUTION_FORWARD";
+        return name;
+    }
     virtual std::vector<Tensor*> getInTensors() const override { return {getX(), getW()}; }
     virtual std::vector<Tensor*> getOutTensors() const override { return {getY()}; }
 };
@@ -390,7 +410,7 @@ public:
     }
 };
 
-class BackendOperationConvolutionDescriptor : public BackendDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationConvolutionDescriptor : public BackendDescriptor
 {
 protected:
     miopenBackendDescriptor_t mConvolutionDescriptor = nullptr;
@@ -442,7 +462,8 @@ protected:
                  void* arrayOfElements);
 };
 
-class BackendOperationConvolutionForwardDescriptor : public BackendOperationConvolutionDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationConvolutionForwardDescriptor
+    : public BackendOperationConvolutionDescriptor
 {
 private:
     OperationConvolutionForwardBuilder mBuilder;
@@ -478,6 +499,11 @@ public:
                                      double beta) noexcept
         : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
+    }
+    virtual const std::string& signName() const override
+    {
+        static const std::string name = "OP_CONVOLUTION_BACKWARD_DATA";
+        return name;
     }
     virtual std::vector<Tensor*> getInTensors() const override { return {getW(), getY()}; }
     virtual std::vector<Tensor*> getOutTensors() const override { return {getX()}; }
@@ -528,7 +554,7 @@ public:
     }
 };
 
-class BackendOperationConvolutionBackwardDataDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationConvolutionBackwardDataDescriptor
     : public BackendOperationConvolutionDescriptor
 {
 private:
@@ -565,6 +591,11 @@ public:
                                        double beta) noexcept
         : OperationConvolution(convolution, x, w, y, alpha, beta)
     {
+    }
+    virtual const std::string& signName() const override
+    {
+        static const std::string name = "OP_CONVOLUTION_BACKWARD_FILTER";
+        return name;
     }
     virtual std::vector<Tensor*> getInTensors() const override { return {getX(), getY()}; }
     virtual std::vector<Tensor*> getOutTensors() const override { return {getW()}; }
@@ -615,7 +646,7 @@ public:
     }
 };
 
-class BackendOperationConvolutionBackwardFilterDescriptor
+class MIOPEN_INTERNALS_EXPORT BackendOperationConvolutionBackwardFilterDescriptor
     : public BackendOperationConvolutionDescriptor
 {
 private:

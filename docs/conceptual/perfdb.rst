@@ -29,7 +29,7 @@ found, they're stored in the User PerfDb. MIOpen then automatically reads and us
 values.
 
 By default, System PerfDb resides within MIOpen's install location, while User PerfDb resides in your
-home directory. See :ref:` setting up locations <setting-up-locations>` for more information.
+home directory. See :ref:`setting up locations <setting-up-locations>` for more information.
 
 System PerfDb is not modified during MIOpen installation.
 
@@ -54,6 +54,16 @@ In order for auto-tuning to begin, the following conditions must be met:
 You can override the latter two conditions by enforcing the search using the
 ``- MIOPEN_FIND_ENFORCE`` environment variable. You can also use this variable to remove values
 from User PerfDb, as described in the following section.
+
+To optimize performance, MIOpen provides several find modes to accelerate find API calls.
+These modes include:
+
+*  normal find
+*  fast find
+*  hybrid find
+*  dynamic hybrid find
+ 
+For more information about MIOpen find modes, see :ref:`Find modes <find_modes>`.
 
 Using MIOPEN_FIND_ENFORCE
 ----------------------------------------------------------------------------------------------------------
