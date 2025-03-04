@@ -38,7 +38,8 @@
 
 namespace miopen::env {
 
-// Some tests and also the MIOpenDriver use their own environment variables, so this needs to be exported
+// Some tests and also the MIOpenDriver use their own environment variables, so this needs to be
+// exported
 MIOPEN_EXPORT std::optional<std::string> getEnvironmentVariable(std::string_view name);
 
 namespace detail {
@@ -123,7 +124,8 @@ struct EnvVar
     }
     void clear()
     {
-        /// \note We only need to set the value of the internal variable, the real environment variable is not changed.
+        /// \note We only need to set the value of the internal variable, the real environment
+        /// variable is not changed.
         value_.reset();
     }
 
@@ -132,7 +134,8 @@ struct EnvVar
     template <typename U>
     void update(U value)
     {
-        /// \note We only need to set the value of the internal variable, the real environment variable is not changed.
+        /// \note We only need to set the value of the internal variable, the real environment
+        /// variable is not changed.
         value_ = value;
     }
     std::string_view name() const { return name_; }
