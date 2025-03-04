@@ -254,7 +254,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(make_targets: Smoke_targets, build_install: true)
@@ -269,7 +269,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, build_install: true)
@@ -321,7 +321,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     environment{
                         // Can be removed altogether with when WORKAROUND_SWDEV_290754.
                         NOCOMGR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
@@ -340,7 +340,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     environment{
                         // Can be removed altogether with when WORKAROUND_SWDEV_290754.
                         NOMLIR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
@@ -359,7 +359,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", make_targets: "", build_install: true)
@@ -392,7 +392,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF', build_install: true)
@@ -407,7 +407,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     environment{
                         make_targets = "test_conv2d"
                         execute_cmd = "bin/test_conv2d --disable-verification-cache"
@@ -426,7 +426,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     environment{
                         make_targets =   "test_conv2d"
                         execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4 bin/test_conv2d --disable-verification-cache"
@@ -445,7 +445,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot()
@@ -460,7 +460,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On", build_install: true)
@@ -475,7 +475,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: "-DMIOPEN_ENABLE_FIN_INTERFACE=On",
@@ -559,7 +559,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: true)
@@ -574,7 +574,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: true)
@@ -652,7 +652,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(lfs_pull: true,
@@ -724,7 +724,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: true)
@@ -799,7 +799,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Full_test)
@@ -916,7 +916,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx90a") }
+                    agent{ label rocmnode("gfx90a_disabled") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: true)
