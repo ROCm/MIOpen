@@ -47,6 +47,7 @@
 #include <chrono>
 #include <cassert>
 #include <random>
+#include <thread>
 
 namespace miopen {
 namespace solver {

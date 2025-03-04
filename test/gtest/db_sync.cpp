@@ -45,6 +45,7 @@
 #include <cstdlib>
 #include <regex>
 #include <exception>
+#include <thread>
 #include <unordered_set>
 
 /// \todo HACK
