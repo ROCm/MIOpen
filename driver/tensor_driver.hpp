@@ -167,30 +167,30 @@ inline int SetTensorNdVector(miopenTensorDescriptor_t t,
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                       std::vector<int> const& len,
+                       std::vector<int>& len,
                        miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), nullptr);
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                       std::vector<std::size_t> const& len,
+                       std::vector<std::size_t>& len,
                        miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptorV2(t, data_type, len.size(), len.data(), nullptr);
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                       std::vector<int> const& len,
-                       std::vector<int> const& strides,
+                       std::vector<int>& len,
+                       std::vector<int>& strides,
                        miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptor(t, data_type, len.size(), len.data(), strides.data());
 }
 
 inline int SetTensorNd(miopenTensorDescriptor_t t,
-                       std::vector<std::size_t> const& len,
-                       std::vector<std::size_t> const& strides,
+                       std::vector<std::size_t>& len,
+                       std::vector<std::size_t>& strides,
                        miopenDataType_t data_type = miopenFloat)
 {
     return miopenSetTensorDescriptorV2(t, data_type, len.size(), len.data(), strides.data());

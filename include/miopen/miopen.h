@@ -70,12 +70,9 @@
  * @defgroup SGD
  * @defgroup getitem
  * @defgroup ReduceCalculation
-<<<<<<< HEAD
- * @defgroup MaskedFill
-=======
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
->>>>>>> fc5b01209e13d0f093657e93b07f02c9d7c51fb7
+ * @defgroup MaskedFill
  *
  */
 
@@ -8200,13 +8197,12 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 
 MIOPEN_EXPORT miopenStatus_t miopenMaskedFillForward(const miopenHandle_t handle,
                                                      const miopenTensorDescriptor_t inputDesc,
-                                                     const miopenTensorDescriptor_t inputDesc,
                                                      const void* input,
                                                      const miopenTensorDescriptor_t outputDesc,
                                                      void* output,
                                                      const miopenTensorDescriptor_t maskDesc,
                                                      const void* mask,
-                                                     const float value);
+                                                     float value);
 
 /*! @brief Execute a masked fill backward layer
  *
@@ -8228,8 +8224,7 @@ miopenMaskedFillBackward(const miopenHandle_t handle,
                          const miopenTensorDescriptor_t inputGradientDesc,
                          void* inputGradient,
                          const miopenTensorDescriptor_t maskDesc,
-                         const void* mask,
-                         const float value);
+                         const void* mask);
 
 /** @} */
 // CLOSEOUT MASKEDFILL DOXYGEN GROUP

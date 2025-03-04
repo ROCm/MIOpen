@@ -24,8 +24,7 @@
  *
  *******************************************************************************/
 
-#ifndef MIOPEN_MASKEDFILL_HPP_
-#define MIOPEN_MASKEDFILL_HPP_
+#pragma once
 
 #include <miopen/common.hpp>
 
@@ -35,23 +34,20 @@ struct Handle;
 struct TensorDescriptor;
 
 miopenStatus_t MaskedFillForward(Handle& handle,
-                                 TensorDescriptor const& inputDesc,
+                                 const TensorDescriptor& inputDesc,
                                  ConstData_t input,
-                                 TensorDescriptor const& outputDesc,
+                                 const TensorDescriptor& outputDesc,
                                  Data_t output,
-                                 TensorDescriptor const& maskDesc,
+                                 const TensorDescriptor& maskDesc,
                                  ConstData_t mask,
                                  float value);
 
 miopenStatus_t MaskedFillBackward(Handle& handle,
-                                  TensorDescriptor const& outputGradientDesc,
-                                  ConstData_t outputGradient,
-                                  TensorDescriptor const& inputGradientDesc,
-                                  Data_t inputGradient,
-                                  TensorDescriptor const& maskDesc,
-                                  ConstData_t mask,
-                                  float value);
+                                  const TensorDescriptor& outputGradDesc,
+                                  ConstData_t outputGrad,
+                                  const TensorDescriptor& inputGradDesc,
+                                  Data_t inputGrad,
+                                  const TensorDescriptor& maskDesc,
+                                  ConstData_t mask);
 
 } // namespace miopen
-
-#endif

@@ -25,145 +25,80 @@
  *******************************************************************************/
 
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-#include <hip/hipf16.h>
+#include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #endif
 
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-template <typename T>
-__device__ void
-MaskedFillForwardContiguousImpl(T const* const __restrict__ input,
-                                T* const __restrict__ output,
-                                __hip_internal::int8_t const* const __restrict__ mask,
-                                T const value,
-                                unsigned long const numel)
+using int8_t = __hip_internal::int8_t;
+
+template <typename TIO>
+__device__ void MaskedFillForwardImpl(const TIO* input,
+                                      const int8_t* mask,
+                                      TIO* output,
+                                      tensor_view_t<5> input_tv,
+                                      tensor_view_t<5> mask_tv,
+                                      tensor_view_t<5> output_tv,
+                                      float value,
+                                      uint64_t numel)
 {
-    uint64_t const gid = blockIdx.x * blockDim.x + threadIdx.x;
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= numel)
         return;
-    output[gid] = mask[gid] ? value : input[gid];
-}
-extern "C" __global__ void
-MaskedFillForwardContiguous(FLOAT const* const __restrict__ input,
-                            FLOAT* const __restrict__ output,
-                            __hip_internal::int8_t const* const __restrict__ mask,
-                            float const value,
-                            unsigned long const numel)
-{
-    MaskedFillForwardContiguousImpl<FLOAT>(input,
-                                           output,
-                                           mask,
-#if MIOPEN_USE_BFP16
-                                           float_to_bfloat16(value),
-#else
-                                           value,
-#endif
-                                           numel);
-}
 
-template <typename T>
-__device__ void
-MaskedFillBackwardContiguousImpl(T const* const __restrict__ output_gradient,
-                                 T* const __restrict__ input_gradient,
-                                 __hip_internal::int8_t const* const __restrict__ mask,
-                                 unsigned long const numel)
-{
-    const uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    if(gid >= numel)
-        return;
-    input_gradient[gid] = mask[gid] ? static_cast<T>(0) : output_gradient[gid];
-}
-extern "C" __global__ void
-MaskedFillBackwardContiguous(FLOAT const* const __restrict__ output_gradient,
-                             FLOAT* const __restrict__ input_gradient,
-                             __hip_internal::int8_t const* const __restrict__ mask,
-                             float const value,
-                             unsigned long const numel)
-{
-    MaskedFillBackwardContiguousImpl<FLOAT>(output_gradient, input_gradient, mask, numel);
-}
+    tensor_layout_t<5> output_layout{output_tv, gid};
+    tensor_layout_t<5> input_layout{input_tv, gid};
+    tensor_layout_t<5> mask_layout{mask_tv, gid};
 
-template <typename T>
-__device__ void MaskedFillForwardImpl(T const* const __restrict__ input,
-                                      tensor_view_t<5> const input_tensor_view,
-                                      T* const __restrict__ output,
-                                      tensor_view_t<5> const output_tensor_view,
-                                      __hip_internal::int8_t const* const __restrict__ mask,
-                                      tensor_view_t<5> const mask_tensor_view,
-                                      T const value,
-                                      unsigned long const numel)
-{
-    uint64_t const gid = blockIdx.x * blockDim.x + threadIdx.x;
-    tensor_layout_t output_tensor_layout{output_tensor_view, gid};
-    if(output_tensor_layout.layout[0] >= output_tensor_view.size[0])
-        return;
-    tensor_layout_t input_tensor_layout{input_tensor_view, gid};
-    tensor_layout_t mask_tensor_layout{mask_tensor_view, gid};
-    output[output_tensor_view.get_tensor_view_idx(output_tensor_layout)] =
-        mask[mask_tensor_view.get_tensor_view_idx(mask_tensor_layout)]
+    output[output_tv.get_tensor_view_idx(output_layout)] =
+        mask[mask_tv.get_tensor_view_idx(mask_layout)]
             ? value
-            : input[input_tensor_view.get_tensor_view_idx(input_tensor_layout)];
-}
-extern "C" __global__ void MaskedFillForward(FLOAT const* const __restrict__ input,
-                                             tensor_view_t<5> const input_tensor_view,
-                                             FLOAT* const __restrict__ output,
-                                             tensor_view_t<5> const output_tensor_view,
-                                             __hip_internal::int8_t const* const __restrict__ mask,
-                                             tensor_view_t<5> const mask_tensor_view,
-                                             float const value,
-                                             unsigned long const numel)
-{
-    MaskedFillForwardImpl<FLOAT>(input,
-                                 input_tensor_view,
-                                 output,
-                                 output_tensor_view,
-                                 mask,
-                                 mask_tensor_view,
-#if MIOPEN_USE_BFP16
-                                 float_to_bfloat16(value),
-#else
-                                 value,
-#endif
-                                 numel);
+            : input[input_tv.get_tensor_view_idx(input_layout)];
 }
 
-template <typename T>
-__device__ void MaskedFillBackwardImpl(T const* const __restrict__ output_gradient,
-                                       tensor_view_t<5> const output_gradient_tensor_view,
-                                       T* const __restrict__ input_gradient,
-                                       tensor_view_t<5> const input_gradient_tensor_view,
-                                       __hip_internal::int8_t const* const __restrict__ mask,
-                                       tensor_view_t<5> const mask_tensor_view,
-                                       unsigned long const numel)
+extern "C" __global__ void MaskedFillForward(const IO_TYPE* input,
+                                             const int8_t* mask,
+                                             IO_TYPE* output,
+                                             tensor_view_t<5> input_tv,
+                                             tensor_view_t<5> mask_tv,
+                                             tensor_view_t<5> output_tv,
+                                             float value,
+                                             uint64_t numel)
 {
-    const uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    tensor_layout_t input_gradient_tensor_layout{input_gradient_tensor_view, gid};
-    if(input_gradient_tensor_layout.layout[0] >= input_gradient_tensor_view.size[0])
-        return;
-    tensor_layout_t output_gradient_tensor_layout{output_gradient_tensor_view, gid};
-    tensor_layout_t mask_tensor_layout{mask_tensor_view, gid};
-    input_gradient[input_gradient_tensor_view.get_tensor_view_idx(input_gradient_tensor_layout)] =
-        mask[mask_tensor_view.get_tensor_view_idx(mask_tensor_layout)]
-            ? static_cast<T>(0)
-            : output_gradient[output_gradient_tensor_view.get_tensor_view_idx(
-                  output_gradient_tensor_layout)];
+    MaskedFillForwardImpl<IO_TYPE>(input, mask, output, input_tv, mask_tv, output_tv, value, numel);
 }
-extern "C" __global__ void MaskedFillBackward(FLOAT const* const __restrict__ output_gradient,
-                                              tensor_view_t<5> const output_gradient_tensor_view,
-                                              FLOAT* const __restrict__ input_gradient,
-                                              tensor_view_t<5> const input_gradient_tensor_view,
-                                              __hip_internal::int8_t const* const __restrict__ mask,
-                                              tensor_view_t<5> const mask_tensor_view,
-                                              float const value,
-                                              unsigned long const numel)
+
+template <typename TIO>
+__device__ void MaskedFillBackwardImpl(const TIO* output_grad,
+                                       const int8_t* mask,
+                                       TIO* input_grad,
+                                       tensor_view_t<5> output_grad_tv,
+                                       tensor_view_t<5> mask_tv,
+                                       tensor_view_t<5> input_grad_tv,
+                                       uint64_t numel)
 {
-    MaskedFillBackwardImpl<FLOAT>(output_gradient,
-                                  output_gradient_tensor_view,
-                                  input_gradient,
-                                  input_gradient_tensor_view,
-                                  mask,
-                                  mask_tensor_view,
-                                  numel);
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if(gid >= numel)
+        return;
+
+    tensor_layout_t<5> input_grad_layout{input_grad_tv, gid};
+    tensor_layout_t<5> output_grad_layout{output_grad_tv, gid};
+    tensor_layout_t<5> mask_layout{mask_tv, gid};
+    input_grad[input_grad_tv.get_tensor_view_idx(input_grad_layout)] =
+        mask[mask_tv.get_tensor_view_idx(mask_layout)]
+            ? static_cast<TIO>(0)
+            : output_grad[output_grad_tv.get_tensor_view_idx(output_grad_layout)];
+}
+extern "C" __global__ void MaskedFillBackward(const IO_TYPE* output_grad,
+                                              const int8_t* mask,
+                                              IO_TYPE* input_grad,
+                                              tensor_view_t<5> output_grad_tv,
+                                              tensor_view_t<5> mask_tv,
+                                              tensor_view_t<5> input_grad_tv,
+                                              uint64_t numel)
+{
+    MaskedFillBackwardImpl<IO_TYPE>(
+        output_grad, mask, input_grad, output_grad_tv, mask_tv, input_grad_tv, numel);
 }

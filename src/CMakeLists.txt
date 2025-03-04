@@ -314,7 +314,8 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/layernorm/forward_t5layernorm.cpp
-    solver/maskedfill/maskedfill.cpp
+    solver/maskedfill/backward_maskedfill.cpp
+    solver/maskedfill/forward_maskedfill.cpp
     solver/mha/mha_ck_fa_v2_solver_forward.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp

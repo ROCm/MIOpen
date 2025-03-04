@@ -24,45 +24,11 @@
  *
  *******************************************************************************/
 
-#include <miopen/maskedfill.hpp>
-
-#include <miopen/logger.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
-
-static void LogCmdMaskedFill(miopenTensorDescriptor_t const outputDesc, bool const is_fwd)
-{
-    if(miopen::IsLoggingCmd())
-    {
-        std::stringstream ss;
-
-        auto const dtype = miopen::deref(outputDesc).GetType();
-        if(dtype == miopenFloat)
-            ss << "maskedfillfp32";
-        else if(dtype == miopenHalf)
-            ss << "maskedfillfp16";
-        else if(dtype == miopenBFloat16)
-            ss << "maskedfillbfp16";
-
-        auto size = 0;
-        miopenGetTensorDescriptorSize(outputDesc, &size);
-        if(size >= 1)
-            ss << " -n " << miopen::deref(outputDesc).GetLengths()[0];
-        if(size >= 2)
-            ss << " -c " << miopen::deref(outputDesc).GetLengths()[1];
-        if(size >= 3)
-            ss << " -D " << miopen::deref(outputDesc).GetLengths()[2];
-        if(size >= 4)
-            ss << " -H " << miopen::deref(outputDesc).GetLengths()[3];
-        if(size >= 5)
-            ss << " -W " << miopen::deref(outputDesc).GetLengths()[4];
-
-        ss << " -F " << (is_fwd ? "1" : "2");
-
-        MIOPEN_LOG_DRIVER_CMD(ss.str());
-    }
-}
+#include <miopen/logger.hpp>
+#include <miopen/maskedfill.hpp>
+#include <miopen/tensor.hpp>
 
 extern "C" miopenStatus_t miopenMaskedFillForward(const miopenHandle_t handle,
                                                   const miopenTensorDescriptor_t inputDesc,
@@ -71,10 +37,9 @@ extern "C" miopenStatus_t miopenMaskedFillForward(const miopenHandle_t handle,
                                                   void* output,
                                                   const miopenTensorDescriptor_t maskDesc,
                                                   const void* mask,
-                                                  const float value)
+                                                  float value)
 {
     MIOPEN_LOG_FUNCTION(handle, inputDesc, input, outputDesc, output, maskDesc, mask, value);
-    LogCmdMaskedFill(outputDesc, true);
     return miopen::try_([&] {
         miopen::MaskedFillForward(miopen::deref(handle),
                                   miopen::deref(inputDesc),
@@ -94,8 +59,7 @@ miopenMaskedFillBackward(const miopenHandle_t handle,
                          const miopenTensorDescriptor_t inputGradientDesc,
                          void* inputGradient,
                          const miopenTensorDescriptor_t maskDesc,
-                         const void* mask,
-                         const float value)
+                         const void* mask)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         outputGradientDesc,
@@ -103,9 +67,7 @@ miopenMaskedFillBackward(const miopenHandle_t handle,
                         inputGradientDesc,
                         inputGradient,
                         maskDesc,
-                        mask,
-                        value);
-    LogCmdMaskedFill(inputGradientDesc, false);
+                        mask);
     return miopen::try_([&] {
         miopen::MaskedFillBackward(miopen::deref(handle),
                                    miopen::deref(outputGradientDesc),
@@ -113,7 +75,6 @@ miopenMaskedFillBackward(const miopenHandle_t handle,
                                    miopen::deref(inputGradientDesc),
                                    DataCast(inputGradient),
                                    miopen::deref(maskDesc),
-                                   DataCast(mask),
-                                   value);
+                                   DataCast(mask));
     });
 }

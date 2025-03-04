@@ -27,28 +27,45 @@
 #pragma once
 
 #include <miopen/invoke_params.hpp>
+#include <miopen/tensor.hpp>
 
-namespace miopen::maskedfill {
+namespace miopen {
 
-struct InvokeParams : miopen::InvokeParams
+namespace maskedfill {
+
+struct FwdInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    FwdInvokeParams() = default;
 
-    TensorDescriptor const* inputDesc  = nullptr;
-    ConstData_t input                  = nullptr;
-    TensorDescriptor const* outputDesc = nullptr;
-    Data_t output                      = nullptr;
+    const TensorDescriptor* inputDesc  = nullptr;
+    const TensorDescriptor* outputDesc = nullptr;
+    const TensorDescriptor* maskDesc   = nullptr;
 
-    TensorDescriptor const* maskDesc = nullptr;
-    ConstData_t mask                 = nullptr;
+    ConstData_t input = nullptr;
+    Data_t output     = nullptr;
+    ConstData_t mask  = nullptr;
+    float value       = 0.0f;
 
-    float value = 0;
-
-    Data_t workspace = nullptr;
-    Data_t GetWorkspace() const { return workspace; }
-
-    std::size_t workspace_size = 0;
-    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
 };
 
-} // namespace miopen::maskedfill
+struct BwdInvokeParams : public miopen::InvokeParams
+{
+    BwdInvokeParams() = default;
+
+    const TensorDescriptor* inputGradDesc  = nullptr;
+    const TensorDescriptor* outputGradDesc = nullptr;
+    const TensorDescriptor* maskDesc       = nullptr;
+
+    ConstData_t outputGrad = nullptr;
+    Data_t inputGrad       = nullptr;
+    ConstData_t mask       = nullptr;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+} // namespace maskedfill
+
+} // namespace miopen

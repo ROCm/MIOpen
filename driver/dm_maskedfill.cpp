@@ -30,11 +30,11 @@
 static Driver* makeDriver(std::string const& base_arg)
 {
     if(base_arg == "maskedfill")
-        return new MaskedFillDriver<float>{};
+        return new MaskedFillDriver<float, float>{};
     if(base_arg == "maskedfillfp16")
-        return new MaskedFillDriver<float16>();
+        return new MaskedFillDriver<float16, float>();
     if(base_arg == "maskedfillbfp16")
-        return new MaskedFillDriver<bfloat16>();
+        return new MaskedFillDriver<bfloat16, float>();
     return nullptr;
 }
 

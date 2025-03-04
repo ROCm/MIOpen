@@ -26,27 +26,47 @@
 
 #pragma once
 
-#include <miopen/solver.hpp>
 #include <miopen/maskedfill/problem_description.hpp>
+#include <miopen/solver.hpp>
 
-namespace miopen::solver::maskedfill {
+namespace miopen {
 
-// The (known) infimums of the `numel`s in which there wasn't an improvement, by dtype, contiguity,
-// and direction
-constexpr auto float32_contiguous_fwd_infimum  = 524288;
-constexpr auto float16_contiguous_fwd_infimum  = 4194304;
-constexpr auto bfloat16_contiguous_fwd_infimum = 4194304;
-constexpr auto noncontiguous_fwd_infimum       = 1089000;
+namespace solver {
 
-using MaskedFillSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::maskedfill::ProblemDescription>;
-struct MaskedFill : MaskedFillSolver
+namespace maskedfill {
+
+using MaskedFillForwardSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::maskedfill::FwdProblemDescription>;
+
+struct MaskedFillForward : MaskedFillForwardSolverBase
 {
-    std::string const& SolverDbId() const override { return GetSolverDbId<MaskedFill>(); }
-    bool IsApplicable(ExecutionContext const& context,
-                      miopen::maskedfill::ProblemDescription const& problem) const override;
-    ConvSolution GetSolution(ExecutionContext const& context,
-                             miopen::maskedfill::ProblemDescription const& problem) const override;
+    const std::string& SolverDbId() const override { return GetSolverDbId<MaskedFillForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::maskedfill::FwdProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::maskedfill::FwdProblemDescription& problem) const override;
 };
 
-} // namespace miopen::solver::maskedfill
+using MaskedFillBackwardSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::maskedfill::BwdProblemDescription>;
+
+struct MaskedFillBackward : MaskedFillBackwardSolverBase
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<MaskedFillBackward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::maskedfill::BwdProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::maskedfill::BwdProblemDescription& problem) const override;
+};
+
+} // namespace maskedfill
+
+} // namespace solver
+
+} // namespace miopen

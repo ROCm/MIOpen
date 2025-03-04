@@ -26,22 +26,34 @@
 
 #include <miopen/maskedfill/problem_description.hpp>
 
-namespace miopen::maskedfill {
+namespace miopen {
 
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+namespace maskedfill {
+
+NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
     std::ostringstream ss;
     auto const dtype = outputDesc.GetType();
     auto const numel = outputDesc.GetElementSize();
+    ss << "maskedfillfwd";
     ss << "dtype" << dtype;
     ss << "numel" << numel;
-    if(IsAllContiguous())
-        ss << "contiguous";
-    if(IsBackward())
-        ss << "backward";
-    else
-        ss << "forward";
+
     return NetworkConfig{ss.str()};
 }
 
-} // namespace miopen::maskedfill
+NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
+{
+    std::ostringstream ss;
+    auto const dtype = outputGradDesc.GetType();
+    auto const numel = outputGradDesc.GetElementSize();
+    ss << "maskedfillbwd";
+    ss << "dtype" << dtype;
+    ss << "numel" << numel;
+
+    return NetworkConfig{ss.str()};
+}
+
+} // namespace maskedfill
+
+} // namespace miopen

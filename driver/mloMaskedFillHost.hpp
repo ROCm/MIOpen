@@ -24,41 +24,63 @@
  *
  *******************************************************************************/
 
-#ifndef MLO_MASKEDFILLHOST_H_
-#define MLO_MASKEDFILLHOST_H_
+#pragma once
 
 #include <miopen/errors.hpp>
-#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 template <typename Tgpu, typename Tcheck>
-int mloMaskedFillForwardRunHost(miopenTensorDescriptor_t const outputDesc,
-                                Tgpu const* const input,
-                                Tcheck* const hostoutput,
-                                int8_t const* const mask,
-                                Tgpu const value)
+int mloMaskedFillForwardRunHost(const miopenTensorDescriptor_t inputDesc,
+                                const miopenTensorDescriptor_t maskDesc,
+                                const miopenTensorDescriptor_t outputDesc,
+                                const Tgpu* input,
+                                Tcheck* outputHost,
+                                const int8_t* mask,
+                                float value)
 {
-    auto const size  = miopen::deref(outputDesc).GetLengths();
-    auto const numel = std::accumulate(size.begin(), size.end(), 1, std::multiplies<>{});
+    auto numel                 = miopen::deref(outputDesc).GetElementSize();
+    tensor_view_t<5> output_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    tensor_view_t<5> input_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    tensor_view_t<5> mask_tv   = miopen::get_inner_expanded_tv<5>(miopen::deref(maskDesc));
+
     for(auto i = 0; i < numel; ++i)
     {
-        hostoutput[i] = mask[i] ? value : input[i];
+        tensor_layout_t<5> output_layout{output_tv, i};
+        tensor_layout_t<5> input_layout{input_tv, i};
+        tensor_layout_t<5> mask_layout{mask_tv, i};
+        outputHost[output_tv.get_tensor_view_idx(output_layout)] =
+            mask[mask_tv.get_tensor_view_idx(mask_layout)]
+                ? value
+                : input[input_tv.get_tensor_view_idx(input_layout)];
     }
+
     return 0;
 }
 
 template <typename Tgpu, typename Tcheck>
-int mloMaskedFillBackwardRunHost(miopenTensorDescriptor_t const outputDesc,
-                                 Tgpu const* const input,
-                                 Tcheck* const hostoutput,
-                                 int8_t const* const mask)
+int mloMaskedFillBackwardRunHost(const miopenTensorDescriptor_t outputGradDesc,
+                                 const miopenTensorDescriptor_t maskDesc,
+                                 const miopenTensorDescriptor_t inputGradDesc,
+                                 const Tgpu* outputGrad,
+                                 Tcheck* inputGrad,
+                                 const int8_t* mask)
 {
-    auto const size  = miopen::deref(outputDesc).GetLengths();
-    auto const numel = std::accumulate(size.begin(), size.end(), 1, std::multiplies<>{});
+    auto numel = miopen::deref(outputGradDesc).GetElementSize();
+    tensor_view_t<5> outputGrad_tv =
+        miopen::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
+    tensor_view_t<5> inputGrad_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
+    tensor_view_t<5> mask_tv      = miopen::get_inner_expanded_tv<5>(miopen::deref(maskDesc));
+
     for(auto i = 0; i < numel; ++i)
     {
-        hostoutput[i] = mask[i] ? 0 : input[i];
+        tensor_layout_t<5> outputGrad_layout{outputGrad_tv, i};
+        tensor_layout_t<5> inputGrad_layout{inputGrad_tv, i};
+        tensor_layout_t<5> mask_layout{mask_tv, i};
+        inputGrad[inputGrad_tv.get_tensor_view_idx(inputGrad_layout)] =
+            mask[mask_tv.get_tensor_view_idx(mask_layout)]
+                ? 0
+                : outputGrad[outputGrad_tv.get_tensor_view_idx(outputGrad_layout)];
     }
+
     return 0;
 }
-
-#endif
