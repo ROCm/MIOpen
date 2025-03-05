@@ -45,8 +45,8 @@ inline std::string GetDataTypeName(miopenDataType_t data_type)
     case miopenInt32: return "INT32";
     case miopenBFloat16: return "BF16";
     case miopenDouble: return "FP64";
-    case miopenFloat8: return "FP8";
-    case miopenBFloat8: return "BF8";
+    case miopenFloat8_fnuz: return "FP8";
+    case miopenBFloat8_fnuz: return "BF8";
     case miopenInt64: return "INT64";
     }
 
