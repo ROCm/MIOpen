@@ -76,15 +76,14 @@ struct MaskedFillTestCase
 
 inline std::vector<MaskedFillTestCase> GenFullTestCases()
 {
-    return {
-        {{16, 16}, 0.5, true},
-        {{16, 16}, 0.5, false},
-        {{16, 16, 16}, 0.5, true},
-        {{16, 16, 16}, 0.5, false},
-        {{16, 16, 16, 16}, 0.5, true},
-        {{16, 16, 16, 16}, 0.5, false},
-        {{16, 16, 16, 16, 16}, 0.5, false},
-    };
+    return {{{16, 16}, 0.5, false},
+            {{16, 48}, 0.5, false},
+            {{16, 16, 16}, 0.5, false},
+            {{16, 16, 48}, 0.5, false},
+            {{16, 16, 16, 16}, 0.5, false},
+            {{16, 16, 48, 48}, 0.5, false},
+            {{16, 16, 16, 16, 16}, 0.5, false},
+            {{16, 16, 32, 48, 96}, 0.5, false}};
 }
 
 template <typename T = float>

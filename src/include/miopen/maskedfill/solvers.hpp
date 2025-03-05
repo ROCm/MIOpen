@@ -45,6 +45,9 @@ struct MaskedFillForward : MaskedFillForwardSolverBase
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::maskedfill::FwdProblemDescription& problem) const override;
 
+    bool IsImprovementOverROCm(const ExecutionContext& context,
+                               const miopen::maskedfill::FwdProblemDescription& problem) const;
+
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::maskedfill::FwdProblemDescription& problem) const override;
@@ -59,6 +62,9 @@ struct MaskedFillBackward : MaskedFillBackwardSolverBase
 
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::maskedfill::BwdProblemDescription& problem) const override;
+
+    bool IsImprovementOverROCm(const ExecutionContext& context,
+                               const miopen::maskedfill::BwdProblemDescription& problem) const;
 
     ConvSolution
     GetSolution(const ExecutionContext& context,

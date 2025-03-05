@@ -47,6 +47,24 @@ namespace solver {
 
 namespace maskedfill {
 
+bool MaskedFillBackward::IsImprovementOverROCm(
+    const ExecutionContext& /*context*/,
+    const miopen::maskedfill::BwdProblemDescription& problem) const
+{
+    if(problem.IsAllContiguous())
+    {
+        return false;
+    }
+
+    auto output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
+    if(output_grad_numel > 2000)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 bool MaskedFillBackward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::maskedfill::BwdProblemDescription& problem) const

@@ -110,6 +110,12 @@ struct BwdProblemDescription : ProblemDescriptionBase
 
     bool IsSameType() const { return inputGradDesc.GetType() == outputGradDesc.GetType(); }
 
+    bool IsAllContiguous() const
+    {
+        return inputGradDesc.IsContiguous() && outputGradDesc.IsContiguous() &&
+               maskDesc.IsContiguous();
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 protected:
