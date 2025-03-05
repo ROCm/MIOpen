@@ -37,9 +37,9 @@ namespace miopen {
 namespace debug {
 namespace env {
 
-MIOPEN_INTERNALS_EXPORT std::optional<std::string> GetEnvVariable(std::string_view name);
-MIOPEN_INTERNALS_EXPORT void UpdateEnvVariable(std::string_view name, std::string_view value);
-MIOPEN_INTERNALS_EXPORT void ClearEnvVariable(std::string_view name);
+MIOPEN_INTERNALS_EXPORT std::optional<std::string> GetEnvVariable(std::string_view name); // MT-Unsafe
+MIOPEN_INTERNALS_EXPORT void UpdateEnvVariable(std::string_view name, std::string_view value); // MT-Unsafe
+MIOPEN_INTERNALS_EXPORT void ClearEnvVariable(std::string_view name); // MT-Unsafe
 
 } // namespace env
 } // namespace debug
