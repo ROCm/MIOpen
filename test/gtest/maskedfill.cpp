@@ -26,129 +26,58 @@
 
 #include "maskedfill.hpp"
 
-#include <miopen/env.hpp>
+namespace maskedfill {
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+using GPU_MaskedFill_fwd_FP32 = MaskedFillFwdTest<float>;
+using GPU_MaskedFill_fwd_FP16 = MaskedFillFwdTest<half>;
+using GPU_MaskedFill_fwd_BF16 = MaskedFillFwdTest<bfloat16>;
 
-struct MaskedFillForwardTestFloat : MaskedFillForwardTest<float>
-{
-};
-struct MaskedFillBackwardTestFloat : MaskedFillBackwardTest<float>
-{
-};
-struct MaskedFillForwardTestHalf : MaskedFillForwardTest<half>
-{
-};
-struct MaskedFillBackwardTestHalf : MaskedFillBackwardTest<half>
-{
-};
-struct MaskedFillForwardTestBFloat16 : MaskedFillForwardTest<bfloat16>
-{
-};
-struct MaskedFillBackwardTestBFloat16 : MaskedFillBackwardTest<bfloat16>
-{
-};
+using GPU_MaskedFill_bwd_FP32 = MaskedFillBwdTest<float>;
+using GPU_MaskedFill_bwd_FP16 = MaskedFillBwdTest<half>;
+using GPU_MaskedFill_bwd_BF16 = MaskedFillBwdTest<bfloat16>;
 
-TEST_P(MaskedFillForwardTestFloat, Ok)
+} // namespace maskedfill
+using namespace maskedfill;
+
+TEST_P(GPU_MaskedFill_fwd_FP32, Test)
 {
-    if(!MIOPEN_TEST_ALL || (miopen::env::enabled(MIOPEN_TEST_ALL) &&
-                            miopen::env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(MaskedFillBackwardTestFloat, Ok)
+TEST_P(GPU_MaskedFill_fwd_FP16, Test)
 {
-    if(!MIOPEN_TEST_ALL || (miopen::env::enabled(MIOPEN_TEST_ALL) &&
-                            miopen::env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(MaskedFillForwardTestHalf, Ok)
+TEST_P(GPU_MaskedFill_fwd_BF16, Test)
 {
-    if(!MIOPEN_TEST_ALL || (miopen::env::enabled(MIOPEN_TEST_ALL) &&
-                            miopen::env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(MaskedFillBackwardTestHalf, Ok)
+TEST_P(GPU_MaskedFill_bwd_FP32, Test)
 {
-    if(!MIOPEN_TEST_ALL || (miopen::env::enabled(MIOPEN_TEST_ALL) &&
-                            miopen::env::value(MIOPEN_TEST_FLOAT_ARG) == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(MaskedFillForwardTestBFloat16, Ok)
+TEST_P(GPU_MaskedFill_bwd_FP16, Test)
 {
-    if(!MIOPEN_TEST_ALL || (miopen::env::enabled(MIOPEN_TEST_ALL) &&
-                            miopen::env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(MaskedFillBackwardTestBFloat16, Ok)
+TEST_P(GPU_MaskedFill_bwd_BF16, Test)
 {
-    if(!MIOPEN_TEST_ALL || (miopen::env::enabled(MIOPEN_TEST_ALL) &&
-                            miopen::env::value(MIOPEN_TEST_FLOAT_ARG) == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(MaskedFillTestSet,
-                         MaskedFillForwardTestFloat,
-                         testing::ValuesIn(MaskedFillTestConfigs(false)));
-INSTANTIATE_TEST_SUITE_P(MaskedFillTestSet,
-                         MaskedFillBackwardTestFloat,
-                         testing::ValuesIn(MaskedFillTestConfigs(true)));
-INSTANTIATE_TEST_SUITE_P(MaskedFillTestSet,
-                         MaskedFillForwardTestHalf,
-                         testing::ValuesIn(MaskedFillTestConfigs(false)));
-INSTANTIATE_TEST_SUITE_P(MaskedFillTestSet,
-                         MaskedFillBackwardTestHalf,
-                         testing::ValuesIn(MaskedFillTestConfigs(true)));
-INSTANTIATE_TEST_SUITE_P(MaskedFillTestSet,
-                         MaskedFillForwardTestBFloat16,
-                         testing::ValuesIn(MaskedFillTestConfigs(false)));
-INSTANTIATE_TEST_SUITE_P(MaskedFillTestSet,
-                         MaskedFillBackwardTestBFloat16,
-                         testing::ValuesIn(MaskedFillTestConfigs(true)));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_MaskedFill_fwd_FP32, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_MaskedFill_fwd_FP16, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_MaskedFill_fwd_BF16, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_MaskedFill_bwd_FP32, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_MaskedFill_bwd_FP16, testing::ValuesIn(GenFullTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_MaskedFill_bwd_BF16, testing::ValuesIn(GenFullTestCases()));

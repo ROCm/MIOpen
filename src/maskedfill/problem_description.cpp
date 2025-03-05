@@ -38,6 +38,7 @@ NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
     ss << "maskedfillfwd";
     ss << "dtype" << dtype;
     ss << "numel" << numel;
+    ss << "cont" << IsAllContiguous();
 
     return NetworkConfig{ss.str()};
 }

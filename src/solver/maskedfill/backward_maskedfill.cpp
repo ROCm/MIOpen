@@ -108,10 +108,10 @@ MaskedFillBackward::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::maskedfill::BwdInvokeParams>();
 
             tensor_view_t<5> output_grad_tv =
-                get_inner_expanded_tv<5>(miopen::deref(params.inputGradDesc));
+                get_inner_expanded_tv<5>(miopen::deref(params.outputGradDesc));
             tensor_view_t<5> mask_tv = get_inner_expanded_tv<5>(miopen::deref(params.maskDesc));
             tensor_view_t<5> input_grad_tv =
-                get_inner_expanded_tv<5>(miopen::deref(params.outputGradDesc));
+                get_inner_expanded_tv<5>(miopen::deref(params.inputGradDesc));
 
             kernel(params.outputGrad,
                    params.mask,

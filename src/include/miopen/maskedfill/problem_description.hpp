@@ -66,6 +66,11 @@ struct FwdProblemDescription : ProblemDescriptionBase
 
     bool IsSameType() const { return inputDesc.GetType() == outputDesc.GetType(); }
 
+    bool IsAllContiguous() const
+    {
+        return inputDesc.IsContiguous() && outputDesc.IsContiguous() && maskDesc.IsContiguous();
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 protected:

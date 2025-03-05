@@ -24,44 +24,46 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_CPU_MASKEDFILL_HPP
-#define GUARD_CPU_MASKEDFILL_HPP
+#pragma once
 
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view_utils.hpp>
 
-template <class T, size_t dim>
-void cpu_maskedfill_forward(tensor<T> const& input,
+template <class T>
+void cpu_maskedfill_forward(const tensor<T>& input,
                             tensor<T>& output,
-                            tensor<int8_t> const& mask,
-                            float const value)
+                            const tensor<int8_t>& mask,
+                            float value)
 {
-    auto const inputtensorview  = miopen::get_inner_expanded_tv<dim>(input.desc);
-    auto const outputtensorview = miopen::get_inner_expanded_tv<dim>(output.desc);
-    auto const masktensorview   = miopen::get_inner_expanded_tv<dim>(mask.desc);
-    par_ford(output.desc.GetElementSize())([&](size_t const gid) {
-        output[outputtensorview.get_tensor_view_idx({outputtensorview, gid})] =
-            mask[masktensorview.get_tensor_view_idx({masktensorview, gid})]
+    auto input_tv  = miopen::get_inner_expanded_tv<5>(input.desc);
+    auto output_tv = miopen::get_inner_expanded_tv<5>(output.desc);
+    auto mask_tv   = miopen::get_inner_expanded_tv<5>(mask.desc);
+    par_ford(output.desc.GetElementSize())([&](size_t gid) {
+        tensor_layout_t<5> output_layout{output_tv, gid};
+        tensor_layout_t<5> input_layout{input_tv, gid};
+        tensor_layout_t<5> mask_layout{mask_tv, gid};
+        output[output_tv.get_tensor_view_idx(output_layout)] =
+            mask[mask_tv.get_tensor_view_idx(mask_layout)]
                 ? static_cast<T>(value)
-                : input[inputtensorview.get_tensor_view_idx({inputtensorview, gid})];
+                : input[input_tv.get_tensor_view_idx(input_layout)];
     });
 }
 
-template <class T, size_t dim>
-void cpu_maskedfill_backward(tensor<T> const& outputgradient,
-                             tensor<T>& inputgradient,
-                             tensor<int8_t> const& mask)
+template <class T>
+void cpu_maskedfill_backward(const tensor<T>& output_grad,
+                             tensor<T>& input_grad,
+                             const tensor<int8_t>& mask)
 {
-    auto const outputgradienttensorview = miopen::get_inner_expanded_tv<dim>(outputgradient.desc);
-    auto const inputgradienttensorview  = miopen::get_inner_expanded_tv<dim>(inputgradient.desc);
-    auto const masktensorview           = miopen::get_inner_expanded_tv<dim>(mask.desc);
-    par_ford(inputgradient.desc.GetElementSize())([&](size_t const gid) {
-        inputgradient[inputgradienttensorview.get_tensor_view_idx({inputgradienttensorview, gid})] =
-            mask[masktensorview.get_tensor_view_idx({masktensorview, gid})]
+    auto output_grad_tv = miopen::get_inner_expanded_tv<5>(output_grad.desc);
+    auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(input_grad.desc);
+    auto mask_tv        = miopen::get_inner_expanded_tv<5>(mask.desc);
+    par_ford(input_grad.desc.GetElementSize())([&](size_t gid) {
+        tensor_layout_t<5> output_grad_layout{output_grad_tv, gid};
+        tensor_layout_t<5> input_grad_layout{input_grad_tv, gid};
+        tensor_layout_t<5> mask_layout{mask_tv, gid};
+        input_grad[input_grad_tv.get_tensor_view_idx(input_grad_layout)] =
+            mask[mask_tv.get_tensor_view_idx(mask_layout)]
                 ? static_cast<T>(0)
-                : outputgradient[outputgradienttensorview.get_tensor_view_idx(
-                      {outputgradienttensorview, gid})];
+                : output_grad[output_grad_tv.get_tensor_view_idx(output_grad_layout)];
     });
 }
-
-#endif

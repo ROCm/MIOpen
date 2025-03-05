@@ -24,174 +24,224 @@
  *
  *******************************************************************************/
 
-#include <miopen/miopen.h>
+#include <cstdint>
 #include <gtest/gtest.h>
+#include <miopen/allocator.hpp>
 #include <miopen/maskedfill.hpp>
 #include <miopen/maskedfill/solvers.hpp>
+#include <miopen/miopen.h>
 
 #include "get_handle.hpp"
 #include "tensor_holder.hpp"
 #include "random.hpp"
 #include "verify.hpp"
-#include "../driver/tensor_driver.hpp"
 
 #include "cpu_maskedfill.hpp"
 
-struct MaskedFillTestCase /* MaskedFillTestParameters */
+struct MaskedFillTestCase
 {
-    std::vector<size_t> const size; // or "dims"
-    std::vector<size_t> const& GetSize() const { return size; };
-    std::vector<size_t> strides;
-    std::vector<size_t> const& GetStrides() const { return strides; };
-    MaskedFillTestCase(std::vector<size_t> const size_) : size{size_}, strides(size_.size(), 1)
-    {
-        auto stride = 1;
-        for(signed i = size.size() - 1; i >= 0; --i)
-        {
-            strides[i] = stride;
-            stride *= size[i];
-        }
-    }
-    MaskedFillTestCase(std::vector<size_t> const size_, std::vector<size_t> const strides_)
-        : size{size_}, strides{strides_}
+    std::vector<size_t> input_dims;
+    float val;
+    bool isContiguous;
+
+    MaskedFillTestCase() {}
+
+    MaskedFillTestCase(std::vector<size_t> input_dims_, float val_, bool cont_)
+        : input_dims{input_dims_}, val(val_), isContiguous(cont_)
     {
     }
-    friend std::ostream& operator<<(std::ostream& os, MaskedFillTestCase const& parameters)
+
+    friend std::ostream& operator<<(std::ostream& os, const MaskedFillTestCase& tc)
     {
-        assert(parameters.size.size() == parameters.strides.size());
-        std::stringstream sizestringstream, stridesstringstream;
-        sizestringstream << "{";
-        stridesstringstream << "{";
-        for(auto dimension = 0; dimension < parameters.size.size(); ++dimension)
-        {
-            sizestringstream << parameters.size[dimension];
-            stridesstringstream << parameters.strides[dimension];
-            if(dimension < parameters.size.size() - 1)
-            {
-                sizestringstream << ", ";
-                stridesstringstream << ", ";
-            }
-        }
-        sizestringstream << "}";
-        stridesstringstream << "}";
-        return os << "{" << sizestringstream.str() << ", " << stridesstringstream.str() << "}";
+        os << "Input dims: ";
+        for(auto i : tc.input_dims)
+            os << i << " ";
+        return os << " value: " << tc.val << " cont " << tc.isContiguous;
+    }
+
+    std::vector<size_t> ComputeStrides(const std::vector<size_t>& input_dim_) const
+    {
+        std::vector<size_t> inputDim = input_dim_;
+        if(!isContiguous)
+            std::swap(inputDim.front(), inputDim.back());
+        std::vector<size_t> strides(inputDim.size());
+        strides.back() = 1;
+        for(int i = inputDim.size() - 2; i >= 0; --i)
+            strides[i] = strides[i + 1] * inputDim[i + 1];
+        if(!isContiguous)
+            std::swap(strides.front(), strides.back());
+        return strides;
     }
 };
-std::vector<MaskedFillTestCase> const
-MaskedFillTestConfigs(bool const is_backward)
-{
-    if (!is_backward) return {
-        {{1}},
-        {{2, 2}},
-        {{2, 2, 2}},
-        {{2, 2, 2}, {1, 4, 2}},
-    };
-    else return {
-        {{1}},
-        {{2, 2}},
-        {{2, 2, 2}},
-        {{2, 2, 2}, {1, 4, 2}},
-    };
-}
 
-inline int SetTensorLayout(miopen::TensorDescriptor& desc)
+inline std::vector<MaskedFillTestCase> GenFullTestCases()
 {
-    return SetTensorNd(&desc, desc.GetLengths(), desc.GetStrides(), desc.GetType());
+    return {
+        {{16, 16}, 0.5, true},
+        {{16, 16}, 0.5, false},
+        {{16, 16, 16}, 0.5, true},
+        {{16, 16, 16}, 0.5, false},
+        {{16, 16, 16, 16}, 0.5, true},
+        {{16, 16, 16, 16}, 0.5, false},
+        {{16, 16, 16, 16, 16}, 0.5, false},
+    };
 }
 
 template <typename T = float>
-class MaskedFillTest : public testing::TestWithParam<MaskedFillTestCase>
+class MaskedFillFwdTest : public testing::TestWithParam<MaskedFillTestCase>
 {
-    bool const is_backward;
-    tensor<T> input, output, ref_output;
-    tensor<int8_t>
-        mask; // `tensor<bool>`s aren't implemented (because `miopen_type<bool>` isn't implemented)
-    miopen::Allocator::ManageDataPtr input_dev, output_dev, mask_dev;
-    float value;
-
+protected:
     void SetUp() override
     {
-        auto&& handle      = get_handle();
-        auto const size    = GetParam().GetSize();
-        auto const strides = GetParam().GetStrides();
+        auto&& handle = get_handle();
+        config        = GetParam();
+        val           = config.val;
 
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        std::mt19937 generator;
-        std::uniform_int_distribution<unsigned int> distribution{0, 1};
 
-        input = tensor<T>(size, strides);
-        input.generate(gen_value);
-        SetTensorLayout(input.desc);
-        input_dev = handle.Write(input.data);
+        auto in_dims    = config.input_dims;
+        auto in_strides = config.ComputeStrides(in_dims);
+        input           = tensor<T>(in_dims, in_strides).generate(gen_value);
 
-        output = tensor<T>(size, strides);
+        mask = tensor<int8_t>(in_dims, in_strides);
+        for(auto i = 0; i < mask.desc.GetElementSize(); ++i)
+        {
+            auto tmp = prng::gen_A_to_B(static_cast<T>(0), static_cast<T>(1));
+            mask[i]  = tmp > 0.5 ? 1 : 0;
+        }
+
+        output = tensor<T>(in_dims);
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
-        SetTensorLayout(output.desc);
-        output_dev = handle.Write(output.data);
-
-        ref_output = tensor<T>(size, strides);
+        ref_output = tensor<T>(in_dims);
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
-        SetTensorLayout(ref_output.desc);
 
-        mask = tensor<int8_t>(size, strides);
-        mask.generate([&](auto...) { return distribution(generator); });
-        SetTensorLayout(mask.desc);
-        mask_dev = handle.Write(mask.data);
-
-        value = prng::gen_descreet_uniform_sign<float>(1e-2, 100);
+        input_dev  = handle.Write(input.data);
+        mask_dev   = handle.Write(mask.data);
+        output_dev = handle.Write(output.data);
     }
-
-public:
-    MaskedFillTest(bool const is_backward_) : is_backward {is_backward_} {}
 
     void RunTest()
     {
         auto&& handle = get_handle();
 
         miopenStatus_t status;
-        if (!is_backward) {
-            status = miopen::MaskedFillForward(handle,
-                                               input.desc,
-                                               input_dev.get(),
-                                               output.desc,
-                                               output_dev.get(),
-                                               mask.desc,
-                                               mask_dev.get(),
-                                               value);
-            EXPECT_EQ(status, miopenStatusSuccess);
-            output.data = handle.Read<T>(output_dev, output.data.size());
-            cpu_maskedfill_forward<T, 5>(input, ref_output, mask, value);
-        } else {
-            status = miopen::MaskedFillBackward(handle,
-                                                input.desc,
-                                                input_dev.get(),
-                                                output.desc,
-                                                output_dev.get(),
-                                                mask.desc,
-                                                mask_dev.get(),
-                                                value);
-            EXPECT_EQ(status, miopenStatusSuccess);
-            output.data = handle.Read<T>(output_dev, output.data.size());
-            cpu_maskedfill_backward<T, 5>(input, ref_output, mask);
-        }
+
+        cpu_maskedfill_forward(input, ref_output, mask, config.val);
+        status = miopen::MaskedFillForward(handle,
+                                           input.desc,
+                                           input_dev.get(),
+                                           output.desc,
+                                           output_dev.get(),
+                                           mask.desc,
+                                           mask_dev.get(),
+                                           val);
+        ASSERT_EQ(status, miopenStatusSuccess);
+
+        output.data = handle.Read<T>(output_dev, output.data.size());
     }
-    void Verify() const
+
+    double GetTolerance()
     {
-        EXPECT_TRUE(miopen::range_distance(output) == miopen::range_distance(ref_output));
-        auto const error =
-            miopen::range_product(output, ref_output, 0, miopen::sum, miopen::abs_diff);
-        EXPECT_TRUE(error == 0) << "Outputs do not match each other: `error` = " << error;
+        double tolerance = std::numeric_limits<T>::epsilon() * 10;
+        return tolerance;
     }
+
+    void Verify()
+    {
+        double threshold = GetTolerance();
+        EXPECT_EQ(miopen::range_distance(output), miopen::range_distance(ref_output));
+        auto error = miopen::rms_range(output, ref_output);
+        EXPECT_LT(error, threshold);
+    }
+
+    MaskedFillTestCase config;
+    tensor<T> input;
+    tensor<T> output;
+    tensor<int8_t> mask;
+    float val;
+
+    tensor<T> ref_output;
+
+    miopen::Allocator::ManageDataPtr input_dev;
+    miopen::Allocator::ManageDataPtr output_dev;
+    miopen::Allocator::ManageDataPtr mask_dev;
 };
 
 template <typename T = float>
-struct MaskedFillForwardTest : MaskedFillTest<T>
+class MaskedFillBwdTest : public testing::TestWithParam<MaskedFillTestCase>
 {
-    MaskedFillForwardTest() : MaskedFillTest<T>{false} {}
-};
+protected:
+    void SetUp() override
+    {
+        auto&& handle = get_handle();
+        config        = GetParam();
 
-template <typename T = float>
-struct MaskedFillBackwardTest : MaskedFillTest<T>
-{
-    MaskedFillBackwardTest() : MaskedFillTest<T>{true} {}
+        auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+
+        auto in_dims    = config.input_dims;
+        auto in_strides = config.ComputeStrides(in_dims);
+
+        output_grad = tensor<T>(in_dims, in_strides).generate(gen_value);
+
+        mask = tensor<int8_t>(in_dims, in_strides);
+        for(auto i = 0; i < mask.desc.GetElementSize(); ++i)
+        {
+            auto tmp = prng::gen_A_to_B(static_cast<T>(0), static_cast<T>(1));
+            mask[i]  = tmp > 0.5 ? 1 : 0;
+        }
+
+        input_grad = tensor<T>(in_dims);
+        std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
+        ref_input_grad = tensor<T>(in_dims);
+        std::fill(
+            ref_input_grad.begin(), ref_input_grad.end(), std::numeric_limits<T>::quiet_NaN());
+
+        input_grad_dev  = handle.Write(input_grad.data);
+        mask_dev        = handle.Write(mask.data);
+        output_grad_dev = handle.Write(output_grad.data);
+    }
+
+    void RunTest()
+    {
+        auto&& handle = get_handle();
+
+        miopenStatus_t status;
+
+        cpu_maskedfill_backward(output_grad, ref_input_grad, mask);
+        status = miopen::MaskedFillBackward(handle,
+                                            output_grad.desc,
+                                            output_grad_dev.get(),
+                                            input_grad.desc,
+                                            input_grad_dev.get(),
+                                            mask.desc,
+                                            mask_dev.get());
+        ASSERT_EQ(status, miopenStatusSuccess);
+
+        input_grad.data = handle.Read<T>(input_grad_dev, input_grad.data.size());
+    }
+
+    double GetTolerance()
+    {
+        double tolerance = std::numeric_limits<T>::epsilon() * 10;
+        return tolerance;
+    }
+
+    void Verify()
+    {
+        double threshold = GetTolerance();
+        EXPECT_EQ(miopen::range_distance(input_grad), miopen::range_distance(ref_input_grad));
+        auto error = miopen::rms_range(input_grad, ref_input_grad);
+        EXPECT_LT(error, threshold);
+    }
+
+    MaskedFillTestCase config;
+    tensor<T> output_grad;
+    tensor<int8_t> mask;
+    tensor<T> input_grad;
+
+    tensor<T> ref_input_grad;
+
+    miopen::Allocator::ManageDataPtr output_grad_dev;
+    miopen::Allocator::ManageDataPtr mask_dev;
+    miopen::Allocator::ManageDataPtr input_grad_dev;
 };

@@ -41,7 +41,7 @@ __device__ void MaskedFillForwardImpl(const TIO* input,
                                       tensor_view_t<5> input_tv,
                                       tensor_view_t<5> mask_tv,
                                       tensor_view_t<5> output_tv,
-                                      float value,
+                                      TIO value,
                                       uint64_t numel)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -67,7 +67,18 @@ extern "C" __global__ void MaskedFillForward(const IO_TYPE* input,
                                              float value,
                                              uint64_t numel)
 {
-    MaskedFillForwardImpl<IO_TYPE>(input, mask, output, input_tv, mask_tv, output_tv, value, numel);
+    MaskedFillForwardImpl<IO_TYPE>(input,
+                                   mask,
+                                   output,
+                                   input_tv,
+                                   mask_tv,
+                                   output_tv,
+#if MIOPEN_USE_BFP16
+                                   float_to_bfloat16(value),
+#else
+                                   value,
+#endif
+                                   numel);
 }
 
 template <typename TIO>
@@ -91,6 +102,7 @@ __device__ void MaskedFillBackwardImpl(const TIO* output_grad,
             ? static_cast<TIO>(0)
             : output_grad[output_grad_tv.get_tensor_view_idx(output_grad_layout)];
 }
+
 extern "C" __global__ void MaskedFillBackward(const IO_TYPE* output_grad,
                                               const int8_t* mask,
                                               IO_TYPE* input_grad,

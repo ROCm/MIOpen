@@ -57,6 +57,32 @@ bool MaskedFillForward::IsApplicable(const ExecutionContext& /*context*/,
         return false;
     }
 
+    auto output_numel = problem.GetOutputDesc().GetElementSize();
+
+    if(problem.IsAllContiguous())
+    {
+        auto type = problem.GetOutputDesc().GetType();
+        if(type == miopenFloat && output_numel >= 524288)
+        {
+            return false;
+        }
+        if(type == miopenHalf && output_numel >= 4194304)
+        {
+            return false;
+        }
+        if(type == miopenBFloat16 && output_numel >= 4194304)
+        {
+            return false;
+        }
+    }
+    else
+    {
+        if(output_numel >= 1089000)
+        {
+            return false;
+        }
+    }
+
     return true;
 }
 
