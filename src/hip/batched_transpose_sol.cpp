@@ -116,7 +116,7 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(const Exec
         };
         // TODO: gfx940 compiler has bug for some of the kernel, where pack/ediv is not 1
         // unify this when bug is fixed
-        static const std::vector<BatchedTransposeParam> half_kernel_list_gfx94x{
+        static const std::vector<BatchedTransposeParam> half_kernel_list_gfx942{
             // clang-format off
             {16, 16, 1, 1, 1, 1},
             {32, 16, 1, 1, 1, 1},
@@ -133,7 +133,7 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(const Exec
         };
         const auto device_name = ctx.GetStream().GetDeviceName();
         if(device_name == "gfx942")
-            return half_kernel_list_gfx94x;
+            return half_kernel_list_gfx942;
         else
             return half_kernel_list;
     }
