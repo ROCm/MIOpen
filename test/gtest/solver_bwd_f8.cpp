@@ -25,11 +25,11 @@
  *******************************************************************************/
 #include "solver_bwd.hpp"
 
-struct GPU_ConvBwd_FP8 : ConvBwdSolverTest<float8, float, true>
+struct GPU_ConvBwd_FP8 : ConvBwdSolverTest<float8_fnuz, float, true>
 {
 };
 
-struct GPU_ConvBwdNaive_FP8 : ConvBwdSolverTest<float8, float, true>
+struct GPU_ConvBwdNaive_FP8 : ConvBwdSolverTest<float8_fnuz, float, true>
 {
 };
 

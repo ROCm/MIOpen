@@ -44,9 +44,9 @@ using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
 #include <hip_float8.hpp>
 
-using float16 = half_float::half;
-using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
-using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+using float16      = half_float::half;
+using float8_fnuz  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8_fnuz = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
 namespace conv {
 
@@ -61,9 +61,9 @@ float16 RanGenWeights();
 template <>
 int8_t RanGenWeights();
 template <>
-float8 RanGenWeights();
+float8_fnuz RanGenWeights();
 template <>
-bfloat8 RanGenWeights();
+bfloat8_fnuz RanGenWeights();
 
 } // namespace conv
 
