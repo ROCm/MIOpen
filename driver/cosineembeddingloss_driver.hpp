@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_COSINEEMBEDDINGLOSS_DRIVER_HPP
-#define GUARD_MIOPEN_COSINEEMBEDDINGLOSS_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -32,7 +31,6 @@
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "util_driver.hpp"
 
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
@@ -42,21 +40,6 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <vector>
-
-inline std::vector<int> GetStrides(std::vector<int> lengths, int contiguous)
-{
-    if(contiguous != 0 && contiguous != 1)
-        std::cerr << "Error Tensor Contiguous should be 0 or 1" << std::endl;
-    if(contiguous == 0)
-        std::swap(lengths.front(), lengths.back());
-    std::vector<int> strides(lengths.size());
-    strides.back() = 1;
-    for(int i = lengths.size() - 2; i >= 0; --i)
-        strides[i] = strides[i + 1] * lengths[i + 1];
-    if(contiguous == 0)
-        std::swap(strides.front(), strides.back());
-    return strides;
-}
 
 template <typename Tgpu, typename Tref>
 class CosineEmbeddingLossDriver : public Driver
@@ -75,11 +58,11 @@ public:
         data_type = miopen_type<Tgpu>{};
     }
 
+    std::vector<int> ComputeStrides(std::vector<int> input);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
 
-    std::vector<int> GetInputTensorDimsFromCmd();
     int GetandSetData() override;
 
     int AllocateBuffersAndCopy() override;
@@ -145,48 +128,20 @@ private:
     float margin;
     float divisor;
     miopenLossReductionMode_t reduction;
+    bool isContiguous;
 };
 
 template <typename Tgpu, typename Tref>
 int CosineEmbeddingLossDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+    isContiguous = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
 
     if(inflags.GetValueInt("time") == 1)
     {
         miopenEnableProfiling(GetHandle(), true);
     }
     return miopenStatusSuccess;
-}
-
-template <typename Tgpu, typename Tref>
-std::vector<int> CosineEmbeddingLossDriver<Tgpu, Tref>::GetInputTensorDimsFromCmd()
-{
-    std::string lengthsStr = inflags.GetValueStr("input_dims");
-
-    std::vector<int> lengths;
-    std::size_t pos = 0;
-    std::size_t new_pos;
-
-    new_pos = lengthsStr.find(',', pos);
-    while(new_pos != std::string::npos)
-    {
-        std::string sliceStr = lengthsStr.substr(pos, new_pos - pos);
-
-        int len = std::stoi(sliceStr);
-
-        lengths.push_back(len);
-
-        pos     = new_pos + 1;
-        new_pos = lengthsStr.find(',', pos);
-    };
-
-    std::string sliceStr = lengthsStr.substr(pos);
-    int len              = std::stoi(sliceStr);
-
-    lengths.push_back(len);
-
-    return (lengths);
 }
 
 template <typename Tgpu, typename Tref>
@@ -209,15 +164,15 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::GetandSetData()
         reduction = MIOPEN_LOSS_REDUCTION_MEAN;
     }
 
-    input_sizes = GetInputTensorDimsFromCmd();
+    input_sizes = inflags.GetValueTensor("input_dims").lengths;
     margin      = static_cast<float>(inflags.GetValueDouble("margin"));
 
     std::vector<int> in_len     = input_sizes;
     std::vector<int> target_len = std::vector<int>{in_len[0]};
     std::vector<int> out_len    = target_len;
 
-    auto in_strides  = GetStrides(in_len, 1);
-    auto tar_strides = GetStrides(target_len, inflags.GetValueInt("contiguous"));
+    auto in_strides  = ComputeStrides(in_len);
+    auto tar_strides = ComputeStrides(target_len);
 
     SetTensorNd(input1Desc, in_len, in_strides, data_type);
     SetTensorNd(input2Desc, in_len, in_strides, data_type);
@@ -226,7 +181,7 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::GetandSetData()
     if(reduce == "none")
     {
         divisor             = std::numeric_limits<float>::quiet_NaN();
-        auto output_strides = GetStrides(out_len, 1);
+        auto output_strides = ComputeStrides(out_len);
         SetTensorNd(outputDesc, out_len, output_strides, data_type);
         SetTensorNd(outputGradDesc, out_len, output_strides, data_type);
     }
@@ -234,7 +189,7 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::GetandSetData()
     {
         std::vector<int> out_len_rd = {1};
         SetTensorNd(outputDesc, out_len_rd, data_type);
-        auto output_strides = GetStrides(out_len_rd, 1);
+        auto output_strides = ComputeStrides(out_len_rd);
         SetTensorNd(outputGradDesc, out_len_rd, output_strides, data_type);
         if(reduce == "sum")
             divisor = 1.0f;
@@ -248,16 +203,30 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::GetandSetData()
     return miopenStatusSuccess;
 }
 
+// Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
+template <typename Tgpu, typename Tref>
+std::vector<int> CosineEmbeddingLossDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!isContiguous)
+        std::swap(inputDim.front(), inputDim.back());
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!isContiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
+}
+
 template <typename Tgpu, typename Tref>
 int CosineEmbeddingLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag(
         "forw", 'F', "1", "Run only Forward CosineEmbeddingLoss (Default=1)", "int");
-    inflags.AddInputFlag("input_dims",
-                         'D',
-                         "16,21",
-                         "The dimensional lengths of the input tensor: N,D. Example: 16,64.",
-                         "string");
+    inflags.AddTensorFlag("input_dims",
+                          'D',
+                          "16x21",
+                          "The dimensional lengths of the input tensor: NxD. Example: 16x21.");
     inflags.AddInputFlag("margin", 'g', "0.0", "Margin (Default=0.0)", "float");
     inflags.AddInputFlag("reduce",
                          'R',
@@ -339,39 +308,65 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     in2_grad_host = std::vector<Tref>(in_sz, static_cast<Tref>(0));
     out_grad      = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
 
-    int status;
-
-    for(int i = 0; i < in_sz; i++)
+    for(size_t i = 0; i < in_sz; i++)
     {
         in1[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-5.0f), static_cast<Tgpu>(1.0f));
     }
-    status = in1_dev->ToGPU(q, in1.data());
+    if(in1_dev->ToGPU(q, in1.data()) != 0)
+    {
+        std::cerr << "Error copying in1 to GPU, size: " << in1_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    for(int i = 0; i < in_sz; i++)
+    for(size_t i = 0; i < in_sz; i++)
     {
         in2[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-4.0f), static_cast<Tgpu>(1.0f));
     }
-    status = in2_dev->ToGPU(q, in2.data());
+    if(in2_dev->ToGPU(q, in2.data()) != 0)
+    {
+        std::cerr << "Error copying in2 to GPU, size: " << in2_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    for(int i = 0; i < target_sz; i++)
+    for(size_t i = 0; i < target_sz; i++)
     {
         target[i] = (prng::gen_A_to_B<int32_t>(0, 2) == 0) ? -1 : 1;
     }
-    status |= target_dev->ToGPU(q, target.data());
+    if(target_dev->ToGPU(q, target.data()) != 0)
+    {
+        std::cerr << "Error copying target to GPU, size: " << target_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= out_dev->ToGPU(q, out.data());
+    if(out_dev->ToGPU(q, out.data()) != 0)
+    {
+        std::cerr << "Error copying out to GPU, size: " << out_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= in1_grad_dev->ToGPU(q, in1_grad.data());
-    status |= in2_grad_dev->ToGPU(q, in2_grad.data());
+    if(in1_grad_dev->ToGPU(q, in1_grad.data()) != 0)
+    {
+        std::cerr << "Error copying in1_grad to GPU, size: " << in1_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
+    if(in2_grad_dev->ToGPU(q, in2_grad.data()) != 0)
+    {
+        std::cerr << "Error copying in2_grad to GPU, size: " << in2_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    for(int i = 0; i < out_sz; i++)
+    for(size_t i = 0; i < out_sz; i++)
     {
         out_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(10.0));
     }
-    status |= out_grad_dev->ToGPU(q, out_grad.data());
-
-    if(status != 0)
-        std::cout << "Error copying data to GPU\n" << std::endl;
+    if(out_grad_dev->ToGPU(q, out_grad.data()) != 0)
+    {
+        std::cerr << "Error copying out_grad to GPU, size: " << out_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -387,19 +382,20 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenCosineEmbeddingLossForward(GetHandle(),
-                                         workspace_dev_fwd->GetMem(),
-                                         ws_sizeInBytes_fwd,
-                                         input1Desc,
-                                         in1_dev->GetMem(),
-                                         input2Desc,
-                                         in2_dev->GetMem(),
-                                         targetDesc,
-                                         target_dev->GetMem(),
-                                         outputDesc,
-                                         out_dev->GetMem(),
-                                         margin,
-                                         reduction);
+        auto status = miopenCosineEmbeddingLossForward(GetHandle(),
+                                                       workspace_dev_fwd->GetMem(),
+                                                       ws_sizeInBytes_fwd,
+                                                       input1Desc,
+                                                       in1_dev->GetMem(),
+                                                       input2Desc,
+                                                       in2_dev->GetMem(),
+                                                       targetDesc,
+                                                       target_dev->GetMem(),
+                                                       outputDesc,
+                                                       out_dev->GetMem(),
+                                                       margin,
+                                                       reduction);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenCosineEmbeddingLossForward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -413,15 +409,20 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward CosineEmbeddingLoss Elapsed: %f ms\n",
-                   t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Forward CosineEmbeddingLoss Elapsed: "
+                      << t.gettime_ms() / iter << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Forward CosineEmbeddingLoss Elapsed: %f ms\n", kernel_average_time);
+        std::cout << "GPU Kernel Time Forward CosineEmbeddingLoss Elapsed: " << kernel_average_time
+                  << " ms\n";
     }
 
-    out_dev->FromGPU(GetStream(), out.data());
+    if(out_dev->FromGPU(GetStream(), out.data()) != 0)
+    {
+        std::cerr << "Error copying (out_dev) from GPU, size: " << out_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -429,31 +430,37 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int CosineEmbeddingLossDriver<Tgpu, Tref>::RunForwardCPU()
 {
+    int status = miopenStatusSuccess;
     if(!std::isnan(divisor))
     {
-        mloCosineEmbeddingLossReducedForwardRunHost2d<Tgpu, Tref>(input1Desc,
-                                                                  input2Desc,
-                                                                  targetDesc,
-                                                                  in1.data(),
-                                                                  in2.data(),
-                                                                  target.data(),
-                                                                  out_host.data(),
-                                                                  margin,
-                                                                  divisor);
+        status = mloCosineEmbeddingLossReducedForwardRunHost2d<Tgpu, Tref>(input1Desc,
+                                                                           input2Desc,
+                                                                           targetDesc,
+                                                                           in1.data(),
+                                                                           in2.data(),
+                                                                           target.data(),
+                                                                           out_host.data(),
+                                                                           margin,
+                                                                           divisor);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloCosineEmbeddingLossReducedForwardRunHost2d");
     }
     else
     {
-        mloCosineEmbeddingLossUnreducedForwardRunHost2d<Tgpu, Tref>(input1Desc,
-                                                                    input2Desc,
-                                                                    targetDesc,
-                                                                    outputDesc,
-                                                                    in1.data(),
-                                                                    in2.data(),
-                                                                    target.data(),
-                                                                    out_host.data(),
-                                                                    margin);
+        status = mloCosineEmbeddingLossUnreducedForwardRunHost2d<Tgpu, Tref>(input1Desc,
+                                                                             input2Desc,
+                                                                             targetDesc,
+                                                                             outputDesc,
+                                                                             in1.data(),
+                                                                             in2.data(),
+                                                                             target.data(),
+                                                                             out_host.data(),
+                                                                             margin);
     }
-    return miopenStatusSuccess;
+    MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                    "Error in mloCosineEmbeddingLossUnreducedForwardRunHost2d");
+
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
@@ -467,23 +474,25 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenCosineEmbeddingLossBackward(GetHandle(),
-                                          workspace_dev_bwd->GetMem(),
-                                          ws_sizeInBytes_bwd,
-                                          input1Desc,
-                                          in1_dev->GetMem(),
-                                          input2Desc,
-                                          in2_dev->GetMem(),
-                                          targetDesc,
-                                          target_dev->GetMem(),
-                                          outputGradDesc,
-                                          out_grad_dev->GetMem(),
-                                          input1GradDesc,
-                                          in1_grad_dev->GetMem(),
-                                          input2GradDesc,
-                                          in2_grad_dev->GetMem(),
-                                          margin,
-                                          reduction);
+        auto status = miopenCosineEmbeddingLossBackward(GetHandle(),
+                                                        workspace_dev_bwd->GetMem(),
+                                                        ws_sizeInBytes_bwd,
+                                                        input1Desc,
+                                                        in1_dev->GetMem(),
+                                                        input2Desc,
+                                                        in2_dev->GetMem(),
+                                                        targetDesc,
+                                                        target_dev->GetMem(),
+                                                        outputGradDesc,
+                                                        out_grad_dev->GetMem(),
+                                                        input1GradDesc,
+                                                        in1_grad_dev->GetMem(),
+                                                        input2GradDesc,
+                                                        in2_grad_dev->GetMem(),
+                                                        margin,
+                                                        reduction);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in miopenCosineEmbeddingLossBackward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -497,17 +506,27 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backward CosineEmbeddingLoss Elapsed: %f ms\n",
-                   t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Backward CosineEmbeddingLoss Elapsed: "
+                      << t.gettime_ms() / iter << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Backward CosineEmbeddingLoss Elapsed: %f ms\n",
-               kernel_average_time);
+        std::cout << "GPU Kernel Time Backward CosineEmbeddingLoss Elapsed: " << kernel_average_time
+                  << " ms\n";
     }
 
-    in1_grad_dev->FromGPU(GetStream(), in1_grad.data());
-    in2_grad_dev->FromGPU(GetStream(), in2_grad.data());
+    if(in1_grad_dev->FromGPU(GetStream(), in1_grad.data()) != 0)
+    {
+        std::cerr << "Error copying (in1_grad_dev) from GPU, size: " << in1_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
+    if(in2_grad_dev->FromGPU(GetStream(), in2_grad.data()) != 0)
+    {
+        std::cerr << "Error copying (in2_grad_dev) from GPU, size: " << in2_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -515,44 +534,50 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int CosineEmbeddingLossDriver<Tgpu, Tref>::RunBackwardCPU()
 {
+    int status = miopenStatusSuccess;
     if(!std::isnan(divisor))
     {
-        mloCosineEmbeddingLossReducedBackwardRunHost2d<Tgpu, Tref>(input1Desc,
-                                                                   input2Desc,
-                                                                   targetDesc,
-                                                                   outputGradDesc,
-                                                                   input1GradDesc,
-                                                                   input2GradDesc,
-                                                                   in1.data(),
-                                                                   in2.data(),
-                                                                   target.data(),
-                                                                   out_grad.data(),
-                                                                   in1_grad_host.data(),
-                                                                   in2_grad_host.data(),
-                                                                   margin,
-                                                                   divisor,
-                                                                   true,
-                                                                   true);
+        status = mloCosineEmbeddingLossReducedBackwardRunHost2d<Tgpu, Tref>(input1Desc,
+                                                                            input2Desc,
+                                                                            targetDesc,
+                                                                            outputGradDesc,
+                                                                            input1GradDesc,
+                                                                            input2GradDesc,
+                                                                            in1.data(),
+                                                                            in2.data(),
+                                                                            target.data(),
+                                                                            out_grad.data(),
+                                                                            in1_grad_host.data(),
+                                                                            in2_grad_host.data(),
+                                                                            margin,
+                                                                            divisor,
+                                                                            true,
+                                                                            true);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloCosineEmbeddingLossReducedBackwardRunHost2d");
     }
     else
     {
-        mloCosineEmbeddingLossUnreducedBackwardRunHost2d<Tgpu, Tref>(input1Desc,
-                                                                     input2Desc,
-                                                                     targetDesc,
-                                                                     outputGradDesc,
-                                                                     input1GradDesc,
-                                                                     input2GradDesc,
-                                                                     in1.data(),
-                                                                     in2.data(),
-                                                                     target.data(),
-                                                                     out_grad.data(),
-                                                                     in1_grad_host.data(),
-                                                                     in2_grad_host.data(),
-                                                                     margin,
-                                                                     true,
-                                                                     true);
+        status = mloCosineEmbeddingLossUnreducedBackwardRunHost2d<Tgpu, Tref>(input1Desc,
+                                                                              input2Desc,
+                                                                              targetDesc,
+                                                                              outputGradDesc,
+                                                                              input1GradDesc,
+                                                                              input2GradDesc,
+                                                                              in1.data(),
+                                                                              in2.data(),
+                                                                              target.data(),
+                                                                              out_grad.data(),
+                                                                              in1_grad_host.data(),
+                                                                              in2_grad_host.data(),
+                                                                              margin,
+                                                                              true,
+                                                                              true);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloCosineEmbeddingLossUnreducedBackwardRunHost2d");
     }
-    return miopenStatusSuccess;
+
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
@@ -568,7 +593,8 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::VerifyForward()
     }
     else
     {
-        printf("Forward CosineEmbeddingLoss Verifies on CPU and GPU (err=%f)\n", error);
+        std::cout << "Forward CosineEmbeddingLoss Verifies on CPU and GPU (err=" << error << ")"
+                  << std::endl;
     }
 
     return miopenStatusSuccess;
@@ -585,12 +611,12 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::VerifyBackward()
     {
         std::cout << "Backward CosineEmbeddingLoss in Input Grad 1 FAILED: " << error1
                   << " while tolerance: " << tolerance << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {
-        printf("Backward CosineEmbeddingLoss Verifies in Input Grad 1 on CPU and GPU (err=%f)\n",
-               error1);
+        std::cout << "Backward CosineEmbeddingLoss Verifies in Input Grad 1 on CPU and GPU (err="
+                  << error1 << ")" << std::endl;
     }
 
     auto error2 = miopen::rms_range(in2_grad_host, in2_grad);
@@ -599,15 +625,13 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::VerifyBackward()
     {
         std::cout << "Backward CosineEmbeddingLoss in Input Grad 2 FAILED: " << error2
                   << " while tolerance: " << tolerance << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {
-        printf("Backward CosineEmbeddingLoss Verifies in Input Grad 2 on CPU and GPU (err=%f)\n",
-               error2);
+        std::cout << "Backward CosineEmbeddingLoss Verifies in Input Grad 2 on CPU and GPU (err="
+                  << error2 << ")" << std::endl;
     }
 
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_COSINEEMBEDDINGLOSS_DRIVER_HPP

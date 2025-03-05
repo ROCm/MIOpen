@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,17 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include <miopen/cosineembeddingloss/solvers.hpp>
-
-#include <miopen/cosineembeddingloss/invoke_params.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
 #include <miopen/cosineembeddingloss.hpp>
+#include <miopen/cosineembeddingloss/invoke_params.hpp>
+#include <miopen/cosineembeddingloss/solvers.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/tensor_view.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE_UNREDUCED_BWD 1024
 
@@ -43,14 +40,33 @@ namespace solver {
 
 namespace cosineembeddingloss {
 
-bool CosineEmbeddingLossUnreducedBackward2dNonSum::IsApplicable(
-    const ExecutionContext&,
-    const miopen::cosineembeddingloss::BwdUnreducedProblemDescription& problem) const
+namespace {
+
+bool IsOverROCm(const miopen::cosineembeddingloss::BwdUnreducedProblemDescription& problem)
 {
     if((problem.GetInput1Desc().GetLengths()[0] >= 237 &&
         problem.GetInput1Desc().GetLengths()[1] >= 80) ||
        problem.GetInput1Desc().GetLengths()[1] >= 200)
         return false;
+
+    return true;
+}
+
+} // namespace
+
+bool CosineEmbeddingLossUnreducedBackward2dNonSum::IsApplicable(
+    const ExecutionContext&,
+    const miopen::cosineembeddingloss::BwdUnreducedProblemDescription& problem) const
+{
+    if(!IsOverROCm(problem))
+        return false;
+
+    if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
+         problem.GetOutputDesc().GetType() == miopenFloat ||
+         problem.GetOutputDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
 
     return true;
 }
@@ -95,12 +111,12 @@ ConvSolution CosineEmbeddingLossUnreducedBackward2dNonSum::GetSolution(
             decltype(auto) params =
                 raw_params.CastTo<miopen::cosineembeddingloss::BwdInvokeParams>();
 
-            auto input1_tv      = get_inner_expanded_tv_2d(deref(params.input1Desc));
-            auto input2_tv      = get_inner_expanded_tv_2d(deref(params.input2Desc));
-            auto target_tv      = get_inner_expanded_tv_1d(deref(params.targetDesc));
-            auto output_grad_tv = get_inner_expanded_tv_1d(deref(params.outputGradDesc));
-            auto input1_grad_tv = get_inner_expanded_tv_2d(deref(params.input1GradDesc));
-            auto input2_grad_tv = get_inner_expanded_tv_2d(deref(params.input2GradDesc));
+            auto input1_tv      = get_inner_expanded_tv<2>(deref(params.input1Desc));
+            auto input2_tv      = get_inner_expanded_tv<2>(deref(params.input2Desc));
+            auto target_tv      = get_inner_expanded_tv<1>(deref(params.targetDesc));
+            auto output_grad_tv = get_inner_expanded_tv<1>(deref(params.outputGradDesc));
+            auto input1_grad_tv = get_inner_expanded_tv<2>(deref(params.input1GradDesc));
+            auto input2_grad_tv = get_inner_expanded_tv<2>(deref(params.input2GradDesc));
 
             kernel(params.input1,
                    params.input2,

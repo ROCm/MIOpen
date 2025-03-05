@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/miopen.h"
 #include <miopen/cosineembeddingloss.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -34,7 +32,7 @@
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -44,7 +42,7 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
     return os;
 }
 
-static void LogCmdCosineEmbeddingLoss(const miopenTensorDescriptor_t x1Desc,
+inline void LogCmdCosineEmbeddingLoss(const miopenTensorDescriptor_t x1Desc,
                                       const miopenTensorDescriptor_t x2Desc,
                                       const miopenTensorDescriptor_t tDesc,
                                       bool is_fwd,
@@ -98,7 +96,7 @@ miopenGetCosineEmbeddingLossForwardWorkspaceSize(miopenHandle_t handle,
     {
         return miopen::try_([&] {
             miopen::deref(sizeInBytes) =
-                miopen::GetCosineEmbeddingLossUnreducedForwardWorkspaceSize(
+                miopen::cosineembeddingloss::GetCosineEmbeddingLossUnreducedForwardWorkspaceSize(
                     miopen::deref(handle),
                     miopen::deref(input1Desc),
                     miopen::deref(input2Desc),
@@ -109,12 +107,13 @@ miopenGetCosineEmbeddingLossForwardWorkspaceSize(miopenHandle_t handle,
     }
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
-            miopen::GetCosineEmbeddingLossReducedForwardWorkspaceSize(miopen::deref(handle),
-                                                                      miopen::deref(input1Desc),
-                                                                      miopen::deref(input2Desc),
-                                                                      miopen::deref(targetDesc),
-                                                                      miopen::deref(outputDesc),
-                                                                      margin);
+            miopen::cosineembeddingloss::GetCosineEmbeddingLossReducedForwardWorkspaceSize(
+                miopen::deref(handle),
+                miopen::deref(input1Desc),
+                miopen::deref(input2Desc),
+                miopen::deref(targetDesc),
+                miopen::deref(outputDesc),
+                margin);
     });
 }
 
@@ -151,34 +150,35 @@ miopenCosineEmbeddingLossForward(miopenHandle_t handle,
     if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
     {
         return miopen::try_([&] {
-            miopen::CosineEmbeddingLossUnreducedForward(miopen::deref(handle),
-                                                        DataCast(workspace),
-                                                        workspaceSizeInBytes,
-                                                        miopen::deref(input1Desc),
-                                                        DataCast(input1),
-                                                        miopen::deref(input2Desc),
-                                                        DataCast(input2),
-                                                        miopen::deref(targetDesc),
-                                                        DataCast(target),
-                                                        miopen::deref(outputDesc),
-                                                        DataCast(output),
-                                                        margin);
+            miopen::cosineembeddingloss::CosineEmbeddingLossUnreducedForward(
+                miopen::deref(handle),
+                DataCast(workspace),
+                workspaceSizeInBytes,
+                miopen::deref(input1Desc),
+                DataCast(input1),
+                miopen::deref(input2Desc),
+                DataCast(input2),
+                miopen::deref(targetDesc),
+                DataCast(target),
+                miopen::deref(outputDesc),
+                DataCast(output),
+                margin);
         });
     }
     return miopen::try_([&] {
-        miopen::CosineEmbeddingLossReducedForward(miopen::deref(handle),
-                                                  DataCast(workspace),
-                                                  workspaceSizeInBytes,
-                                                  miopen::deref(input1Desc),
-                                                  DataCast(input1),
-                                                  miopen::deref(input2Desc),
-                                                  DataCast(input2),
-                                                  miopen::deref(targetDesc),
-                                                  DataCast(target),
-                                                  miopen::deref(outputDesc),
-                                                  DataCast(output),
-                                                  margin,
-                                                  reduction);
+        miopen::cosineembeddingloss::CosineEmbeddingLossReducedForward(miopen::deref(handle),
+                                                                       DataCast(workspace),
+                                                                       workspaceSizeInBytes,
+                                                                       miopen::deref(input1Desc),
+                                                                       DataCast(input1),
+                                                                       miopen::deref(input2Desc),
+                                                                       DataCast(input2),
+                                                                       miopen::deref(targetDesc),
+                                                                       DataCast(target),
+                                                                       miopen::deref(outputDesc),
+                                                                       DataCast(output),
+                                                                       margin,
+                                                                       reduction);
     });
 }
 
@@ -206,14 +206,15 @@ miopenGetCosineEmbeddingLossBackwardWorkspaceSize(miopenHandle_t handle,
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
-            miopen::GetCosineEmbeddingLossBackwardWorkspaceSize(miopen::deref(handle),
-                                                                miopen::deref(input1Desc),
-                                                                miopen::deref(input2Desc),
-                                                                miopen::deref(targetDesc),
-                                                                miopen::deref(outputGradDesc),
-                                                                miopen::deref(input1GradDesc),
-                                                                miopen::deref(input2GradDesc),
-                                                                margin);
+            miopen::cosineembeddingloss::GetCosineEmbeddingLossBackwardWorkspaceSize(
+                miopen::deref(handle),
+                miopen::deref(input1Desc),
+                miopen::deref(input2Desc),
+                miopen::deref(targetDesc),
+                miopen::deref(outputGradDesc),
+                miopen::deref(input1GradDesc),
+                miopen::deref(input2GradDesc),
+                margin);
     });
 }
 
@@ -259,41 +260,43 @@ miopenCosineEmbeddingLossBackward(miopenHandle_t handle,
     if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
     {
         return miopen::try_([&] {
-            miopen::CosineEmbeddingLossUnreducedBackward(miopen::deref(handle),
-                                                         DataCast(workspace),
-                                                         workspaceSizeInBytes,
-                                                         miopen::deref(input1Desc),
-                                                         DataCast(input1),
-                                                         miopen::deref(input2Desc),
-                                                         DataCast(input2),
-                                                         miopen::deref(targetDesc),
-                                                         DataCast(target),
-                                                         miopen::deref(outputGradDesc),
-                                                         DataCast(output_grad),
-                                                         miopen::deref(input1GradDesc),
-                                                         DataCast(input1_grad),
-                                                         miopen::deref(input2GradDesc),
-                                                         DataCast(input2_grad),
-                                                         margin);
+            miopen::cosineembeddingloss::CosineEmbeddingLossUnreducedBackward(
+                miopen::deref(handle),
+                DataCast(workspace),
+                workspaceSizeInBytes,
+                miopen::deref(input1Desc),
+                DataCast(input1),
+                miopen::deref(input2Desc),
+                DataCast(input2),
+                miopen::deref(targetDesc),
+                DataCast(target),
+                miopen::deref(outputGradDesc),
+                DataCast(output_grad),
+                miopen::deref(input1GradDesc),
+                DataCast(input1_grad),
+                miopen::deref(input2GradDesc),
+                DataCast(input2_grad),
+                margin);
         });
     }
     return miopen::try_([&] {
-        miopen::CosineEmbeddingLossReducedBackward(miopen::deref(handle),
-                                                   DataCast(workspace),
-                                                   workspaceSizeInBytes,
-                                                   miopen::deref(input1Desc),
-                                                   DataCast(input1),
-                                                   miopen::deref(input2Desc),
-                                                   DataCast(input2),
-                                                   miopen::deref(targetDesc),
-                                                   DataCast(target),
-                                                   miopen::deref(outputGradDesc),
-                                                   DataCast(output_grad),
-                                                   miopen::deref(input1GradDesc),
-                                                   DataCast(input1_grad),
-                                                   miopen::deref(input2GradDesc),
-                                                   DataCast(input2_grad),
-                                                   margin,
-                                                   reduction);
+        miopen::cosineembeddingloss::CosineEmbeddingLossReducedBackward(
+            miopen::deref(handle),
+            DataCast(workspace),
+            workspaceSizeInBytes,
+            miopen::deref(input1Desc),
+            DataCast(input1),
+            miopen::deref(input2Desc),
+            DataCast(input2),
+            miopen::deref(targetDesc),
+            DataCast(target),
+            miopen::deref(outputGradDesc),
+            DataCast(output_grad),
+            miopen::deref(input1GradDesc),
+            DataCast(input1_grad),
+            miopen::deref(input2GradDesc),
+            DataCast(input2_grad),
+            margin,
+            reduction);
     });
 }

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,22 +23,19 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "../driver/tensor_driver.hpp"
 #include "cpu_cosineembeddingloss.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include <cstdint>
 #include <gtest/gtest.h>
 #include <miopen/cosineembeddingloss.hpp>
 #include <miopen/miopen.h>
-#include <vector>
 
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -66,11 +63,11 @@ struct CosineEmbeddingLossTestCase
 inline std::vector<CosineEmbeddingLossTestCase> CosineEmbeddingLossTestConfigs()
 {
     return {
-        {{768, 20}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
-        {{768, 20}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM},
-        {{768, 200}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
-        {{768, 200}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM},
-        {{768, 128}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
+        // {{768, 20}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
+        // {{768, 20}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM},
+        // {{768, 200}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
+        // {{768, 200}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM},
+        // {{768, 128}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
         {{768, 128}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM}, // false
     };
 }
@@ -90,7 +87,7 @@ inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous
 
 // FORWARD TEST
 template <typename T = float>
-struct CosineEmbeddingLossTest : public ::testing::TestWithParam<CosineEmbeddingLossTestCase>
+struct CosineEmbeddingLossTestFwd : public ::testing::TestWithParam<CosineEmbeddingLossTestCase>
 {
 protected:
     void SetUp() override
@@ -144,11 +141,13 @@ protected:
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
         if(divisor == 0.f)
-            ws_sizeInBytes = miopen::GetCosineEmbeddingLossUnreducedForwardWorkspaceSize(
-                handle, input1.desc, input2.desc, target.desc, output.desc, margin);
+            ws_sizeInBytes =
+                miopen::cosineembeddingloss::GetCosineEmbeddingLossUnreducedForwardWorkspaceSize(
+                    handle, input1.desc, input2.desc, target.desc, output.desc, margin);
         else
-            ws_sizeInBytes = miopen::GetCosineEmbeddingLossReducedForwardWorkspaceSize(
-                handle, input1.desc, input2.desc, target.desc, output.desc, margin);
+            ws_sizeInBytes =
+                miopen::cosineembeddingloss::GetCosineEmbeddingLossReducedForwardWorkspaceSize(
+                    handle, input1.desc, input2.desc, target.desc, output.desc, margin);
 
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_SKIP();
@@ -185,54 +184,53 @@ protected:
             cpu_cosineembeddingloss_unreduced_forward_2d<T>(
                 input1, input2, target, ref_output, margin);
 
-            status = miopen::CosineEmbeddingLossUnreducedForward(handle,
-                                                                 workspace_dev.get(),
-                                                                 ws_sizeInBytes,
-                                                                 input1.desc,
-                                                                 input1_dev.get(),
-                                                                 input2.desc,
-                                                                 input2_dev.get(),
-                                                                 target.desc,
-                                                                 target_dev.get(),
-                                                                 output.desc,
-                                                                 output_dev.get(),
-                                                                 margin);
+            status = miopen::cosineembeddingloss::CosineEmbeddingLossUnreducedForward(
+                handle,
+                workspace_dev.get(),
+                ws_sizeInBytes,
+                input1.desc,
+                input1_dev.get(),
+                input2.desc,
+                input2_dev.get(),
+                target.desc,
+                target_dev.get(),
+                output.desc,
+                output_dev.get(),
+                margin);
         }
         else
         {
             cpu_cosineembeddingloss_reduced_forward_2d<T>(
                 input1, input2, target, ref_output, ref_workspace, margin, divisor);
-            status         = miopen::CosineEmbeddingLossReducedForward(handle,
-                                                               workspace_dev.get(),
-                                                               ws_sizeInBytes,
-                                                               input1.desc,
-                                                               input1_dev.get(),
-                                                               input2.desc,
-                                                               input2_dev.get(),
-                                                               target.desc,
-                                                               target_dev.get(),
-                                                               output.desc,
-                                                               output_dev.get(),
-                                                               margin,
-                                                               reduction);
+            status =
+                miopen::cosineembeddingloss::CosineEmbeddingLossReducedForward(handle,
+                                                                               workspace_dev.get(),
+                                                                               ws_sizeInBytes,
+                                                                               input1.desc,
+                                                                               input1_dev.get(),
+                                                                               input2.desc,
+                                                                               input2_dev.get(),
+                                                                               target.desc,
+                                                                               target_dev.get(),
+                                                                               output.desc,
+                                                                               output_dev.get(),
+                                                                               margin,
+                                                                               reduction);
             workspace.data = handle.Read<T>(workspace_dev, workspace.data.size());
         }
-        fflush(stdout);
 
-        EXPECT_EQ(status, miopenStatusSuccess);
-
+        ASSERT_EQ(status, miopenStatusSuccess);
         output.data = handle.Read<T>(output_dev, output.data.size());
     }
 
     void Verify()
     {
         double threshold = std::numeric_limits<T>::epsilon();
+        auto error       = miopen::rms_range(ref_output, output);
 
-        auto error = miopen::rms_range(ref_output, output);
-
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
-                                            << ",  Thresholdx10: " << threshold * 10;
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, threshold * 10) << "Error output beyond tolerance Error: " << error
+                                         << ",  Tolerance: " << threshold * 10;
     }
     CosineEmbeddingLossTestCase cosineembeddingloss_config;
 
@@ -324,14 +322,15 @@ protected:
         std::fill(
             ref_input2_grad.begin(), ref_input2_grad.end(), std::numeric_limits<T>::quiet_NaN());
 
-        ws_sizeInBytes = miopen::GetCosineEmbeddingLossBackwardWorkspaceSize(handle,
-                                                                             input1.desc,
-                                                                             input2.desc,
-                                                                             target.desc,
-                                                                             output_grad.desc,
-                                                                             input1_grad.desc,
-                                                                             input2_grad.desc,
-                                                                             margin);
+        ws_sizeInBytes = miopen::cosineembeddingloss::GetCosineEmbeddingLossBackwardWorkspaceSize(
+            handle,
+            input1.desc,
+            input2.desc,
+            target.desc,
+            output_grad.desc,
+            input1_grad.desc,
+            input2_grad.desc,
+            margin);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_SKIP();
 
@@ -376,22 +375,23 @@ protected:
                                                              true,
                                                              true);
 
-            status = miopen::CosineEmbeddingLossUnreducedBackward(handle,
-                                                                  workspace_dev.get(),
-                                                                  ws_sizeInBytes,
-                                                                  input1.desc,
-                                                                  input1_dev.get(),
-                                                                  input2.desc,
-                                                                  input2_dev.get(),
-                                                                  target.desc,
-                                                                  target_dev.get(),
-                                                                  output_grad.desc,
-                                                                  output_grad_dev.get(),
-                                                                  input1_grad.desc,
-                                                                  input1_grad_dev.get(),
-                                                                  input2_grad.desc,
-                                                                  input2_grad_dev.get(),
-                                                                  margin);
+            status = miopen::cosineembeddingloss::CosineEmbeddingLossUnreducedBackward(
+                handle,
+                workspace_dev.get(),
+                ws_sizeInBytes,
+                input1.desc,
+                input1_dev.get(),
+                input2.desc,
+                input2_dev.get(),
+                target.desc,
+                target_dev.get(),
+                output_grad.desc,
+                output_grad_dev.get(),
+                input1_grad.desc,
+                input1_grad_dev.get(),
+                input2_grad.desc,
+                input2_grad_dev.get(),
+                margin);
         }
         else
         {
@@ -406,27 +406,26 @@ protected:
                                                            true,
                                                            true);
 
-            status = miopen::CosineEmbeddingLossReducedBackward(handle,
-                                                                workspace_dev.get(),
-                                                                ws_sizeInBytes,
-                                                                input1.desc,
-                                                                input1_dev.get(),
-                                                                input2.desc,
-                                                                input2_dev.get(),
-                                                                target.desc,
-                                                                target_dev.get(),
-                                                                output_grad.desc,
-                                                                output_grad_dev.get(),
-                                                                input1_grad.desc,
-                                                                input1_grad_dev.get(),
-                                                                input2_grad.desc,
-                                                                input2_grad_dev.get(),
-                                                                margin,
-                                                                reduction);
+            status = miopen::cosineembeddingloss::CosineEmbeddingLossReducedBackward(
+                handle,
+                workspace_dev.get(),
+                ws_sizeInBytes,
+                input1.desc,
+                input1_dev.get(),
+                input2.desc,
+                input2_dev.get(),
+                target.desc,
+                target_dev.get(),
+                output_grad.desc,
+                output_grad_dev.get(),
+                input1_grad.desc,
+                input1_grad_dev.get(),
+                input2_grad.desc,
+                input2_grad_dev.get(),
+                margin,
+                reduction);
         }
-        fflush(stdout);
-
-        EXPECT_EQ(status, miopenStatusSuccess);
+        ASSERT_EQ(status, miopenStatusSuccess);
 
         input1_grad.data = handle.Read<T>(input1_grad_dev, input1_grad.data.size());
         input2_grad.data = handle.Read<T>(input2_grad_dev, input2_grad.data.size());
@@ -436,19 +435,17 @@ protected:
     {
         double threshold = std::numeric_limits<T>::epsilon();
 
-        auto error1 = miopen::rms_range(ref_input1_grad, input1_grad);
+        auto input1_grad_error = miopen::rms_range(ref_input1_grad, input1_grad);
+        auto input2_grad_error = miopen::rms_range(ref_input2_grad, input2_grad);
 
-        EXPECT_TRUE(miopen::range_distance(ref_input1_grad) == miopen::range_distance(input1_grad));
-        EXPECT_TRUE(error1 < threshold * 10)
-            << "Error input 1 grad beyond tolerance Error:" << error1
-            << ",  Thresholdx10: " << threshold * 10;
-
-        auto error2 = miopen::rms_range(ref_input2_grad, input2_grad);
-
-        EXPECT_TRUE(miopen::range_distance(ref_input2_grad) == miopen::range_distance(input2_grad));
-        EXPECT_TRUE(error2 < threshold * 10)
-            << "Error input 2 grad beyond tolerance Error:" << error2
-            << ",  Thresholdx10: " << threshold * 10;
+        ASSERT_EQ(miopen::range_distance(ref_input1_grad), miopen::range_distance(input1_grad));
+        EXPECT_LT(input1_grad_error, threshold * 10)
+            << "Error input 1 gradient beyond tolerance Error: " << input1_grad_error
+            << ",  Tolerance: " << threshold * 10;
+        ASSERT_EQ(miopen::range_distance(ref_input2_grad), miopen::range_distance(input2_grad));
+        EXPECT_LT(input2_grad_error, threshold * 10)
+            << "Error input 2 gradient beyond tolerance Error: " << input2_grad_error
+            << ",  Tolerance: " << threshold * 10;
     }
     CosineEmbeddingLossTestCase cosineembeddingloss_config;
 

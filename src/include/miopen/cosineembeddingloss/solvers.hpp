@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,14 +26,10 @@
 
 #pragma once
 
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
-#include <miopen/solver.hpp>
 #include <miopen/cosineembeddingloss/problem_description.hpp>
-#include "miopen/kernel_build_params.hpp"
-#include "miopen/kernel_info.hpp"
-
-#include <utility>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 

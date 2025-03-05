@@ -23,27 +23,24 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_COSINEEMBEDDINGLOSS_HPP
-#define GUARD_CPU_COSINEEMBEDDINGLOSS_HPP
+#pragma once
 
 #include "tensor_holder.hpp"
-#include <cstddef>
-#include <cstdint>
-#include <miopen/tensor_view.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 template <class T>
 void cpu_cosineembeddingloss_unreduced_forward_2d(
     tensor<T> input1, tensor<T> input2, tensor<int32_t> target, tensor<T>& output, float margin)
 {
-    auto I1_tv = get_inner_expanded_tv_2d(input1.desc);
-    auto I2_tv = get_inner_expanded_tv_2d(input2.desc);
-    auto T_tv  = get_inner_expanded_tv_1d(target.desc);
-    auto O_tv  = get_inner_expanded_tv_1d(output.desc);
+    auto I1_tv = get_inner_expanded_tv<2>(input1.desc);
+    auto I2_tv = get_inner_expanded_tv<2>(input2.desc);
+    auto T_tv  = get_inner_expanded_tv<1>(target.desc);
+    auto O_tv  = get_inner_expanded_tv<1>(output.desc);
 
     size_t N = input1.desc.GetLengths()[0], D = input1.desc.GetLengths()[1];
     for(size_t n = 0; n < N; ++n)
     {
-        size_t Tidx = TV1D_IDX(T_tv, n);
+        size_t Tidx = T_tv.get_tensor_view_idx({n});
         int32_t t   = target[Tidx];
 
         float cos_term = 0.0f;
@@ -51,8 +48,8 @@ void cpu_cosineembeddingloss_unreduced_forward_2d(
 
         for(size_t d = 0; d < D; ++d)
         {
-            size_t I1idx = TV2D_IDX(I1_tv, n, d);
-            size_t I2idx = TV2D_IDX(I2_tv, n, d);
+            size_t I1idx = I1_tv.get_tensor_view_idx({n, d});
+            size_t I2idx = I2_tv.get_tensor_view_idx({n, d});
             cos_term += static_cast<float>(input1[I1idx]) * static_cast<float>(input2[I2idx]);
             norm1 += static_cast<float>(input1[I1idx]) * static_cast<float>(input1[I1idx]);
             norm2 += static_cast<float>(input2[I2idx]) * static_cast<float>(input2[I2idx]);
@@ -61,7 +58,7 @@ void cpu_cosineembeddingloss_unreduced_forward_2d(
         norm2 = sqrt(norm2);
         cos_term /= norm1 * norm2;
 
-        size_t Oidx = TV1D_IDX(O_tv, n);
+        size_t Oidx = O_tv.get_tensor_view_idx({n});
 
         if(t == 1)
         {
@@ -83,21 +80,21 @@ void cpu_cosineembeddingloss_reduced_forward_2d(tensor<T> input1,
                                                 float margin,
                                                 float divisor)
 {
-    auto I1_tv = get_inner_expanded_tv_2d(input1.desc);
-    auto I2_tv = get_inner_expanded_tv_2d(input2.desc);
-    auto T_tv  = get_inner_expanded_tv_1d(target.desc);
+    auto I1_tv = get_inner_expanded_tv<2>(input1.desc);
+    auto I2_tv = get_inner_expanded_tv<2>(input2.desc);
+    auto T_tv  = get_inner_expanded_tv<1>(target.desc);
 
     size_t N = input1.desc.GetLengths()[0], D = input1.desc.GetLengths()[1];
     for(size_t n = 0; n < N; ++n)
     {
-        size_t Tidx    = TV1D_IDX(T_tv, n);
+        size_t Tidx    = T_tv.get_tensor_view_idx({n});
         int32_t t      = target[Tidx];
         float cos_term = 0.0f;
         float norm1 = 0.0f, norm2 = 0.0f;
         for(size_t d = 0; d < D; ++d)
         {
-            size_t I1idx = TV2D_IDX(I1_tv, n, d);
-            size_t I2idx = TV2D_IDX(I2_tv, n, d);
+            size_t I1idx = I1_tv.get_tensor_view_idx({n, d});
+            size_t I2idx = I2_tv.get_tensor_view_idx({n, d});
             cos_term += static_cast<float>(input1[I1idx]) * static_cast<float>(input2[I2idx]);
             norm1 += static_cast<float>(input1[I1idx]) * static_cast<float>(input1[I1idx]);
             norm2 += static_cast<float>(input2[I2idx]) * static_cast<float>(input2[I2idx]);
@@ -152,12 +149,12 @@ void cpu_cosineembeddingloss_unreduced_backward_2d(tensor<T> input1,
                                                    bool input1_grad_out,
                                                    bool input2_grad_out)
 {
-    auto I1_tv  = get_inner_expanded_tv_2d(input1.desc);
-    auto I2_tv  = get_inner_expanded_tv_2d(input2.desc);
-    auto T_tv   = get_inner_expanded_tv_1d(target.desc);
-    auto dO_tv  = get_inner_expanded_tv_1d(output_grad.desc);
-    auto dI1_tv = get_inner_expanded_tv_2d(input1_grad.desc);
-    auto dI2_tv = get_inner_expanded_tv_2d(input2_grad.desc);
+    auto I1_tv  = get_inner_expanded_tv<2>(input1.desc);
+    auto I2_tv  = get_inner_expanded_tv<2>(input2.desc);
+    auto T_tv   = get_inner_expanded_tv<1>(target.desc);
+    auto dO_tv  = get_inner_expanded_tv<1>(output_grad.desc);
+    auto dI1_tv = get_inner_expanded_tv<2>(input1_grad.desc);
+    auto dI2_tv = get_inner_expanded_tv<2>(input2_grad.desc);
 
     size_t N = input1.desc.GetLengths()[0], D = input1.desc.GetLengths()[1];
     for(size_t n = 0; n < N; ++n)
@@ -166,17 +163,17 @@ void cpu_cosineembeddingloss_unreduced_backward_2d(tensor<T> input1,
         {
             if(input1_grad_out)
             {
-                size_t dI1idx       = TV2D_IDX(dI1_tv, n, d);
+                size_t dI1idx       = dI1_tv.get_tensor_view_idx({n, d});
                 input1_grad[dI1idx] = static_cast<T>(0.0f);
             }
             if(input2_grad_out)
             {
-                size_t dI2idx       = TV2D_IDX(dI2_tv, n, d);
+                size_t dI2idx       = dI2_tv.get_tensor_view_idx({n, d});
                 input2_grad[dI2idx] = static_cast<T>(0.0f);
             }
         }
 
-        size_t Tidx = TV1D_IDX(T_tv, n);
+        size_t Tidx = T_tv.get_tensor_view_idx({n});
         int32_t t   = target[Tidx];
 
         float cos_term = 0.0f;
@@ -184,8 +181,8 @@ void cpu_cosineembeddingloss_unreduced_backward_2d(tensor<T> input1,
 
         for(size_t d = 0; d < D; ++d)
         {
-            size_t I1idx = TV2D_IDX(I1_tv, n, d);
-            size_t I2idx = TV2D_IDX(I2_tv, n, d);
+            size_t I1idx = I1_tv.get_tensor_view_idx({n, d});
+            size_t I2idx = I2_tv.get_tensor_view_idx({n, d});
             cos_term += static_cast<float>(input1[I1idx]) * static_cast<float>(input2[I2idx]);
             norm1 += static_cast<float>(input1[I1idx]) * static_cast<float>(input1[I1idx]);
             norm2 += static_cast<float>(input2[I2idx]) * static_cast<float>(input2[I2idx]);
@@ -196,11 +193,11 @@ void cpu_cosineembeddingloss_unreduced_backward_2d(tensor<T> input1,
 
         for(size_t d = 0; d < D; ++d)
         {
-            size_t I1idx  = TV2D_IDX(I1_tv, n, d);
-            size_t I2idx  = TV2D_IDX(I2_tv, n, d);
-            size_t dOidx  = TV1D_IDX(dO_tv, n);
-            size_t dI1idx = TV2D_IDX(dI1_tv, n, d);
-            size_t dI2idx = TV2D_IDX(dI2_tv, n, d);
+            size_t I1idx  = I1_tv.get_tensor_view_idx({n, d});
+            size_t I2idx  = I2_tv.get_tensor_view_idx({n, d});
+            size_t dOidx  = dO_tv.get_tensor_view_idx({n});
+            size_t dI1idx = dI1_tv.get_tensor_view_idx({n, d});
+            size_t dI2idx = dI2_tv.get_tensor_view_idx({n, d});
             float i1      = static_cast<float>(input1[I1idx]);
             float i2      = static_cast<float>(input2[I2idx]);
             float og      = static_cast<float>(output_grad[dOidx]);
@@ -252,12 +249,12 @@ void cpu_cosineembeddingloss_reduced_backward_2d(tensor<T> input1,
                                                  bool input1_grad_out,
                                                  bool input2_grad_out)
 {
-    auto I1_tv  = get_inner_expanded_tv_2d(input1.desc);
-    auto I2_tv  = get_inner_expanded_tv_2d(input2.desc);
-    auto T_tv   = get_inner_expanded_tv_1d(target.desc);
-    auto dO_tv  = get_inner_expanded_tv_1d(output_grad.desc);
-    auto dI1_tv = get_inner_expanded_tv_2d(input1_grad.desc);
-    auto dI2_tv = get_inner_expanded_tv_2d(input2_grad.desc);
+    auto I1_tv  = get_inner_expanded_tv<2>(input1.desc);
+    auto I2_tv  = get_inner_expanded_tv<2>(input2.desc);
+    auto T_tv   = get_inner_expanded_tv<1>(target.desc);
+    auto dO_tv  = get_inner_expanded_tv<1>(output_grad.desc);
+    auto dI1_tv = get_inner_expanded_tv<2>(input1_grad.desc);
+    auto dI2_tv = get_inner_expanded_tv<2>(input2_grad.desc);
 
     size_t N = input1.desc.GetLengths()[0], D = input1.desc.GetLengths()[1];
     for(size_t n = 0; n < N; ++n)
@@ -266,17 +263,17 @@ void cpu_cosineembeddingloss_reduced_backward_2d(tensor<T> input1,
         {
             if(input1_grad_out)
             {
-                size_t dI1idx       = TV2D_IDX(dI1_tv, n, d);
+                size_t dI1idx       = dI1_tv.get_tensor_view_idx({n, d});
                 input1_grad[dI1idx] = static_cast<T>(0.0f);
             }
             if(input2_grad_out)
             {
-                size_t dI2idx       = TV2D_IDX(dI2_tv, n, d);
+                size_t dI2idx       = dI2_tv.get_tensor_view_idx({n, d});
                 input2_grad[dI2idx] = static_cast<T>(0.0f);
             }
         }
 
-        size_t Tidx = TV1D_IDX(T_tv, n);
+        size_t Tidx = T_tv.get_tensor_view_idx({n});
         int32_t t   = target[Tidx];
 
         float cos_term = 0.0f;
@@ -284,8 +281,8 @@ void cpu_cosineembeddingloss_reduced_backward_2d(tensor<T> input1,
 
         for(size_t d = 0; d < D; ++d)
         {
-            size_t I1idx = TV2D_IDX(I1_tv, n, d);
-            size_t I2idx = TV2D_IDX(I2_tv, n, d);
+            size_t I1idx = I1_tv.get_tensor_view_idx({n, d});
+            size_t I2idx = I2_tv.get_tensor_view_idx({n, d});
             cos_term += static_cast<float>(input1[I1idx]) * static_cast<float>(input2[I2idx]);
             norm1 += static_cast<float>(input1[I1idx]) * static_cast<float>(input1[I1idx]);
             norm2 += static_cast<float>(input2[I2idx]) * static_cast<float>(input2[I2idx]);
@@ -293,13 +290,13 @@ void cpu_cosineembeddingloss_reduced_backward_2d(tensor<T> input1,
         norm1 = sqrt(norm1);
         norm2 = sqrt(norm2);
         cos_term /= norm1 * norm2;
-        size_t dOidx = TV1D_IDX(dO_tv, 0);
+        size_t dOidx = dO_tv.get_tensor_view_idx({0});
         float og     = static_cast<float>(output_grad[dOidx]);
 
         for(size_t d = 0; d < D; ++d)
         {
-            size_t I1idx = TV2D_IDX(I1_tv, n, d);
-            size_t I2idx = TV2D_IDX(I2_tv, n, d);
+            size_t I1idx = I1_tv.get_tensor_view_idx({n, d});
+            size_t I2idx = I2_tv.get_tensor_view_idx({n, d});
 
             float i1              = static_cast<float>(input1[I1idx]);
             float i2              = static_cast<float>(input2[I2idx]);
@@ -330,12 +327,12 @@ void cpu_cosineembeddingloss_reduced_backward_2d(tensor<T> input1,
                     input2_grad_val = i1 / (norm1 * norm2) - cos_term * i2 / (norm2 * norm2);
                 }
             }
-            size_t dI1idx = TV2D_IDX(dI1_tv, n, d);
+            size_t dI1idx = dI1_tv.get_tensor_view_idx({n, d});
             if(input1_grad_out)
             {
                 input1_grad[dI1idx] = static_cast<T>(input1_grad_val * og / divisor);
             }
-            size_t dI2idx = TV2D_IDX(dI2_tv, n, d);
+            size_t dI2idx = dI2_tv.get_tensor_view_idx({n, d});
             if(input2_grad_out)
             {
                 input2_grad[dI2idx] = static_cast<T>(input2_grad_val * og / divisor);
@@ -343,5 +340,3 @@ void cpu_cosineembeddingloss_reduced_backward_2d(tensor<T> input1,
         }
     }
 }
-
-#endif // GUARD_CPU_COSINEEMBEDDINGLOSS_HPP

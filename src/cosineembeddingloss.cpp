@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/miopen.h"
 #include <miopen/cosineembeddingloss.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
@@ -34,6 +32,8 @@
 #include <miopen/find_solution.hpp>
 
 namespace miopen {
+
+namespace cosineembeddingloss {
 
 size_t GetCosineEmbeddingLossUnreducedForwardWorkspaceSize(Handle& handle,
                                                            const TensorDescriptor input1Desc,
@@ -295,5 +295,7 @@ miopenStatus_t CosineEmbeddingLossReducedBackward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+} // namespace cosineembeddingloss
 
 } // namespace miopen

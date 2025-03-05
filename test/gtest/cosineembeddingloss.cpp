@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,154 +23,71 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/bfloat16.hpp"
-#include <miopen/env.hpp>
 #include "cosineembeddingloss.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace cosineembeddingloss {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct CosineEmbeddingLossTestFloat : CosineEmbeddingLossTest<float>
-{
-};
-
-struct CosineEmbeddingLossTestHalf : CosineEmbeddingLossTest<half>
-{
-};
-
-struct CosineEmbeddingLossTestBFloat16 : CosineEmbeddingLossTest<bfloat16>
-{
-};
-
-struct CosineEmbeddingLossTestFloatBwd : CosineEmbeddingLossTestBwd<float>
-{
-};
-
-struct CosineEmbeddingLossTestHalfBwd : CosineEmbeddingLossTestBwd<half>
-{
-};
-
-struct CosineEmbeddingLossTestBFloat16Bwd : CosineEmbeddingLossTestBwd<bfloat16>
-{
-};
-
-} // namespace cosineembeddingloss
-using namespace cosineembeddingloss;
+using float16 = half_float::half;
 
 // FORWARD TEST
-TEST_P(CosineEmbeddingLossTestFloat, CosineEmbeddingLossTest)
+using GPU_CosineEmbeddingLoss_fwd_FP32  = CosineEmbeddingLossTestFwd<float>;
+using GPU_CosineEmbeddingLoss_fwd_FP16  = CosineEmbeddingLossTestFwd<float16>;
+using GPU_CosineEmbeddingLoss_fwd_BFP16 = CosineEmbeddingLossTestFwd<bfloat16>;
+
+TEST_P(GPU_CosineEmbeddingLoss_fwd_FP32, CosineEmbeddingLossTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(CosineEmbeddingLossTestHalf, CosineEmbeddingLossTest)
+TEST_P(GPU_CosineEmbeddingLoss_fwd_FP16, CosineEmbeddingLossTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(CosineEmbeddingLossTestBFloat16, CosineEmbeddingLossTest)
+TEST_P(GPU_CosineEmbeddingLoss_fwd_BFP16, CosineEmbeddingLossTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(CosineEmbeddingLossTestSet,
-                         CosineEmbeddingLossTestFloat,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CosineEmbeddingLoss_fwd_FP32,
                          testing::ValuesIn(CosineEmbeddingLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(CosineEmbeddingLossTestSet,
-                         CosineEmbeddingLossTestHalf,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CosineEmbeddingLoss_fwd_FP16,
                          testing::ValuesIn(CosineEmbeddingLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(CosineEmbeddingLossTestSet,
-                         CosineEmbeddingLossTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CosineEmbeddingLoss_fwd_BFP16,
                          testing::ValuesIn(CosineEmbeddingLossTestConfigs()));
 
 // BACKWARD TEST
-TEST_P(CosineEmbeddingLossTestFloatBwd, CosineEmbeddingLossTestBwd)
+using GPU_CosineEmbeddingLoss_bwd_FP32  = CosineEmbeddingLossTestBwd<float>;
+using GPU_CosineEmbeddingLoss_bwd_FP16  = CosineEmbeddingLossTestBwd<float16>;
+using GPU_CosineEmbeddingLoss_bwd_BFP16 = CosineEmbeddingLossTestBwd<bfloat16>;
+
+TEST_P(GPU_CosineEmbeddingLoss_bwd_FP32, CosineEmbeddingLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(CosineEmbeddingLossTestHalfBwd, CosineEmbeddingLossTestBwd)
+TEST_P(GPU_CosineEmbeddingLoss_bwd_FP16, CosineEmbeddingLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(CosineEmbeddingLossTestBFloat16Bwd, CosineEmbeddingLossTestBwd)
+TEST_P(GPU_CosineEmbeddingLoss_bwd_BFP16, CosineEmbeddingLossTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       GetFloatArg() == "--testall")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(CosineEmbeddingLossTestSet,
-                         CosineEmbeddingLossTestFloatBwd,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CosineEmbeddingLoss_bwd_FP32,
                          testing::ValuesIn(CosineEmbeddingLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(CosineEmbeddingLossTestSet,
-                         CosineEmbeddingLossTestHalfBwd,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CosineEmbeddingLoss_bwd_FP16,
                          testing::ValuesIn(CosineEmbeddingLossTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(CosineEmbeddingLossTestSet,
-                         CosineEmbeddingLossTestBFloat16Bwd,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_CosineEmbeddingLoss_bwd_BFP16,
                          testing::ValuesIn(CosineEmbeddingLossTestConfigs()));

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
-#include <miopen/problem_description_base.hpp>
+#include <miopen/miopen.h>
 #include <miopen/activ.hpp>
+#include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
-#include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -68,7 +66,7 @@ struct ProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm, "CosineEmbeddingLoss: Tensor sizes do not match.");
         }
-        for(int i = 0; i < input1Desc.GetSize(); ++i)
+        for(int i = 0; i < input1Desc.GetNumDims(); ++i)
         {
             if(input1Desc.GetLengths()[i] != input2Desc.GetLengths()[i])
             {
@@ -76,19 +74,19 @@ struct ProblemDescription : ProblemDescriptionBase
                              "CosineEmbeddingLoss: Tensor sizes do not match.");
             }
         }
-        if(input1Desc.GetSize() > 2 || input2Desc.GetSize() > 2)
+        if(input1Desc.GetNumDims() > 2 || input2Desc.GetNumDims() > 2)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "CosineEmbeddingLoss: Input tensor size > 2 is not valid.");
         }
 
-        if(targetDesc.GetSize() > 1)
+        if(targetDesc.GetNumDims() > 1)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "CosineEmbeddingLoss: Target tensor size > 1 is not valid.");
         }
 
-        if(outputDesc.GetSize() > 1)
+        if(outputDesc.GetNumDims() > 1)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "CosineEmbeddingLoss: Output tensor size > 1 is not valid.");
@@ -96,31 +94,10 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsValidStride(TensorDescriptor td) const
+    bool IsAllContiguous() const
     {
-        auto strides = td.GetStrides();
-        auto lengths = td.GetLengths();
-        std::vector<std::pair<size_t, size_t>> p;
-        p.reserve(td.GetSize());
-        std::transform(strides.begin(),
-                       strides.end(),
-                       lengths.begin(),
-                       std::back_inserter(p),
-                       [](size_t a, size_t b) { return std::make_pair(a, b); });
-        std::sort(p.begin(), p.end());
-        for(int i = 1; i < p.size(); ++i)
-        {
-            if(p[i].first != p[i - 1].first * p[i - 1].second)
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "CosineEmbeddingLoss: Tensor strides do not valid.");
-        }
-        return true;
-    }
-
-    bool IsAllValidStride() const
-    {
-        return IsValidStride(input1Desc) && IsValidStride(input2Desc) &&
-               IsValidStride(targetDesc) && IsValidStride(outputDesc);
+        return input1Desc.IsContiguous() && input2Desc.IsContiguous() &&
+               targetDesc.IsContiguous() && outputDesc.IsContiguous();
     }
 
 protected:
@@ -145,7 +122,6 @@ struct FwdUnreducedProblemDescription : ProblemDescription
         : ProblemDescription(input1Desc_, input2Desc_, targetDesc_, outputDesc_, margin_, true)
     {
         IsValidLength();
-        IsAllValidStride();
     }
 
     NetworkConfig MakeNetworkConfig() const override;
@@ -164,7 +140,6 @@ struct FwdReducedProblemDescription : ProblemDescription
         : ProblemDescription(input1Desc_, input2Desc_, targetDesc_, outputDesc_, margin_, true)
     {
         IsValidLength();
-        IsAllValidStride();
     }
 
     bool IsValidLength() const
@@ -197,26 +172,18 @@ struct BwdUnreducedProblemDescription : ProblemDescription
         input1GradDesc = input1GradDesc_;
         input2GradDesc = input2GradDesc_;
         IsValidLength();
-        IsAllValidStride();
     }
     const TensorDescriptor& GetInput1GradDesc() const { return input1GradDesc; }
 
-    bool IsAllValidStride() const
-    {
-        if(!ProblemDescription::IsAllValidStride())
-            return false;
-        return IsValidStride(input1GradDesc) && IsValidStride(input2GradDesc);
-    }
-
     bool IsValidLength() const
     {
-        if(input1GradDesc.GetSize() > 2 || input2GradDesc.GetSize() > 2)
+        if(input1GradDesc.GetNumDims() > 2 || input2GradDesc.GetNumDims() > 2)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "CosineEmbeddingLoss: Input grad tensors size > 2 are not valid.");
         }
 
-        for(int i = 0; i < input1Desc.GetSize(); ++i)
+        for(int i = 0; i < input1Desc.GetNumDims(); ++i)
         {
             if(input1GradDesc.GetLengths()[i] != input2GradDesc.GetLengths()[i])
             {
@@ -252,16 +219,8 @@ struct BwdReducedProblemDescription : ProblemDescription
         input1GradDesc = input1GradDesc_;
         input2GradDesc = input2GradDesc_;
         IsValidLength();
-        IsAllValidStride();
     }
     const TensorDescriptor& GetInput1GradDesc() const { return input1GradDesc; }
-
-    bool IsAllValidStride() const
-    {
-        if(!ProblemDescription::IsAllValidStride())
-            return false;
-        return IsValidStride(input1GradDesc) && IsValidStride(input2GradDesc);
-    }
 
     bool IsValidLength() const
     {
@@ -269,13 +228,13 @@ struct BwdReducedProblemDescription : ProblemDescription
             MIOPEN_THROW(miopenStatusBadParm,
                          "CosineEmbeddingLoss: Output Tensor length must be (1).");
 
-        if(input1GradDesc.GetSize() > 2 || input2GradDesc.GetSize() > 2)
+        if(input1GradDesc.GetNumDims() > 2 || input2GradDesc.GetNumDims() > 2)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "CosineEmbeddingLoss: Input grad tensors size > 2 are not valid.");
         }
 
-        for(int i = 0; i < input1Desc.GetSize(); ++i)
+        for(int i = 0; i < input1Desc.GetNumDims(); ++i)
         {
             if(input1GradDesc.GetLengths()[i] != input2GradDesc.GetLengths()[i])
             {

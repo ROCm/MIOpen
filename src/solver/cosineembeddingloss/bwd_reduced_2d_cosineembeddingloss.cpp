@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,18 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include <miopen/cosineembeddingloss/solvers.hpp>
-#include <miopen/cosineembeddingloss/utils.hpp>
-
-#include <miopen/cosineembeddingloss/invoke_params.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
 #include <miopen/cosineembeddingloss.hpp>
+#include <miopen/cosineembeddingloss/invoke_params.hpp>
+#include <miopen/cosineembeddingloss/solvers.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/tensor_view.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE_REDUCED_BWD 1024
 #define LOCAL_SIZE_REDUCED_SUM 256
@@ -45,8 +41,9 @@ namespace solver {
 
 namespace cosineembeddingloss {
 
+namespace {
+
 inline void ConstructNormParamsKernelsBwd(
-    const ExecutionContext& context,
     const miopen::cosineembeddingloss::BwdReducedProblemDescription& problem,
     ConvSolution& result,
     const KernelBuildParameters& build_params)
@@ -58,22 +55,11 @@ inline void ConstructNormParamsKernelsBwd(
                                                          "CosineEmbeddingLossNorm2d",
                                                          build_params));
 
-    auto reduce_size        = problem.GetInput1Desc().GetLengths()[1];
-    auto output_numel       = problem.GetInput1Desc().GetLengths()[0] * 3;
-    auto reqd_work_item_cnt = get_reqd_work_item_cnt(context, LOCAL_SIZE_REDUCED_SUM);
-    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
-    {
-        auto parallelism_size = get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
-        result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDUCED_SUM},
-                                                             {parallelism_size * output_numel},
-                                                             "MIOpenSum.cpp",
-                                                             "SumParallelFwdContiguous",
-                                                             build_params));
-    }
+    auto output_numel = problem.GetInput1Desc().GetLengths()[0] * 3;
     result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDUCED_SUM},
-                                                         {output_numel},
-                                                         "MIOpenSum.cpp",
-                                                         "SumFwdContiguous",
+                                                         {output_numel * LOCAL_SIZE_REDUCED_SUM},
+                                                         "MIOpenReduceSum.cpp",
+                                                         "Reduce1dSumContiguous",
                                                          build_params));
 }
 
@@ -87,49 +73,26 @@ inline void RunNormKernelsBwd(const std::vector<Kernel>& kernels,
     auto params = raw_params.CastTo<miopen::cosineembeddingloss::BwdInvokeParams>();
 
     {
-        auto I1_tv  = get_inner_expanded_tv_2d(deref(params.input1Desc));
-        auto I2_tv  = get_inner_expanded_tv_2d(deref(params.input2Desc));
+        auto I1_tv  = get_inner_expanded_tv<2>(deref(params.input1Desc));
+        auto I2_tv  = get_inner_expanded_tv<2>(deref(params.input2Desc));
         auto kernel = handle_.Run(kernels[kernel_cnt++]);
 
         kernel(params.input1, params.input2, work_a, I1_tv, I2_tv);
     }
 
-    auto reduce_size        = params.input1Desc->GetLengths()[1];
-    auto output_numel       = params.input1Desc->GetLengths()[0] * 3;
-    auto reqd_work_item_cnt = get_reqd_work_item_cnt(handle_, LOCAL_SIZE_REDUCED_SUM);
+    auto reduce_size  = params.input1Desc->GetLengths()[1];
+    auto output_numel = params.input1Desc->GetLengths()[0] * 3;
 
-    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
-    {
-        auto parallelism_size = get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
-        auto parallel_kernel  = handle_.Run(kernels[kernel_cnt++]);
-        parallel_kernel(work_a,
-                        work_b,
-                        static_cast<uint64_t>(output_numel),
-                        static_cast<uint64_t>(reduce_size),
-                        static_cast<uint64_t>(parallelism_size),
-                        static_cast<uint64_t>(1),
-                        false);
-
-        auto kernel = handle_.Run(kernels[kernel_cnt++]);
-        kernel(work_b,
-               work_a,
-               static_cast<uint64_t>(output_numel),
-               static_cast<uint64_t>(parallelism_size),
-               static_cast<uint64_t>(1),
-               false);
-    }
-    else
-    {
-        auto kernel = handle_.Run(kernels[kernel_cnt++]);
-        kernel(work_a,
-               work_b,
-               static_cast<uint64_t>(output_numel),
-               static_cast<uint64_t>(reduce_size),
-               static_cast<uint64_t>(1),
-               false);
-        std::swap(work_a, work_b);
-    }
+    auto kernel = handle_.Run(kernels[kernel_cnt++]);
+    kernel(work_a,
+           work_b,
+           static_cast<uint64_t>(output_numel),
+           static_cast<uint64_t>(1),
+           static_cast<uint64_t>(reduce_size));
+    std::swap(work_a, work_b);
 }
+
+} // namespace
 
 bool CosineEmbeddingLossReducedBackward2d::IsApplicable(
     const ExecutionContext&,
@@ -143,7 +106,7 @@ bool CosineEmbeddingLossReducedBackward2d::IsApplicable(
 }
 
 ConvSolution CosineEmbeddingLossReducedBackward2d::GetSolution(
-    const ExecutionContext& context,
+    const ExecutionContext&,
     const miopen::cosineembeddingloss::BwdReducedProblemDescription& problem) const
 {
     auto result       = ConvSolution{miopenStatusSuccess};
@@ -164,9 +127,10 @@ ConvSolution CosineEmbeddingLossReducedBackward2d::GetSolution(
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"REDUCE_SIZE", LOCAL_SIZE_REDUCED_SUM},
         };
 
-        ConstructNormParamsKernelsBwd(context, problem, result, build_params);
+        ConstructNormParamsKernelsBwd(problem, result, build_params);
 
         result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDUCED_BWD},
                                                              {Input_total},
@@ -200,12 +164,12 @@ ConvSolution CosineEmbeddingLossReducedBackward2d::GetSolution(
 
             RunNormKernelsBwd(kernels, handle_, raw_params, kernelCnt, work_a, work_b);
 
-            auto input1_tv      = get_inner_expanded_tv_2d(deref(params.input1Desc));
-            auto input2_tv      = get_inner_expanded_tv_2d(deref(params.input2Desc));
-            auto target_tv      = get_inner_expanded_tv_1d(deref(params.targetDesc));
-            auto output_grad_tv = get_inner_expanded_tv_1d(deref(params.outputGradDesc));
-            auto input1_grad_tv = get_inner_expanded_tv_2d(deref(params.input1GradDesc));
-            auto input2_grad_tv = get_inner_expanded_tv_2d(deref(params.input2GradDesc));
+            auto input1_tv      = get_inner_expanded_tv<2>(deref(params.input1Desc));
+            auto input2_tv      = get_inner_expanded_tv<2>(deref(params.input2Desc));
+            auto target_tv      = get_inner_expanded_tv<1>(deref(params.targetDesc));
+            auto output_grad_tv = get_inner_expanded_tv<1>(deref(params.outputGradDesc));
+            auto input1_grad_tv = get_inner_expanded_tv<2>(deref(params.input1GradDesc));
+            auto input2_grad_tv = get_inner_expanded_tv<2>(deref(params.input2GradDesc));
             float divisor       = 1;
             if(params.reduction == MIOPEN_LOSS_REDUCTION_MEAN)
             {
@@ -243,25 +207,15 @@ ConvSolution CosineEmbeddingLossReducedBackward2d::GetSolution(
 }
 
 std::size_t CosineEmbeddingLossReducedBackward2d::GetWorkspaceSize(
-    const ExecutionContext& context,
+    const ExecutionContext&,
     const miopen::cosineembeddingloss::BwdReducedProblemDescription& problem) const
 {
     std::size_t size = problem.GetInput1Desc().GetElementSize() *
                        get_data_size(problem.GetInput1GradDesc().GetType()) * 3;
 
-    auto reduce_size        = problem.GetInput1Desc().GetLengths()[1];
-    auto output_numel       = problem.GetInput1Desc().GetLengths()[0] * 3;
-    auto reqd_work_item_cnt = get_reqd_work_item_cnt(context, LOCAL_SIZE_REDUCED_SUM);
-    if(is_parallelism(reqd_work_item_cnt, output_numel, reduce_size))
-    {
-        auto parallelism_size = get_parallelism_size(reqd_work_item_cnt, output_numel, reduce_size);
-        size +=
-            parallelism_size * output_numel * get_data_size(problem.GetInput1GradDesc().GetType());
-    }
-    else
-    {
-        size += output_numel * get_data_size(problem.GetInput1GradDesc().GetType());
-    }
+    auto output_numel = problem.GetInput1Desc().GetLengths()[0] * 3;
+
+    size += output_numel * get_data_size(problem.GetInput1GradDesc().GetType());
     return size;
 }
 

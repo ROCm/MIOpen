@@ -35,19 +35,19 @@ template <typename TI, typename TO>
 __device__ void cosineembeddinglossNorm2d(const TI* __restrict__ input1,
                                           const TI* __restrict__ input2,
                                           TO* __restrict__ workspace,
-                                          tensor_view_2d_t input1_tv,
-                                          tensor_view_2d_t input2_tv)
+                                          tensor_view_t<2> input1_tv,
+                                          tensor_view_t<2> input2_tv)
 {
     uint64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
 
     size_t N = input1_tv.size[0], D = input1_tv.size[1];
-    size_t n[2];
-    GET_ND(n[0], n[1], gid, input1_tv)
-    if(!(n[0] < N))
+    auto tensor_layout = tensor_layout_t<2>(input1_tv, gid);
+
+    if(!(tensor_layout.layout[0] < N))
         return;
 
-    size_t I1idx = TV2D_IDX(input1_tv, n[0], n[1]);
-    size_t I2idx = TV2D_IDX(input2_tv, n[0], n[1]);
+    size_t I1idx = input1_tv.get_tensor_view_idx(tensor_layout);
+    size_t I2idx = input2_tv.get_tensor_view_idx(tensor_layout);
 
     FLOAT_ACCUM cos_term = CVT_FLOAT2ACCUM(input1[I1idx]) * CVT_FLOAT2ACCUM(input2[I2idx]);
     FLOAT_ACCUM norm1    = CVT_FLOAT2ACCUM(input1[I1idx]) * CVT_FLOAT2ACCUM(input1[I1idx]);
@@ -62,8 +62,8 @@ __device__ void cosineembeddinglossNorm2d(const TI* __restrict__ input1,
 extern "C" __global__ void CosineEmbeddingLossNorm2d(const INPUT_TYPE* __restrict__ input1,
                                                      const INPUT_TYPE* __restrict__ input2,
                                                      D_TYPE* __restrict__ workspace,
-                                                     tensor_view_2d_t input1_tv,
-                                                     tensor_view_2d_t input2_tv)
+                                                     tensor_view_t<2> input1_tv,
+                                                     tensor_view_t<2> input2_tv)
 {
     cosineembeddinglossNorm2d<INPUT_TYPE, D_TYPE>(input1, input2, workspace, input1_tv, input2_tv);
 }
@@ -73,8 +73,8 @@ __device__ void cosineembeddinglossUnreducedForward2d(const TI* __restrict__ wor
                                                       const int32_t* __restrict__ target,
                                                       TO* __restrict__ output,
                                                       float margin,
-                                                      tensor_view_1d_t target_tv,
-                                                      tensor_view_1d_t output_tv)
+                                                      tensor_view_t<1> target_tv,
+                                                      tensor_view_t<1> output_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -90,7 +90,7 @@ __device__ void cosineembeddinglossUnreducedForward2d(const TI* __restrict__ wor
     norm2                = sqrt(norm2);
     cos_term /= norm1 * norm2;
 
-    size_t Tidx      = TV1D_IDX(target_tv, n);
+    size_t Tidx      = target_tv.get_tensor_view_idx({n});
     int32_t t        = target[Tidx];
     FLOAT_ACCUM loss = 0.0f;
     if(t == 1)
@@ -98,7 +98,7 @@ __device__ void cosineembeddinglossUnreducedForward2d(const TI* __restrict__ wor
     else
         loss = max(0.0f, cos_term - margin);
 
-    size_t Oidx  = TV1D_IDX(output_tv, n);
+    size_t Oidx  = output_tv.get_tensor_view_idx({n});
     output[Oidx] = CVT_ACCUM2FLOAT(loss);
 }
 
@@ -107,8 +107,8 @@ CosineEmbeddingLossUnreducedForward2d(const D_TYPE* __restrict__ workspace,
                                       const int32_t* __restrict__ target,
                                       OUTPUT_TYPE* __restrict__ output,
                                       float margin,
-                                      tensor_view_1d_t target_tv,
-                                      tensor_view_1d_t output_tv)
+                                      tensor_view_t<1> target_tv,
+                                      tensor_view_t<1> output_tv)
 {
     cosineembeddinglossUnreducedForward2d<D_TYPE, OUTPUT_TYPE>(
         workspace, target, output, margin, target_tv, output_tv);
@@ -120,10 +120,10 @@ __device__ void cosineembeddinglossUnreducedForward2d_nonSum(const TI* __restric
                                                              const int32_t* __restrict__ target,
                                                              TO* __restrict__ output,
                                                              float margin,
-                                                             tensor_view_2d_t input1_tv,
-                                                             tensor_view_2d_t input2_tv,
-                                                             tensor_view_1d_t target_tv,
-                                                             tensor_view_1d_t output_tv)
+                                                             tensor_view_t<2> input1_tv,
+                                                             tensor_view_t<2> input2_tv,
+                                                             tensor_view_t<1> target_tv,
+                                                             tensor_view_t<1> output_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -133,14 +133,14 @@ __device__ void cosineembeddinglossUnreducedForward2d_nonSum(const TI* __restric
         return;
 
     FLOAT_ACCUM loss     = 0.0f;
-    size_t Tidx          = TV1D_IDX(target_tv, n);
+    size_t Tidx          = target_tv.get_tensor_view_idx({n});
     int32_t t            = target[Tidx];
     FLOAT_ACCUM cos_term = 0.0f;
     FLOAT_ACCUM norm1 = 0.0f, norm2 = 0.0f;
     for(size_t d = 0; d < D; d++)
     {
-        size_t I1idx = TV2D_IDX(input1_tv, n, d);
-        size_t I2idx = TV2D_IDX(input2_tv, n, d);
+        size_t I1idx = input1_tv.get_tensor_view_idx({n, d});
+        size_t I2idx = input2_tv.get_tensor_view_idx({n, d});
         cos_term += CVT_FLOAT2ACCUM(input1[I1idx]) * CVT_FLOAT2ACCUM(input2[I2idx]);
         norm1 += CVT_FLOAT2ACCUM(input1[I1idx]) * CVT_FLOAT2ACCUM(input1[I1idx]);
         norm2 += CVT_FLOAT2ACCUM(input2[I2idx]) * CVT_FLOAT2ACCUM(input2[I2idx]);
@@ -154,7 +154,7 @@ __device__ void cosineembeddinglossUnreducedForward2d_nonSum(const TI* __restric
     else
         loss = max(0.0f, cos_term - margin);
 
-    size_t Oidx  = TV1D_IDX(output_tv, n);
+    size_t Oidx  = output_tv.get_tensor_view_idx({n});
     output[Oidx] = CVT_ACCUM2FLOAT(loss);
 }
 
@@ -164,10 +164,10 @@ CosineEmbeddingLossUnreducedForward2d_nonSum(const INPUT_TYPE* __restrict__ inpu
                                              const int32_t* __restrict__ target,
                                              OUTPUT_TYPE* __restrict__ output,
                                              float margin,
-                                             tensor_view_2d_t input1_tv,
-                                             tensor_view_2d_t input2_tv,
-                                             tensor_view_1d_t target_tv,
-                                             tensor_view_1d_t output_tv)
+                                             tensor_view_t<2> input1_tv,
+                                             tensor_view_t<2> input2_tv,
+                                             tensor_view_t<1> target_tv,
+                                             tensor_view_t<1> output_tv)
 {
     cosineembeddinglossUnreducedForward2d_nonSum<INPUT_TYPE, OUTPUT_TYPE>(
         input1, input2, target, output, margin, input1_tv, input2_tv, target_tv, output_tv);
@@ -179,7 +179,7 @@ __device__ void cosineembeddinglossReducedForward2d(const TI* __restrict__ works
                                                     TO* __restrict__ loss_sum,
                                                     float margin,
                                                     float divisor,
-                                                    tensor_view_1d_t target_tv)
+                                                    tensor_view_t<1> target_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     size_t N     = target_tv.size[0];
@@ -193,7 +193,7 @@ __device__ void cosineembeddinglossReducedForward2d(const TI* __restrict__ works
     norm1                = sqrt(norm1);
     norm2                = sqrt(norm2);
     cos_term /= norm1 * norm2;
-    size_t Tidx      = TV1D_IDX(target_tv, n);
+    size_t Tidx      = target_tv.get_tensor_view_idx({n});
     int32_t t        = target[Tidx];
     FLOAT_ACCUM loss = 0.0f;
     if(t == 1)
@@ -209,7 +209,7 @@ extern "C" __global__ void CosineEmbeddingLossReducedForward2d(const D_TYPE* __r
                                                                OUTPUT_TYPE* __restrict__ loss_sum,
                                                                float margin,
                                                                float divisor,
-                                                               tensor_view_1d_t target_tv)
+                                                               tensor_view_t<1> target_tv)
 {
     cosineembeddinglossReducedForward2d<D_TYPE, OUTPUT_TYPE>(
         workspace, target, loss_sum, margin, divisor, target_tv);
@@ -222,9 +222,9 @@ __device__ void cosineembeddinglossReducedForward2d_nonSum(const TI* __restrict_
                                                            TO* __restrict__ loss_sum,
                                                            float margin,
                                                            float divisor,
-                                                           tensor_view_2d_t input1_tv,
-                                                           tensor_view_2d_t input2_tv,
-                                                           tensor_view_1d_t target_tv)
+                                                           tensor_view_t<2> input1_tv,
+                                                           tensor_view_t<2> input2_tv,
+                                                           tensor_view_t<1> target_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -233,14 +233,14 @@ __device__ void cosineembeddinglossReducedForward2d_nonSum(const TI* __restrict_
     if(!(n < input1_tv.size[0]))
         return;
 
-    size_t Tidx          = TV1D_IDX(target_tv, n);
+    size_t Tidx          = target_tv.get_tensor_view_idx({n});
     int32_t t            = target[Tidx];
     FLOAT_ACCUM cos_term = 0.0f;
     FLOAT_ACCUM norm1 = 0.0f, norm2 = 0.0f;
     for(size_t d = 0; d < D; d++)
     {
-        size_t I1idx = TV2D_IDX(input1_tv, n, d);
-        size_t I2idx = TV2D_IDX(input2_tv, n, d);
+        size_t I1idx = input1_tv.get_tensor_view_idx({n, d});
+        size_t I2idx = input2_tv.get_tensor_view_idx({n, d});
         cos_term += CVT_FLOAT2ACCUM(input1[I1idx]) * CVT_FLOAT2ACCUM(input2[I2idx]);
         norm1 += CVT_FLOAT2ACCUM(input1[I1idx]) * CVT_FLOAT2ACCUM(input1[I1idx]);
         norm2 += CVT_FLOAT2ACCUM(input2[I2idx]) * CVT_FLOAT2ACCUM(input2[I2idx]);
@@ -265,9 +265,9 @@ CosineEmbeddingLossReducedForward2d_nonSum(const INPUT_TYPE* __restrict__ input1
                                            OUTPUT_TYPE* __restrict__ loss_sum,
                                            float margin,
                                            float divisor,
-                                           tensor_view_2d_t input1_tv,
-                                           tensor_view_2d_t input2_tv,
-                                           tensor_view_1d_t target_tv)
+                                           tensor_view_t<2> input1_tv,
+                                           tensor_view_t<2> input2_tv,
+                                           tensor_view_t<1> target_tv)
 {
     cosineembeddinglossReducedForward2d_nonSum<INPUT_TYPE, OUTPUT_TYPE>(
         input1, input2, target, loss_sum, margin, divisor, input1_tv, input2_tv, target_tv);
@@ -282,17 +282,19 @@ __device__ void cosineembeddinglossUnreducedBackward2d(const T* __restrict__ wor
                                                        TO* __restrict__ input1_grad,
                                                        TO* __restrict__ input2_grad,
                                                        float margin,
-                                                       tensor_view_2d_t input1_tv,
-                                                       tensor_view_2d_t input2_tv,
-                                                       tensor_view_1d_t target_tv,
-                                                       tensor_view_1d_t output_grad_tv,
-                                                       tensor_view_2d_t input1_grad_tv,
-                                                       tensor_view_2d_t input2_grad_tv)
+                                                       tensor_view_t<2> input1_tv,
+                                                       tensor_view_t<2> input2_tv,
+                                                       tensor_view_t<1> target_tv,
+                                                       tensor_view_t<1> output_grad_tv,
+                                                       tensor_view_t<2> input1_grad_tv,
+                                                       tensor_view_t<2> input2_grad_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
     size_t n[2];
-    GET_ND(n[0], n[1], gid, input1_tv)
+    auto tensor_layout = tensor_layout_t<2>(input1_tv, gid);
+    n[0]               = tensor_layout.layout[0];
+    n[1]               = tensor_layout.layout[1];
 
     size_t N = input1_tv.size[0], D = input1_tv.size[1];
     if(!(n[0] < N))
@@ -305,14 +307,14 @@ __device__ void cosineembeddinglossUnreducedBackward2d(const T* __restrict__ wor
     norm2                = sqrt(norm2);
     cos_term /= norm1 * norm2;
 
-    size_t dOidx   = TV1D_IDX(output_grad_tv, n[0]);
+    size_t dOidx   = output_grad_tv.get_tensor_view_idx({n[0]});
     FLOAT_ACCUM og = CVT_FLOAT2ACCUM(output_grad[dOidx]);
 
-    size_t Tidx = TV1D_IDX(target_tv, n[0]);
+    size_t Tidx = target_tv.get_tensor_view_idx({n[0]});
     int32_t t   = target[Tidx];
 
-    size_t I1idx = TV2D_IDX(input1_tv, n[0], n[1]);
-    size_t I2idx = TV2D_IDX(input2_tv, n[0], n[1]);
+    size_t I1idx = input1_tv.get_tensor_view_idx({n[0], n[1]});
+    size_t I2idx = input2_tv.get_tensor_view_idx({n[0], n[1]});
 
     FLOAT_ACCUM i1              = CVT_FLOAT2ACCUM(input1[I1idx]);
     FLOAT_ACCUM i2              = CVT_FLOAT2ACCUM(input2[I2idx]);
@@ -345,12 +347,12 @@ __device__ void cosineembeddinglossUnreducedBackward2d(const T* __restrict__ wor
     }
     if(input1_grad)
     {
-        size_t IG1idx       = TV2D_IDX(input1_grad_tv, n[0], n[1]);
+        size_t IG1idx       = input1_grad_tv.get_tensor_view_idx({n[0], n[1]});
         input1_grad[IG1idx] = CVT_ACCUM2FLOAT(input1_grad_val * og);
     }
     if(input2_grad)
     {
-        size_t IG2idx       = TV2D_IDX(input2_grad_tv, n[0], n[1]);
+        size_t IG2idx       = input2_grad_tv.get_tensor_view_idx({n[0], n[1]});
         input2_grad[IG2idx] = CVT_ACCUM2FLOAT(input2_grad_val * og);
     }
 }
@@ -364,12 +366,12 @@ CosineEmbeddingLossUnreducedBackward2d(const D_TYPE* __restrict__ workspace,
                                        OUTPUT_TYPE* __restrict__ input1_grad,
                                        OUTPUT_TYPE* __restrict__ input2_grad,
                                        float margin,
-                                       tensor_view_2d_t input1_tv,
-                                       tensor_view_2d_t input2_tv,
-                                       tensor_view_1d_t target_tv,
-                                       tensor_view_1d_t output_grad_tv,
-                                       tensor_view_2d_t input1_grad_tv,
-                                       tensor_view_2d_t input2_grad_tv)
+                                       tensor_view_t<2> input1_tv,
+                                       tensor_view_t<2> input2_tv,
+                                       tensor_view_t<1> target_tv,
+                                       tensor_view_t<1> output_grad_tv,
+                                       tensor_view_t<2> input1_grad_tv,
+                                       tensor_view_t<2> input2_grad_tv)
 {
     cosineembeddinglossUnreducedBackward2d<INPUT_TYPE, OUTPUT_TYPE, D_TYPE>(workspace,
                                                                             input1,
@@ -395,12 +397,12 @@ __device__ void cosineembeddinglossUnreducedBackward2d_nonSum(const TI* __restri
                                                               TO* __restrict__ input1_grad,
                                                               TO* __restrict__ input2_grad,
                                                               float margin,
-                                                              tensor_view_2d_t input1_tv,
-                                                              tensor_view_2d_t input2_tv,
-                                                              tensor_view_1d_t target_tv,
-                                                              tensor_view_1d_t output_grad_tv,
-                                                              tensor_view_2d_t input1_grad_tv,
-                                                              tensor_view_2d_t input2_grad_tv)
+                                                              tensor_view_t<2> input1_tv,
+                                                              tensor_view_t<2> input2_tv,
+                                                              tensor_view_t<1> target_tv,
+                                                              tensor_view_t<1> output_grad_tv,
+                                                              tensor_view_t<2> input1_grad_tv,
+                                                              tensor_view_t<2> input2_grad_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -410,15 +412,15 @@ __device__ void cosineembeddinglossUnreducedBackward2d_nonSum(const TI* __restri
     if(!(n < input1_tv.size[0]))
         return;
 
-    size_t Tidx          = TV1D_IDX(target_tv, n);
+    size_t Tidx          = target_tv.get_tensor_view_idx({n});
     int32_t t            = target[Tidx];
     FLOAT_ACCUM cos_term = 0.0f;
     FLOAT_ACCUM norm1 = 0.0f, norm2 = 0.0f;
 
     for(size_t d = 0; d < D; d++)
     {
-        size_t I1idx = TV2D_IDX(input1_tv, n, d);
-        size_t I2idx = TV2D_IDX(input2_tv, n, d);
+        size_t I1idx = input1_tv.get_tensor_view_idx({n, d});
+        size_t I2idx = input2_tv.get_tensor_view_idx({n, d});
         cos_term += CVT_FLOAT2ACCUM(input1[I1idx]) * CVT_FLOAT2ACCUM(input2[I2idx]);
         norm1 += CVT_FLOAT2ACCUM(input1[I1idx]) * CVT_FLOAT2ACCUM(input1[I1idx]);
         norm2 += CVT_FLOAT2ACCUM(input2[I2idx]) * CVT_FLOAT2ACCUM(input2[I2idx]);
@@ -426,13 +428,13 @@ __device__ void cosineembeddinglossUnreducedBackward2d_nonSum(const TI* __restri
     norm1 = sqrt(norm1);
     norm2 = sqrt(norm2);
     cos_term /= norm1 * norm2;
-    size_t dOidx   = TV1D_IDX(output_grad_tv, n);
+    size_t dOidx   = output_grad_tv.get_tensor_view_idx({n});
     FLOAT_ACCUM og = CVT_FLOAT2ACCUM(output_grad[dOidx]);
 
     for(size_t d = 0; d < D; d++)
     {
-        size_t I1idx = TV2D_IDX(input1_tv, n, d);
-        size_t I2idx = TV2D_IDX(input2_tv, n, d);
+        size_t I1idx = input1_tv.get_tensor_view_idx({n, d});
+        size_t I2idx = input2_tv.get_tensor_view_idx({n, d});
 
         FLOAT_ACCUM i1              = CVT_FLOAT2ACCUM(input1[I1idx]);
         FLOAT_ACCUM i2              = CVT_FLOAT2ACCUM(input2[I2idx]);
@@ -465,12 +467,12 @@ __device__ void cosineembeddinglossUnreducedBackward2d_nonSum(const TI* __restri
         }
         if(input1_grad)
         {
-            size_t IG1idx       = TV2D_IDX(input1_grad_tv, n, d);
+            size_t IG1idx       = input1_grad_tv.get_tensor_view_idx({n, d});
             input1_grad[IG1idx] = CVT_ACCUM2FLOAT(input1_grad_val * og);
         }
         if(input2_grad)
         {
-            size_t IG2idx       = TV2D_IDX(input2_grad_tv, n, d);
+            size_t IG2idx       = input2_grad_tv.get_tensor_view_idx({n, d});
             input2_grad[IG2idx] = CVT_ACCUM2FLOAT(input2_grad_val * og);
         }
     }
@@ -484,12 +486,12 @@ CosineEmbeddingLossUnreducedBackward2d_nonSum(const INPUT_TYPE* __restrict__ inp
                                               OUTPUT_TYPE* __restrict__ input1_grad,
                                               OUTPUT_TYPE* __restrict__ input2_grad,
                                               float margin,
-                                              tensor_view_2d_t input1_tv,
-                                              tensor_view_2d_t input2_tv,
-                                              tensor_view_1d_t target_tv,
-                                              tensor_view_1d_t output_grad_tv,
-                                              tensor_view_2d_t input1_grad_tv,
-                                              tensor_view_2d_t input2_grad_tv)
+                                              tensor_view_t<2> input1_tv,
+                                              tensor_view_t<2> input2_tv,
+                                              tensor_view_t<1> target_tv,
+                                              tensor_view_t<1> output_grad_tv,
+                                              tensor_view_t<2> input1_grad_tv,
+                                              tensor_view_t<2> input2_grad_tv)
 {
     cosineembeddinglossUnreducedBackward2d_nonSum<INPUT_TYPE, OUTPUT_TYPE>(input1,
                                                                            input2,
@@ -516,17 +518,19 @@ __device__ void cosineembeddinglossReducedBackward2d(const T* __restrict__ works
                                                      TO* __restrict__ input2_grad,
                                                      float margin,
                                                      float divisor,
-                                                     tensor_view_2d_t input1_tv,
-                                                     tensor_view_2d_t input2_tv,
-                                                     tensor_view_1d_t target_tv,
-                                                     tensor_view_1d_t output_grad_tv,
-                                                     tensor_view_2d_t input1_grad_tv,
-                                                     tensor_view_2d_t input2_grad_tv)
+                                                     tensor_view_t<2> input1_tv,
+                                                     tensor_view_t<2> input2_tv,
+                                                     tensor_view_t<1> target_tv,
+                                                     tensor_view_t<1> output_grad_tv,
+                                                     tensor_view_t<2> input1_grad_tv,
+                                                     tensor_view_t<2> input2_grad_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
     size_t n[2];
-    GET_ND(n[0], n[1], gid, input1_tv)
+    auto tensor_layout = tensor_layout_t<2>(input1_tv, gid);
+    n[0]               = tensor_layout.layout[0];
+    n[1]               = tensor_layout.layout[1];
 
     size_t N = input1_tv.size[0], D = input1_tv.size[1];
     if(!(n[0] < N))
@@ -539,14 +543,14 @@ __device__ void cosineembeddinglossReducedBackward2d(const T* __restrict__ works
     norm2                = sqrt(norm2);
     cos_term /= norm1 * norm2;
 
-    size_t dOidx   = TV1D_IDX(output_grad_tv, 0);
+    size_t dOidx   = output_grad_tv.get_tensor_view_idx({0});
     FLOAT_ACCUM og = CVT_FLOAT2ACCUM(output_grad[dOidx]);
 
-    size_t Tidx = TV1D_IDX(target_tv, n[0]);
+    size_t Tidx = target_tv.get_tensor_view_idx({n[0]});
     int32_t t   = target[Tidx];
 
-    size_t I1idx = TV2D_IDX(input1_tv, n[0], n[1]);
-    size_t I2idx = TV2D_IDX(input2_tv, n[0], n[1]);
+    size_t I1idx = input1_tv.get_tensor_view_idx(tensor_layout);
+    size_t I2idx = input2_tv.get_tensor_view_idx(tensor_layout);
 
     FLOAT_ACCUM i1              = CVT_FLOAT2ACCUM(input1[I1idx]);
     FLOAT_ACCUM i2              = CVT_FLOAT2ACCUM(input2[I2idx]);
@@ -579,12 +583,12 @@ __device__ void cosineembeddinglossReducedBackward2d(const T* __restrict__ works
     }
     if(input1_grad)
     {
-        size_t IG1idx       = TV2D_IDX(input1_grad_tv, n[0], n[1]);
+        size_t IG1idx       = input1_grad_tv.get_tensor_view_idx(tensor_layout);
         input1_grad[IG1idx] = CVT_ACCUM2FLOAT(input1_grad_val * og / divisor);
     }
     if(input2_grad)
     {
-        size_t IG2idx       = TV2D_IDX(input2_grad_tv, n[0], n[1]);
+        size_t IG2idx       = input2_grad_tv.get_tensor_view_idx(tensor_layout);
         input2_grad[IG2idx] = CVT_ACCUM2FLOAT(input2_grad_val * og / divisor);
     }
 }
@@ -599,12 +603,12 @@ CosineEmbeddingLossReducedBackward2d(const D_TYPE* __restrict__ workspace,
                                      OUTPUT_TYPE* __restrict__ input2_grad,
                                      float margin,
                                      float divisor,
-                                     tensor_view_2d_t input1_tv,
-                                     tensor_view_2d_t input2_tv,
-                                     tensor_view_1d_t target_tv,
-                                     tensor_view_1d_t output_grad_tv,
-                                     tensor_view_2d_t input1_grad_tv,
-                                     tensor_view_2d_t input2_grad_tv)
+                                     tensor_view_t<2> input1_tv,
+                                     tensor_view_t<2> input2_tv,
+                                     tensor_view_t<1> target_tv,
+                                     tensor_view_t<1> output_grad_tv,
+                                     tensor_view_t<2> input1_grad_tv,
+                                     tensor_view_t<2> input2_grad_tv)
 {
     cosineembeddinglossReducedBackward2d<INPUT_TYPE, OUTPUT_TYPE, D_TYPE>(workspace,
                                                                           input1,
@@ -632,12 +636,12 @@ __device__ void cosineembeddinglossReducedBackward2d_nonSum(const TI* __restrict
                                                             TO* __restrict__ input2_grad,
                                                             float margin,
                                                             float divisor,
-                                                            tensor_view_2d_t input1_tv,
-                                                            tensor_view_2d_t input2_tv,
-                                                            tensor_view_1d_t target_tv,
-                                                            tensor_view_1d_t output_grad_tv,
-                                                            tensor_view_2d_t input1_grad_tv,
-                                                            tensor_view_2d_t input2_grad_tv)
+                                                            tensor_view_t<2> input1_tv,
+                                                            tensor_view_t<2> input2_tv,
+                                                            tensor_view_t<1> target_tv,
+                                                            tensor_view_t<1> output_grad_tv,
+                                                            tensor_view_t<2> input1_grad_tv,
+                                                            tensor_view_t<2> input2_grad_tv)
 {
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
@@ -651,25 +655,25 @@ __device__ void cosineembeddinglossReducedBackward2d_nonSum(const TI* __restrict
     {
         if(input1_grad)
         {
-            size_t dI1idx       = TV2D_IDX(input1_grad_tv, n, d);
+            size_t dI1idx       = input1_grad_tv.get_tensor_view_idx({n, d});
             input1_grad[dI1idx] = CVT_FP32_2FLOAT(0.0f);
         }
         if(input2_grad)
         {
-            size_t dI2idx       = TV2D_IDX(input2_grad_tv, n, d);
+            size_t dI2idx       = input2_grad_tv.get_tensor_view_idx({n, d});
             input2_grad[dI2idx] = CVT_FP32_2FLOAT(0.0f);
         }
     }
 
-    size_t Tidx          = TV1D_IDX(target_tv, n);
+    size_t Tidx          = target_tv.get_tensor_view_idx({n});
     int32_t t            = target[Tidx];
     FLOAT_ACCUM cos_term = 0.0f;
     FLOAT_ACCUM norm1 = 0.0f, norm2 = 0.0f;
 
     for(size_t d = 0; d < D; d++)
     {
-        size_t I1idx = TV2D_IDX(input1_tv, n, d);
-        size_t I2idx = TV2D_IDX(input2_tv, n, d);
+        size_t I1idx = input1_tv.get_tensor_view_idx({n, d});
+        size_t I2idx = input2_tv.get_tensor_view_idx({n, d});
         cos_term += CVT_FLOAT2ACCUM(input1[I1idx]) * CVT_FLOAT2ACCUM(input2[I2idx]);
         norm1 += CVT_FLOAT2ACCUM(input1[I1idx]) * CVT_FLOAT2ACCUM(input1[I1idx]);
         norm2 += CVT_FLOAT2ACCUM(input2[I2idx]) * CVT_FLOAT2ACCUM(input2[I2idx]);
@@ -677,13 +681,13 @@ __device__ void cosineembeddinglossReducedBackward2d_nonSum(const TI* __restrict
     norm1 = sqrt(norm1);
     norm2 = sqrt(norm2);
     cos_term /= norm1 * norm2;
-    size_t dOidx   = TV1D_IDX(output_grad_tv, 0);
+    size_t dOidx   = output_grad_tv.get_tensor_view_idx({0});
     FLOAT_ACCUM og = CVT_FLOAT2ACCUM(output_grad[dOidx]);
 
     for(size_t d = 0; d < D; d++)
     {
-        size_t I1idx = TV2D_IDX(input1_tv, n, d);
-        size_t I2idx = TV2D_IDX(input2_tv, n, d);
+        size_t I1idx = input1_tv.get_tensor_view_idx({n, d});
+        size_t I2idx = input2_tv.get_tensor_view_idx({n, d});
 
         FLOAT_ACCUM i1              = CVT_FLOAT2ACCUM(input1[I1idx]);
         FLOAT_ACCUM i2              = CVT_FLOAT2ACCUM(input2[I2idx]);
@@ -717,12 +721,12 @@ __device__ void cosineembeddinglossReducedBackward2d_nonSum(const TI* __restrict
                 input2_grad_val = i1 / (norm1 * norm2) - cos_term * i2 / (norm2 * norm2);
             }
         }
-        size_t IG1idx = TV2D_IDX(input1_grad_tv, n, d);
+        size_t IG1idx = input1_grad_tv.get_tensor_view_idx({n, d});
         if(input1_grad)
         {
             input1_grad[IG1idx] = CVT_ACCUM2FLOAT(input1_grad_val * og / divisor);
         }
-        size_t IG2idx = TV2D_IDX(input2_grad_tv, n, d);
+        size_t IG2idx = input2_grad_tv.get_tensor_view_idx({n, d});
         if(input2_grad)
         {
             input2_grad[IG2idx] = CVT_ACCUM2FLOAT(input2_grad_val * og / divisor);
@@ -739,12 +743,12 @@ CosineEmbeddingLossReducedBackward2d_nonSum(const INPUT_TYPE* __restrict__ input
                                             OUTPUT_TYPE* __restrict__ input2_grad,
                                             float margin,
                                             float divisor,
-                                            tensor_view_2d_t input1_tv,
-                                            tensor_view_2d_t input2_tv,
-                                            tensor_view_1d_t target_tv,
-                                            tensor_view_1d_t output_grad_tv,
-                                            tensor_view_2d_t input1_grad_tv,
-                                            tensor_view_2d_t input2_grad_tv)
+                                            tensor_view_t<2> input1_tv,
+                                            tensor_view_t<2> input2_tv,
+                                            tensor_view_t<1> target_tv,
+                                            tensor_view_t<1> output_grad_tv,
+                                            tensor_view_t<2> input1_grad_tv,
+                                            tensor_view_t<2> input2_grad_tv)
 {
     cosineembeddinglossReducedBackward2d_nonSum<INPUT_TYPE, OUTPUT_TYPE>(input1,
                                                                          input2,
