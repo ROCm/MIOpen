@@ -195,7 +195,7 @@ inline void GetSpatialMultipleConfig(const miopen::batchnorm::ProblemDescription
             ylocalsize = std::max(size_t{64},
                                   size_t{1 << int(std::ceil(std::log2(in_cstride / vectorsize)))});
         }
-        ygridsize  = ylocalsize * ((in_cstride / vectorsize + ylocalsize - 1) / ylocalsize);
+        ygridsize = ylocalsize * ((in_cstride / vectorsize + ylocalsize - 1) / ylocalsize);
     }
     stash_method = GetStashMethod(problem.IsLayoutNHWC(),
                                   problem.GetXDesc().GetType(),
