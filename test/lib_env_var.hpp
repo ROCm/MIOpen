@@ -54,7 +54,8 @@ constexpr bool is_type_str = (std::is_same_v<T, std::string> ||
                               std::is_same_v<T, std::string_view>);
 
 template <class T>
-constexpr bool is_type_char_ptr = (std::is_pointer_v<T> && std::is_same_v<std::remove_const_t<std::remove_pointer_t<T>>, char>);
+constexpr bool is_type_char_ptr =
+    (std::is_pointer_v<T> && std::is_same_v<std::remove_const_t<std::remove_pointer_t<T>>, char>);
 
 template <class T,
           std::enable_if_t<is_type_bool<T> || is_type_int<T> || is_type_str<T>, bool> = true>
@@ -89,7 +90,10 @@ inline T value(const LibEnvVar& env)
     }
 }
 
-template <class T, std::enable_if_t<is_type_bool<T> || is_type_int<T> || is_type_str<T> || is_type_char_ptr<T>, bool> = true>
+template <
+    class T,
+    std::enable_if_t<is_type_bool<T> || is_type_int<T> || is_type_str<T> || is_type_char_ptr<T>,
+                     bool> = true>
 inline void update(const LibEnvVar& env, T value)
 {
     if constexpr(is_type_bool<T>)
