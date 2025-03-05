@@ -70,7 +70,8 @@ template <class T>
 constexpr bool is_type_int = (std::is_integral_v<T> && !is_type_bool<T>);
 
 template <class T>
-constexpr bool is_type_str = (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>);
+constexpr bool is_type_str = (std::is_same_v<T, std::string> ||
+                              std::is_same_v<T, std::string_view>);
 
 struct LibEnvVar
 {
@@ -94,8 +95,7 @@ private:
     struct LibEnvVarImpl : LibEnvVarBase
     {
         using value_type = T::value_type;
-        static_assert(is_type_bool<value_type> ||
-                      is_type_int<value_type> ||
+        static_assert(is_type_bool<value_type> || is_type_int<value_type> ||
                       is_type_str<value_type>);
 
         LibEnvVarImpl(const T& var_in) : var(var_in){};
@@ -130,8 +130,7 @@ private:
             else if constexpr(is_type_int<value_type>)
             {
                 value_type ivalue;
-                const auto res =
-                    std::from_chars(value.data(), value.data() + value.size(), ivalue);
+                const auto res = std::from_chars(value.data(), value.data() + value.size(), ivalue);
                 if(res.ec == std::errc::invalid_argument ||
                    res.ec == std::errc::result_out_of_range)
                 {

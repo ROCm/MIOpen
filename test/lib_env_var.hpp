@@ -50,9 +50,11 @@ template <class T>
 constexpr bool is_type_int = (std::is_integral_v<T> && !is_type_bool<T>);
 
 template <class T>
-constexpr bool is_type_str = (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>);
+constexpr bool is_type_str = (std::is_same_v<T, std::string> ||
+                              std::is_same_v<T, std::string_view>);
 
-template <class T, std::enable_if_t<is_type_bool<T> || is_type_int<T> || is_type_str<T>, bool> = true>
+template <class T,
+          std::enable_if_t<is_type_bool<T> || is_type_int<T> || is_type_str<T>, bool> = true>
 inline T value(const LibEnvVar& env)
 {
     const auto value = miopen::debug::env::GetEnvVariable(env.name);
