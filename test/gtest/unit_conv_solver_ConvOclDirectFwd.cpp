@@ -61,7 +61,7 @@ using GPU_UnitTestConvSolverOclDirectFwdBwd_BFP16 = GPU_UnitTestConvSolverBwd_BF
 using GPU_UnitTestConvSolverOclDirectFwdFwd_FP32 = GPU_UnitTestConvSolverFwd_FP32;
 using GPU_UnitTestConvSolverOclDirectFwdBwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
 
-using CPU_UnitTestConvSolverDevApplicabilityFwdFwd_NONE =
+using CPU_UnitTestConvSolverOclDirectFwdDevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
 TEST_P(GPU_UnitTestConvSolverOclDirectFwdFwd_FP16, ConvOclDirectFwd)
@@ -94,7 +94,7 @@ TEST_P(GPU_UnitTestConvSolverOclDirectFwdBwd_FP32, ConvOclDirectFwd)
     this->RunTest(miopen::solver::conv::ConvOclDirectFwd{});
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwdFwd_NONE, ConvOclDirectFwd)
+TEST_P(CPU_UnitTestConvSolverOclDirectFwdDevApplicabilityFwd_NONE, ConvOclDirectFwd)
 {
     this->RunTest(miopen::solver::conv::ConvOclDirectFwd{});
 };
@@ -138,6 +138,6 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverDevApplicabilityFwdFwd_NONE,
+                         CPU_UnitTestConvSolverOclDirectFwdDevApplicabilityFwd_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));

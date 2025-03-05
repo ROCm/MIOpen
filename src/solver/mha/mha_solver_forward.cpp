@@ -79,25 +79,25 @@ bool MhaForward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsFwd.kDesc.GetLengths());
 
-    return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_FWD)              //
-           && S <= std::numeric_limits<uint32_t>::max()             //
-           && descsFwd.kDesc.IsPacked()                             //
-           && descsFwd.qDesc.IsPacked()                             //
-           && descsFwd.vDesc.IsPacked()                             //
-           && descsFwd.oDesc.IsPacked()                             //
-           && descsFwd.mDesc.IsPacked()                             //
-           && descsFwd.zInvDesc.IsPacked()                          //
-           && descsFwd.biasDesc.IsPacked()                          //
-           && descsFwd.mDesc.GetType() == miopenFloat               //
-           && descsFwd.zInvDesc.GetType() == miopenFloat            //
-           && descsFwd.biasDesc.GetType() == miopenFloat            //
-           && descsFwd.kDesc.GetType() == descsFwd.qDesc.GetType()  //
-           && descsFwd.kDesc.GetType() == descsFwd.vDesc.GetType()  //
-           && descsFwd.kDesc.GetType() == descsFwd.oDesc.GetType()  //
-           && ((descsFwd.kDesc.GetType() == miopenFloat)            //
-               || (USE_ROCBLAS_EX3                                  //
-                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)          //
-                   && (descsFwd.kDesc.GetType() == miopenFloat8))); //
+    return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_FWD)                   //
+           && S <= std::numeric_limits<uint32_t>::max()                  //
+           && descsFwd.kDesc.IsPacked()                                  //
+           && descsFwd.qDesc.IsPacked()                                  //
+           && descsFwd.vDesc.IsPacked()                                  //
+           && descsFwd.oDesc.IsPacked()                                  //
+           && descsFwd.mDesc.IsPacked()                                  //
+           && descsFwd.zInvDesc.IsPacked()                               //
+           && descsFwd.biasDesc.IsPacked()                               //
+           && descsFwd.mDesc.GetType() == miopenFloat                    //
+           && descsFwd.zInvDesc.GetType() == miopenFloat                 //
+           && descsFwd.biasDesc.GetType() == miopenFloat                 //
+           && descsFwd.kDesc.GetType() == descsFwd.qDesc.GetType()       //
+           && descsFwd.kDesc.GetType() == descsFwd.vDesc.GetType()       //
+           && descsFwd.kDesc.GetType() == descsFwd.oDesc.GetType()       //
+           && ((descsFwd.kDesc.GetType() == miopenFloat)                 //
+               || (USE_ROCBLAS_EX3                                       //
+                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)               //
+                   && (descsFwd.kDesc.GetType() == miopenFloat8_fnuz))); //
 #else
     return false;
 #endif
