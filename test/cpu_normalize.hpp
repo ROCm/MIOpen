@@ -29,7 +29,6 @@
 #include "tensor_holder.hpp"
 #include <cmath>
 #include <miopen/tensor_view_utils.hpp>
-#include "../src/include/miopen/tensor_view_utils.hpp"
 
 template <class T>
 void cpu_normalize_backward(const tensor<T> input,

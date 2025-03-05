@@ -27,7 +27,6 @@
 
 #include <miopen/normalize/problem_description.hpp>
 #include <miopen/solver.hpp>
-#include <miopen/tensor_view_utils.hpp>
 
 namespace miopen {
 
