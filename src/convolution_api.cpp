@@ -192,7 +192,16 @@ extern "C" miopenStatus_t miopenSetConvolutionFindMode(miopenConvolutionDescript
 {
     MIOPEN_LOG_FUNCTION(convDesc, findMode);
     return miopen::try_([&] {
-        miopen::deref(convDesc).findMode.Set(static_cast<miopen::FindMode::Values>(findMode));
+        miopen::FindMode::Values value = static_cast<miopen::FindMode::Values>(findMode);
+        if(miopen::FindMode::Values::Begin_ <= value && value < miopen::FindMode::Values::End_ &&
+           value != miopen::FindMode::Values::DeprecatedFastHybrid)
+        {
+            miopen::deref(convDesc).findMode.Set(value);
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Invalid enum value specified for findMode");
+        }
     });
 }
 
@@ -252,8 +261,8 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             case miopenHalf:
             case miopenBFloat16:
             case miopenInt8:
-            case miopenFloat8:
-            case miopenBFloat8: byte_size = 4; break;
+            case miopenFloat8_fnuz:
+            case miopenBFloat8_fnuz: byte_size = 4; break;
             case miopenDouble:
             case miopenInt64: byte_size = 8; break;
             }

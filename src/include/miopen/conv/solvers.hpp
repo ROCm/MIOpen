@@ -52,12 +52,6 @@ namespace debug {
 MIOPEN_EXPORT extern bool
     AlwaysEnableConvDirectNaive; // NOLINT (cppcoreguidelines-avoid-non-const-global-variables)
 
-/// WORKAROUND_SWDEV_271887 disables ConvOclDirectFwd1x1 solver on gfx10 due to precision issues.
-/// However we still want to check that the solver is not broken and therefore use
-/// disable_wa_swdev_271887 = true to enable it.
-// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-MIOPEN_INTERNALS_EXPORT extern bool disable_wa_swdev_271887;
-
 } // namespace debug
 
 struct AnyInvokeParams;
@@ -1862,7 +1856,10 @@ struct PerformanceConfigConvBinWinogradRxS : PerfConfigBase<PerformanceConfigCon
 template <int Winodata, int Winofilter>
 struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinogradRxS>
 {
-    const std::string& SolverDbId() const override { return GetSolverDbId(); }
+    MIOPEN_INTERNALS_EXPORT const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId();
+    }
 
     static const std::string& GetSolverDbId()
     {
@@ -1885,7 +1882,7 @@ struct ConvBinWinoRxS final : ConvTunableSolver<PerformanceConfigConvBinWinograd
            const AnyInvokeParams& invoke_ctx) const override;
     MIOPEN_INTERNALS_EXPORT bool
     IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    bool IsDynamic() const override { return true; }
+    MIOPEN_INTERNALS_EXPORT bool IsDynamic() const override { return true; }
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&,
                 const miopen::conv::ProblemDescription&,
@@ -4768,7 +4765,10 @@ private:
     bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem);
     void InitHeuristicKernelIDs();
-    bool ModelApplyToken(int idx, std::string value);
+    bool ModelApplyToken(int idx,
+                         std::string value,
+                         const std::string& arch,
+                         const miopen::conv::ProblemDescription& problem);
 #endif
     template <typename DataType>
     void Init(const miopen::conv::ProblemDescription&);
