@@ -63,6 +63,15 @@ namespace env {
 
 namespace {
 
+template <class T>
+constexpr bool is_type_bool = std::is_same_v<T, bool>;
+
+template <class T>
+constexpr bool is_type_int = (std::is_integral_v<T> && !is_type_bool<T>);
+
+template <class T>
+constexpr bool is_type_str = (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>);
+
 struct LibEnvVar
 {
     template <class T>
@@ -85,9 +94,9 @@ private:
     struct LibEnvVarImpl : LibEnvVarBase
     {
         using value_type = T::value_type;
-        static_assert(std::is_same_v<value_type, bool> ||
-                      std::is_same_v<value_type, unsigned long long> ||
-                      std::is_same_v<value_type, std::string>);
+        static_assert(is_type_bool<value_type> ||
+                      is_type_int<value_type> ||
+                      is_type_str<value_type>);
 
         LibEnvVarImpl(const T& var_in) : var(var_in){};
 
@@ -97,15 +106,15 @@ private:
                 return std::nullopt;
             const auto value = miopen::env::value(var);
 
-            if constexpr(std::is_same_v<value_type, bool>)
+            if constexpr(is_type_bool<value_type>)
             {
                 return {value ? "1" : "0"};
             }
-            else if constexpr(std::is_same_v<value_type, unsigned long long>)
+            else if constexpr(is_type_int<value_type>)
             {
                 return {std::to_string(value)};
             }
-            else if constexpr(std::is_same_v<value_type, std::string>)
+            else if constexpr(is_type_str<value_type>)
             {
                 return {value};
             }
@@ -113,25 +122,25 @@ private:
 
         void Update(std::string_view value) const override
         {
-            if constexpr(std::is_same_v<value_type, bool>)
+            if constexpr(is_type_bool<value_type>)
             {
                 bool bvalue = (value != "0");
                 miopen::env::update(var, bvalue);
             }
-            else if constexpr(std::is_same_v<value_type, unsigned long long>)
+            else if constexpr(is_type_int<value_type>)
             {
-                unsigned long long ullvalue;
+                value_type ivalue;
                 const auto res =
-                    std::from_chars(value.data(), value.data() + value.size(), ullvalue);
+                    std::from_chars(value.data(), value.data() + value.size(), ivalue);
                 if(res.ec == std::errc::invalid_argument ||
                    res.ec == std::errc::result_out_of_range)
                 {
                     MIOPEN_THROW(miopenStatusInvalidValue,
                                  "Invalid value for env variable: " + value);
                 }
-                miopen::env::update(var, ullvalue);
+                miopen::env::update(var, ivalue);
             }
-            else if constexpr(std::is_same_v<value_type, std::string>)
+            else if constexpr(is_type_str<value_type>)
             {
                 miopen::env::update(var, value);
             }

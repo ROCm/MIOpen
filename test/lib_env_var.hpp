@@ -43,10 +43,16 @@ struct LibEnvVar
     std::string_view name;
 };
 
-template <class T,
-          std::enable_if_t<std::is_same_v<T, bool> || std::is_same_v<T, std::string> ||
-                               std::is_same_v<T, std::uint64_t>,
-                           bool> = true>
+template <class T>
+constexpr bool is_type_bool = std::is_same_v<T, bool>;
+
+template <class T>
+constexpr bool is_type_int = (std::is_integral_v<T> && !is_type_bool<T>);
+
+template <class T>
+constexpr bool is_type_str = (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view>);
+
+template <class T, std::enable_if_t<is_type_bool<T> || is_type_int<T> || is_type_str<T>, bool> = true>
 inline T value(const LibEnvVar& env)
 {
     const auto value = miopen::debug::env::GetEnvVariable(env.name);
@@ -55,24 +61,24 @@ inline T value(const LibEnvVar& env)
         MIOPEN_THROW(miopenStatusInternalError);
     }
 
-    if constexpr(std::is_same_v<T, bool>)
+    if constexpr(is_type_bool<T>)
     {
         bool bvalue = (value != "0");
         return bvalue;
     }
-    else if constexpr(std::is_same_v<T, std::uint64_t>)
+    else if constexpr(is_type_int<T>)
     {
-        std::uint64_t ullvalue;
+        T ivalue;
         const auto res = std::from_chars(
-            value.value().data(), value.value().data() + value.value().size(), ullvalue);
+            value.value().data(), value.value().data() + value.value().size(), ivalue);
         if(res.ec == std::errc::invalid_argument || res.ec == std::errc::result_out_of_range)
         {
             MIOPEN_THROW(miopenStatusInvalidValue,
                          "Invalid value for env variable: " + value.value());
         }
-        return ullvalue;
+        return ivalue;
     }
-    else if constexpr(std::is_same_v<T, std::string>)
+    else if constexpr(is_type_str<T>)
     {
         return value.value();
     }
@@ -83,12 +89,11 @@ inline void update(const LibEnvVar& env, const std::string& value)
     miopen::debug::env::UpdateEnvVariable(env.name, value);
 }
 
-inline void update(const LibEnvVar& env, std::uint64_t value)
+template <class T, std::enable_if_t<is_type_int<T>, bool> = true>
+inline void update(const LibEnvVar& env, T value)
 {
     update(env, std::to_string(value));
 }
-
-inline void update(const LibEnvVar& env, int value) { update(env, std::to_string(value)); }
 
 inline void update(const LibEnvVar& env, bool value) { update(env, value ? 1 : 0); }
 
