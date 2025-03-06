@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,16 +39,17 @@ namespace solver {
 namespace batchnorm {
 
 bool BnFwdInference::IsApplicable(const ExecutionContext&,
-                                  const miopen::batchnorm::ProblemDescription& problem) const
+                                  const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-    if(problem.IsLayoutNHWC())
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
         return false;
-    if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
+    if(!(bn_problem.IsFp32() or bn_problem.IsFp16() or bn_problem.IsBFp16()))
         return false;
-    if(!(problem.IsFp32() or problem.IsFp16()))
+    if(!bn_problem.Is2D())
         return false;
-    if(!problem.Is2D())
+    if(!IsOCLInferTypeValid(bn_problem))
         return false;
+
     return true;
 }
 
@@ -57,20 +58,26 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
 {
     const auto& handle = context.GetStream();
 
-    bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    bool bfpmixparm   = false;
+    bool bbfpmixparam = false;
+    bool bfp16parm    = false;
+    bool bfp32parm    = true;
+    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
     else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+            problem.GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;
+    }
+    else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
+            problem.GetBnScale().GetType() == miopenFloat)
+    {
+        bbfpmixparam = true;
+        bfp32parm    = false;
     }
 
     int n, c, h, w;
@@ -81,12 +88,24 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
-        size_t xlocalsize = 1;
-        auto xgridsize    = c;
-        size_t ylocalsize = 256;
-        size_t ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
+        size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize;
+        size_t max_localsize = 256;
+        if(problem.GetXDesc().GetLayout_t() == miopenTensorNHWC)
+        {
+            xlocalsize = std::min(size_t{c}, max_localsize);
+            xgridsize  = xlocalsize * ((c + xlocalsize - 1) / xlocalsize);
+            ylocalsize = max_localsize / xlocalsize;
+            ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+        }
+        else
+        {
+            xlocalsize = 1;
+            xgridsize  = c;
+            ylocalsize = max_localsize;
+            ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+        }
+        zlocalsize = 1;
+        zgridsize  = 1;
 
         auto kernel = KernelInfo{};
 
@@ -107,6 +126,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+            {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
             {"MIO_BN_GRP0", xlocalsize},
             {"MIO_BN_GRP1", ylocalsize},
             {"MIO_BN_GRP2", zlocalsize},
@@ -137,18 +157,39 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             std::tie(n_, c_, h_, w_) = tien<4>(params.xDesc->GetLengths());
 
             unsigned int in_nstride_ = c_ * h_ * w_;
-            unsigned int in_cstride_ = h_ * w_;
 
-            kernel(params.x,
-                   params.y,
-                   params.estimatedMean,
-                   params.estimatedVariance,
-                   params.bnScale,
-                   params.bnBias,
-                   params.epsilon,
-                   n_,
-                   in_cstride_,
-                   in_nstride_);
+            if(params.xDesc->GetLayout_t() == miopenTensorNHWC)
+            {
+                kernel(params.x,
+                       params.y,
+                       params.estimatedMean,
+                       params.estimatedVariance,
+                       params.bnScale,
+                       params.bnBias,
+                       params.epsilon,
+                       c_,
+                       h_ * w_,
+                       n_,
+                       1,            // cStride
+                       c_,           // hwStride
+                       in_nstride_); // batchStride
+            }
+            else
+            {
+                kernel(params.x,
+                       params.y,
+                       params.estimatedMean,
+                       params.estimatedVariance,
+                       params.bnScale,
+                       params.bnBias,
+                       params.epsilon,
+                       c_,
+                       h_ * w_,
+                       n_,
+                       h_ * w_,      // cStride
+                       1,            // hwStride
+                       in_nstride_); // batchStride
+            }
         };
     };
 

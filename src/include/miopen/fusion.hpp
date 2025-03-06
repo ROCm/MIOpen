@@ -30,7 +30,8 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/convolution.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/problem_description.hpp>
+#include <miopen/kernel_info.hpp>
 #include <miopen/op_kernel_args.hpp>
 #include <miopen/fusion_ops.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
@@ -141,8 +142,8 @@ struct MIOPEN_INTERNALS_EXPORT BatchNormInferenceFusionOpDescriptor : FusionOpDe
                            ConstData_t estimatedVariance,
                            double epsilon) const;
     miopenFusionOp_t kind() const override { return miopenFusionOpBatchNormInference; };
-    std::vector<size_t> GetLocalWGSz(Handle& handle, std::string algorithm_name);
-    std::vector<size_t> GetGlobalWGSz(Handle& handle, std::string algorithm_name);
+    std::vector<size_t> GetLocalWGSz(const Handle& handle, std::string algorithm_name);
+    std::vector<size_t> GetGlobalWGSz(const Handle& handle, std::string algorithm_name);
 
     miopenBatchNormMode_t mode;
     TensorDescriptor base_desc;
@@ -227,7 +228,7 @@ struct MIOPEN_INTERNALS_EXPORT ConvForwardOpDescriptor : FusionOpDescriptor
     miopenStatus_t SetArgs(OperatorArgs& args, const void* alpha, const void* beta, ConstData_t w);
     // miopenStatus_t SetArgs(OperatorArgs& args, float alpha, float beta, ConstData_t w);
     miopenStatus_t GetNetworkConfig(std::ostringstream& network_config) override;
-    bool isASMApplicable(Handle& handle);
+    bool isASMApplicable(const Handle& handle);
     miopenFusionOp_t kind() const override { return miopenFusionOpConvForward; };
 
     ConvolutionDescriptor base_desc;
@@ -241,7 +242,7 @@ private:
 };
 
 MIOPEN_INTERNALS_EXPORT
-miopenStatus_t ConvBiasActivFusion(Handle& handle,
+miopenStatus_t ConvBiasActivFusion(const Handle& handle,
                                    const void* alpha1,
                                    const TensorDescriptor& xDesc,
                                    ConstData_t x,

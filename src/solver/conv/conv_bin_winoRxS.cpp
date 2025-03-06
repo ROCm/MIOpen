@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
@@ -249,7 +249,7 @@ bool ConvBinWinogradRxS::IsApplicable(const ExecutionContext& ctx,
     if(!ctx.rmv.IsV2orV3())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 

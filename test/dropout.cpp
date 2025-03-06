@@ -74,7 +74,8 @@ struct verify_forward_dropout
 
     tensor<T> cpu() const
     {
-        auto states_cpu = std::vector<prngStates>(DropoutDesc.stateSizeInBytes);
+        size_t states_size = DropoutDesc.stateSizeInBytes / sizeof(rocrand_state_xorwow);
+        auto states_cpu    = std::vector<rocrand_state_xorwow>(states_size);
         InitKernelStateEmulator(states_cpu, DropoutDesc);
 
         auto out_cpu   = output;
@@ -103,17 +104,18 @@ struct verify_forward_dropout
         auto in_dev    = handle.Write(input.data);
         auto out_dev   = handle.Write(output.data);
 
-        DropoutDesc.DropoutForward(handle,
-                                   input.desc,
-                                   input.desc,
-                                   in_dev.get(),
-                                   output.desc,
-                                   out_dev.get(),
-                                   use_rsvsp ? rsvsp_dev.get() : nullptr,
-                                   rsvsp.size(),
-                                   in_offset,
-                                   out_offset,
-                                   rsvsp_offset);
+        DropoutDesc.Dropout(handle,
+                            input.desc,
+                            input.desc,
+                            in_dev.get(),
+                            output.desc,
+                            out_dev.get(),
+                            use_rsvsp ? rsvsp_dev.get() : nullptr,
+                            rsvsp.size(),
+                            in_offset,
+                            out_offset,
+                            rsvsp_offset,
+                            false /* is_backward */);
 
         out_gpu.data   = handle.Read<T>(out_dev, output.data.size());
         auto rsvsp_gpu = handle.Read<unsigned char>(rsvsp_dev, rsvsp.size());
@@ -194,17 +196,18 @@ struct verify_backward_dropout
         auto dout_dev  = handle.Write(dout.data);
         auto rsvsp_dev = handle.Write(rsvsp);
 
-        DropoutDesc.DropoutBackward(handle,
-                                    din.desc,
-                                    dout.desc,
-                                    dout_dev.get(),
-                                    din.desc,
-                                    din_dev.get(),
-                                    use_rsvsp ? rsvsp_dev.get() : nullptr,
-                                    rsvsp.size(),
-                                    in_offset,
-                                    out_offset,
-                                    rsvsp_offset);
+        DropoutDesc.Dropout(handle,
+                            din.desc,
+                            dout.desc,
+                            dout_dev.get(),
+                            din.desc,
+                            din_dev.get(),
+                            use_rsvsp ? rsvsp_dev.get() : nullptr,
+                            rsvsp.size(),
+                            in_offset,
+                            out_offset,
+                            rsvsp_offset,
+                            true /* is_backward*/);
 
         din_gpu.data = handle.Read<T>(din_dev, din.data.size());
         return din_gpu;
@@ -276,8 +279,8 @@ struct dropout_driver : test_driver
         auto in                  = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
         miopenRNGType_t rng_mode = miopenRNGType_t(rng_mode_cmd);
 
-        size_t stateSizeInBytes =
-            std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) * sizeof(prngStates);
+        size_t stateSizeInBytes = std::min(size_t(MAX_PRNG_STATE), handle.GetImage3dMaxWidth()) *
+                                  sizeof(rocrand_state_xorwow);
         size_t reserveSpaceSizeInBytes = in.desc.GetElementSize() * sizeof(bool);
         size_t total_mem =
             2 * (2 * in.desc.GetNumBytes() + reserveSpaceSizeInBytes) + stateSizeInBytes;

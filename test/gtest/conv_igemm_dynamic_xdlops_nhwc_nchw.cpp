@@ -29,24 +29,12 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace env = miopen::env;
 
 namespace conv_igemm_dynamic_xdlops_nhwc_nchw {
-
-static bool SkipTest(const std::string& float_arg)
-{
-    if(!MIOPEN_TEST_ALL)
-        return false;
-    if(env::enabled(MIOPEN_TEST_ALL))
-        if(env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg)
-            return false;
-    return true;
-}
 
 void SetupEnvVar()
 {
@@ -93,11 +81,11 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         FAIL() << "miopenInt8, miopenBFloat16, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "miopenDouble, miopenFloat8_fnuz, miopenBFloat8_fnuz "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_nchw test";
     }
 
@@ -123,7 +111,7 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
-    const auto target   = handle.GetTargetProperties();
+    const auto& target  = handle.GetTargetProperties();
     std::string devName = handle.GetDeviceName();
     if(target.Xnack() && *target.Xnack())
         return false;
@@ -295,7 +283,7 @@ TEST_P(GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP32,
        FloatTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest("--float"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenFloat);
     }
@@ -309,7 +297,7 @@ TEST_P(GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP16,
        HalfTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest("--half"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenHalf);
     }

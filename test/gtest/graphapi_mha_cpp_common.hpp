@@ -38,6 +38,7 @@
 #include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/reduction.hpp>
+#include <miopen/graphapi/reshape.hpp>
 #include <miopen/graphapi/rng.hpp>
 #include <miopen/graphapi/util.hpp>
 #include <miopen/graphapi/variant_pack.hpp>
@@ -217,7 +218,7 @@ protected:
             assert(out_tensors.size() == 1);
 
             auto* mm_desc =
-                mAlloc.allocate(gr::MatmulBuilder().setComputeType(miopenFloat8).build());
+                mAlloc.allocate(gr::MatmulBuilder().setComputeType(miopenFloat8_fnuz).build());
             mGraphBuilder->addNode(mAlloc.allocate(gr::OperationMatmulBuilder{}
                                                        .setA(in_tensors[0])
                                                        .setB(in_tensors[1])
@@ -270,6 +271,13 @@ protected:
                                                        .setOffset(in_tensors[1])
                                                        .setOutput(out_tensors[0])
                                                        .build()));
+        }
+        else if(name == "OP_RESHAPE")
+        {
+            assert(in_tensors.size() == 1);
+            assert(out_tensors.size() == 1);
+            mGraphBuilder->addNode(mAlloc.allocate(
+                gr::OperationReshapeBuilder{}.setX(in_tensors[0]).setY(out_tensors[0]).build()));
         }
         else
         {
@@ -329,8 +337,13 @@ protected:
 
         auto engine_cfg = gr::EngineCfgBuilder().setEngine(engines[0]).build();
 
-        auto h    = static_cast<miopenHandle_t>(&handle);
+        auto h = static_cast<miopenHandle_t>(&handle);
+
         auto plan = gr::ExecutionPlanBuilder().setEngineCfg(engine_cfg).setHandle(h).build();
+
+        // Serialize and deserialize the plan to test JSON attribute
+        plan =
+            gr::ExecutionPlanBuilder().setJsonRepresentation(plan.getJsonRepresentation()).build();
 
         Workspace ws(plan.getWorkspaceSize());
 
@@ -375,24 +388,24 @@ protected:
 
         CpuMhaFwdOut out(n, h, s, d);
 
-        test::cpu::MultiHeadAttentionfp8(lookup_f("Q"),
-                                         lookup_f("K"),
-                                         lookup_f("V"),
-                                         out.mSoftMax,
-                                         out.mM,
-                                         out.mZinv,
-                                         lookup_f("DSCL_Q")[0],
-                                         lookup_f("DSCL_K")[0],
-                                         lookup_f("DSCL_V")[0],
-                                         lookup_f("DSCL_S")[0],
-                                         lookup_f("SCL_S")[0],
-                                         lookup_f("SCL_O")[0],
-                                         lookup_f("RND_PRB")[0],
-                                         lookup_i("RND_SD")[0],
-                                         lookup_i("RND_OFF")[0],
-                                         out.mAmaxS,
-                                         out.mAmaxO,
-                                         out.mO);
+        test::cpu::MultiHeadAttentionForwardfp8(lookup_f("Q"),
+                                                lookup_f("K"),
+                                                lookup_f("V"),
+                                                out.mSoftMax,
+                                                out.mM,
+                                                out.mZinv,
+                                                lookup_f("DSCL_Q")[0],
+                                                lookup_f("DSCL_K")[0],
+                                                lookup_f("DSCL_V")[0],
+                                                lookup_f("DSCL_S")[0],
+                                                lookup_f("SCL_S")[0],
+                                                lookup_f("SCL_O")[0],
+                                                lookup_f("RND_PRB")[0],
+                                                lookup_i("RND_SD")[0],
+                                                lookup_i("RND_OFF")[0],
+                                                out.mAmaxS,
+                                                out.mAmaxO,
+                                                out.mO);
 
         return out;
     }
@@ -423,7 +436,13 @@ protected:
     }
 
 public:
-    void Run()
+    enum class MhaDir
+    {
+        Fwd,
+        Bwd
+    };
+
+    void Run(MhaDir direction)
     {
         auto [n, h, s, d, p] = GetParam();
         std::cout << "n:" << n << ", h:" << h << ", s:" << s << ", d:" << d << ", p:" << p
@@ -431,10 +450,17 @@ public:
         mProbDropout = p;
 
         auto& handle = get_handle();
-        if((p > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
+        if(direction == MhaDir::Fwd && (p > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
         {
-            GTEST_SKIP() << "CPU Dropout currently supprorts only fully occupied warps";
+            GTEST_SKIP()
+                << "CPU Fwd pass with Dropout currently supprorts only fully occupied warps";
         }
+
+        if(direction == MhaDir::Bwd && p > 0.0f)
+        {
+            GTEST_SKIP() << "CPU backward pass with Dropout is not supported currently";
+        }
+
         createMhaGraph(n, h, s, d);
         initInputs(n, h, s, d);
         executeMhaGraph();

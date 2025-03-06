@@ -27,7 +27,7 @@
 #include <vector>
 #include <cstdint>
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
@@ -414,8 +414,8 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -457,8 +457,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::IsValid(
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -510,8 +510,6 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS))
         return false;
-    if(env::enabled(MIOPEN_DEBUG_CONVOLUTION_DETERMINISTIC))
-        return false;
     if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.HasMixedDataTypes())
@@ -537,8 +535,8 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::IsApplicable(
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif

@@ -28,7 +28,8 @@
 
 #include <limits>
 #include <cassert>
-#include <miopen/solver.hpp>
+#include <miopen/buffer_info.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/tensor.hpp>
@@ -192,7 +193,7 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
     if(!(problem.IsFp32() || problem.IsFp16()))
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 

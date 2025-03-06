@@ -26,7 +26,7 @@
 
 #include "miopen/env.hpp"
 #include <miopen/solver/conv_direct_naive_conv.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>

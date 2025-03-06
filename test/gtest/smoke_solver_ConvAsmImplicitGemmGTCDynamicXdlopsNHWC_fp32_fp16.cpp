@@ -68,19 +68,20 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningDynamicXdlops_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dTuningHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningDynamicXdlops_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningFloat, FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
+TEST_P(GPU_Conv2dTuningDynamicXdlops_FP32,
+       FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningDynamicXdlops_FP32>(tuning_check);
     }
     else
     {
@@ -88,11 +89,12 @@ TEST_P(Conv2dTuningFloat, FloatTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXd
     }
 };
 
-TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
+TEST_P(GPU_Conv2dTuningDynamicXdlops_FP16,
+       HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlopsNHWC_fp32_fp16)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningDynamicXdlops_FP16>(tuning_check);
     }
     else
     {
@@ -100,10 +102,10 @@ TEST_P(Conv2dTuningHalf, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicXdlo
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmImplicitGemmGTCDynamicXdlopsNhwcFp32Fp16,
-                         Conv2dTuningFloat,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dTuningDynamicXdlops_FP32,
                          testing::Values(GetTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmImplicitGemmGTCDynamicXdlopsNhwcFp32Fp16,
-                         Conv2dTuningHalf,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dTuningDynamicXdlops_FP16,
                          testing::Values(GetTestCases()));

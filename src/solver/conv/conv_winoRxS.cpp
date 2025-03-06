@@ -24,8 +24,9 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
+#include <miopen/buffer_info.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
@@ -33,6 +34,7 @@
 #include <miopen/generic_search.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/problem_description.hpp>
 #include <miopen/sequences.hpp>
 #include <miopen/stringutils.hpp>
 
@@ -669,7 +671,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
     if(!ctx.rmv.IsV3())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
@@ -678,8 +680,8 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
         return false;
     if(problem.IsFp16() &&
        !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
-         StartsWith(name, "gfx94") || StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") ||
-         StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
+         StartsWith(name, "gfx94") || StartsWith(name, "gfx95") || StartsWith(name, "gfx1011") ||
+         StartsWith(name, "gfx1012") || StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
         return false;
 
     if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())

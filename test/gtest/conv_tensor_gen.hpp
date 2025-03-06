@@ -37,15 +37,15 @@ inline T RanGenData()
 }
 
 template <>
-inline float8 RanGenData()
+inline float8_fnuz RanGenData()
 {
-    return prng::gen_A_to_B(static_cast<float8>(-1.0f), static_cast<float8>(1.0f));
+    return prng::gen_A_to_B(static_cast<float8_fnuz>(-1.0f), static_cast<float8_fnuz>(1.0f));
 }
 
 template <>
-inline bfloat8 RanGenData()
+inline bfloat8_fnuz RanGenData()
 {
-    return prng::gen_A_to_B(static_cast<bfloat8>(-1.0f), static_cast<bfloat8>(1.0f));
+    return prng::gen_A_to_B(static_cast<bfloat8_fnuz>(-1.0f), static_cast<bfloat8_fnuz>(1.0f));
 }
 
 template <typename T>
@@ -74,23 +74,23 @@ inline half_float::half RanGenWeights()
 }
 
 template <>
-inline float8 RanGenWeights()
+inline float8_fnuz RanGenWeights()
 {
     const auto tmp = prng::gen_canonical<float>() > 0.5f ? 0.0f : 2.0f;
     // 1 in 2 chance of number being positive
     const auto sign = prng::gen_canonical<float>() > 0.5f ? -1.0f : 1.0f;
-    return static_cast<float8>(static_cast<float>(std::numeric_limits<float8>::epsilon()) * sign *
-                               tmp);
+    return static_cast<float8_fnuz>(
+        static_cast<float>(std::numeric_limits<float8_fnuz>::epsilon()) * sign * tmp);
 }
 
 template <>
-inline bfloat8 RanGenWeights()
+inline bfloat8_fnuz RanGenWeights()
 {
     const auto tmp = prng::gen_canonical<float>() > 0.5f ? 0.0f : 2.0f;
     // 1 in 2 chance of number being positive
     const auto sign = prng::gen_canonical<float>() > 0.5f ? -1.0f : 1.0f;
-    return static_cast<bfloat8>(static_cast<float>(std::numeric_limits<bfloat8>::epsilon()) * sign *
-                                tmp);
+    return static_cast<bfloat8_fnuz>(
+        static_cast<float>(std::numeric_limits<bfloat8_fnuz>::epsilon()) * sign * tmp);
 }
 
 template <typename T>
@@ -101,4 +101,64 @@ struct GenWeights
     {
         return RanGenWeights<T>();
     }
+};
+
+template <typename T, typename Tacc>
+struct GenConvData
+{
+    /// \note CHWNc filter layout is not supported (different storage layout)
+    GenConvData(const std::vector<std::size_t>& filter, unsigned group_count = 1)
+    {
+        static_assert(std::is_integral_v<T> == std::is_integral_v<Tacc>);
+        static_assert(sizeof(Tacc) >= sizeof(T));
+
+        constexpr auto is_integral = std::is_integral_v<T>;
+
+        // Multiply all dimensions except K to get the number of additions
+        const auto num_add = std::accumulate(filter.cbegin() + 1,
+                                             filter.cend(),
+                                             static_cast<std::size_t>(1),
+                                             std::multiplies<std::size_t>()) /
+                             group_count;
+
+        constexpr auto max_acc_v = std::numeric_limits<Tacc>::max();
+        if constexpr(is_integral)
+        {
+            // "B" must be > 0
+            if(num_add >= max_acc_v)
+                throw std::runtime_error("filter is too big");
+        }
+        const auto tmp_B = static_cast<Tacc>(std::sqrt(max_acc_v / (num_add + 1)));
+
+        if constexpr(std::is_same_v<T, Tacc>)
+        {
+            B = tmp_B;
+        }
+        else
+        {
+            constexpr T max_v = std::numeric_limits<T>::max();
+            B                 = (tmp_B >= max_v) ? max_v : tmp_B;
+        }
+
+        if constexpr(!is_integral)
+        {
+            // Limit the range of FP
+            constexpr auto limit = static_cast<float>(std::numeric_limits<uint32_t>::max());
+            if(B > limit)
+                // cppcheck-suppress floatConversionOverflow
+                B = limit;
+        }
+
+        A = -B;
+    }
+
+    template <class... Ts>
+    T operator()(Ts...) const
+    {
+        return prng::gen_A_to_B(A, B);
+    }
+
+private:
+    T A;
+    T B;
 };

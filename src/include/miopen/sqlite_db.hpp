@@ -42,8 +42,6 @@
 #include <boost/core/explicit_operator_bool.hpp>
 #include <boost/none.hpp>
 #include <boost/optional/optional.hpp>
-#include <boost/thread.hpp>
-#include <boost/thread/thread_time.hpp>
 #include "sqlite3.h"
 #include <mutex>
 #include <thread>

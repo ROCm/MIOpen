@@ -24,10 +24,11 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #define WORKAROUND_ISSUE_1146 1 // check asm solver applicability for gfx90a
 
@@ -57,7 +58,7 @@ bool ConvAsm5x10u2v2b1::IsApplicable(const ExecutionContext& ctx,
     if(!ctx.rmv.IsV2orV3())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 

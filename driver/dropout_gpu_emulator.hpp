@@ -40,101 +40,18 @@
 #include <array>
 #include <miopen/dropout.hpp>
 #include <miopen/float_equal.hpp>
-#include <miopen/precalc_xorwow_skipahead_matrices.hpp>
-#include <miopen/precalc_xorwow_skipahead_sequence_matrices.hpp>
-#include "xorwow_skipahead_generator.hpp"
 
-#define ROCRAND_2POW32_INV (2.3283064e-10f)
-
-static float uniform_distribution_emu(size_t v)
-{
-    return ROCRAND_2POW32_INV + (v * ROCRAND_2POW32_INV);
-}
-
-static void xorwow_skipahead_emu(
-    unsigned long long skp,
-    prngStates* state,
-    const unsigned int skipahead_mat[XORWOW_PRECALC_MATRICES_NUM][XORWOW_PRECALC_MATRICES_SZ])
-{
-    unsigned int xor_vec[XORWOW_DIM];
-    unsigned int* p = &(state->x);
-    std::copy(p, p + XORWOW_DIM, std::begin(xor_vec));
-
-    unsigned int mat_idx = 0;
-    while(bool(skp)
-#if(XORWOW_PRECALC_MATRICES_NUM * XORWOW_JUMP_LOG2) < 64
-          && mat_idx < XORWOW_PRECALC_MATRICES_NUM
+// disable __device__ qualifiers
+#ifdef FQUALIFIERS
+#error rocrand FQUALIFIERS defined externally, probably one of rocrand device header included prior to this
 #endif
-    )
-    {
-        for(unsigned int i = 0; i < static_cast<unsigned int>(skp & XORWOW_JUMP_LOG2_MASK); i++)
-        {
-            mat_vec(skipahead_mat[mat_idx], xor_vec);
-        }
-        skp >>= XORWOW_JUMP_LOG2;
-        mat_idx++;
-    }
+#define FQUALIFIERS inline
+#include "../src/kernels/miopen_rocrand.hpp"
 
-#if(XORWOW_PRECALC_MATRICES_NUM * XORWOW_JUMP_LOG2) < 64
-    if(skp)
-    {
-        unsigned int matrixA[XORWOW_PRECALC_MATRICES_SZ], matrixB[XORWOW_PRECALC_MATRICES_SZ];
-        std::copy(&(skipahead_mat[XORWOW_PRECALC_MATRICES_NUM - 1][0]),
-                  &(skipahead_mat[XORWOW_PRECALC_MATRICES_NUM - 1][0]) + XORWOW_PRECALC_MATRICES_SZ,
-                  std::begin(matrixA));
-
-        while(skp)
-        {
-            mat_pow(matrixB, matrixA, 1ULL << XORWOW_JUMP_LOG2);
-            std::copy(std::begin(matrixB), std::end(matrixB), std::begin(matrixA));
-
-            for(unsigned int i = 0; i < static_cast<unsigned int>(skp & XORWOW_JUMP_LOG2_MASK); i++)
-            {
-                mat_vec(matrixA, xor_vec);
-            }
-            skp >>= XORWOW_JUMP_LOG2;
-        }
-    }
-#endif
-
-    std::copy(std::begin(xor_vec), std::end(xor_vec), p);
-}
-
-static void xorwow_lite_init_emu(prngStates* cur_state,
-                                 const unsigned long long seed,
-                                 const unsigned long long subsequence,
-                                 const unsigned long long offset)
-{
-    cur_state->x = 123456789;
-    cur_state->y = 362436069;
-    cur_state->z = 521288629;
-    cur_state->w = 88675123;
-    cur_state->v = 5783321;
-
-    cur_state->d = 6615241;
-
-    // Adopt constants choice of rocRAND (https://github.com/ROCm/rocRAND)
-    const unsigned int s0 = static_cast<unsigned int>(seed) ^ 0x2c7f967fU;
-    const unsigned int s1 = static_cast<unsigned int>(seed >> 32) ^ 0xa03697cbU;
-    const unsigned int t0 = 1228688033 * s0;
-    const unsigned int t1 = 2073658381 * s1;
-    cur_state->x += t0;
-    cur_state->y ^= t0;
-    cur_state->z += t1;
-    cur_state->w ^= t1;
-    cur_state->v += t0;
-    cur_state->d += t1 + t0;
-
-    xorwow_skipahead_emu(subsequence, cur_state, precalc_xorwow_skipahead_sequence_matrices);
-
-    xorwow_skipahead_emu(offset, cur_state, precalc_xorwow_skipahead_matrices);
-    cur_state->d += static_cast<unsigned int>(offset) * 362437;
-}
-
-static void InitKernelStateEmulator(std::vector<prngStates>& states,
+static void InitKernelStateEmulator(std::vector<rocrand_state_xorwow>& states,
                                     const miopenDropoutDescriptor_t dropoutDesc)
 {
-    size_t states_num = miopen::deref(dropoutDesc).stateSizeInBytes / sizeof(prngStates);
+    size_t states_num = miopen::deref(dropoutDesc).stateSizeInBytes / sizeof(rocrand_state_xorwow);
     size_t wk_grp_num = std::min(size_t(MAX_PRNG_STATE / 256), (states_num + 255) / 256);
     size_t glb_sz     = wk_grp_num * 256;
 
@@ -142,10 +59,10 @@ static void InitKernelStateEmulator(std::vector<prngStates>& states,
     {
         for(size_t i = 0; i < glb_sz; i++)
         {
-            size_t gid                = i + j * glb_sz;
-            unsigned long long seq    = gid;
-            unsigned long long offset = 0;
-            xorwow_lite_init_emu(&states[gid], miopen::deref(dropoutDesc).seed, seq, offset);
+            size_t gid = i + j * glb_sz;
+            rocrand_state_xorwow state_gid;
+            rocrand_init(miopen::deref(dropoutDesc).seed, gid, 0ULL, &state_gid);
+            states[gid] = state_gid;
         }
     }
 }
@@ -202,7 +119,7 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
                                const miopenTensorDescriptor_t outputTensor,
                                std::vector<Tref>& out,
                                std::vector<unsigned char>& reservespace,
-                               std::vector<prngStates>& states,
+                               std::vector<rocrand_state_xorwow>& states,
                                size_t in_offset    = 0,
                                size_t out_offset   = 0,
                                size_t rsvsp_offset = 0)
@@ -272,8 +189,7 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
 
                         if(!use_mask)
                             reservespace[ri] =
-                                uniform_distribution_emu(xorwow_next(&states[si % glb_sz])) >
-                                dropout_rate;
+                                prng::xorwow_uniform(&states[si % glb_sz]) > dropout_rate;
 
                         out[oi] = bool(reservespace[ri]) && !miopen::float_equal(dropout_rate, 1.0)
                                       ? static_cast<Tref>(in[ii] / (1 - dropout_rate))

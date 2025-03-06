@@ -67,15 +67,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultGemmV4R1Dynamic_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvAsmImplicitGemmV4R1Dynamic)
+TEST_P(GPU_Conv2dDefaultGemmV4R1Dynamic_FP32, FloatTest_smoke_solver_ConvAsmImplicitGemmV4R1Dynamic)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultGemmV4R1Dynamic_FP32>(default_check);
     }
     else
     {
@@ -83,6 +83,6 @@ TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvAsmImplicitGemmV4R1Dynamic
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsmImplicitGemmV4R1Dynamic,
-                         Conv2dDefaultFloat,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dDefaultGemmV4R1Dynamic_FP32,
                          testing::Values(GetTestCases()));

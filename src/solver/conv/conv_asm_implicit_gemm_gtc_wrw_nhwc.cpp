@@ -25,7 +25,7 @@
  *******************************************************************************/
 
 #include <cstddef>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
@@ -34,6 +34,7 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/batched_transpose_sol.hpp>
+#include <miopen/buffer_info.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
@@ -889,7 +890,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a") &&
-       (!StartsWith(device_name, "gfx94")))
+       (!StartsWith(device_name, "gfx94")) && (!StartsWith(device_name, "gfx95")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -908,7 +909,8 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16() &&
-       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
+       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94") ||
+                               StartsWith(device_name, "gfx95"))))
         return false;
 
     if(problem.IsTensorsCasted())
@@ -917,7 +919,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
     if(!ctx.rmv.IsV3())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
@@ -1116,8 +1118,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     const auto isFp16                 = problem.IsFp16();
     const auto isGfx90aFp16altSupport = (ctx.GetStream().GetDeviceName() == "gfx90a") && isFp16;
-    const bool need_cast              = (problem.IsBfp16() && gemm_k_global_splits >= 1) ||
-                           (isFp16 && gemm_k_global_splits >= 1 &&
+    const bool need_cast              = (problem.IsBfp16() && config.gemm_k_global_split >= 1) ||
+                           (isFp16 && config.gemm_k_global_split >= 1 &&
                             (config.tensor_b_thread_lengths[3] == 1 || config.vector_store == 1));
 
     const auto is_nchw = problem.IsLayoutDefault();

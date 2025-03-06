@@ -110,7 +110,7 @@ struct PerfHelper
         }
 
         // If the file was just created (i.e., its size is 0), write the header.
-        if(std::filesystem::file_size(filename) == 0)
+        if(miopen::fs::file_size(filename) == 0)
         {
             file << "KernelAndTestInfo,min_exec_time_ratio,max_exec_time_ratio,mean_exec_time_"
                     "ratio,median_exec_time_ratio,SD_ocl,SD_hip\n";
@@ -151,7 +151,7 @@ struct PerfHelper
     }
 
     template <typename... Args>
-    void perfTest(miopen::Handle& handle,
+    void perfTest(const miopen::Handle& handle,
                   const std::string& kernel_name,
                   const std::string& network_config,
                   bool append,

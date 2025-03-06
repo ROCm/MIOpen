@@ -2133,11 +2133,13 @@ inline __device__ void naive_conv_wrw_ndhwc(const src_data_t* __restrict__ p_in,
 DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nchw, float, double, float)
 DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nchw, half, double, half)
 DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nchw, ushort, double, ushort)
+DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nchw, int8_t, int32_t, int8_t)
 DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nchw, int8_t, int32_t, int32_t)
 DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nchw, int8_t, int32_t, float)
 DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nhwc, float, double, float)
 DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nhwc, half, double, half)
 DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nhwc, ushort, double, ushort)
+DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nhwc, int8_t, int32_t, int8_t)
 DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nhwc, int8_t, int32_t, int32_t)
 DEFINE_2D_NAIVE_CONV_KERNEL(fwd, nhwc, int8_t, int32_t, float)
 
