@@ -52,12 +52,12 @@
 #define MAKE_SUFFIX_UPPER(wino_data_h, wino_filter_h) MAKE_SUFFIX(wino_data_h, wino_filter_h, X)
 #define MAKE_SUFFIX_LOWER(wino_data_h, wino_filter_h) MAKE_SUFFIX(wino_data_h, wino_filter_h, x)
 
-#define SHORT_SOLVER_NAME CONCAT2(MPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
+#define SHORT_SOLVER_NAME \
+    CONCAT2(MPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
 
 #define SOLVER_NAME CONCAT2(ConvMPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
 
-#define TESTSUITE_NAME_GENERIC(hw_type, name, datatype) \
-    CONCAT5(hw_type, _, name, _, datatype)
+#define TESTSUITE_NAME_GENERIC(hw_type, name, datatype) CONCAT5(hw_type, _, name, _, datatype)
 
 #define TESTSUITE_NAME_GENERIC_DIR(hw_type, name, direction, datatype) \
     TESTSUITE_NAME_GENERIC(hw_type, CONCAT2(name, direction), datatype)
@@ -66,12 +66,11 @@
     TESTSUITE_NAME_GENERIC_DIR(                      \
         hw_type, CONCAT2(UnitTestConvSolver, SHORT_SOLVER_NAME), direction, datatype)
 
-#define TESTSUITE_NAME_DEV_APP(hw_type, direction, datatype)                     \
-    TESTSUITE_NAME_GENERIC_DIR(                                                  \
-        hw_type,                                                                 \
-        CONCAT3(UnitTestConvSolver, SHORT_SOLVER_NAME, DevApplicability), \
-        direction,                                                               \
-        datatype)
+#define TESTSUITE_NAME_DEV_APP(hw_type, direction, datatype)                                     \
+    TESTSUITE_NAME_GENERIC_DIR(hw_type,                                                          \
+                               CONCAT3(UnitTestConvSolver, SHORT_SOLVER_NAME, DevApplicability), \
+                               direction,                                                        \
+                               datatype)
 
 #define TESTSUITE_NAME_FWD_FP16 TESTSUITE_NAME(GPU, Fwd, FP16)
 #define TESTSUITE_NAME_BWD_FP16 TESTSUITE_NAME(GPU, Bwd, FP16)
