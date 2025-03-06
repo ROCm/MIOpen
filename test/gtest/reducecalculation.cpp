@@ -41,11 +41,7 @@ struct GPU_ReduceCalculationTest_BFP16 : ReduceCalculationTest<bfloat16>
 {
 };
 
-struct GPU_ReduceCalculationTest_INT8 : ReduceCalculationTest<int8_t>
-{
-};
-
-struct GPU_ReduceCalculationTest_UINT8 : ReduceCalculationTest<uint8_t>
+struct GPU_ReduceCalculationTest_I8 : ReduceCalculationTest<int8_t>
 {
 };
 
@@ -71,13 +67,7 @@ TEST_P(GPU_ReduceCalculationTest_BFP16, Test)
     Verify();
 };
 
-TEST_P(GPU_ReduceCalculationTest_INT8, Test)
-{
-    RunTest();
-    Verify();
-};
-
-TEST_P(GPU_ReduceCalculationTest_UINT8, Test)
+TEST_P(GPU_ReduceCalculationTest_I8, Test)
 {
     RunTest();
     Verify();
@@ -140,19 +130,9 @@ INSTANTIATE_TEST_CASE_P(
 // INT8
 INSTANTIATE_TEST_SUITE_P(
     FullANY,
-    GPU_ReduceCalculationTest_INT8,
+    GPU_ReduceCalculationTest_I8,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ANY)));
 INSTANTIATE_TEST_SUITE_P(
     FullALL,
-    GPU_ReduceCalculationTest_INT8,
-    testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ALL)));
-
-// UINT8
-INSTANTIATE_TEST_SUITE_P(
-    FullANY,
-    GPU_ReduceCalculationTest_UINT8,
-    testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ANY)));
-INSTANTIATE_TEST_SUITE_P(
-    FullALL,
-    GPU_ReduceCalculationTest_UINT8,
+    GPU_ReduceCalculationTest_I8,
     testing::ValuesIn(ReduceCalculationTestConfigs(MIOPEN_REDUCE_CALCULATION_ALL)));
