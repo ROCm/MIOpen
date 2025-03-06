@@ -1934,11 +1934,14 @@ struct ConvMPBidirectWinograd final : ConvSolver
             ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
-    bool IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
-    size_t GetWorkspaceSize(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    ConvSolution GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     // kernel_file_name for solver identification
     static fs::path GetSolverFileNames(int id)
