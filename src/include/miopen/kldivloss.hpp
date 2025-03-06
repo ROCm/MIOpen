@@ -23,9 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
-#ifndef MIOPEN_KLDIVLOSS_HPP_
-#define MIOPEN_KLDIVLOSS_HPP_
+#pragma once
 
 #include <miopen/common.hpp>
 
@@ -34,31 +32,22 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-miopenStatus_t KLDivLossUnreducedBackward(Handle& handle,
-                                          const TensorDescriptor& inputDesc,
-                                          ConstData_t input,
-                                          const TensorDescriptor& targetDesc,
-                                          ConstData_t target,
-                                          const TensorDescriptor& outputGradDesc,
-                                          ConstData_t output_grad,
-                                          const TensorDescriptor& inputGradDesc,
-                                          Data_t input_grad,
-                                          const TensorDescriptor& targetGradDesc,
-                                          Data_t target_grad,
-                                          bool log_target);
+namespace kldivloss {
 
-miopenStatus_t KLDivLossReducedBackward(Handle& handle,
-                                        const TensorDescriptor& inputDesc,
-                                        ConstData_t input,
-                                        const TensorDescriptor& targetDesc,
-                                        ConstData_t target,
-                                        const TensorDescriptor& outputGradDesc,
-                                        ConstData_t output_grad,
-                                        const TensorDescriptor& inputGradDesc,
-                                        Data_t input_grad,
-                                        const TensorDescriptor& targetGradDesc,
-                                        Data_t target_grad,
-                                        float divisor,
-                                        bool log_target);
+miopenStatus_t KLDivLossBackward(Handle& handle,
+                                 const TensorDescriptor& inputDesc,
+                                 ConstData_t input,
+                                 const TensorDescriptor& targetDesc,
+                                 ConstData_t target,
+                                 const TensorDescriptor& outputGradDesc,
+                                 ConstData_t output_grad,
+                                 const TensorDescriptor& inputGradDesc,
+                                 Data_t input_grad,
+                                 const TensorDescriptor& targetGradDesc,
+                                 Data_t target_grad,
+                                 bool log_target,
+                                 miopenLossReductionMode_t reduction);
+
+} // namespace kldivloss
+
 } // namespace miopen
-#endif // _MIOPEN_KLDIVLOSS_HPP_

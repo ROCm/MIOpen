@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include <cstddef>
 #include <miopen/kldivloss/problem_description.hpp>
 #include <miopen/names.hpp>
 
@@ -37,7 +35,7 @@ namespace kldivloss {
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -47,57 +45,20 @@ inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
     return os;
 }
 
-NetworkConfig UnreducedProblemDescription::MakeNetworkConfig() const
+NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 {
-    size_t numel       = GetNtotal();
-    size_t num_batches = inputDesc.GetLengths()[0];
-    size_t num_dims    = inputDesc.GetSize();
-    bool is_log_target = GetLogTarget();
+    auto input_lengths = inputDesc.GetLengths();
     auto input_dtype   = inputDesc.GetType();
-    auto Si            = inputDesc.GetStrides();
-    auto St            = targetDesc.GetStrides();
-    auto So            = outputDesc.GetStrides();
+    bool is_log_target = GetLogTarget();
 
     std::ostringstream ss;
 
-    ss << "kldivloss_unreduced";
-    ss << "is_fwd" << is_fwd;
-    ss << "log_target" << is_log_target;
+    ss << "kldivloss";
+    ss << "input_lengths" << input_lengths;
     ss << "input_dtype" << input_dtype;
-    ss << "numel" << numel;
-    ss << "num_dims" << num_dims;
-    ss << "num_batches" << num_batches;
-    ss << "input_stride" << Si;
-    ss << "target_stride" << St;
-    ss << "output_stride" << So;
-
-    return NetworkConfig{ss.str()};
-}
-
-NetworkConfig ReducedProblemDescription::MakeNetworkConfig() const
-{
-    size_t numel       = GetNtotal();
-    size_t num_batches = inputDesc.GetLengths()[0];
-    size_t num_dims    = inputDesc.GetSize();
-    bool is_log_target = GetLogTarget();
-    auto input_dtype   = inputDesc.GetType();
-    auto Si            = inputDesc.GetStrides();
-    auto St            = targetDesc.GetStrides();
-    auto So            = outputDesc.GetStrides();
-
-    std::ostringstream ss;
-
-    ss << "kldivloss_reduced";
-    ss << "is_fwd" << is_fwd;
-    ss << "divisor" << divisor;
     ss << "log_target" << is_log_target;
-    ss << "input_dtype" << input_dtype;
-    ss << "numel" << numel;
-    ss << "num_dims" << num_dims;
-    ss << "num_batches" << num_batches;
-    ss << "input_stride" << Si;
-    ss << "target_stride" << St;
-    ss << "output_stride" << So;
+    ss << "reduction" << reduction;
+    ss << "is_fwd" << false;
 
     return NetworkConfig{ss.str()};
 }

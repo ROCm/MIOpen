@@ -23,17 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include <miopen/kldivloss/solvers.hpp>
-
-#include <miopen/kldivloss/invoke_params.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
 #include <miopen/kldivloss.hpp>
+#include <miopen/kldivloss/invoke_params.hpp>
+#include <miopen/kldivloss/solvers.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
-#include <miopen/tensor_view.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE_REDUCED_BWD 1024
 
@@ -43,28 +40,29 @@ namespace solver {
 
 namespace kldivloss {
 
-bool KLDivLossReducedBackward5d::IsApplicable(
-    const ExecutionContext& context,
-    const miopen::kldivloss::ReducedProblemDescription& problem) const
+bool KLDivLossBackward5d::IsApplicable(
+    const ExecutionContext&, const miopen::kldivloss::BwdProblemDescription& problem) const
 {
-    if(!KLDivLossReducedSolver::IsApplicable(context, problem))
+    if(!(problem.GetOutputGradDesc().GetType() == miopenHalf ||
+         problem.GetOutputGradDesc().GetType() == miopenFloat ||
+         problem.GetOutputGradDesc().GetType() == miopenBFloat16))
+    {
         return false;
-
+    }
     return true;
 }
 
-ConvSolution KLDivLossReducedBackward5d::GetSolution(
-    const ExecutionContext& context,
-    const miopen::kldivloss::ReducedProblemDescription& problem) const
+ConvSolution
+KLDivLossBackward5d::GetSolution(const ExecutionContext& context,
+                                 const miopen::kldivloss::BwdProblemDescription& problem) const
 {
     std::ignore = context;
 
     auto result       = ConvSolution{miopenStatusSuccess};
-    auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
-    auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
+    auto output_dtype = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
 
     {
-        auto dtype     = problem.GetOutputDesc().GetType();
+        auto dtype     = problem.GetOutputGradDesc().GetType();
         size_t N_total = problem.GetNtotal();
 
         auto kernel = KernelInfo{};
@@ -74,34 +72,40 @@ ConvSolution KLDivLossReducedBackward5d::GetSolution(
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"REDUCTION_TYPE", static_cast<int>(problem.GetReductionMode())},
         };
 
         result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDUCED_BWD},
                                                              {N_total},
                                                              "MIOpenKLDivLoss.cpp",
-                                                             "KLDivLossReducedBackward5d",
+                                                             "KLDivLossBackward5d",
                                                              build_params));
     }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    uint64_t divisor = 1;
+    if(problem.GetReductionMode() == MIOPEN_LOSS_REDUCTION_MEAN)
+    {
+        divisor = problem.GetTargetDesc().GetElementSize();
+    }
+
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::kldivloss::BwdInvokeParams>();
 
-            auto input_tv       = get_inner_expanded_tv_5d(deref(params.inputDesc));
-            auto target_tv      = get_inner_expanded_tv_5d(deref(params.targetDesc));
-            auto output_grad_tv = get_inner_expanded_tv_1d(deref(params.outputGradDesc));
-            auto input_grad_tv  = get_inner_expanded_tv_5d(deref(params.inputGradDesc));
-            auto target_grad_tv = get_inner_expanded_tv_5d(deref(params.targetGradDesc));
+            auto input_tv       = get_inner_expanded_tv<5>(deref(params.inputDesc));
+            auto target_tv      = get_inner_expanded_tv<5>(deref(params.targetDesc));
+            auto output_grad_tv = get_inner_expanded_tv<5>(deref(params.outputGradDesc));
+            auto input_grad_tv  = get_inner_expanded_tv<5>(deref(params.inputGradDesc));
+            auto target_grad_tv = get_inner_expanded_tv<5>(deref(params.targetGradDesc));
 
             kernel(params.input,
                    params.target,
                    params.output_grad,
                    params.input_grad,
                    params.target_grad,
-                   params.divisor,
+                   divisor,
                    params.log_target,
                    input_tv,
                    target_tv,

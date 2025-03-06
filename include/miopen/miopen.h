@@ -8233,7 +8233,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  *  @{
  */
 
-/*! @brief Execute a kldivloss unreduced backward layer
+/*! @brief Execute a kldivloss backward layer
  *
  * @param handle                   MIOpen handle (input)
  * @param inputDesc                Tensor descriptor for input tensor (input)
@@ -8247,53 +8247,23 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * @param targetGradDesc           Tensor descriptor for target gradient tensor (input)
  * @param target_grad              Data tensor target gradient (output)
  * @param log_target               Specifies whether target is the log space (input)
+ * @param reduction                Reduction mode (input)
  * @return                         miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t
-miopenKLDivLossUnreducedBackward(miopenHandle_t handle,
-                                 const miopenTensorDescriptor_t inputDesc,
-                                 const void* input,
-                                 const miopenTensorDescriptor_t targetDesc,
-                                 const void* target,
-                                 const miopenTensorDescriptor_t outputGradDesc,
-                                 const void* output_grad,
-                                 const miopenTensorDescriptor_t inputGradDesc,
-                                 void* input_grad,
-                                 const miopenTensorDescriptor_t targetGradDesc,
-                                 void* target_grad,
-                                 bool log_target);
+MIOPEN_EXPORT miopenStatus_t miopenKLDivLossBackward(miopenHandle_t handle,
+                                                     const miopenTensorDescriptor_t inputDesc,
+                                                     const void* input,
+                                                     const miopenTensorDescriptor_t targetDesc,
+                                                     const void* target,
+                                                     const miopenTensorDescriptor_t outputGradDesc,
+                                                     const void* output_grad,
+                                                     const miopenTensorDescriptor_t inputGradDesc,
+                                                     void* input_grad,
+                                                     const miopenTensorDescriptor_t targetGradDesc,
+                                                     void* target_grad,
+                                                     bool log_target,
+                                                     miopenLossReductionMode_t reduction);
 
-/*! @brief Execute a kldivloss reduced backward layer
- *
- * @param handle                   MIOpen handle (input)
- * @param inputDesc                Tensor descriptor for input tensor (input)
- * @param input                    Data tensor input (input)
- * @param targetDesc               Tensor descriptor for target tensor (input)
- * @param target                   Data tensor target (input)
- * @param outputGradDesc           Tensor descriptor for output grad tensor (input)
- * @param output_grad              Data tensor output grad (input)
- * @param inputGradDesc            Tensor descriptor for input gradient tensor (input)
- * @param input_grad               Data tensor input gradient (output)
- * @param targetGradDesc           Tensor descriptor for target gradient tensor (input)
- * @param target_grad              Data tensor target gradient (output)
- * @param divisor                  Divisor (input)
- * @param log_target               Specifies whether target is the log space (input)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenKLDivLossReducedBackward(miopenHandle_t handle,
-                               const miopenTensorDescriptor_t inputDesc,
-                               const void* input,
-                               const miopenTensorDescriptor_t targetDesc,
-                               const void* target,
-                               const miopenTensorDescriptor_t outputGradDesc,
-                               const void* output_grad,
-                               const miopenTensorDescriptor_t inputGradDesc,
-                               void* input_grad,
-                               const miopenTensorDescriptor_t targetGradDesc,
-                               void* target_grad,
-                               float divisor,
-                               bool log_target);
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP
 #endif // MIOPEN_BETA_API

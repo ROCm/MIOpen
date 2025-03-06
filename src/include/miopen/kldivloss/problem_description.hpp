@@ -23,14 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
-#include <miopen/problem_description_base.hpp>
+#include <miopen/miopen.h>
 #include <miopen/activ.hpp>
+#include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
-#include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -38,124 +36,71 @@ struct NetworkConfig;
 
 namespace kldivloss {
 
-struct ProblemDescription : ProblemDescriptionBase
+struct BwdProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& inputDesc_,
-                       const TensorDescriptor& targetDesc_,
-                       const TensorDescriptor& outputDesc_,
-                       bool log_target_,
-                       bool is_fwd_)
+    BwdProblemDescription(const TensorDescriptor& inputDesc_,
+                          const TensorDescriptor& targetDesc_,
+                          const TensorDescriptor& outputGradDesc_,
+                          const TensorDescriptor& inputGradDesc_,
+                          const TensorDescriptor& targetGradDesc_,
+                          bool log_target_,
+                          const miopenLossReductionMode_t reduction_)
         : inputDesc(inputDesc_),
           targetDesc(targetDesc_),
-          outputDesc(outputDesc_),
+          outputGradDesc(outputGradDesc_),
+          inputGradDesc(inputGradDesc_),
+          targetGradDesc(targetGradDesc_),
           log_target(log_target_),
-          is_fwd(is_fwd_)
+          reduction(reduction_)
     {
-        IsValidStride();
+        IsValidLength();
     }
 
     const TensorDescriptor& GetInputDesc() const { return inputDesc; }
     const TensorDescriptor& GetTargetDesc() const { return targetDesc; }
-    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
+    const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
     size_t GetNtotal() const { return inputDesc.GetElementSize(); }
     bool GetLogTarget() const { return log_target; }
+    miopenLossReductionMode_t GetReductionMode() const { return reduction; }
 
     bool IsValidLength() const
     {
-        for(int32_t i = 0; i < targetDesc.GetSize(); ++i)
+        if(targetDesc.GetLengths() != inputDesc.GetLengths() ||
+           targetDesc.GetLengths() != targetGradDesc.GetLengths() ||
+           inputDesc.GetLengths() != inputGradDesc.GetLengths())
         {
-            if(targetDesc.GetLengths()[i] != inputDesc.GetLengths()[i])
-            {
-                MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Tensor sizes do not match.");
-            }
+            MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Tensor sizes do not match.");
         }
-        if(inputDesc.GetSize() > 5)
+
+        if(inputDesc.GetNumDims() > 5)
         {
             MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Input tensor size > 5 is not supported.");
         }
+
+        if(reduction != MIOPEN_LOSS_REDUCTION_NONE)
+        {
+            if(outputGradDesc.GetNumDims() != 1 || outputGradDesc.GetLengths()[0] != 1)
+                MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Output Tensor size must be (1).");
+        }
+        // else
+        // {
+        //     if(outputGradDesc.GetNumDims() != inputDesc.GetNumDims())
+        //         MIOPEN_THROW(miopenStatusBadParm,
+        //                      "KLDivLoss: Output Tensor size must match input tensor size.");
+        // }
         return true;
     }
 
-    bool IsValidStride() const
-    {
-        auto isRightStride = [](TensorDescriptor td) {
-            auto strides = td.GetStrides();
-            auto lengths = td.GetLengths();
-            std::vector<std::pair<size_t, size_t>> p;
-            p.reserve(td.GetSize());
-            std::transform(strides.begin(),
-                           strides.end(),
-                           lengths.begin(),
-                           std::back_inserter(p),
-                           [](size_t a, size_t b) { return std::make_pair(a, b); });
-            std::sort(p.begin(), p.end());
-            for(int i = 1; i < p.size(); ++i)
-            {
-                if(p[i].first != p[i - 1].first * p[i - 1].second)
-                    MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Tensor strides do not valid.");
-            }
-            return true;
-        };
-        return isRightStride(inputDesc) && isRightStride(targetDesc) && isRightStride(outputDesc);
-    }
+    NetworkConfig MakeNetworkConfig() const override;
 
 protected:
     TensorDescriptor inputDesc;
     TensorDescriptor targetDesc;
-    TensorDescriptor outputDesc;
-
+    TensorDescriptor outputGradDesc;
+    TensorDescriptor inputGradDesc;
+    TensorDescriptor targetGradDesc;
     bool log_target;
-    bool is_fwd;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
-};
-
-struct UnreducedProblemDescription : ProblemDescription
-{
-    UnreducedProblemDescription(const TensorDescriptor& inputDesc_,
-                                const TensorDescriptor& targetDesc_,
-                                const TensorDescriptor& outputDesc_,
-                                bool log_target_,
-                                bool is_fwd_)
-        : ProblemDescription(inputDesc_, targetDesc_, outputDesc_, log_target_, is_fwd_)
-    {
-        IsValidLength();
-    }
-
-    NetworkConfig MakeNetworkConfig() const override;
-
-private:
-    NetworkConfig MakeForwardNetworkConfig() const;
-};
-
-struct ReducedProblemDescription : ProblemDescription
-{
-    ReducedProblemDescription(const TensorDescriptor& inputDesc_,
-                              const TensorDescriptor& targetDesc_,
-                              const TensorDescriptor& outputDesc_,
-                              float divisor_,
-                              bool log_target_,
-                              bool is_fwd_)
-        : ProblemDescription(inputDesc_, targetDesc_, outputDesc_, log_target_, is_fwd_)
-    {
-        divisor = divisor_;
-        IsValidLength();
-    }
-
-    bool IsValidLength() const
-    {
-        if(outputDesc.GetSize() != 1 || outputDesc.GetLengths()[0] != 1)
-            MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Output Tensor size must be (1).");
-        if(!ProblemDescription::IsValidLength())
-            return false;
-        return true;
-    }
-
-    NetworkConfig MakeNetworkConfig() const override;
-
-private:
-    float divisor;
-    NetworkConfig MakeForwardNetworkConfig() const;
+    miopenLossReductionMode_t reduction;
 };
 
 } // namespace kldivloss

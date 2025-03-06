@@ -65,3 +65,8 @@ build*/
 
 # Python cache
 __pycache__/
+
+.cache/
+.devcontainer/
+install_dir/
+.gitignore

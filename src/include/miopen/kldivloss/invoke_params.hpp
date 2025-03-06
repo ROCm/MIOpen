@@ -26,13 +26,11 @@
 
 #pragma once
 
-#include "miopen/common.hpp"
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
-#include <limits>
-
 namespace miopen {
+
 namespace kldivloss {
 
 struct BwdInvokeParams : public miopen::InvokeParams
@@ -53,7 +51,7 @@ struct BwdInvokeParams : public miopen::InvokeParams
     Data_t target_grad      = nullptr;
 
     bool log_target = false;
-    float divisor   = std::numeric_limits<float>::quiet_NaN();
+    miopenLossReductionMode_t reduction;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

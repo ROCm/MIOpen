@@ -304,10 +304,7 @@ set( MIOpen_Source
     solver/glu/forward_glu.cpp
     solver/groupnorm/forward_groupnorm.cpp
     solver/getitem/backward_getitem.cpp
-    solver/kldivloss/backward_kldivloss_unreduced_5d.cpp
-    solver/kldivloss/backward_kldivloss_reduced_5d.cpp
-    solver/kldivloss/solver_unreduced.cpp
-    solver/kldivloss/solver_reduced.cpp
+    solver/kldivloss/backward_kldivloss.cpp
     solver/kthvalue/forward_kthvalue.cpp
     solver/layernorm/backward_t5layernorm.cpp
     solver/layernorm/forward_addlayernorm.cpp
