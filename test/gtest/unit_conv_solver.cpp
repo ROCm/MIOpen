@@ -737,6 +737,9 @@ void RunSolver(const miopen::solver::conv::ConvSolverInterface& solver,
         case miopenBFloat16:
             RunSolver<bfloat16, bfloat16>(solver, params, direction, conv_config, algo);
             return;
+        case miopenInt8:
+            RunSolver<int8_t, int8_t>(solver, params, direction, conv_config, algo);
+            return;
         default:
             throw std::runtime_error("handling of this data type is not yet implemented");
         }
