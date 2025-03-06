@@ -69,10 +69,11 @@ __device__ HIP_FLOAT custom_pow(HIP_FLOAT x, HIP_FLOAT y)
         return x;
     else if(y == __float2T(2.0f))
         return x * x;
-    else
 #if MIOPEN_USE_FP32 == 1
+    else
         return powf(x, y);
 #elif MIOPEN_USE_FP16 == 1
+    else
         return hexp(hlog(x) * y);
 #endif
 }
