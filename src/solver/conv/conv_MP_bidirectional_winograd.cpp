@@ -732,11 +732,11 @@ ConvSolution ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilte
 #endif
 }
 
-template struct ConvMPBidirectWinograd<2, 3>;
-template struct ConvMPBidirectWinograd<3, 3>;
-template struct ConvMPBidirectWinograd<4, 3>;
-template struct ConvMPBidirectWinograd<5, 3>;
-template struct ConvMPBidirectWinograd<6, 3>;
+template struct MIOPEN_INTERNALS_EXPORT ConvMPBidirectWinograd<2, 3>;
+template struct MIOPEN_INTERNALS_EXPORT ConvMPBidirectWinograd<3, 3>;
+template struct MIOPEN_INTERNALS_EXPORT ConvMPBidirectWinograd<4, 3>;
+template struct MIOPEN_INTERNALS_EXPORT ConvMPBidirectWinograd<5, 3>;
+template struct MIOPEN_INTERNALS_EXPORT ConvMPBidirectWinograd<6, 3>;
 
 // ExecutionContext and ProblemDescription transformation
 // for winograd buffers calculation using xdlops_convolution
