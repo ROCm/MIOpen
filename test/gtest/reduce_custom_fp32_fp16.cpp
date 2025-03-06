@@ -96,11 +96,11 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         FAIL() << "miopenInt8, miopenBFloat16, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "miopenDouble, miopenFloat8_fnuz, miopenBFloat8_fnuz "
                   "data type not supported by reduce_custom_fp32_fp16 test";
     }
 

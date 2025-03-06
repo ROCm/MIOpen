@@ -261,8 +261,8 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             case miopenHalf:
             case miopenBFloat16:
             case miopenInt8:
-            case miopenFloat8:
-            case miopenBFloat8: byte_size = 4; break;
+            case miopenFloat8_fnuz:
+            case miopenBFloat8_fnuz: byte_size = 4; break;
             case miopenDouble:
             case miopenInt64: byte_size = 8; break;
             }

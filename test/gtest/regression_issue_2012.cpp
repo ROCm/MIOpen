@@ -30,7 +30,7 @@
 #include "get_handle.hpp"
 
 namespace regression_issue_2012 {
-void SetupEnvVar() { env::update(MIOPEN_FIND_MODE, "normal"); }
+void SetupEnvVar() { lib_env::update(MIOPEN_FIND_MODE, "normal"); }
 
 std::vector<std::string> GetArgs(const std::string& param)
 {
