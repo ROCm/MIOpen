@@ -29,143 +29,129 @@
 #endif
 
 #include "float_types.h"
+#include "tensor_view.hpp"
 
-extern "C" __global__ void IndexSelectForward(FLOAT* x,
-                                              FLOAT* y,
-                                              const size_t in_sz0,
-                                              const size_t in_sz1,
-                                              const size_t in_sz2,
-                                              const size_t in_sz3,
-                                              const size_t out_sz0,
-                                              const size_t out_sz1,
-                                              const size_t out_sz2,
-                                              const size_t out_sz3,
-                                              const size_t in_st0,
-                                              const size_t in_st1,
-                                              const size_t in_st2,
-                                              const size_t in_st3,
-                                              const size_t out_st0,
-                                              const size_t out_st1,
-                                              const size_t out_st2,
-                                              const size_t out_st3,
-                                              const size_t dim,
-                                              int* indices)
+template <typename TIO>
+__device__ void IndexSelectForwardImpl(const TIO* input,
+                                       const size_t* indices,
+                                       TIO* output,
+                                       size_t dim,
+                                       tensor_view_t<5> input_tv,
+                                       tensor_view_t<5> output_tv)
 {
-    size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t n[4];
-    size_t n012;
-    size_t n01;
-    n[3] = gid % out_sz3;
-    n012 = gid / out_sz3;
-    n[2] = n012 % out_sz2;
-    n01  = n012 / out_sz2;
-    n[1] = n01 % out_sz1;
-    n[0] = n01 / out_sz1;
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    tensor_layout_t<5> output_layout{output_tv, gid};
 
-    if(n[0] >= out_sz0)
+    if(output_layout.layout[0] >= output_tv.size[0])
         return;
 
-    size_t output_idx = n[0] * out_st0 + n[1] * out_st1 + n[2] * out_st2 + n[3] * out_st3;
+    auto max_idx                    = input_tv.size[dim];
+    tensor_layout_t<5> input_layout = output_layout;
+    input_layout.layout[dim]        = indices[output_layout.layout[dim]];
 
-    n[dim] = indices[n[dim]];
-
-    size_t input_idx = n[0] * in_st0 + n[1] * in_st1 + n[2] * in_st2 + n[3] * in_st3;
-
-    y[output_idx] = x[input_idx];
+    if(input_layout.layout[dim] < max_idx)
+    {
+        output[output_tv.get_tensor_view_idx(output_layout)] =
+            input[input_tv.get_tensor_view_idx(input_layout)];
+    }
+    else
+    {
+        output[output_tv.get_tensor_view_idx(output_layout)] = 0;
+    }
 }
 
-extern "C" __global__ void IndexSelectForwardContiguous(FLOAT* x,
-                                                        FLOAT* y,
-                                                        const size_t in_sz0,
-                                                        const size_t in_sz1,
-                                                        const size_t in_sz2,
-                                                        const size_t in_sz3,
-                                                        const size_t out_sz0,
-                                                        const size_t out_sz1,
-                                                        const size_t out_sz2,
-                                                        const size_t out_sz3,
-                                                        const size_t in_st0,
-                                                        const size_t in_st1,
-                                                        const size_t in_st2,
-                                                        const size_t in_st3,
-                                                        const size_t out_st0,
-                                                        const size_t out_st1,
-                                                        const size_t out_st2,
-                                                        const size_t out_st3,
-                                                        const size_t dim,
-                                                        int* indices)
+extern "C" __global__ void IndexSelectForward(const IO_TYPE* input,
+                                              const size_t* indices,
+                                              IO_TYPE* output,
+                                              size_t dim,
+                                              tensor_view_t<5> input_tv,
+                                              tensor_view_t<5> output_tv)
 {
-    size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-    size_t n[4];
-    size_t n012;
-    size_t n01;
-    n[3] = gid % out_sz3;
-    n012 = gid / out_sz3;
-    n[2] = n012 % out_sz2;
-    n01  = n012 / out_sz2;
-    n[1] = n01 % out_sz1;
-    n[0] = n01 / out_sz1;
+    IndexSelectForwardImpl(input, indices, output, dim, input_tv, output_tv);
+}
 
-    if(n[0] >= out_sz0)
+template <typename TIO>
+__device__ void IndexSelectContiguousForwardImpl(const IO_TYPE* input,
+                                                 const size_t* indices,
+                                                 IO_TYPE* output,
+                                                 size_t dim,
+                                                 tensor_view_t<5> input_tv,
+                                                 tensor_view_t<5> output_tv)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    tensor_layout_t<5> output_layout{output_tv, gid};
+
+    if(output_layout.layout[0] >= output_tv.size[0])
         return;
 
-    size_t output_idx = gid;
+    auto max_idx                    = input_tv.size[dim];
+    tensor_layout_t<5> input_layout = output_layout;
+    input_layout.layout[dim]        = indices[output_layout.layout[dim]];
 
-    n[dim] = indices[n[dim]];
-
-    size_t input_idx = n[0] * in_st0 + n[1] * in_st1 + n[2] * in_st2 + n[3] * in_st3;
-
-    y[output_idx] = x[input_idx];
+    if(input_layout.layout[dim] < max_idx)
+    {
+        output[gid] = input[input_tv.get_tensor_view_idx(input_layout)];
+    }
+    else
+    {
+        output[gid] = 0;
+    }
 }
 
-extern "C" __global__ void IndexSelectBackward(FLOAT* inGrad,
-                                               FLOAT* outGrad,
-                                               const size_t inGrad_sz0,
-                                                const size_t inGrad_sz1,
-                                                const size_t inGrad_sz2,
-                                                const size_t inGrad_sz3,
-                                                const size_t outGrad_sz0,
-                                                const size_t outGrad_sz1,
-                                                const size_t outGrad_sz2,
-                                                const size_t outGrad_sz3,
-                                                const size_t inGrad_st0,
-                                                const size_t inGrad_st1,
-                                                const size_t inGrad_st2,
-                                                const size_t inGrad_st3,
-                                                const size_t outGrad_st0,
-                                                const size_t outGrad_st1,
-                                                const size_t outGrad_st2,
-                                                const size_t outGrad_st3,
-                                                const size_t dim,
-                                                size_t N,
-                                                size_t st,
-                                                size_t iK,
-                                                size_t oK,
-                                               int* indices)
+extern "C" __global__ void IndexSelectContiguousForward(const IO_TYPE* input,
+                                                        const size_t* indices,
+                                                        IO_TYPE* output,
+                                                        size_t dim,
+                                                        tensor_view_t<5> input_tv,
+                                                        tensor_view_t<5> output_tv)
 {
-    size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    IndexSelectContiguousForwardImpl(input, indices, output, dim, input_tv, output_tv);
+}
+
+template <typename TIO>
+__device__ void IndexSelectBackwardImpl(const TIO* outGrad,
+                                        const size_t* indices,
+                                        TIO* inGrad,
+                                        size_t dim,
+                                        tensor_view_t<5> outGrad_tv,
+                                        tensor_view_t<5> inGrad_tv,
+                                        size_t N,
+                                        size_t st,
+                                        size_t iK,
+                                        size_t oK)
+{
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
         return;
-
     size_t output_grad_base_idx = (gid / st) * st * oK + gid % st;
-    size_t n[4], n012, n01;
-    n[3] = output_grad_base_idx % outGrad_sz3;
-    n012 = output_grad_base_idx / outGrad_sz3;
-    n[2] = n012 % outGrad_sz2;
-    n01  = n012 / outGrad_sz2;
-    n[1] = n01 % outGrad_sz1;
-    n[0] = n01 / outGrad_sz1;
+    tensor_layout_t<5> outGrad_layout{outGrad_tv, output_grad_base_idx};
 
-    for(int i = 0; i < oK; i++)
+    for(size_t i = 0; i < oK; i++)
     {
-        n[dim]     = i;
-        size_t idx = indices[i];
-        size_t output_grad_idx =
-            n[0] * outGrad_st0 + n[1] * outGrad_st1 + n[2] * outGrad_st2 + n[3] * outGrad_st3;
-        n[dim] = idx;
-        size_t input_grad_idx =
-            n[0] * inGrad_st0 + n[1] * inGrad_st1 + n[2] * inGrad_st2 + n[3] * inGrad_st3;
+        outGrad_layout.layout[dim] = i;
+        size_t idx                 = indices[i];
+        if(idx >= iK)
+            continue;
+        size_t output_grad_idx     = outGrad_tv.get_tensor_view_idx(outGrad_layout);
+        outGrad_layout.layout[dim] = idx;
+        size_t input_grad_idx      = inGrad_tv.get_tensor_view_idx(outGrad_layout);
 
-        inGrad[input_grad_idx] = inGrad[input_grad_idx] + outGrad[output_grad_idx];
+        TIO input_grad_v       = inGrad[input_grad_idx];
+        TIO output_grad_v      = outGrad[output_grad_idx];
+        inGrad[input_grad_idx] = input_grad_v + output_grad_v;
     }
+}
+
+extern "C" __global__ void IndexSelectBackward(const IO_TYPE* outGrad,
+                                               const size_t* indices,
+                                               IO_TYPE* inGrad,
+                                               size_t dim,
+                                               tensor_view_t<5> outGrad_tv,
+                                               tensor_view_t<5> inGrad_tv,
+                                               size_t N,
+                                               size_t st,
+                                               size_t iK,
+                                               size_t oK)
+{
+    IndexSelectBackwardImpl(outGrad, indices, inGrad, dim, outGrad_tv, inGrad_tv, N, st, iK, oK);
 }

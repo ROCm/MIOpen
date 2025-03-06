@@ -27,11 +27,9 @@
 #pragma once
 
 #include <miopen/problem_description_base.hpp>
-#include <miopen/activ.hpp>
 #include <miopen/tensor.hpp>
 
 #include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -39,45 +37,112 @@ struct NetworkConfig;
 
 namespace indexselect {
 
-struct ProblemDescription : ProblemDescriptionBase
+struct FwdProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& xDesc_,
-                       const TensorDescriptor& indicesDesc_,
-                       const TensorDescriptor& yDesc_,
-                       const size_t dim_,
-                       const bool isForw_)
-        : xDesc(xDesc_), indicesDesc(indicesDesc_), yDesc(yDesc_), dim(dim_), isForw(isForw_)
+    FwdProblemDescription(const TensorDescriptor& inputDesc_,
+                          const TensorDescriptor& indicesDesc_,
+                          const TensorDescriptor& outputDesc_,
+                          const size_t dim_)
+        : inputDesc(inputDesc_), indicesDesc(indicesDesc_), outputDesc(outputDesc_), dim(dim_)
     {
-        const auto dtype = yDesc.GetType();
-        if(xDesc.GetType() != dtype)
+        if(inputDesc.GetType() != outputDesc.GetType())
         {
-            MIOPEN_THROW(miopenStatusBadParm, "Outer: Tensor types do not match.");
+            MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+        }
+
+        if(inputDesc.GetNumDims() != outputDesc.GetNumDims())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+        }
+
+        if(indicesDesc.GetNumDims() != 1)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Indices tensor must be 1D.");
+        }
+
+        if(outputDesc.GetLengths()[dim] != indicesDesc.GetLengths()[0])
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Output tensor size of dim does not match indices tensor size.");
+        }
+
+        if(indicesDesc.GetType() != miopenInt64)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Indices tensor must be of type miopenInt64.");
         }
     }
 
-    const TensorDescriptor& GetXDesc() const { return xDesc; }
-    const TensorDescriptor& GetYDesc() const { return yDesc; }
+    const TensorDescriptor& GetInputDesc() const { return inputDesc; }
+    const TensorDescriptor& GetOutputDesc() const { return outputDesc; }
     const TensorDescriptor& GetIndices() const { return indicesDesc; }
     size_t GetDim() const { return dim; }
 
-    bool IsAllPacked() const
+    bool IsAllContiguous() const
     {
-        if(!xDesc.IsPacked())
-            return false;
-        if(!yDesc.IsPacked())
-            return false;
-        return true;
+        return inputDesc.IsContiguous() && outputDesc.IsContiguous() && indicesDesc.IsContiguous();
     }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    TensorDescriptor xDesc;
+    TensorDescriptor inputDesc;
     TensorDescriptor indicesDesc;
-    TensorDescriptor yDesc;
+    TensorDescriptor outputDesc;
     size_t dim;
-    bool isForw;
+};
+
+struct BwdProblemDescription : ProblemDescriptionBase
+{
+    BwdProblemDescription(const TensorDescriptor& inputGradDesc_,
+                          const TensorDescriptor& indicesDesc_,
+                          const TensorDescriptor& outputGradDesc_,
+                          const size_t dim_)
+        : inputGradDesc(inputGradDesc_),
+          indicesDesc(indicesDesc_),
+          outputGradDesc(outputGradDesc_),
+          dim(dim_)
+    {
+        if(inputGradDesc.GetType() != outputGradDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
+        }
+
+        if(inputGradDesc.GetNumDims() != indicesDesc.GetNumDims())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
+        }
+
+        if(indicesDesc.GetNumDims() != 1)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Indices tensor must be 1D.");
+        }
+
+        if(outputGradDesc.GetLengths()[dim] != indicesDesc.GetLengths()[0])
+        {
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "Output tensor size of dim does not match indices tensor size.");
+        }
+
+        if(indicesDesc.GetType() != miopenInt64)
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Indices tensor must be of type miopenInt64.");
+        }
+    }
+
+    const TensorDescriptor& GetInputGradDesc() const { return inputGradDesc; }
+    const TensorDescriptor& GetOutputGradDesc() const { return outputGradDesc; }
+    const TensorDescriptor& GetIndices() const { return indicesDesc; }
+    size_t GetDim() const { return dim; }
+
+    NetworkConfig MakeNetworkConfig() const override;
+
+private:
+    TensorDescriptor inputGradDesc;
+    TensorDescriptor indicesDesc;
+    TensorDescriptor outputGradDesc;
+    size_t dim;
 };
 
 } // namespace indexselect
+
 } // namespace miopen

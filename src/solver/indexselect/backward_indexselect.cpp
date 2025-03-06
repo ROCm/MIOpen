@@ -24,15 +24,13 @@
  *
  *******************************************************************************/
 
-#include <miopen/indexselect/solvers.hpp>
-
-#include <miopen/indexselect/invoke_params.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/indexselect.hpp>
+#include <miopen/indexselect/invoke_params.hpp>
+#include <miopen/indexselect/solvers.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/target_properties.hpp>
-
-#include <iostream>
+#include <miopen/tensor_view_utils.hpp>
 
 namespace miopen {
 
@@ -40,35 +38,31 @@ namespace solver {
 
 namespace indexselect {
 
-static bool
-IsImprovementOverROCm([[maybe_unused]] const miopen::indexselect::ProblemDescription& problem)
+static bool IsImprovementOverROCm(const miopen::indexselect::BwdProblemDescription& problem)
 {
     return true;
 }
 
 bool IndexSelectBackward::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::indexselect::ProblemDescription& problem) const
+    const ExecutionContext& context,
+    const miopen::indexselect::BwdProblemDescription& problem) const
 {
-    if(!problem.IsAllPacked())
-        return false;
     if(!IsImprovementOverROCm(problem))
         return false;
     return true;
 }
 
 ConvSolution
-IndexSelectBackward::GetSolution([[maybe_unused]] const ExecutionContext& context,
-                                 const miopen::indexselect::ProblemDescription& problem) const
+IndexSelectBackward::GetSolution(const ExecutionContext& /*context*/,
+                                 const miopen::indexselect::BwdProblemDescription& problem) const
 {
     puts("st GetSolution in IndexSelectBackward");
     static const size_t LOCAL_SIZE = 256;
     auto result                    = ConvSolution{miopenStatusSuccess};
 
-    auto dtype = problem.GetXDesc().GetType();
-    auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetYDesc().GetLengths();
-    auto dim   = problem.GetDim();
+    auto dtype    = problem.GetInputGradDesc().GetType();
+    auto io_dtype = miopen::GetDataType(dtype);
+    auto dim      = problem.GetDim();
 
     size_t xlocalsize = LOCAL_SIZE;
     size_t ylocalsize = 1;
@@ -93,12 +87,12 @@ IndexSelectBackward::GetSolution([[maybe_unused]] const ExecutionContext& contex
     kernel.kernel_file = "MIOpenIndexSelect.cpp";
     kernel.kernel_name = "IndexSelectBackward";
 
-    const auto build_params = KernelBuildParameters{
-        {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
-        {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-        {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
-        {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-    };
+    const auto build_params =
+        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
+                              {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
+                              {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
+                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
+                              {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -115,7 +109,7 @@ IndexSelectBackward::GetSolution([[maybe_unused]] const ExecutionContext& contex
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::indexselect::InvokeParamsBackward>();
+            decltype(auto) params = raw_params.CastTo<miopen::indexselect::BwdInvokeParams>();
 
             auto xGradlens    = params.xGradDesc.GetLengths();
             auto yGradlens    = params.yGradDesc.GetLengths();
@@ -138,41 +132,25 @@ IndexSelectBackward::GetSolution([[maybe_unused]] const ExecutionContext& contex
                 }
             }
 
-            kernel(params.xGrad,
-                    params.yGrad,
-                    xGradlens[0],
-                    xGradlens[1],
-                    xGradlens[2],
-                    xGradlens[3],
-                    yGradlens[0],
-                    yGradlens[1],
-                    yGradlens[2],
-                    yGradlens[3],
-                    xGradStrides[0],
-                    xGradStrides[1],
-                    xGradStrides[2],
-                    xGradStrides[3],
-                    yGradStrides[0],
-                    yGradStrides[1],
-                    yGradStrides[2],
-                    yGradStrides[3],
-                    dim,
-                    N,
-                    st,
-                    xGradlens[dim],
-                    yGradlens[dim],
-                    params.indices);
+            tensor_view_t<5> outGrad_tv =
+                get_inner_expanded_tv<5>(miopen::deref(params.outputGradDesc));
+            tensor_view_t<5> inGrad_tv =
+                get_inner_expanded_tv<5>(miopen::deref(params.inputGradDesc));
+
+            kernel(params.outputGrad,
+                   params.indices,
+                   params.inputGrad,
+                   dim,
+                   outGrad_tv,
+                   inGrad_tv,
+                   N,
+                   st,
+                   iK,
+                   oK);
         };
     };
 
     return result;
-}
-
-std::size_t IndexSelectBackward::GetWorkspaceSize(
-    [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::indexselect::ProblemDescription& problem) const
-{
-    return 0;
 }
 
 } // namespace indexselect

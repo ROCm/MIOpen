@@ -27,30 +27,41 @@
 #include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>
-#include <miopen/kernel_cache.hpp>
 #include <miopen/indexselect/invoke_params.hpp>
 #include <miopen/indexselect/solvers.hpp>
 #include <miopen/indexselect.hpp>
+#include <miopen/kernel_cache.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
 
+namespace indexselect {
+
 miopenStatus_t IndexSelectForward(Handle& handle,
-                                  const TensorDescriptor& xDesc,
-                                  ConstData_t x,
+                                  const TensorDescriptor& inputDesc,
+                                  ConstData_t input,
                                   const TensorDescriptor& indicesDesc,
                                   ConstData_t indices,
-                                  const TensorDescriptor& yDesc,
-                                  Data_t y,
+                                  const TensorDescriptor& outputDesc,
+                                  Data_t output,
                                   size_t dim)
 {
-    const auto problem = indexselect::ProblemDescription(xDesc, indicesDesc, yDesc, dim, true);
+    const auto problem =
+        indexselect::FwdProblemDescription(inputDesc, indicesDesc, outputDesc, dim);
 
-    const auto invoke_params =
-        indexselect::InvokeParamsForward{xDesc, x, indicesDesc, indices, yDesc, y, dim};
+    const auto invoke_params = [&]() {
+        auto tmp        = indexselect::FwdInvokeParams{};
+        tmp.inputDesc   = &inputDesc;
+        tmp.indicesDesc = &indicesDesc;
+        tmp.outputDesc  = &outputDesc;
+        tmp.input       = input;
+        tmp.indices     = indices;
+        tmp.output      = output;
+        tmp.dim         = dim;
+        return tmp;
+    }();
 
-    const auto algo = AlgorithmName{"IndexSelectForward"};
-
+    const auto algo    = AlgorithmName{"IndexSelectForward"};
     const auto solvers = solver::SolverContainer<solver::indexselect::IndexSelectForward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
@@ -59,19 +70,28 @@ miopenStatus_t IndexSelectForward(Handle& handle,
 }
 
 miopenStatus_t IndexSelectBackward(Handle& handle,
-                                   const TensorDescriptor& xGradDesc,
-                                   Data_t xGrad,
+                                   const TensorDescriptor& inputGradDesc,
+                                   Data_t inptuGrad,
                                    const TensorDescriptor& indicesDesc,
                                    ConstData_t indices,
-                                   const TensorDescriptor& yGradDesc,
-                                   ConstData_t yGrad,
+                                   const TensorDescriptor& outputGradDesc,
+                                   ConstData_t outputGrad,
                                    size_t dim)
 {
     const auto problem =
-        indexselect::ProblemDescription(xGradDesc, indicesDesc, yGradDesc, dim, false);
+        indexselect::BwdProblemDescription(inputGradDesc, indicesDesc, outputGradDesc, dim);
 
-    const auto invoke_params = indexselect::InvokeParamsBackward{
-        xGradDesc, xGrad, indicesDesc, indices, yGradDesc, yGrad, dim};
+    const auto invoke_params = [&]() {
+        auto tmp           = indexselect::BwdInvokeParams{};
+        tmp.inputGradDesc  = &inputGradDesc;
+        tmp.indicesDesc    = &indicesDesc;
+        tmp.outputGradDesc = &outputGradDesc;
+        tmp.inputGrad      = inptuGrad;
+        tmp.indices        = indices;
+        tmp.outputGrad     = outputGrad;
+        tmp.dim            = dim;
+        return tmp;
+    }();
 
     const auto algo    = AlgorithmName{"IndexSelectBackward"};
     const auto solvers = solver::SolverContainer<solver::indexselect::IndexSelectBackward>{};
@@ -80,5 +100,7 @@ miopenStatus_t IndexSelectBackward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+} // namespace indexselect
 
 } // namespace miopen

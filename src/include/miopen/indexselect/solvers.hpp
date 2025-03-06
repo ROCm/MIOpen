@@ -26,10 +26,8 @@
 
 #pragma once
 
-#include <miopen/solver.hpp>
 #include <miopen/indexselect/problem_description.hpp>
-
-#include <utility>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 
@@ -37,35 +35,42 @@ namespace solver {
 
 namespace indexselect {
 
-using IndexSelectSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::indexselect::ProblemDescription>;
+using IndexSelectForwardSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::indexselect::FwdProblemDescription>;
 
-struct IndexSelectForward final : IndexSelectSolver
+struct IndexSelectForward final : IndexSelectForwardSolverBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<IndexSelectForward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::indexselect::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::indexselect::ProblemDescription& problem) const override;
+                      const miopen::indexselect::FwdProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::indexselect::FwdProblemDescription& problem) const override;
+
     std::size_t
     GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::indexselect::ProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return true; }
+                     const miopen::indexselect::FwdProblemDescription& problem) const override;
 };
 
-struct IndexSelectBackward final : IndexSelectSolver
+using IndexSelectBackwardSolverBase =
+    NonTunableSolverBase<ExecutionContext, miopen::indexselect::BwdProblemDescription>;
+
+struct IndexSelectBackward final : IndexSelectBackwardSolverBase
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<IndexSelectBackward>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::indexselect::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::indexselect::ProblemDescription& problem) const override;
+                      const miopen::indexselect::BwdProblemDescription& problem) const override;
+
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::indexselect::BwdProblemDescription& problem) const override;
+
     std::size_t
     GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::indexselect::ProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return true; }
+                     const miopen::indexselect::BwdProblemDescription& problem) const override;
 };
 
 } // namespace indexselect

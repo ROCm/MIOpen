@@ -24,80 +24,55 @@
  *
  *******************************************************************************/
 
-#include <miopen/indexselect.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/indexselect.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
-static void LogCmdIndexSelect(const miopenTensorDescriptor_t Desc)
-{
-    if(miopen::IsLoggingCmd())
-    {
-        std::stringstream ss;
-        auto dtype = miopen::deref(Desc).GetType();
-        if(dtype == miopenHalf)
-        {
-            ss << "indexselectfp16";
-        }
-        else if(dtype == miopenFloat)
-        {
-            ss << "indexselectfp32";
-        }
-        else if(dtype == miopenBFloat16)
-        {
-            ss << "indexselectbfp16";
-        }
-        MIOPEN_LOG_DRIVER_CMD(ss.str());
-    }
-}
-
 extern "C" miopenStatus_t miopenIndexSelectForward(miopenHandle_t handle,
-                                                   const miopenTensorDescriptor_t xDesc,
-                                                   const void* x,
+                                                   const miopenTensorDescriptor_t inputDesc,
+                                                   const void* input,
                                                    const miopenTensorDescriptor_t indicesDesc,
                                                    const void* indices,
-                                                   const miopenTensorDescriptor_t yDesc,
-                                                   void* y,
+                                                   const miopenTensorDescriptor_t outputDesc,
+                                                   void* output,
                                                    size_t dim)
 {
-    MIOPEN_LOG_FUNCTION(handle, xDesc, x, indicesDesc, indices, yDesc, y);
-
-    LogCmdIndexSelect(xDesc);
+    MIOPEN_LOG_FUNCTION(handle, inputDesc, input, indicesDesc, indices, outputDesc, output);
 
     return miopen::try_([&] {
         miopen::IndexSelectForward(miopen::deref(handle),
-                                   miopen::deref(xDesc),
-                                   DataCast(x),
+                                   miopen::deref(inputDesc),
+                                   DataCast(input),
                                    miopen::deref(indicesDesc),
                                    DataCast(indices),
-                                   miopen::deref(yDesc),
-                                   DataCast(y),
+                                   miopen::deref(outputDesc),
+                                   DataCast(output),
                                    dim);
     });
 }
 
 extern "C" miopenStatus_t miopenIndexSelectBackward(miopenHandle_t handle,
-                                                    const miopenTensorDescriptor_t xGradDesc,
-                                                    void* xGrad,
+                                                    const miopenTensorDescriptor_t inputGradDesc,
+                                                    void* inputGrad,
                                                     const miopenTensorDescriptor_t indicesDesc,
                                                     const void* indices,
-                                                    const miopenTensorDescriptor_t yGradDesc,
-                                                    const void* yGrad,
+                                                    const miopenTensorDescriptor_t outputGradDesc,
+                                                    const void* outputGrad,
                                                     size_t dim)
 {
-    MIOPEN_LOG_FUNCTION(handle, xGradDesc, xGrad, indicesDesc, indices, yGradDesc, yGrad);
-
-    LogCmdIndexSelect(xGradDesc);
+    MIOPEN_LOG_FUNCTION(
+        handle, inputGradDesc, inputGrad, indicesDesc, indices, outputGradDesc, outputGrad);
 
     return miopen::try_([&] {
         miopen::IndexSelectBackward(miopen::deref(handle),
-                                    miopen::deref(xGradDesc),
-                                    DataCast(xGrad),
+                                    miopen::deref(inputGradDesc),
+                                    DataCast(inputGrad),
                                     miopen::deref(indicesDesc),
                                     DataCast(indices),
-                                    miopen::deref(yGradDesc),
-                                    DataCast(yGrad),
+                                    miopen::deref(outputGradDesc),
+                                    DataCast(outputGrad),
                                     dim);
     });
 }

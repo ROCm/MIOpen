@@ -24,15 +24,15 @@
  *
  *******************************************************************************/
 
-#include <miopen/indexselect/solvers.hpp>
-
-#include <miopen/indexselect/invoke_params.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/indexselect.hpp>
+#include <miopen/indexselect/invoke_params.hpp>
+#include <miopen/indexselect/solvers.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/miopen.h>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
-
-#include <iostream>
+#include <miopen/tensor_view_utils.hpp>
 
 namespace miopen {
 
@@ -41,55 +41,49 @@ namespace solver {
 namespace indexselect {
 
 static bool
-IsImprovementOverROCm([[maybe_unused]] const miopen::indexselect::ProblemDescription& problem)
+IsImprovementOverROCm([[maybe_unused]] const miopen::indexselect::FwdProblemDescription& problem)
 {
     return true;
 }
 
 bool IndexSelectForward::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::indexselect::ProblemDescription& problem) const
+    const ExecutionContext& /*context*/,
+    const miopen::indexselect::FwdProblemDescription& problem) const
 {
-    if(!problem.IsAllPacked())
+    if(problem.GetInputDesc().GetType() != miopenFloat &&
+       problem.GetInputDesc().GetType() != miopenHalf &&
+       problem.GetInputDesc().GetType() != miopenBFloat16)
         return false;
+
     if(!IsImprovementOverROCm(problem))
         return false;
     return true;
 }
 
 ConvSolution
-IndexSelectForward::GetSolution([[maybe_unused]] const ExecutionContext& context,
-                                const miopen::indexselect::ProblemDescription& problem) const
+IndexSelectForward::GetSolution(const ExecutionContext& /*context*/,
+                                const miopen::indexselect::FwdProblemDescription& problem) const
 {
     static const size_t LOCAL_SIZE = 256;
     auto result                    = ConvSolution{miopenStatusSuccess};
 
-    auto dtype = problem.GetXDesc().GetType();
-    auto xdims = problem.GetXDesc().GetLengths();
-    auto ydims = problem.GetYDesc().GetLengths();
-    auto dim   = problem.GetDim();
+    auto dtype    = problem.GetInputDesc().GetType();
+    auto io_dtype = miopen::GetDataType(dtype);
+
+    auto output_numel = problem.GetOutputDesc().GetElementSize();
 
     size_t xlocalsize = LOCAL_SIZE;
     size_t ylocalsize = 1;
     size_t zlocalsize = 1;
-
-    size_t output_size = 1;
-    for(size_t i = 0; i < ydims.size(); i++)
-    {
-        output_size *= ydims[i];
-    }
-
-    size_t xgridsize = output_size;
-    if(xgridsize % LOCAL_SIZE != 0)
-    {
-        xgridsize = (xgridsize / LOCAL_SIZE + 1) * LOCAL_SIZE;
-    }
-    size_t ygridsize = 1;
-    size_t zgridsize = 1;
+    size_t xgridsize  = AlignUp(output_numel, xlocalsize);
+    size_t ygridsize  = 1;
+    size_t zgridsize  = 1;
 
     auto kernel        = KernelInfo();
     kernel.kernel_file = "MIOpenIndexSelect.cpp";
-    if(problem.GetXDesc().IsContiguous())
+
+    auto isAllCont = problem.IsAllContiguous();
+    if(isAllCont)
     {
         kernel.kernel_name = "IndexSelectForwardContiguous";
     }
@@ -98,12 +92,12 @@ IndexSelectForward::GetSolution([[maybe_unused]] const ExecutionContext& context
         kernel.kernel_name = "IndexSelectForward";
     }
 
-    const auto build_params = KernelBuildParameters{
-        {"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
-        {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-        {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
-        {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
-    };
+    const auto build_params =
+        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
+                              {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
+                              {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
+                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
+                              {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -120,44 +114,15 @@ IndexSelectForward::GetSolution([[maybe_unused]] const ExecutionContext& context
     result.invoker_factory = [](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
-            decltype(auto) params = raw_params.CastTo<miopen::indexselect::InvokeParamsForward>();
+            decltype(auto) params = raw_params.CastTo<miopen::indexselect::FwdInvokeParams>();
 
-            auto xlens    = params.xDesc.GetLengths();
-            auto ylens    = params.yDesc.GetLengths();
-            auto xstrides = params.xDesc.GetStrides();
-            auto ystrides = params.yDesc.GetStrides();
-            auto dim      = params.dim;
+            tensor_view_t<5> input_tv  = get_inner_expanded_tv<5>(miopen::deref(params.inputDesc));
+            tensor_view_t<5> output_tv = get_inner_expanded_tv<5>(miopen::deref(params.outputDesc));
 
-            kernel(params.x,
-                   params.y,
-                   xlens[0],
-                   xlens[1],
-                   xlens[2],
-                   xlens[3],
-                   ylens[0],
-                   ylens[1],
-                   ylens[2],
-                   ylens[3],
-                   xstrides[0],
-                   xstrides[1],
-                   xstrides[2],
-                   xstrides[3],
-                   ystrides[0],
-                   ystrides[1],
-                   ystrides[2],
-                   ystrides[3],
-                   dim,
-                   params.indices);
+            kernel(params.input, params.indices, params.output, params.dim, input_tv, output_tv);
         };
     };
     return result;
-}
-
-std::size_t IndexSelectForward::GetWorkspaceSize(
-    [[maybe_unused]] const ExecutionContext& context,
-    [[maybe_unused]] const miopen::indexselect::ProblemDescription& problem) const
-{
-    return 0;
 }
 
 } // namespace indexselect

@@ -33,67 +33,42 @@ namespace miopen {
 
 namespace indexselect {
 
-struct InvokeParamsForward : public miopen::InvokeParams
+struct FwdInvokeParams : public miopen::InvokeParams
 {
-    InvokeParamsForward(const TensorDescriptor& xDesc_,
-                        ConstData_t x_,
-                        const TensorDescriptor& indicesDesc_,
-                        ConstData_t indices_,
-                        const TensorDescriptor& yDesc_,
-                        Data_t y_,
-                        size_t dim_)
-        : xDesc(xDesc_),
-          x(x_),
-          indicesDesc(indicesDesc_),
-          indices(indices_),
-          yDesc(yDesc_),
-          y(y_),
-          dim(dim_)
-    {
-    }
+    FwdInvokeParams() = default;
 
-    TensorDescriptor xDesc{};
-    ConstData_t x = nullptr;
-    TensorDescriptor indicesDesc{};
+    const TensorDescriptor* inputDesc   = nullptr;
+    const TensorDescriptor* indicesDesc = nullptr;
+    const TensorDescriptor* outputDesc  = nullptr;
+
+    ConstData_t input   = nullptr;
     ConstData_t indices = nullptr;
-    TensorDescriptor yDesc{};
-    Data_t y   = nullptr;
+    Data_t output       = nullptr;
+
     size_t dim = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 
-struct InvokeParamsBackward : public miopen::InvokeParams
+struct BwdInvokeParams : public miopen::InvokeParams
 {
-    InvokeParamsBackward(const TensorDescriptor& xGradDesc_,
-                         Data_t xGrad_,
-                         const TensorDescriptor& indicesDesc_,
-                         ConstData_t indices_,
-                         const TensorDescriptor& yGradDesc_,
-                         ConstData_t yGrad_,
-                         size_t dim_)
-        : xGradDesc(xGradDesc_),
-          xGrad(xGrad_),
-          indicesDesc(indicesDesc_),
-          indices(indices_),
-          yGradDesc(yGradDesc_),
-          yGrad(yGrad_),
-          dim(dim_)
-    {
-    }
+    BwdInvokeParams() = default;
 
-    TensorDescriptor xGradDesc{};
-    Data_t xGrad = nullptr;
-    TensorDescriptor indicesDesc{};
-    ConstData_t indices = nullptr;
-    TensorDescriptor yGradDesc{};
-    ConstData_t yGrad = nullptr;
-    size_t dim        = 0;
+    const TensorDescriptor* inputGradDesc  = nullptr;
+    const TensorDescriptor* indicesDesc    = nullptr;
+    const TensorDescriptor* outputGradDesc = nullptr;
+
+    Data_t inputGrad       = nullptr;
+    ConstData_t indices    = nullptr;
+    ConstData_t outputGrad = nullptr;
+
+    size_t dim = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 
 } // namespace indexselect
+
 } // namespace miopen

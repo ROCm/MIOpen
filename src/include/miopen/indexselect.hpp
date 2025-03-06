@@ -23,8 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_INDEXSELECT_HPP_
-#define MIOPEN_INDEXSELECT_HPP_
+
+#pragma once
 
 #include <miopen/common.hpp>
 
@@ -33,23 +33,26 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+namespace indexselect {
+
 MIOPEN_INTERNALS_EXPORT miopenStatus_t IndexSelectForward(Handle& handle,
-                                                          const TensorDescriptor& xDesc,
-                                                          ConstData_t x,
+                                                          const TensorDescriptor& inputDesc,
+                                                          ConstData_t input,
                                                           const TensorDescriptor& indicesDesc,
                                                           ConstData_t indices,
-                                                          const TensorDescriptor& yDesc,
-                                                          Data_t y,
+                                                          const TensorDescriptor& outputDesc,
+                                                          Data_t output,
                                                           size_t dim);
 
 MIOPEN_INTERNALS_EXPORT miopenStatus_t IndexSelectBackward(Handle& handle,
-                                                           const TensorDescriptor& xGradDesc,
-                                                           Data_t xGrad,
+                                                           const TensorDescriptor& inputGradDesc,
+                                                           Data_t inputGrad,
                                                            const TensorDescriptor& indicesDesc,
                                                            ConstData_t indices,
-                                                           const TensorDescriptor& yGradDesc,
-                                                           ConstData_t yGrad,
+                                                           const TensorDescriptor& outputGradDesc,
+                                                           ConstData_t outputGrad,
                                                            size_t dim);
 
+} // namespace indexselect
+
 } // namespace miopen
-#endif // _MIOPEN_INDEXSELECT_HPP_
