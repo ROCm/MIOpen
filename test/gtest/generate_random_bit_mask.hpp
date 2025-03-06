@@ -67,7 +67,7 @@ struct GenerateRandomBitMaskTestCase
     }
 };
 
-inline std::vector<GenerateRandomBitMaskTestCase> GBMTestConfigs()
+inline std::vector<GenerateRandomBitMaskTestCase> GRBMTestConfigs()
 {
     return {
         GenerateRandomBitMaskTestCase({400}, 0), // drop nothing
@@ -79,7 +79,7 @@ inline std::vector<GenerateRandomBitMaskTestCase> GBMTestConfigs()
     };
 }
 
-struct GBMTest : public ::testing::TestWithParam<GenerateRandomBitMaskTestCase>
+struct GenerateRandomBitMaskTest : public ::testing::TestWithParam<GenerateRandomBitMaskTestCase>
 {
 protected:
     void SetUp() override

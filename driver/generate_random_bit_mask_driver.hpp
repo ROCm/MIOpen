@@ -74,8 +74,6 @@ public:
 private:
     InputFlags inflags;
 
-    int forw;
-
     std::vector<int> input_shape;
 
     std::unique_ptr<GPUMem> pstate_dev;

@@ -26,12 +26,14 @@
 
 #include "generate_random_bit_mask.hpp"
 
-using GPU_GenerateRandomBitMask_fwd = GBMTest;
+using GPU_GenerateRandomBitMask_fwd_I8 = GenerateRandomBitMaskTest;
 
-TEST_P(GPU_GenerateRandomBitMask_fwd, MedianTestFwd)
+TEST_P(GPU_GenerateRandomBitMask_fwd_I8, Test)
 {
     RunTest();
     Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_GenerateRandomBitMask_fwd, testing::ValuesIn(GBMTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_GenerateRandomBitMask_fwd_I8,
+                         testing::ValuesIn(GRBMTestConfigs()));
