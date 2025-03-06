@@ -57,7 +57,7 @@ bool MaskedFillBackward::IsImprovementOverROCm(
     }
 
     auto output_grad_numel = problem.GetOutputGradDesc().GetElementSize();
-    if(output_grad_numel > 2000)
+    if(output_grad_numel > 65536)
     {
         return false;
     }

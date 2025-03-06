@@ -130,7 +130,7 @@ MIOpenBatchNormActivFwdTrainSpatial(float INHW,
     barrier(CLK_LOCAL_MEM_FENCE);
 
 #if !MIOPEN_USE_AMDGCN
-    local _ lcl_data_x[MIO_BN_LDS_SIZE];
+    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
     local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2(&mean, &variance, (_FLOAT_ACCUM)INHW, lcl_data_x, lcl_data_y, lid);
 #else
