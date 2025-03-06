@@ -390,13 +390,17 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
     if(bn_op != nullptr)
     {
         str += BnormArgsForMIOpenDriver(&bn_op->input_desc,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr,
+                                        nullptr,
                                         bn_op->mode,
                                         nullptr,
                                         nullptr,
                                         nullptr,
                                         nullptr,
                                         miopen::debug::BatchNormDirection_t::ForwardInference,
-                                        false);
+                                        false); // having false allows safe handling of nullptrs
     }
     else
     {
@@ -822,7 +826,8 @@ protected:
              const FusionFindParameters&,
              const std::optional<FindOptions>& options) const override
     {
-        return solvers.SearchForAllSolutions(dynamic_cast<const FusionContext&>(ctx),
+        const auto fusion_ctx = FusionContext(ctx);
+        return solvers.SearchForAllSolutions(fusion_ctx,
                                              problem,
                                              miopen::GetDb(ctx),
                                              invoke_ctx,
@@ -865,9 +870,8 @@ FindFusion(const ExecutionContext& ctx,
             // fusion_ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(fusion_ctx);
 
             // We need buffers for find, thus we lazily get them, possibly allocating.
-            auto fusion_ctx = FusionContext(ctx.GetStream());
             return FindCore(invoke_params(),
-                            fusion_ctx,
+                            ctx,
                             fusion_problem,
                             FusionFindParameters{},
                             GetFusionSolverFinders(),
@@ -876,17 +880,184 @@ FindFusion(const ExecutionContext& ctx,
         "fusion");
 }
 
+namespace {
+
+// Copy from convolutionocl.cpp
+struct SolutionTimeComparator
+{
+    inline bool operator()(const miopenConvSolution_t& lhs, const miopenConvSolution_t& rhs) const
+    {
+        // Negative values are very coarse estimations.
+        // The more modulus, the "worse" (slower) is solution.
+        if(lhs.time < 0 && rhs.time < 0)
+            return !(lhs.time < rhs.time);
+        // Positive values are always "better" than negative (coarse) estimations.
+        if(lhs.time > 0 && rhs.time < 0)
+            return true;
+        if(lhs.time < 0 && rhs.time > 0)
+            return false;
+        // Both values are positive. The less is the better.
+        return (lhs.time < rhs.time);
+    }
+};
+
+std::ostream& operator<<(std::ostream& os, const miopenConvSolution_t& s)
+{
+    return os << "id: " << s.solution_id                              //
+              << ", algo: " << s.algorithm                            //
+              << ", time: " << s.time << ", ws: " << s.workspace_size //
+              << ", name: " << miopen::solver::Id(s.solution_id).ToString();
+}
+
+// Modified copy from convolutionocl.cpp
+std::vector<miopenConvSolution_t> GetSolutions(const FusionContext& ctx,
+                                               const FusionDescription& problem,
+                                               const size_t maxSolutionCount)
+{
+    const FindDbRecord fdb_record{ctx.GetStream(), problem, "fusion"};
+
+    if(fdb_record.empty())
+        return {};
+
+    auto interim = std::vector<miopenConvSolution_t>{};
+    interim.reserve(20); // Heuristic for speed.
+
+    for(const auto& pair : fdb_record)
+    {
+        const auto solver_id = solver::Id{pair.first};
+
+        // Wrong IDs can't be used to call IsApplicable(), so let's
+        // ignore obsolete or invalid IDs read from find-db first.
+        if(!solver_id.IsValid())
+        {
+            // Do not disturb users with warnings unless detailed log is enabled.
+            MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.first);
+            continue;
+        }
+
+        // algorithm doesn't matter for our purpose here, so we stub it out
+        interim.emplace_back(miopenConvSolution_t{pair.second.time,
+                                                  pair.second.workspace,
+                                                  solver_id.Value(),
+                                                  miopenConvolutionAlgoDirect});
+    }
+
+    std::sort(begin(interim), end(interim), SolutionTimeComparator{});
+    auto out = std::vector<miopenConvSolution_t>{};
+    out.reserve(maxSolutionCount);
+    auto n_copied = 0;
+    for(const auto& s : interim)
+    {
+        const auto solver_id = solver::Id{s.solution_id};
+        bool is_applicable   = false;
+
+        GetAllFusionSolvers().FindById(
+            solver_id, [&](auto solver) { is_applicable = solver.IsApplicable(ctx, problem); });
+
+        if(!is_applicable)
+            continue;
+        out.push_back(s);
+        if(++n_copied >= maxSolutionCount)
+            break;
+    }
+
+    for(const auto& s : out)
+        MIOPEN_LOG_I2(s);
+
+    return out;
+}
+
+} // namespace
+
 miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
 {
     std::vector<Allocator::ManageDataPtr> invoke_bufs;
     miopen::OperatorArgs params;
 
-    const auto find_results = Find(handle, [&]() {
-        return AllocateBuffersAndMakeFusionInvokeParams(
-            handle, FusionDescription{this}, invoke_bufs, params, *this);
-    });
+    const auto& fusion_problem = FusionDescription{this};
+    std::vector<Solution> find_results;
 
-    const auto network_config = FusionDescription{this}.MakeNetworkConfig();
+    const auto network_config = fusion_problem.MakeNetworkConfig();
+    auto invoker = handle.GetInvoker(network_config, std::nullopt, AlgorithmName{"fusion"});
+
+    if(invoker)
+    {
+        invokers.push_back(*invoker);
+        return miopenStatusSuccess;
+    }
+
+    {
+        FindMode findMode(solver::Primitive::Fusion);
+        auto sol = boost::optional<miopenConvSolution_t>{};
+
+        if(findMode.IsFast(fusion_problem) || findMode.IsHybrid(fusion_problem))
+        {
+            const auto ctx      = FusionContext{handle};
+            auto sols           = GetSolutions(ctx, fusion_problem, 1);
+            const auto fallback = sols.empty();
+
+            if(fallback)
+            {
+                auto fallback_failed = true;
+                bool found           = false;
+
+                GetAllFusionSolvers().Foreach([&](auto solver) {
+                    if(found || !solver.IsApplicable(ctx, fusion_problem))
+                        return;
+                    const auto id  = solver::Id(solver.SolverDbId());
+                    const auto wti = solver.GetWti(ctx, fusion_problem);
+                    // Assume WTI == 1.0 (100%) is 10 ms.
+                    // Return negative values as is, avoid DIV/0.
+                    const auto time = wti <= 0.0f ? wti : (10.f / wti);
+                    sols.push_back({time, 0, id.Value(), miopenConvolutionAlgoDirect});
+                    fallback_failed = false;
+                });
+
+                if(fallback_failed)
+                {
+                    MIOPEN_LOG_I("No supported fusion solvers found");
+                    return miopenStatusUnsupportedOp;
+                }
+            }
+
+            // override the normal find with immed mode with env var
+            if(!sols.empty() && (!(findMode.IsHybrid(fusion_problem) && fallback)))
+            // || env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
+            {
+                std::sort(sols.begin(), sols.end(), SolutionTimeComparator());
+                sol = sols.front();
+            }
+            // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
+        }
+
+        if(sol.has_value())
+        {
+            // We need to create an invoker
+
+            const auto id = solver::Id{sol->solution_id};
+
+            GetAllFusionSolvers().FindById(id, [&](auto solver) {
+                const auto ctx      = FusionContext{handle};
+                auto db             = GetDb(ctx);
+                const auto solution = solver::FindSolution(
+                    solver, ctx, fusion_problem, db, {}); // auto tune is not expected here
+                auto invoker =
+                    handle.PrepareInvoker(*solution.invoker_factory, solution.construction_params);
+                // We register the invoker below
+
+                auto ret = Solution{id, sol->time, solver.GetWorkspaceSize(ctx, fusion_problem)};
+                ret.SetInvoker(std::move(invoker));
+                find_results.push_back(std::move(ret));
+            });
+        }
+        else
+        {
+            find_results = Find(handle, [&]() {
+                return AllocateBuffersAndMakeFusionInvokeParams(
+                    handle, fusion_problem, invoke_bufs, params, *this);
+            });
+        }
+    }
 
     for(const auto& result : find_results)
     {
@@ -897,8 +1068,11 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
            algorithm != static_cast<miopenConvAlgorithm_t>(*conv_fwd_algo))
             continue;
 
-        const auto id      = result.GetSolver();
-        const auto invoker = handle.GetInvoker(network_config, id);
+        const auto id = result.GetSolver();
+        invoker       = result.GetInvoker();
+
+        if(!invoker)
+            invoker = handle.GetInvoker(network_config, id);
 
         if(!invoker)
         {
@@ -906,7 +1080,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
             continue;
         }
 
-        invokers.push_back(*invoker);
+        handle.RegisterInvoker(*invoker, network_config, id.ToString());
+        invokers.push_back(std::move(*invoker));
         MIOPEN_LOG_I2(miopen::ConvolutionAlgoToString(algorithm));
     }
 
@@ -916,6 +1091,8 @@ miopenStatus_t FusionPlanDescriptor::Compile(Handle& handle)
         return miopenStatusUnsupportedOp;
     }
 
+    handle.SetAsFound1_0(
+        network_config, AlgorithmName{"fusion"}, find_results.front().GetSolver().ToString());
     return miopenStatusSuccess;
 }
 
@@ -924,7 +1101,10 @@ FusionPlanDescriptor::Find(Handle& handle,
                            const std::function<fusion::FusionInvokeParams()>& invoke_params,
                            const std::optional<FindOptions>& options) const
 {
-    return FindFusion(&handle, this, invoke_params, options);
+    auto ctx = ExecutionContext(&handle);
+    if(options)
+        ctx.do_search = options->exhaustive_search;
+    return FindFusion(ctx, this, invoke_params, options);
 }
 
 miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,

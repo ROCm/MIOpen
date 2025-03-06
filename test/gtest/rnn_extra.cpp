@@ -25,12 +25,8 @@
  *******************************************************************************/
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "../rnn_vanilla.hpp"
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace env = miopen::env;
 
@@ -45,14 +41,14 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class RNNExtraConfigWithFloat : public testing::TestWithParam<std::vector<std::string>>
+class GPU_RNNExtra_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
 void Run2dDriverFloat(void)
 {
 
-    std::vector<std::string> params = RNNExtraConfigWithFloat::GetParam();
+    std::vector<std::string> params = GPU_RNNExtra_FP32::GetParam();
 
     for(const auto& test_value : params)
     {
@@ -65,17 +61,17 @@ void Run2dDriverFloat(void)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<rnn_vanilla_driver>(ptrs.size(), ptrs.data());
+        test_drive<rnn_vanilla_driver>(ptrs.size(), ptrs.data(), "rnn_extra");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
 };
 
-std::vector<std::string> GetTestCases(void)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
     std::string commonFlags =
-        " --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
-        "--hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
+        precision + " --verbose --batch-size 32 --seq-len 3 --batch-seq 32 32 32 --vector-len 128 "
+                    "--hidden-size 128 --num-layers 1 --in-mode 0 --bias-mode 0";
     std::string dir0   = " -dir-mode 0";
     std::string dir1   = " -dir-mode 1";
     std::string rnn0   = " --rnn-mode 0";
@@ -123,17 +119,6 @@ std::vector<std::string> GetTestCases(void)
 } // namespace rnn_extra
 using namespace rnn_extra;
 
-TEST_P(RNNExtraConfigWithFloat, FloatTest_rnn_extra)
-{
-    if(!MIOPEN_TEST_ALL ||
-       (env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == "--float"))
-    {
-        Run2dDriverFloat();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
+TEST_P(GPU_RNNExtra_FP32, FloatTest_rnn_extra) { Run2dDriverFloat(); };
 
-INSTANTIATE_TEST_SUITE_P(ConvTrans, RNNExtraConfigWithFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_RNNExtra_FP32, testing::Values(GetTestCases("--float")));

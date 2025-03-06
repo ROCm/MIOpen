@@ -137,7 +137,7 @@ LayernormForward::GetSolution(const ExecutionContext& context,
                    params.rstd,
                    params.epsilon,
                    inner_size,
-                   static_cast<bool>(params.mode));
+                   static_cast<int32_t>(params.mode));
         };
     };
 

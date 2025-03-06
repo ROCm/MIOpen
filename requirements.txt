@@ -2,10 +2,10 @@ sqlite3@3.43.2 -DCMAKE_POSITION_INDEPENDENT_CODE=On
 boost@1.83 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build -DCMAKE_CXX_FLAGS=" -std=c++14 -Wno-enum-constexpr-conversion -Wno-deprecated-builtins -Wno-deprecated-declarations "
 facebook/zstd@v1.4.5 -X subdir -DCMAKE_DIR=build/cmake
 # ROCm/half@10abd99e7815f0ca5d892f58dd7d15a23b7cf92c --build
-ROCm/rocMLIR@rocm-5.5.0 -H sha256:a5f62769d28a73e60bc8d61022820f050e97c977c8f6f6275488db31512e1f42 -DBUILD_FAT_LIBROCKCOMPILER=1 -DCMAKE_IGNORE_PATH="/opt/conda/envs/py_3.8;/opt/conda/envs/py_3.9;/opt/conda/envs/py_3.10" -DCMAKE_IGNORE_PREFIX_PATH=/opt/conda
+ROCm/rocMLIR@rocm-5.5.0 -H sha256:a5f62769d28a73e60bc8d61022820f050e97c977c8f6f6275488db31512e1f42 -DBUILD_FAT_LIBROCKCOMPILER=1 -DCMAKE_IGNORE_PATH="/opt/conda/envs/py_3.8;/opt/conda/envs/py_3.9;/opt/conda/envs/py_3.10" -DCMAKE_IGNORE_PREFIX_PATH=/opt/conda -DCMAKE_CXX_FLAGS=" -Wno-deprecated-declarations "
 nlohmann/json@v3.11.2 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
 ROCm/FunctionalPlus@v0.2.18-p0
 ROCm/eigen@3.4.0
 ROCm/frugally-deep@9683d557eb672ee2304f80f6682c51242d748a50
-ROCm/composable_kernel@d39c3f5d5e95f3e2fd85b730b9f25fe91fdb7c85 -DCMAKE_BUILD_TYPE=Release -DINSTANCES_ONLY=ON
+ROCm/composable_kernel@fb948120d2d674607e70d0e7587dcb249c0e74c7 -DCMAKE_BUILD_TYPE=Release
 google/googletest@v1.14.0

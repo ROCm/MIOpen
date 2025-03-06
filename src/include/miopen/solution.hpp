@@ -120,8 +120,8 @@ struct MIOPEN_INTERNALS_EXPORT Solution : miopenSolution
     friend void from_json(const nlohmann::json& json, Solution& solution);
 
     void SetInvoker(Invoker invoker_,
-                    const std::vector<Program>& programs,
-                    const std::vector<solver::KernelInfo>& kernels_)
+                    const std::vector<Program>& programs            = {},
+                    const std::vector<solver::KernelInfo>& kernels_ = {})
     {
 #if MIOPEN_BACKEND_HIP
         invoker = std::move(invoker_);

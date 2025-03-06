@@ -44,10 +44,15 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
     if(problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
        problem.GetMode() != miopenBNSpatial)
         return false;
+    if(!problem.Is2D())
+    {
+        return false;
+    }
+    if(!IsOCLBwdTypeValid(problem))
+        return false;
 
 #if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
         // bfp16parm = true;
         // Unsupported kernel mode, error in kernel code
@@ -64,21 +69,27 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
 {
     const auto& handle = context.GetStream();
 
-    bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
+    bool bfpmixparm   = false;
+    bool bbfpmixparam = false;
+    bool bfp16parm    = false;
+    bool bfp32parm    = true;
 
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetScaleBiasDiffDesc().GetType() == miopenHalf)
+    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
     else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetScaleBiasDiffDesc().GetType() == miopenFloat)
+            problem.GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;
+    }
+    else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
+            problem.GetBnScale().GetType() == miopenFloat)
+    {
+        bbfpmixparam = true;
+        bfp32parm    = false;
     }
 
     int n, c, h, w;
@@ -206,6 +217,7 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+            {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
             {"MIO_BN_USESAVED", static_cast<int>(problem.UseSaved())},
             {"MIO_BN_N", static_cast<int>(n)},
             {"MIO_BN_C", static_cast<int>(c)},
@@ -222,6 +234,7 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_GRP2", zlocalsize},
             {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
+            {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
         };
 
@@ -269,7 +282,7 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
         }
     }
 
-    const auto dtype    = problem.GetScaleBiasDiffDesc().GetType();
+    const auto dtype    = problem.GetBnScale().GetType();
     const auto useSaved = problem.UseSaved();
 
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {

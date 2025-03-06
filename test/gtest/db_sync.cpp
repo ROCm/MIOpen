@@ -63,7 +63,7 @@
 namespace fs  = miopen::fs;
 namespace env = miopen::env;
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_DBSYNC)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DBSYNC_CLEAN)
 
 struct KDBKey
 {
@@ -338,6 +338,7 @@ void GetPerfDbVals(const fs::path& filename,
                    std::unordered_map<std::string, std::string>& vals,
                    std::string& select_query)
 {
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
     std::string clause;
     std::vector<std::string> values;
     std::tie(clause, values) = problem_config.WhereClause();
@@ -358,6 +359,63 @@ void GetPerfDbVals(const fs::path& filename,
         if(rc == SQLITE_ROW)
             vals.emplace(stmt.ColumnText(0), stmt.ColumnText(1));
         else if(rc == SQLITE_DONE)
+            break;
+        else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
+            throw std::runtime_error(sql.ErrorMessage());
+    }
+#else
+    const auto& perf_db =
+        miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::PerfDb, filename.string(), true);
+    const auto& perf_db_map = perf_db.GetCacheMap();
+
+    std::ostringstream ss;
+    conv::ProblemDescription::VisitAll(problem_config, [&](auto&& value, auto&&) {
+        if(ss.tellp() != 0)
+            ss << "x";
+        ss << value;
+    });
+    const auto key = ss.str();
+
+    if(perf_db_map.find(key) != perf_db_map.end())
+    {
+        std::istringstream pdb_line{perf_db_map.at(key).content};
+        char fragment[1024];
+        while(pdb_line.getline(fragment, 1024, ';'))
+        {
+            std::string id_val{fragment};
+            const auto id_size = id_val.find(':');
+            ASSERT_TRUE(id_size != std::string::npos) << "Ill formed value: " << id_val;
+            auto id  = id_val.substr(0, id_size);
+            auto cfg = id_val.substr(id_size + 1);
+            vals.emplace(id, cfg);
+        }
+        select_query = " Loading " + key + " from " + filename.string();
+    }
+#endif
+}
+
+void RemovePerfDbEntry(const fs::path& filename,
+                       const conv::ProblemDescription& problem_config,
+                       const std::string& solver)
+{
+    std::string select_query;
+    std::string clause;
+    std::vector<std::string> values;
+    std::tie(clause, values) = problem_config.WhereClause();
+    auto sql                 = SQLite{filename.string(), true};
+    // clang-format off
+        select_query =
+            "DELETE FROM perf_db "
+            "WHERE "
+            "config in (select id from " + problem_config.table_name() + " "
+            "WHERE ( " + clause + " )) AND "
+            "solver='" + solver + "';";
+    // clang-format on
+    auto stmt = SQLite::Statement{sql, select_query, values};
+    while(true)
+    {
+        auto rc = stmt.Step(sql);
+        if(rc == SQLITE_DONE)
             break;
         else if(rc == SQLITE_ERROR || rc == SQLITE_MISUSE)
             throw std::runtime_error(sql.ErrorMessage());
@@ -455,28 +513,29 @@ void SetupPaths(fs::path& fdb_file_path,
     const std::string base_name = handle.GetDbBasename(); // "gfx90a68";
     const std::string suffix    = "HIP";                  // miopen::GetSystemFindDbSuffix();
     fdb_file_path               = root_path / (base_name + "." + suffix + ext);
-    pdb_file_path               = root_path / (base_name + ".db");
-    kdb_file_path               = root_path / (handle.GetDeviceName() + ".kdb");
+#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
+    pdb_file_path = root_path / (base_name + ".db");
+#else
+    pdb_file_path = root_path / (base_name + ".db.txt");
+#endif
+    kdb_file_path = root_path / (handle.GetDeviceName() + ".kdb");
     ASSERT_TRUE(fs::exists(fdb_file_path)) << "Db file does not exist" << fdb_file_path;
     ASSERT_TRUE(fs::exists(pdb_file_path)) << "Db file does not exist" << pdb_file_path;
     ASSERT_TRUE(SKIP_KDB_PDB_TESTING || fs::exists(kdb_file_path))
         << "Db file does not exist" << kdb_file_path;
 }
 
-TEST(DBSync, KDBTargetID)
+TEST(CPU_DBSync_NONE, KDBTargetID)
 {
-    if(env::enabled(MIOPEN_TEST_DBSYNC))
-    {
-        fs::path fdb_file_path, pdb_file_path, kdb_file_path;
+    fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
-        SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2492", "0");
+    SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2492", "0");
 #endif
-        SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
-        std::ignore = fdb_file_path;
-        std::ignore = pdb_file_path;
-        EXPECT_TRUE(miopen::CheckKDBJournalMode(kdb_file_path));
-        EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
-    }
+    SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
+    std::ignore = fdb_file_path;
+    std::ignore = pdb_file_path;
+    EXPECT_TRUE(miopen::CheckKDBJournalMode(kdb_file_path));
+    EXPECT_FALSE(!SKIP_KDB_PDB_TESTING && miopen::CheckKDBForTargetID(kdb_file_path));
 }
 
 bool LogBuildMessage()
@@ -585,7 +644,7 @@ void CheckDynamicFDBEntry(size_t thread_index,
     }
 }
 
-TEST(DBSync, DISABLED_DynamicFDBSync)
+TEST(CPU_DBSync_NONE, DISABLED_DynamicFDBSync)
 {
     fs::path fdb_file_path, pdb_file_path, kdb_file_path;
     auto& handle = get_handle();
@@ -630,6 +689,7 @@ TEST(DBSync, DISABLED_DynamicFDBSync)
 void CheckFDBEntry(size_t thread_index,
                    size_t total_threads,
                    std::vector<FDBLine>& data,
+                   miopen::RamDb& find_db_rw,
                    const miopen::ExecutionContext& _ctx,
                    std::atomic<size_t>& counter)
 {
@@ -653,10 +713,12 @@ void CheckFDBEntry(size_t thread_index,
             << "Failed to parse FDB key:" << kidx << ":Parsed Key: " << ss.str();
 
         std::vector<miopen::FDBVal> fdb_vals;
-        std::unordered_map<std::string, std::string> pdb_vals;
         miopen::ParseFDBbVal(kinder.second.content, fdb_vals);
+
+        std::unordered_map<std::string, std::string> pdb_vals;
         std::string pdb_select_query;
         miopen::GetPerfDbVals(pdb_file_path, problem, pdb_vals, pdb_select_query);
+
         // This is an opportunity to link up fdb and pdb entries
         auto fdb_idx = 0; // check kdb only for the fastest kernel
         for(const auto& val : fdb_vals)
@@ -692,40 +754,67 @@ void CheckFDBEntry(size_t thread_index,
                 << "Solver is not applicable fdb-key:" << kinder.first
                 << " Solver: " << id.ToString();
             miopen::solver::ConvSolution sol;
+
+            auto db                     = miopen::GetDb(ctx);
+            const auto pdb_entry_exists = pdb_vals.find(val.solver_id) != pdb_vals.end();
+
             if(solv.IsTunable())
             {
-                const auto pdb_entry_exists = pdb_vals.find(val.solver_id) != pdb_vals.end();
-                // TODO: Print the SQL query
-                EXPECT_TRUE(SKIP_KDB_PDB_TESTING || pdb_entry_exists)
-                    << '[' << (++failures) << "] " //
-                    << "PDB entry does not exist for tunable fdb-key:" << kinder.first << ": solver"
-                    << val.solver_id << " pdb-select-query: " << pdb_select_query;
-                auto db               = miopen::GetDb(ctx);
-                std::string pdb_entry = "";
-                if(!SKIP_KDB_PDB_TESTING && pdb_entry_exists)
+                if(env::enabled(MIOPEN_DBSYNC_CLEAN) && not pdb_entry_exists)
                 {
-                    pdb_entry = pdb_vals.at(val.solver_id);
-                    bool res  = solv.TestPerfCfgParams(ctx, problem, pdb_vals.at(val.solver_id));
-                    EXPECT_TRUE(res)
-                        << '[' << (++failures) << "] " //
-                        << "Invalid perf config found fdb-key:" << kinder.first
-                        << " Solver: " << solv.GetSolverDbId() << ":" << pdb_vals.at(val.solver_id)
-                        << " pdb-select-query: " << pdb_select_query;
-                    // we can verify the pdb entry by passing in an empty string and then comparing
-                    // the received solution with the one below or having the find_solution pass out
-                    // the serialized string
-                    sol = solv.FindSolution(ctx, problem, db, {}, pdb_vals.at(val.solver_id));
+                    MIOPEN_LOG_W("PDB entry does not exist for tunable fdb-key:"
+                                 << kinder.first << ": solver" << val.solver_id
+                                 << ", Removing entry from fdb");
+                    find_db_rw.Remove(kinder.first, id.ToString());
+                    MIOPEN_LOG_W("Removal Complete fdb-key:" << kinder.first << ": solver"
+                                                             << val.solver_id);
+                    continue;
                 }
                 else
                 {
-                    sol       = solv.FindSolution(ctx, problem, db, {}, "");
-                    pdb_entry = " Not Found (Using Default)";
+                    EXPECT_TRUE(SKIP_KDB_PDB_TESTING || pdb_entry_exists)
+                        << '[' << (++failures) << "] " //
+                        << "PDB entry does not exist for tunable fdb-key:" << kinder.first
+                        << ": solver" << val.solver_id << " pdb-select-query: " << pdb_select_query;
+                }
+                std::string perf_cfg = "";
+                if(!SKIP_KDB_PDB_TESTING && pdb_entry_exists)
+                {
+                    perf_cfg = pdb_vals.at(val.solver_id);
+                    bool res = solv.TestPerfCfgParams(ctx, problem, perf_cfg);
+                    if(env::enabled(MIOPEN_DBSYNC_CLEAN) && not res)
+                    {
+                        MIOPEN_LOG_W("Invalid perf config found fdb-key:"
+                                     << kinder.first << ", Solver" << val.solver_id << ":"
+                                     << perf_cfg << ", Removing entry from fdb and pdb");
+                        find_db_rw.Remove(kinder.first, id.ToString());
+                        db.Remove(problem, id.ToString());
+                        MIOPEN_LOG_W("Removal Complete fdb-key:" << kinder.first << ": solver"
+                                                                 << val.solver_id);
+                        continue;
+                    }
+                    else
+                    {
+                        EXPECT_TRUE(res) << '[' << (++failures) << "] " //
+                                         << "Invalid perf config found fdb-key:" << kinder.first
+                                         << ", Solver: " << val.solver_id << ":" << perf_cfg
+                                         << " pdb-select-query: " << pdb_select_query;
+                    }
+                    // we can verify the pdb entry by passing in an empty string and then comparing
+                    // the received solution with the one below or having the find_solution pass out
+                    // the serialized string
+                    sol = solv.FindSolution(ctx, problem, db, {}, perf_cfg);
+                }
+                else
+                {
+                    sol      = solv.FindSolution(ctx, problem, db, {}, "");
+                    perf_cfg = " Not Found (Using Default)";
                 }
                 // TODO Generate the Select query for pdb
                 EXPECT_TRUE(sol.Succeeded())
                     << '[' << (++failures) << "] " //
                     << "Invalid solution fdb-key:" << kinder.first << " Solver: " << id.ToString()
-                    << " pdb-val:" << pdb_entry;
+                    << " perf config:" << perf_cfg;
                 if(!SKIP_KDB_PDB_TESTING && fdb_idx == 0)
                 {
                     for(const auto& kern : sol.construction_params)
@@ -753,7 +842,7 @@ void CheckFDBEntry(size_t thread_index,
                             EXPECT_TRUE(found)
                                 << '[' << (++failures) << "] " //
                                 << "KDB entry not found for  fdb-key:" << kinder.first
-                                << " Solver: " << id.ToString() << " pdb-val:" << pdb_entry
+                                << ", Solver: " << id.ToString() << " perf config:" << perf_cfg
                                 << " filename: " << program_file << " compile args: "
                                 << compile_options; // for fdb key, solver id, solver pdb entry and
                                                     // kdb file and args
@@ -763,7 +852,7 @@ void CheckFDBEntry(size_t thread_index,
                 }
             }
             else
-                EXPECT_TRUE(pdb_vals.find(val.solver_id) == pdb_vals.end())
+                EXPECT_TRUE(!pdb_entry_exists)
                     << '[' << (++failures) << "] " //
                     << "Non-Tunable solver found in PDB" << solv.GetSolverDbId();
             ++fdb_idx;
@@ -778,12 +867,20 @@ struct TestHandle : Handle
 {
     TestHandle(size_t _num_cu) : Handle(), num_cu(_num_cu) {}
 
-    std::size_t GetMaxComputeUnits() const
+// Probably, according to the idea of the author of this test, the number of CUs should have been
+// substituted with the value passed to the constructor (which in fact did not happen). After
+// https://github.com/ROCm/MIOpen/pull/3175, the method became virtual, the substitution actually
+// happened, and the test broke. I disabled that part (since it doesn't work as intended anyway) to
+// keep its behavior the same.
+#if 1
+    std::size_t GetMaxComputeUnits() const override
     {
         if(num_cu == 0)
             return Handle::GetMaxComputeUnits();
         return num_cu;
     }
+#endif
+
     size_t num_cu = 0;
 };
 } // namespace miopen
@@ -811,22 +908,28 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, handle);
     std::cout << "Handle CU count: " << handle.GetMaxComputeUnits()
               << " Parameter Value: " << num_cu << std::endl;
+    std::cout << "FDB: " << fdb_file_path << ", PDB: " << pdb_file_path
+              << ", KDB: " << kdb_file_path << std::endl;
 #if !SKIP_KDB_PDB_TESTING
     // Warmup the kdb cache
     miopen::CheckKDBObjects(kdb_file_path, "", "");
 #endif
     const auto& find_db =
         miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::FindDb, fdb_file_path.string(), true);
+    auto& find_db_rw =
+        miopen::RamDb::GetCached(miopen::DbKinds::FindDb, fdb_file_path.string(), false);
     // assert that find_db.cache is not empty, since that indicates the file was not readable
     ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
-    auto _ctx = miopen::ExecutionContext{};
-    _ctx.SetStream(&handle);
 
     // Convert the map to a vector
-    std::vector<std::pair<std::string, miopen::ReadonlyRamDb::CacheItem>> fdb_data;
+    std::vector<FDBLine> fdb_data;
     const auto& find_db_map = find_db.GetCacheMap();
     fdb_data.resize(find_db_map.size());
     std::copy(find_db_map.begin(), find_db_map.end(), fdb_data.begin());
+
+    auto _ctx = miopen::ExecutionContext{};
+    _ctx.SetStream(&handle);
+
     std::atomic<size_t> counter = 0;
     const int total_threads =
         std::min(std::thread::hardware_concurrency(), static_cast<unsigned int>(32));
@@ -837,6 +940,7 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
                             idx,
                             total_threads,
                             std::ref(fdb_data),
+                            std::ref(find_db_rw),
                             std::ref(_ctx),
                             std::ref(counter));
 
@@ -847,25 +951,22 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
         << fdb_data.size();
 }
 
-struct DBSync : testing::TestWithParam<std::pair<std::string, size_t>>
+struct CPU_DBSync_NONE : testing::TestWithParam<std::pair<std::string, size_t>>
 {
 };
 
-TEST_P(DBSync, StaticFDBSync)
+TEST_P(CPU_DBSync_NONE, StaticFDBSync)
 {
-    if(env::enabled(MIOPEN_TEST_DBSYNC))
-    {
-        std::string arch;
-        size_t num_cu;
-        std::tie(arch, num_cu) = GetParam();
-        StaticFDBSync(arch, num_cu);
-    }
+    std::string arch;
+    size_t num_cu;
+    std::tie(arch, num_cu) = GetParam();
+    StaticFDBSync(arch, num_cu);
 }
 
-INSTANTIATE_TEST_SUITE_P(DBSyncSuite,
-                         DBSync,
-                         testing::Values(std::make_pair("gfx90a", 104),
-                                         std::make_pair("gfx1030", 36),
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         CPU_DBSync_NONE,
+                         testing::Values(std::make_pair("gfx908", 120),
+                                         std::make_pair("gfx90a", 104),
                                          std::make_pair("gfx90a", 110),
-                                         std::make_pair("gfx908", 120),
-                                         std::make_pair("gfx942", 304)));
+                                         std::make_pair("gfx942", 304),
+                                         std::make_pair("gfx1030", 36)));

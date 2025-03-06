@@ -28,14 +28,9 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include "get_handle.hpp"
-#include "test_env.hpp"
 
 #include "../conv2d.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_COMPOSABLEKERNEL)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace conv_hip_igemm_xdlops {
 
@@ -48,7 +43,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConvHipIgemmXdlopsConfigInt8 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_ConvHipIgemmXdlops_I8 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -57,7 +52,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenInt8: params = ConvHipIgemmXdlopsConfigInt8::GetParam(); break;
+    case miopenInt8: params = GPU_ConvHipIgemmXdlops_I8::GetParam(); break;
     case miopenFloat8:
     case miopenBFloat8:
     case miopenHalf:
@@ -71,7 +66,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "type not supported by "
                   "test_conv_hip_igemm_xdlops test";
 
-    default: params = ConvHipIgemmXdlopsConfigInt8::GetParam();
+    default: params = GPU_ConvHipIgemmXdlops_I8::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -85,7 +80,7 @@ void Run2dDriver(miopenDataType_t prec)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
+        test_drive<conv2d_driver>(ptrs.size(), ptrs.data(), "test_conv2d");
         auto capture = testing::internal::GetCapturedStderr();
         std::cout << capture;
     }
@@ -144,16 +139,16 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace conv_hip_igemm_xdlops
 using namespace conv_hip_igemm_xdlops;
 
-TEST_P(ConvHipIgemmXdlopsConfigInt8, Int8Test)
+TEST_P(GPU_ConvHipIgemmXdlops_I8, Int8Test)
 {
 #if MIOPEN_BACKEND_OPENCL
 
     GTEST_SKIP() << "MIOPEN_BACKEND_HIP needed for this test";
 
 #else // MIOPEN_BACKEND_HIP, OCL_DISABLED
+#if MIOPEN_USE_COMPOSABLEKERNEL
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && env::enabled(MIOPEN_TEST_COMPOSABLEKERNEL) &&
-       env::enabled(MIOPEN_TEST_ALL) && IsTestRunWith("--int8"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenInt8);
     }
@@ -161,9 +156,10 @@ TEST_P(ConvHipIgemmXdlopsConfigInt8, Int8Test)
     {
         GTEST_SKIP();
     }
+#else
+    GTEST_SKIP();
+#endif
 #endif
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvHipIgemmXdlops,
-                         ConvHipIgemmXdlopsConfigInt8,
-                         testing::Values(GetTestCases("--int8")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_ConvHipIgemmXdlops_I8, testing::Values(GetTestCases("--int8")));

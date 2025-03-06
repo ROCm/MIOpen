@@ -30,8 +30,6 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace {
 
 auto GetTestCases()
@@ -144,7 +142,7 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return get_handle_xnack() || env::disabled(MIOPEN_TEST_ALL); }
+bool SkipTest() { return get_handle_xnack(); }
 
 bool IsTestSupportedForDevice()
 {
@@ -155,15 +153,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultIGemmDynamicDLops_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_dynamic_dlops)
+TEST_P(GPU_Conv2dDefaultIGemmDynamicDLops_FP16, HalfTest_conv_igemm_dynamic_dlops)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultIGemmDynamicDLops_FP16>(default_check);
     }
     else
     {
@@ -171,6 +169,6 @@ TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_dynamic_dlops)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicDlopsFwd,
-                         Conv2dDefaultHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2dDefaultIGemmDynamicDLops_FP16,
                          testing::Values(GetTestCases()));

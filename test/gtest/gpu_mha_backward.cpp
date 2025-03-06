@@ -43,17 +43,9 @@
 #include <variant>
 #include <vector>
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 using namespace miopen;
 
 namespace {
-inline bool CheckFloatArg(std::string_view arg)
-{
-    const std::string& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    return tmp.empty() || tmp == arg;
-}
 
 struct TensorStruct
 {
@@ -82,11 +74,6 @@ struct TestCase
 
 inline std::vector<TestCase> GetSmokeCases()
 {
-    if(!(CheckFloatArg("--float") || CheckFloatArg("--float8")))
-    {
-        return {};
-    }
-
     return {
         {9, 8, 8, 8, 0.0f},
         {1, 2, 4, 5, 0.0f},
@@ -109,11 +96,6 @@ inline std::vector<TestCase> GetSmokeCases()
 
 inline std::vector<TestCase> GetFullTestCases()
 {
-    if(env::disabled(MIOPEN_TEST_ALL) || !(CheckFloatArg("--float") || CheckFloatArg("--float8")))
-    {
-        return {};
-    }
-
     return {
         {3, 15, 2047, 15, 0.0f},
         {2049, 17, 7, 7, 0.0f},
@@ -222,7 +204,7 @@ protected:
 
         // proper O, M and zInv tensors are required for backward pass.
         // randomly generated M and zInv may lead to nan\inf values
-        test::cpu::MultiHeadAttentionfp8(
+        test::cpu::MultiHeadAttentionForwardfp8(
             std::get<tensor<T>>(tensors[miopenTensorMhaQ]->m_cpu_tensor),
             std::get<tensor<T>>(tensors[miopenTensorMhaK]->m_cpu_tensor),
             std::get<tensor<T>>(tensors[miopenTensorMhaV]->m_cpu_tensor),
@@ -418,11 +400,11 @@ protected:
     miopenProblem_t problem = nullptr;
 };
 
-class Test_Bwd_Mha_F32 : public Test_Bwd_Mha<float>
+class GPU_Bwd_Mha_FP32 : public Test_Bwd_Mha<float>
 {
 };
 
-class Test_Bwd_Mha_F8 : public Test_Bwd_Mha<float8>
+class GPU_Bwd_Mha_FP8 : public Test_Bwd_Mha<float8>
 {
     void SetUp() override
     {
@@ -437,14 +419,14 @@ class Test_Bwd_Mha_F8 : public Test_Bwd_Mha<float8>
     }
 };
 
-TEST_P(Test_Bwd_Mha_F32, Test_float) { return Test_Bwd_Mha<float>::TestBody(); };
+TEST_P(GPU_Bwd_Mha_FP32, Test_float) { return Test_Bwd_Mha<float>::TestBody(); };
 
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F32, Test_Bwd_Mha_F32, testing::ValuesIn(GetSmokeCases()));
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F32, Test_Bwd_Mha_F32, testing::ValuesIn(GetFullTestCases()));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Bwd_Mha_F32);
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Bwd_Mha_FP32, testing::ValuesIn(GetSmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Bwd_Mha_FP32, testing::ValuesIn(GetFullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Bwd_Mha_FP32);
 
-TEST_P(Test_Bwd_Mha_F8, Test_float) { return Test_Bwd_Mha<float8>::TestBody(); };
+TEST_P(GPU_Bwd_Mha_FP8, Test_float) { return Test_Bwd_Mha<float8>::TestBody(); };
 
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Smoke_F8, Test_Bwd_Mha_F8, testing::ValuesIn(GetSmokeCases()));
-INSTANTIATE_TEST_SUITE_P(Fwd_Mha_Full_F8, Test_Bwd_Mha_F8, testing::ValuesIn(GetFullTestCases()));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(Test_Bwd_Mha_F8);
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Bwd_Mha_FP8, testing::ValuesIn(GetSmokeCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Bwd_Mha_FP8, testing::ValuesIn(GetFullTestCases()));
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Bwd_Mha_FP8);

@@ -65,10 +65,9 @@ To install the kernels package for your GPU architecture, use the following comm
 
 .. code:: shell
 
-  apt-get install miopenkernels-<arch>-<num cu>
+  apt-get install miopen-hip-<arch>kdb
 
-Where ``<arch>`` is the GPU architecture (e.g., ``gfx900``, ``gfx906``, ``gfx1030`` ) and ``<num cu>`` is the
-number of CUs available in the GPU (e.g., ``56``, ``64``).
+Where ``<arch>`` is the GPU architecture (e.g., ``gfx900``, ``gfx906``, ``gfx1030`` ).
 
 .. note::
 
@@ -110,6 +109,12 @@ You can use this prefix to specify the dependency path during the configuration 
 MIOpen's HIP backend uses :doc:`rocBLAS <rocblas:index>` by default. You can install rocBLAS'
 minimum release using ``apt-get install rocblas``. To disable rocBLAS, set the configuration flag
 ``-DMIOPEN_USE_ROCBLAS=Off``. rocBLAS is **not** available with OpenCL.
+
+MIOpen's HIP backend can use :doc:`hipBLASLt <hipblaslt:index>`. You can install hipBLASLt's minimum
+release using ``apt-get install hipblaslt``. In addition to needing hipblaslt, you will also need to
+install :doc:`hipBLAS <hipblas:index>`. You can install hipBLAS's minimum release using ``apt-get install hipblas``.
+To disable hipBLASLt, set the configuration flag ``-DMIOPEN_USE_HIPBLASLT=Off``. 
+hipBLASLt is **not** available with OpenCL.
 
 Building MIOpen from source
 ================================================

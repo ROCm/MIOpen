@@ -33,6 +33,7 @@
 #include <miopen/graphapi/opgraph.hpp>
 #include <miopen/graphapi/pointwise.hpp>
 #include <miopen/graphapi/reduction.hpp>
+#include <miopen/graphapi/reshape.hpp>
 #include <miopen/graphapi/rng.hpp>
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/graphapi/variant_pack.hpp>
@@ -94,6 +95,9 @@ miopenBackendCreateDescriptor(miopenBackendDescriptorType_t descriptorType,
 
         case MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendOperationReductionDescriptor(); break;
+
+        case MIOPEN_BACKEND_OPERATION_RESHAPE_DESCRIPTOR:
+            outputDescriptor = new miopen::graphapi::BackendOperationReshapeDescriptor(); break;
 
         case MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR:
             outputDescriptor = new miopen::graphapi::BackendOperationRngDescriptor(); break;
@@ -264,6 +268,9 @@ extern "C" miopenStatus_t miopenBackendInitialize(miopenBackendDescriptor_t desc
 
         case MIOPEN_BACKEND_OPERATION_REDUCTION_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationReductionDescriptor>(descriptor, sizeInBytes); break;
+
+        case MIOPEN_BACKEND_OPERATION_RESHAPE_DESCRIPTOR:
+            initializeBackendDescriptor<miopen::graphapi::BackendOperationReshapeDescriptor>(descriptor, sizeInBytes); break;
 
         case MIOPEN_BACKEND_OPERATION_RNG_DESCRIPTOR:
             initializeBackendDescriptor<miopen::graphapi::BackendOperationRngDescriptor>(descriptor, sizeInBytes); break;

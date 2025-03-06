@@ -179,7 +179,12 @@ Problem::FindSolutions(Handle& handle, const FindOptions& options, std::size_t m
     auto ret = std::visit(
         boost::hof::match(
             [&](const ConvolutionDescriptor& op_desc) {
-                return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
+                if(op_desc.mode == miopenTranspose)
+                    return MakeTransposed().FindSolutionsImpl(
+                        handle, options, max_solutions, buffers, op_desc, *this);
+                else
+                    return FindSolutionsImpl(
+                        handle, options, max_solutions, buffers, op_desc, *this);
             },
             [&](const SoftmaxDescriptor& op_desc) {
                 return FindSolutionsImpl(handle, options, max_solutions, buffers, op_desc);
@@ -382,6 +387,7 @@ mha::ProblemDescription Problem::AsMha() const
             dpDesc,
             dsDesc,
             doffDesc,
+            GetTensorDescriptor(miopenTensorMhaBias, TensorDescriptor()),
             oDesc,
             GetTensorDescriptorChecked(miopenTensorMhaAmaxO, "miopenTensorMhaAmaxO"),
             GetTensorDescriptorChecked(miopenTensorMhaAmaxS, "miopenTensorMhaAmaxS"),
@@ -459,7 +465,8 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
                                                  const FindOptions& options,
                                                  std::size_t max_solutions,
                                                  const Buffers& buffers,
-                                                 const ConvolutionDescriptor& conv_desc) const
+                                                 const ConvolutionDescriptor& conv_desc,
+                                                 const Problem& original) const
 {
     if(tensor_descriptors.size() != 3)
     {
@@ -472,24 +479,20 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
         GetTensorDescriptorChecked(miopenTensorConvolutionW, "miopenTensorConvolutionW");
     auto y_desc = GetTensorDescriptorChecked(miopenTensorConvolutionY, "miopenTensorConvolutionY");
 
-    ValidateGroupCount(x_desc, w_desc, conv_desc);
-
     auto x        = buffers.at(miopenTensorConvolutionX);
     const auto& w = buffers.at(miopenTensorConvolutionW);
     auto y        = buffers.at(miopenTensorConvolutionY);
 
-    const auto conv_problem =
-        conv_desc.mode == miopenTranspose ? MakeTransposed().AsConvolution() : AsConvolution();
+    if(conv_desc.mode == miopenTranspose)
+        std::swap(x, y);
+
+    const auto conv_problem = AsConvolution();
+
+    ValidateGroupCount(x_desc, w_desc, conv_desc);
 
     std::size_t workspace_size;
     Allocator::ManageDataPtr owned_workspace;
     Data_t workspace;
-
-    if(conv_desc.mode == miopenTranspose)
-    {
-        std::swap(x, y);
-        std::swap(x_desc, y_desc);
-    }
 
     if(options.preallocated_workspace)
     {
@@ -517,7 +520,7 @@ std::vector<Solution> Problem::FindSolutionsImpl(Handle& handle,
 
     for(auto& result : results)
     {
-        result.SetProblem({*this});
+        result.SetProblem({original});
 
         if(result.GetKernels().empty())
         {
@@ -609,10 +612,12 @@ Problem::FindSolutionsImpl(Handle& handle,
 
     const auto algo = AlgorithmName{"Mha"};
 
+    static solver::mha::MhaCKFlashAttentionV2Forward mhaCKFAForwardSolver;
     static solver::mha::MhaForward mhaForwardSolver;
     static solver::mha::MhaBackward mhaBackwardSolver;
 
-    std::vector<solver::mha::MhaSolver*> solvers = {&mhaForwardSolver, &mhaBackwardSolver};
+    std::vector<solver::mha::MhaSolver*> solvers = {
+        &mhaCKFAForwardSolver, &mhaForwardSolver, &mhaBackwardSolver};
 
     for(auto solver : solvers)
     {
@@ -647,24 +652,72 @@ Problem::FindSolutionsImpl(Handle& handle,
     return ret;
 }
 
-void Problem::ValidateGroupCount(const TensorDescriptor& xDesc,
-                                 const TensorDescriptor& wDesc,
+namespace {
+inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
+                                       const TensorDescriptor& w,
+                                       const std::optional<miopenTensorLayout_t>& layout,
+                                       const int groups)
+{
+    if(layout == miopenTensorNCHW      //
+       || layout == miopenTensorNCHWc4 //
+       || layout == miopenTensorNCHWc8)
+    {
+        return x.GetLengths()[1] / groups == w.GetLengths()[1];
+    }
+
+    if(layout == miopenTensorCHWNc4 //
+       || layout == miopenTensorCHWNc8)
+    {
+        return x.GetLengths()[1] / groups == w.GetLengths()[0];
+    }
+
+    return true;
+}
+
+inline bool IsValidGroupCount(const TensorDescriptor& x,
+                              const TensorDescriptor& w,
+                              const std::optional<miopenTensorLayout_t>& layout,
+                              const int groups)
+{
+    if(groups > 1) // Optimize for speed
+    {
+        if(x.GetLengths()[1] % groups != 0)
+            return false;
+
+        if(layout == miopenTensorNCHW      //
+           || layout == miopenTensorNCHWc4 //
+           || layout == miopenTensorNCHWc8)
+            return w.GetLengths()[0] % groups == 0;
+
+        if(layout == miopenTensorCHWNc4 //
+           || layout == miopenTensorCHWNc8)
+            return w.GetLengths()[3] % groups == 0;
+    }
+    return true;
+}
+} // namespace
+
+void Problem::ValidateGroupCount(const TensorDescriptor& x,
+                                 const TensorDescriptor& w,
                                  const ConvolutionDescriptor& conv)
 {
-    if(conv.group_count == 1)
-    {
-        if(xDesc.GetLengths()[1] != wDesc.GetLengths()[1])
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
-    }
-    if(conv.group_count > 1)
-    {
-        if(xDesc.GetLengths()[1] % conv.group_count != 0 ||
-           wDesc.GetLengths()[0] % conv.group_count != 0 ||
-           conv.group_count > xDesc.GetLengths()[1] || conv.group_count > wDesc.GetLengths()[0])
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
-        if(xDesc.GetLengths()[1] / conv.group_count != wDesc.GetLengths()[1])
-            MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
-    }
+    const auto layout = w.GetLayoutEnum();
+    const auto groups = conv.group_count;
+    assert(groups > 0);
+
+    const auto ok_c = IsValidFilterChannelNumber(x, w, layout, groups);
+    const auto ok_g = IsValidGroupCount(x, w, layout, groups);
+
+    if(ok_c && ok_g)
+        return;
+
+    MIOPEN_LOG_W(w.GetLayout_str() << "w {" << w.ToString() << "}, " //
+                                   << "x {" << x.ToString() << "}, " //
+                                   << "groups = " << conv.group_count);
+    if(!ok_c)
+        MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
+    if(!ok_g)
+        MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
 }
 
 void Problem::LogDriverCommand() const

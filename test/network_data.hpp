@@ -30,28 +30,33 @@
 #include <initializer_list>
 #include <set>
 #include <vector>
+#include <type_traits>
 
 #ifndef MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR
 #define MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR 0
 #endif
 
-inline int pick_batch_size(int x, int y)
+template <typename T = int>
+inline constexpr T pick_batch_size(T x, T y)
 {
-    if(y == 0 || y > x)
-        return 1;
-    else
-        return x / y;
+    return (y == 0 || y > x) ? 1 : x / y;
 }
 
-inline std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+// Reduce tests execution time
+#define MIOPEN_TESTS_GET_INPUTS_ENABLE_HUGE_TENSORS 1
+
+template <typename T = int>
+inline std::set<std::vector<T>> get_inputs(T n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
-    return 
+    return
     {
         { pick_batch_size(32,  n), 1,    14,  14  },
         { pick_batch_size(100, n), 1,    8,   8   },
         { pick_batch_size(256, n), 1,    27,  27  },
+#if MIOPEN_TESTS_GET_INPUTS_ENABLE_HUGE_TENSORS
         { pick_batch_size(64, n), 19,   1024,2048},
+#endif
         { pick_batch_size(100, n), 3,    32,  32  },
         { pick_batch_size(100, n), 32,   16,  16  },
         { pick_batch_size(100, n), 32,   8,   8   },
@@ -88,18 +93,21 @@ inline std::set<std::vector<int>> get_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_S
         { pick_batch_size(32, n),  576,  4,   4   },
         { pick_batch_size(32, n),  1056, 7,   7   },
         { pick_batch_size(32, n),  2048, 11,  11  },
+#if MIOPEN_TESTS_GET_INPUTS_ENABLE_HUGE_TENSORS
         { pick_batch_size(32, n),  16,   2048, 2048 },
         { pick_batch_size(32, n),  16,   3072, 3072 },
         { pick_batch_size(32, n),  16,   4096, 4096 },
+#endif
         { 1,                       1,    1,   1   }
     };
     // clang-format on
 }
 
-inline std::set<std::vector<int>> get_weights(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+template <typename T = int>
+inline std::set<std::vector<T>> get_weights(T n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
-    return 
+    return
     {
         { pick_batch_size(1024, n),1024, 3,  3  },
         { pick_batch_size(1024, n),512,  3,  3  },
@@ -132,10 +140,11 @@ inline std::set<std::vector<int>> get_weights(int n = MIOPEN_TEST_DEFAULT_BATCH_
     // clang-format on
 }
 
-inline std::set<std::vector<int>> get_immed_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+template <typename T = int>
+inline std::set<std::vector<T>> get_immed_inputs(T n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
-    return 
+    return
     {
         { pick_batch_size(32,  n), 1,    14,  14  },
         { pick_batch_size(256, n), 1,    27,  27  },
@@ -153,10 +162,11 @@ inline std::set<std::vector<int>> get_immed_inputs(int n = MIOPEN_TEST_DEFAULT_B
     // clang-format on
 }
 
-inline std::set<std::vector<int>> get_immed_weights(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+template <typename T = int>
+inline std::set<std::vector<T>> get_immed_weights(T n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
-    return 
+    return
     {
         { pick_batch_size(208, n), 96,   3,  3  },
         { pick_batch_size(24, n),  512,  1,  1  },
@@ -175,11 +185,12 @@ inline std::set<std::vector<int>> get_immed_weights(int n = MIOPEN_TEST_DEFAULT_
     // clang-format on
 }
 
-inline std::set<std::vector<int>>
-get_3d_conv_input_shapes(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+template <typename T = int>
+inline std::set<std::vector<T>>
+get_3d_conv_input_shapes(T n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
-    return 
+    return
     {
         { pick_batch_size(128, n),   1,   1,   2,   2},
         { pick_batch_size(128, n),  64,   1,   1,   1},
@@ -194,11 +205,12 @@ get_3d_conv_input_shapes(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     // clang-format on
 }
 
-inline std::set<std::vector<int>>
-get_3d_conv_weight_shapes(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+template <typename T = int>
+inline std::set<std::vector<T>>
+get_3d_conv_weight_shapes(T n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
-    return 
+    return
     {
         { pick_batch_size( 128, n),   1,   1,   1,   1},
         { pick_batch_size( 352, n), 128,   1,   1,   1},
@@ -215,11 +227,11 @@ get_3d_conv_weight_shapes(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     // clang-format on
 }
 
-inline std::set<std::vector<int>>
-get_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+template <typename T = int>
+inline std::set<std::vector<T>> get_bn_peract_inputs(T n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
-    return 
+    return
     {
         { pick_batch_size(32, n),  4,    1024,2048}, //Making this much smaller
         { pick_batch_size(100, n), 3,    32,  32  },
@@ -261,11 +273,11 @@ get_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     // clang-format on
 }
 
-inline std::set<std::vector<int>>
-get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+template <typename T = int>
+inline std::set<std::vector<T>> get_bn_spatial_inputs(T n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
-    return 
+    return
     {
         { pick_batch_size(32, n),  4,    1024,2048}, //Making this much smaller
         { pick_batch_size(32, n),  192,  256, 512 },
@@ -315,11 +327,11 @@ get_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     // clang-format on
 }
 
-inline std::set<std::vector<int>>
-get_3d_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+template <typename T = int>
+inline std::set<std::vector<T>> get_3d_bn_peract_inputs(T n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
-    return 
+    return
     {
         { pick_batch_size(32, n),   1,   32,  32,  32  },       // 32x32x32 based on VoxNet arch
         { pick_batch_size(32, n),   1,   14,  14,  14  },
@@ -329,20 +341,20 @@ get_3d_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
         { pick_batch_size(256, n),  1,   32,  32,  32  },      // 32x32x32 based on VoxNet arch
         { pick_batch_size(256, n), 32,   14,  14,  14  },
         { pick_batch_size(256, n), 32,   12,  12,  12  },
-        { pick_batch_size(256, n), 32,    6,   6,   6  },        
+        { pick_batch_size(256, n), 32,    6,   6,   6  },
         { pick_batch_size(512, n),  1,   32,  32,  32  },      // 32x32x32 based on VoxNet arch
         { pick_batch_size(512, n), 32,   14,  14,  14  },
         { pick_batch_size(512, n), 32,   12,  12,  12  },
-        { pick_batch_size(512, n), 32,    6,   6,   6  },                
+        { pick_batch_size(512, n), 32,    6,   6,   6  },
         { pick_batch_size(32, n),   2,   32,  57, 125  },       // Hand-gesture recognition CVPR 2015 paper High Res Net Path
         { pick_batch_size(32, n),  32,   14,  25,  59  },
         { pick_batch_size(32, n),  32,    6,  10,  27  },
-        { pick_batch_size(32, n),  32,    4,   6,  11  },                        
-        { pick_batch_size(32, n),  32,    2,   2,   3  },                        
-        { pick_batch_size(32, n),  32,   32,  28,  62  },       // Hand-gesture recognition CVPR 2015 paper Low Res Net Path 
+        { pick_batch_size(32, n),  32,    4,   6,  11  },
+        { pick_batch_size(32, n),  32,    2,   2,   3  },
+        { pick_batch_size(32, n),  32,   32,  28,  62  },       // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
         { pick_batch_size(32, n),  32,   14,  12,  29  },
-        { pick_batch_size(32, n),  32,    6,   4,  12  },                        
-        { pick_batch_size(32, n),  32,    4,   2,   2  },                        
+        { pick_batch_size(32, n),  32,    6,   4,  12  },
+        { pick_batch_size(32, n),  32,    4,   2,   2  },
         { pick_batch_size(16, n),  32,    6,  50,  50  },       // Multi-view 3D convnet
         { pick_batch_size(1,  n),   3,    8, 240, 320  },      // 3D convet on video
         { pick_batch_size(1,  n),   3,   16, 240, 320  },      // 3D convet on video
@@ -355,11 +367,12 @@ get_3d_bn_peract_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     // clang-format on
 }
 
-inline std::set<std::vector<int>>
-get_3d_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
+template <typename T = int>
+inline std::set<std::vector<T>>
+get_3d_bn_spatial_inputs(T n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
 {
     // clang-format off
-    return 
+    return
     {
         { pick_batch_size(32, n),   1,   32,  32,  32  },       // 32x32x32 based on VoxNet arch
         { pick_batch_size(32, n),   1,   14,  14,  14  },
@@ -369,20 +382,20 @@ get_3d_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
         { pick_batch_size(256, n),  1,   32,  32,  32  },      // 32x32x32 based on VoxNet arch
         { pick_batch_size(256, n), 32,   14,  14,  14  },
         { pick_batch_size(256, n), 32,   12,  12,  12  },
-        { pick_batch_size(256, n), 32,    6,   6,   6  },        
+        { pick_batch_size(256, n), 32,    6,   6,   6  },
         { pick_batch_size(512, n),  1,   32,  32,  32  },      // 32x32x32 based on VoxNet arch
         { pick_batch_size(512, n), 32,   14,  14,  14  },
         { pick_batch_size(512, n), 32,   12,  12,  12  },
-        { pick_batch_size(512, n), 32,    6,   6,   6  },                
+        { pick_batch_size(512, n), 32,    6,   6,   6  },
         { pick_batch_size(32,  n),  2,   32,  57, 125  },       // Hand-gesture recognition CVPR 2015 paper High Res Net Path
         { pick_batch_size(32,  n), 32,   14,  25,  59  },
         { pick_batch_size(32,  n), 32,    6,  10,  27  },
-        { pick_batch_size(32,  n), 32,    4,   6,  11  },                        
-        { pick_batch_size(32,  n), 32,    2,   2,   3  },                        
-        { pick_batch_size(32,  n), 32,   32,  28,  62  },       // Hand-gesture recognition CVPR 2015 paper Low Res Net Path 
+        { pick_batch_size(32,  n), 32,    4,   6,  11  },
+        { pick_batch_size(32,  n), 32,    2,   2,   3  },
+        { pick_batch_size(32,  n), 32,   32,  28,  62  },       // Hand-gesture recognition CVPR 2015 paper Low Res Net Path
         { pick_batch_size(32,  n), 32,   14,  12,  29  },
-        { pick_batch_size(32,  n), 32,    6,   4,  12  },                        
-        { pick_batch_size(32,  n), 32,    4,   2,   2  },                        
+        { pick_batch_size(32,  n), 32,    6,   4,  12  },
+        { pick_batch_size(32,  n), 32,    4,   2,   2  },
         { pick_batch_size(16,  n), 32,    6,  50,  50  },       // Multi-view 3D convnet
         { pick_batch_size(1,   n), 3,     8,  240, 320 },      // 3D convet on video
         { pick_batch_size(1,   n), 3,    16,  240, 320 },      // 3D convet on video
@@ -394,7 +407,8 @@ get_3d_bn_spatial_inputs(int n = MIOPEN_TEST_DEFAULT_BATCH_SIZE_FACTOR)
     // clang-format on
 }
 
-inline std::vector<std::vector<int>> get_sub_tensor()
+template <typename T = int>
+inline std::vector<std::vector<T>> get_sub_tensor()
 {
     return {{16, 4, 8, 1, 4},
             {2, 4, 8, 8, 4},
@@ -407,11 +421,18 @@ inline std::vector<std::vector<int>> get_sub_tensor()
             {4}};
 }
 
-inline std::vector<std::vector<int>> get_tensor_offsets()
+template <typename T = int>
+inline std::vector<std::vector<T>> get_tensor_offsets()
 {
+    static_assert(std::is_signed_v<T>);
     return {{0, 0}, {0, 2}, {4, 0}, {5, 7}};
 }
 
-inline std::vector<int> get_tensor_offset() { return {0, 1, 2, 3, 4, 5}; }
+template <typename T = int>
+inline std::vector<T> get_tensor_offset()
+{
+    static_assert(std::is_signed_v<T>);
+    return {0, 1, 2, 3, 4, 5};
+}
 
 #endif

@@ -31,12 +31,16 @@
 #include <miopen/env.hpp>
 #include <miopen/gemm_v2.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/rnn/multi_stream_utils.hpp>
 
 #include <vector>
 #include <numeric>
 #include <algorithm>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNFWD_exp)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNFWD_EXP)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNWRW_EXP)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNNFWD_MS_DISPATCH)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNN_MS_STREAM_CNT)
 
 namespace miopen {
 
@@ -60,10 +64,10 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
 
 bool RNNForwardMSIsFast(const int seqLen)
 {
-    if(env::enabled(MIOPEN_RNNFWD_exp))
+    if(env::enabled(MIOPEN_RNNFWD_EXP))
         return true;
 
-    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_exp))
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_EXP))
         return true;
     return false;
 }
@@ -277,18 +281,12 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
 
     std::tie(std::ignore, max_batch, hidden_size) = miopen::tien<3>(hxDesc.GetLengths());
 
-    auto extra_stream_cnt = 2;
-    handle.ReserveExtraStreamsInPool(extra_stream_cnt);
+    const int extra_stream_cnt = env::value_or(MIOPEN_RNN_MS_STREAM_CNT, 4);
 
-    auto root_stream_id = 0;
-    std::vector<hipStream_t> stream_pull;
-    for(int i = 0; i <= extra_stream_cnt; i++)
-    {
-        handle.SetStreamFromPool(i);
-        stream_pull.push_back(handle.GetStream());
-    }
+    MultiStreamController ms_controller{handle, extra_stream_cnt};
 
-    handle.SetStreamFromPool(root_stream_id);
+    constexpr auto root_stream_id = MultiStreamController::rootStreamId;
+    ms_controller.ChangeActiveStream(root_stream_id);
 
     int total_batch_size = 0;
     std::vector<int> bacc_per_time(seq_len + 1);
@@ -450,8 +448,8 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         {
             F  = 1,
             I  = 0,
-            G  = 2,
-            O  = 3,
+            G  = 3,
+            O  = 2,
             St = 4,
             Ht = 5
         };
@@ -767,14 +765,17 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
                               &in_n,
                               &handle,
                               &wDesc,
+                              &ms_controller,
                               extra_space,
                               hy,
                               cy,
                               max_batch,
                               hidden_size,
-                              seq_len](int layer_id) {
+                              seq_len](int layer_id, int extra_stream_id) {
         if(hy != nullptr || (cy != nullptr))
         {
+            ms_controller.ChangeActiveStream(extra_stream_id);
+
             auto hcy_layer_offset = get_HxBuff_offset(layer_id);
 
             const std::vector<size_t> hcy_src_stride{
@@ -850,36 +851,12 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
     };
 
-    auto call_sync_all_stream_pull_to_root_stream = [&stream_pull, root_stream_id]() {
-        const miopen::HipEventPtr main_event = make_hip_fast_event();
-        hipEventRecord(main_event.get(), stream_pull[root_stream_id]);
-
-        for(int i = 0; i < stream_pull.size(); i++)
-        {
-            if(i != root_stream_id)
-                hipStreamWaitEvent(stream_pull[i], main_event.get(), 0);
-        }
-    };
-
-    auto sync_root_to_all_stream_pull = [&stream_pull, root_stream_id]() {
-        hipStream_t root_stream = stream_pull[root_stream_id];
-        for(int i = 0; i < stream_pull.size(); i++)
-        {
-            if(i != root_stream_id)
-            {
-                const miopen::HipEventPtr sync_event = make_hip_fast_event();
-                hipEventRecord(sync_event.get(), stream_pull[i]);
-                hipStreamWaitEvent(root_stream, sync_event.get(), 0);
-            }
-        }
-    };
-
     if(seq_len == 0)
         return;
 
-    const int try_chunks_cnt = 16;
-    const int time_chunk_sz  = ((seq_len + try_chunks_cnt - 1) / try_chunks_cnt);
-    const int chunks_cnt     = (seq_len + time_chunk_sz - 1) / time_chunk_sz;
+    constexpr int try_chunks_cnt = 16;
+    const int time_chunk_sz      = ((seq_len + try_chunks_cnt - 1) / try_chunks_cnt);
+    const int chunks_cnt         = (seq_len + time_chunk_sz - 1) / time_chunk_sz;
 
     std::vector<int> layer_inx_cur_time(nLayers, 0);
     std::vector<int> layer_hx_cur_time(nLayers, 0);
@@ -895,15 +872,12 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
             layer_chunk_end_event[layer_id][chunk_id] = make_hip_fast_event();
     }
 
-    std::vector<int> layer_stream_id(nLayers, 2);
-    layer_stream_id[0] = 1;
-
     auto call_inx_next_chunk_preload = [&](int layer_id) {
         auto start_time = layer_inx_cur_time[layer_id];
         auto time_cnt   = std::min(time_chunk_sz, seq_len - start_time);
 
         call_x_gemm(layer_id, start_time, time_cnt);
-        layer_inx_cur_time[layer_id] += time_chunk_sz;
+        layer_inx_cur_time[layer_id] += time_cnt;
     };
 
     auto call_hx_next_gemm = [&](int layer_id) {
@@ -924,27 +898,18 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
         }
     };
 
-    auto call_next_chunk_compute = [&handle,
-                                    &stream_pull,
-                                    &layer_stream_id,
-                                    &call_next_hidden_state_update,
+    auto call_next_chunk_compute = [&call_next_hidden_state_update,
                                     &call_hx_next_gemm,
                                     &call_inx_next_chunk_preload,
                                     &layer_upd_cur_time,
                                     &layer_chunk_end_event,
+                                    &ms_controller,
                                     time_chunk_sz,
-                                    seq_len](int layer_id) {
-        auto stream_id = layer_stream_id[layer_id];
-        handle.SetStreamFromPool(stream_id);
+                                    seq_len](int layer_id, int stream_id) {
+        ms_controller.ChangeActiveStream(stream_id);
 
         const int chunk_id   = layer_upd_cur_time[layer_id] / time_chunk_sz;
         const int chunk_time = std::min(time_chunk_sz, seq_len - chunk_id * time_chunk_sz);
-
-        if(layer_id > 0 && layer_stream_id[layer_id - 1] != stream_id)
-        {
-            hipStreamWaitEvent(
-                stream_pull[stream_id], layer_chunk_end_event[layer_id - 1][chunk_id].get(), 0);
-        }
 
         if(!(layer_id == 0 && chunk_id == 1))
         {
@@ -956,8 +921,26 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
             call_hx_next_gemm(layer_id);
             call_next_hidden_state_update(layer_id);
         }
-        hipEventRecord(layer_chunk_end_event[layer_id][chunk_id].get(), stream_pull[stream_id]);
+        ms_controller.RecordEvent(layer_chunk_end_event[layer_id][chunk_id].get(), stream_id);
     };
+
+    auto sync_next_chunk_across_time = [&layer_chunk_end_event,
+                                        &ms_controller](int stream_id, int layer_id, int chunk_id) {
+        if(chunk_id > 0)
+        {
+            ms_controller.SetWaitEvent(layer_chunk_end_event[layer_id][chunk_id - 1].get(),
+                                       stream_id);
+        }
+    };
+
+    auto sync_next_chunk_across_layers =
+        [&layer_chunk_end_event, &ms_controller](int stream_id, int layer_id, int chunk_id) {
+            if(layer_id > 0)
+            {
+                ms_controller.SetWaitEvent(layer_chunk_end_event[layer_id - 1][chunk_id].get(),
+                                           stream_id);
+            }
+        };
 
     { // extra_space clean set 0
         const int fill_val = 0;
@@ -968,19 +951,19 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
     // stage 0 bias and input preload
     // stage 0.2 first chunk compute and preload
     {
-        call_sync_all_stream_pull_to_root_stream();
+        ms_controller.AllStreamsWaitRoot();
         const auto first_layer_id  = 0;
-        const auto stream_id       = layer_stream_id[first_layer_id]; // 1
+        const auto stream_id       = 1; // 1
         const auto extra_stream_id = 2;
 
-        handle.SetStreamFromPool(stream_id);
+        ms_controller.ChangeActiveStream(stream_id);
 
         if(biasMode != 0u)
             call_bias_add(first_layer_id);
 
-        call_next_chunk_compute(first_layer_id);
+        call_next_chunk_compute(first_layer_id, stream_id);
 
-        handle.SetStreamFromPool(extra_stream_id);
+        ms_controller.ChangeActiveStream(extra_stream_id);
 
         if(biasMode != 0u)
         {
@@ -992,62 +975,156 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
 
         // sync first to second stream
         const miopen::HipEventPtr next_chunk_inx = make_hip_fast_event();
-        hipEventRecord(next_chunk_inx.get(), stream_pull[extra_stream_id]);
-        hipStreamWaitEvent(stream_pull[stream_id], next_chunk_inx.get(), 0);
+        ms_controller.RecordEvent(next_chunk_inx.get(), extra_stream_id);
+        ms_controller.SetWaitEvent(next_chunk_inx.get(), stream_id);
     }
 
-    for(int layer_id = 0; layer_id < nLayers; layer_id++)
-    {
+    auto spiral_dispatch = [&](int first_stream, int last_stream) {
+        auto layers_last_state = layer_upd_cur_time;
 
-        const auto main_stream_id = 1;
-        handle.SetStreamFromPool(main_stream_id);
+        auto update_last_state = [&layer_upd_cur_time, &layers_last_state]() {
+            std::copy(
+                layer_upd_cur_time.begin(), layer_upd_cur_time.end(), layers_last_state.begin());
+        };
 
-        // check for wich stream was assigned this layer. If it differs from current - set stream
-        // wait event
-        if(layer_stream_id[layer_id] != main_stream_id)
-        {
+        auto is_dispatchable = [&layers_last_state, seq_len, time_chunk_sz](int layer,
+                                                                            int dispatch_chunks) {
+            auto cur_seq_time = layers_last_state[layer];
+            return seq_len <= cur_seq_time ? false
+                   : layer == 0
+                       ? true
+                       : layers_last_state[layer - 1] >=
+                             std::min(cur_seq_time + (dispatch_chunks * time_chunk_sz), seq_len);
+        };
+
+        auto try_dispatch_next_chunk =
+            [&layer_upd_cur_time,
+             &sync_next_chunk_across_time,
+             &sync_next_chunk_across_layers,
+             &call_next_chunk_compute,
+             &is_dispatchable,
+             time_chunk_sz](int layer_id, int stream_id, int chunk_to_dispatch) -> bool {
+            if(!is_dispatchable(layer_id, chunk_to_dispatch))
+                return false;
+
             auto chunk_id = layer_upd_cur_time[layer_id] / time_chunk_sz;
-            if(chunk_id > 0)
-            {
-                hipStreamWaitEvent(stream_pull[main_stream_id],
-                                   layer_chunk_end_event[layer_id][chunk_id - 1].get(),
-                                   0);
-            }
 
-            layer_stream_id[layer_id] = main_stream_id;
-        }
+            sync_next_chunk_across_time(stream_id, layer_id, chunk_id);
+            sync_next_chunk_across_layers(stream_id, layer_id, chunk_id);
 
-        const int start_chunk = layer_upd_cur_time[layer_id] / time_chunk_sz;
+            call_next_chunk_compute(layer_id, stream_id);
+            return true;
+        };
 
-        const int extra_layer_max_chunks =
-            start_chunk +
-            ((layer_id + 1 < nLayers - 1) ? (chunks_cnt - start_chunk) / 2 : chunks_cnt);
+        auto try_dispatch_hy_cy_printout = [&layer_upd_cur_time, &call_hy_cy_update, seq_len](
+                                               int layer_id, int stream_id) -> bool {
+            if(layer_upd_cur_time[layer_id] < seq_len)
+                return false;
 
-        for(int chunk_id = start_chunk; chunk_id < chunks_cnt; chunk_id++)
+            call_hy_cy_update(layer_id, stream_id);
+            return true;
+        };
+
+        const auto stream_round  = last_stream - first_stream + 1;
+        bool nothing_to_dispatch = false;
+        while(!nothing_to_dispatch)
         {
+            update_last_state();
+            nothing_to_dispatch = true;
+            int stream_it       = 0;
 
-            call_next_chunk_compute(layer_id);
-
-            int extra_compute_layer = layer_id + 1;
-            for(; extra_compute_layer < nLayers; extra_compute_layer++)
+            for(int cur_layer = 0; cur_layer < nLayers; cur_layer++)
             {
-                auto extra_chunk_id = layer_upd_cur_time[extra_compute_layer] / time_chunk_sz;
-                if(extra_chunk_id < extra_layer_max_chunks && extra_chunk_id <= chunk_id)
-                    break;
+                const auto dispatch_stream = first_stream + stream_it;
+                if(try_dispatch_next_chunk(cur_layer, dispatch_stream, 1))
+                {
+                    try_dispatch_hy_cy_printout(cur_layer, dispatch_stream);
+                    stream_it           = (stream_it + 1) % stream_round;
+                    nothing_to_dispatch = false;
+                }
+            }
+        }
+    };
+
+    enum class DispatchStrategy
+    {
+        OldMasterSlave = 0,
+        Spiral         = 1,
+    } dispatch_strategy =
+        static_cast<DispatchStrategy>(env::value_or(
+            MIOPEN_RNNFWD_MS_DISPATCH,
+            static_cast<unsigned long long>(DispatchStrategy::Spiral))); // what am I doing wrong?
+
+    if(dispatch_strategy == DispatchStrategy::Spiral)
+    {
+        const auto first_stream = extra_stream_cnt > 0 ? 1 : 0;
+        const auto last_stream  = extra_stream_cnt > 0 ? extra_stream_cnt : 0;
+
+        spiral_dispatch(first_stream, last_stream);
+    }
+    else
+    {
+        std::vector<int> layer_stream_id(nLayers, 2);
+        layer_stream_id[0] = 1;
+
+        auto dispatch_next_chunk = [&layer_upd_cur_time,
+                                    sync_next_chunk_across_layers,
+                                    call_next_chunk_compute,
+                                    time_chunk_sz](int layer_id, int stream_id) {
+            auto chunk_id = layer_upd_cur_time[layer_id] / time_chunk_sz;
+
+            sync_next_chunk_across_layers(stream_id, layer_id, chunk_id);
+
+            call_next_chunk_compute(layer_id, stream_id);
+        };
+
+        for(int layer_id = 0; layer_id < nLayers; layer_id++)
+        {
+            const auto main_stream_id = 1;
+            ms_controller.ChangeActiveStream(main_stream_id);
+
+            // check for wich stream was assigned this layer. If it differs from current - set
+            // stream wait event
+            if(layer_stream_id[layer_id] != main_stream_id)
+            {
+                auto chunk_id = layer_upd_cur_time[layer_id] / time_chunk_sz;
+
+                sync_next_chunk_across_time(main_stream_id, layer_id, chunk_id);
+
+                layer_stream_id[layer_id] = main_stream_id;
             }
 
-            if(extra_compute_layer < nLayers)
-                call_next_chunk_compute(extra_compute_layer);
-        }
+            const int start_chunk = layer_upd_cur_time[layer_id] / time_chunk_sz;
 
-        handle.SetStreamFromPool(main_stream_id);
-        // update hy, cy
-        call_hy_cy_update(layer_id);
+            const int extra_layer_max_chunks =
+                start_chunk +
+                ((layer_id + 1 < nLayers - 1) ? (chunks_cnt - start_chunk) / 2 : chunks_cnt);
+
+            for(int chunk_id = start_chunk; chunk_id < chunks_cnt; chunk_id++)
+            {
+                dispatch_next_chunk(layer_id, layer_stream_id[layer_id]);
+
+                int extra_compute_layer = layer_id + 1;
+                for(; extra_compute_layer < nLayers; extra_compute_layer++)
+                {
+                    auto extra_chunk_id = layer_upd_cur_time[extra_compute_layer] / time_chunk_sz;
+                    if(extra_chunk_id < extra_layer_max_chunks && extra_chunk_id <= chunk_id)
+                        break;
+                }
+
+                if(extra_compute_layer < nLayers)
+                    dispatch_next_chunk(extra_compute_layer, layer_stream_id[extra_compute_layer]);
+            }
+
+            // update hy, cy
+            call_hy_cy_update(layer_id, main_stream_id);
+        }
     }
 
-    handle.SetStreamFromPool(root_stream_id);
-    hipStreamWaitEvent(
-        stream_pull[root_stream_id], layer_chunk_end_event[nLayers - 1][chunks_cnt - 1].get(), 0);
+    ms_controller.ChangeActiveStream(root_stream_id);
+
+    ms_controller.SetWaitEvent(layer_chunk_end_event[nLayers - 1][chunks_cnt - 1].get(),
+                               root_stream_id);
 
     // output tensor copy
     {
@@ -1067,7 +1144,7 @@ void RNNDescriptor::RNNForwardMS(Handle& handle,
             handle, src_desc, extra_space, y_dst_desc, y, RBuff.ht_offset(nLayers - 1, 0), 0);
     }
 
-    sync_root_to_all_stream_pull();
+    ms_controller.RootWaitToAllStreams();
 #else
     (void)handle;
     (void)seq_array;
@@ -2725,6 +2802,33 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                             reserveSpaceSize,
                             miopenRNNFWDMode_t::miopenRNNTraining);
     }
+    else if(dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM && !use_dropout &&
+            algoMode == miopenRNNdefault)
+    {
+        SeqTensorDescriptor x_seq =
+            makeSeqTensorDescriptor(xDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        SeqTensorDescriptor y_seq =
+            makeSeqTensorDescriptor(yDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        return ModularForward(handle,
+                              miopenRNNFWDMode_t::miopenRNNTraining,
+                              w,
+                              x_seq,
+                              x,
+                              hxDesc,
+                              hx,
+                              hy,
+                              cxDesc,
+                              cx,
+                              cy,
+                              y_seq,
+                              y,
+                              nullptr,
+                              0,
+                              reserveSpace,
+                              reserveSpaceSize);
+    }
 
     int in_stride  = xDesc[0].GetLengths()[1];
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
@@ -2911,17 +3015,18 @@ void RNNDescriptor::RNNForwardTrainingPackedTensors(
                                          (li - 1) * drop_rsv_size;
 
                 miopen::deref(dropoutDesc)
-                    .DropoutForward(handle,
-                                    drop_in_desc,
-                                    drop_in_desc,
-                                    reserveSpace,
-                                    drop_out_desc,
-                                    reserveSpace,
-                                    reserveSpace,
-                                    drop_rsv_size,
-                                    drop_in_offset,
-                                    drop_out_offset,
-                                    drop_rsv_offset);
+                    .Dropout(handle,
+                             drop_in_desc,
+                             drop_in_desc,
+                             reserveSpace,
+                             drop_out_desc,
+                             reserveSpace,
+                             reserveSpace,
+                             drop_rsv_size,
+                             drop_in_offset,
+                             drop_out_offset,
+                             drop_rsv_offset,
+                             false /* is_backward */);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
                 prelayer_shift = drop_out_offset;
@@ -4187,6 +4292,37 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
         MIOPEN_THROW(miopenStatusBadParm, "Output size doesn't match hidden state size!");
     }
 
+    bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
+
+    if(dirMode == 0 && inputMode == miopenRNNlinear && rnnMode == miopenLSTM && !use_dropout &&
+       algoMode == miopenRNNdefault)
+    {
+        SeqTensorDescriptor dx_seq =
+            makeSeqTensorDescriptor(dxDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        SeqTensorDescriptor dy_seq =
+            makeSeqTensorDescriptor(dyDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        return this->ModularBackward(handle,
+                                     dy_seq,
+                                     dy,
+                                     dhxDesc,
+                                     hx,
+                                     dhy,
+                                     dhx,
+                                     dcxDesc,
+                                     cx,
+                                     dcy,
+                                     dcx,
+                                     dx_seq,
+                                     dx,
+                                     w,
+                                     workSpace,
+                                     workSpaceSize,
+                                     reserveSpace,
+                                     reserveSpaceSize);
+    }
+
     int in_stride  = in_h;
     int hy_stride  = hy_h * bi * static_cast<int>(workspaceScale);
     int out_stride = out_h;
@@ -4263,21 +4399,21 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
     case miopenRNNRELU:
     case miopenRNNTANH:
         // printf("run rnn gpu bwd data \n");
-        wei_len   = hy_h;
-        wei_len_t = hy_h;
-        dhd_off   = 0;
-        break;
+        // wei_len   = hy_h * nHiddenTensorsPerLayer;    // hy_h;
+        // wei_len_t = hy_h * nHiddenTensorsPerLayer;    // hy_h;
+        // dhd_off   = bi * hy_h * (workspaceScale - 1); // 0;
+        // break;
     case miopenLSTM:
         // printf("run lstm gpu bwd data \n");
-        wei_len   = hy_h * 4;
-        wei_len_t = hy_h * 4;
-        dhd_off   = bi * hy_h * 5;
+        wei_len   = hy_h * static_cast<int>(nHiddenTensorsPerLayer);  // hy_h * 4;
+        wei_len_t = hy_h * static_cast<int>(nHiddenTensorsPerLayer);  // hy_h * 4;
+        dhd_off   = bi * hy_h * static_cast<int>(workspaceScale - 1); // bi* hy_h * 5;
         break;
     case miopenGRU:
         // printf("run gru gpu bwd data \n");
-        wei_len   = hy_h * 3;
-        wei_len_t = hy_h * 2;
-        dhd_off   = bi * hy_h * 3;
+        wei_len   = hy_h * static_cast<int>(nHiddenTensorsPerLayer);     // hy_h * 3;
+        wei_len_t = hy_h * static_cast<int>(nHiddenTensorsPerLayer - 1); // hy_h * 2;
+        dhd_off   = bi * hy_h * static_cast<int>(workspaceScale - 1);    // bi * hy_h * 3;
         break;
     }
 
@@ -4359,7 +4495,7 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
             // Update time
             profileRNNkernels(handle, 1, ctime);
 
-            if(!float_equal(miopen::deref(dropoutDesc).dropout, 0))
+            if(use_dropout)
             {
                 std::vector<int> drop_size(2), drop_in_str(2, 1);
                 drop_size[0]   = batch_n;
@@ -4379,17 +4515,18 @@ void RNNDescriptor::RNNBackwardDataPackedTensors(
                                          li * drop_rsv_size;
 
                 miopen::deref(dropoutDesc)
-                    .DropoutBackward(handle,
-                                     drop_in_desc,
-                                     drop_in_desc,
-                                     workSpace,
-                                     drop_in_desc,
-                                     workSpace,
-                                     reserveSpace,
-                                     drop_rsv_size,
-                                     hid_shift + dhd_off,
-                                     hid_shift + dhd_off,
-                                     drop_rsv_offset);
+                    .Dropout(handle,
+                             drop_in_desc,
+                             drop_in_desc,
+                             workSpace,
+                             drop_in_desc,
+                             workSpace,
+                             reserveSpace,
+                             drop_rsv_size,
+                             hid_shift + dhd_off,
+                             hid_shift + dhd_off,
+                             drop_rsv_offset,
+                             true /* is_backward */);
                 // Update time
                 profileRNNkernels(handle, 1, ctime);
             }
@@ -5789,6 +5926,8 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
 
     miopenDataType_t rnn_data_t = hxDesc.GetType();
 
+    bool use_dropout = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
+
     if(in_h <= 0 || hy_h <= 0 || hy_n <= 0 || hy_d <= 0 || out_h <= 0 || seqLen <= 0)
     {
         MIOPEN_THROW(miopenStatusBadParm);
@@ -5845,6 +5984,28 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
                          "state size of the network in SKIP_INPUT mode!");
         }
         in_h = 0;
+    }
+
+    if(dirMode == 0 && rnnMode == miopenLSTM && !use_dropout && algoMode == miopenRNNdefault &&
+       !env::disabled(MIOPEN_RNNWRW_EXP))
+    {
+        SeqTensorDescriptor x_seq =
+            makeSeqTensorDescriptor(xDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        SeqTensorDescriptor y_seq =
+            makeSeqTensorDescriptor(dyDesc, seqLen, miopenRNNDataSeqMajorNotPadded);
+
+        return this->ModularBackwardWeights(handle,
+                                            x_seq,
+                                            x,
+                                            hxDesc,
+                                            hx,
+                                            y_seq,
+                                            dw,
+                                            workSpace,
+                                            workSpaceSize,
+                                            reserveSpace,
+                                            reserveSpaceSize);
     }
 
     size_t wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (nLayers - 1)) * wei_stride;
@@ -5934,7 +6095,6 @@ void RNNDescriptor::RNNBackwardWeightsPackedTensors(
         }
         else
         {
-            bool use_dropout    = !float_equal(miopen::deref(dropoutDesc).dropout, 0);
             auto prelayer_shift = static_cast<int>(
                 use_dropout ? (algoMode == miopenRNNdefault && rnnMode == miopenLSTM
                                    ? nLayers * batch_n * hy_stride + nLayers * batch_n * hy_h * bi

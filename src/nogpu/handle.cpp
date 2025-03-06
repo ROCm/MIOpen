@@ -55,6 +55,10 @@
 #include <thread>
 #include <miopen/nogpu/handle_impl.hpp>
 
+#if MIOPEN_USE_HIPBLASLT
+#include <hipblaslt/hipblaslt.h>
+#endif
+
 namespace miopen {
 
 Handle::Handle(miopenAcceleratorQueue_t /* stream */) : Handle::Handle() {}
@@ -166,8 +170,8 @@ void Handle::ClearProgram(const fs::path& program_name, const std::string& param
     this->impl->cache.ClearProgram(program_name, params);
 }
 
-const std::vector<Kernel>& Handle::GetKernelsImpl(const std::string& algorithm,
-                                                  const std::string& network_config) const
+std::vector<Kernel> Handle::GetKernelsImpl(const std::string& algorithm,
+                                           const std::string& network_config) const
 {
     return this->impl->cache.GetKernels(algorithm, network_config);
 }
@@ -300,6 +304,21 @@ rocblas_handle_ptr Handle::CreateRocblasHandle(miopenAcceleratorQueue_t) const
     rocblas_create_handle(&x);
     auto result = rocblas_handle_ptr{x};
     return result;
+}
+#endif
+
+#if MIOPEN_USE_HIPBLASLT
+const hipblasLt_handle_ptr& Handle::HipblasLtHandle() const { return impl->hip_blasLt_handle; }
+
+hipblasLt_handle_ptr Handle::CreateHipblasLtHandle() const
+{
+    hipblasLtHandle_t handle = nullptr;
+    auto status              = hipblasLtCreate(&handle);
+    if(status != HIPBLAS_STATUS_SUCCESS)
+    {
+        MIOPEN_THROW(miopenStatusInternalError, "hipBLASLt error encountered");
+    }
+    return hipblasLt_handle_ptr{handle};
 }
 #endif
 } // namespace miopen

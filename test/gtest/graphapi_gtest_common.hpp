@@ -410,13 +410,15 @@ class GMockBackendTensorDescriptor : public BackendTensorDescriptor
 public:
     GMockBackendTensorDescriptor& operator=(const Tensor& testCaseTensor)
     {
-        auto dataType = testCaseTensor.getDataType();
+        auto dataType = testCaseTensor.GetType();
         setAttribute(MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dataType);
 
-        auto dims = testCaseTensor.getDimensions();
+        auto& d = testCaseTensor.GetLengths();
+        std::vector<int64_t> dims{d.cbegin(), d.cend()};
         setAttribute(MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, dims.size(), dims.data());
 
-        auto strides = testCaseTensor.getStrides();
+        auto& s = testCaseTensor.GetStrides();
+        std::vector<int64_t> strides{s.cbegin(), s.cend()};
         setAttribute(MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, strides.size(), strides.data());
 
         auto id = testCaseTensor.getId();

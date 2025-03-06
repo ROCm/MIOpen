@@ -16,7 +16,7 @@ beautifulsoup4==4.12.3
     # via pydata-sphinx-theme
 breathe==4.35.0
     # via rocm-docs-core
-certifi==2024.2.2
+certifi==2024.7.4
     # via requests
 cffi==1.16.0
     # via
@@ -31,8 +31,12 @@ click==8.1.7
     #   sphinx-external-toc
 click-log==0.4.0
     # via doxysphinx
-cryptography==42.0.7
+contourpy==1.3.1
+    # via matplotlib
+cryptography==43.0.1
     # via pyjwt
+cycler==0.12.1
+    # via matplotlib
 deprecated==1.2.14
     # via pygithub
 docutils==0.21.2
@@ -41,10 +45,12 @@ docutils==0.21.2
     #   myst-parser
     #   pydata-sphinx-theme
     #   sphinx
-doxysphinx==3.3.8
+doxysphinx==3.3.12
     # via rocm-docs-core
 fastjsonschema==2.19.1
     # via rocm-docs-core
+fonttools==4.55.0
+    # via matplotlib
 gitdb==4.0.11
     # via gitpython
 gitpython==3.1.43
@@ -53,13 +59,15 @@ idna==3.7
     # via requests
 imagesize==1.4.1
     # via sphinx
-jinja2==3.1.4
+jinja2==3.1.5
     # via
     #   myst-parser
     #   sphinx
+kiwisolver==1.4.7
+    # via matplotlib
 libsass==0.22.0
     # via doxysphinx
-lxml==4.9.4
+lxml==5.2.1
     # via doxysphinx
 markdown-it-py==3.0.0
     # via
@@ -67,6 +75,8 @@ markdown-it-py==3.0.0
     #   myst-parser
 markupsafe==2.1.5
     # via jinja2
+matplotlib==3.9.2
+    # via doxysphinx
 mdit-py-plugins==0.4.1
     # via myst-parser
 mdurl==0.1.2
@@ -76,11 +86,17 @@ mpire==2.10.2
 myst-parser==3.0.1
     # via rocm-docs-core
 numpy==1.26.4
-    # via doxysphinx
+    # via
+    #   contourpy
+    #   doxysphinx
+    #   matplotlib
 packaging==24.0
     # via
+    #   matplotlib
     #   pydata-sphinx-theme
     #   sphinx
+pillow==11.0.0
+    # via matplotlib
 pycparser==2.22
     # via cffi
 pydata-sphinx-theme==0.15.2
@@ -95,14 +111,18 @@ pygments==2.18.0
     #   mpire
     #   pydata-sphinx-theme
     #   sphinx
-pyjson5==1.6.6
+pyjson5==1.6.7
     # via doxysphinx
 pyjwt[crypto]==2.8.0
     # via pygithub
 pynacl==1.5.0
     # via pygithub
-pyparsing==3.1.2
-    # via doxysphinx
+pyparsing==3.2.0
+    # via
+    #   doxysphinx
+    #   matplotlib
+python-dateutil==2.9.0.post0
+    # via matplotlib
 pyyaml==6.0.1
     # via
     #   myst-parser
@@ -112,8 +132,10 @@ requests==2.32.2
     # via
     #   pygithub
     #   sphinx
-rocm-docs-core[api-reference]==1.4.0
+rocm-docs-core[api-reference]==1.12.0
     # via -r requirements.in
+six==1.16.0
+    # via python-dateutil
 smmap==5.0.1
     # via gitdb
 snowballstemmer==2.2.0
@@ -155,7 +177,7 @@ sphinxcontrib-serializinghtml==1.1.10
     # via sphinx
 tomli==2.0.1
     # via sphinx
-tqdm==4.66.4
+tqdm==4.67.1
     # via mpire
 typing-extensions==4.11.0
     # via

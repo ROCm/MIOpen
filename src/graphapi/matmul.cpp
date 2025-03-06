@@ -107,7 +107,7 @@ void BackendMatmulDescriptor::getAttribute(miopenBackendAttributeName_t attribut
 OperationMatmulBuilder& OperationMatmulBuilder::setA(Tensor* A)
 {
     mOperationMatmul.mA = checkPtr(A);
-    if(mOperationMatmul.mA->getDimensions().size() < 2)
+    if(mOperationMatmul.mA->GetLengths().size() < 2)
         MIOPEN_THROW(miopenStatusBadParm);
     mASet = true;
     return *this;
@@ -115,7 +115,7 @@ OperationMatmulBuilder& OperationMatmulBuilder::setA(Tensor* A)
 OperationMatmulBuilder& OperationMatmulBuilder::setB(Tensor* B)
 {
     mOperationMatmul.mB = checkPtr(B);
-    if(mOperationMatmul.mB->getDimensions().size() < 2)
+    if(mOperationMatmul.mB->GetLengths().size() < 2)
         MIOPEN_THROW(miopenStatusBadParm);
     mBSet = true;
     return *this;
@@ -123,7 +123,7 @@ OperationMatmulBuilder& OperationMatmulBuilder::setB(Tensor* B)
 OperationMatmulBuilder& OperationMatmulBuilder::setC(Tensor* C)
 {
     mOperationMatmul.mC = checkPtr(C);
-    if(mOperationMatmul.mC->getDimensions().size() < 2)
+    if(mOperationMatmul.mC->GetLengths().size() < 2)
         MIOPEN_THROW(miopenStatusBadParm);
     mCSet = true;
     return *this;
@@ -160,9 +160,9 @@ OperationMatmul OperationMatmulBuilder::build()
     if(!mASet || !mBSet || !mCSet || !mMatmulSet)
         MIOPEN_THROW(miopenStatusBadParm);
 
-    auto& aDimensions = mOperationMatmul.mA->getDimensions();
-    auto& bDimensions = mOperationMatmul.mB->getDimensions();
-    auto& cDimensions = mOperationMatmul.mC->getDimensions();
+    auto& aDimensions = mOperationMatmul.mA->GetLengths();
+    auto& bDimensions = mOperationMatmul.mB->GetLengths();
+    auto& cDimensions = mOperationMatmul.mC->GetLengths();
 
     int aDimensionsCount = aDimensions.size();
     int bDimensionsCount = bDimensions.size();
@@ -171,14 +171,14 @@ OperationMatmul OperationMatmulBuilder::build()
     if(cDimensionsCount != std::max(aDimensionsCount, bDimensionsCount))
         MIOPEN_THROW(miopenStatusBadParm);
 
-    int Am = aDimensions[aDimensionsCount - 2];
-    int An = aDimensions[aDimensionsCount - 1];
+    size_t Am = aDimensions[aDimensionsCount - 2];
+    size_t An = aDimensions[aDimensionsCount - 1];
 
-    int Bn = bDimensions[bDimensionsCount - 2];
-    int Bk = bDimensions[bDimensionsCount - 1];
+    size_t Bn = bDimensions[bDimensionsCount - 2];
+    size_t Bk = bDimensions[bDimensionsCount - 1];
 
-    int Cm = cDimensions[cDimensionsCount - 2];
-    int Ck = cDimensions[cDimensionsCount - 1];
+    size_t Cm = cDimensions[cDimensionsCount - 2];
+    size_t Ck = cDimensions[cDimensionsCount - 1];
 
     // non-tranpose case:
     bool nt = (Am == Cm && An == Bn && Bk == Ck);
@@ -188,7 +188,7 @@ OperationMatmul OperationMatmulBuilder::build()
     if(!nt && !tt)
         MIOPEN_THROW(miopenStatusBadParm);
 
-    auto correctBroadcastedDims = [](int dim1, int dim2, int dimOut) -> bool {
+    auto correctBroadcastedDims = [](size_t dim1, size_t dim2, size_t dimOut) -> bool {
         if(dim1 == dim2 && dim2 == dimOut)
             return true;
         if(dim1 == 1)

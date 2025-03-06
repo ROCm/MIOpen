@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <algorithm>
 #include <numeric>
 #include <functional>

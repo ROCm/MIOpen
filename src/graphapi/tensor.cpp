@@ -27,6 +27,7 @@
 #include <miopen/algorithm.hpp>
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/errors.hpp>
+#include <nlohmann/json.hpp>
 
 namespace miopen {
 
@@ -39,9 +40,9 @@ TensorBuilder& TensorBuilder::setDataType(miopenDataType_t dataType) &
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setDim(const std::vector<int64_t>& dimensions) &
+TensorBuilder& TensorBuilder::setDim(const std::vector<std::size_t>& dimensions) &
 {
-    if(dimensions.empty() || miopen::any_of(dimensions, [](int64_t val) { return val <= 0; }))
+    if(dimensions.empty() || miopen::any_of(dimensions, [](std::size_t val) { return val <= 0; }))
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -51,9 +52,9 @@ TensorBuilder& TensorBuilder::setDim(const std::vector<int64_t>& dimensions) &
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setDim(std::vector<int64_t>&& dimensions) &
+TensorBuilder& TensorBuilder::setDim(std::vector<std::size_t>&& dimensions) &
 {
-    if(dimensions.empty() || miopen::any_of(dimensions, [](int64_t val) { return val <= 0; }))
+    if(dimensions.empty() || miopen::any_of(dimensions, [](std::size_t val) { return val <= 0; }))
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -63,9 +64,9 @@ TensorBuilder& TensorBuilder::setDim(std::vector<int64_t>&& dimensions) &
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setStride(const std::vector<int64_t>& strides) &
+TensorBuilder& TensorBuilder::setStride(const std::vector<std::size_t>& strides) &
 {
-    if(strides.empty() || miopen::any_of(strides, [](int64_t val) { return val <= 0; }))
+    if(strides.empty() || miopen::any_of(strides, [](std::size_t val) { return val <= 0; }))
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -75,9 +76,9 @@ TensorBuilder& TensorBuilder::setStride(const std::vector<int64_t>& strides) &
     return *this;
 }
 
-TensorBuilder& TensorBuilder::setStride(std::vector<int64_t>&& strides) &
+TensorBuilder& TensorBuilder::setStride(std::vector<std::size_t>&& strides) &
 {
-    if(strides.empty() || miopen::any_of(strides, [](int64_t val) { return val <= 0; }))
+    if(strides.empty() || miopen::any_of(strides, [](std::size_t val) { return val <= 0; }))
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -162,8 +163,8 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
         if(attributeType == MIOPEN_TYPE_INT64 && elementCount > 0)
         {
             mBuilder.setDim(
-                std::vector<int64_t>(static_cast<int64_t*>(arrayOfElements),
-                                     static_cast<int64_t*>(arrayOfElements) + elementCount));
+                std::vector<std::size_t>(static_cast<int64_t*>(arrayOfElements),
+                                         static_cast<int64_t*>(arrayOfElements) + elementCount));
             return;
         }
         else
@@ -175,8 +176,8 @@ void BackendTensorDescriptor::setAttribute(miopenBackendAttributeName_t attribut
         if(attributeType == MIOPEN_TYPE_INT64 && elementCount > 0)
         {
             mBuilder.setStride(
-                std::vector<int64_t>(static_cast<int64_t*>(arrayOfElements),
-                                     static_cast<int64_t*>(arrayOfElements) + elementCount));
+                std::vector<std::size_t>(static_cast<int64_t*>(arrayOfElements),
+                                         static_cast<int64_t*>(arrayOfElements) + elementCount));
             return;
         }
         else
@@ -243,7 +244,7 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_DATA_TYPE:
         if(attributeType == MIOPEN_TYPE_DATA_TYPE && requestedElementCount == 1)
         {
-            *static_cast<miopenDataType_t*>(arrayOfElements) = mDescriptor.getDataType();
+            *static_cast<miopenDataType_t*>(arrayOfElements) = mDescriptor.GetType();
             *elementCount                                    = 1;
             return;
         }
@@ -255,7 +256,7 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_DIMENSIONS:
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount >= 0)
         {
-            const auto& dimensions = mDescriptor.getDimensions();
+            const auto& dimensions = mDescriptor.GetLengths();
             *elementCount          = dimensions.size();
             std::copy_n(dimensions.begin(),
                         minimum(*elementCount, requestedElementCount),
@@ -270,7 +271,7 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
     case MIOPEN_ATTR_TENSOR_STRIDES:
         if(attributeType == MIOPEN_TYPE_INT64 && requestedElementCount >= 0)
         {
-            const auto& strides = mDescriptor.getStrides();
+            const auto& strides = mDescriptor.GetStrides();
             *elementCount       = strides.size();
             std::copy_n(strides.begin(),
                         minimum(*elementCount, requestedElementCount),
@@ -301,6 +302,20 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
 
     default: MIOPEN_THROW(miopenStatusBadParm);
     }
+}
+
+void to_json(nlohmann::json& json, const Tensor& tensor)
+{
+    json                                = dynamic_cast<const TensorDescriptor&>(tensor);
+    json[Tensor::JsonFields::Id]        = tensor.mId;
+    json[Tensor::JsonFields::IsVirtual] = tensor.mVirtual;
+}
+
+void from_json(const nlohmann::json& json, Tensor& tensor)
+{
+    json.get_to<TensorDescriptor>(tensor);
+    json.at(Tensor::JsonFields::Id).get_to(tensor.mId);
+    json.at(Tensor::JsonFields::IsVirtual).get_to(tensor.mVirtual);
 }
 
 } // namespace graphapi

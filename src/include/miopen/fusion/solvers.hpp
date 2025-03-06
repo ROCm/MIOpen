@@ -27,6 +27,7 @@
 #pragma once
 
 #include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/fusion.hpp>
 #include <miopen/fusion_plan.hpp>
 #include <utility>
@@ -82,6 +83,8 @@ struct ConvBiasActivAsm1x1U : FusionTunableSolver<PerformanceConfigConvBiasActiv
     IsValidPerformanceConfig(const FusionContext&,
                              const FusionDescription&,
                              const PerformanceConfigConvBiasActivAsm1x1U&) const override;
+    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
+                                         const FusionDescription&) const override;
 };
 
 using PerformanceConfigConvOclDirectFwdFused = LegacyPerformanceConfig;
@@ -108,6 +111,8 @@ struct ConvOclDirectFwdFused final : FusionTunableSolver<LegacyPerformanceConfig
     IsValidPerformanceConfig(const FusionContext&,
                              const FusionDescription&,
                              const PerformanceConfigConvOclDirectFwdFused&) const override;
+    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
+                                         const FusionDescription& problem) const override;
 };
 
 struct PerformanceConfigConvCKIgemmFwdBiasActivFused
@@ -262,6 +267,8 @@ struct ConvBinWinogradRxSFused final : FusionSolverBase
                  const FusionDescription& fdesc_problem) const override;
     MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(
         const FusionContext& context, const FusionDescription& fdesc_problem) const override;
+    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
+                                         const FusionDescription&) const override;
 };
 
 struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
@@ -275,6 +282,8 @@ struct ConvBinWinogradRxSf2x3g1Fused final : FusionSolverBase
                                               const FusionDescription& problem) const override;
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const FusionContext& context, const FusionDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
+                                         const FusionDescription&) const override;
 };
 
 template <uint32_t Winodata, uint32_t Winofilter>
@@ -285,30 +294,18 @@ struct ConvWinoFuryRxSFused final : FusionSolverBase
         return GetSolverDbId<ConvWinoFuryRxSFused<Winodata, Winofilter>>();
     }
 
-    MIOPEN_INTERNALS_EXPORT bool IsApplicable(const FusionContext&,
-                                              const FusionDescription&) const override;
+    bool IsApplicable(const FusionContext&, const FusionDescription&) const override;
     bool IsDynamic() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT float GetWti(const FusionContext&,
-                                         const FusionDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(const FusionContext&,
-                                                    const FusionDescription&) const override;
+    float GetWti(const FusionContext&, const FusionDescription&) const override;
+    size_t GetWorkspaceSize(const FusionContext&, const FusionDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution GetSolution(const FusionContext&,
-                                                     const FusionDescription&) const override;
+    ConvSolution GetSolution(const FusionContext&, const FusionDescription&) const override;
 };
 
-// Suppress misleading clang warnings
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-template-vtables"
-#endif
-
+#ifndef CONV_WINO_FURY_RXS_CPP
 extern template struct ConvWinoFuryRxSFused<2, 3>;
 // extern template struct ConvWinoFuryRxSFused<3, 2>;
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
 #endif
 
 struct BnFwdInferActivationFused final : FusionSolverBase

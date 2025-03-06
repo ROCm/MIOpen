@@ -51,13 +51,13 @@ private:
 public:
     GMockNode()
         : mIn(std::make_shared<Tensor>(miopenFloat,
-                                       std::vector<int64_t>{8, 64, 64},
-                                       std::vector<int64_t>{64 * 64, 64, 1},
+                                       std::vector<std::size_t>{8, 64, 64},
+                                       std::vector<std::size_t>{64 * 64, 64, 1},
                                        ++id,
                                        false)),
           mOut(std::make_shared<Tensor>(miopenFloat,
-                                        std::vector<int64_t>{8, 64, 64},
-                                        std::vector<int64_t>{64 * 64, 64, 1},
+                                        std::vector<std::size_t>{8, 64, 64},
+                                        std::vector<std::size_t>{64 * 64, 64, 1},
                                         ++id,
                                         false))
     {
@@ -105,7 +105,7 @@ using miopen::graphapi::GTestGraphApiExecute;
 
 } // namespace
 
-TEST(GraphApiOperationGraphDescriptor, CFunctions)
+TEST(CPU_GraphApiOperationGraphDescriptor_NONE, CFunctions)
 {
     miopenHandle_t handle = nullptr;
     auto status           = miopenCreate(&handle);

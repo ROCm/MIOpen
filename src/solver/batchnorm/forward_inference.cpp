@@ -39,16 +39,19 @@ namespace solver {
 namespace batchnorm {
 
 bool BnFwdInference::IsApplicable(const ExecutionContext&,
-                                  const miopen::batchnorm::ProblemDescription& problem) const
+                                  const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-    if(problem.IsLayoutNHWC())
+    if(bn_problem.IsLayoutNHWC())
         return false;
-    if(problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
+    if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
         return false;
-    if(!(problem.IsFp32() or problem.IsFp16()))
+    if(!(bn_problem.IsFp32() or bn_problem.IsFp16() or bn_problem.IsBFp16()))
         return false;
-    if(!problem.Is2D())
+    if(!bn_problem.Is2D())
         return false;
+    if(!IsOCLInferTypeValid(bn_problem))
+        return false;
+
     return true;
 }
 
@@ -57,20 +60,26 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
 {
     const auto& handle = context.GetStream();
 
-    bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
-    if(problem.GetXDesc().GetType() == miopenHalf &&
-       problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
+    bool bfpmixparm   = false;
+    bool bbfpmixparam = false;
+    bool bfp16parm    = false;
+    bool bfp32parm    = true;
+    if(problem.GetXDesc().GetType() == miopenHalf && problem.GetBnScale().GetType() == miopenHalf)
     {
         bfp16parm = true;
         bfp32parm = false;
     }
     else if(problem.GetXDesc().GetType() == miopenHalf &&
-            problem.GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+            problem.GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
         bfp32parm  = false;
+    }
+    else if(problem.GetXDesc().GetType() == miopenBFloat16 &&
+            problem.GetBnScale().GetType() == miopenFloat)
+    {
+        bbfpmixparam = true;
+        bfp32parm    = false;
     }
 
     int n, c, h, w;
@@ -107,11 +116,13 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+            {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
             {"MIO_BN_GRP0", xlocalsize},
             {"MIO_BN_GRP1", ylocalsize},
             {"MIO_BN_GRP2", zlocalsize},
-            {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
+            {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
+            {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});

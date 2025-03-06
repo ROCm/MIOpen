@@ -160,8 +160,6 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
         {"ROCM_METADATA_VERSION", conv_ctx.rmv.UseV3() ? 5 : 4},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
-    const auto x        = conv_problem.GetWeightsWidth();
-    const auto y        = conv_problem.GetWeightsHeight();
 
     kernel.kernel_name = "miopenSp3AsmConvRxSU_CBA";
     if(conv_problem.GetKernelStrideH() == 1)
@@ -173,10 +171,6 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
         kernel.kernel_file = "conv_3x3_wheel_alpha_v9_2_7_stride_2.s";
     }
     result.construction_params.push_back(kernel);
-    if(x == 3 && y == 3)
-        result.weight = 100;
-    else
-        result.weight = 5;
     const auto& desc    = *problem.fusion_plan_desc;
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
     const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
@@ -275,7 +269,18 @@ ConvSolution ConvBinWinogradRxSFused::GetSolution(const FusionContext& context,
     };
     return result;
 }
+float ConvBinWinogradRxSFused::GetWti(const FusionContext&, const FusionDescription& problem) const
+{
+    /// \ref Negative WTI values
 
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    const auto x            = conv_problem.GetWeightsWidth();
+    const auto y            = conv_problem.GetWeightsHeight();
+    if(x == 3 && y == 3)
+        return wti_approximate_worst * .005f;
+    else
+        return wti_approximate_worst * .475f;
+}
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

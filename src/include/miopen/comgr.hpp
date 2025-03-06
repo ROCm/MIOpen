@@ -36,12 +36,6 @@
 namespace miopen {
 namespace comgr {
 
-void BuildHip(const std::string& name,
-              std::string_view text,
-              const std::string& options,
-              const miopen::TargetProperties& target,
-              std::vector<char>& binary);
-
 void BuildOcl(const std::string& name,
               std::string_view text,
               const std::string& options,

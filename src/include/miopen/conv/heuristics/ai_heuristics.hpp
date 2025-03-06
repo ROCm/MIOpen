@@ -37,7 +37,6 @@
 #include <queue>
 #include <fstream>
 #include <miopen/miopen.h>
-#include <miopen/solver.hpp>
 #include <nlohmann/json.hpp>
 #include <miopen/db_path.hpp>
 #include <miopen/any_solver.hpp>
@@ -82,6 +81,7 @@ MIOPEN_INTERNALS_EXPORT std::vector<uint64_t> PredictSolver(const conv::ProblemD
 namespace tuning {
 struct Metadata
 {
+    std::size_t predict_type;
     std::unordered_map<std::string, std::size_t> num_tuning_params;
     std::unordered_map<std::string, std::string> tuning_decodings;
     Metadata(const std::string& arch, const std::string& solver);

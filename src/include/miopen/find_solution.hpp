@@ -52,7 +52,7 @@ namespace solver {
 
 template <class Solver, class Context, class Problem, class Db>
 auto FindSolutionImpl(rank<1>,
-                      Solver s,
+                      const Solver& s,
                       const Context& context,
                       const Problem& problem,
                       Db&& db,
@@ -148,7 +148,7 @@ auto FindSolutionImpl(rank<1>,
 
 template <class Solver, class Context, class Problem, class Db>
 auto FindSolutionImpl(rank<0>,
-                      Solver s,
+                      const Solver& s,
                       const Context& context,
                       const Problem& problem,
                       Db&&,
@@ -200,7 +200,7 @@ auto GetInvokeFactoryImpl(
 /// Could take long if an exhaustive search is requested/performed.
 /// May read/write perfDb.
 template <class Solver, class Context, class Problem, class Db>
-ConvSolution FindSolution(Solver s,
+ConvSolution FindSolution(const Solver& s,
                           const Context& context,
                           const Problem& problem,
                           Db&& db,
@@ -261,6 +261,13 @@ struct SolverContainer
                 receiver(solver);
             },
             Solvers{}...);
+    }
+
+    ///\todo: remove when AnySolver would be able to work with non-conv solvers
+    template <class Functor>
+    void Foreach(Functor&& receiver)
+    {
+        miopen::each_args([&](auto solver) { receiver(solver); }, Solvers{}...);
     }
 
     // Search for all applicable solutions among many solvers
@@ -388,25 +395,25 @@ struct SolverContainer
     }
 
     template <class Context, class Problem>
-    std::vector<std::pair<std::string, size_t>>
-    GetWorkspaceSizes(const Context& ctx,
-                      const Problem& problem,
-                      std::size_t limit = std::numeric_limits<std::size_t>::max()) const
+    std::vector<std::pair<std::string, size_t>> GetWorkspaceSizes(
+        const Context& ctx, const Problem& problem, const bool simple_primitive = false) const
     {
         std::vector<std::pair<std::string, size_t>> res;
         const auto find_only = GetEnvFindOnlySolver();
-        std::size_t count    = 0;
         miopen::each_args(
             [&](auto solver) {
-                if(count >= limit)
-                    return;
-
                 if(find_only &&
                    (std::find(find_only->begin(), find_only->end(), Id{solver.SolverDbId()}) ==
                     find_only->end()))
                 { // Do nothing (and keep silence for the sake of Tuna), just skip.
                 }
-                else if(!solver.MayNeedWorkspace())
+                // The following optimization is required to avoid checks
+                // for solvers that have slow IsApplicable() and do not
+                // require workspace (like MLIR convolutions). However we
+                // do not want to use it for simple primitives, for example,
+                // the ones that ExecutePrimitive() which uses the first applicable
+                // solver:
+                else if(!simple_primitive && !solver.MayNeedWorkspace())
                 {
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (no workspace required)");
                 }
@@ -422,7 +429,6 @@ struct SolverContainer
                 }
                 else
                 {
-                    ++count;
                     auto sz = solver.GetWorkspaceSize(ctx, problem);
                     res.push_back(std::make_pair(solver.SolverDbId(), sz));
                     MIOPEN_LOG_I2(solver.SolverDbId() << ": " << sz);
@@ -430,41 +436,6 @@ struct SolverContainer
             },
             Solvers{}...);
         return res;
-    }
-
-    // Search for all applicable solutions among many solvers
-    template <class Context, class Problem>
-    bool IsAnySolverApplicable(const Context& ctx, const Problem& problem) const
-    {
-        const auto find_only = GetEnvFindOnlySolver();
-        auto found           = false;
-
-        miopen::each_args(
-            [&](auto solver) {
-                if(found || (find_only && (std::find(find_only->begin(),
-                                                     find_only->end(),
-                                                     Id{solver.SolverDbId()}) == find_only->end())))
-                    return;
-
-                // For better performance, check IsDynamic() first, because
-                // it is much faster than IsApplicable().
-                if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
-                {
-                    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
-                    return;
-                }
-
-                if(solver.IsApplicable(ctx, problem))
-                {
-                    found = true;
-                    return;
-                }
-
-                MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
-            },
-            Solvers{}...);
-
-        return found;
     }
 
     template <class Problem>

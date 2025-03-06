@@ -25,149 +25,87 @@
  *******************************************************************************/
 
 #include "t5layernorm.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace t5layernorm {
 
-std::string GetFloatArg()
-{
-    const auto& tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct T5LayerNormTestFloat : T5LayerNormTest<float>
+struct GPU_T5LayerNormTest_FP32 : T5LayerNormFwdTest<float>
 {
 };
 
-struct T5LayerNormTestHalf : T5LayerNormTest<half_float::half>
+struct GPU_T5LayerNormTest_FP16 : T5LayerNormFwdTest<half_float::half>
 {
 };
 
-struct T5LayerNormTestBFloat16 : T5LayerNormTest<bfloat16>
+struct GPU_T5LayerNormTest_BFP16 : T5LayerNormFwdTest<bfloat16>
 {
 };
 
-struct T5LayerNormBwdTestFloat : T5LayerNormBwdTest<float>
+struct GPU_T5LayerNormBwdTest_FP32 : T5LayerNormBwdTest<float>
 {
 };
 
-struct T5LayerNormBwdTestHalf : T5LayerNormBwdTest<half_float::half>
+struct GPU_T5LayerNormBwdTest_FP16 : T5LayerNormBwdTest<half_float::half>
 {
 };
 
-struct T5LayerNormBwdTestBFloat16 : T5LayerNormBwdTest<bfloat16>
+struct GPU_T5LayerNormBwdTest_BFP16 : T5LayerNormBwdTest<bfloat16>
 {
 };
 
 } // namespace t5layernorm
 using namespace t5layernorm;
 
-TEST_P(T5LayerNormTestFloat, T5LayerNormTestFw)
+TEST_P(GPU_T5LayerNormTest_FP32, T5LayerNormFwdTest)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(T5LayerNormTestHalf, T5LayerNormTestFw)
+TEST_P(GPU_T5LayerNormTest_FP16, T5LayerNormFwdTest)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(T5LayerNormTestBFloat16, T5LayerNormTestFw)
+TEST_P(GPU_T5LayerNormTest_BFP16, T5LayerNormFwdTest)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(T5LayerNormBwdTestFloat, T5LayerNormBwdTestFw)
+TEST_P(GPU_T5LayerNormBwdTest_FP32, T5LayerNormBwdTest)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--float")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(T5LayerNormBwdTestHalf, T5LayerNormBwdTestFw)
+TEST_P(GPU_T5LayerNormBwdTest_FP16, T5LayerNormBwdTest)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--half")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(T5LayerNormBwdTestBFloat16, T5LayerNormBwdTestFw)
+TEST_P(GPU_T5LayerNormBwdTest_BFP16, T5LayerNormBwdTest)
 {
-    auto TypeArg = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(env::enabled(MIOPEN_TEST_ALL) && GetFloatArg() == "--bfloat16")
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_T5LayerNormTest_FP32,
                          testing::ValuesIn(T5LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormTestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_T5LayerNormTest_FP16,
                          testing::ValuesIn(T5LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_T5LayerNormTest_BFP16,
                          testing::ValuesIn(T5LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormBwdTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_T5LayerNormBwdTest_FP32,
                          testing::ValuesIn(T5LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormBwdTestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_T5LayerNormBwdTest_FP16,
                          testing::ValuesIn(T5LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(T5LayerNormTestSet,
-                         T5LayerNormBwdTestBFloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_T5LayerNormBwdTest_BFP16,
                          testing::ValuesIn(T5LayerNormTestConfigs()));

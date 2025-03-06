@@ -63,12 +63,23 @@
 #endif
 #endif
 
+#if MIOPEN_USE_HIPBLASLT
+#include <hipblas/hipblas.h>
+
+using hipblasLtHandle_t = void*;
+extern "C" hipblasStatus_t hipblasLtDestroy(hipblasLtHandle_t handle);
+#endif
+
 namespace miopen {
 
 struct HandleImpl;
 
 #if MIOPEN_USE_ROCBLAS
 using rocblas_handle_ptr = MIOPEN_MANAGE_PTR(rocblas_handle, rocblas_destroy_handle);
+#endif
+
+#if MIOPEN_USE_HIPBLASLT
+using hipblasLt_handle_ptr = MIOPEN_MANAGE_PTR(hipblasLtHandle_t, hipblasLtDestroy);
 #endif
 
 struct MIOPEN_EXPORT Handle : miopenHandle
@@ -78,7 +89,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     Handle();
     Handle(miopenAcceleratorQueue_t stream);
     Handle(Handle&&) noexcept;
-    ~Handle();
+    virtual ~Handle();
 
     miopenAcceleratorQueue_t GetStream() const;
     void SetStream(miopenAcceleratorQueue_t streamID) const;
@@ -111,9 +122,18 @@ struct MIOPEN_EXPORT Handle : miopenHandle
 
     auto GetKernels(const std::string& algorithm, const std::string& network_config) const
     {
-        return this->GetKernelsImpl(algorithm, network_config) |
-               boost::adaptors::transformed([this](Kernel k) { return this->Run(k); });
+        auto kernels = this->GetKernelsImpl(algorithm, network_config);
+
+        std::vector<KernelInvoke> kernelInvokers;
+        kernelInvokers.resize(kernels.size());
+        std::transform(kernels.begin(),
+                       kernels.end(),
+                       kernelInvokers.begin(),
+                       [this](const Kernel& k) { return this->Run(k); });
+
+        return kernelInvokers;
     }
+
     KernelInvoke GetKernel(const std::string& algorithm, const std::string& network_config) const
     {
         auto ks = this->GetKernelsImpl(algorithm, network_config);
@@ -126,8 +146,8 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     }
 
     KernelInvoke Run(Kernel k, bool coop_launch = false) const;
-    const std::vector<Kernel>& GetKernelsImpl(const std::string& algorithm,
-                                              const std::string& network_config) const;
+    std::vector<Kernel> GetKernelsImpl(const std::string& algorithm,
+                                       const std::string& network_config) const;
 
     Program LoadProgram(const fs::path& program_name,
                         std::string params,
@@ -145,7 +165,7 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     std::size_t GetGlobalMemorySize() const;
     std::size_t GetImage3dMaxWidth() const;
     std::size_t GetWavefrontWidth() const;
-    std::size_t GetMaxComputeUnits() const;
+    virtual std::size_t GetMaxComputeUnits() const;
     std::size_t GetMaxHardwareComputeUnits() const
     {
         const std::size_t num_cu = this->GetMaxComputeUnits();
@@ -154,10 +174,10 @@ struct MIOPEN_EXPORT Handle : miopenHandle
     }
 
     std::size_t m_MaxMemoryAllocSizeCached = 0;
-    std::size_t GetMaxMemoryAllocSize();
-    bool CooperativeLaunchSupported() const;
+    virtual std::size_t GetMaxMemoryAllocSize();
+    virtual bool CooperativeLaunchSupported() const;
 
-    std::string GetDeviceName() const;
+    virtual std::string GetDeviceName() const;
     const TargetProperties& GetTargetProperties() const;
 
 private:
@@ -243,7 +263,13 @@ public:
     {
         invokers.Register({config, solver}, invoker);
         if(algo.has_value())
-            invokers.SetAsFound1_0(config, *algo, solver);
+            SetAsFound1_0(config, *algo, solver);
+    }
+
+    void
+    SetAsFound1_0(const NetworkConfig& config, const AlgorithmName& algo, const std::string& solver)
+    {
+        invokers.SetAsFound1_0(config, algo, solver);
     }
 
     std::optional<Invoker> GetInvoker(const NetworkConfig& config,
@@ -275,12 +301,19 @@ public:
 
 #if MIOPEN_USE_ROCBLAS
     const rocblas_handle_ptr& rhandle() const;
+#endif
+#if MIOPEN_USE_HIPBLASLT
+    const hipblasLt_handle_ptr& HipblasLtHandle() const;
+#endif
 
 private:
+#if MIOPEN_USE_ROCBLAS
     rocblas_handle_ptr CreateRocblasHandle(miopenAcceleratorQueue_t streamID) const;
-#else
-private:
 #endif
+#if MIOPEN_USE_HIPBLASLT
+    hipblasLt_handle_ptr CreateHipblasLtHandle() const;
+#endif
+
     InvokerCache invokers;
 };
 

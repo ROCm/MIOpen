@@ -34,9 +34,7 @@
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_BOOL(IMPLICITGEMM_TESTING_ENV)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace env = miopen::env;
 
@@ -44,19 +42,9 @@ namespace test_conv_for_implicit_gemm {
 
 static bool SkipTest()
 {
-    if(!MIOPEN_TEST_ALL)
-        return false;
     if(env::enabled(IMPLICITGEMM_TESTING_ENV))
         return false;
     return true;
-}
-
-static bool IsTestRunWith(const char* float_arg)
-{
-    assert(float_arg != nullptr);
-    if(!MIOPEN_TEST_ALL)
-        return true; // standalone run
-    return env::enabled(MIOPEN_TEST_ALL) && env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg;
 }
 
 void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
@@ -76,11 +64,11 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class ConfigWithHalf : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_ConvImplicitGemm_FP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
-class ConfigWithBF16 : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_ConvImplicitGemm_BFP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -90,8 +78,8 @@ void Run2dDriver(miopenDataType_t prec)
 
     switch(prec)
     {
-    case miopenHalf: params = ConfigWithHalf::GetParam(); break;
-    case miopenBFloat16: params = ConfigWithBF16::GetParam(); break;
+    case miopenHalf: params = GPU_ConvImplicitGemm_FP16::GetParam(); break;
+    case miopenBFloat16: params = GPU_ConvImplicitGemm_BFP16::GetParam(); break;
     case miopenFloat:
     case miopenInt8:
     case miopenInt32:
@@ -115,8 +103,9 @@ void Run2dDriver(miopenDataType_t prec)
         });
 
         testing::internal::CaptureStderr();
-        test_drive<conv2d_driver>(ptrs.size(), ptrs.data());
+        test_drive<conv2d_driver>(ptrs.size(), ptrs.data(), "test_conv2d");
         auto capture = testing::internal::GetCapturedStderr();
+        EXPECT_FALSE(capture.find("No suitable algorithm was found") != std::string::npos);
         std::cout << capture;
     }
 }
@@ -125,10 +114,12 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
     if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103"))
+       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
+       miopen::StartsWith(devName, "gfx110"))
+    {
         return true;
-    else
-        return false;
+    }
+    return false;
 }
 
 std::vector<TestCase> GetTestCases(const std::string& precision)
@@ -143,7 +134,7 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
         "MIOPEN_DEBUG_CONV_FFT=0",
     };
 
-    std::string flags = "test_conv2d --verbose";
+    std::string flags = " --verbose ";
 
     std::string psd0 = " --pads_strides_dilations 0 0 2 2 1 1";
     std::string psd1 = " --pads_strides_dilations 0 0 1 1 1 1";
@@ -152,104 +143,101 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
     std::string psd4 = " --pads_strides_dilations 1 1 1 1 1 1";
     std::string psd5 = " --pads_strides_dilations 2 2 2 2 1 1";
 
-    std::string grep =
-        "| grep -v \"No suitable algorithm was found to execute the required convolution\"";
-
     const std::vector<TestCase> test_cases = {
 
         // clang-format off
-        TestCase{env, precision + flags + "--input 64 16 28 28 --weights 192 16 3 3 " + psd0 + grep},
-        TestCase{env, precision + flags + "--input 64 16 14 14 --weights 160 16 3 3 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 16 7 7 --weights 128 16 3 3 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 16 55 55 --weights 96 16 1 7 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 16 28 28 --weights 64 16 1 7 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 16 14 14 --weights 32 16 1 7 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 28 28 --weights 192 32 3 3 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 14 14 --weights 160 32 3 3 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 7 7 --weights 128 32 3 3 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 55 55 --weights 96 32 1 7 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 28 28 --weights 64 32 1 7 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 14 14 --weights 32 32 1 7 " + psd0 + grep},
+        TestCase{env, precision + flags + "--input 64 16 28 28 --weights 192 16 3 3 " + psd0},
+        TestCase{env, precision + flags + "--input 64 16 14 14 --weights 160 16 3 3 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 16 7 7 --weights 128 16 3 3 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 16 55 55 --weights 96 16 1 7 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 16 28 28 --weights 64 16 1 7 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 16 14 14 --weights 32 16 1 7 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 32 28 28 --weights 192 32 3 3 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 32 14 14 --weights 160 32 3 3 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 32 7 7 --weights 128 32 3 3 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 32 55 55 --weights 96 32 1 7 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 32 28 28 --weights 64 32 1 7 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 32 14 14 --weights 32 32 1 7 " + psd0},
 
-        TestCase{env, precision + flags +   "--input 64 64 56 56 --weights 256 64 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 64 56 56 --weights 64 64 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 64 73 73 --weights 80 64 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 64 56 56 --weights 64 64 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 128 55 55 --weights 16 128 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 128 28 28 --weights 16 128 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 128 14 14 --weights 16 128 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 128 7 7 --weights 16 128 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 16 64 56 56 --weights 256 64 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 16 64 56 56 --weights 64 64 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 16 64 73 73 --weights 80 64 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 16 64 56 56 --weights 64 64 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 16 128 55 55 --weights 16 128 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 16 128 28 28 --weights 16 128 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 16 128 7 7 --weights 16 128 1 1 " + psd1 + grep},
+        TestCase{env, precision + flags +   "--input 64 64 56 56 --weights 256 64 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 64 56 56 --weights 64 64 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 64 73 73 --weights 80 64 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 64 56 56 --weights 64 64 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 128 55 55 --weights 16 128 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 128 28 28 --weights 16 128 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 128 14 14 --weights 16 128 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 128 7 7 --weights 16 128 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 16 64 56 56 --weights 256 64 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 16 64 56 56 --weights 64 64 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 16 64 73 73 --weights 80 64 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 16 64 56 56 --weights 64 64 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 16 128 55 55 --weights 16 128 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 16 128 28 28 --weights 16 128 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 16 128 7 7 --weights 16 128 1 1 " + psd1},
 
-        TestCase{env, precision + flags +   "--input 64 64 55 55 --weights 16 128 1 1 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 128 28 28 --weights 16 128 1 1 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 128 14 14 --weights 16 128 1 1 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 128 7 7 --weights 16 128 1 1 " + psd0 + grep},
+        TestCase{env, precision + flags +   "--input 64 64 55 55 --weights 16 128 1 1 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 128 28 28 --weights 16 128 1 1 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 128 14 14 --weights 16 128 1 1 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 128 7 7 --weights 16 128 1 1 " + psd0},
 
-        TestCase{env, precision + flags +   "--input 64 128 28 28 --weights 512 128 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 160 73 73 --weights 64 160 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 192 35 35 --weights 32 192 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 192 35 35 --weights 48 192 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 192 35 35 --weights 64 192 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 192 28 28 --weights 16 192 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 192 28 28 --weights 32 192 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 192 28 28 --weights 64 192 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 192 28 28 --weights 96 192 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 256 35 35 --weights 48 256 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 256 35 35 --weights 64 256 1 1 " + psd1 + grep},
+        TestCase{env, precision + flags +   "--input 64 128 28 28 --weights 512 128 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 160 73 73 --weights 64 160 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 192 35 35 --weights 32 192 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 192 35 35 --weights 48 192 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 192 35 35 --weights 64 192 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 192 28 28 --weights 16 192 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 192 28 28 --weights 32 192 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 192 28 28 --weights 64 192 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 192 28 28 --weights 96 192 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 256 35 35 --weights 48 256 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 256 35 35 --weights 64 256 1 1 " + psd1},
 
-        TestCase{env, precision + flags +   "--input 64 256 56 56 --weights 128 256 1 1 " + psd0 + grep},
-        TestCase{env, precision + flags +   "--input 64 256 56 56 --weights 512 256 1 1 " + psd0 + grep},
+        TestCase{env, precision + flags +   "--input 64 256 56 56 --weights 128 256 1 1 " + psd0},
+        TestCase{env, precision + flags +   "--input 64 256 56 56 --weights 512 256 1 1 " + psd0},
 
 
-        TestCase{env, precision + flags +   "--input 64 256 56 56 --weights 64 256 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 256 28 28 --weights 128 256 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 256 28 28 --weights 32 256 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 256 28 28 --weights 64 256 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 288 35 35 --weights 48 288 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 288 35 35 --weights 64 288 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 384 35 35 --weights 192 384 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 384 35 35 --weights 64 384 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 384 35 35 --weights 96 384 1 1 " + psd1 + grep},
+        TestCase{env, precision + flags +   "--input 64 256 56 56 --weights 64 256 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 256 28 28 --weights 128 256 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 256 28 28 --weights 32 256 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 256 28 28 --weights 64 256 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 288 35 35 --weights 48 288 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 288 35 35 --weights 64 288 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 384 35 35 --weights 192 384 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 384 35 35 --weights 64 384 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 384 35 35 --weights 96 384 1 1 " + psd1},
 
-        TestCase{env, precision + flags +   "--input 64 480 14 14 --weights 16 480 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 480 14 14 --weights 192 480 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 480 14 14 --weights 64 480 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 480 14 14 --weights 96 480 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 512 28 28 --weights 128 512 1 1 " + psd1 + grep},
+        TestCase{env, precision + flags +   "--input 64 480 14 14 --weights 16 480 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 480 14 14 --weights 192 480 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 480 14 14 --weights 64 480 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 480 14 14 --weights 96 480 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 512 28 28 --weights 128 512 1 1 " + psd1},
 
-        TestCase{env, precision + flags +   "--input 64 512 28 28 --weights 256 512 1 1 " + psd0 + grep},
+        TestCase{env, precision + flags +   "--input 64 512 28 28 --weights 256 512 1 1 " + psd0},
 
-        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 112 512 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 128 512 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 144 512 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 160 512 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 24 512 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 32 512 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 64 512 1 1 " + psd1 + grep},
+        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 112 512 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 128 512 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 144 512 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 160 512 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 24 512 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 32 512 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 64 512 14 14 --weights 64 512 1 1 " + psd1},
 
-        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 32 832 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 192 832 1 1 " + psd1 + grep},
-        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 128 832 1 1 " + psd1 + grep},
+        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 32 832 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 192 832 1 1 " + psd1},
+        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 128 832 1 1 " + psd1},
 
-        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 32 832 1 1 " + psd3 + grep},
-        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 192 832 1 1 " + psd3 + grep},
-        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 128 832 1 1 " + psd3 + grep},
-        TestCase{env, precision + flags +   "--input 16 2048 7 7 --weights 192 2048 1 1 " + psd3 + grep},
+        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 32 832 1 1 " + psd3},
+        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 192 832 1 1 " + psd3},
+        TestCase{env, precision + flags +   "--input 128 832 7 7 --weights 128 832 1 1 " + psd3},
+        TestCase{env, precision + flags +   "--input 16 2048 7 7 --weights 192 2048 1 1 " + psd3},
 
-        TestCase{env, precision + flags +   "--input 64 32 28 28 --weights 192 32 3 3 " + psd2 + grep},
-        TestCase{env, precision + flags +   "--input 8 16 14 14 --weights 32 16 1 1 " + psd4 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 14 14 --weights 192 32 3 3 " + psd2 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 7 7 --weights 192 32 3 3 " + psd2 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 28 28 --weights 192 32 3 3 " + psd5 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 14 14 --weights 192 32 3 3 " + psd5 + grep},
-        TestCase{env, precision + flags +   "--input 64 32 7 7 --weights 192 32 3 3 " + psd5 + grep}
+        TestCase{env, precision + flags +   "--input 64 32 28 28 --weights 192 32 3 3 " + psd2},
+        TestCase{env, precision + flags +   "--input 8 16 14 14 --weights 32 16 1 1 " + psd4},
+        TestCase{env, precision + flags +   "--input 64 32 14 14 --weights 192 32 3 3 " + psd2},
+        TestCase{env, precision + flags +   "--input 64 32 7 7 --weights 192 32 3 3 " + psd2},
+        TestCase{env, precision + flags +   "--input 64 32 28 28 --weights 192 32 3 3 " + psd5},
+        TestCase{env, precision + flags +   "--input 64 32 14 14 --weights 192 32 3 3 " + psd5},
+        TestCase{env, precision + flags +   "--input 64 32 7 7 --weights 192 32 3 3 " + psd5}
     };
 
     return test_cases ;
@@ -259,10 +247,10 @@ std::vector<TestCase> GetTestCases(const std::string& precision)
 
 using namespace test_conv_for_implicit_gemm;
 
-TEST_P(ConfigWithBF16, Test_conv_for_implicit_gemm_bf16)
+TEST_P(GPU_ConvImplicitGemm_BFP16, Test_conv_for_implicit_gemm_bf16)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--bf16"))
+    if(IsTestSupportedForDevice(handle) && !SkipTest())
     {
         Run2dDriver(miopenBFloat16);
     }
@@ -272,10 +260,10 @@ TEST_P(ConfigWithBF16, Test_conv_for_implicit_gemm_bf16)
     }
 };
 
-TEST_P(ConfigWithHalf, Test_conv_for_implicit_gemm_half)
+TEST_P(GPU_ConvImplicitGemm_FP16, Test_conv_for_implicit_gemm_half)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
+    if(IsTestSupportedForDevice(handle) && !SkipTest())
     {
         Run2dDriver(miopenHalf);
     }
@@ -285,10 +273,11 @@ TEST_P(ConfigWithHalf, Test_conv_for_implicit_gemm_half)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemm,
-                             ConfigWithBF16,
-                             testing::Values(GetTestCases("--bf16")));
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemm,
-                             ConfigWithHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                             GPU_ConvImplicitGemm_BFP16,
+                             testing::Values(GetTestCases("--bfloat16")));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                             GPU_ConvImplicitGemm_FP16,
                              testing::Values(GetTestCases("--half")));

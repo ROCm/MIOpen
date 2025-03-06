@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <gtest/gtest.h>
+#include <gtest/gtest_common.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/miopen.h>
 #include <miopen/search_options.hpp>
@@ -40,15 +41,23 @@
 
 namespace cba_find2_infer {
 
-struct ConvBiasActivFind2InferTestFloat : ConvBiasActivInferFind2Test<float>
+bool IsTestSupportedForDevice()
+{
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    // gfx120X is not enabled due to WORKAROUND_SWDEV_479810
+    using d_mask = disabled<Gpu::None>;
+    return ::IsTestSupportedForDevMask<d_mask, e_mask>();
+}
+
+struct GPU_ConvBiasActivFind2Infer_FP32 : ConvBiasActivInferFind2Test<float>
 {
 };
 
-struct ConvBiasActivFind2InferTestFloatFusionFind : ConvBiasActivInferFind2Test<float>
+struct GPU_ConvBiasActivFind2InferFusionFind_FP32 : ConvBiasActivInferFind2Test<float>
 {
 };
 
-struct ConvBiasActivFind2InferTestHalf : ConvBiasActivInferFind2Test<half_float::half>
+struct GPU_ConvBiasActivFind2Infer_FP16 : ConvBiasActivInferFind2Test<half_float::half>
 {
 };
 
@@ -108,45 +117,50 @@ bool SkipTest() { return get_handle_xnack(); }
 } // namespace cba_find2_infer
 using namespace cba_find2_infer;
 
-TEST_P(ConvBiasActivFind2InferTestFloat, ConvBiasActivAsm1x1UFind2Float)
+TEST_P(GPU_ConvBiasActivFind2Infer_FP32, ConvBiasActivAsm1x1UFind2Float)
 {
     RunTunableSolver<miopen::solver::fusion::ConvBiasActivAsm1x1U>(
         fused_problem, invoke_params, conv_config, test_skipped);
 }
-TEST_P(ConvBiasActivFind2InferTestFloat, ConvOclDirectFwdFind2Fused)
+TEST_P(GPU_ConvBiasActivFind2Infer_FP32, ConvOclDirectFwdFind2Fused)
 {
     RunTunableSolver<miopen::solver::fusion::ConvOclDirectFwdFused>(
         fused_problem, invoke_params, conv_config, test_skipped);
 }
-TEST_P(ConvBiasActivFind2InferTestFloat, ConvBinWinogradRxSFind2Fused)
+TEST_P(GPU_ConvBiasActivFind2Infer_FP32, ConvBinWinogradRxSFind2Fused)
 {
     RunSolver<miopen::solver::fusion::ConvBinWinogradRxSFused>(
         fused_problem, invoke_params, conv_config, test_skipped);
 }
-TEST_P(ConvBiasActivFind2InferTestFloat, ConvBinWinogradRxSf2x3g1Find2Fused)
+TEST_P(GPU_ConvBiasActivFind2Infer_FP32, ConvBinWinogradRxSf2x3g1Find2Fused)
 {
     RunSolver<miopen::solver::fusion::ConvBinWinogradRxSf2x3g1Fused>(
         fused_problem, invoke_params, conv_config, test_skipped);
 }
-TEST_P(ConvBiasActivFind2InferTestFloat, ConvWinoFuryRxSf2x3Find2Fused)
+TEST_P(GPU_ConvBiasActivFind2Infer_FP16, ConvWinoFuryRxSf2x3Find2Fused)
 {
     RunSolver<miopen::solver::fusion::ConvWinoFuryRxSFused<2, 3>>(
         fused_problem, invoke_params, conv_config, test_skipped);
 }
 
-TEST_P(ConvBiasActivFind2InferTestHalf, ConvCKIgemmFwdBiasActivFind2Fused)
+TEST_P(GPU_ConvBiasActivFind2Infer_FP16, ConvCKIgemmFwdBiasActivFind2Fused)
 {
     RunTunableSolver<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused>(
         fused_problem, invoke_params, conv_config, test_skipped);
 }
 
 #if MIOPEN_BACKEND_HIP
-TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivFind2Float_testFind)
+TEST_P(GPU_ConvBiasActivFind2InferFusionFind_FP32, ConvBiasActivFind2Float_testFind)
 {
     if(SkipTest())
     {
         test_skipped = true;
         GTEST_SKIP() << "Fusion does not support xnack";
+    }
+    if(!IsTestSupportedForDevice())
+    {
+        test_skipped = true;
+        GTEST_SKIP() << "Fusion not supported for this device";
     }
     miopen::solver::debug::TuningIterationScopedLimiter tuning_limit{5};
 
@@ -171,22 +185,22 @@ TEST_P(ConvBiasActivFind2InferTestFloatFusionFind, ConvBiasActivFind2Float_testF
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    CBAFind2InferSolverTest,
-    ConvBiasActivFind2InferTestFloatFusionFind,
+    Full,
+    GPU_ConvBiasActivFind2InferFusionFind_FP32,
     testing::Combine(testing::Values(miopenActivationRELU),
                      testing::ValuesIn(GetNetworkForFusionCompileStepTest<ConvTestCaseBase>()),
                      testing::Values(miopenTensorNCHW)));
 
 #endif
 
-INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
-                         ConvBiasActivFind2InferTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ConvBiasActivFind2Infer_FP32,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNCHW)));
 
-INSTANTIATE_TEST_SUITE_P(CBAFind2InferSolverTest,
-                         ConvBiasActivFind2InferTestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ConvBiasActivFind2Infer_FP16,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
                                           testing::Values(miopenTensorNHWC)));

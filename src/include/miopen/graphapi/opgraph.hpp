@@ -181,8 +181,10 @@ protected:
 
     void addOutTensor(Tensor* tens_ptr)
     {
-        assert(!hasOutTensor(tens_ptr));
-        mOutTensors.emplace_back(tens_ptr);
+        if(!hasOutTensor(tens_ptr))
+        {
+            mOutTensors.emplace_back(tens_ptr);
+        }
     }
 };
 
@@ -206,8 +208,10 @@ protected:
 
     void addInTensor(Tensor* tens_ptr)
     {
-        assert(!hasInTensor(tens_ptr));
-        mInTensors.emplace_back(tens_ptr);
+        if(!hasInTensor(tens_ptr))
+        {
+            mInTensors.emplace_back(tens_ptr);
+        }
     }
 };
 

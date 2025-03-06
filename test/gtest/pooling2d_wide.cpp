@@ -27,26 +27,22 @@
 #include <gtest/gtest.h>
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
-#include "test_env.hpp"
 
 #include "pooling2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
 
 namespace env = miopen::env;
 
 namespace pooling2d_wide {
 
-class Pooling2dFloat : public testing::TestWithParam<std::vector<std::string>>
+class GPU_WidePooling2d_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class WidePooling2dHalf : public testing::TestWithParam<std::vector<std::string>>
+class GPU_WidePooling2d_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
-
-static bool SkipTest(void) { return env::disabled(MIOPEN_TEST_ALL); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -63,8 +59,8 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = Pooling2dFloat::GetParam(); break;
-    case miopenHalf: params = WidePooling2dHalf::GetParam(); break;
+    case miopenFloat: params = GPU_WidePooling2d_FP32::GetParam(); break;
+    case miopenHalf: params = GPU_WidePooling2d_FP16::GetParam(); break;
     case miopenBFloat16:
     case miopenInt8:
     case miopenFloat8:
@@ -75,9 +71,9 @@ void Run2dDriver(miopenDataType_t prec)
         FAIL()
             << "miopenBFloat16, miopenInt8, miopenInt32, miopenDouble, miopenFloat8, miopenBFloat8 "
                "data type not supported by "
-               "immed_conv2d_codecov test";
+               "pooling2d_wide test";
 
-    default: params = Pooling2dFloat::GetParam();
+    default: params = GPU_WidePooling2d_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -99,13 +95,13 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle) { return true; }
 
-std::vector<std::string> GetTestCases(const std::string precision)
+std::vector<std::string> GetTestCases(const std::string& precision)
 {
     const auto& flag_arg = env::value(MIOPEN_TEST_FLAGS_ARGS);
 
     const std::vector<std::string> test_cases = {
         // clang-format off
-    {"test_pooling2d " + precision + " --all --dataset 2 --limit 0 "+flag_arg}
+    {"test_pooling2d " + precision + " --all --dataset 2 --limit 0 " + flag_arg}
         // clang-format on
     };
 
@@ -116,7 +112,7 @@ std::vector<std::string> GetTestCases(const std::string precision)
 using namespace pooling2d_wide;
 
 /*
-TEST_P(Pooling2dFloat, FloatTest_pooling2d_wide)
+TEST_P(GPU_WidePooling2d_FP32, FloatTest_pooling2d_wide)
 {
     const auto& handle = get_handle();
     if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
@@ -130,10 +126,10 @@ TEST_P(Pooling2dFloat, FloatTest_pooling2d_wide)
 };
 */
 
-TEST_P(WidePooling2dHalf, HalfTest_pooling2d_wide)
+TEST_P(GPU_WidePooling2d_FP16, HalfTest_pooling2d_wide)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--half"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenHalf);
     }
@@ -143,6 +139,6 @@ TEST_P(WidePooling2dHalf, HalfTest_pooling2d_wide)
     }
 };
 
-// INSTANTIATE_TEST_SUITE_P(Pooling2D, Pooling2dFloat, testing::Values(GetTestCases("--float")));
+// INSTANTIATE_TEST_SUITE_P(Full, GPU_WidePooling2d_FP32, testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(Pooling2D, WidePooling2dHalf, testing::Values(GetTestCases("--half")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_WidePooling2d_FP16, testing::Values(GetTestCases("--half")));

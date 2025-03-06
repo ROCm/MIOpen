@@ -30,8 +30,6 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace conv_igemm_dynamic {
 
 auto GetTestCases()
@@ -55,14 +53,8 @@ auto GetTestCases()
     const std::string dis_fwd     = " --disable-forward";
     const std::string dis_vali    = " --disable-validation";
 
-    auto basic_tests = std::vector
-    {
+    auto basic_tests = std::vector{
         // clang-format off
-#if CODECOV_TEST
-    std::pair{env    , v +  " --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1" + dis_bk_data + dis_bk_wei + dis_vali},
-    std::pair{env_wrw, v + " --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data + dis_vali},
-    std::pair{env_bwd, v + " --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei + dis_vali},
-#else
     std::pair{env    , v + " --input  16  16 56 56 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     std::pair{env    , v + " --input  16  64 34 34 --weights 64  64 3 3 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     std::pair{env    , v + " --input  32  32 17 17 --weights 32  32 1 7 --pads_strides_dilations 0 3 1 1 1 1" + dis_bk_data + dis_bk_wei},
@@ -71,15 +63,12 @@ auto GetTestCases()
     std::pair{env_wrw, v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
     std::pair{env_bwd, v + " --input  64  64 28 28 --weights 16  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
     std::pair{env_bwd, v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei}
-#endif
         // clang-format on
     };
 
-    if(env::enabled(MIOPEN_TEST_ALL))
-    {
-        basic_tests.insert(basic_tests.end(),
-                           {
-                               // clang-format off
+    basic_tests.insert(basic_tests.end(),
+                       {
+                           // clang-format off
     std::pair{env    , v + " --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     std::pair{env    , v + " --input  64  256 34 34 --weights 256  256 3 3 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     std::pair{env    , v + " --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 0 0 2 2 1 1" + dis_bk_data + dis_bk_wei},
@@ -99,9 +88,9 @@ auto GetTestCases()
     std::pair{env_bwd, v + " --input  32  128 34 34 --weights 64  128  3 3 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
     std::pair{env_bwd, v + " --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 1 1 1 1 1 1" + dis_fwd + dis_bk_wei},
     std::pair{env_bwd, v + " --input 128  256 56 56 --weights 64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei}
-                               // clang-format on
-                           });
-    }
+                           // clang-format on
+                       });
+
     return basic_tests;
 }
 
@@ -109,7 +98,7 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return get_handle_xnack(); }
 
-class Conv2dFloatDynamic : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dDynamic_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
@@ -123,11 +112,11 @@ bool IsTestSupportedForDevice()
 } // namespace conv_igemm_dynamic
 using namespace conv_igemm_dynamic;
 
-TEST_P(Conv2dFloatDynamic, FloatTest_conv_igemm_dynamic)
+TEST_P(GPU_Conv2dDynamic_FP32, FloatTest_conv_igemm_dynamic)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dFloatDynamic>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDynamic_FP32>(default_check);
     }
     else
     {
@@ -135,4 +124,4 @@ TEST_P(Conv2dFloatDynamic, FloatTest_conv_igemm_dynamic)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dFloatDynamic, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dDynamic_FP32, testing::Values(GetTestCases()));

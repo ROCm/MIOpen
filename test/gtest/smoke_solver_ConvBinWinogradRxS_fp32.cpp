@@ -64,15 +64,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultBinWinogradRxS_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvBinWinogradRxS_fp32)
+TEST_P(GPU_Conv2dDefaultBinWinogradRxS_FP32, FloatTest_smoke_solver_ConvBinWinogradRxS_fp32)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultBinWinogradRxS_FP32>(default_check);
     }
     else
     {
@@ -80,6 +80,6 @@ TEST_P(Conv2dDefaultFloat, FloatTest_smoke_solver_ConvBinWinogradRxS_fp32)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvBinWinogradRxSFp32,
-                         Conv2dDefaultFloat,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dDefaultBinWinogradRxS_FP32,
                          testing::Values(GetTestCases()));

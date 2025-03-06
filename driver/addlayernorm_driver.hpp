@@ -152,7 +152,6 @@ public:
 private:
     InputFlags inflags;
 
-    int forw;
     int dim_size;
 
     miopenTensorDescriptor_t inputDesc;
@@ -176,8 +175,8 @@ private:
     std::vector<Tgpu> weight;
     std::vector<Tgpu> bias;
     std::vector<Tgpu> out;
-    std::vector<Tref> mean;
-    std::vector<Tref> rstd;
+    std::vector<Tgpu> mean;
+    std::vector<Tgpu> rstd;
     std::vector<Tref> outhost;
     std::vector<Tref> meanhost;
     std::vector<Tref> rstdhost;
@@ -259,7 +258,7 @@ int AddLayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
     inflags.AddInputFlag("normalized_dim", 'o', "3", "Nomalized Dim (Default=3)", "int");
     inflags.AddInputFlag(
-        "mode", 'm', "0", "elemwise affine mode (0), weight and bias mode (1) (Default=0)", "int");
+        "mode", 'm', "2", "elemwise affine mode (2), weight and bias mode (3) (Default=0)", "int");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -291,16 +290,16 @@ int AddLayerNormDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     weight_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, weight_sz, sizeof(Tgpu)));
     bias_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, bias_sz, sizeof(Tgpu)));
     out_dev    = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
-    mean_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, mean_sz, sizeof(Tref)));
-    rstd_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, rstd_sz, sizeof(Tref)));
+    mean_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, mean_sz, sizeof(Tgpu)));
+    rstd_dev   = std::unique_ptr<GPUMem>(new GPUMem(ctx, rstd_sz, sizeof(Tgpu)));
 
     in       = std::vector<Tgpu>(in_sz, Tgpu0val);
     in2      = std::vector<Tgpu>(in2_sz, Tgpu0val);
     weight   = std::vector<Tgpu>(weight_sz, Tgpu0val);
     bias     = std::vector<Tgpu>(bias_sz, Tgpu0val);
     out      = std::vector<Tgpu>(out_sz, Tgpu0val);
-    mean     = std::vector<Tref>(mean_sz, Tref0val);
-    rstd     = std::vector<Tref>(rstd_sz, Tref0val);
+    mean     = std::vector<Tgpu>(mean_sz, Tgpu0val);
+    rstd     = std::vector<Tgpu>(rstd_sz, Tgpu0val);
     outhost  = std::vector<Tref>(out_sz, Tref0val);
     meanhost = std::vector<Tref>(mean_sz, Tref0val);
     rstdhost = std::vector<Tref>(rstd_sz, Tref0val);

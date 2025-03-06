@@ -60,7 +60,6 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_OPENCL_ENFORCE_CODE_OBJECT_VERSION)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_USE_HIPRTC)
 
 #if MIOPEN_USE_COMGR
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27 1
@@ -276,12 +275,7 @@ void HIPOCProgramImpl::BuildCodeObjectInMemory(const std::string& params,
 #endif
         if(filename.extension() == ".cpp")
         {
-#if MIOPEN_USE_HIPRTC
-            if(!env::disabled(MIOPEN_DEBUG_USE_HIPRTC))
-                hiprtc::BuildHip(filename.string(), src, params, target, binary);
-            else
-#endif // MIOPEN_USE_HIPRTC
-                comgr::BuildHip(filename.string(), src, params, target, binary);
+            hiprtc::BuildHip(filename.string(), src, params, target, binary);
         }
         else if(filename.extension() == ".s")
         {

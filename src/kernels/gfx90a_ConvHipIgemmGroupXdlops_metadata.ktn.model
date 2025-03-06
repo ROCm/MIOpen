@@ -1,4 +1,5 @@
 {
+    "predict_type": 0,
     "num_tuning_params": {
         "fwd": 13,
         "bwd": 14,

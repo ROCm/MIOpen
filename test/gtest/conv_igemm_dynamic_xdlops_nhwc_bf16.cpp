@@ -29,22 +29,10 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
 
 namespace conv_igemm_dynamic_xdlops_nhwc_bf16 {
-
-static bool SkipTest(const std::string& float_arg)
-{
-    if(!MIOPEN_TEST_ALL)
-        return false;
-    if(env::enabled(MIOPEN_TEST_ALL))
-        if(env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg)
-            return false;
-    return true;
-}
 
 void SetupEnvVar()
 {
@@ -64,7 +52,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dBf16 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_BFP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -74,7 +62,7 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenBFloat16: params = Conv2dBf16::GetParam(); break;
+    case miopenBFloat16: params = GPU_Conv2d_BFP16::GetParam(); break;
     case miopenFloat:
     case miopenHalf:
     case miopenInt8:
@@ -87,7 +75,7 @@ void Run2dDriver(miopenDataType_t prec)
                   "miopenDouble, miopenFloat8, miopenBFloat8 "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_bf16 test";
 
-    default: params = Conv2dBf16::GetParam();
+    default: params = GPU_Conv2d_BFP16::GetParam();
     }
 
     SetupEnvVar();
@@ -205,10 +193,10 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace conv_igemm_dynamic_xdlops_nhwc_bf16
 using namespace conv_igemm_dynamic_xdlops_nhwc_bf16;
 
-TEST_P(Conv2dBf16, Bf16Test_conv_igemm_dynamic_xdlops_nhwc_bf16)
+TEST_P(GPU_Conv2d_BFP16, Bf16Test_conv_igemm_dynamic_xdlops_nhwc_bf16)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest("--bfloat16"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenBFloat16);
     }
@@ -218,6 +206,4 @@ TEST_P(Conv2dBf16, Bf16Test_conv_igemm_dynamic_xdlops_nhwc_bf16)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsNhwc,
-                         Conv2dBf16,
-                         testing::Values(GetTestCases("--bfloat16")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2d_BFP16, testing::Values(GetTestCases("--bfloat16")));

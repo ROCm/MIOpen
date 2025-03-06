@@ -263,15 +263,24 @@ Implicit GEMM solutions:
   * ``MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS`` --
     ``ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm``
 
-rocBlas logging and behavior
+GEMM logging and behavior
 ==========================================================
 
-The ``ROCBLAS_LAYER`` environmental variable can be set to output GEMM information:
+The ``ROCBLAS_LAYER`` environmental variable can be set to output GEMM information when using rocBLAS GEMM backend:
 
 * ``ROCBLAS_LAYER=``: Not set--there is no logging
 * ``ROCBLAS_LAYER=1``: Trace logging
 * ``ROCBLAS_LAYER=2``: Bench logging
 * ``ROCBLAS_LAYER=3``: Trace and bench logging
+
+The ``HIPBLASLT_LOG_LEVEL`` environmental variable can be set to output GEMM information when using hipBLASLt GEMM backend:
+
+* ``HIPBLASLT_LOG_LEVEL=0``: Off -- there is no logging (default)
+* ``HIPBLASLT_LOG_LEVEL=1``: Error logging
+* ``HIPBLASLT_LOG_LEVEL=2``: Trace - API calls that launch HIP kernels log their parameters and important information
+* ``HIPBLASLT_LOG_LEVEL=3``: Hints - Hints that can potentially improve the application’s performance
+* ``HIPBLASLT_LOG_LEVEL=4``: Info - Provides general information about the library execution, may contain details about heuristic status
+* ``HIPBLASLT_LOG_LEVEL=5``: API Trace - API calls log their parameters and important information
 
 You can also set the ``MIOPEN_GEMM_ENFORCE_BACKEND`` environment variable to override the
 default GEMM backend (rocBLAS):
@@ -280,9 +289,11 @@ default GEMM backend (rocBLAS):
 * ``MIOPEN_GEMM_ENFORCE_BACKEND=2``: Reserved
 * ``MIOPEN_GEMM_ENFORCE_BACKEND=3``: No GEMM is called
 * ``MIOPEN_GEMM_ENFORCE_BACKEND=4``: Reserved
+* ``MIOPEN_GEMM_ENFORCE_BACKEND=5``: Use hipBLASLt if enabled
 * ``MIOPEN_GEMM_ENFORCE_BACKEND=<any other value>``: Use default behavior
 
 To disable using rocBlas entirely, set the  `-DMIOPEN_USE_ROCBLAS=Off` configuration flag during
+MIOpen configuration. To disable using hipBLASLt entirely, set the `-DMIOPEN_USE_HIPBLASLT=Off` configuration flag during
 MIOpen configuration.
 
 You can find more information on logging with rocBLAS in the

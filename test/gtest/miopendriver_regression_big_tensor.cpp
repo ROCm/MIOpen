@@ -49,7 +49,8 @@ std::vector<std::string> GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class MIOpenDriverRegressionBigTensorTest : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_MIOpenDriverRegressionBigTensorTest_FP32
+    : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -57,19 +58,22 @@ void RunMIOpenDriver()
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X>;
     using d_mask = disabled<Gpu::gfx900, Gpu::gfx906, Gpu::gfx908>;
-    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>("--float", true))
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>())
     {
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionBigTensorTest::GetParam());
+    RunMIOpenDriverTestCommand(GPU_MIOpenDriverRegressionBigTensorTest_FP32::GetParam());
 };
 
 } // namespace miopendriver_regression_big_tensor
 using namespace miopendriver_regression_big_tensor;
 
-TEST_P(MIOpenDriverRegressionBigTensorTest, MIOpenDriverRegressionBigTensor) { RunMIOpenDriver(); };
+TEST_P(GPU_MIOpenDriverRegressionBigTensorTest_FP32, MIOpenDriverRegressionBigTensor)
+{
+    RunMIOpenDriver();
+};
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionBigTensorTestSet,
-                         MIOpenDriverRegressionBigTensorTest,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverRegressionBigTensorTest_FP32,
                          testing::Values(GetTestCases()));

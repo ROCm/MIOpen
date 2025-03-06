@@ -41,6 +41,8 @@ struct FusionDescription : ProblemDescriptionBase
 #endif
 {
     const miopen::FusionPlanDescriptor* fusion_plan_desc;
+    bool disable_search_enforce = false;
+
     FusionDescription(const miopen::FusionPlanDescriptor* ptr_desc) : fusion_plan_desc(ptr_desc) {}
 
     [[nodiscard]] NetworkConfig MakeNetworkConfig() const override
@@ -126,7 +128,14 @@ struct FusionDescription : ProblemDescriptionBase
                 dynamic_cast<BatchNormInferenceFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
             miopen::TensorDescriptor out_desc;
             bn_op.GetOutputDesc(out_desc);
-            return {bn_op.mode, bn_op.input_desc, out_desc, bn_op.base_desc, not_used};
+            return {bn_op.mode,
+                    bn_op.input_desc,
+                    out_desc,
+                    bn_op.base_desc,
+                    bn_op.base_desc,
+                    bn_op.base_desc,
+                    bn_op.base_desc,
+                    not_used};
         }
         else if(dir == miopen::batchnorm::Direction::ForwardTraining)
         {
@@ -137,6 +146,9 @@ struct FusionDescription : ProblemDescriptionBase
             return {bn_op.mode,
                     bn_op.input_desc,
                     out_desc,
+                    bn_op.base_desc,
+                    bn_op.base_desc,
+                    bn_op.base_desc,
                     bn_op.base_desc,
                     not_used, // expAvgFactor filler
                     not_used,
@@ -153,6 +165,9 @@ struct FusionDescription : ProblemDescriptionBase
                     bn_op.input_desc,
                     out_desc,
                     bn_op.input_desc,
+                    {} /*bn_op.base_desc*/,
+                    {} /*bn_op.base_desc*/,
+                    {} /*bn_op.base_desc*/,
                     {} /*bn_op.base_desc*/,
                     not_used,
                     bn_op.useBatchStats /*useSaved*/};

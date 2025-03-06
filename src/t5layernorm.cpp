@@ -86,9 +86,9 @@ std::size_t GetT5LayerNormBackwardWorkspaceSize(Handle& handle,
     const auto algo    = AlgorithmName{"T5LayerNormBackward"};
     const auto solvers = solver::SolverContainer<solver::layernorm::T5LayernormBackward>{};
 
-    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
+    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem, true);
 
-    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
+    return pair_size_vector.empty() ? static_cast<size_t>(0) : pair_size_vector.front().second;
 }
 
 miopenStatus_t T5LayerNormBackward(Handle& handle,

@@ -40,6 +40,7 @@ enum GemmBackend_t
 {
     nogemmbackend = 0,
     rocblas       = 1,
+    hipblaslt     = 2,
 };
 
 // GEMM operation: C = alpha * op(A) * op(B) + beta * C.

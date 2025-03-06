@@ -40,7 +40,7 @@
 #include <half/half.hpp>
 using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
-#include <hip_float8.hpp>
+#include "../../src/kernels/hip_float8.hpp"
 using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
@@ -137,9 +137,15 @@ struct miopen_type<uint16_t> : std::integral_constant<miopenDataType_t, miopenHa
 {
 };
 
+template <>
+struct miopen_type<uint64_t> : std::integral_constant<miopenDataType_t, miopenInt64>
+{
+};
+
 template <class T>
 struct tensor
 {
+    using value_type = T;
     miopen::TensorDescriptor desc;
     std::vector<T> data;
 

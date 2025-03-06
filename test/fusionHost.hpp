@@ -134,9 +134,9 @@ void convHostForward(const tensor<T>& input,
     }
 }
 
-template <class T, class U, class V = U>
+template <class T, class Tref, class U, class V = U>
 void batchNormSpatialHostInference(const tensor<T>& input,
-                                   tensor<T>& output,
+                                   tensor<Tref>& output,
                                    const tensor<U>& scale,
                                    const tensor<U>& bias,
                                    double epsilon,
@@ -162,20 +162,21 @@ void batchNormSpatialHostInference(const tensor<T>& input,
                     output(bidx, cidx, row, column) =
                         static_cast<T>(scale(0, cidx, 0, 0) * inhat + bias(0, cidx, 0, 0));
                     // printf("output: %f\n",scale(0, cidx, 0, 0) * inhat + bias(0, cidx, 0, 0));
+                    // std::cout << output(bidx, cidx, row, column) << ",";
                 }
             }
         }
     });
 }
 
-template <class T, class U>
+template <class T, class U, class V, class Tref>
 void batchNormPerActivHostInference(const tensor<T>& input,
-                                    tensor<T>& output,
+                                    tensor<Tref>& output,
                                     const tensor<U>& scale,
                                     const tensor<U>& bias,
                                     double epsilon,
-                                    const tensor<U>& estimatedMean,
-                                    const tensor<U>& estimatedVariance)
+                                    const tensor<V>& estimatedMean,
+                                    const tensor<V>& estimatedVariance)
 {
     int n_batches, channels, height, width;
     std::tie(n_batches, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
@@ -202,17 +203,17 @@ void batchNormPerActivHostInference(const tensor<T>& input,
     });
 }
 
-template <class T, class U, class V = U>
+template <class T, class U, class Tref = U, class Tout>
 void batchNormSpatialHostFwdTrain(const tensor<T>& input,
-                                  tensor<T>& out,
+                                  tensor<Tout>& out,
                                   const tensor<U>& scale,
                                   const tensor<U>& bias,
                                   double epsilon,
                                   double expAvgFactor,
-                                  tensor<V>& saveMean,
-                                  tensor<V>& saveInvVar,
-                                  tensor<V>& runMean,
-                                  tensor<V>& runVar)
+                                  tensor<Tref>& saveMean,
+                                  tensor<Tref>& saveInvVar,
+                                  tensor<Tref>& runMean,
+                                  tensor<Tref>& runVar)
 {
 
     int height, width, n_batch, channels;
@@ -265,30 +266,39 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
                 } // for (column)
             }     // for (row)
         }         // end for(n_batchs)
-
-        saveMean(0, cidx, 0, 0)   = mean_accum;
-        saveInvVar(0, cidx, 0, 0) = invVar;
-
-        newRunMean             = runMean(0, cidx, 0, 0) * (1 - expAvgFactor);
-        runMean(0, cidx, 0, 0) = mean_accum * expAvgFactor + newRunMean; // newMean*factor + tmp
-        // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
-        adjust =
-            (n_batch * height * width == 1) ? variance_accum : (nhw / (nhw - 1)) * variance_accum;
-        runVar(0, cidx, 0, 0) = (1 - expAvgFactor) * runVar(0, cidx, 0, 0) + expAvgFactor * adjust;
+        if(!saveMean.data.empty())
+        {
+            saveMean(0, cidx, 0, 0)   = mean_accum;
+            saveInvVar(0, cidx, 0, 0) = invVar;
+        }
+        if(!runMean.data.empty())
+        {
+            newRunMean             = runMean(0, cidx, 0, 0) * (1 - expAvgFactor);
+            runMean(0, cidx, 0, 0) = mean_accum * expAvgFactor + newRunMean; // newMean*factor + tmp
+            // var(n+1) = p * var(n-1) + (1 - p)*(b/b-1)*var(n)
+            adjust = (n_batch * height * width == 1) ? variance_accum
+                                                     : (nhw / (nhw - 1)) * variance_accum;
+            runVar(0, cidx, 0, 0) =
+                (1 - expAvgFactor) * runVar(0, cidx, 0, 0) + expAvgFactor * adjust;
+        }
     });
 }
 
-template <class DataType, class XAndScaleDataType>
-void batchNormSpatialHostBwdTrain(const tensor<XAndScaleDataType>& x_input,
-                                  const tensor<DataType>& dy_input,
-                                  tensor<DataType>& dx_out,
-                                  const tensor<XAndScaleDataType>& scale,
-                                  tensor<DataType>& dscale,
-                                  tensor<DataType>& dbias,
-                                  const tensor<DataType>& savedMean,
-                                  const tensor<DataType>& savedInvVar)
+template <typename XDataType,
+          typename DxDataType,
+          typename DyDataType,
+          typename ScaleDataType,
+          typename AccDataType,
+          typename RefDataType>
+void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
+                                  const tensor<DyDataType>& dy_input,
+                                  tensor<DxDataType>& dx_out,
+                                  const tensor<ScaleDataType>& bnScale,
+                                  tensor<RefDataType>& dscale,
+                                  tensor<RefDataType>& dbias,
+                                  const tensor<AccDataType>& savedMean,
+                                  const tensor<AccDataType>& savedInvVar)
 {
-
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
     auto nhw                                   = double(height * width * n_batch);
@@ -297,14 +307,50 @@ void batchNormSpatialHostBwdTrain(const tensor<XAndScaleDataType>& x_input,
     par_for(channels, 1, [&](int cidx) {
         double elemStd = 0.;
         unsigned int xhat_index;
-        double mean   = savedMean(0, cidx, 0, 0);   // HxW elements
-        double invVar = savedInvVar(0, cidx, 0, 0); // HxW elements
+        double mean   = 0.0;
+        double invVar = 0.0;
         double dyelem = 0.;
         std::vector<double> xhat(static_cast<std::size_t>(n_batch) * in_cstride, 0.0);
         // process the batch per channel
         dscale(0, cidx, 0, 0) = 0.;
         dbias(0, cidx, 0, 0)  = 0.;
 
+        if(!savedMean.data.empty())
+        {
+
+            mean   = savedMean(0, cidx, 0, 0);   // HxW elements
+            invVar = savedInvVar(0, cidx, 0, 0); // HxW elements
+        }
+        else
+        {
+            double variance_accum = 0.;
+            double mean_accum     = 0.;
+            double inv_Var        = 0.;
+
+            // process the batch per channel
+            for(int bidx = 0; bidx < n_batch; bidx++)
+            { // via mini_batch
+                for(int row = 0; row < height; row++)
+                { // via rows
+                    for(int column = 0; column < width; column++)
+                    { // via columns
+                        // #1 calculate the mean
+                        // iterating through the stack of images in the mini_batch
+                        auto inval = static_cast<double>(x_input(bidx, cidx, row, column));
+                        mean_accum += inval;
+                        variance_accum += inval * inval;
+                    } // end for (column)
+                }     // end for (row)
+            }         // end for (n)
+
+            mean_accum /= nhw;
+            variance_accum /= nhw;
+            variance_accum += (-mean_accum * mean_accum);
+            inv_Var = 1.0 / sqrt(variance_accum);
+
+            mean   = mean_accum;
+            invVar = inv_Var;
+        }
         for(int row = 0; row < height; row++)
         { // via rows
             for(int column = 0; column < width; column++)
@@ -333,29 +379,36 @@ void batchNormSpatialHostBwdTrain(const tensor<XAndScaleDataType>& x_input,
 
                     double tmp1 = nhw * dy_input(bidx, cidx, row, column) - dbias(0, cidx, 0, 0);
                     double tmp2 = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
-                    double tmp3 = (scale(0, cidx, 0, 0) * invVar) / nhw;
-                    dx_out(bidx, cidx, row, column) = static_cast<DataType>(tmp3 * (tmp2 + tmp1));
+                    double tmp3 = (bnScale(0, cidx, 0, 0) * invVar) / nhw;
+                    dx_out(bidx, cidx, row, column) =
+                        static_cast<RefDataType>(tmp3 * (tmp2 + tmp1));
                 } // end for(n_batchs)
             }     // for (column)
         }         // for (row)
     });           // for (channel)
 }
 
-template <class T, class U>
+template <typename XDataType,
+          typename DyDataType,
+          typename DxDataType,
+          typename ScaleDataType,
+          typename AccDataType,
+          typename OutRefDataType,
+          typename RefDataType>
 void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
                                        double gamma,
                                        double beta,
                                        double alpha,
-                                       const tensor<T>& x_input,
-                                       const tensor<T>& dy_input,
-                                       const tensor<T>& y_input,
-                                       tensor<T>& dx_out,
-                                       const tensor<U>& scale,
-                                       const tensor<U>& bias,
-                                       tensor<U>& dscale,
-                                       tensor<U>& dbias,
-                                       const tensor<U>& savedMean,
-                                       const tensor<U>& savedInvVar)
+                                       const tensor<XDataType>& x_input,
+                                       const tensor<DyDataType>& dy_input,
+                                       const tensor<DxDataType>& y_input,
+                                       tensor<OutRefDataType>& dx_out,
+                                       const tensor<ScaleDataType>& bnScale,
+                                       const tensor<AccDataType>& bias,
+                                       tensor<RefDataType>& dscale,
+                                       tensor<RefDataType>& dbias,
+                                       const tensor<AccDataType>& savedMean,
+                                       const tensor<AccDataType>& savedInvVar)
 {
 
     int height, width, n_batch, channels;
@@ -387,7 +440,8 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
                     elemStd = static_cast<double>(x_input(bidx, cidx, row, column)) -
                               mean; // (x_i - mean)
                     xhat[xhat_index] = elemStd * invVar;
-                    double bnrefowd = scale(0, cidx, 0, 0) * xhat[xhat_index] + bias(0, cidx, 0, 0);
+                    double bnrefowd =
+                        bnScale(0, cidx, 0, 0) * xhat[xhat_index] + bias(0, cidx, 0, 0);
                     activationHostBwdElement(activMode,
                                              gamma,
                                              beta,
@@ -408,8 +462,9 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
             { // via columns
                 for(int bidx = 0; bidx < n_batch; bidx++)
                 { // via mini_batch
-                    xhat_index      = in_cstride * bidx + (width * row + column);
-                    double bnrefowd = scale(0, cidx, 0, 0) * xhat[xhat_index] + bias(0, cidx, 0, 0);
+                    xhat_index = in_cstride * bidx + (width * row + column);
+                    double bnrefowd =
+                        bnScale(0, cidx, 0, 0) * xhat[xhat_index] + bias(0, cidx, 0, 0);
                     activationHostBwdElement(activMode,
                                              gamma,
                                              beta,
@@ -421,25 +476,25 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
                     // double tmp1 = nhw * dy_input(bidx, cidx, row, column) - dbias(0, cidx, 0, 0);
                     double tmp1                     = nhw * dyelem - dbias(0, cidx, 0, 0);
                     double tmp2                     = -xhat[xhat_index] * dscale(0, cidx, 0, 0);
-                    double tmp3                     = (scale(0, cidx, 0, 0) * invVar) / nhw;
-                    dx_out(bidx, cidx, row, column) = static_cast<T>(tmp3 * (tmp2 + tmp1));
+                    double tmp3                     = (bnScale(0, cidx, 0, 0) * invVar) / nhw;
+                    dx_out(bidx, cidx, row, column) = static_cast<DxDataType>(tmp3 * (tmp2 + tmp1));
                 } // end for(n_batchs)
             }     // for (column)
         }         // for (row)
     });           // for (channel)
 }
 
-template <class T, class U>
+template <class T, class U, class Tref, class TOutref>
 void batchNormPerActHostFwdTrain(const tensor<T>& input,
-                                 tensor<T>& out,
+                                 tensor<TOutref>& out,
                                  const tensor<U>& scale,
                                  const tensor<U>& bias,
                                  double epsilon,
                                  double expAvgFactor,
-                                 tensor<U>& saveMean,
-                                 tensor<U>& saveInvVar,
-                                 tensor<U>& runMean,
-                                 tensor<U>& runVar)
+                                 tensor<Tref>& saveMean,
+                                 tensor<Tref>& saveInvVar,
+                                 tensor<Tref>& runMean,
+                                 tensor<Tref>& runVar)
 {
 
     int height, width, n_batch, channels;
@@ -483,7 +538,7 @@ void batchNormPerActHostFwdTrain(const tensor<T>& input,
                     elemStd = (input(bidx, cidx, row, column) - mean_accum); // (x_i - mean)
                     inhat   = elemStd * elemInvVar;
                     // #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
-                    out(bidx, cidx, row, column) = static_cast<T>(
+                    out(bidx, cidx, row, column) = static_cast<Tref>(
                         scale(0, cidx, row, column) * inhat + bias(0, cidx, row, column));
                 } // end for(n_batch)
 
@@ -496,21 +551,21 @@ void batchNormPerActHostFwdTrain(const tensor<T>& input,
                 runVar(0, cidx, row, column) =
                     (1 - expAvgFactor) * runVar(0, cidx, row, column) + expAvgFactor * adjust;
 
-                saveMean(0, cidx, row, column)   = static_cast<U>(mean_accum);
-                saveInvVar(0, cidx, row, column) = static_cast<U>(elemInvVar);
+                saveMean(0, cidx, row, column)   = static_cast<Tref>(mean_accum);
+                saveInvVar(0, cidx, row, column) = static_cast<Tref>(elemInvVar);
 
             } // for (column)
         }     // for (row)
     });
 }
 
-template <class T, class U>
+template <class T, class U, class Tref>
 void batchNormPerActHostBwdTrain(const tensor<T>& x_input,
                                  const tensor<T>& dy_input,
                                  const tensor<U>& scale,
-                                 tensor<U>& dscale,
-                                 tensor<U>& dbias,
-                                 tensor<T>& dx_out,
+                                 tensor<Tref>& dscale,
+                                 tensor<Tref>& dbias,
+                                 tensor<Tref>& dx_out,
                                  const tensor<U>& savedMean,
                                  const tensor<U>& savedInvVar)
 {

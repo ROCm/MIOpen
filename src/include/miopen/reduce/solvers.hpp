@@ -35,71 +35,95 @@ namespace solver {
 
 namespace reduce {
 
-using ReduceSolver = NonTunableSolverBase<ExecutionContext, miopen::reduce::ProblemDescription>;
+using ReduceExtremeSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::reduce::ProblemDescriptionExtreme>;
+using ReduceCalculationSolver =
+    NonTunableSolverBase<ExecutionContext, miopen::reduce::ProblemDescriptionCalculation>;
 
-struct SumForward final : ReduceSolver
-{
-    const std::string& SolverDbId() const override { return GetSolverDbId<SumForward>(); }
-
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::reduce::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::reduce::ProblemDescription& problem) const override;
-    std::size_t GetWorkspaceSize(const ExecutionContext& context,
-                                 const miopen::reduce::ProblemDescription& problem) const override;
-    bool MayNeedWorkspace() const override { return true; }
-};
-
-struct ArgmaxForward final : ReduceSolver
+struct ArgmaxForward final : ReduceExtremeSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ArgmaxForward>(); }
     size_t XGridSize(std::vector<size_t> indicedims) const;
     bool OverMaxGridSize(const ExecutionContext& context,
-                         const miopen::reduce::ProblemDescription& problem) const;
+                         const miopen::reduce::ProblemDescriptionExtreme& problem) const;
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::reduce::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::reduce::ProblemDescription& problem) const override;
+                      const miopen::reduce::ProblemDescriptionExtreme& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::reduce::ProblemDescriptionExtreme& problem) const override;
 };
 
-struct ArgminForward final : ReduceSolver
+struct ArgminForward final : ReduceExtremeSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<ArgminForward>(); }
     size_t XGridSize(std::vector<size_t> indicedims) const;
     bool OverMaxGridSize(const ExecutionContext& context,
-                         const miopen::reduce::ProblemDescription& problem) const;
+                         const miopen::reduce::ProblemDescriptionExtreme& problem) const;
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::reduce::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::reduce::ProblemDescription& problem) const override;
+                      const miopen::reduce::ProblemDescriptionExtreme& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::reduce::ProblemDescriptionExtreme& problem) const override;
 };
 
-struct MaxForward final : ReduceSolver
+struct MaxForward final : ReduceExtremeSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<MaxForward>(); }
     size_t XGridSize(std::vector<size_t> ydims) const;
     bool OverMaxGridSize(const ExecutionContext& context,
-                         const miopen::reduce::ProblemDescription& problem) const;
+                         const miopen::reduce::ProblemDescriptionExtreme& problem) const;
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::reduce::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::reduce::ProblemDescription& problem) const override;
+                      const miopen::reduce::ProblemDescriptionExtreme& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::reduce::ProblemDescriptionExtreme& problem) const override;
 };
 
-struct MinForward final : ReduceSolver
+struct MinForward final : ReduceExtremeSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<MinForward>(); }
     size_t XGridSize(std::vector<size_t> ydims) const;
     bool OverMaxGridSize(const ExecutionContext& context,
-                         const miopen::reduce::ProblemDescription& problem) const;
+                         const miopen::reduce::ProblemDescriptionExtreme& problem) const;
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::reduce::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::reduce::ProblemDescription& problem) const override;
+                      const miopen::reduce::ProblemDescriptionExtreme& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::reduce::ProblemDescriptionExtreme& problem) const override;
+};
+
+struct ProdForward final : ReduceCalculationSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<ProdForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::reduce::ProblemDescriptionCalculation& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::reduce::ProblemDescriptionCalculation& problem) const override;
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::reduce::ProblemDescriptionCalculation& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
+};
+
+struct SumForward final : ReduceCalculationSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<SumForward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::reduce::ProblemDescriptionCalculation& problem) const override;
+    ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::reduce::ProblemDescriptionCalculation& problem) const override;
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::reduce::ProblemDescriptionCalculation& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
 };
 
 } // namespace reduce

@@ -221,7 +221,6 @@ public:
 private:
     InputFlags inflags;
 
-    int forw;
     int dim_size;
 
     miopenTensorDescriptor_t xDesc;
@@ -295,7 +294,7 @@ int T5LayerNormDriver<Tgpu, Tref>::GetandSetData()
         MIOPEN_THROW("Error setting weight tensor.");
 
     if(SetTensorNd(yDesc, in_len, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error setting doutput tensor.");
+        MIOPEN_THROW("Error setting output tensor.");
 
     if(SetTensorNd(rstdDesc, outer_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting rstd tensor.");
@@ -318,12 +317,12 @@ int T5LayerNormDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int T5LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only Forward T5LayerNorm (Default=1)", "int");
+    inflags.AddInputFlag("forw", 'F', "0", "Run only Forward T5LayerNorm (Default=1)", "int");
     inflags.AddTensorFlag("input", 'X', "100x3x32x32", "input tensor descriptor");
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
     inflags.AddInputFlag(
-        "mode", 'm', "0", "elemwise affine mode (0), weight mode (1) (Default=0)", "int");
+        "mode", 'm', "5", "elemwise affine mode (5), weight mode (6) (Default=5)", "int");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");

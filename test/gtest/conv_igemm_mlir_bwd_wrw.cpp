@@ -30,9 +30,6 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_MLIR)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace {
 
 auto GetTestCases()
@@ -74,8 +71,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return !env::enabled(MIOPEN_TEST_MLIR) || env::disabled(MIOPEN_TEST_ALL); }
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::gfx103X>;
@@ -85,18 +80,18 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dIGemmBwdWrwMLIRTest_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
-class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dIGemmBwdWrwMLIRTest_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultFloat, FloatTest_conv_igemm_mlir_bwd_wrw)
+TEST_P(GPU_Conv2dIGemmBwdWrwMLIRTest_FP32, FloatTest_conv_igemm_mlir_bwd_wrw)
 {
-    if(IsTestSupportedForDevice() && !SkipTest())
+    if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dIGemmBwdWrwMLIRTest_FP32>(db_check);
     }
     else
     {
@@ -104,11 +99,11 @@ TEST_P(Conv2dDefaultFloat, FloatTest_conv_igemm_mlir_bwd_wrw)
     }
 };
 
-TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_mlir_bwd_wrw)
+TEST_P(GPU_Conv2dIGemmBwdWrwMLIRTest_FP16, HalfTest_conv_igemm_mlir_bwd_wrw)
 {
-    if(IsTestSupportedForDevice() && !SkipTest())
+    if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(db_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dIGemmBwdWrwMLIRTest_FP16>(db_check);
     }
     else
     {
@@ -117,6 +112,6 @@ TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_mlir_bwd_wrw)
 };
 
 // Float for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, Conv2dDefaultFloat, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dIGemmBwdWrwMLIRTest_FP32, testing::Values(GetTestCases()));
 // Half for FWD, BWD, WRW
-INSTANTIATE_TEST_SUITE_P(ConvIgemmMlir, Conv2dDefaultHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2dIGemmBwdWrwMLIRTest_FP16, testing::Values(GetTestCases()));

@@ -30,6 +30,7 @@
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/graphapi/variant_pack.hpp>
 #include <miopen/solution.hpp>
+#include <nlohmann/json_fwd.hpp>
 
 #include <memory>
 #include <string_view>
@@ -57,15 +58,11 @@ struct TensorInfo
 {
     miopenTensorArgumentId_t mEnumId = miopenTensorArgumentIdInvalid;
     Tensor* mGraphTensor             = nullptr;
-    TensorDescriptor mTensDesc{};
-    Data_t mDevBuf = nullptr;
+    Data_t mDevBuf                   = nullptr;
 
     TensorInfo(miopenTensorArgumentId_t enum_id, Tensor* tens_ptr)
-        : mEnumId(enum_id),
-          mGraphTensor(tens_ptr),
-          mTensDesc(static_cast<TensorDescriptor>(*tens_ptr))
+        : mEnumId(enum_id), mGraphTensor(tens_ptr)
     {
-        assert(tens_ptr);
         assert(mEnumId != miopenTensorArgumentIdInvalid);
     }
 
@@ -74,8 +71,6 @@ struct TensorInfo
         assert(ptr);
         mDevBuf = ptr;
     }
-
-    const TensorDescriptor* tensDescPtr() const { return &mTensDesc; }
 };
 
 // int64_t is the graph tensor id
@@ -83,35 +78,54 @@ using TensorInfoMap = std::unordered_map<int64_t, TensorInfo>;
 
 class MIOPEN_INTERNALS_EXPORT GraphPatternExecutor
 {
-
 public:
     virtual void execute(miopenHandle_t handle, const VariantPack& vpk) = 0;
     virtual size_t getWorkspaceSize() const                             = 0;
+    virtual nlohmann::json getJson()                                    = 0;
     virtual ~GraphPatternExecutor();
+
+    struct JsonFields
+    {
+        static constexpr const char* Name = "name";
+    };
 };
 
 // generic executor that uses Find 2.0 Solution
 class GraphExecutorFind20 : public GraphPatternExecutor
 {
-    miopenSolution_t mSolution;
+    Solution mSolution;
     std::shared_ptr<TensorInfoMap> mTensorInfoMap;
 
 public:
-    GraphExecutorFind20(miopenSolution_t sol, const std::shared_ptr<TensorInfoMap>& tmap)
+    GraphExecutorFind20(const Solution& sol, const std::shared_ptr<TensorInfoMap>& tmap)
         : GraphPatternExecutor(), mSolution(sol), mTensorInfoMap(tmap)
     {
+        MIOPEN_THROW_IF(tmap.get() == nullptr,
+                        "TensorInfoMap should be allocated before GraphExecutorFind20 creation");
     }
+
+    GraphExecutorFind20(Solution&& sol, const std::shared_ptr<TensorInfoMap>& tmap)
+        : GraphPatternExecutor(), mSolution(std::move(sol)), mTensorInfoMap(tmap)
+    {
+        MIOPEN_THROW_IF(tmap.get() == nullptr,
+                        "TensorInfoMap should be allocated before GraphExecutorFind20 creation");
+    }
+
+    GraphExecutorFind20(const nlohmann::json& json);
 
     void execute(miopenHandle_t handle, const VariantPack& vpk) final;
 
     size_t getWorkspaceSize() const final;
 
-    static std::unique_ptr<GraphPatternExecutor> make(miopenSolution_t sol,
-                                                      const std::shared_ptr<TensorInfoMap>& tmap)
+    nlohmann::json getJson() final;
+
+    static constexpr const char* name = "GraphExecutorFind20";
+
+    struct JsonFields
     {
-        GraphPatternExecutor* p = new GraphExecutorFind20(sol, tmap);
-        return std::unique_ptr<GraphPatternExecutor>(p);
-    }
+        static constexpr const char* Solution       = "solution";
+        static constexpr const char* Id2ArgumentMap = "id_to_argument_map";
+    };
 };
 
 class Engine
@@ -139,6 +153,16 @@ public:
 
     const OpGraph* getOpGraph() const { return mGraph; }
     OpGraph* getOpGraph() { return mGraph; }
+
+    friend void to_json(nlohmann::json& json, const Engine& engine);
+    friend void from_json(const nlohmann::json& json, Engine& engine);
+
+    struct JsonFields
+    {
+        static constexpr const char* Executor    = "executor";
+        static constexpr const char* GlobalIndex = "global_index";
+        static constexpr const char* SmCount     = "sm_count";
+    };
 };
 
 class MIOPEN_INTERNALS_EXPORT EngineBuilder

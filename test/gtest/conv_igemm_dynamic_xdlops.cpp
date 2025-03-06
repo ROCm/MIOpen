@@ -30,9 +30,6 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-
 namespace conv_igemm_dynamic_xdlops {
 
 auto GetTestCases()
@@ -106,16 +103,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-static bool SkipTest(const std::string& float_arg)
-{
-    if(!MIOPEN_TEST_ALL)
-        return false;
-    if(env::enabled(MIOPEN_TEST_ALL))
-        if(env::value(MIOPEN_TEST_FLOAT_ARG) == float_arg)
-            return false;
-    return true;
-}
-
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     const auto target = handle.GetTargetProperties();
@@ -129,20 +116,20 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 } // namespace conv_igemm_dynamic_xdlops
 using namespace conv_igemm_dynamic_xdlops;
 
-class Conv2dDefaultFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultIGemmDynamicXDLops_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultIGemmDynamicXDLops_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultFloat, FloatTest_conv_igemm_dynamic_xdlops)
+TEST_P(GPU_Conv2dDefaultIGemmDynamicXDLops_FP32, FloatTest_conv_igemm_dynamic_xdlops)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest("--float"))
+    if(IsTestSupportedForDevice(handle))
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultFloat>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultIGemmDynamicXDLops_FP32>(default_check);
     }
     else
     {
@@ -150,12 +137,12 @@ TEST_P(Conv2dDefaultFloat, FloatTest_conv_igemm_dynamic_xdlops)
     }
 };
 
-TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_dynamic_xdlops)
+TEST_P(GPU_Conv2dDefaultIGemmDynamicXDLops_FP16, HalfTest_conv_igemm_dynamic_xdlops)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest("--half"))
+    if(IsTestSupportedForDevice(handle))
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultIGemmDynamicXDLops_FP16>(default_check);
     }
     else
     {
@@ -163,5 +150,9 @@ TEST_P(Conv2dDefaultHalf, HalfTest_conv_igemm_dynamic_xdlops)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dDefaultFloat, testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamic, Conv2dDefaultHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2dDefaultIGemmDynamicXDLops_FP32,
+                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2dDefaultIGemmDynamicXDLops_FP16,
+                         testing::Values(GetTestCases()));

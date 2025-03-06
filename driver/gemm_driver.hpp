@@ -217,11 +217,20 @@ int GemmDriver<T>::GetandSetData()
     gemm_desc.alpha = inflags.GetValueDouble("alpha");
     gemm_desc.beta  = inflags.GetValueDouble("beta");
 
-    // we are assuming: row-major, each matrix is saved in continuous memory, no empty memory
+    // we are assuming: each matrix is saved in continuous memory, no empty memory
     // between batches of matrices
-    gemm_desc.lda = gemm_desc.transA == 0 ? gemm_desc.k : gemm_desc.m;
-    gemm_desc.ldb = gemm_desc.transB == 0 ? gemm_desc.n : gemm_desc.k;
-    gemm_desc.ldc = gemm_desc.n; // C is never transposed
+    if(gemm_desc.isColMajor)
+    {
+        gemm_desc.lda = gemm_desc.transA == 0 ? gemm_desc.m : gemm_desc.k;
+        gemm_desc.ldb = gemm_desc.transB == 0 ? gemm_desc.k : gemm_desc.n;
+        gemm_desc.ldc = gemm_desc.m; // C is never transposed
+    }
+    else
+    {
+        gemm_desc.lda = gemm_desc.transA == 0 ? gemm_desc.k : gemm_desc.m;
+        gemm_desc.ldb = gemm_desc.transB == 0 ? gemm_desc.n : gemm_desc.k;
+        gemm_desc.ldc = gemm_desc.n; // C is never transposed
+    }
 
     gemm_desc.batch_count = inflags.GetValueInt("batch_count");
 

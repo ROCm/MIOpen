@@ -41,6 +41,7 @@ void cpu_adam(tensor<T1>& params,
               float eps,
               bool amsgrad,
               bool maximize,
+              bool adamw,
               bool is_amp,
               int32_t grad_scale,
               bool found_inf,
@@ -53,13 +54,13 @@ void cpu_adam(tensor<T1>& params,
         T1 param          = params[i];
         T1 exp_avg        = exp_avgs[i];
         T1 exp_avg_sq     = exp_avg_sqs[i];
-        T1 max_exp_avg_sq = amsgrad ? max_exp_avg_sqs[i] : 0;
+        T1 max_exp_avg_sq = amsgrad ? max_exp_avg_sqs[i] : static_cast<T1>(0);
 
         for(int step = 1; step <= step_count; step++)
         {
             T1 grad = grads[i];
             if(maximize)
-                grad *= -1;
+                grad = -grad;
             if(is_amp)
                 grad /= grad_scale;
 
@@ -67,7 +68,12 @@ void cpu_adam(tensor<T1>& params,
             float bias_correction2 = 1 - pow(beta2, step);
 
             if(weight_decay != 0)
-                grad += param * weight_decay;
+            {
+                if(adamw)
+                    param -= lr * weight_decay * param;
+                else
+                    grad += param * weight_decay;
+            }
 
             exp_avg    = exp_avg * beta1 + grad * (1 - beta1);
             exp_avg_sq = exp_avg_sq * beta2 + grad * grad * (1 - beta2);

@@ -29,6 +29,7 @@
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/layernorm/invoke_params.hpp>
 #include <miopen/layernorm/utils.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/t5layernorm.hpp>
 #include <miopen/target_properties.hpp>
 
@@ -278,7 +279,7 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
                        params.rstd,
                        params.dx,
                        inner_size,
-                       static_cast<bool>(params.mode % 2));
+                       static_cast<int32_t>(params.mode));
 
                 weight_parallel_kernel(params.dy,
                                        params.x,
@@ -333,7 +334,7 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
                        params.rstd,
                        params.dx,
                        inner_size,
-                       static_cast<bool>(params.mode % 2));
+                       static_cast<int32_t>(params.mode));
 
                 weight_kernel(params.dy, params.x, params.rstd, params.dw, outer_size, inner_size);
 

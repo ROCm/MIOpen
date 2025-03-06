@@ -40,7 +40,6 @@
 #include <miopen/generic_search_controls.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/solution.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/tensor.hpp>
@@ -49,6 +48,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/any_solver.hpp>
 #include <miopen/conv/tensors.hpp>
+#include <miopen/problem.hpp>
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
@@ -66,72 +66,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
 
 namespace miopen {
-
-static inline bool IsValidFilterChannelNumber(const TensorDescriptor& x,
-                                              const TensorDescriptor& w,
-                                              const miopenTensorLayout_t layout,
-                                              const int groups)
-{
-    if(layout == miopenTensorNCHW      //
-       || layout == miopenTensorNCHWc4 //
-       || layout == miopenTensorNCHWc8)
-    {
-        return x.GetLengths()[1] / groups == w.GetLengths()[1];
-    }
-
-    if(layout == miopenTensorCHWNc4 //
-       || layout == miopenTensorCHWNc8)
-    {
-        return x.GetLengths()[1] / groups == w.GetLengths()[0];
-    }
-
-    return true;
-}
-
-static inline bool IsValidGroupCount(const TensorDescriptor& x,
-                                     const TensorDescriptor& w,
-                                     const miopenTensorLayout_t layout,
-                                     const int groups)
-{
-    if(groups > 1) // Optimize for speed
-    {
-        if(x.GetLengths()[1] % groups != 0)
-            return false;
-
-        if(layout == miopenTensorNCHW      //
-           || layout == miopenTensorNCHWc4 //
-           || layout == miopenTensorNCHWc8)
-            return w.GetLengths()[0] % groups == 0;
-
-        if(layout == miopenTensorCHWNc4 //
-           || layout == miopenTensorCHWNc8)
-            return w.GetLengths()[3] % groups == 0;
-    }
-    return true;
-}
-
-static inline void ValidateGroupCount(const TensorDescriptor& x,
-                                      const TensorDescriptor& w,
-                                      const ConvolutionDescriptor& conv)
-{
-    const auto layout = w.GetLayout_t();
-    const auto groups = conv.group_count;
-    assert(groups > 0);
-
-    const auto ok_c = IsValidFilterChannelNumber(x, w, layout, groups);
-    const auto ok_g = IsValidGroupCount(x, w, layout, groups);
-
-    if(ok_c && ok_g)
-        return;
-
-    MIOPEN_LOG_W(w.GetLayout_str() << "w {" << w.ToString() << "}, " //
-                                   << "x {" << x.ToString() << "}, " //
-                                   << "groups = " << conv.group_count);
-    if(!ok_c)
-        MIOPEN_THROW(miopenStatusBadParm, "Invalid filter channel number");
-    if(!ok_g)
-        MIOPEN_THROW(miopenStatusBadParm, "Invalid group number");
-}
 
 static inline void ValidateWorkspace(Data_t workSpace, const size_t workSpaceSize)
 {
@@ -434,7 +368,7 @@ void ConvolutionDescriptor::ValidateTensors(const ConvTensors& tensors) const
     // left of C to be a multiple of group count G. e.g. for NCHW, the stride for N
     // should be a multiple of G so that we can compute the strides for NGCHW
     auto bad_group_stride = [this](const TensorDescriptor& td) {
-        auto l             = td.GetLayout_t();
+        auto l             = td.GetLayoutEnum();
         int g_stride_index = -1;
         if(l == miopenTensorNCHW || l == miopenTensorNCDHW)
         {
@@ -544,7 +478,7 @@ void ConvolutionDescriptor::ConvolutionForward(Handle& handle,
     ValidateAlphaBeta(problem);
 
     ConvForwardCheckNumerics(handle, tensors, [&]() {
-        ValidateGroupCount(xDesc, wDesc, *this);
+        Problem::ValidateGroupCount(xDesc, wDesc, *this);
 
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::Forward)};
@@ -659,7 +593,7 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     const auto& weightsDesc = problem.GetWeights();
     // This check is needed on fallback path only.
     // On regular path (find-db hit) this was checked during Find().
-    ValidateGroupCount(xDesc, weightsDesc, *this);
+    Problem::ValidateGroupCount(xDesc, weightsDesc, *this);
 
     auto interim = std::vector<miopenConvSolution_t>{};
     interim.reserve(maxSolutionCount); // For speed. In most cases we have less entries than asked.
@@ -942,7 +876,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(Handle& handle,
 
     *returnedAlgoCount = 0;
 
-    ValidateGroupCount(dxDesc, wDesc, *this);
+    Problem::ValidateGroupCount(dxDesc, wDesc, *this);
 
     const auto problem =
         conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
@@ -1035,7 +969,7 @@ void ConvolutionDescriptor::ConvolutionBackwardData(Handle& handle,
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
-        ValidateGroupCount(dxDesc, wDesc, *this);
+        Problem::ValidateGroupCount(dxDesc, wDesc, *this);
 
         const auto algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), conv::Direction::BackwardData)};
@@ -1108,7 +1042,7 @@ void ConvolutionDescriptor::ConvolutionBackwardImmediate(Handle& handle,
         {
             MIOPEN_THROW(miopenStatusBadParm);
         }
-        ValidateGroupCount(dxDesc, wDesc, *this);
+        Problem::ValidateGroupCount(dxDesc, wDesc, *this);
 
         const auto problem =
             conv::ProblemDescription{dyDesc, wDesc, dxDesc, *this, conv::Direction::BackwardData};
@@ -1240,7 +1174,7 @@ void ConvolutionDescriptor::ConvolutionBackwardWeights(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm);
 
     ConvWrwCheckNumerics(handle, tensors, beta, [&]() {
-        ValidateGroupCount(xDesc, dwDesc, *this);
+        Problem::ValidateGroupCount(xDesc, dwDesc, *this);
 
         decltype(auto) algorithm_name = AlgorithmName{ConvolutionAlgoToDirectionalString(
             static_cast<miopenConvAlgorithm_t>(algo), direction)};
@@ -1310,7 +1244,7 @@ void ConvolutionDescriptor::ConvolutionWrwImmediate(Handle& handle,
 
     float beta = 0;
     ConvWrwCheckNumerics(handle, tensors, &beta, [&]() {
-        ValidateGroupCount(xDesc, dwDesc, *this);
+        Problem::ValidateGroupCount(xDesc, dwDesc, *this);
 
         const auto problem = conv::ProblemDescription{
             dyDesc, dwDesc, xDesc, *this, conv::Direction::BackwardWeights};

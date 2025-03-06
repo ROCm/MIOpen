@@ -1144,15 +1144,6 @@ create_arg_map(Driver& d, std::set<std::string>& keywords, std::vector<std::stri
     });
 }
 
-// simple rolling average equation taken from
-// https://stackoverflow.com/questions/12636613/how-to-calculate-moving-average-without-keeping-the-count-and-data-total
-inline double approxRollingAverage(double avg, double new_sample, int N)
-{
-    avg -= avg / N;
-    avg += new_sample / N;
-    return avg;
-}
-
 template <class Driver>
 void run_config(std::vector<std::string>& config,
                 std::unordered_map<std::string, std::vector<std::string>>& arg_map,
@@ -1227,7 +1218,9 @@ void test_drive_impl_2(std::string program_name, std::vector<std::string> as)
         }
         else
         {
-            running_average = approxRollingAverage(running_average, elapsed.count(), config_count);
+            running_average = [](auto avg_acc, double y, int avg_size) {
+                return (avg_acc - avg_acc / avg_size) + y / avg_size;
+            }(running_average, elapsed.count(), i + 1); // (avg_acc/N-1) * ((N-1)/N) + y/N;
         }
 
         std::cout << "Elapsed time: " << elapsed.count() << " s"
@@ -1344,29 +1337,6 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
 template <class Driver>
 void test_drive_impl(std::string program_name, std::vector<std::string> as)
 {
-    // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static bool called = false;
-    if(called)
-    {
-        std::cout << "*****************************************************************************"
-                     "*******************************************"
-                  << std::endl;
-        std::cout << "*****************************************************************************"
-                     "*******************************************"
-                  << std::endl;
-        std::cout << "***** WARNING: test_drive was called more than once. This function "
-                     "should only be called once."
-                  << std::endl;
-        std::cout << "***** This may abort in the future. Please update the test driver. "
-                  << std::endl;
-        std::cout << "*****************************************************************************"
-                     "*******************************************"
-                  << std::endl;
-        std::cout << "*****************************************************************************"
-                     "*******************************************"
-                  << std::endl;
-    }
-    called = true;
 #if(MIOPEN_TEST_DRIVER_MODE == 2)
     std::cout << "MIOPEN_TEST_DRIVER_MODE 2." << std::endl;
     test_drive_impl_2<Driver>(program_name, as);
@@ -1376,45 +1346,50 @@ void test_drive_impl(std::string program_name, std::vector<std::string> as)
 }
 
 template <class Driver>
-void test_drive(int argc, const char* argv[])
+void test_drive(int argc, const char* argv[], const char* program_name = nullptr)
 {
-    std::vector<std::string> as(argv + 1, argv + argc);
-    test_drive_impl<Driver>(argv[0], std::move(as));
+    std::string name(program_name ? program_name : argv[0]);
+    std::vector<std::string> as(argv + (program_name ? 0 : 1), argv + argc);
+    test_drive_impl<Driver>(name, std::move(as));
 }
 
 template <template <class...> class Driver>
-void test_drive(int argc, const char* argv[])
+void test_drive(int argc, const char* argv[], const char* program_name = nullptr)
 {
-    std::vector<std::string> as(argv + 1, argv + argc);
-    // as.emplace_back("--float");
+    std::string name(program_name ? program_name : argv[0]);
+    std::vector<std::string> as(argv + (program_name ? 0 : 1), argv + argc);
+
     for(auto&& arg : as)
     {
         if(arg == "--half")
         {
-            test_drive_impl<Driver<half_float::half>>(argv[0], std::move(as));
-            break;
+            test_drive_impl<Driver<half_float::half>>(name, std::move(as));
+            return;
         }
         if(arg == "--int8")
         {
-            test_drive_impl<Driver<int8_t>>(argv[0], std::move(as));
-            break;
+            test_drive_impl<Driver<int8_t>>(name, std::move(as));
+            return;
         }
         if(arg == "--float")
         {
-            test_drive_impl<Driver<float>>(argv[0], std::move(as));
-            break;
+            test_drive_impl<Driver<float>>(name, std::move(as));
+            return;
         }
         if(arg == "--bfloat16")
         {
-            test_drive_impl<Driver<bfloat16>>(argv[0], std::move(as));
-            break;
+            test_drive_impl<Driver<bfloat16>>(name, std::move(as));
+            return;
         }
         if(arg == "--double")
         {
-            test_drive_impl<Driver<double>>(argv[0], std::move(as));
-            break;
+            test_drive_impl<Driver<double>>(name, std::move(as));
+            return;
         }
     }
+
+    // default datatype
+    test_drive_impl<Driver<float>>(name, std::move(as));
 }
 
 #endif // GUARD_MIOPEN_TEST_DRIVER_HPP
