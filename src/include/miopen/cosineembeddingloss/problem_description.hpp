@@ -51,6 +51,7 @@ struct ProblemDescription : ProblemDescriptionBase
           margin(margin_),
           is_fwd(is_fwd_)
     {
+        IsSameType();
     }
 
     const TensorDescriptor& GetInput1Desc() const { return input1Desc; }
@@ -94,6 +95,16 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
+    bool IsSameType() const
+    {
+        if(input1Desc.GetType() != input2Desc.GetType() ||
+           input1Desc.GetType() != outputDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "CosineEmbeddingLoss: Tensor types do not match.");
+        }
+        return true;
+    }
+
     bool IsAllContiguous() const
     {
         return input1Desc.IsContiguous() && input2Desc.IsContiguous() &&
@@ -108,8 +119,6 @@ protected:
 
     float margin;
     bool is_fwd;
-
-    NetworkConfig MakeForwardNetworkConfig() const;
 };
 
 struct FwdUnreducedProblemDescription : ProblemDescription
@@ -125,9 +134,6 @@ struct FwdUnreducedProblemDescription : ProblemDescription
     }
 
     NetworkConfig MakeNetworkConfig() const override;
-
-private:
-    NetworkConfig MakeForwardNetworkConfig() const;
 };
 
 struct FwdReducedProblemDescription : ProblemDescription
@@ -153,9 +159,6 @@ struct FwdReducedProblemDescription : ProblemDescription
     }
 
     NetworkConfig MakeNetworkConfig() const override;
-
-private:
-    NetworkConfig MakeForwardNetworkConfig() const;
 };
 
 struct BwdUnreducedProblemDescription : ProblemDescription
@@ -167,11 +170,13 @@ struct BwdUnreducedProblemDescription : ProblemDescription
                                    const TensorDescriptor& input1GradDesc_,
                                    const TensorDescriptor& input2GradDesc_,
                                    const float margin_)
-        : ProblemDescription(input1Desc_, input2Desc_, targetDesc_, outputGradDesc_, margin_, false)
+        : ProblemDescription(
+              input1Desc_, input2Desc_, targetDesc_, outputGradDesc_, margin_, false),
+          input1GradDesc(input1GradDesc_),
+          input2GradDesc(input2GradDesc_)
     {
-        input1GradDesc = input1GradDesc_;
-        input2GradDesc = input2GradDesc_;
         IsValidLength();
+        IsSameType();
     }
     const TensorDescriptor& GetInput1GradDesc() const { return input1GradDesc; }
 
@@ -197,12 +202,21 @@ struct BwdUnreducedProblemDescription : ProblemDescription
         return true;
     }
 
+    bool IsSameType() const
+    {
+        if(input1GradDesc.GetType() != input2GradDesc.GetType() ||
+           input1GradDesc.GetType() != outputDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "CosineEmbeddingLoss: Tensor types do not match.");
+        }
+        return true;
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     TensorDescriptor input1GradDesc;
     TensorDescriptor input2GradDesc;
-    NetworkConfig MakeForwardNetworkConfig() const;
 };
 
 struct BwdReducedProblemDescription : ProblemDescription
@@ -214,11 +228,13 @@ struct BwdReducedProblemDescription : ProblemDescription
                                  const TensorDescriptor& input1GradDesc_,
                                  const TensorDescriptor& input2GradDesc_,
                                  const float margin_)
-        : ProblemDescription(input1Desc_, input2Desc_, targetDesc_, outputGradDesc_, margin_, false)
+        : ProblemDescription(
+              input1Desc_, input2Desc_, targetDesc_, outputGradDesc_, margin_, false),
+          input1GradDesc(input1GradDesc_),
+          input2GradDesc(input2GradDesc_)
     {
-        input1GradDesc = input1GradDesc_;
-        input2GradDesc = input2GradDesc_;
         IsValidLength();
+        IsSameType();
     }
     const TensorDescriptor& GetInput1GradDesc() const { return input1GradDesc; }
 
@@ -248,12 +264,21 @@ struct BwdReducedProblemDescription : ProblemDescription
         return true;
     }
 
+    bool IsSameType() const
+    {
+        if(input1GradDesc.GetType() != input2GradDesc.GetType() ||
+           input1GradDesc.GetType() != outputDesc.GetType())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "CosineEmbeddingLoss: Tensor types do not match.");
+        }
+        return true;
+    }
+
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     TensorDescriptor input1GradDesc;
     TensorDescriptor input2GradDesc;
-    NetworkConfig MakeForwardNetworkConfig() const;
 };
 
 } // namespace cosineembeddingloss

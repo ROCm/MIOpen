@@ -32,9 +32,10 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
-#define LOCAL_SIZE_FWD 1024
-#define LOCAL_SIZE_REDUCED 256
+#define LOCAL_SIZE_NORM 256
 #define LOCAL_SIZE_REDUCED_SUM 256
+#define LOCAL_SIZE_REDICED_FWD 1024
+#define LOCAL_SIZE_REDUCED 256
 
 namespace miopen {
 
@@ -50,7 +51,7 @@ ConstructNormParamsKernels(const miopen::cosineembeddingloss::FwdReducedProblemD
                            const KernelBuildParameters& build_params)
 {
     auto input_size = problem.GetInput1Desc().GetElementSize();
-    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDUCED_SUM},
+    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_NORM},
                                                          {input_size},
                                                          "MIOpenCosineEmbeddingLoss.cpp",
                                                          "CosineEmbeddingLossNorm2d",
@@ -88,16 +89,12 @@ inline void RunNormKernels(const std::vector<Kernel>& kernels,
     kernel(work_a,
            work_b,
            static_cast<uint64_t>(output_numel),
-           static_cast<uint64_t>(1),
-           static_cast<uint64_t>(reduce_size));
+           static_cast<uint64_t>(reduce_size),
+           static_cast<uint64_t>(1));
     std::swap(work_a, work_b);
 }
 
-} // namespace
-
-bool CosineEmbeddingLossReducedForward2d::IsApplicable(
-    const ExecutionContext&,
-    const miopen::cosineembeddingloss::FwdReducedProblemDescription& problem) const
+bool IsOverROCm(const miopen::cosineembeddingloss::FwdReducedProblemDescription& problem)
 {
     if(!((problem.GetInput1Desc().GetLengths()[0] >= 768 &&
           problem.GetInput1Desc().GetLengths()[1] >= 128) ||
@@ -106,8 +103,25 @@ bool CosineEmbeddingLossReducedForward2d::IsApplicable(
     return true;
 }
 
+} // namespace
+
+bool CosineEmbeddingLossReducedForward2d::IsApplicable(
+    const ExecutionContext&,
+    const miopen::cosineembeddingloss::FwdReducedProblemDescription& problem) const
+{
+    if(!IsOverROCm(problem))
+        return false;
+    if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
+         problem.GetOutputDesc().GetType() == miopenFloat ||
+         problem.GetOutputDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
+    return true;
+}
+
 ConvSolution CosineEmbeddingLossReducedForward2d::GetSolution(
-    const ExecutionContext& context,
+    const ExecutionContext&,
     const miopen::cosineembeddingloss::FwdReducedProblemDescription& problem) const
 {
     auto result       = ConvSolution{miopenStatusSuccess};
@@ -124,13 +138,15 @@ ConvSolution CosineEmbeddingLossReducedForward2d::GetSolution(
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
         {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+        {"INPUT_REDUCE_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+        {"OUTPUT_REDUCE_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         {"REDUCE_SIZE", LOCAL_SIZE_REDUCED},
     };
 
     ConstructNormParamsKernels(problem, result, build_params);
 
-    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_FWD},
+    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDICED_FWD},
                                                          {N_total},
                                                          "MIOpenCosineEmbeddingLoss.cpp",
                                                          "CosineEmbeddingLossReducedForward2d",

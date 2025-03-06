@@ -234,7 +234,7 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "Specifies the reduction to apply to the output ('none'|'mean'|'sum') "
                          "(Default=none to indicate no reduction)",
                          "string");
-    inflags.AddInputFlag("contiguous",
+    inflags.AddInputFlag("is-contiguous",
                          'c',
                          "1",
                          "Is input tensor contiguous? (Default=1 for contiguous tensor)",
@@ -456,9 +456,9 @@ int CosineEmbeddingLossDriver<Tgpu, Tref>::RunForwardCPU()
                                                                              target.data(),
                                                                              out_host.data(),
                                                                              margin);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess,
+                        "Error in mloCosineEmbeddingLossUnreducedForwardRunHost2d");
     }
-    MIOPEN_THROW_IF(status != miopenStatusSuccess,
-                    "Error in mloCosineEmbeddingLossUnreducedForwardRunHost2d");
 
     return status;
 }

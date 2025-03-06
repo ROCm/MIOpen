@@ -63,12 +63,12 @@ struct CosineEmbeddingLossTestCase
 inline std::vector<CosineEmbeddingLossTestCase> CosineEmbeddingLossTestConfigs()
 {
     return {
-        // {{768, 20}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
-        // {{768, 20}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM},
-        // {{768, 200}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
-        // {{768, 200}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM},
-        // {{768, 128}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
-        {{768, 128}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM}, // false
+        {{768, 20}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
+        {{768, 20}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM},
+        {{768, 200}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
+        {{768, 200}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM},
+        {{768, 128}, 0.5f, MIOPEN_LOSS_REDUCTION_NONE},
+        {{768, 128}, 0.5f, MIOPEN_LOSS_REDUCTION_SUM},
     };
 }
 

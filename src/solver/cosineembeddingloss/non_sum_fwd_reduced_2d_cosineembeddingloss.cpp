@@ -73,11 +73,9 @@ bool CosineEmbeddingLossReducedForward2dNonSum::IsApplicable(
 }
 
 ConvSolution CosineEmbeddingLossReducedForward2dNonSum::GetSolution(
-    const ExecutionContext& context,
+    const ExecutionContext&,
     const miopen::cosineembeddingloss::FwdReducedProblemDescription& problem) const
 {
-    std::ignore = context;
-
     auto result       = ConvSolution{miopenStatusSuccess};
     auto input_dtype  = miopen::GetDataType(problem.GetInput1Desc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
@@ -90,8 +88,6 @@ ConvSolution CosineEmbeddingLossReducedForward2dNonSum::GetSolution(
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-        {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         {"REDUCE_SIZE", LOCAL_SIZE_REDUCED_NON_SUM},
     };

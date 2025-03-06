@@ -32,8 +32,9 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
-#define LOCAL_SIZE_UNREDUCED_BWD 1024
+#define LOCAL_SIZE_NORM 256
 #define LOCAL_SIZE_REDUCED_SUM 256
+#define LOCAL_SIZE_UNREDUCED_BWD 1024
 
 namespace miopen {
 
@@ -49,7 +50,7 @@ inline void ConstructNormParamsKernelsBwd(
     const KernelBuildParameters& build_params)
 {
     auto input_size = problem.GetInput1Desc().GetElementSize();
-    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_REDUCED_SUM},
+    result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_NORM},
                                                          {input_size},
                                                          "MIOpenCosineEmbeddingLoss.cpp",
                                                          "CosineEmbeddingLossNorm2d",
@@ -87,9 +88,18 @@ inline void RunNormKernelsBwd(const std::vector<Kernel>& kernels,
     kernel(work_a,
            work_b,
            static_cast<uint64_t>(output_numel),
-           static_cast<uint64_t>(1),
-           static_cast<uint64_t>(reduce_size));
+           static_cast<uint64_t>(reduce_size),
+           static_cast<uint64_t>(1));
     std::swap(work_a, work_b);
+}
+
+bool IsOverROCm(const miopen::cosineembeddingloss::BwdUnreducedProblemDescription& problem)
+{
+    if(!((problem.GetInput1Desc().GetLengths()[0] >= 237 &&
+          problem.GetInput1Desc().GetLengths()[1] >= 80) ||
+         problem.GetInput1Desc().GetLengths()[1] >= 200))
+        return false;
+    return true;
 }
 
 } // namespace
@@ -98,10 +108,14 @@ bool CosineEmbeddingLossUnreducedBackward2d::IsApplicable(
     const ExecutionContext&,
     const miopen::cosineembeddingloss::BwdUnreducedProblemDescription& problem) const
 {
-    if(!((problem.GetInput1Desc().GetLengths()[0] >= 237 &&
-          problem.GetInput1Desc().GetLengths()[1] >= 80) ||
-         problem.GetInput1Desc().GetLengths()[1] >= 200))
+    if(!IsOverROCm(problem))
         return false;
+    if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
+         problem.GetOutputDesc().GetType() == miopenFloat ||
+         problem.GetOutputDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
     return true;
 }
 
@@ -122,8 +136,8 @@ ConvSolution CosineEmbeddingLossUnreducedBackward2d::GetSolution(
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"INPUT_REDUCE_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"OUTPUT_REDUCE_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
             {"REDUCE_SIZE", LOCAL_SIZE_REDUCED_SUM},
         };

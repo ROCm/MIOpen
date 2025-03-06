@@ -31,10 +31,10 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-template <typename TI, typename TO>
-__device__ void cosineembeddinglossNorm2d(const TI* __restrict__ input1,
-                                          const TI* __restrict__ input2,
-                                          TO* __restrict__ workspace,
+template <typename T>
+__device__ void cosineembeddinglossNorm2d(const T* __restrict__ input1,
+                                          const T* __restrict__ input2,
+                                          T* __restrict__ workspace,
                                           tensor_view_t<2> input1_tv,
                                           tensor_view_t<2> input2_tv)
 {
@@ -59,19 +59,19 @@ __device__ void cosineembeddinglossNorm2d(const TI* __restrict__ input1,
     workspace[1 * sum_size + gid] = CVT_ACCUM2FLOAT(norm1);
     workspace[2 * sum_size + gid] = CVT_ACCUM2FLOAT(norm2);
 }
-extern "C" __global__ void CosineEmbeddingLossNorm2d(const INPUT_TYPE* __restrict__ input1,
-                                                     const INPUT_TYPE* __restrict__ input2,
+extern "C" __global__ void CosineEmbeddingLossNorm2d(const D_TYPE* __restrict__ input1,
+                                                     const D_TYPE* __restrict__ input2,
                                                      D_TYPE* __restrict__ workspace,
                                                      tensor_view_t<2> input1_tv,
                                                      tensor_view_t<2> input2_tv)
 {
-    cosineembeddinglossNorm2d<INPUT_TYPE, D_TYPE>(input1, input2, workspace, input1_tv, input2_tv);
+    cosineembeddinglossNorm2d<D_TYPE>(input1, input2, workspace, input1_tv, input2_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void cosineembeddinglossUnreducedForward2d(const TI* __restrict__ workspace,
+template <typename T>
+__device__ void cosineembeddinglossUnreducedForward2d(const T* __restrict__ workspace,
                                                       const int32_t* __restrict__ target,
-                                                      TO* __restrict__ output,
+                                                      T* __restrict__ output,
                                                       float margin,
                                                       tensor_view_t<1> target_tv,
                                                       tensor_view_t<1> output_tv)
@@ -105,20 +105,20 @@ __device__ void cosineembeddinglossUnreducedForward2d(const TI* __restrict__ wor
 extern "C" __global__ void
 CosineEmbeddingLossUnreducedForward2d(const D_TYPE* __restrict__ workspace,
                                       const int32_t* __restrict__ target,
-                                      OUTPUT_TYPE* __restrict__ output,
+                                      D_TYPE* __restrict__ output,
                                       float margin,
                                       tensor_view_t<1> target_tv,
                                       tensor_view_t<1> output_tv)
 {
-    cosineembeddinglossUnreducedForward2d<D_TYPE, OUTPUT_TYPE>(
+    cosineembeddinglossUnreducedForward2d<D_TYPE>(
         workspace, target, output, margin, target_tv, output_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void cosineembeddinglossUnreducedForward2d_nonSum(const TI* __restrict__ input1,
-                                                             const TI* __restrict__ input2,
+template <typename T>
+__device__ void cosineembeddinglossUnreducedForward2d_nonSum(const T* __restrict__ input1,
+                                                             const T* __restrict__ input2,
                                                              const int32_t* __restrict__ target,
-                                                             TO* __restrict__ output,
+                                                             T* __restrict__ output,
                                                              float margin,
                                                              tensor_view_t<2> input1_tv,
                                                              tensor_view_t<2> input2_tv,
@@ -159,24 +159,24 @@ __device__ void cosineembeddinglossUnreducedForward2d_nonSum(const TI* __restric
 }
 
 extern "C" __global__ void
-CosineEmbeddingLossUnreducedForward2d_nonSum(const INPUT_TYPE* __restrict__ input1,
-                                             const INPUT_TYPE* __restrict__ input2,
+CosineEmbeddingLossUnreducedForward2d_nonSum(const D_TYPE* __restrict__ input1,
+                                             const D_TYPE* __restrict__ input2,
                                              const int32_t* __restrict__ target,
-                                             OUTPUT_TYPE* __restrict__ output,
+                                             D_TYPE* __restrict__ output,
                                              float margin,
                                              tensor_view_t<2> input1_tv,
                                              tensor_view_t<2> input2_tv,
                                              tensor_view_t<1> target_tv,
                                              tensor_view_t<1> output_tv)
 {
-    cosineembeddinglossUnreducedForward2d_nonSum<INPUT_TYPE, OUTPUT_TYPE>(
+    cosineembeddinglossUnreducedForward2d_nonSum<D_TYPE>(
         input1, input2, target, output, margin, input1_tv, input2_tv, target_tv, output_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void cosineembeddinglossReducedForward2d(const TI* __restrict__ workspace,
+template <typename T>
+__device__ void cosineembeddinglossReducedForward2d(const T* __restrict__ workspace,
                                                     const int32_t* __restrict__ target,
-                                                    TO* __restrict__ loss_sum,
+                                                    T* __restrict__ loss_sum,
                                                     float margin,
                                                     float divisor,
                                                     tensor_view_t<1> target_tv)
@@ -206,20 +206,20 @@ __device__ void cosineembeddinglossReducedForward2d(const TI* __restrict__ works
 
 extern "C" __global__ void CosineEmbeddingLossReducedForward2d(const D_TYPE* __restrict__ workspace,
                                                                const int32_t* __restrict__ target,
-                                                               OUTPUT_TYPE* __restrict__ loss_sum,
+                                                               D_TYPE* __restrict__ loss_sum,
                                                                float margin,
                                                                float divisor,
                                                                tensor_view_t<1> target_tv)
 {
-    cosineembeddinglossReducedForward2d<D_TYPE, OUTPUT_TYPE>(
+    cosineembeddinglossReducedForward2d<D_TYPE>(
         workspace, target, loss_sum, margin, divisor, target_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void cosineembeddinglossReducedForward2d_nonSum(const TI* __restrict__ input1,
-                                                           const TI* __restrict__ input2,
+template <typename T>
+__device__ void cosineembeddinglossReducedForward2d_nonSum(const T* __restrict__ input1,
+                                                           const T* __restrict__ input2,
                                                            const int32_t* __restrict__ target,
-                                                           TO* __restrict__ loss_sum,
+                                                           T* __restrict__ loss_sum,
                                                            float margin,
                                                            float divisor,
                                                            tensor_view_t<2> input1_tv,
@@ -259,28 +259,28 @@ __device__ void cosineembeddinglossReducedForward2d_nonSum(const TI* __restrict_
 }
 
 extern "C" __global__ void
-CosineEmbeddingLossReducedForward2d_nonSum(const INPUT_TYPE* __restrict__ input1,
-                                           const INPUT_TYPE* __restrict__ input2,
+CosineEmbeddingLossReducedForward2d_nonSum(const D_TYPE* __restrict__ input1,
+                                           const D_TYPE* __restrict__ input2,
                                            const int32_t* __restrict__ target,
-                                           OUTPUT_TYPE* __restrict__ loss_sum,
+                                           D_TYPE* __restrict__ loss_sum,
                                            float margin,
                                            float divisor,
                                            tensor_view_t<2> input1_tv,
                                            tensor_view_t<2> input2_tv,
                                            tensor_view_t<1> target_tv)
 {
-    cosineembeddinglossReducedForward2d_nonSum<INPUT_TYPE, OUTPUT_TYPE>(
+    cosineembeddinglossReducedForward2d_nonSum<D_TYPE>(
         input1, input2, target, loss_sum, margin, divisor, input1_tv, input2_tv, target_tv);
 }
 
-template <typename TI, typename TO, typename T>
+template <typename T>
 __device__ void cosineembeddinglossUnreducedBackward2d(const T* __restrict__ workspace,
-                                                       const TI* __restrict__ input1,
-                                                       const TI* __restrict__ input2,
+                                                       const T* __restrict__ input1,
+                                                       const T* __restrict__ input2,
                                                        const int32_t* __restrict__ target,
-                                                       const TI* __restrict__ output_grad,
-                                                       TO* __restrict__ input1_grad,
-                                                       TO* __restrict__ input2_grad,
+                                                       const T* __restrict__ output_grad,
+                                                       T* __restrict__ input1_grad,
+                                                       T* __restrict__ input2_grad,
                                                        float margin,
                                                        tensor_view_t<2> input1_tv,
                                                        tensor_view_t<2> input2_tv,
@@ -359,12 +359,12 @@ __device__ void cosineembeddinglossUnreducedBackward2d(const T* __restrict__ wor
 
 extern "C" __global__ void
 CosineEmbeddingLossUnreducedBackward2d(const D_TYPE* __restrict__ workspace,
-                                       const INPUT_TYPE* __restrict__ input1,
-                                       const INPUT_TYPE* __restrict__ input2,
+                                       const D_TYPE* __restrict__ input1,
+                                       const D_TYPE* __restrict__ input2,
                                        const int32_t* __restrict__ target,
-                                       const INPUT_TYPE* __restrict__ output_grad,
-                                       OUTPUT_TYPE* __restrict__ input1_grad,
-                                       OUTPUT_TYPE* __restrict__ input2_grad,
+                                       const D_TYPE* __restrict__ output_grad,
+                                       D_TYPE* __restrict__ input1_grad,
+                                       D_TYPE* __restrict__ input2_grad,
                                        float margin,
                                        tensor_view_t<2> input1_tv,
                                        tensor_view_t<2> input2_tv,
@@ -373,29 +373,29 @@ CosineEmbeddingLossUnreducedBackward2d(const D_TYPE* __restrict__ workspace,
                                        tensor_view_t<2> input1_grad_tv,
                                        tensor_view_t<2> input2_grad_tv)
 {
-    cosineembeddinglossUnreducedBackward2d<INPUT_TYPE, OUTPUT_TYPE, D_TYPE>(workspace,
-                                                                            input1,
-                                                                            input2,
-                                                                            target,
-                                                                            output_grad,
-                                                                            input1_grad,
-                                                                            input2_grad,
-                                                                            margin,
-                                                                            input1_tv,
-                                                                            input2_tv,
-                                                                            target_tv,
-                                                                            output_grad_tv,
-                                                                            input1_grad_tv,
-                                                                            input2_grad_tv);
+    cosineembeddinglossUnreducedBackward2d<D_TYPE>(workspace,
+                                                   input1,
+                                                   input2,
+                                                   target,
+                                                   output_grad,
+                                                   input1_grad,
+                                                   input2_grad,
+                                                   margin,
+                                                   input1_tv,
+                                                   input2_tv,
+                                                   target_tv,
+                                                   output_grad_tv,
+                                                   input1_grad_tv,
+                                                   input2_grad_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void cosineembeddinglossUnreducedBackward2d_nonSum(const TI* __restrict__ input1,
-                                                              const TI* __restrict__ input2,
+template <typename T>
+__device__ void cosineembeddinglossUnreducedBackward2d_nonSum(const T* __restrict__ input1,
+                                                              const T* __restrict__ input2,
                                                               const int32_t* __restrict__ target,
-                                                              const TI* __restrict__ output_grad,
-                                                              TO* __restrict__ input1_grad,
-                                                              TO* __restrict__ input2_grad,
+                                                              const T* __restrict__ output_grad,
+                                                              T* __restrict__ input1_grad,
+                                                              T* __restrict__ input2_grad,
                                                               float margin,
                                                               tensor_view_t<2> input1_tv,
                                                               tensor_view_t<2> input2_tv,
@@ -479,12 +479,12 @@ __device__ void cosineembeddinglossUnreducedBackward2d_nonSum(const TI* __restri
 }
 
 extern "C" __global__ void
-CosineEmbeddingLossUnreducedBackward2d_nonSum(const INPUT_TYPE* __restrict__ input1,
-                                              const INPUT_TYPE* __restrict__ input2,
+CosineEmbeddingLossUnreducedBackward2d_nonSum(const D_TYPE* __restrict__ input1,
+                                              const D_TYPE* __restrict__ input2,
                                               const int32_t* __restrict__ target,
-                                              const INPUT_TYPE* __restrict__ output_grad,
-                                              OUTPUT_TYPE* __restrict__ input1_grad,
-                                              OUTPUT_TYPE* __restrict__ input2_grad,
+                                              const D_TYPE* __restrict__ output_grad,
+                                              D_TYPE* __restrict__ input1_grad,
+                                              D_TYPE* __restrict__ input2_grad,
                                               float margin,
                                               tensor_view_t<2> input1_tv,
                                               tensor_view_t<2> input2_tv,
@@ -493,29 +493,29 @@ CosineEmbeddingLossUnreducedBackward2d_nonSum(const INPUT_TYPE* __restrict__ inp
                                               tensor_view_t<2> input1_grad_tv,
                                               tensor_view_t<2> input2_grad_tv)
 {
-    cosineembeddinglossUnreducedBackward2d_nonSum<INPUT_TYPE, OUTPUT_TYPE>(input1,
-                                                                           input2,
-                                                                           target,
-                                                                           output_grad,
-                                                                           input1_grad,
-                                                                           input2_grad,
-                                                                           margin,
-                                                                           input1_tv,
-                                                                           input2_tv,
-                                                                           target_tv,
-                                                                           output_grad_tv,
-                                                                           input1_grad_tv,
-                                                                           input2_grad_tv);
+    cosineembeddinglossUnreducedBackward2d_nonSum<D_TYPE>(input1,
+                                                          input2,
+                                                          target,
+                                                          output_grad,
+                                                          input1_grad,
+                                                          input2_grad,
+                                                          margin,
+                                                          input1_tv,
+                                                          input2_tv,
+                                                          target_tv,
+                                                          output_grad_tv,
+                                                          input1_grad_tv,
+                                                          input2_grad_tv);
 }
 
-template <typename TI, typename TO, typename T>
+template <typename T>
 __device__ void cosineembeddinglossReducedBackward2d(const T* __restrict__ workspace,
-                                                     const TI* __restrict__ input1,
-                                                     const TI* __restrict__ input2,
+                                                     const T* __restrict__ input1,
+                                                     const T* __restrict__ input2,
                                                      const int32_t* __restrict__ target,
-                                                     const TI* __restrict__ output_grad,
-                                                     TO* __restrict__ input1_grad,
-                                                     TO* __restrict__ input2_grad,
+                                                     const T* __restrict__ output_grad,
+                                                     T* __restrict__ input1_grad,
+                                                     T* __restrict__ input2_grad,
                                                      float margin,
                                                      float divisor,
                                                      tensor_view_t<2> input1_tv,
@@ -595,12 +595,12 @@ __device__ void cosineembeddinglossReducedBackward2d(const T* __restrict__ works
 
 extern "C" __global__ void
 CosineEmbeddingLossReducedBackward2d(const D_TYPE* __restrict__ workspace,
-                                     const INPUT_TYPE* __restrict__ input1,
-                                     const INPUT_TYPE* __restrict__ input2,
+                                     const D_TYPE* __restrict__ input1,
+                                     const D_TYPE* __restrict__ input2,
                                      const int32_t* __restrict__ target,
-                                     const INPUT_TYPE* __restrict__ output_grad,
-                                     OUTPUT_TYPE* __restrict__ input1_grad,
-                                     OUTPUT_TYPE* __restrict__ input2_grad,
+                                     const D_TYPE* __restrict__ output_grad,
+                                     D_TYPE* __restrict__ input1_grad,
+                                     D_TYPE* __restrict__ input2_grad,
                                      float margin,
                                      float divisor,
                                      tensor_view_t<2> input1_tv,
@@ -610,30 +610,30 @@ CosineEmbeddingLossReducedBackward2d(const D_TYPE* __restrict__ workspace,
                                      tensor_view_t<2> input1_grad_tv,
                                      tensor_view_t<2> input2_grad_tv)
 {
-    cosineembeddinglossReducedBackward2d<INPUT_TYPE, OUTPUT_TYPE, D_TYPE>(workspace,
-                                                                          input1,
-                                                                          input2,
-                                                                          target,
-                                                                          output_grad,
-                                                                          input1_grad,
-                                                                          input2_grad,
-                                                                          margin,
-                                                                          divisor,
-                                                                          input1_tv,
-                                                                          input2_tv,
-                                                                          target_tv,
-                                                                          output_grad_tv,
-                                                                          input1_grad_tv,
-                                                                          input2_grad_tv);
+    cosineembeddinglossReducedBackward2d<D_TYPE>(workspace,
+                                                 input1,
+                                                 input2,
+                                                 target,
+                                                 output_grad,
+                                                 input1_grad,
+                                                 input2_grad,
+                                                 margin,
+                                                 divisor,
+                                                 input1_tv,
+                                                 input2_tv,
+                                                 target_tv,
+                                                 output_grad_tv,
+                                                 input1_grad_tv,
+                                                 input2_grad_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void cosineembeddinglossReducedBackward2d_nonSum(const TI* __restrict__ input1,
-                                                            const TI* __restrict__ input2,
+template <typename T>
+__device__ void cosineembeddinglossReducedBackward2d_nonSum(const T* __restrict__ input1,
+                                                            const T* __restrict__ input2,
                                                             const int32_t* __restrict__ target,
-                                                            const TI* __restrict__ output_grad,
-                                                            TO* __restrict__ input1_grad,
-                                                            TO* __restrict__ input2_grad,
+                                                            const T* __restrict__ output_grad,
+                                                            T* __restrict__ input1_grad,
+                                                            T* __restrict__ input2_grad,
                                                             float margin,
                                                             float divisor,
                                                             tensor_view_t<2> input1_tv,
@@ -735,12 +735,12 @@ __device__ void cosineembeddinglossReducedBackward2d_nonSum(const TI* __restrict
 }
 
 extern "C" __global__ void
-CosineEmbeddingLossReducedBackward2d_nonSum(const INPUT_TYPE* __restrict__ input1,
-                                            const INPUT_TYPE* __restrict__ input2,
+CosineEmbeddingLossReducedBackward2d_nonSum(const D_TYPE* __restrict__ input1,
+                                            const D_TYPE* __restrict__ input2,
                                             const int32_t* __restrict__ target,
-                                            const INPUT_TYPE* __restrict__ output_grad,
-                                            OUTPUT_TYPE* __restrict__ input1_grad,
-                                            OUTPUT_TYPE* __restrict__ input2_grad,
+                                            const D_TYPE* __restrict__ output_grad,
+                                            D_TYPE* __restrict__ input1_grad,
+                                            D_TYPE* __restrict__ input2_grad,
                                             float margin,
                                             float divisor,
                                             tensor_view_t<2> input1_tv,
@@ -750,18 +750,18 @@ CosineEmbeddingLossReducedBackward2d_nonSum(const INPUT_TYPE* __restrict__ input
                                             tensor_view_t<2> input1_grad_tv,
                                             tensor_view_t<2> input2_grad_tv)
 {
-    cosineembeddinglossReducedBackward2d_nonSum<INPUT_TYPE, OUTPUT_TYPE>(input1,
-                                                                         input2,
-                                                                         target,
-                                                                         output_grad,
-                                                                         input1_grad,
-                                                                         input2_grad,
-                                                                         margin,
-                                                                         divisor,
-                                                                         input1_tv,
-                                                                         input2_tv,
-                                                                         target_tv,
-                                                                         output_grad_tv,
-                                                                         input1_grad_tv,
-                                                                         input2_grad_tv);
+    cosineembeddinglossReducedBackward2d_nonSum<D_TYPE>(input1,
+                                                        input2,
+                                                        target,
+                                                        output_grad,
+                                                        input1_grad,
+                                                        input2_grad,
+                                                        margin,
+                                                        divisor,
+                                                        input1_tv,
+                                                        input2_tv,
+                                                        target_tv,
+                                                        output_grad_tv,
+                                                        input1_grad_tv,
+                                                        input2_grad_tv);
 }

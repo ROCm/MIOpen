@@ -112,27 +112,24 @@ __device__ void Reduce1dSumContiguous(const TI* __restrict__ input,
     uint64_t tid  = threadIdx.x;
     uint64_t oidx = blockIdx.x;
 
-    // use double instead of FLOAT_ACCUM for better precision
-    FLOAT_ACCUM sum_double = 0.0;
+    FLOAT_ACCUM sum = 0.0;
     for(uint64_t i = tid; i < outer_size * inner_size; i += blockDim.x)
-        sum_double +=
-            // CVT_FLOAT2ACCUM(input[oidx * outer_size + i]);
-            CVT_FLOAT2ACCUM(input[i / inner_size * output_numel * inner_size + oidx * inner_size +
-                                  i % inner_size]);
+        sum += CVT_FLOAT2ACCUM(
+            input[i / inner_size * output_numel * inner_size + oidx * inner_size + i % inner_size]);
 
-    FLOAT_ACCUM sum = static_cast<FLOAT_ACCUM>(sum_double);
-    sum             = block_reduce<BinaryOp_t::Add, REDUCE_SIZE, ReduceThreadDim::X>(sum);
+    sum = block_reduce<BinaryOp_t::Add, REDUCE_SIZE, ReduceThreadDim::X>(sum);
 
     if(tid == 0)
         output[oidx] = CVT_ACCUM2FLOAT(sum);
 }
 
-extern "C" __global__ void Reduce1dSumContiguous(const FLOAT* __restrict__ input,
-                                                 FLOAT* __restrict__ output,
+extern "C" __global__ void Reduce1dSumContiguous(const INPUT_REDUCE_TYPE* __restrict__ input,
+                                                 OUTPUT_REDUCE_TYPE* __restrict__ output,
                                                  uint64_t output_numel,
                                                  uint64_t inner_size,
                                                  uint64_t outer_size)
 {
     // instantiate the kernel
-    Reduce1dSumContiguous<FLOAT, FLOAT>(input, output, output_numel, inner_size, outer_size);
+    Reduce1dSumContiguous<INPUT_REDUCE_TYPE, OUTPUT_REDUCE_TYPE>(
+        input, output, output_numel, inner_size, outer_size);
 }
