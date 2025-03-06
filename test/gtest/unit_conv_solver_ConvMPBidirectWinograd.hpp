@@ -39,31 +39,37 @@
 // However we still want to check that solver is not broken and therefore use
 // MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_FnX3=1.
 
-#define CONCAT1(str1, str2) str1##str2
-#define CONCAT(str1, str2) CONCAT1(str1, str2)
+#define CONCAT2_HELPER(str1, str2) str1##str2
+#define CONCAT2(str1, str2) CONCAT2_HELPER(str1, str2)
 
-#define MAKE_SUFFIX(wino_data_h, wino_filter_h, sep) CONCAT(CONCAT(wino_data_h, sep), wino_filter_h)
+#define CONCAT3_HELPER(str1, str2, str3) str1##str2##str3
+#define CONCAT3(str1, str2, str3) CONCAT3_HELPER(str1, str2, str3)
+
+#define CONCAT5_HELPER(str1, str2, str3, str4, str5) str1##str2##str3##str4##str5
+#define CONCAT5(str1, str2, str3, str4, str5) CONCAT5_HELPER(str1, str2, str3, str4, str5)
+
+#define MAKE_SUFFIX(wino_data_h, wino_filter_h, sep) CONCAT3(wino_data_h, sep, wino_filter_h)
 #define MAKE_SUFFIX_UPPER(wino_data_h, wino_filter_h) MAKE_SUFFIX(wino_data_h, wino_filter_h, X)
 #define MAKE_SUFFIX_LOWER(wino_data_h, wino_filter_h) MAKE_SUFFIX(wino_data_h, wino_filter_h, x)
 
-#define SHORT_SOLVER_NAME CONCAT(MPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
+#define SHORT_SOLVER_NAME CONCAT2(MPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
 
-#define SOLVER_NAME CONCAT(ConvMPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
+#define SOLVER_NAME CONCAT2(ConvMPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
 
 #define TESTSUITE_NAME_GENERIC(hw_type, name, datatype) \
-    CONCAT(CONCAT(CONCAT(CONCAT(hw_type, _), name), _), datatype)
+    CONCAT5(hw_type, _, name, _, datatype)
 
 #define TESTSUITE_NAME_GENERIC_DIR(hw_type, name, direction, datatype) \
-    TESTSUITE_NAME_GENERIC(hw_type, CONCAT(name, direction), datatype)
+    TESTSUITE_NAME_GENERIC(hw_type, CONCAT2(name, direction), datatype)
 
 #define TESTSUITE_NAME(hw_type, direction, datatype) \
     TESTSUITE_NAME_GENERIC_DIR(                      \
-        hw_type, CONCAT(UnitTestConvSolver, SHORT_SOLVER_NAME), direction, datatype)
+        hw_type, CONCAT2(UnitTestConvSolver, SHORT_SOLVER_NAME), direction, datatype)
 
 #define TESTSUITE_NAME_DEV_APP(hw_type, direction, datatype)                     \
     TESTSUITE_NAME_GENERIC_DIR(                                                  \
         hw_type,                                                                 \
-        CONCAT(CONCAT(UnitTestConvSolver, SHORT_SOLVER_NAME), DevApplicability), \
+        CONCAT3(UnitTestConvSolver, SHORT_SOLVER_NAME, DevApplicability), \
         direction,                                                               \
         datatype)
 
@@ -75,7 +81,7 @@
 #define TESTSUITE_NAME_DEVAPP TESTSUITE_NAME_DEV_APP(CPU, Fwd, NONE)
 
 #define MP_BD_WINOGRAD_ENV_VAR \
-    CONCAT(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F, MAKE_SUFFIX_UPPER(WINO_DATA_H, WINO_FILTER_H))
+    CONCAT2(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F, MAKE_SUFFIX_UPPER(WINO_DATA_H, WINO_FILTER_H))
 
 MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3)
 MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3)
