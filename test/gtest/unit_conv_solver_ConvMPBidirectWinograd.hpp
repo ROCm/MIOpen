@@ -77,7 +77,11 @@
 #define MP_BD_WINOGRAD_ENV_VAR \
     CONCAT(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F, MAKE_SUFFIX_UPPER(WINO_DATA_H, WINO_FILTER_H))
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MP_BD_WINOGRAD_ENV_VAR)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3)
 
 namespace {
 
@@ -87,9 +91,9 @@ public:
     SolverEnabler()
     {
         if(MP_BD_WINOGRAD_ENV_VAR)
-            prev = env::value(MP_BD_WINOGRAD_ENV_VAR);
+            prev = lib_env::value<bool>(MP_BD_WINOGRAD_ENV_VAR);
         if(prev != true)
-            env::update(MP_BD_WINOGRAD_ENV_VAR, true);
+            lib_env::update(MP_BD_WINOGRAD_ENV_VAR, true);
     }
 
     ~SolverEnabler()
@@ -97,11 +101,11 @@ public:
         if(prev)
         {
             if(prev != true)
-                env::update(MP_BD_WINOGRAD_ENV_VAR, false);
+                lib_env::update(MP_BD_WINOGRAD_ENV_VAR, false);
         }
         else
         {
-            env::clear(MP_BD_WINOGRAD_ENV_VAR);
+            lib_env::clear(MP_BD_WINOGRAD_ENV_VAR);
         }
     }
 
