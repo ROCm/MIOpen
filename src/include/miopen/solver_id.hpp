@@ -65,6 +65,7 @@ enum class Primitive
     Kthvalue,
     SoftMarginLoss,
     MultiMarginLoss,
+    KLDivLoss,
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id
