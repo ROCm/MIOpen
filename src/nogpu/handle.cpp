@@ -49,10 +49,6 @@
 #include <unistd.h>
 #endif
 
-#include <algorithm>
-#include <cassert>
-#include <chrono>
-#include <thread>
 #include <miopen/nogpu/handle_impl.hpp>
 
 #if MIOPEN_USE_HIPBLASLT
@@ -274,7 +270,7 @@ const TargetProperties& Handle::GetTargetProperties() const
 }
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->device_name; }
-std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
+std::string Handle::GetDeviceName() const { return this->GetTargetProperties().Name(); }
 
 std::ostream& Handle::Print(std::ostream& os) const
 {
