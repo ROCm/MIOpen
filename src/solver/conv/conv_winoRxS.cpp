@@ -679,9 +679,9 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11")))
         return false;
     if(problem.IsFp16() &&
-       !(name == "gfx906" || name == "gfx908" || name == "gfx90a" ||
-         name == "gfx942" || StartsWith(name, "gfx95") || name == "gfx1011" ||
-         name == "gfx1012" || StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
+       !(name == "gfx906" || name == "gfx908" || name == "gfx90a" || name == "gfx942" ||
+         StartsWith(name, "gfx95") || name == "gfx1011" || name == "gfx1012" ||
+         StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
         return false;
 
     if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())

@@ -46,8 +46,7 @@ using namespace layernorm;
 TEST_P(GPU_LayerNormTest_FP32, LayerNormTestFw)
 {
     const auto& handle = get_handle();
-    if(handle.GetDeviceName() == "gfx908" ||
-       handle.GetDeviceName() == "gfx90a" ||
+    if(handle.GetDeviceName() == "gfx908" || handle.GetDeviceName() == "gfx90a" ||
        handle.GetDeviceName() == "gfx942")
     {
         RunTest();
@@ -62,8 +61,7 @@ TEST_P(GPU_LayerNormTest_FP32, LayerNormTestFw)
 TEST_P(GPU_LayerNormTest_FP16, LayerNormTestFw)
 {
     const auto& handle = get_handle();
-    if(handle.GetDeviceName() == "gfx908" ||
-       handle.GetDeviceName() == "gfx90a" ||
+    if(handle.GetDeviceName() == "gfx908" || handle.GetDeviceName() == "gfx90a" ||
        handle.GetDeviceName() == "gfx942")
     {
         RunTest();
@@ -78,8 +76,7 @@ TEST_P(GPU_LayerNormTest_FP16, LayerNormTestFw)
 TEST_P(GPU_LayerNormTest_BFP16, LayerNormTestFw)
 {
     const auto& handle = get_handle();
-    if(handle.GetDeviceName() == "gfx908" ||
-       handle.GetDeviceName() == "gfx90a" ||
+    if(handle.GetDeviceName() == "gfx908" || handle.GetDeviceName() == "gfx90a" ||
        handle.GetDeviceName() == "gfx942")
     {
         RunTest();
