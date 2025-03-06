@@ -313,11 +313,10 @@ ConvSolution InitAnyInvokerFactory(const ProblemDescriptionType& problem,
                 auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx);
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
 
-                const auto enable_profiling = handle.IsProfilingEnabled();
-                float elapsed_time =
-                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-                if(enable_profiling)
+                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                if(handle.IsProfilingEnabled())
                 {
+                    float elapsed_time = handle.GetKernelTime();
                     handle.ResetKernelTime();
                     handle.AccumKernelTime(elapsed_time);
                 }
