@@ -26,7 +26,6 @@
 
 #include <miopen/ctc.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/env.hpp>
 
 namespace miopen {
 
