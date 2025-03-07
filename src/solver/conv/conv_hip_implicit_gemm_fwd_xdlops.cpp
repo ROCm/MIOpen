@@ -28,6 +28,7 @@
 #include <cstdint>
 
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
@@ -182,11 +183,11 @@ void PerformanceConfigHipImplicitGemmFwdXdlops::HeuristicInit(
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt64:
     case miopenInt32:
-    case miopenBFloat16:
     case miopenDouble: break;
     }
 #endif
@@ -225,11 +226,11 @@ bool PerformanceConfigHipImplicitGemmFwdXdlops::IsValid(
     case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt64:
     case miopenInt32:
-    case miopenBFloat16:
     case miopenDouble: break;
     }
 #endif
@@ -306,11 +307,11 @@ bool ConvHipImplicitGemmFwdXdlops::IsApplicable(
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt64:
     case miopenInt32:
-    case miopenBFloat16:
     case miopenDouble: break;
     }
 #endif
@@ -336,12 +337,16 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     case miopenFloat:
         return InitInvokerFactoryNHWC<DeviceOpPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
+    case miopenBFloat16:
+        return InitInvokerFactoryNHWC<DeviceOpPtrs<ck::bhalf_t>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
     case miopenInt64:
     case miopenInt32:
-    case miopenBFloat16:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
