@@ -105,12 +105,6 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsAllContiguous() const
-    {
-        return input1Desc.IsContiguous() && input2Desc.IsContiguous() &&
-               targetDesc.IsContiguous() && outputDesc.IsContiguous();
-    }
-
 protected:
     TensorDescriptor input1Desc;
     TensorDescriptor input2Desc;
