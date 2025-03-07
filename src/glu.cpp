@@ -37,7 +37,7 @@ namespace miopen {
 
 namespace glu {
 
-miopenStatus_t GLUForward(Handle& handle,
+miopenStatus_t GLUForward(const Handle& handle,
                           const TensorDescriptor& inputDesc,
                           ConstData_t input,
                           const TensorDescriptor& outputDesc,
@@ -65,7 +65,7 @@ miopenStatus_t GLUForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t GLUBackward(Handle& handle,
+miopenStatus_t GLUBackward(const Handle& handle,
                            const TensorDescriptor& inputDesc,
                            ConstData_t input,
                            const TensorDescriptor& outputGradDesc,

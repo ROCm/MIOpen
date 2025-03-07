@@ -49,10 +49,6 @@
 #include <unistd.h>
 #endif
 
-#include <algorithm>
-#include <cassert>
-#include <chrono>
-#include <thread>
 #include <miopen/nogpu/handle_impl.hpp>
 
 #if MIOPEN_USE_HIPBLASLT
@@ -258,7 +254,7 @@ std::size_t Handle::GetWavefrontWidth() const { return this->impl->warp_size; }
 
 // No HIP API that could return maximum memory allocation size
 // for a single object.
-std::size_t Handle::GetMaxMemoryAllocSize()
+std::size_t Handle::GetMaxMemoryAllocSize() const
 {
     if(this->impl->max_mem_alloc_size == 0)
         return floor(0.85 * this->impl->global_mem_size);
@@ -274,7 +270,7 @@ const TargetProperties& Handle::GetTargetProperties() const
 }
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->device_name; }
-std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
+std::string Handle::GetDeviceName() const { return this->GetTargetProperties().Name(); }
 
 std::ostream& Handle::Print(std::ostream& os) const
 {

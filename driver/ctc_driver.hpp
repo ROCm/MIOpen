@@ -33,7 +33,6 @@
 #include "util_driver.hpp"
 #include "util_file.hpp"
 
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 
 #include <../test/verify.hpp>
