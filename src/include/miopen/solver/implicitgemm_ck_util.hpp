@@ -312,8 +312,10 @@ ConvSolution InitAnyInvokerFactory(const ProblemDescriptionType& problem,
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
                 auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx);
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
-
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                {
+                    WorkAroundHipEventProfiler prf(handle);
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                }
                 if(handle.IsProfilingEnabled())
                 {
                     float elapsed_time = handle.GetKernelTime();
