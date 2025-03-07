@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,18 +23,31 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
-#include <miopen/env.hpp>
+#ifdef MIOPEN_BUILD_TESTING
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+#include <optional>
+#include <string>
+#include <string_view>
 
-namespace env = miopen::env;
+#include <miopen/config.hpp>
 
-inline bool IsTestRunWith(const char* float_arg)
-{
-    assert(float_arg != nullptr);
-    const auto& s_envVar = env::value(MIOPEN_TEST_FLOAT_ARG);
-    return (s_envVar.compare(float_arg) == 0);
-}
+namespace miopen {
+namespace debug {
+namespace env {
+
+// MT-Unsafe
+MIOPEN_INTERNALS_EXPORT std::optional<std::string> GetEnvVariable(std::string_view name);
+
+// MT-Unsafe
+MIOPEN_INTERNALS_EXPORT void UpdateEnvVariable(std::string_view name, std::string_view value);
+
+// MT-Unsafe
+MIOPEN_INTERNALS_EXPORT void ClearEnvVariable(std::string_view name);
+
+} // namespace env
+} // namespace debug
+} // namespace miopen
+
+#endif
