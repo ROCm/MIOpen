@@ -105,7 +105,7 @@ using TestCase = decltype(GetTestCases())::value_type;
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
-    const auto target = handle.GetTargetProperties();
+    const auto& target = handle.GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
     using e_mask = enabled<Gpu::Default>;

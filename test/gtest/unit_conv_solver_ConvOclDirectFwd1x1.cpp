@@ -26,21 +26,36 @@
 
 #include "unit_conv_solver.hpp"
 
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
+
 namespace {
 
 class WA_SWDEV_271887_ScopedDisabler
 {
 public:
-    WA_SWDEV_271887_ScopedDisabler() noexcept
+    WA_SWDEV_271887_ScopedDisabler()
     {
-        prev                                   = miopen::debug::disable_wa_swdev_271887;
-        miopen::debug::disable_wa_swdev_271887 = true;
+        if(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
+            prev = lib_env::value<bool>(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1);
+        if(prev != true)
+            lib_env::update(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1, true);
     }
 
-    ~WA_SWDEV_271887_ScopedDisabler() noexcept { miopen::debug::disable_wa_swdev_271887 = prev; }
+    ~WA_SWDEV_271887_ScopedDisabler()
+    {
+        if(prev)
+        {
+            if(prev != true)
+                lib_env::update(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1, false);
+        }
+        else
+        {
+            lib_env::clear(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1);
+        }
+    }
 
 private:
-    bool prev;
+    std::optional<bool> prev;
 };
 
 auto GetConvTestCases(miopenDataType_t datatype)

@@ -29,6 +29,7 @@
 #include <cstdint>
 
 #include <miopen/check_numerics.hpp>
+#include <miopen/env.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
@@ -292,8 +293,8 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(conv_problem); break;
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
@@ -347,8 +348,8 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(conv_problem);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
@@ -444,8 +445,8 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(conv_problem);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
@@ -478,8 +479,8 @@ ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
             case miopenHalf:
                 RunCKSolution<ck::half_t>(handle, primitive_parameters, conv_problem, config);
                 break;
-            case miopenFloat8:
-            case miopenBFloat8:
+            case miopenFloat8_fnuz:
+            case miopenBFloat8_fnuz:
             case miopenInt8:
             case miopenFloat:
             case miopenInt32:

@@ -27,8 +27,8 @@
 
 #include <hip_float8.hpp>
 #include "verify.hpp"
-using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
-using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+using float8_fnuz  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8_fnuz = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
 template <typename U, typename V>
 struct Fp8Cast
@@ -39,13 +39,13 @@ struct Fp8Cast
     {
         if(is_stoch)
         {
-            auto tmp =
-                float8(static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
+            auto tmp = float8_fnuz(
+                static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
             return static_cast<V>(tmp);
         }
         else
         {
-            auto tmp = float8(static_cast<float>(x));
+            auto tmp = float8_fnuz(static_cast<float>(x));
             return static_cast<V>(tmp);
         }
     }
@@ -60,13 +60,13 @@ struct Bf8Cast
     {
         if(is_stoch)
         {
-            auto tmp =
-                bfloat8(static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
+            auto tmp = bfloat8_fnuz(
+                static_cast<float>(x), miopen_f8::hip_f8_rounding_mode::stochastic, seed);
             return static_cast<V>(tmp);
         }
         else
         {
-            auto tmp = bfloat8(static_cast<float>(x));
+            auto tmp = bfloat8_fnuz(static_cast<float>(x));
             return static_cast<V>(tmp);
         }
     }
