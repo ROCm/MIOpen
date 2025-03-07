@@ -83,6 +83,7 @@ ConvSolution MarginRankingLossBackward::GetSolution(
 
     auto kernel         = KernelInfo{};
     kernel.kernel_file  = "MIOpenMarginRankingLoss.cpp";
+    kernel.kernel_name  = "MarginRankingLossBackward5d";
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
     kernel.l_wk.push_back(xlocalsize);
@@ -93,13 +94,14 @@ ConvSolution MarginRankingLossBackward::GetSolution(
     kernel.g_wk.push_back(ygridsize);
     kernel.g_wk.push_back(zgridsize);
 
+    result.construction_params.push_back(kernel);
+
     uint64_t divisor = 1;
     if(problem.GetReductionMode() == MIOPEN_LOSS_REDUCTION_MEAN)
     {
         divisor = problem.GetTargetDesc().GetElementSize();
     }
 
-    kernel.kernel_name     = "MarginRankingLossBackward5d";
     result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
@@ -128,7 +130,6 @@ ConvSolution MarginRankingLossBackward::GetSolution(
         };
     };
 
-    result.construction_params.push_back(kernel);
     return result;
 }
 
