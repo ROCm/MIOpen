@@ -45,7 +45,6 @@
 #if MIOPEN_BACKEND_HIP
 
 #define WORKAROUND_SWDEV_203031 1 // See also issues #2075, #2067
-#define WORKAROUND_ISSUE_1146 1   // check asm solver applicability for gfx90a
 #endif
 
 #define WORKAROUND_SWDEV_257202 1 // For SSD convergence issue.
@@ -200,10 +199,9 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
     const std::string name = ctx.GetStream().GetDeviceName();
     if(!StartsWith(name, "gfx9"))
         return false;
-#if WORKAROUND_ISSUE_1146
-    if(name == "gfx90a")
+    // The kernel uses some gfx9 instructions that do not exist on gfx942
+    if(!(name == "gfx900" || name == "gfx906" || name == "gfx908" || name == "gfx90a"))
         return false;
-#endif
 
     {
         std::size_t limit = env::value(MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX);

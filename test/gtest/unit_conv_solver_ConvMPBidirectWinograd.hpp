@@ -34,7 +34,6 @@
 #error "WINO_FILTER_H undefined"
 #endif
 
-// GFX90A_DISABLED is due to WORKAROUND_ISSUE_1146.
 // WORKAROUND_SWDEV_257202 disables these solvers due to SSD convergence issues.
 // However we still want to check that solver is not broken and therefore use
 // MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_FnX3=1.
@@ -132,8 +131,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        // gfx90A is not enabled because of WORKAROUND_ISSUE_1146
-        Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx94X;
+        Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A;
         auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.CheckXnackDisabled();
         return p;
