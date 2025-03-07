@@ -199,8 +199,8 @@ static bool IsApplicableTransform(const ExecutionContext& ctx, const ProblemDesc
     const std::string name = ctx.GetStream().GetDeviceName();
     if(!StartsWith(name, "gfx9"))
         return false;
-    // The kernel uses some gfx9 instructions that do not exist on gfx942
-    if(!(name == "gfx900" || name == "gfx906" || name == "gfx908" || name == "gfx90a"))
+    // The kernel uses some gfx9 instructions that do not exist on gfx90a, gfx942, ...
+    if(!(name == "gfx900" || name == "gfx906" || name == "gfx908"))
         return false;
 
     {
