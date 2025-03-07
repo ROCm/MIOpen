@@ -34,8 +34,8 @@ MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE)
 
 // If these env variables are removed from the library, they need to be replaced with some others.
 MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS) // some bool variable
-MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX) // some uint64 variable
-MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER) // some string variable
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX)     // some uint64 variable
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)          // some string variable
 
 class EnvVarRestorer
 {
