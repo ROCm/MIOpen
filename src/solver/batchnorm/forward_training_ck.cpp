@@ -27,6 +27,7 @@
 
 #include <miopen/batchnorm/solvers.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
+#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/batch_norm.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL

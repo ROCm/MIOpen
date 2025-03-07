@@ -28,16 +28,17 @@
 #include <gtest/gtest.h>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "lib_env_var.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
+MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_MODE)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 
 namespace conv_igemm_dynamic_xdlops_nhwc_bf16 {
 
 void SetupEnvVar()
 {
-    env::update(MIOPEN_FIND_MODE, "normal");
-    env::update(
+    lib_env::update(MIOPEN_FIND_MODE, "normal");
+    lib_env::update(
         MIOPEN_DEBUG_FIND_ONLY_SOLVER,
         "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
         "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");

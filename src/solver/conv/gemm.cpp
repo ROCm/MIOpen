@@ -27,7 +27,6 @@
 #include <miopen/conv/solvers.hpp>
 
 #include <miopen/algorithm.hpp>
-#include <miopen/env.hpp>
 #include <miopen/gemm_v2.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
