@@ -34,6 +34,8 @@
 #include <miopen/target_properties.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
+#define LOCAL_SIZE 256
+
 namespace miopen {
 
 namespace solver {
@@ -64,8 +66,7 @@ ConvSolution
 IndexSelectForward::GetSolution(const ExecutionContext& /*context*/,
                                 const miopen::indexselect::FwdProblemDescription& problem) const
 {
-    static const size_t LOCAL_SIZE = 256;
-    auto result                    = ConvSolution{miopenStatusSuccess};
+    auto result = ConvSolution{miopenStatusSuccess};
 
     auto dtype    = problem.GetInputDesc().GetType();
     auto io_dtype = miopen::GetDataType(dtype);
@@ -85,7 +86,7 @@ IndexSelectForward::GetSolution(const ExecutionContext& /*context*/,
     auto isAllCont = problem.IsAllContiguous();
     if(isAllCont)
     {
-        kernel.kernel_name = "IndexSelectForwardContiguous";
+        kernel.kernel_name = "IndexSelectContiguousForward";
     }
     else
     {
@@ -111,17 +112,34 @@ IndexSelectForward::GetSolution(const ExecutionContext& /*context*/,
 
     result.construction_params.push_back(kernel);
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [isAllCont](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::indexselect::FwdInvokeParams>();
 
             tensor_view_t<5> input_tv  = get_inner_expanded_tv<5>(miopen::deref(params.inputDesc));
             tensor_view_t<5> output_tv = get_inner_expanded_tv<5>(miopen::deref(params.outputDesc));
+            tensor_view_t<1> indices_tv =
+                get_inner_expanded_tv<1>(miopen::deref(params.indicesDesc));
 
-            kernel(params.input, params.indices, params.output, params.dim, input_tv, output_tv);
+            if(isAllCont)
+            {
+                kernel(
+                    params.input, params.indices, params.output, params.dim, input_tv, output_tv);
+            }
+            else
+            {
+                kernel(params.input,
+                       params.indices,
+                       params.output,
+                       params.dim,
+                       input_tv,
+                       indices_tv,
+                       output_tv);
+            }
         };
     };
+
     return result;
 }
 

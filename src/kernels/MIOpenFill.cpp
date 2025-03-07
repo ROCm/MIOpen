@@ -23,19 +23,22 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
+#include <hip/hip_fp16.h>
+#include <hip/hip_runtime.h>
+#endif
 
-#include "indexselect_driver.hpp"
-#include "registry_driver_maker.hpp"
-
-static Driver* makeDriver(const std::string& base_arg)
+template <typename TIO>
+__device__ void FillZeroKernel(TIO* output, uint64_t size)
 {
-    if(base_arg == "indexselect")
-        return new IndexSelectDriver<float, float>();
-    if(base_arg == "indexselectfp16")
-        return new IndexSelectDriver<float16, float>();
-    if(base_arg == "indexselectbfp16")
-        return new IndexSelectDriver<bfloat16, float>();
-    return nullptr;
+    size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
+    if(gid >= size)
+        return;
+
+    output[gid] = static_cast<TIO>(0);
 }
 
-REGISTER_DRIVER_MAKER(makeDriver);
+extern "C" __global__ void FillZero(IO_TYPE* output, uint64_t size)
+{
+    FillZeroKernel<IO_TYPE>(output, size);
+}

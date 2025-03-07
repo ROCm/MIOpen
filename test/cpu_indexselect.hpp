@@ -23,101 +23,70 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_CPU_INDEXSELECT_HPP
-#define GUARD_CPU_INDEXSELECT_HPP
 
+#pragma once
+
+#include "miopen/tensor_view_utils.hpp"
 #include "tensor_holder.hpp"
+#include "tensor_view.hpp"
+#include <cstddef>
 
 template <class T>
-void cpu_indexselect_forward(
-    tensor<T> input, tensor<int> indices, tensor<T> output, int dim, tensor<T>& outputhost)
+void cpu_indexselect_forward(const tensor<T>& input,
+                             const tensor<size_t>& indices,
+                             tensor<T>& output,
+                             size_t dim)
 {
-    auto input_dims  = input.desc.GetLengths();
-    auto output_dims = output.desc.GetLengths();
+    tensor_view_t<5> input_tv   = get_inner_expanded_tv<5>(input.desc);
+    tensor_view_t<5> output_tv  = get_inner_expanded_tv<5>(output.desc);
+    tensor_view_t<1> indices_tv = get_inner_expanded_tv<1>(indices.desc);
 
-    auto input_strides  = input.desc.GetStrides();
-    auto output_strides = output.desc.GetStrides();
-
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1LL, std::multiplies<int64_t>());
-
-    size_t n[4], n012, n01;
+    auto max_idx      = input_tv.size[dim];
+    auto output_numel = output.desc.GetElementSize();
 
     for(size_t i = 0; i < output_numel; i++)
     {
-        n[3] = i % output_dims[3];
-        n012 = i / output_dims[3];
-        n[2] = n012 % output_dims[2];
-        n01  = n012 / output_dims[2];
-        n[1] = n01 % output_dims[1];
-        n[0] = n01 / output_dims[1];
+        tensor_layout_t<5> output_layout{output_tv, i};
+        tensor_layout_t<5> input_layout = output_layout;
+        tensor_layout_t<1> indices_layout{output_layout.layout[dim]};
+        input_layout.layout[dim] = indices[indices_tv.get_tensor_view_idx(indices_layout)];
 
-        size_t output_idx = n[0] * output_strides[0] + n[1] * output_strides[1] +
-                            n[2] * output_strides[2] + n[3] * output_strides[3];
-
-        n[dim] = indices[n[dim]];
-
-        size_t input_idx = n[0] * input_strides[0] + n[1] * input_strides[1] +
-                           n[2] * input_strides[2] + n[3] * input_strides[3];
-
-        outputhost[output_idx] = input[input_idx];
+        if(input_layout.layout[dim] < max_idx)
+        {
+            output[output_tv.get_tensor_view_idx(output_layout)] =
+                input[input_tv.get_tensor_view_idx(input_layout)];
+        }
+        else
+        {
+            output[output_tv.get_tensor_view_idx(output_layout)] = T(0);
+        }
     }
 }
 
 template <class T>
-void cpu_indexselect_backward(tensor<T>& inputGradhost,
-                              tensor<int> indices,
-                              int dim,
-                              tensor<T> outputGrad)
+void cpu_indexselect_backward(const tensor<T>& outputGrad,
+                              const tensor<size_t>& indices,
+                              tensor<T>& inputGradHost,
+                              size_t dim)
 {
-    auto inputGrad_dims  = inputGradhost.desc.GetLengths();
-    auto outputGrad_dims = outputGrad.desc.GetLengths();
+    auto outputGrad_tv = get_inner_expanded_tv<5>(outputGrad.desc);
+    auto inputGrad_tv  = get_inner_expanded_tv<5>(inputGradHost.desc);
+    auto indices_tv    = get_inner_expanded_tv<1>(indices.desc);
 
-    auto inputGrad_strides  = inputGradhost.desc.GetStrides();
-    auto outputGrad_strides = outputGrad.desc.GetStrides();
+    size_t output_numel = outputGrad.desc.GetElementSize();
+    size_t max_idx      = inputGrad_tv.size[dim];
 
-    auto oK = outputGrad_dims[dim];
-
-    size_t st = 1;
-    for(size_t i = dim + 1; i < inputGrad_dims.size(); i++)
+    for(size_t i = 0; i < output_numel; i++)
     {
-        st *= inputGrad_dims[i];
-    }
-    size_t N = 1;
-    for(size_t i = 0; i < inputGrad_dims.size(); i++)
-    {
-        if(i != dim)
+        tensor_layout_t<5> output_layout{outputGrad_tv, i};
+        tensor_layout_t<5> input_layout = output_layout;
+        tensor_layout_t<1> indices_layout{output_layout.layout[dim]};
+        input_layout.layout[dim] = indices[indices_tv.get_tensor_view_idx(indices_layout)];
+
+        if(input_layout.layout[dim] < max_idx)
         {
-            N *= inputGrad_dims[i];
-        }
-    }
-
-    for(size_t i = 0; i < N; i++)
-    {
-        size_t output_grad_base_idx = (i / st) * st * oK + i % st;
-        size_t n[4], n012, n01;
-        n[3] = output_grad_base_idx % outputGrad_dims[3];
-        n012 = output_grad_base_idx / outputGrad_dims[3];
-        n[2] = n012 % outputGrad_dims[2];
-        n01  = n012 / outputGrad_dims[2];
-        n[1] = n01 % outputGrad_dims[1];
-        n[0] = n01 / outputGrad_dims[1];
-
-        for(int j = 0; j < oK; ++j)
-        {
-            n[dim]                 = j;
-            size_t idx             = indices[j];
-            size_t output_grad_idx = n[0] * outputGrad_strides[0] + n[1] * outputGrad_strides[1] +
-                                     n[2] * outputGrad_strides[2] + n[3] * outputGrad_strides[3];
-
-            n[dim]                = idx;
-            size_t input_grad_idx = n[0] * inputGrad_strides[0] + n[1] * inputGrad_strides[1] +
-                                    n[2] * inputGrad_strides[2] + n[3] * inputGrad_strides[3];
-
-            T input_grad_v                = inputGradhost[input_grad_idx];
-            T output_grad_v               = outputGrad[output_grad_idx];
-            inputGradhost[input_grad_idx] = input_grad_v + output_grad_v;
+            inputGradHost[inputGrad_tv.get_tensor_view_idx(input_layout)] +=
+                outputGrad[outputGrad_tv.get_tensor_view_idx(output_layout)];
         }
     }
 }
-#endif

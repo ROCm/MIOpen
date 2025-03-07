@@ -107,7 +107,7 @@ struct BwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm, "Tensor types do not match.");
         }
 
-        if(inputGradDesc.GetNumDims() != indicesDesc.GetNumDims())
+        if(inputGradDesc.GetNumDims() != outputGradDesc.GetNumDims())
         {
             MIOPEN_THROW(miopenStatusBadParm, "Tensor dimension lengths do not match.");
         }

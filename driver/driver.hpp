@@ -352,7 +352,8 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "kthvaluebfp16" && arg != "glu" && arg != "glufp16" && arg != "glubfp16" &&
        arg != "softmarginloss" && arg != "softmarginlossfp16" && arg != "softmarginlossbfp16" &&
        arg != "multimarginloss" && arg != "multimarginlossfp16" && arg != "multimarginlossbfp16" &&
-       arg != "indexselectfp16" && arg != "indexselectbfp16" && arg != "--version")
+       arg != "indexselect" && arg != "indexselectfp16" && arg != "indexselectbfp16" &&
+       arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();

@@ -24,125 +24,82 @@
  *
  *******************************************************************************/
 
-#include "../driver/tensor_driver.hpp"
 #include "cpu_indexselect.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
+
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
+#include <limits>
 #include <miopen/indexselect.hpp>
+#include <miopen/miopen.h>
 
 struct IndexSelectTestCase
 {
-    std::vector<int> inputs;
-    int dim;
-    std::vector<int> indices;
+    std::vector<size_t> input_dims;
+    std::vector<size_t> indice_dim;
+    size_t dim;
     bool isContiguous;
 
     friend std::ostream& operator<<(std::ostream& os, const IndexSelectTestCase& tc)
     {
-        os << "inputs:";
-        for(size_t i = 0; i < tc.inputs.size(); i++)
-        {
-            os << tc.inputs[i];
-            if(i != tc.inputs.size() - 1)
-            {
-                os << ",";
-            }
-        }
-        os << "dim:";
-        os << tc.dim;
-        os << "indices:";
-        for(size_t i = 0; i < tc.indices.size(); i++)
-        {
-            os << tc.indices[i];
-            if(i != tc.indices.size() - 1)
-            {
-                os << ",";
-            }
-        }
-        return os;
+        os << "Input dims: ";
+        for(auto i : tc.input_dims)
+            os << i << " ";
+        return os << "Indices dims: " << tc.indice_dim[0] << " Dim: " << tc.dim
+                  << " Contiguous: " << tc.isContiguous;
     }
 
-    std::vector<int> GetInput() { return inputs; }
-    int GetDim() { return dim; }
-    std::vector<int> GetIndices() { return indices; };
-    std::vector<int> GetOutput()
+    IndexSelectTestCase() {}
+
+    IndexSelectTestCase(std::vector<size_t> input_dims_,
+                        size_t dim_,
+                        std::vector<size_t> indice_dim_,
+                        bool isContiguous_)
+        : input_dims(input_dims_), indice_dim(indice_dim_), dim(dim_), isContiguous(isContiguous_)
     {
-        auto ret = inputs;
-        ret[dim] = indices.size();
-        return ret;
     }
-    std::vector<int> ComputeStrides() const
+
+    std::vector<size_t> ComputeStrides(const std::vector<size_t>& input_dim_) const
     {
-        auto tmp = inputs;
+        std::vector<size_t> inputDim = input_dim_;
         if(!isContiguous)
-            std::swap(tmp.front(), tmp.back());
-        std::vector<int> strides(tmp.size());
+            std::swap(inputDim.front(), inputDim.back());
+        std::vector<size_t> strides(inputDim.size());
         strides.back() = 1;
-        for(int i = tmp.size() - 2; i >= 0; --i)
-            strides[i] = strides[i + 1] * tmp[i + 1];
+        for(int i = inputDim.size() - 2; i >= 0; --i)
+            strides[i] = strides[i + 1] * inputDim[i + 1];
         if(!isContiguous)
             std::swap(strides.front(), strides.back());
         return strides;
     }
 };
 
-std::vector<IndexSelectTestCase> IndexSelectFwdTestConfigs()
+inline std::vector<IndexSelectTestCase> GenFullTestCases()
 {
-    return {{{32, 32, 32, 1}, 0, {2, 6, 8, 17, 19, 22, 26, 30}, true},
-            {{32, 32, 32, 1}, 1, {0, 5, 6, 8, 9, 11, 13, 20}, true},
-            {{32, 32, 32, 1}, 2, {3, 9, 13, 14, 23, 26, 27, 28}, true},
-            {{32, 32, 512, 1}, 0, {0, 6, 8, 13, 21, 22, 25, 27}, true},
-            {{32, 32, 512, 1}, 1, {6, 14, 21, 23, 24, 27, 30, 31}, true},
-            {{32, 32, 512, 1}, 2, {19, 93, 171, 179, 200, 239, 442, 499}, true},
-            {{32, 512, 32, 1}, 0, {3, 12, 16, 17, 19, 20, 24, 28}, true},
-            {{32, 512, 32, 1}, 1, {60, 84, 97, 192, 258, 425, 474, 485}, true},
-            {{32, 512, 32, 1}, 2, {7, 11, 13, 14, 16, 17, 22, 27}, true},
-            {{32, 512, 512, 1}, 0, {5, 9, 11, 15, 18, 22, 24, 30}, true},
-            {{32, 512, 512, 1}, 1, {8, 68, 166, 207, 297, 393, 428, 482}, true},
-            {{32, 512, 512, 1}, 2, {32, 47, 54, 134, 345, 353, 408, 452}, true},
-            {{512, 32, 32, 1}, 0, {75, 199, 220, 234, 241, 302, 348, 353}, true},
-            {{512, 32, 32, 1}, 1, {1, 7, 10, 12, 14, 16, 24, 25}, true},
-            {{512, 32, 32, 1}, 2, {1, 10, 11, 13, 14, 18, 26, 30}, true},
-            {{512, 32, 512, 1}, 0, {89, 188, 225, 278, 299, 354, 385, 435}, true},
-            {{512, 32, 512, 1}, 1, {4, 5, 8, 17, 19, 23, 25, 29}, true},
-            {{512, 32, 512, 1}, 2, {7, 29, 57, 178, 216, 347, 382, 390}, true},
-            {{512, 512, 32, 1}, 0, {39, 62, 66, 156, 273, 277, 324, 465}, true},
-            {{512, 512, 32, 1}, 1, {175, 244, 307, 341, 357, 466, 491, 497}, true},
-            {{512, 512, 32, 1}, 2, {1, 11, 17, 22, 25, 27, 30, 31}, true},
-            {{512, 512, 512, 1}, 0, {104, 249, 342, 343, 359, 381, 503, 510}, true},
-            {{512, 512, 512, 1}, 1, {21, 63, 142, 205, 274, 359, 370, 433}, true},
-            {{512, 512, 512, 1}, 2, {0, 100, 139, 234, 353, 368, 464, 489}, true},
-            {{32, 32, 32, 1}, 0, {2, 6, 8, 17, 19, 22, 26, 30}, false},
-            {{32, 32, 32, 1}, 1, {0, 5, 6, 8, 9, 11, 13, 20}, false},
-            {{32, 32, 32, 1}, 2, {3, 9, 13, 14, 23, 26, 27, 28}, false},
-            {{32, 32, 512, 1}, 0, {0, 6, 8, 13, 21, 22, 25, 27}, false},
-            {{32, 32, 512, 1}, 1, {6, 14, 21, 23, 24, 27, 30, 31}, false},
-            {{32, 32, 512, 1}, 2, {19, 93, 171, 179, 200, 239, 442, 499}, false},
-            {{32, 512, 32, 1}, 0, {3, 12, 16, 17, 19, 20, 24, 28}, false},
-            {{32, 512, 32, 1}, 1, {60, 84, 97, 192, 258, 425, 474, 485}, false},
-            {{32, 512, 32, 1}, 2, {7, 11, 13, 14, 16, 17, 22, 27}, false},
-            {{32, 512, 512, 1}, 0, {5, 9, 11, 15, 18, 22, 24, 30}, false},
-            {{32, 512, 512, 1}, 1, {8, 68, 166, 207, 297, 393, 428, 482}, false},
-            {{32, 512, 512, 1}, 2, {32, 47, 54, 134, 345, 353, 408, 452}, false},
-            {{512, 32, 32, 1}, 0, {75, 199, 220, 234, 241, 302, 348, 353}, false},
-            {{512, 32, 32, 1}, 1, {1, 7, 10, 12, 14, 16, 24, 25}, false},
-            {{512, 32, 32, 1}, 2, {1, 10, 11, 13, 14, 18, 26, 30}, false},
-            {{512, 32, 512, 1}, 0, {89, 188, 225, 278, 299, 354, 385, 435}, false},
-            {{512, 32, 512, 1}, 1, {4, 5, 8, 17, 19, 23, 25, 29}, false},
-            {{512, 32, 512, 1}, 2, {7, 29, 57, 178, 216, 347, 382, 390}, false},
-            {{512, 512, 32, 1}, 0, {39, 62, 66, 156, 273, 277, 324, 465}, false},
-            {{512, 512, 32, 1}, 1, {175, 244, 307, 341, 357, 466, 491, 497}, false},
-            {{512, 512, 32, 1}, 2, {1, 11, 17, 22, 25, 27, 30, 31}, false},
-            {{512, 512, 512, 1}, 0, {104, 249, 342, 343, 359, 381, 503, 510}, false},
-            {{512, 512, 512, 1}, 1, {21, 63, 142, 205, 274, 359, 370, 433}, false},
-            {{512, 512, 512, 1}, 2, {0, 100, 139, 234, 353, 368, 464, 489}, false}};
+    return {{{32, 32, 32}, 1, {20}, true},
+            {{32, 32, 512}, 0, {20}, true},
+            {{32, 512, 32}, 0, {32}, true},
+            {{32, 512, 32}, 1, {32}, true},
+            {{32, 512, 512}, 0, {32}, true},
+            {{32, 512, 512}, 1, {32}, true},
+            {{32, 512, 512}, 2, {32}, true},
+            {{512, 32, 32}, 0, {32}, true},
+            {{512, 32, 32}, 1, {32}, true},
+            {{512, 32, 32}, 2, {32}, true},
+            {{512, 32, 512}, 0, {32}, true},
+            {{512, 32, 512}, 1, {32}, true},
+            {{512, 32, 512}, 2, {32}, true},
+            {{512, 512, 32}, 0, {32}, true},
+            {{512, 512, 32}, 1, {32}, true},
+            {{512, 512, 32}, 2, {32}, true},
+            {{512, 512, 512}, 0, {32}, true},
+            {{512, 512, 512}, 1, {32}, true},
+            {{512, 512, 512}, 2, {32}, true}};
 }
 
-std::vector<IndexSelectTestCase> IndexSelectBwdTestConfigs()
+inline std::vector<IndexSelectTestCase> IndexSelectBwdTestConfigs()
 {
     return {{{32, 32, 32, 1}, 0, {2, 6, 8, 17, 19, 22, 26, 30}, true},
             {{32, 32, 32, 1}, 1, {0, 5, 6, 8, 9, 11, 13, 20}, true},
@@ -178,47 +135,51 @@ protected:
     {
         auto&& handle      = get_handle();
         indexselect_config = GetParam();
-        auto gen_value     = [](auto...) { return prng::gen_descreet_uniform_sign<T>(0, 1); };
+        auto gen_value     = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-        auto in_dims       = indexselect_config.GetInput();
-        dim                = indexselect_config.GetDim();
-        auto indices_para  = indexselect_config.GetIndices();
-        auto out_dims      = indexselect_config.GetOutput();
-        auto input_strides = indexselect_config.ComputeStrides();
+        auto indices_len = indexselect_config.indice_dim[0];
+        auto gen_idx     = [indices_len](auto...) {
+            return prng::gen_descreet_uniform_sign<size_t>(1, indices_len);
+        };
 
-        input      = tensor<T>{in_dims, input_strides}.generate(gen_value);
-        output     = tensor<T>{out_dims};
-        indices    = tensor<int>{std::vector<size_t>({indices_para.size()})};
-        outputhost = tensor<T>{out_dims};
+        auto in_dims   = indexselect_config.input_dims;
+        auto in_stride = indexselect_config.ComputeStrides(in_dims);
+        input          = tensor<T>{in_dims, in_stride}.generate(gen_value);
 
-        for(size_t i = 0; i < indices_para.size(); i++)
-        {
-            indices[i] = indices_para[i];
-        }
+        auto indices_dims = indexselect_config.indice_dim;
+        indices           = tensor<size_t>{indices_dims}.generate(gen_idx);
 
-        std::fill(output.begin(), output.end(), 0);
-        std::fill(outputhost.begin(), outputhost.end(), 0);
+        dim = indexselect_config.dim;
+
+        auto out_dims = in_dims;
+        out_dims[dim] = indices_dims[0];
+        output        = tensor<T>{out_dims};
+        std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
+
+        outputHost = tensor<T>{out_dims};
+        std::fill(outputHost.begin(), outputHost.end(), std::numeric_limits<T>::quiet_NaN());
 
         input_dev   = handle.Write(input.data);
         output_dev  = handle.Write(output.data);
         indices_dev = handle.Write(indices.data);
     }
+
     void RunTest()
     {
         auto&& handle = get_handle();
 
-        cpu_indexselect_forward<T>(input, indices, output, dim, outputhost);
+        cpu_indexselect_forward<T>(input, indices, outputHost, dim);
 
         miopenStatus_t status;
 
-        status = miopen::IndexSelectForward(handle,
-                                            input.desc,
-                                            input_dev.get(),
-                                            indices.desc,
-                                            indices_dev.get(),
-                                            output.desc,
-                                            output_dev.get(),
-                                            dim);
+        status = miopen::indexselect::IndexSelectForward(handle,
+                                                         input.desc,
+                                                         input_dev.get(),
+                                                         indices.desc,
+                                                         indices_dev.get(),
+                                                         output.desc,
+                                                         output_dev.get(),
+                                                         dim);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -228,20 +189,20 @@ protected:
     void Verify()
     {
         double threshold = std::numeric_limits<T>::epsilon();
-        auto error       = miopen::rms_range(outputhost, output);
+        auto error       = miopen::rms_range(outputHost, output);
 
-        EXPECT_TRUE(miopen::range_distance(outputhost) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
-                                            << ",  Thresholdx10: " << threshold * 10;
+        EXPECT_EQ(miopen::range_distance(outputHost), miopen::range_distance(output));
+        EXPECT_LT(error, threshold * 10);
     }
+
     IndexSelectTestCase indexselect_config;
 
     tensor<T> input;
-    tensor<int> indices;
+    tensor<size_t> indices;
     tensor<T> output;
-    int dim;
+    size_t dim;
 
-    tensor<T> outputhost;
+    tensor<T> outputHost;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr indices_dev;
@@ -256,25 +217,29 @@ protected:
     {
         auto&& handle      = get_handle();
         indexselect_config = GetParam();
-        auto gen_value     = [](auto...) { return prng::gen_descreet_uniform_sign<T>(0, 1); };
+        auto gen_value     = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-        auto in_dims      = indexselect_config.GetInput();
-        dim               = indexselect_config.GetDim();
-        auto indices_para = indexselect_config.GetIndices();
-        auto out_dims     = indexselect_config.GetOutput();
+        auto indices_len = indexselect_config.indice_dim[0];
+        auto gen_idx     = [indices_len](auto...) {
+            return prng::gen_descreet_uniform_sign<size_t>(1, indices_len);
+        };
 
-        inputGrad     = tensor<T>{in_dims};
+        auto in_dims   = indexselect_config.input_dims;
+        auto in_stride = indexselect_config.ComputeStrides(in_dims);
+
+        auto indices_dims = indexselect_config.indice_dim;
+        indices           = tensor<size_t>{indices_dims}.generate(gen_idx);
+
+        dim = indexselect_config.dim;
+
+        auto out_dims = in_dims;
+        out_dims[dim] = indices_dims[0];
         outputGrad    = tensor<T>{out_dims}.generate(gen_value);
-        indices       = tensor<int>{std::vector<size_t>({indices_para.size()})};
-        inputGradhost = tensor<T>{in_dims};
 
-        for(size_t i = 0; i < indices_para.size(); i++)
-        {
-            indices[i] = indices_para[i];
-        }
-
-        std::fill(inputGrad.begin(), inputGrad.end(), 0);
-        std::fill(inputGradhost.begin(), inputGradhost.end(), 0);
+        inputGrad = tensor<T>{in_dims, in_stride};
+        std::fill(inputGrad.begin(), inputGrad.end(), std::numeric_limits<T>::quiet_NaN());
+        inputGradHost = tensor<T>{in_dims, in_stride};
+        std::fill(inputGradHost.begin(), inputGradHost.end(), static_cast<T>(0));
 
         inputGrad_dev  = handle.Write(inputGrad.data);
         outputGrad_dev = handle.Write(outputGrad.data);
@@ -285,18 +250,18 @@ protected:
     {
         auto&& handle = get_handle();
 
-        cpu_indexselect_backward<T>(inputGradhost, indices, dim, outputGrad);
+        cpu_indexselect_backward<T>(outputGrad, indices, inputGradHost, dim);
 
         miopenStatus_t status;
 
-        status = miopen::IndexSelectBackward(handle,
-                                             inputGrad.desc,
-                                             inputGrad_dev.get(),
-                                             indices.desc,
-                                             indices_dev.get(),
-                                             outputGrad.desc,
-                                             outputGrad_dev.get(),
-                                             dim);
+        status = miopen::indexselect::IndexSelectBackward(handle,
+                                                          inputGrad.desc,
+                                                          inputGrad_dev.get(),
+                                                          indices.desc,
+                                                          indices_dev.get(),
+                                                          outputGrad.desc,
+                                                          outputGrad_dev.get(),
+                                                          dim);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -306,20 +271,20 @@ protected:
     void Verify()
     {
         double threshold = std::numeric_limits<T>::epsilon();
-        auto error       = miopen::rms_range(inputGradhost, inputGrad);
+        auto error       = miopen::rms_range(inputGradHost, inputGrad);
 
-        EXPECT_TRUE(miopen::range_distance(inputGradhost) == miopen::range_distance(inputGrad));
-        EXPECT_TRUE(error < threshold * 10) << "Error output beyond tolerance Error:" << error
-                                            << ",  Thresholdx10: " << threshold * 10;
+        EXPECT_EQ(miopen::range_distance(inputGradHost), miopen::range_distance(inputGrad));
+        EXPECT_LT(error, threshold * 10);
     }
+
     IndexSelectTestCase indexselect_config;
 
     tensor<T> inputGrad;
-    tensor<int> indices;
+    tensor<size_t> indices;
     tensor<T> outputGrad;
-    int dim;
+    size_t dim;
 
-    tensor<T> inputGradhost;
+    tensor<T> inputGradHost;
 
     miopen::Allocator::ManageDataPtr inputGrad_dev;
     miopen::Allocator::ManageDataPtr indices_dev;

@@ -42,14 +42,14 @@ extern "C" miopenStatus_t miopenIndexSelectForward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, inputDesc, input, indicesDesc, indices, outputDesc, output);
 
     return miopen::try_([&] {
-        miopen::IndexSelectForward(miopen::deref(handle),
-                                   miopen::deref(inputDesc),
-                                   DataCast(input),
-                                   miopen::deref(indicesDesc),
-                                   DataCast(indices),
-                                   miopen::deref(outputDesc),
-                                   DataCast(output),
-                                   dim);
+        miopen::indexselect::IndexSelectForward(miopen::deref(handle),
+                                                miopen::deref(inputDesc),
+                                                DataCast(input),
+                                                miopen::deref(indicesDesc),
+                                                DataCast(indices),
+                                                miopen::deref(outputDesc),
+                                                DataCast(output),
+                                                dim);
     });
 }
 
@@ -66,13 +66,13 @@ extern "C" miopenStatus_t miopenIndexSelectBackward(miopenHandle_t handle,
         handle, inputGradDesc, inputGrad, indicesDesc, indices, outputGradDesc, outputGrad);
 
     return miopen::try_([&] {
-        miopen::IndexSelectBackward(miopen::deref(handle),
-                                    miopen::deref(inputGradDesc),
-                                    DataCast(inputGrad),
-                                    miopen::deref(indicesDesc),
-                                    DataCast(indices),
-                                    miopen::deref(outputGradDesc),
-                                    DataCast(outputGrad),
-                                    dim);
+        miopen::indexselect::IndexSelectBackward(miopen::deref(handle),
+                                                 miopen::deref(inputGradDesc),
+                                                 DataCast(inputGrad),
+                                                 miopen::deref(indicesDesc),
+                                                 DataCast(indices),
+                                                 miopen::deref(outputGradDesc),
+                                                 DataCast(outputGrad),
+                                                 dim);
     });
 }

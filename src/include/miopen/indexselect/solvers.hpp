@@ -48,10 +48,6 @@ struct IndexSelectForward final : IndexSelectForwardSolverBase
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::indexselect::FwdProblemDescription& problem) const override;
-
-    std::size_t
-    GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::indexselect::FwdProblemDescription& problem) const override;
 };
 
 using IndexSelectBackwardSolverBase =
@@ -67,10 +63,6 @@ struct IndexSelectBackward final : IndexSelectBackwardSolverBase
     ConvSolution
     GetSolution(const ExecutionContext& context,
                 const miopen::indexselect::BwdProblemDescription& problem) const override;
-
-    std::size_t
-    GetWorkspaceSize(const ExecutionContext& context,
-                     const miopen::indexselect::BwdProblemDescription& problem) const override;
 };
 
 } // namespace indexselect

@@ -24,53 +24,33 @@
  *
  *******************************************************************************/
 
-#include <miopen/indexselect/problem_description.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/indexselect/problem_description.hpp>
 #include <miopen/names.hpp>
-
-#include <sstream>
 
 namespace miopen {
 
 namespace indexselect {
 
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
     std::ostringstream ss;
-    if(isForw)
-        ss << "indexselectfwd";
-    else
-        ss << "indexBackward";
-    auto xlength       = xDesc.GetLengths();
-    auto ylength       = yDesc.GetLengths();
-    auto indiceslength = indicesDesc.GetLengths();
-    auto dtype         = xDesc.GetType();
+    ss << "indexselectfwd";
+    auto dtype = inputDesc.GetType();
     ss << "dtype" << dtype;
+    ss << "output_numel" << outputDesc.GetElementSize();
 
-    ss << "<";
-    for(size_t i = 0; i < xlength.size(); i++)
-    {
-        ss << xlength[i];
-        if(i != xlength.size() - 1)
-            ss << ",";
-    }
-    ss << ">";
+    return NetworkConfig{ss.str()};
+}
 
-    ss << "<" << indiceslength.size() << ">";
-
-    ss << "<" << dim << ">";
-
-    if(isForw)
-    {
-        if(xDesc.IsContiguous())
-        {
-            ss << "<ture>";
-        }
-        else
-        {
-            ss << "<false>";
-        }
-    }
+NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
+{
+    std::ostringstream ss;
+    ss << "indexselectbwd";
+    auto dtype = inputGradDesc.GetType();
+    ss << "dtype" << dtype;
+    ss << "input_numel" << inputGradDesc.GetElementSize();
+    ss << "output_numel" << outputGradDesc.GetElementSize();
 
     return NetworkConfig{ss.str()};
 }

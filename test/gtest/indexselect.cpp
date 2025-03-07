@@ -25,147 +25,64 @@
  *******************************************************************************/
 
 #include "indexselect.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace env = miopen::env;
 
 namespace indexselect {
 
-std::string GetFloatArg()
-{
-    const auto tmp = env::value(MIOPEN_TEST_FLOAT_ARG);
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
+using GPU_IndexSelect_fwd_FP32  = IndexSelectFwdTest<float>;
+using GPU_IndexSelect_fwd_FP16  = IndexSelectFwdTest<half_float::half>;
+using GPU_IndexSelect_fwd_BFP16 = IndexSelectFwdTest<bfloat16>;
 
-struct IndexSelectFwdTestFloat : IndexSelectFwdTest<float>
-{
-};
-
-struct IndexSelectBwdTestFloat : IndexSelectBwdTest<float>
-{
-};
-
-struct IndexSelectFwdTestHalf : IndexSelectFwdTest<half_float::half>
-{
-};
-
-struct IndexSelectBwdTestHalf : IndexSelectBwdTest<half_float::half>
-{
-};
-
-struct IndexSelectFwdTestBFloat16 : IndexSelectFwdTest<bfloat16>
-{
-};
-
-struct IndexSelectBwdTestBFloat16 : IndexSelectBwdTest<bfloat16>
-{
-};
+using GPU_IndexSelect_bwd_FP32  = IndexSelectBwdTest<float>;
+using GPU_IndexSelect_bwd_FP16  = IndexSelectBwdTest<half_float::half>;
+using GPU_IndexSelect_bwd_BFP16 = IndexSelectBwdTest<bfloat16>;
 
 } // namespace indexselect
 using namespace indexselect;
 
-TEST_P(IndexSelectFwdTestFloat, IndexSelectFwdTest)
+TEST_P(GPU_IndexSelect_fwd_FP32, Test)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(IndexSelectBwdTestFloat, IndexSelectBwdTest)
+TEST_P(GPU_IndexSelect_fwd_FP16, Test)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(IndexSelectFwdTestHalf, IndexSelectFwdTest)
+TEST_P(GPU_IndexSelect_fwd_BFP16, Test)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(IndexSelectBwdTestHalf, IndexSelectBwdTest)
+TEST_P(GPU_IndexSelect_bwd_FP32, Test)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(IndexSelectFwdTestBFloat16, IndexSelectFwdTest)
+TEST_P(GPU_IndexSelect_bwd_FP16, Test)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-TEST_P(IndexSelectBwdTestBFloat16, IndexSelectBwdTest)
+TEST_P(GPU_IndexSelect_bwd_BFP16, Test)
 {
-    if(env::enabled(MIOPEN_TEST_ALL) && (GetFloatArg() == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
-INSTANTIATE_TEST_SUITE_P(IndexSelectTestSet,
-                         IndexSelectFwdTestFloat,
-                         testing::ValuesIn(IndexSelectFwdTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_IndexSelect_fwd_FP32, testing::ValuesIn(GenFullTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(IndexSelectTestSet,
-                         IndexSelectBwdTestFloat,
-                         testing::ValuesIn(IndexSelectBwdTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_IndexSelect_fwd_FP16, testing::ValuesIn(GenFullTestCases()));
 
-INSTANTIATE_TEST_SUITE_P(IndexSelectTestSet,
-                         IndexSelectFwdTestHalf,
-                         testing::ValuesIn(IndexSelectFwdTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(IndexSelectTestSet,
-                         IndexSelectBwdTestHalf,
-                         testing::ValuesIn(IndexSelectBwdTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(IndexSelectTestSet,
-                         IndexSelectFwdTestBFloat16,
-                         testing::ValuesIn(IndexSelectFwdTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(IndexSelectTestSet,
-                         IndexSelectBwdTestBFloat16,
-                         testing::ValuesIn(IndexSelectBwdTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_IndexSelect_fwd_BFP16, testing::ValuesIn(GenFullTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_IndexSelect_bwd_FP32, testing::ValuesIn(GenFullTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_IndexSelect_bwd_FP16, testing::ValuesIn(GenFullTestCases()));
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_IndexSelect_bwd_BFP16, testing::ValuesIn(GenFullTestCases()));
