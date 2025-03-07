@@ -28,7 +28,6 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include "get_handle.hpp"
 
 #include "../conv2d.hpp"
@@ -144,7 +143,7 @@ TEST_P(CPU_ConvEmbedConfig_FP32, FloatTest_conv_embed_db)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && IsTestRunWith("--float"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenFloat);
     }
@@ -163,7 +162,7 @@ TEST_P(CPU_ConvEmbedConfig_FP16, HalfTest_conv_embed_db)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && IsTestRunWith("--half"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenHalf);
     }
@@ -182,7 +181,7 @@ TEST_P(CPU_ConvEmbedConfig_I8, Int8Test_conv_embed_db)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && IsTestRunWith("--int8"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenInt8);
     }
@@ -201,7 +200,7 @@ TEST_P(CPU_ConvEmbedConfig_BFP16, BFloat16Test_conv_embed_db)
 #if MIOPEN_EMBED_DB
 
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && IsTestRunWith("--bfloat16"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenBFloat16);
     }

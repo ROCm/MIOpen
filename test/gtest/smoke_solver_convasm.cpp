@@ -36,12 +36,12 @@ namespace {
 auto GetTestCases()
 {
     const auto env_1uv2 = std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                                     std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                                     std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
                                      std::pair{MIOPEN_FIND_MODE, "normal"},
                                      std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsm1x1UV2"}};
 
     const auto env_3u = std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                                   std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
                                    std::pair{MIOPEN_FIND_MODE, "normal"},
                                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsm3x3U"}};
 
