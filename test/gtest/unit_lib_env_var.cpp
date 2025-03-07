@@ -60,26 +60,26 @@ private:
 
 } // namespace
 
-TEST(CPU_TestGetUnknownEnvVariable_NONE, LibEnvVar)
+TEST(CPU_UnitTestLibEnvVarGetUnknownVariable_NONE, LibEnvVar)
 {
     const std::string_view name = MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE.name;
     [[gnu::used]] std::optional<std::string> value;
     ASSERT_THROW(value = miopen::debug::env::GetEnvVariable(name), miopen::Exception);
 };
 
-TEST(CPU_TestUpdateUnknownEnvVariable_NONE, LibEnvVar)
+TEST(CPU_UnitTestLibEnvVarUpdateUnknownVariable_NONE, LibEnvVar)
 {
     const std::string_view name = MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE.name;
     ASSERT_THROW(miopen::debug::env::UpdateEnvVariable(name, "SOME_VALUE"), miopen::Exception);
 };
 
-TEST(CPU_TestClearUnknownEnvVariable_NONE, LibEnvVar)
+TEST(CPU_UnitTestLibEnvVarClearUnknownVariable_NONE, LibEnvVar)
 {
     const std::string_view name = MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE.name;
     ASSERT_THROW(miopen::debug::env::ClearEnvVariable(name), miopen::Exception);
 };
 
-TEST(CPU_TestEnvVariableRestore_NONE, LibEnvVar)
+TEST(CPU_UnitTestLibEnvVarRestore_NONE, LibEnvVar)
 {
     const std::string_view name = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS.name;
 
@@ -121,7 +121,7 @@ TEST(CPU_TestEnvVariableRestore_NONE, LibEnvVar)
     }
 }
 
-TEST(CPU_TestEnvVariableBool_NONE, LibEnvVar)
+TEST(CPU_UnitTestLibEnvVarBool_NONE, LibEnvVar)
 {
     const std::string_view name = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS.name;
     EnvVarRestorer restorer(name);
@@ -142,7 +142,7 @@ TEST(CPU_TestEnvVariableBool_NONE, LibEnvVar)
     ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "1");
 };
 
-TEST(CPU_TestEnvVariableUInt64_NONE, LibEnvVar)
+TEST(CPU_UnitTestLibEnvVarUInt64_NONE, LibEnvVar)
 {
     const std::string_view name = MIOPEN_DEBUG_TUNING_ITERATIONS_MAX.name;
     EnvVarRestorer restorer(name);
@@ -163,7 +163,7 @@ TEST(CPU_TestEnvVariableUInt64_NONE, LibEnvVar)
     ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "18446744073709551615");
 };
 
-TEST(CPU_TestEnvVariableStr_NONE, LibEnvVar)
+TEST(CPU_UnitTestLibEnvVarString_NONE, LibEnvVar)
 {
     const std::string_view name = MIOPEN_DEBUG_FIND_ONLY_SOLVER.name;
     EnvVarRestorer restorer(name);
@@ -184,7 +184,7 @@ TEST(CPU_TestEnvVariableStr_NONE, LibEnvVar)
     ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "qwertyuiop");
 };
 
-TEST(CPU_TestEnvVariableWrapper_NONE, LibEnvVar)
+TEST(CPU_UnitTestLibEnvVarWrapper_NONE, LibEnvVar)
 {
     const auto var = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS;
     EnvVarRestorer restorer(var.name);
