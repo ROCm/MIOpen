@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "miopen/miopen.h"
 #include <miopen/driver_arguments.hpp>
 #include <miopen/fusion_plan.hpp>
 
@@ -273,6 +274,12 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
     if(immediate_mode_solver_id.has_value())
     {
         ss << " -S " << *immediate_mode_solver_id;
+
+        if(xDesc.GetType() == wDesc.GetType() && xDesc.GetType() != yDesc.GetType())
+        {
+            if(yDesc.GetType() == miopenFloat)
+                ss << " -M fp32";
+        }
     }
 
     return ss.str();
