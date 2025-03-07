@@ -280,6 +280,12 @@ To build and run a single test, use the following code:
 cmake --build . --config Release --target test_tensor
 ./bin/test_tensor
 ```
+Check gtests formats
+
+```shell
+cd ./test/utils && python3 gtest_formating_checks.py
+```
+
 
 ## Formatting the code
 
