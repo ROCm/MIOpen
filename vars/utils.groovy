@@ -253,7 +253,7 @@ def buildHipClangJob(Map conf=[:]){
         env.HSA_ENABLE_SDMA=0
         env.DOCKER_BUILDKIT=1
         def image
-        def dockerOpts="-u root --device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
+        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         if (conf.get("enforce_xnack_on", false)) {
             dockerOpts = dockerOpts + " --env HSA_XNACK=1"
         }
@@ -296,12 +296,12 @@ def buildHipClangJob(Map conf=[:]){
                 }
             }
 
-            if (lfs_pull) {
-                sh "git lfs pull --exclude="
-            }
             withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
                 timeout(time: 420, unit:'MINUTES')
                 {
+                    if (lfs_pull) {
+                        sh "git lfs pull --exclude="
+                    }
                     cmake_build(conf)
                 }
             }
