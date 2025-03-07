@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/env.hpp>
 #include <miopen/layernorm.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/layernorm/invoke_params.hpp>
@@ -270,7 +271,7 @@ ConvSolution Layernorm2DCKForward::GetSolution(
     case miopenBFloat8_fnuz:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
+                     "Layernorm2DCKForward operation not implemented for this data type");
     }
 #endif
     return {};

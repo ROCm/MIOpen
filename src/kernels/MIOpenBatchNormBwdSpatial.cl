@@ -652,25 +652,37 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
     unsigned int ystride = MIO_LAYOUT_NHWC ? MIO_BN_C : 1;
 
-    if(xgid >= MIO_BN_C)
+    if(xgid * VEC_SIZE_X >= MIO_BN_C)
         return;
 
-    _FLOAT_PREC variance = (_FLOAT_PREC)0.;
-    _FLOAT_PREC mean     = (_FLOAT_PREC)0.;
-    _FLOAT_PREC invVariance;
+    _FLOAT_PREC_C variance = (_FLOAT_PREC_C)0.;
+    _FLOAT_PREC_C mean     = (_FLOAT_PREC_C)0.;
+    _FLOAT_PREC_C invVariance;
 
     for(unsigned int yoffset = ylid; yoffset < MIO_BN_NGRPS; yoffset += ygrp_sz)
     {
-        mean += loadFromStash(
-            meanvarbuff, 0, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-        variance += loadFromStash(
-            meanvarbuff, 1, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        mean += loadFromStash((__global _FLOAT_C*)meanvarbuff,
+                              0,
+                              ygrp_sz * yoffset * VEC_SIZE_Y,
+                              ystride / VEC_SIZE_X,
+                              xgrp_sz,
+                              xgrp_id,
+                              xlid,
+                              xstride);
+        variance += loadFromStash((__global _FLOAT_C*)meanvarbuff,
+                                  1,
+                                  ygrp_sz * yoffset * VEC_SIZE_Y,
+                                  ystride / VEC_SIZE_X,
+                                  xgrp_sz,
+                                  xgrp_id,
+                                  xlid,
+                                  xstride);
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1 || MIO_BN_LDSGCN_SIZE == 1
     // TODO: this simple approach has many bank conflicts, optimize if it affects performance
-    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
-    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDS_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2_2d(&mean,
                    &variance,
                    INHW,
@@ -679,28 +691,33 @@ MIOpenBatchNormBwdSpatialFinalMeanVariance(__global _FLOAT* __restrict meanvarbu
                    ylid,
                    ygrp_sz);
 #else
-    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDSGCN_SIZE];
-    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDSGCN_SIZE];
     gcn_reduce2(&mean, &variance, INHW, lcl_data_x, lcl_data_y, ylid);
 #endif
 
-    variance = mad(-mean, mean, variance);
-    if(variance < 0)
-    {
-        variance = 0;
-    }
-    invVariance = rsqrt(variance + epsilon);
+    variance    = mad(-mean, mean, variance);
+    variance    = max(variance, (_FLOAT_PREC_C)0.);
+    invVariance = rsqrt(variance + (_FLOAT_PREC_C)epsilon);
+
     for(unsigned int yoffset = ylid; yoffset < MIO_BN_NGRPS; yoffset += ygrp_sz)
     {
         // Replicate mean and variance for all y groups because stash == dx_out and
         // MIOpenBatchNormBwdSpatialDX will read them and rewrite the buffer entirely.
-        storeToStash(
-            mean, meanvarbuff, 0, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        storeToStash(mean,
+                     (__global _FLOAT_C*)meanvarbuff,
+                     0,
+                     ygrp_sz * yoffset * VEC_SIZE_Y,
+                     ystride / VEC_SIZE_X,
+                     xgrp_sz,
+                     xgrp_id,
+                     xlid,
+                     xstride);
         storeToStash(invVariance,
-                     meanvarbuff,
+                     (__global _FLOAT_C*)meanvarbuff,
                      1,
-                     ygrp_sz * yoffset,
-                     ystride,
+                     ygrp_sz * yoffset * VEC_SIZE_Y,
+                     ystride / VEC_SIZE_X,
                      xgrp_sz,
                      xgrp_id,
                      xlid,
@@ -725,28 +742,30 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
     unsigned int ystride = MIO_LAYOUT_NHWC ? MIO_BN_C : 1;
 
-    if(xgid >= MIO_BN_C)
+    if(xgid * VEC_SIZE_X >= MIO_BN_C)
         return;
 
     unsigned int index;
-    _FLOAT_PREC value;
-    _FLOAT_PREC mean     = (_FLOAT_PREC)0.;
-    _FLOAT_PREC variance = (_FLOAT_PREC)0.;
+    _FLOAT_PREC_LS value;
+    _FLOAT_PREC_C mean     = (_FLOAT_PREC_C)0.;
+    _FLOAT_PREC_C variance = (_FLOAT_PREC_C)0.;
 
-    if(ygid < MIO_BN_HW)
+    if(ygid * VEC_SIZE_Y < MIO_BN_HW)
     {
+        _FLOAT_LS read4;
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index = n * MIO_BN_CHW + ygid * ystride + xgid * xstride;
-            value = FLOAT2FLOATPREC(*(in + index));
-            mean += value;
-            variance = mad(value, value, variance);
+            index = n * MIO_BN_CHW + ygid * ystride * VEC_SIZE_Y + xgid * xstride * VEC_SIZE_X;
+            read4 = *((const __global _FLOAT_LS*)(in + index));
+            value = FLOAT2FLOATPREC_VEC(read4);
+            _ACCUMULATE(mean, value)
+            _ACCUMULATE_MAD(variance, value, value, variance)
         }
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
-    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
-    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1 || MIO_BN_LDSGCN_SIZE == 1
+    local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDS_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2_2d(&mean,
                    &variance,
                    (_FLOAT_ACCUM)1.0,
@@ -755,17 +774,31 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
                    ylid,
                    ygrp_sz);
 #else
-    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDSGCN_SIZE];
-    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDSGCN_SIZE];
     gcn_reduce2(&mean, &variance, (_FLOAT_ACCUM)1.0, lcl_data_x, lcl_data_y, ylid);
 #endif
 
     if(ylid == 0)
     {
-        storeToStash(
-            mean, meanvarbuff, 0, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-        storeToStash(
-            variance, meanvarbuff, 1, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        storeToStash(mean,
+                     (__global _FLOAT_C*)meanvarbuff,
+                     0,
+                     ygrp_sz * ygrp_id * VEC_SIZE_Y,
+                     ystride / VEC_SIZE_X,
+                     xgrp_sz,
+                     xgrp_id,
+                     xlid,
+                     xstride);
+        storeToStash(variance,
+                     (__global _FLOAT_C*)meanvarbuff,
+                     1,
+                     ygrp_sz * ygrp_id * VEC_SIZE_Y,
+                     ystride / VEC_SIZE_X,
+                     xgrp_sz,
+                     xgrp_id,
+                     xlid,
+                     xstride);
     }
 } // end spatial mean kernel
 
@@ -795,48 +828,67 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
     unsigned int ystride = MIO_LAYOUT_NHWC ? MIO_BN_C : 1;
 
-    if(xgid >= MIO_BN_C)
+    if(xgid * VEC_SIZE_X >= MIO_BN_C)
         return;
 
     unsigned int index;
-    _FLOAT_PREC mean, invVar, elemStd, xhat;
-    _FLOAT_PREC dscale = (_FLOAT_PREC)0.;
-    _FLOAT_PREC dbias  = (_FLOAT_PREC)0.;
+    _FLOAT_PREC_C mean, invVar;
+    _FLOAT_PREC_LS elemStd, xhat;
+    _FLOAT_PREC_C dscale = (_FLOAT_PREC_C)0.;
+    _FLOAT_PREC_C dbias  = (_FLOAT_PREC_C)0.;
 
-    local _FLOAT_PREC lmean[MIO_BN_GRP0], livar[MIO_BN_GRP0];
+    local _FLOAT_PREC_C lmean[MIO_BN_GRP0], livar[MIO_BN_GRP0];
 
     if(ylid == 0)
     {
 #if MIO_BN_USESAVED == 0
-        lmean[xlid] =
-            loadFromStash(buff, 0, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-        livar[xlid] =
-            loadFromStash(buff, 1, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        lmean[xlid] = loadFromStash((__global _FLOAT_C*)buff,
+                                    0,
+                                    ygrp_sz * ygrp_id * VEC_SIZE_Y,
+                                    ystride / VEC_SIZE_X,
+                                    xgrp_sz,
+                                    xgrp_id,
+                                    xlid,
+                                    xstride);
+        livar[xlid] = loadFromStash((__global _FLOAT_C*)buff,
+                                    1,
+                                    ygrp_sz * ygrp_id * VEC_SIZE_Y,
+                                    ystride / VEC_SIZE_X,
+                                    xgrp_sz,
+                                    xgrp_id,
+                                    xlid,
+                                    xstride);
 #else
-        lmean[xlid] = *(savedMean + xgid);
-        livar[xlid] = *(savedInvVariance + xgid);
+        lmean[xlid] = *((__global _FLOAT_PREC_C*)(savedMean + xgid * VEC_SIZE_X));
+        livar[xlid] = *((__global _FLOAT_PREC_C*)(savedInvVariance + xgid * VEC_SIZE_X));
 #endif
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    if(ygid < MIO_BN_HW)
+    if(ygid * VEC_SIZE_Y < MIO_BN_HW)
     {
         mean   = lmean[xlid];
         invVar = livar[xlid];
 
+        _FLOAT_LS read4;
+        _FLOAT_PREC_LS value1, value2;
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index = n * MIO_BN_CHW + ygid * ystride + xgid * xstride;
-            dbias += FLOAT2FLOATPREC(*(dy_in + index));
-            elemStd = FLOAT2FLOATPREC(*(x_in + index)) - mean;
+            index  = n * MIO_BN_CHW + ygid * ystride * VEC_SIZE_Y + xgid * xstride * VEC_SIZE_X;
+            read4  = *((const __global _FLOAT_LS*)(dy_in + index));
+            value1 = FLOAT2FLOATPREC_VEC(read4);
+            _ACCUMULATE(dbias, value1)
+            read4   = *((const __global _FLOAT_LS*)(x_in + index));
+            value2  = FLOAT2FLOATPREC_VEC(read4);
+            elemStd = value2 - mean;
             xhat    = elemStd * invVar;
-            dscale  = mad(xhat, FLOAT2FLOATPREC(dy_in[index]), dscale);
+            _ACCUMULATE_MAD(dscale, xhat, value1, dscale)
         }
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
-    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
-    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1 || MIO_BN_LDSGCN_SIZE == 1
+    local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDS_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2_2d(&dscale,
                    &dbias,
                    (_FLOAT_ACCUM)1.0,
@@ -845,15 +897,31 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
                    ylid,
                    ygrp_sz);
 #else
-    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDSGCN_SIZE];
-    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDSGCN_SIZE];
     gcn_reduce2(&dscale, &dbias, (_FLOAT_ACCUM)1.0, lcl_data_x, lcl_data_y, ylid);
 #endif
 
     if(ylid == 0)
     {
-        storeToStash(dscale, buff, 2, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-        storeToStash(dbias, buff, 3, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        storeToStash(dscale,
+                     (__global _FLOAT_C*)buff,
+                     2,
+                     ygrp_sz * ygrp_id * VEC_SIZE_Y,
+                     ystride / VEC_SIZE_X,
+                     xgrp_sz,
+                     xgrp_id,
+                     xlid,
+                     xstride);
+        storeToStash(dbias,
+                     (__global _FLOAT_C*)buff,
+                     3,
+                     ygrp_sz * ygrp_id * VEC_SIZE_Y,
+                     ystride / VEC_SIZE_X,
+                     xgrp_sz,
+                     xgrp_id,
+                     xlid,
+                     xstride);
     }
 }
 
@@ -873,23 +941,35 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(const __global _FLOAT* __restrict buff
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
     unsigned int ystride = MIO_LAYOUT_NHWC ? MIO_BN_C : 1;
 
-    if(xgid >= MIO_BN_C)
+    if(xgid * VEC_SIZE_X >= MIO_BN_C)
         return;
 
-    _FLOAT_PREC dscale = (_FLOAT_PREC)0.;
-    _FLOAT_PREC dbias  = (_FLOAT_PREC)0.;
+    _FLOAT_PREC_C dscale = (_FLOAT_PREC_C)0.;
+    _FLOAT_PREC_C dbias  = (_FLOAT_PREC_C)0.;
 
     for(unsigned int yoffset = ylid; yoffset < MIO_BN_NGRPS; yoffset += ygrp_sz)
     {
-        dscale +=
-            loadFromStash(buff, 2, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-        dbias +=
-            loadFromStash(buff, 3, ygrp_sz * yoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        dscale += loadFromStash((__global _FLOAT_C*)buff,
+                                2,
+                                ygrp_sz * yoffset * VEC_SIZE_Y,
+                                ystride / VEC_SIZE_X,
+                                xgrp_sz,
+                                xgrp_id,
+                                xlid,
+                                xstride);
+        dbias += loadFromStash((__global _FLOAT_C*)buff,
+                               3,
+                               ygrp_sz * yoffset * VEC_SIZE_Y,
+                               ystride / VEC_SIZE_X,
+                               xgrp_sz,
+                               xgrp_id,
+                               xlid,
+                               xstride);
     }
 
-#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1
-    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDS_SIZE];
-    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDS_SIZE];
+#if !MIOPEN_USE_AMDGCN || MIO_BN_GRP0 > 1 || MIO_BN_LDSGCN_SIZE == 1
+    local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDS_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDS_SIZE];
     lds_reduce2_2d(&dscale,
                    &dbias,
                    (_FLOAT_ACCUM)1.0,
@@ -898,15 +978,15 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(const __global _FLOAT* __restrict buff
                    ylid,
                    ygrp_sz);
 #else
-    local _FLOAT_ACCUM lcl_data_x[MIO_BN_LDSGCN_SIZE];
-    local _FLOAT_ACCUM lcl_data_y[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_x[MIO_BN_LDSGCN_SIZE];
+    local _FLOAT_ACCUM_C lcl_data_y[MIO_BN_LDSGCN_SIZE];
     gcn_reduce2(&dscale, &dbias, (_FLOAT_ACCUM)1.0, lcl_data_x, lcl_data_y, ylid);
 #endif
 
     if(ylid == 0)
     {
-        delta_scale[xgid] = dscale;
-        delta_bias[xgid]  = dbias;
+        *((__global _FLOAT_PREC_C*)(delta_scale + xgid * VEC_SIZE_X)) = dscale;
+        *((__global _FLOAT_PREC_C*)(delta_bias + xgid * VEC_SIZE_X))  = dbias;
     }
 }
 
@@ -932,17 +1012,19 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
     unsigned int ystride = MIO_LAYOUT_NHWC ? MIO_BN_C : 1;
 
-    if(xgid >= MIO_BN_C)
+    if(xgid * VEC_SIZE_X >= MIO_BN_C)
         return;
 
     unsigned int index;
-    _FLOAT_PREC mean, invVar;
-    _FLOAT_PREC elemStd, xhat;
-    _FLOAT_PREC scale, dscale, dbias;
-    _FLOAT_PREC tmp1, tmp2, tmp3;
+    _FLOAT_PREC_C mean, invVar;
+    _FLOAT_PREC_LS elemStd, xhat;
+    _FLOAT_PREC_C scale, dscale, dbias;
+    _FLOAT_PREC_LS tmp1, tmp2, tmp3, tmp4;
+    _FLOAT_PREC_LS value1, value2;
+    _FLOAT_LS read4;
     _FLOAT_PREC NHW = (_FLOAT_PREC)MIO_BN_NHW;
 
-    local _FLOAT_PREC lscale[MIO_BN_GRP0], ldscale[MIO_BN_GRP0], ldbias[MIO_BN_GRP0],
+    local _FLOAT_PREC_C lscale[MIO_BN_GRP0], ldscale[MIO_BN_GRP0], ldbias[MIO_BN_GRP0],
         lmean[MIO_BN_GRP0], livar[MIO_BN_GRP0];
 
     if(ylid == 0)
@@ -953,21 +1035,33 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
         unsigned int xgrp_sz = get_local_size(0);
         unsigned int ygrp_sz = get_local_size(1);
 
-        lmean[xlid] =
-            loadFromStash(dx_out, 0, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
-        livar[xlid] =
-            loadFromStash(dx_out, 1, ygrp_sz * ygrp_id, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        lmean[xlid]   = loadFromStash((__global _FLOAT_C*)dx_out,
+                                    0,
+                                    ygrp_sz * ygrp_id * VEC_SIZE_Y,
+                                    ystride / VEC_SIZE_X,
+                                    xgrp_sz,
+                                    xgrp_id,
+                                    xlid,
+                                    xstride);
+        livar[xlid]   = loadFromStash((__global _FLOAT_C*)dx_out,
+                                    1,
+                                    ygrp_sz * ygrp_id * VEC_SIZE_Y,
+                                    ystride / VEC_SIZE_X,
+                                    xgrp_sz,
+                                    xgrp_id,
+                                    xlid,
+                                    xstride);
 #else
-        lmean[xlid] = *(savedMean + xgid);
-        livar[xlid] = *(savedInvVariance + xgid);
+        lmean[xlid] = *((const __global _FLOAT_PREC_C*)(savedMean + xgid * VEC_SIZE_X));
+        livar[xlid] = *((const __global _FLOAT_PREC_C*)(savedInvVariance + xgid * VEC_SIZE_X));
 #endif
-        lscale[xlid]  = *(bnScale + xgid);
-        ldscale[xlid] = *(delta_scale + xgid);
-        ldbias[xlid]  = *(delta_bias + xgid);
+        lscale[xlid]  = *((const __global _FLOAT_PREC_C*)(bnScale + xgid * VEC_SIZE_X));
+        ldscale[xlid] = *((const __global _FLOAT_PREC_C*)(delta_scale + xgid * VEC_SIZE_X));
+        ldbias[xlid]  = *((const __global _FLOAT_PREC_C*)(delta_bias + xgid * VEC_SIZE_X));
     }
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    if(ygid < MIO_BN_HW)
+    if(ygid * VEC_SIZE_Y < MIO_BN_HW)
     {
         mean   = lmean[xlid];
         invVar = livar[xlid];
@@ -977,13 +1071,18 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
 
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         { // apply normalization
-            index         = n * MIO_BN_CHW + ygid * ystride + xgid * xstride;
-            elemStd       = FLOAT2FLOATPREC(*(x_in + index)) - mean; // (x_i - mean)
-            xhat          = elemStd * invVar;                        // recalculating this again...
-            tmp1          = mad(NHW, FLOAT2FLOATPREC(*(dy_in + index)), -dbias);
-            tmp2          = -xhat * dscale;
-            tmp3          = scale * invVar * INHW;
-            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
+            index   = n * MIO_BN_CHW + ygid * ystride * VEC_SIZE_Y + xgid * xstride * VEC_SIZE_X;
+            read4   = *((const __global _FLOAT_LS*)(x_in + index));
+            value1  = FLOAT2FLOATPREC_VEC(read4);
+            elemStd = value1 - mean;    // (x_i - mean)
+            xhat    = elemStd * invVar; // recalculating this again...
+            read4   = *((const __global _FLOAT_LS*)(dy_in + index));
+            value2  = FLOAT2FLOATPREC_VEC(read4);
+            tmp1    = mad((_FLOAT_PREC_LS)NHW, value2, -dbias);
+            tmp2    = -xhat * dscale;
+            tmp3    = scale * invVar * INHW;
+            tmp4    = tmp3 * (tmp2 + tmp1);
+            *((__global _FLOAT_LS*)(dx_out + index)) = FLOATPREC2FLOAT_VEC(tmp4);
         }
     }
 }

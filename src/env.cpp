@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include <miopen/env.hpp>
-#include <miopen/errors.hpp>
 
 #ifndef _WIN32
 #include <cstdlib>
@@ -41,28 +40,6 @@
 #endif
 
 namespace miopen::env {
-
-void setEnvironmentVariable(std::string_view name, std::string_view value)
-{
-#ifdef _WIN32
-    if(SetEnvironmentVariable(name.data(), value.data()) == FALSE)
-#else
-    // NOLINTNEXTLINE(concurrency-mt-unsafe)
-    if(setenv(name.data(), value.data(), 1) != 0)
-#endif
-        MIOPEN_THROW("Setting environment variable failed: " + std::string{name});
-}
-
-void clearEnvironmentVariable(std::string_view name)
-{
-#ifdef _WIN32
-    if(SetEnvironmentVariable(name.data(), nullptr) == FALSE)
-#else
-    // NOLINTNEXTLINE(concurrency-mt-unsafe)
-    if(unsetenv(name.data()) != 0)
-#endif
-        MIOPEN_THROW("Removing environment variable failed: " + std::string{name});
-}
 
 std::optional<std::string> getEnvironmentVariable(std::string_view name)
 {
