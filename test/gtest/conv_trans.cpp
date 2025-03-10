@@ -29,8 +29,6 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-namespace env = miopen::env;
-
 namespace conv_trans {
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)

@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/batchnorm/common_spatial_multiple.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 
 #include <miopen/batchnorm/invoke_params.hpp>
@@ -38,16 +39,27 @@ namespace solver {
 
 namespace batchnorm {
 
+// Spatial multiple needs space for 4 fp32 elements
+// per each x thread (including the last workgroup)
+// to stash intermediate mean and variance
+const unsigned int stash_values_bwd = 4;
+
 bool BnBwdTrainingSpatialMultiple::IsApplicable(
-    const ExecutionContext&, const miopen::batchnorm::ProblemDescription& problem) const
+    const ExecutionContext& context, const miopen::batchnorm::ProblemDescription& problem) const
 {
+    // Check spatial mode and backward direction
     if(problem.GetDirection() != miopen::batchnorm::Direction::Backward ||
        problem.GetMode() != miopenBNSpatial)
         return false;
+
+    // Check that problem is 2D. If problem is 3D, it is currently converted to 2D
+    // before this function call.
     if(!problem.Is2D())
     {
         return false;
     }
+
+    // Check types
     if(!IsOCLBwdTypeValid(problem))
         return false;
 
@@ -56,45 +68,20 @@ bool BnBwdTrainingSpatialMultiple::IsApplicable(
 
     unsigned int in_cstride = h * w;
     unsigned int in_nhw     = n * in_cstride;
-
-    // Variant 2 needs space for 4 fp32 elements per each x thread (including the last workgroup)
-    // to stash intermediate mean, variance and scales
-    unsigned int stash_values = 4;
-    if(problem.IsLayoutNHWC())
+    // Check heuristics (used to choose between spatial single and multiple for performance)
+    // TODO: review these conditions (variant 2 was optimized and vectorization was added,
+    // so we need a set of benchmarks to check that these conditions are still correct)
+    if(!problem.IsLayoutNHWC() &&
+       (!((in_nhw >= static_cast<size_t>(32 * 1024 * 1024) || in_cstride <= 1024) &&
+          in_cstride > 512)))
     {
-        // TODO: For now enable variant 2 for NHWC because other variants are slower.
-        // Remove when other variants are optimized
-
-        unsigned int xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
-        unsigned int ylocalsize = 1024 / xlocalsize;
-        unsigned int last_ylocalsize =
-            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
-        if(problem.GetXDesc().GetType() == miopenFloat)
-        {
-            if(last_ylocalsize < stash_values)
-                return false;
-        }
-        else
-        {
-            // Even threads use 2 values at even rows, odd threads - at odd rows.
-            if(c % 2 != 0 || last_ylocalsize < stash_values * 2)
-                return false;
-        }
-    }
-    else
-    {
-        if(!((in_nhw >= static_cast<size_t>(32 * 1024 * 1024) || in_cstride <= 1024) &&
-             in_cstride > 512))
-            return false;
-
-        unsigned int ylocalsize = 1024;
-        unsigned int last_ylocalsize =
-            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
-        if(last_ylocalsize < stash_values * (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2))
-            return false;
+        return false;
     }
 
-    return true;
+    // Check if spatial multiple is applicable (some combinations of N, C, HW are not applicable
+    // for variant 2. In that case, we can use variant 1 which doesn't have restrictions)
+    return IsSpatialMultipleApplicable(
+        problem, context.GetStream().GetMaxHardwareComputeUnits(), stash_values_bwd);
 }
 
 ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
@@ -136,24 +123,17 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
     auto inhw = float(1.0 / in_nhw);
 
     int variant = 2;
-
-    size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize;
-    if(problem.IsLayoutNHWC())
-    {
-        // ylocalsize must be power of 2 as reductions in the kernels rely on it, here c is rounded
-        // up to next power of 2.
-        xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c)))}, size_t{64});
-        xgridsize  = xlocalsize * ((c + xlocalsize - 1) / xlocalsize);
-        ylocalsize = 1024 / xlocalsize;
-        ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
-    }
-    else
-    {
-        xlocalsize = 1;
-        xgridsize  = c;
-        ylocalsize = 1024;
-        ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
-    }
+    int stash_method;
+    size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize, vectorsize;
+    GetSpatialMultipleConfig(problem,
+                             context.GetStream().GetMaxHardwareComputeUnits(),
+                             stash_values_bwd,
+                             xlocalsize,
+                             ylocalsize,
+                             xgridsize,
+                             ygridsize,
+                             vectorsize,
+                             stash_method);
     zlocalsize = 1;
     zgridsize  = 1;
 
@@ -191,6 +171,8 @@ ConvSolution BnBwdTrainingSpatialMultiple::GetSolution(
             {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
+            {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
+            {"MIO_BN_STASH_METHOD", stash_method},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
