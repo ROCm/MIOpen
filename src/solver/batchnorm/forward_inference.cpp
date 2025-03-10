@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2021 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -41,8 +41,6 @@ namespace batchnorm {
 bool BnFwdInference::IsApplicable(const ExecutionContext&,
                                   const miopen::batchnorm::ProblemDescription& bn_problem) const
 {
-    if(bn_problem.IsLayoutNHWC())
-        return false;
     if(bn_problem.GetDirection() != miopen::batchnorm::Direction::ForwardInference)
         return false;
     if(!(bn_problem.IsFp32() or bn_problem.IsFp16() or bn_problem.IsBFp16()))
@@ -90,12 +88,29 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
     auto result = ConvSolution{miopenStatusSuccess};
 
     {
-        size_t xlocalsize = 1;
-        auto xgridsize    = c;
-        size_t ylocalsize = 256;
-        size_t ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
-        size_t zlocalsize = 1;
-        size_t zgridsize  = 1;
+        size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize;
+        size_t max_localsize = 256;
+        bool vectorize;
+        if(problem.GetXDesc().GetLayout_t() == miopenTensorNHWC)
+        {
+            vectorize       = c % 4 == 0;
+            int vector_size = vectorize ? 4 : 1;
+            xlocalsize      = std::min(size_t{c / vector_size}, max_localsize);
+            xgridsize       = xlocalsize * ((c / vector_size + xlocalsize - 1) / xlocalsize);
+            ylocalsize      = max_localsize / xlocalsize;
+            ygridsize       = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+        }
+        else
+        {
+            vectorize       = in_cstride % 4 == 0;
+            int vector_size = vectorize ? 4 : 1;
+            xlocalsize      = 1;
+            xgridsize       = c;
+            ylocalsize      = max_localsize;
+            ygridsize = ylocalsize * ((in_cstride / vector_size + ylocalsize - 1) / ylocalsize);
+        }
+        zlocalsize = 1;
+        zgridsize  = 1;
 
         auto kernel = KernelInfo{};
 
@@ -123,6 +138,8 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
+            {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
+            {"MIO_BN_VECTORIZE", static_cast<int>(vectorize)},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
@@ -147,18 +164,39 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             std::tie(n_, c_, h_, w_) = tien<4>(params.xDesc->GetLengths());
 
             unsigned int in_nstride_ = c_ * h_ * w_;
-            unsigned int in_cstride_ = h_ * w_;
 
-            kernel(params.x,
-                   params.y,
-                   params.estimatedMean,
-                   params.estimatedVariance,
-                   params.bnScale,
-                   params.bnBias,
-                   params.epsilon,
-                   n_,
-                   in_cstride_,
-                   in_nstride_);
+            if(params.xDesc->GetLayout_t() == miopenTensorNHWC)
+            {
+                kernel(params.x,
+                       params.y,
+                       params.estimatedMean,
+                       params.estimatedVariance,
+                       params.bnScale,
+                       params.bnBias,
+                       params.epsilon,
+                       c_,
+                       h_ * w_,
+                       n_,
+                       1,            // cStride
+                       c_,           // hwStride
+                       in_nstride_); // batchStride
+            }
+            else
+            {
+                kernel(params.x,
+                       params.y,
+                       params.estimatedMean,
+                       params.estimatedVariance,
+                       params.bnScale,
+                       params.bnBias,
+                       params.epsilon,
+                       c_,
+                       h_ * w_,
+                       n_,
+                       h_ * w_,      // cStride
+                       1,            // hwStride
+                       in_nstride_); // batchStride
+            }
         };
     };
 

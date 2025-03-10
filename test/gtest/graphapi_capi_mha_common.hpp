@@ -166,8 +166,8 @@ private:
 };
 
 using TensorVariant = std::variant<tensor<float>,
-                                   tensor<float8>,
-                                   tensor<bfloat8>,
+                                   tensor<float8_fnuz>,
+                                   tensor<bfloat8_fnuz>,
                                    tensor<half_float::half>,
                                    tensor<int64_t>>;
 
@@ -184,14 +184,14 @@ struct TensorData
     miopen::Allocator::ManageDataPtr m_gpuBuffer;
 
     template <typename T>
-    void InitAndWriteToGPU(miopen::Handle& handle, tensor<T>&& tensor)
+    void InitAndWriteToGPU(const miopen::Handle& handle, tensor<T>&& tensor)
     {
         m_tensorVariant = std::move(tensor);
         m_gpuBuffer     = handle.Write(GetTensor<T>(m_tensorVariant).data);
     }
 
     template <typename T>
-    void InitAndWriteToGPU(miopen::Handle& handle, T val)
+    void InitAndWriteToGPU(const miopen::Handle& handle, T val)
     {
         GetTensor<T>(m_tensorVariant).generate([=](auto...) { return val; });
         m_gpuBuffer = handle.Write(GetTensor<T>(m_tensorVariant).data);
@@ -203,17 +203,17 @@ typedef std::shared_ptr<TensorData> TensorDataPtr;
 template <typename T>
 miopenDataType_t GetMainType()
 {
-    if(std::is_same_v<T, float8>)
+    if(std::is_same_v<T, float8_fnuz>)
     {
-        return miopenFloat8;
+        return miopenFloat8_fnuz;
     }
     else if(std::is_same_v<T, float>)
     {
         return miopenFloat;
     }
-    else if(std::is_same_v<T, bfloat8>)
+    else if(std::is_same_v<T, bfloat8_fnuz>)
     {
-        return miopenBFloat8;
+        return miopenBFloat8_fnuz;
     }
     else if(std::is_same_v<T, half_float::half>)
     {
@@ -268,7 +268,7 @@ public:
     }
 
 protected:
-    virtual void MakeRealTensorsAndFillData(miopen::Handle& handle) = 0;
+    virtual void MakeRealTensorsAndFillData(const miopen::Handle& handle) = 0;
 
     virtual void MakeVirtualTensorsAndNodes() = 0;
 
@@ -388,7 +388,7 @@ protected:
     }
 
     template <typename ResultT>
-    tensor<ResultT>& GetResult(const int64_t& id, miopen::Handle& handle)
+    tensor<ResultT>& GetResult(const int64_t& id, const miopen::Handle& handle)
     {
         auto it = m_realTensorMap.find(id);
         assert(it != m_realTensorMap.cend());
@@ -400,7 +400,7 @@ protected:
         return ret;
     };
 
-    virtual void RunCPUverify(miopen::Handle& handle) = 0;
+    virtual void RunCPUverify(const miopen::Handle& handle) = 0;
 
     // just a simple id generator, might be redone if necessary
     int64_t GetNextId() { return m_nextTensorId++; }
@@ -660,13 +660,13 @@ protected:
         {
             tensorDataPtr->m_tensorVariant = tensor<int64_t>{n, h, s, d};
         }
-        else if(dtype == miopenFloat8)
+        else if(dtype == miopenFloat8_fnuz)
         {
-            tensorDataPtr->m_tensorVariant = tensor<float8>{n, h, s, d};
+            tensorDataPtr->m_tensorVariant = tensor<float8_fnuz>{n, h, s, d};
         }
-        else if(dtype == miopenBFloat8)
+        else if(dtype == miopenBFloat8_fnuz)
         {
-            tensorDataPtr->m_tensorVariant = tensor<bfloat8>{n, h, s, d};
+            tensorDataPtr->m_tensorVariant = tensor<bfloat8_fnuz>{n, h, s, d};
         }
         else if(dtype == miopenHalf)
         {
