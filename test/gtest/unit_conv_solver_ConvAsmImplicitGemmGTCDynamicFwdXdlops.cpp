@@ -77,7 +77,7 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        auto p             = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx908);
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx908);
         p.CheckXnackDisabled();
         return p;
     }();
@@ -86,17 +86,21 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsFwd_FP16 = GPU_UnitTestConvSolverFwd_FP16;
-using GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsFwd_FP32 = GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsFwd_FP16 =
+    GPU_UnitTestConvSolverFwd_FP16;
+using GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsFwd_FP32 =
+    GPU_UnitTestConvSolverFwd_FP32;
 using CPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsDevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
-TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsFwd_FP16, ConvAsmImplicitGemmGTCDynamicFwdXdlops)
+TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsFwd_FP16,
+       ConvAsmImplicitGemmGTCDynamicFwdXdlops)
 {
     this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicFwdXdlops{});
 };
 
-TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsFwd_FP32, ConvAsmImplicitGemmGTCDynamicFwdXdlops)
+TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsFwd_FP32,
+       ConvAsmImplicitGemmGTCDynamicFwdXdlops)
 {
     this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicFwdXdlops{});
 };
@@ -121,10 +125,11 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsDevApplicabilityFwd_NONE,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(GetConvTestCases(miopenFloat)[0])));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    CPU_UnitTestConvSolverAsmImplicitGemmGTCDynamicXdlopsDevApplicabilityFwd_NONE,
+    testing::Combine(testing::Values(GetTestParams()),
+                     testing::Values(GetConvTestCases(miopenFloat)[0])));
 
 // Full tests
 INSTANTIATE_TEST_SUITE_P(Full,
