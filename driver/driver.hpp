@@ -44,9 +44,9 @@
 using half         = half_float::half;
 using hip_bfloat16 = bfloat16;
 #include <hip_float8.hpp>
-using float16 = half_float::half;
-using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
-using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+using float16      = half_float::half;
+using float8_fnuz  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8_fnuz = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 #include <numeric>
 #include <vector>
 
@@ -435,14 +435,14 @@ inline void Driver::InitDataType<bfloat16>()
     data_type = miopenBFloat16;
 }
 template <>
-inline void Driver::InitDataType<float8>()
+inline void Driver::InitDataType<float8_fnuz>()
 {
-    data_type = miopenFloat8;
+    data_type = miopenFloat8_fnuz;
 }
 template <>
-inline void Driver::InitDataType<bfloat8>()
+inline void Driver::InitDataType<bfloat8_fnuz>()
 {
-    data_type = miopenBFloat8;
+    data_type = miopenBFloat8_fnuz;
 }
 // "std::is_same<Tgpu, float>{}" used to avoid "static_assert" compilation error,
 // which occurs when the condition does not depend in any way on the template parameters.

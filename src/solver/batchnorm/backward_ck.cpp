@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/batchnorm/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/batchnorm/invoke_params.hpp>
 #include <miopen/batch_norm.hpp>
@@ -257,8 +258,8 @@ void PerformanceConfigBnCKBwdBackward::HeuristicInit(
     case miopenBFloat16: Init<BF16, F32, F32, F32, BF16, F32, F32>(problem_desc); break;
     case miopenFloat: Init<F32, F32, F32, F32, F32, F32, F32>(problem_desc); break;
     case miopenDouble: Init<F64, F64, F64, F64, F64, F64, F64>(problem_desc); break;
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
@@ -310,8 +311,8 @@ bool PerformanceConfigBnCKBwdBackward::IsValid(
         return CheckIsSupportCKArgs<BF16, F32, F32, F32, BF16, F32, F32>(problem_desc);
     case miopenFloat: return CheckIsSupportCKArgs<F32, F32, F32, F32, F32, F32, F32>(problem_desc);
     case miopenDouble: return CheckIsSupportCKArgs<F64, F64, F64, F64, F64, F64, F64>(problem_desc);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
@@ -384,8 +385,8 @@ bool BnCKBwdBackward::IsApplicable(
     case miopenInt64:
     case miopenInt32:
     case miopenInt8:
-    case miopenFloat8:
-    case miopenBFloat8: break;
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz: break;
     }
 #endif
     return false;
@@ -402,6 +403,11 @@ ConvSolution MakeAnyInvokerFactory(const miopen::batchnorm::ProblemDescription& 
     case miopenDouble: return invoker_factory_maker_nhwc(F64{});
     case miopenHalf: return invoker_factory_maker_nhwc(F16{});
     case miopenBFloat16: return invoker_factory_maker_nhwc(BF16{});
+    case miopenInt8:
+    case miopenInt32:
+    case miopenInt64:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "BnCKBwdBackward operation does not support this data type");

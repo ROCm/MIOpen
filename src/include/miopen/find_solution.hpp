@@ -28,7 +28,6 @@
 #define MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
 
 #include "miopen/miopen.h"
-#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>

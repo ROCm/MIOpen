@@ -26,6 +26,7 @@
 
 #pragma once
 
+#include <miopen/env.hpp>
 #include <miopen/rnn.hpp>
 #include <miopen/gemm_v2.hpp>
 
