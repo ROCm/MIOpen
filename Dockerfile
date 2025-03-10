@@ -1,7 +1,5 @@
 FROM ubuntu:22.04 as miopen
 
-ARG REST_IT_ALL=""
-
 ARG DEBIAN_FRONTEND=noninteractive
 # install to /opt/rocm will cause permission issue
 ARG PREFIX=/usr/local
@@ -11,12 +9,11 @@ ARG CCACHE_SECONDARY_STORAGE=""
 ARG CCACHE_DIR="/tmp"
 ARG CCACHE_COMMIT=7f1572ae9ca958fa923a66235f6a64a360b03523
 ARG MIOPEN_SCCACHE=""
+ARG MIOPEN_SCCACHE_CUSTOM_CACHE_BUSTER="MiOpen-Docker-CK"
 
 # GPU_ARCHS should be defined as a build arg rather than hardcoded here. 
 ARG GPU_ARCHS=none
 
-ARG INSTALL_MIOPEN=OFF
-ARG FRECKLE=0
 ARG COMPILER_LAUNCHER=""
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 
@@ -122,7 +119,7 @@ RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.
     groupadd -f video && \
     usermod -a -G render,video root
 
-# Make sure /opt/rcom is in the paths
+# Make sure /opt/rocm is in the paths
 ENV PATH="/opt/rocm:${PATH}"
 
 ADD script/redis-cli.conf /redis-cli.conf
@@ -142,7 +139,7 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     export SCCACHE_EXTRAFILES=/tmp/.sccache/rocm_compilers_hash_file && \
     export SCCACHE_REDIS="redis://$MIOPEN_SCCACHE" && \
     echo "connect = $MIOPEN_SCCACHE" >> redis-cli.conf && \
-    export SCCACHE_C_CUSTOM_CACHE_BUSTER="MiOpen-Docker-CK" && \
+    export SCCACHE_C_CUSTOM_CACHE_BUSTER="${MIOPEN_SCCACHE_CUSTOM_CACHE_BUSTER}" && \
     echo $SCCACHE_C_CUSTOM_CACHE_BUSTER && \
     stunnel redis-cli.conf && \
     export PATH=$PATH:${SCCACHE_INSTALL_LOCATION} && \
@@ -180,22 +177,6 @@ RUN if [ "$USE_FIN" = "ON" ]; then \
     rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}"; \
     fi && \
     ccache -s 
-
-#install miopen for perf test builds, remove it if not needed.
-# todo: split this out from this dockerfile and move it elsewhere.
-ADD . / miopen/
-RUN set -e; \
-    if [ "$INSTALL_MIOPEN" = "ON" ]; then \
-        cd miopen; \
-        mkdir build; \
-        rm -f src/kernels/*.ufdb.txt; \
-        rm -f src/kernels/miopen*.udb; \
-        cd build ; \
-        CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=release -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=/opt/rocm -DCMAKE_PREFIX_PATH=/opt/rocm ..; \
-        LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \
-    else \
-        rm -rf miopen; \
-    fi
 
 # Utilize multi-stage build in order to squash the container.
 FROM ubuntu:22.04
