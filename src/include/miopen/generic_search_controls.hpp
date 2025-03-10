@@ -29,6 +29,7 @@
 #include <miopen/config.h>
 #include <chrono>
 #include <limits>
+#include <thread>
 
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX,
                               std::numeric_limits<std::size_t>::max())
