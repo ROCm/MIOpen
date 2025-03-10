@@ -31,14 +31,6 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-#ifndef D_TYPE
-#define D_TYPE float
-#endif
-
-#ifndef REDUCTION_TYPE
-#define REDUCTION_TYPE 0
-#endif
-
 template <typename T>
 __device__ void kldivLossBackward5d(const T* __restrict__ input,
                                     const T* __restrict__ target,
@@ -56,7 +48,6 @@ __device__ void kldivLossBackward5d(const T* __restrict__ input,
     uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
 
     auto tensor_layout = tensor_layout_t<5>(input_grad_tv, gid);
-
     if(tensor_layout.layout[0] >= input_grad_tv.size[0])
         return;
 
@@ -65,9 +56,6 @@ __device__ void kldivLossBackward5d(const T* __restrict__ input,
     size_t dIidx = input_grad_tv.get_tensor_view_idx(tensor_layout);
     size_t dTidx = target_grad_tv.get_tensor_view_idx(tensor_layout);
     size_t dOidx = output_grad_tv.get_tensor_view_idx(tensor_layout);
-
-    printf(
-        "Iidx: %d, Tidx: %d, dIidx: %d, dTidx: %d, dOidx: %d\n", Iidx, Tidx, dIidx, dTidx, dOidx);
 
 #if REDUCTION_TYPE != 0
     dOidx = 0;
@@ -79,26 +67,20 @@ __device__ void kldivLossBackward5d(const T* __restrict__ input,
     FLOAT_ACCUM forward_output;
     FLOAT_ACCUM d = static_cast<FLOAT_ACCUM>(divisor);
 
-    printf("input_value: %f, target_value: %f, output_grad_value: %f\n",
-           input_value,
-           target_value,
-           output_grad_value);
-
     if(log_target)
     {
         FLOAT_ACCUM exp_target = exp(target_value);
         forward_output         = exp_target * (target_value - input_value);
         if(input_grad)
         {
-            FLOAT_ACCUM input_grad_value =
-                isnan(forward_output)
-                    ? static_cast<FLOAT_ACCUM>(0.0f)
-                    : static_cast<FLOAT_ACCUM>(-1.0f) * (exp_target / d) * output_grad_value;
-            input_grad[dIidx] = CVT_ACCUM2FLOAT(input_grad_value);
+            FLOAT_ACCUM input_grad_value = isnan(forward_output)
+                                               ? static_cast<FLOAT_ACCUM>(0.0f)
+                                               : -exp_target / d * output_grad_value;
+            input_grad[dIidx]            = CVT_ACCUM2FLOAT(input_grad_value);
         }
         if(target_grad)
         {
-            FLOAT_ACCUM target_grad_value = ((forward_output + exp_target) / d) * output_grad_value;
+            FLOAT_ACCUM target_grad_value = (forward_output + exp_target) / d * output_grad_value;
             target_grad[dTidx]            = CVT_ACCUM2FLOAT(target_grad_value);
         }
     }
@@ -107,18 +89,17 @@ __device__ void kldivLossBackward5d(const T* __restrict__ input,
         forward_output = target_value * (log(target_value) - input_value);
         if(input_grad)
         {
-            FLOAT_ACCUM input_grad_value =
-                isnan(forward_output)
-                    ? static_cast<FLOAT_ACCUM>(0.0f)
-                    : static_cast<FLOAT_ACCUM>(-1.0f) * target_value / d * output_grad_value;
-            input_grad[dIidx] = CVT_ACCUM2FLOAT(input_grad_value);
+            FLOAT_ACCUM input_grad_value = isnan(forward_output)
+                                               ? static_cast<FLOAT_ACCUM>(0.0f)
+                                               : -target_value / d * output_grad_value;
+            input_grad[dIidx]            = CVT_ACCUM2FLOAT(input_grad_value);
         }
         if(target_grad)
         {
             FLOAT_ACCUM target_grad_value =
                 (target_value == static_cast<FLOAT_ACCUM>(0.0f))
                     ? static_cast<FLOAT_ACCUM>(0.0f)
-                    : (static_cast<FLOAT_ACCUM>(1.0f) + (log(target_value) - input_value)) / d *
+                    : (static_cast<FLOAT_ACCUM>(1.0f) + log(target_value) - input_value) / d *
                           output_grad_value;
             target_grad[dTidx] = CVT_ACCUM2FLOAT(target_grad_value);
         }
@@ -130,7 +111,7 @@ extern "C" __global__ void KLDivLossBackward5d(const D_TYPE* __restrict__ input,
                                                const D_TYPE* __restrict__ output_grad,
                                                D_TYPE* __restrict__ input_grad,
                                                D_TYPE* __restrict__ target_grad,
-                                               float divisor,
+                                               uint64_t divisor,
                                                bool log_target,
                                                tensor_view_t<5> input_tv,
                                                tensor_view_t<5> target_tv,

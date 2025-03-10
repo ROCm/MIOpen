@@ -65,9 +65,9 @@ int32_t mloKLDivLossBackwardRunHost5d(const miopenTensorDescriptor_t inputDesc,
         size_t Iidx                      = I_tv.get_tensor_view_idx(tensor_layout);
         size_t Tidx                      = T_tv.get_tensor_view_idx(tensor_layout);
         size_t dOidx                     = 0;
-        if(reduction != MIOPEN_LOSS_REDUCTION_NONE)
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
         {
-            dOidx = dO_tv.get_tensor_view_idx({tensor_layout});
+            dOidx = dO_tv.get_tensor_view_idx(tensor_layout);
         }
         size_t dIidx = dI_tv.get_tensor_view_idx(tensor_layout);
         size_t dTidx = dT_tv.get_tensor_view_idx(tensor_layout);
@@ -79,14 +79,13 @@ int32_t mloKLDivLossBackwardRunHost5d(const miopenTensorDescriptor_t inputDesc,
 
         if(log_target)
         {
-            double exp_target = exp(static_cast<double>(target_value));
+            double exp_target = exp(target_value);
             forward_output    = exp_target * (target_value - input_value);
             if(input_grad_out)
             {
-                input_grad[dIidx] =
-                    std::isnan(forward_output)
-                        ? static_cast<Tcheck>(0.0f)
-                        : static_cast<Tcheck>(-1.0f * exp_target / d * output_grad_value);
+                input_grad[dIidx] = std::isnan(forward_output)
+                                        ? static_cast<Tcheck>(0.0f)
+                                        : static_cast<Tcheck>(-exp_target / d * output_grad_value);
             }
             if(target_grad_out)
             {

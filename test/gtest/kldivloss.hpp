@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include "cpu_kldivloss.hpp"
 #include "get_handle.hpp"
-#include "random.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
@@ -62,16 +61,20 @@ struct KLDivLossTestCase
 
 inline std::vector<KLDivLossTestCase> KLDivLossTestConfigs()
 {
-    return {{{3, 2}, false, MIOPEN_LOSS_REDUCTION_NONE},
-            {{3, 2}, false, MIOPEN_LOSS_REDUCTION_SUM}};
-    // {{256, 4, 55}, false, MIOPEN_LOSS_REDUCTION_NONE},
-    // {{256, 4, 55}, false, MIOPEN_LOSS_REDUCTION_SUM},
-    //     {{256, 4, 55}, true, MIOPEN_LOSS_REDUCTION_NONE},
-    //     {{256, 4, 55}, true, MIOPEN_LOSS_REDUCTION_SUM},
-    //     {{34, 4}, false, MIOPEN_LOSS_REDUCTION_NONE},
-    //     {{34, 4}, false, MIOPEN_LOSS_REDUCTION_SUM},
-    //     {{34, 4}, true, MIOPEN_LOSS_REDUCTION_NONE},
-    //     {{34, 4}, true, MIOPEN_LOSS_REDUCTION_SUM}};
+    return {
+        {{256, 4, 55}, false, MIOPEN_LOSS_REDUCTION_NONE},
+        {{256, 4, 55}, false, MIOPEN_LOSS_REDUCTION_MEAN},
+        {{256, 4, 55}, false, MIOPEN_LOSS_REDUCTION_SUM},
+        {{256, 4, 55}, true, MIOPEN_LOSS_REDUCTION_NONE},
+        {{256, 4, 55}, true, MIOPEN_LOSS_REDUCTION_MEAN},
+        {{256, 4, 55}, true, MIOPEN_LOSS_REDUCTION_SUM},
+        {{34, 4}, false, MIOPEN_LOSS_REDUCTION_NONE},
+        {{34, 4}, false, MIOPEN_LOSS_REDUCTION_MEAN},
+        {{34, 4}, false, MIOPEN_LOSS_REDUCTION_SUM},
+        {{34, 4}, true, MIOPEN_LOSS_REDUCTION_NONE},
+        {{34, 4}, true, MIOPEN_LOSS_REDUCTION_MEAN},
+        {{34, 4}, true, MIOPEN_LOSS_REDUCTION_SUM},
+    };
 }
 
 inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous)
@@ -184,14 +187,6 @@ protected:
     void Verify()
     {
         double threshold = std::numeric_limits<T>::epsilon();
-
-        for(int i = 0; i < 10; ++i)
-        {
-            std::cout << "GPU input_grad[" << i << "] = " << input_grad[i] << std::endl;
-            std::cout << "CPU input_grad[" << i << "] = " << ref_input_grad[i] << std::endl;
-            std::cout << "GPU target_grad[" << i << "] = " << target_grad[i] << std::endl;
-            std::cout << "CPU target_grad[" << i << "] = " << ref_target_grad[i] << std::endl;
-        }
 
         auto error = miopen::rms_range(ref_input_grad, input_grad);
         ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));

@@ -25,7 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/miopen.h"
 #include "tensor_holder.hpp"
 #include "tensor_view.hpp"
 #include <miopen/tensor_view_utils.hpp>
@@ -56,15 +55,15 @@ void cpu_kldivloss_backward_5d(tensor<T> input,
     for(size_t i = 0; i < input.desc.GetElementSize(); ++i)
     {
         tensor_layout_t<5> tensor_layout = tensor_layout_t<5>(dI_tv, i);
-        size_t Iidx                      = I_tv.get_tensor_view_idx({tensor_layout});
-        size_t Tidx                      = T_tv.get_tensor_view_idx({tensor_layout});
+        size_t Iidx                      = I_tv.get_tensor_view_idx(tensor_layout);
+        size_t Tidx                      = T_tv.get_tensor_view_idx(tensor_layout);
         size_t dOidx                     = 0;
-        if(reduction != MIOPEN_LOSS_REDUCTION_NONE)
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
         {
-            dOidx = dO_tv.get_tensor_view_idx({tensor_layout});
+            dOidx = dO_tv.get_tensor_view_idx(tensor_layout);
         }
-        size_t dIidx = dI_tv.get_tensor_view_idx({tensor_layout});
-        size_t dTidx = dT_tv.get_tensor_view_idx({tensor_layout});
+        size_t dIidx = dI_tv.get_tensor_view_idx(tensor_layout);
+        size_t dTidx = dT_tv.get_tensor_view_idx(tensor_layout);
 
         double input_value       = static_cast<double>(input[Iidx]);
         double target_value      = static_cast<double>(target[Tidx]);
@@ -73,14 +72,13 @@ void cpu_kldivloss_backward_5d(tensor<T> input,
 
         if(log_target)
         {
-            double exp_target = exp(static_cast<double>(target_value));
+            double exp_target = exp(target_value);
             forward_output    = exp_target * (target_value - input_value);
             if(input_grad_out)
             {
-                input_grad[dIidx] =
-                    std::isnan(forward_output)
-                        ? static_cast<T>(0.0f)
-                        : static_cast<T>(-1.0f * exp_target / d * output_grad_value);
+                input_grad[dIidx] = std::isnan(forward_output)
+                                        ? static_cast<T>(0.0f)
+                                        : static_cast<T>(-exp_target / d * output_grad_value);
             }
             if(target_grad_out)
             {
