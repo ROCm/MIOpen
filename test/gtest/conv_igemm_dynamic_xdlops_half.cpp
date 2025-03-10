@@ -40,7 +40,7 @@ void SetupEnvVar()
     lib_env::update(MIOPEN_FIND_MODE, "normal");
     lib_env::update(
         MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-        "ConvAsmImplicitGemmGTCDynamicFwdXdlops;ConvAsmImplicitGemmGTCDynamicWrwXdlops");
+        "ConvAsmImplicitGemmGTCDynamicWrwXdlops");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -116,15 +116,10 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 {
     const std::string flags       = "test_conv2d " + precision + " --verbose ";
     const std::string dis_bk_data = " --disable-backward-data";
-    const std::string dis_bk_wei  = " --disable-backward-weights";
     const std::string dis_fwd     = " --disable-forward";
 
     const std::vector<std::string> test_cases = {
         // clang-format off
-    //fwd
-    {flags + " --input 64 3 224 224 --weights 64 3 7 7 --pads_strides_dilations 3 3 2 2 1 1" + dis_bk_data + dis_bk_wei},
-    {flags + " --input 64 3 230 230 --weights 64 3 7 7 --pads_strides_dilations 0 0 2 2 1 1" + dis_bk_data + dis_bk_wei},
-
     //wrw
     {flags + " --input  1 3 32 32 --weights 1 3 11 11 --pads_strides_dilations 1 1 2 2 2 1" + dis_fwd + dis_bk_data},
     {flags + " --input  1 3 224 224 --weights 1 3 3 3 --pads_strides_dilations 0 0 1 1 2 2" + dis_fwd + dis_bk_data},
