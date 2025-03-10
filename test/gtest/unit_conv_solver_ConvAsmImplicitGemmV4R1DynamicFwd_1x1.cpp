@@ -71,7 +71,8 @@ using GPU_UnitTestConvSolverAsmImplicitGemmV4R1Dynamic1x1Fwd_FP32 = GPU_UnitTest
 using CPU_UnitTestConvSolverAsmImplicitGemmV4R1Dynamic1x1DevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
-TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmV4R1Dynamic1x1Fwd_FP32, ConvAsmImplicitGemmV4R1DynamicFwd_1x1)
+TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmV4R1Dynamic1x1Fwd_FP32,
+       ConvAsmImplicitGemmV4R1DynamicFwd_1x1)
 {
     this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmV4R1DynamicFwd_1x1{});
 };
@@ -90,10 +91,11 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverAsmImplicitGemmV4R1Dynamic1x1DevApplicabilityFwd_NONE,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(GetConvTestCases(miopenFloat)[0])));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    CPU_UnitTestConvSolverAsmImplicitGemmV4R1Dynamic1x1DevApplicabilityFwd_NONE,
+    testing::Combine(testing::Values(GetTestParams()),
+                     testing::Values(GetConvTestCases(miopenFloat)[0])));
 
 // Full tests
 INSTANTIATE_TEST_SUITE_P(Full,
