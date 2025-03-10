@@ -119,7 +119,7 @@ log2 wave_size_log2, wave_size
     .endif
 .endm
 
-.macro m_buffer_store_short size, src, off, desc, soff, ioff=0
+.macro mbuffer_store_short size, src, off, desc, soff, ioff=0
     .if \size == 1
         buffer_store_short v[\src], v[\off],  s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
     .endif
