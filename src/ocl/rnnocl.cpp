@@ -1064,8 +1064,8 @@ void RNNDescriptor::RNNForwardMS(const Handle& handle,
 
     if(dispatch_strategy == DispatchStrategy::Spiral)
     {
-        const auto first_stream = extra_stream_cnt > 0 ? 1 : 0;
-        const auto last_stream  = extra_stream_cnt > 0 ? extra_stream_cnt : 0;
+        const auto first_stream = stream_cnt > 0 ? 1 : 0;
+        const auto last_stream  = stream_cnt > 0 ? stream_cnt : 0;
 
         spiral_dispatch(first_stream, last_stream);
     }
