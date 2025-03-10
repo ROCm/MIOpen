@@ -38,9 +38,7 @@ namespace conv_igemm_dynamic_xdlops_half {
 void SetupEnvVar()
 {
     lib_env::update(MIOPEN_FIND_MODE, "normal");
-    lib_env::update(
-        MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-        "ConvAsmImplicitGemmGTCDynamicWrwXdlops");
+    lib_env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmGTCDynamicWrwXdlops");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
