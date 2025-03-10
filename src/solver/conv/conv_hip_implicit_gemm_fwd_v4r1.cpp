@@ -28,6 +28,7 @@
 
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
