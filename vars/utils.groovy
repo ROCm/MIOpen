@@ -19,6 +19,20 @@ def show_node_info() {
     """
 }
 
+def check_host() {
+    if ("${env.MIOPEN_SCCACHE}" != "null"){
+        def SCCACHE_SERVER="${env.MIOPEN_SCCACHE.split(':')[0]}"
+        echo "sccache server: ${SCCACHE_SERVER}"
+        sh '''ping -c 1 -p 6379 "${SCCACHE_SERVER}" | echo $? > tmp.txt'''
+        def output = readFile(file: "tmp.txt")
+        echo "tmp.txt contents: \$output"
+        return (output != "0")
+    }
+    else{
+        return 1
+    }
+}
+
 //default
 // CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror' cmake -DMIOPEN_GPU_SYNC=Off -DCMAKE_PREFIX_PATH=/usr/local -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release ..
 //
@@ -221,6 +235,10 @@ def getDockerImage(Map conf=[:])
         dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
         env.CCACHE_DIR = """/tmp/ccache_store"""
         env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
+    }
+    else if (params.USE_SCCACHE_DOCKER && check_host() && "${env.MIOPEN_SCCACHE}" != "null")
+    {
+        dockerArgs = dockerArgs + " --build-arg MIOPEN_SCCACHE=${env.MIOPEN_SCCACHE} --build-arg COMPILER_LAUNCHER=sccache"
     }
     echo "Docker Args: ${dockerArgs}"
 
