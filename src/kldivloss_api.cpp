@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,9 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/kldivloss.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
+#include <miopen/kldivloss.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/tensor_ops.hpp>
 
@@ -86,8 +86,8 @@ extern "C" miopenStatus_t miopenKLDivLossBackward(miopenHandle_t handle,
                                                   void* input_grad,
                                                   const miopenTensorDescriptor_t targetGradDesc,
                                                   void* target_grad,
-                                                  bool log_target,
-                                                  miopenLossReductionMode_t reduction)
+                                                  const bool log_target,
+                                                  const miopenLossReductionMode_t reduction)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         inputDesc,

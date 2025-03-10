@@ -8261,8 +8261,8 @@ MIOPEN_EXPORT miopenStatus_t miopenKLDivLossBackward(miopenHandle_t handle,
                                                      void* input_grad,
                                                      const miopenTensorDescriptor_t targetGradDesc,
                                                      void* target_grad,
-                                                     bool log_target,
-                                                     miopenLossReductionMode_t reduction);
+                                                     const bool log_target,
+                                                     const miopenLossReductionMode_t reduction);
 
 /** @} */
 // CLOSEOUT LossFunction DOXYGEN GROUP

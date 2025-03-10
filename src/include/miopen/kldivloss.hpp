@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,19 +34,19 @@ struct TensorDescriptor;
 
 namespace kldivloss {
 
-miopenStatus_t KLDivLossBackward(Handle& handle,
-                                 const TensorDescriptor& inputDesc,
-                                 ConstData_t input,
-                                 const TensorDescriptor& targetDesc,
-                                 ConstData_t target,
-                                 const TensorDescriptor& outputGradDesc,
-                                 ConstData_t output_grad,
-                                 const TensorDescriptor& inputGradDesc,
-                                 Data_t input_grad,
-                                 const TensorDescriptor& targetGradDesc,
-                                 Data_t target_grad,
-                                 bool log_target,
-                                 miopenLossReductionMode_t reduction);
+MIOPEN_INTERNALS_EXPORT miopenStatus_t KLDivLossBackward(Handle& handle,
+                                                         const TensorDescriptor& inputDesc,
+                                                         ConstData_t input,
+                                                         const TensorDescriptor& targetDesc,
+                                                         ConstData_t target,
+                                                         const TensorDescriptor& outputGradDesc,
+                                                         ConstData_t output_grad,
+                                                         const TensorDescriptor& inputGradDesc,
+                                                         Data_t input_grad,
+                                                         const TensorDescriptor& targetGradDesc,
+                                                         Data_t target_grad,
+                                                         bool log_target,
+                                                         miopenLossReductionMode_t reduction);
 
 } // namespace kldivloss
 

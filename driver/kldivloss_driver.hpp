@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_KLDIVLOSS_DRIVER_HPP
-#define GUARD_MIOPEN_KLDIVLOSS_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -32,7 +31,6 @@
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "util_driver.hpp"
 
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
@@ -42,21 +40,6 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <vector>
-
-inline std::vector<int> GetStrides(std::vector<int> lengths, int contiguous)
-{
-    if(contiguous != 0 && contiguous != 1)
-        std::cerr << "Error Tensor Contiguous should be 0 or 1" << std::endl;
-    if(contiguous == 0)
-        std::swap(lengths.front(), lengths.back());
-    std::vector<int> strides(lengths.size());
-    strides.back() = 1;
-    for(int i = lengths.size() - 2; i >= 0; --i)
-        strides[i] = strides[i + 1] * lengths[i + 1];
-    if(contiguous == 0)
-        std::swap(strides.front(), strides.back());
-    return strides;
-}
 
 template <typename Tgpu, typename Tref>
 class KLDivLossDriver : public Driver
@@ -74,11 +57,11 @@ public:
         data_type = miopen_type<Tgpu>{};
     }
 
+    std::vector<int> ComputeStrides(std::vector<int> input);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
 
-    std::vector<int> GetInputTensorDimsFromCmd();
     int GetandSetData() override;
 
     int AllocateBuffersAndCopy() override;
@@ -138,14 +121,16 @@ private:
     size_t ws_sizeInBytes;
 
     std::vector<int> input_sizes;
-    float divisor;
     bool log_target;
+    miopenLossReductionMode_t reduction;
+    bool isContiguous;
 };
 
 template <typename Tgpu, typename Tref>
 int KLDivLossDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+    isContiguous = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -155,74 +140,42 @@ int KLDivLossDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> KLDivLossDriver<Tgpu, Tref>::GetInputTensorDimsFromCmd()
-{
-    std::string lengthsStr = inflags.GetValueStr("input_dims");
-
-    std::vector<int> lengths;
-    std::size_t pos = 0;
-    std::size_t new_pos;
-
-    new_pos = lengthsStr.find(',', pos);
-    while(new_pos != std::string::npos)
-    {
-        std::string sliceStr = lengthsStr.substr(pos, new_pos - pos);
-
-        int len = std::stoi(sliceStr);
-
-        lengths.push_back(len);
-
-        pos     = new_pos + 1;
-        new_pos = lengthsStr.find(',', pos);
-    };
-
-    std::string sliceStr = lengthsStr.substr(pos);
-    int len              = std::stoi(sliceStr);
-
-    lengths.push_back(len);
-
-    return (lengths);
-}
-
-template <typename Tgpu, typename Tref>
 int KLDivLossDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto reduction = inflags.GetValueStr("reduce");
-    if(reduction != "none" && reduction != "mean" && reduction != "batchmean" && reduction != "sum")
+    auto reduction_mode = inflags.GetValueStr("reduce");
+    if(reduction_mode != "none" && reduction_mode != "mean" && reduction_mode != "sum")
         return miopenStatusInvalidValue;
 
-    input_sizes = GetInputTensorDimsFromCmd();
+    input_sizes = inflags.GetValueTensor("input_dims").lengths;
     log_target  = static_cast<bool>(inflags.GetValueInt("log_target"));
 
     std::vector<int> in_len     = input_sizes;
     std::vector<int> target_len = in_len;
     std::vector<int> out_len    = in_len;
 
-    auto in_strides  = GetStrides(in_len, 1);
-    auto tar_strides = GetStrides(target_len, inflags.GetValueInt("contiguous"));
+    auto in_strides  = ComputeStrides(in_len);
+    auto tar_strides = ComputeStrides(target_len);
 
     SetTensorNd(inputDesc, in_len, in_strides, data_type);
     SetTensorNd(targetDesc, target_len, tar_strides, data_type);
 
-    if(reduction == "none")
+    if(reduction_mode == "none")
     {
-        divisor             = std::numeric_limits<float>::quiet_NaN();
-        auto output_strides = GetStrides(out_len, 1);
+        reduction           = MIOPEN_LOSS_REDUCTION_NONE;
+        auto output_strides = ComputeStrides(out_len);
         SetTensorNd(outputDesc, out_len, output_strides, data_type);
         SetTensorNd(outputGradDesc, out_len, output_strides, data_type);
     }
     else
     {
+        if(reduction_mode == "sum")
+            reduction = MIOPEN_LOSS_REDUCTION_SUM;
+        else if(reduction_mode == "mean")
+            reduction = MIOPEN_LOSS_REDUCTION_MEAN;
         std::vector<int> out_len_rd = {1};
-        auto output_strides         = GetStrides(out_len_rd, 1);
+        auto output_strides         = ComputeStrides(out_len_rd);
         SetTensorNd(outputDesc, out_len_rd, output_strides, data_type);
         SetTensorNd(outputGradDesc, out_len_rd, output_strides, data_type);
-        if(reduction == "sum")
-            divisor = 1;
-        if(reduction == "mean")
-            divisor = miopen::deref(inputDesc).GetElementSize();
-        if(reduction == "batchmean")
-            divisor = miopen::deref(inputDesc).GetLengths()[0];
     }
 
     SetTensorNd(inputGradDesc, in_len, in_strides, data_type);
@@ -231,16 +184,30 @@ int KLDivLossDriver<Tgpu, Tref>::GetandSetData()
     return miopenStatusSuccess;
 }
 
+// Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
+template <typename Tgpu, typename Tref>
+std::vector<int> KLDivLossDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!isContiguous)
+        std::swap(inputDim.front(), inputDim.back());
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!isContiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
+}
+
 template <typename Tgpu, typename Tref>
 int KLDivLossDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "2", "Run only Backward KLDivLoss (Default=2)", "int");
-    inflags.AddInputFlag(
+    inflags.AddTensorFlag(
         "input_dims",
         'D',
-        "16,21,21,21,10",
-        "The dimensional lengths of the input tensor: N,C,D1,D2,... Example: 16,21,21,21,10.",
-        "string");
+        "16x21x21x21x10",
+        "The dimensional lengths of the input tensor: NxCxD1xD2,... Example: 16x21x21x21x10.");
     inflags.AddInputFlag(
         "log_target", 'l', "0", "Log target or not (Default=0 for not using Log target)", "int");
     inflags.AddInputFlag(
@@ -250,7 +217,7 @@ int KLDivLossDriver<Tgpu, Tref>::AddCmdLineArgs()
         "Specifies the reduction to apply to the output ('none'|'mean'|'batchmean'|'sum') "
         "(Default=none to indicate no reduction)",
         "string");
-    inflags.AddInputFlag("contiguous",
+    inflags.AddInputFlag("is-contiguous",
                          'c',
                          "1",
                          "Is input tensor contiguous? (Default=1 for contiguous tensor)",
@@ -292,44 +259,65 @@ int KLDivLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     target_grad_host = std::vector<Tref>(target_sz, static_cast<Tref>(0));
     out_grad         = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
 
-    int status;
-
-    for(int i = 0; i < in_sz; i++)
+    for(size_t i = 0; i < in_sz; i++)
     {
         in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-0.1f), static_cast<Tgpu>(0.1f));
     }
-    status = in_dev->ToGPU(q, in.data());
+    if(in_dev->ToGPU(q, in.data()) != 0)
+    {
+        std::cerr << "Error copying input to GPU, size: " << in_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
     if(log_target)
     {
-        for(int i = 0; i < target_sz; i++)
+        for(size_t i = 0; i < target_sz; i++)
         {
             target[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2.0f), static_cast<Tgpu>(-1.0f));
         }
     }
     else
     {
-        for(int i = 0; i < target_sz; i++)
+        for(size_t i = 0; i < target_sz; i++)
         {
             target[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(1.0), static_cast<Tgpu>(2.0));
         }
     }
-    status |= target_dev->ToGPU(q, target.data());
+    if(target_dev->ToGPU(q, target.data()) != 0)
+    {
+        std::cerr << "Error copying target to GPU, size: " << target_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= out_dev->ToGPU(q, out.data());
+    if(out_dev->ToGPU(q, out.data()) != 0)
+    {
+        std::cerr << "Error copying output to GPU, size: " << out_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= in_grad_dev->ToGPU(q, in_grad.data());
+    if(in_grad_dev->ToGPU(q, in_grad.data()) != 0)
+    {
+        std::cerr << "Error copying in_grad to GPU, size: " << in_grad_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= target_grad_dev->ToGPU(q, target_grad.data());
+    if(target_grad_dev->ToGPU(q, target_grad.data()) != 0)
+    {
+        std::cerr << "Error copying target_grad to GPU, size: " << target_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     for(int i = 0; i < out_sz; i++)
     {
         out_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-2.0f), static_cast<Tgpu>(2.0f));
     }
-    status |= out_grad_dev->ToGPU(q, out_grad.data());
-
-    if(status != 0)
-        std::cout << "Error copying data to GPU\n" << std::endl;
+    if(out_grad_dev->ToGPU(q, out_grad.data()) != 0)
+    {
+        std::cerr << "Error copying out_grad to GPU, size: " << out_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -357,37 +345,20 @@ int KLDivLossDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        if(!std::isnan(divisor))
-        {
-            miopenKLDivLossReducedBackward(GetHandle(),
-                                           inputDesc,
-                                           in_dev->GetMem(),
-                                           targetDesc,
-                                           target_dev->GetMem(),
-                                           outputGradDesc,
-                                           out_grad_dev->GetMem(),
-                                           inputGradDesc,
-                                           in_grad_dev->GetMem(),
-                                           targetGradDesc,
-                                           target_grad_dev->GetMem(),
-                                           divisor,
-                                           log_target);
-        }
-        else
-        {
-            miopenKLDivLossUnreducedBackward(GetHandle(),
-                                             inputDesc,
-                                             in_dev->GetMem(),
-                                             targetDesc,
-                                             target_dev->GetMem(),
-                                             outputGradDesc,
-                                             out_grad_dev->GetMem(),
-                                             inputGradDesc,
-                                             in_grad_dev->GetMem(),
-                                             targetGradDesc,
-                                             target_grad_dev->GetMem(),
-                                             log_target);
-        }
+        auto status = miopenKLDivLossBackward(GetHandle(),
+                                              inputDesc,
+                                              in_dev->GetMem(),
+                                              targetDesc,
+                                              target_dev->GetMem(),
+                                              outputGradDesc,
+                                              out_grad_dev->GetMem(),
+                                              inputGradDesc,
+                                              in_grad_dev->GetMem(),
+                                              targetGradDesc,
+                                              target_grad_dev->GetMem(),
+                                              log_target,
+                                              reduction);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenKLDivLossBackward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -401,15 +372,27 @@ int KLDivLossDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backward KLDivLoss Elapsed: %f ms\n", t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Forward KLDivLoss Elapsed: " << t.gettime_ms() / iter
+                      << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Backward KLDivLoss Elapsed: %f ms\n", kernel_average_time);
+        std::cout << "GPU Kernel Time Forward KLDivLoss Elapsed: " << kernel_average_time
+                  << " ms\n";
     }
 
-    in_grad_dev->FromGPU(GetStream(), in_grad.data());
-    target_grad_dev->FromGPU(GetStream(), target_grad.data());
+    if(in_grad_dev->FromGPU(GetStream(), in_grad.data()) != 0)
+    {
+        std::cerr << "Error copying in_grad from GPU, size: " << in_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
+    if(target_grad_dev->FromGPU(GetStream(), target_grad.data()) != 0)
+    {
+        std::cerr << "Error copying target_grad from GPU, size: " << target_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -417,52 +400,30 @@ int KLDivLossDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int KLDivLossDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    if(!std::isnan(divisor))
-    {
-        mloKLDivLossReducedBackwardRunHost5d<Tgpu, Tref>(inputDesc,
-                                                         targetDesc,
-                                                         outputGradDesc,
-                                                         inputGradDesc,
-                                                         targetGradDesc,
-                                                         in.data(),
-                                                         target.data(),
-                                                         out_grad.data(),
-                                                         in_grad_host.data(),
-                                                         target_grad_host.data(),
-                                                         divisor,
-                                                         log_target,
-                                                         true,
-                                                         true);
-    }
-    else
-    {
-        mloKLDivLossUnreducedBackwardRunHost5d<Tgpu, Tref>(inputDesc,
-                                                           targetDesc,
-                                                           outputGradDesc,
-                                                           inputGradDesc,
-                                                           targetGradDesc,
-                                                           in.data(),
-                                                           target.data(),
-                                                           out_grad.data(),
-                                                           in_grad_host.data(),
-                                                           target_grad_host.data(),
-                                                           log_target,
-                                                           true,
-                                                           true);
-    }
-    return miopenStatusSuccess;
+    int status = miopenStatusSuccess;
+    status     = mloKLDivLossBackwardRunHost5d<Tgpu, Tref>(inputDesc,
+                                                       targetDesc,
+                                                       outputGradDesc,
+                                                       inputGradDesc,
+                                                       targetGradDesc,
+                                                       in.data(),
+                                                       target.data(),
+                                                       out_grad.data(),
+                                                       in_grad_host.data(),
+                                                       target_grad_host.data(),
+                                                       log_target,
+                                                       true,
+                                                       true,
+                                                       reduction);
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mloKLDivLossBackwardRunHost5d");
+
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
 Tref KLDivLossDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 8.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
@@ -483,11 +444,12 @@ int KLDivLossDriver<Tgpu, Tref>::VerifyBackward()
     {
         std::cout << "Backward KLDivLoss FAILED on INPUT GRAD: " << error
                   << " while tolerance is: " << tolerance << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {
-        printf("Backward KLDivLoss Verifies INPUT GRAD on CPU and GPU (err=%f)\n", error);
+        std::cout << "Backward CosineEmbeddingLoss Verifies in Input Grad on CPU and GPU (err="
+                  << error << ")" << std::endl;
     }
 
     auto error_target = miopen::rms_range(target_grad_host, target_grad);
@@ -496,13 +458,12 @@ int KLDivLossDriver<Tgpu, Tref>::VerifyBackward()
     {
         std::cout << "Backward KLDivLoss FAILED on TARGET GRAD: " << error_target
                   << " while tolerance is: " << tolerance << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {
-        printf("Backward KLDivLoss Verifies TARGET GRAD on CPU and GPU (err=%f)\n", error_target);
+        std::cout << "Backward CosineEmbeddingLoss Verifies in Target Grad on CPU and GPU (err="
+                  << error_target << ")" << std::endl;
     }
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_KLDIVLOSS_DRIVER_HPP

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -82,12 +82,12 @@ struct BwdProblemDescription : ProblemDescriptionBase
             if(outputGradDesc.GetNumDims() != 1 || outputGradDesc.GetLengths()[0] != 1)
                 MIOPEN_THROW(miopenStatusBadParm, "KLDivLoss: Output Tensor size must be (1).");
         }
-        // else
-        // {
-        //     if(outputGradDesc.GetNumDims() != inputDesc.GetNumDims())
-        //         MIOPEN_THROW(miopenStatusBadParm,
-        //                      "KLDivLoss: Output Tensor size must match input tensor size.");
-        // }
+        else
+        {
+            if(outputGradDesc.GetNumDims() != inputDesc.GetNumDims())
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "KLDivLoss: Output Tensor size must match input tensor size.");
+        }
         return true;
     }
 

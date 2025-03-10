@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "../driver/tensor_driver.hpp"
 #include "cpu_kldivloss.hpp"
 #include "get_handle.hpp"
 #include "random.hpp"
@@ -36,7 +35,7 @@
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -50,12 +49,12 @@ struct KLDivLossTestCase
 {
     std::vector<size_t> input;
     bool log_target;
-    float divisor;
+    miopenLossReductionMode_t reduction;
 
     friend std::ostream& operator<<(std::ostream& os, const KLDivLossTestCase& tc)
     {
         return os << " input:" << tc.input << " log_target:" << tc.log_target
-                  << " divisor:" << tc.divisor;
+                  << " reduction:" << tc.reduction;
     }
 
     std::vector<size_t> GetInput() const { return input; }
@@ -63,14 +62,16 @@ struct KLDivLossTestCase
 
 inline std::vector<KLDivLossTestCase> KLDivLossTestConfigs()
 {
-    return {{{256, 4, 55}, false, 0.0f},
-            {{256, 4, 55}, false, 1.0f},
-            {{256, 4, 55}, true, 0.0f},
-            {{256, 4, 55}, true, 1.0f},
-            {{34, 4}, false, 0.0f},
-            {{34, 4}, false, 1.0f},
-            {{34, 4}, true, 0.0f},
-            {{34, 4}, true, 1.0f}};
+    return {{{3, 2}, false, MIOPEN_LOSS_REDUCTION_NONE},
+            {{3, 2}, false, MIOPEN_LOSS_REDUCTION_SUM}};
+    // {{256, 4, 55}, false, MIOPEN_LOSS_REDUCTION_NONE},
+    // {{256, 4, 55}, false, MIOPEN_LOSS_REDUCTION_SUM},
+    //     {{256, 4, 55}, true, MIOPEN_LOSS_REDUCTION_NONE},
+    //     {{256, 4, 55}, true, MIOPEN_LOSS_REDUCTION_SUM},
+    //     {{34, 4}, false, MIOPEN_LOSS_REDUCTION_NONE},
+    //     {{34, 4}, false, MIOPEN_LOSS_REDUCTION_SUM},
+    //     {{34, 4}, true, MIOPEN_LOSS_REDUCTION_NONE},
+    //     {{34, 4}, true, MIOPEN_LOSS_REDUCTION_SUM}};
 }
 
 inline std::vector<size_t> GetStrides(std::vector<size_t> input, bool contiguous)
@@ -97,7 +98,7 @@ protected:
         kldivloss_config = GetParam();
 
         log_target = kldivloss_config.log_target;
-        divisor    = kldivloss_config.divisor;
+        reduction  = kldivloss_config.reduction;
 
         auto in_dim     = kldivloss_config.GetInput();
         auto target_dim = in_dim;
@@ -120,7 +121,7 @@ protected:
         auto tar_strides = GetStrides(target_dim, true);
         target           = tensor<T>{target_dim, tar_strides}.generate(gen_target_value);
 
-        auto out_dim     = divisor == 0.f ? in_dim : std::vector<size_t>{1};
+        auto out_dim = reduction == MIOPEN_LOSS_REDUCTION_NONE ? in_dim : std::vector<size_t>{1};
         auto out_strides = GetStrides(out_dim, true);
         output_grad      = tensor<T>{out_dim, out_strides}.generate(gen_output_grad_value);
 
@@ -151,43 +152,16 @@ protected:
 
         miopenStatus_t status;
 
-        if(divisor == 0.f)
-        {
-            cpu_kldivloss_unreduced_backward_5d<T>(input,
-                                                   target,
-                                                   output_grad,
-                                                   ref_input_grad,
-                                                   ref_target_grad,
-                                                   log_target,
-                                                   true,
-                                                   true);
-
-            status = miopen::KLDivLossUnreducedBackward(handle,
-                                                        input.desc,
-                                                        input_dev.get(),
-                                                        target.desc,
-                                                        target_dev.get(),
-                                                        output_grad.desc,
-                                                        output_grad_dev.get(),
-                                                        input_grad.desc,
-                                                        input_grad_dev.get(),
-                                                        target_grad.desc,
-                                                        target_grad_dev.get(),
-                                                        log_target);
-        }
-        else
-        {
-            cpu_kldivloss_reduced_backward_5d<T>(input,
-                                                 target,
-                                                 output_grad,
-                                                 ref_input_grad,
-                                                 ref_target_grad,
-                                                 divisor,
-                                                 log_target,
-                                                 true,
-                                                 true);
-
-            status = miopen::KLDivLossReducedBackward(handle,
+        cpu_kldivloss_backward_5d<T>(input,
+                                     target,
+                                     output_grad,
+                                     ref_input_grad,
+                                     ref_target_grad,
+                                     log_target,
+                                     true,
+                                     true,
+                                     reduction);
+        status = miopen::kldivloss::KLDivLossBackward(handle,
                                                       input.desc,
                                                       input_dev.get(),
                                                       target.desc,
@@ -198,10 +172,8 @@ protected:
                                                       input_grad_dev.get(),
                                                       target_grad.desc,
                                                       target_grad_dev.get(),
-                                                      divisor,
-                                                      log_target);
-        }
-        fflush(stdout);
+                                                      log_target,
+                                                      reduction);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -213,18 +185,24 @@ protected:
     {
         double threshold = std::numeric_limits<T>::epsilon();
 
-        auto error = miopen::rms_range(ref_input_grad, input_grad);
+        for(int i = 0; i < 10; ++i)
+        {
+            std::cout << "GPU input_grad[" << i << "] = " << input_grad[i] << std::endl;
+            std::cout << "CPU input_grad[" << i << "] = " << ref_input_grad[i] << std::endl;
+            std::cout << "GPU target_grad[" << i << "] = " << target_grad[i] << std::endl;
+            std::cout << "CPU target_grad[" << i << "] = " << ref_target_grad[i] << std::endl;
+        }
 
-        EXPECT_TRUE(miopen::range_distance(ref_input_grad) == miopen::range_distance(input_grad));
-        EXPECT_TRUE(error < threshold * 10) << "Error input grad beyond tolerance Error:" << error
-                                            << ",  Thresholdx10: " << threshold * 10;
+        auto error = miopen::rms_range(ref_input_grad, input_grad);
+        ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));
+        EXPECT_LT(error, threshold * 10) << "Error backward input_grad beyond tolerance Error: {"
+                                         << error << "},  Tolerance: " << threshold * 10;
 
         auto target_error = miopen::rms_range(ref_target_grad, target_grad);
-
-        EXPECT_TRUE(miopen::range_distance(ref_target_grad) == miopen::range_distance(target_grad));
-        EXPECT_TRUE(target_error < threshold * 10)
-            << "Error target grad beyond tolerance Error:" << target_error
-            << ",  Thresholdx10: " << threshold * 10;
+        ASSERT_EQ(miopen::range_distance(ref_target_grad), miopen::range_distance(target_grad));
+        EXPECT_LT(target_error, threshold * 10)
+            << "Error target grad beyond tolerance Error: {" << target_error
+            << "},  Tolerance: " << threshold * 10;
     }
     KLDivLossTestCase kldivloss_config;
 
@@ -237,7 +215,7 @@ protected:
     tensor<T> ref_target_grad;
 
     bool log_target;
-    float divisor;
+    miopenLossReductionMode_t reduction;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr target_dev;

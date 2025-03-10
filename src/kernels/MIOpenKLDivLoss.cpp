@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,6 +66,9 @@ __device__ void kldivLossBackward5d(const T* __restrict__ input,
     size_t dTidx = target_grad_tv.get_tensor_view_idx(tensor_layout);
     size_t dOidx = output_grad_tv.get_tensor_view_idx(tensor_layout);
 
+    printf(
+        "Iidx: %d, Tidx: %d, dIidx: %d, dTidx: %d, dOidx: %d\n", Iidx, Tidx, dIidx, dTidx, dOidx);
+
 #if REDUCTION_TYPE != 0
     dOidx = 0;
 #endif
@@ -75,6 +78,11 @@ __device__ void kldivLossBackward5d(const T* __restrict__ input,
     FLOAT_ACCUM output_grad_value = CVT_FLOAT2ACCUM(output_grad[dOidx]);
     FLOAT_ACCUM forward_output;
     FLOAT_ACCUM d = static_cast<FLOAT_ACCUM>(divisor);
+
+    printf("input_value: %f, target_value: %f, output_grad_value: %f\n",
+           input_value,
+           target_value,
+           output_grad_value);
 
     if(log_target)
     {

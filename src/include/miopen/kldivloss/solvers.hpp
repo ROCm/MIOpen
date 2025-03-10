@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,14 +55,8 @@ namespace kldivloss {
 using KLDivLossBackward =
     NonTunableSolverBase<ExecutionContext, miopen::kldivloss::BwdProblemDescription>;
 
-struct KLDivLossBackwardSolver : KLDivLossBackward
-{
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::kldivloss::BwdProblemDescription& problem) const override;
-};
-
 // BACKWARD
-struct KLDivLossBackward5d final : KLDivLossBackwardSolver
+struct KLDivLossBackward5d final : KLDivLossBackward
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<KLDivLossBackward5d>(); }
 
