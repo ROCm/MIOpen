@@ -284,6 +284,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
             auto ufdb_sols = miopen::GetSolutions<UserFindDb>(ctx, problem, 1, &invoke_ctx);
             if(ufdb_sols.empty())
             {
+                MIOPEN_LOG_I2("TrustVerify: No user db entry");
                 // solution is from system db, verify for current machine
                 results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
                     auto ctx_copy                       = ctx;
@@ -317,10 +318,12 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
 
                     const float eval_time            = eval_sols.front().GetTime();
                     constexpr float VERIFY_TOLERANCE = 1.10f;
-                    if(sol->time / eval_time < VERIFY_TOLERANCE)
+                    const float rel_perf             = eval_time / sol->time;
+                    if(rel_perf < VERIFY_TOLERANCE)
                     {
                         // system db result is good
                         // add to user fdb so this check is skipped next time
+                        MIOPEN_LOG_I2("TrustVerify: Add system db entry to user db");
                         auto fallback  = bool{};
                         auto ret       = FindCoreResult();
                         ret.is_optimal = true;
@@ -335,14 +338,10 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                     }
                     else
                     {
-                        // time is slower than VERIFY_TOLERANCE, trigger find
-                        // if enforce is searching ignore system db and update user db
-                        const FindEnforce enforce = FindEnforce{};
-                        if(enforce.IsSearch(ctx_copy))
-                        {
-                            ctx_copy.do_search = true;
-                            ctx_copy.db_update = true;
-                        }
+                        // time is slower than VERIFY_TOLERANCE, trigger tuning
+                        MIOPEN_LOG_I2("TrustVerify: Regenerate entry for user db");
+                        ctx_copy.do_search = true;
+                        ctx_copy.db_update = true;
 
                         return FindCore(invoke_ctx,
                                         ctx_copy,
@@ -356,6 +355,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
             }
             else if(ufdb_sols.front().solution_id != sol->solution_id)
             {
+                MIOPEN_LOG_I2("TrustVerify: Using user db entry");
                 // solution is from system db, use user db instead
                 sol = ufdb_sols.front();
             }
