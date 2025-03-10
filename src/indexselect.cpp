@@ -71,7 +71,7 @@ miopenStatus_t IndexSelectForward(Handle& handle,
 
 miopenStatus_t IndexSelectBackward(Handle& handle,
                                    const TensorDescriptor& inputGradDesc,
-                                   Data_t inptuGrad,
+                                   Data_t inputGrad,
                                    const TensorDescriptor& indicesDesc,
                                    ConstData_t indices,
                                    const TensorDescriptor& outputGradDesc,
@@ -86,7 +86,7 @@ miopenStatus_t IndexSelectBackward(Handle& handle,
         tmp.inputGradDesc  = &inputGradDesc;
         tmp.indicesDesc    = &indicesDesc;
         tmp.outputGradDesc = &outputGradDesc;
-        tmp.inputGrad      = inptuGrad;
+        tmp.inputGrad      = inputGrad;
         tmp.indices        = indices;
         tmp.outputGrad     = outputGrad;
         tmp.dim            = dim;

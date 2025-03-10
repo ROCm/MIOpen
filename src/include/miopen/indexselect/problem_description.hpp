@@ -60,6 +60,11 @@ struct FwdProblemDescription : ProblemDescriptionBase
             MIOPEN_THROW(miopenStatusBadParm, "Indices tensor must be 1D.");
         }
 
+        if(dim >= inputDesc.GetNumDims())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Dimension out of bounds.");
+        }
+
         if(outputDesc.GetLengths()[dim] != indicesDesc.GetLengths()[0])
         {
             MIOPEN_THROW(miopenStatusBadParm,
@@ -115,6 +120,11 @@ struct BwdProblemDescription : ProblemDescriptionBase
         if(indicesDesc.GetNumDims() != 1)
         {
             MIOPEN_THROW(miopenStatusBadParm, "Indices tensor must be 1D.");
+        }
+
+        if(dim >= inputGradDesc.GetNumDims())
+        {
+            MIOPEN_THROW(miopenStatusBadParm, "Dimension out of bounds.");
         }
 
         if(outputGradDesc.GetLengths()[dim] != indicesDesc.GetLengths()[0])

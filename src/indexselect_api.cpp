@@ -39,7 +39,7 @@ extern "C" miopenStatus_t miopenIndexSelectForward(miopenHandle_t handle,
                                                    void* output,
                                                    size_t dim)
 {
-    MIOPEN_LOG_FUNCTION(handle, inputDesc, input, indicesDesc, indices, outputDesc, output);
+    MIOPEN_LOG_FUNCTION(handle, inputDesc, input, indicesDesc, indices, outputDesc, output, dim);
 
     return miopen::try_([&] {
         miopen::indexselect::IndexSelectForward(miopen::deref(handle),
@@ -63,7 +63,7 @@ extern "C" miopenStatus_t miopenIndexSelectBackward(miopenHandle_t handle,
                                                     size_t dim)
 {
     MIOPEN_LOG_FUNCTION(
-        handle, inputGradDesc, inputGrad, indicesDesc, indices, outputGradDesc, outputGrad);
+        handle, inputGradDesc, inputGrad, indicesDesc, indices, outputGradDesc, outputGrad, dim);
 
     return miopen::try_([&] {
         miopen::indexselect::IndexSelectBackward(miopen::deref(handle),

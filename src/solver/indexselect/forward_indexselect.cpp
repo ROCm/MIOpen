@@ -42,10 +42,10 @@ namespace solver {
 
 namespace indexselect {
 
-static bool
-IsImprovementOverROCm([[maybe_unused]] const miopen::indexselect::FwdProblemDescription& problem)
+bool IsImprovementOverROCm(const miopen::indexselect::FwdProblemDescription& problem)
 {
-    return true;
+    auto output_numel = problem.GetOutputDesc().GetElementSize();
+    return output_numel < 100000;
 }
 
 bool IndexSelectForward::IsApplicable(
@@ -59,6 +59,7 @@ bool IndexSelectForward::IsApplicable(
 
     if(!IsImprovementOverROCm(problem))
         return false;
+
     return true;
 }
 

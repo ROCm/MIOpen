@@ -41,17 +41,25 @@ namespace solver {
 
 namespace indexselect {
 
-static bool IsImprovementOverROCm(const miopen::indexselect::BwdProblemDescription& problem)
+bool IsImprovementOverROCm(const miopen::indexselect::BwdProblemDescription& problem)
 {
-    return true;
+    auto output_numel = problem.GetOutputGradDesc().GetElementSize();
+    return output_numel < 100000;
 }
 
 bool IndexSelectBackward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::indexselect::BwdProblemDescription& problem) const
 {
-    if(!IsImprovementOverROCm(problem))
+    if(problem.GetInputGradDesc().GetType() != miopenFloat &&
+       problem.GetInputGradDesc().GetType() != miopenHalf &&
+       problem.GetInputGradDesc().GetType() != miopenBFloat16)
         return false;
+
+    if(!IsImprovementOverROCm(problem))
+    {
+        return false;
+    }
 
     return true;
 }
@@ -70,7 +78,6 @@ IndexSelectBackward::GetSolution(const ExecutionContext& /*context*/,
     const auto build_params =
         KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
                               {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-                              {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
                               {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
                               {"IO_TYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
@@ -100,9 +107,10 @@ IndexSelectBackward::GetSolution(const ExecutionContext& /*context*/,
         size_t xlocalsize = LOCAL_SIZE;
         size_t xgridsize  = AlignUp(output_numel, xlocalsize);
 
-        auto kernel         = KernelInfo{};
-        kernel.kernel_file  = "MIOpenIndexSelect.cpp";
-        kernel.kernel_name  = "IndexSelectBackward";
+        auto kernel        = KernelInfo{};
+        kernel.kernel_file = "MIOpenIndexSelect.cpp";
+        kernel.kernel_name = "IndexSelectBackward";
+
         kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         kernel.l_wk.push_back(xlocalsize);

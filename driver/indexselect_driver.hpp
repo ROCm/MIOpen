@@ -244,7 +244,7 @@ int IndexSelectDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(inputGradDesc, in_len, in_stride, data_type);
     SetTensorNd(outputGradDesc, out_len, data_type);
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
@@ -328,7 +328,7 @@ int IndexSelectDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         inputGradHost = std::vector<Tref>(in_sz, static_cast<Tref>(0));
 
-        for(size_t i = 0; i < in_sz; i++)
+        for(size_t i = 0; i < out_sz; i++)
         {
             outputGrad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
         }
