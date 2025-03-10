@@ -26,13 +26,11 @@
 #include "log.hpp"
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
+#include "../lib_env_var.hpp"
 
 #include <miopen/config.h>
-#include <miopen/env.hpp>
 #include <miopen/fusion_plan.hpp>
 #include "../random.hpp"
-
-namespace env = miopen::env;
 
 #if MIOPEN_BACKEND_OPENCL
 #define BKEND "OpenCL"
@@ -253,7 +251,7 @@ static bool isSubStr(const std::string& str, const std::string& sub_str)
     return str.find(sub_str) != std::string::npos;
 }
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_ENABLE_LOGGING_CMD)
+MIOPEN_LIB_ENV_VAR(MIOPEN_ENABLE_LOGGING_CMD)
 
 void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
                                    const miopenTensorDescriptor_t&,
@@ -267,9 +265,9 @@ void TestLogFun(std::function<void(const miopenTensorDescriptor_t&,
     CerrRedirect capture_cerr;
     Conv test_conv_log;
     if(set_env)
-        env::update(MIOPEN_ENABLE_LOGGING_CMD, true);
+        lib_env::update(MIOPEN_ENABLE_LOGGING_CMD, true);
     else
-        env::clear(MIOPEN_ENABLE_LOGGING_CMD);
+        lib_env::clear(MIOPEN_ENABLE_LOGGING_CMD);
 
     func(test_conv_log.input.desc,
          test_conv_log.weights.desc,
@@ -292,9 +290,9 @@ void TestLogCmdCBAFusion(std::function<void(const miopenFusionPlanDescriptor_t)>
     CerrRedirect capture_cerr;
 
     if(set_env)
-        env::update(MIOPEN_ENABLE_LOGGING_CMD, true);
+        lib_env::update(MIOPEN_ENABLE_LOGGING_CMD, true);
     else
-        env::clear(MIOPEN_ENABLE_LOGGING_CMD);
+        lib_env::clear(MIOPEN_ENABLE_LOGGING_CMD);
 
     CreateCBAFusionPlan fp_cba_create;
     fp_cba_create.CBAPlan();
@@ -316,9 +314,9 @@ void TestLogCmdBNormFusion(std::function<void(const miopenFusionPlanDescriptor_t
     CerrRedirect capture_cerr;
 
     if(set_env)
-        env::update(MIOPEN_ENABLE_LOGGING_CMD, true);
+        lib_env::update(MIOPEN_ENABLE_LOGGING_CMD, true);
     else
-        env::clear(MIOPEN_ENABLE_LOGGING_CMD);
+        lib_env::clear(MIOPEN_ENABLE_LOGGING_CMD);
 
     CreateBNormFusionPlan<float> fp_bnorm_create;
     fp_bnorm_create.BNormActivation();

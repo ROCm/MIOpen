@@ -115,7 +115,7 @@ using namespace pooling2d_wide;
 TEST_P(GPU_WidePooling2d_FP32, FloatTest_pooling2d_wide)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenFloat);
     }
