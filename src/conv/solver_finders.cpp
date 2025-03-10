@@ -28,6 +28,7 @@
 
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/config.h>
+#include <miopen/env.hpp>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/perf_field.hpp>
 #include <miopen/conv/problem_description.hpp>

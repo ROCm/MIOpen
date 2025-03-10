@@ -52,31 +52,35 @@ MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* __restrict in, /*
     int xgid = get_global_id(0);
     int ygid = get_global_id(1);
 
-    if(xgid >= c)
+    if(xgid * VEC_SIZE_X >= c || ygid * VEC_SIZE_Y >= hw)
         return;
 
     unsigned int adjIndex, index;
 
     // PER ACTIVATION
-    _FLOAT_PREC mean, variance, invVariance;
-    _FLOAT_PREC inhat;
-    _FLOAT_PREC pscale, pbias;
+    _FLOAT_PREC_LS mean, variance, invVariance;
+    _FLOAT_PREC_LS inhat;
+    _FLOAT_PREC_LS pscale, pbias;
+    _FLOAT_LS value;
 
-    for(int idx = ygid; idx < hw; idx += get_global_size(1))
+    adjIndex    = (xgid * cStride * VEC_SIZE_X) + (ygid * hwStride * VEC_SIZE_Y);
+    mean        = *((const __global _FLOAT_PREC_LS*)(estimatedMean + adjIndex));
+    variance    = *((const __global _FLOAT_PREC_LS*)(estimatedVariance + adjIndex));
+    pscale      = *((const __global _FLOAT_PREC_LS*)(scale + adjIndex));
+    pbias       = *((const __global _FLOAT_PREC_LS*)(bias + adjIndex));
+    invVariance = rsqrt(fabs(variance + (_FLOAT_PREC_LS)epsilon));
+
+    for(int n = 0; n < batchSize; n++)
     {
-        adjIndex    = (xgid * cStride) + (idx * hwStride);
-        mean        = *(estimatedMean + adjIndex);
-        variance    = *(estimatedVariance + adjIndex);
-        pscale      = *(scale + adjIndex);
-        pbias       = *(bias + adjIndex);
-        invVariance = rsqrt(fabs(variance + epsilon));
+        index = (n * batchStride) + adjIndex;
+        value = *((const __global _FLOAT_LS*)(in + index));
 
-        for(int n = 0; n < batchSize; n++)
-        {
-            index      = (n * batchStride) + adjIndex;
-            inhat      = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
-            out[index] = FLOATPREC2FLOAT(mad(pscale, inhat, pbias));
-        }
+        inhat = FLOAT2FLOATPREC_VEC(value);
+        inhat = (inhat - mean) * invVariance;
+        inhat = mad(pscale, inhat, pbias);
+        value = FLOATPREC2FLOAT_VEC(inhat);
+
+        *((__global _FLOAT_LS*)(out + index)) = value;
     }
 }
 

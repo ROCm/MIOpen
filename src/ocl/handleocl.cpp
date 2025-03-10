@@ -28,7 +28,6 @@
 
 #include <miopen/binary_cache.hpp>
 #include <miopen/config.h>
-#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/invoker.hpp>

@@ -36,13 +36,13 @@ auto GetTestCases()
 {
     const auto env_fwd =
         std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                   std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
                    std::pair{MIOPEN_FIND_MODE, "normal"},
                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmV4R4Fwd"}};
 
     const auto env_wrw =
         std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                   std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
                    std::pair{MIOPEN_FIND_MODE, "normal"},
                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmV4R4WrW"}};
 
