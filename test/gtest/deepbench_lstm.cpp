@@ -30,8 +30,6 @@
 #include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
 
-namespace env = miopen::env;
-
 namespace deepbench_lstm {
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)

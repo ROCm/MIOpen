@@ -156,11 +156,11 @@ void BnDriverInfo(std::stringstream& ss,
     }
     if((resultRunningMean != nullptr) && (resultRunningVariance != nullptr))
     {
-        ss << " -s 1";
+        ss << " -r 1";
     }
     if((resultSaveMean != nullptr) && (resultSaveInvVariance != nullptr))
     {
-        ss << " -r 1";
+        ss << " -s 1";
     }
 }
 
