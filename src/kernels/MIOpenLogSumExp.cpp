@@ -175,7 +175,7 @@ __device__ void LogSumExpBackwardImpl(const T* __restrict__ input,
     tensor_layout_t<NDIMS> input_ncdhw(input_tv, gid);
     tensor_layout_t<NDIMS> output_ncdhw(input_tv, gid);
     for(int i = 0; i < NDIMS; ++i)
-        if (output_tv.size[i] == 1)
+        if(output_tv.size[i] == 1)
             output_ncdhw.layout[i] = 0;
 
     FLOAT_ACCUM x  = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_ncdhw)]);
