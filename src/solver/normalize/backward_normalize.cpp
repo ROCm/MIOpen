@@ -76,6 +76,7 @@ NormalizeBackward::GetSolution(const ExecutionContext& /*context*/,
     const auto build_params =
         KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
                               {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
+                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
                               {"LOCAL_SIZE", LOCAL_SIZE}};
     {
         auto kernel        = KernelInfo{};
