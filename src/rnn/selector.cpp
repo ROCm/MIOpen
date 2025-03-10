@@ -47,10 +47,18 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNN_DYNAMIC_FORCE)
 
 namespace miopen {
 
-bool RNNBwdMSIsFast(const int seqLen)
+bool RNNBwdMSIsFast(const SeqTensorDescriptor& xDesc,
+                    const TensorDescriptor& hDesc,
+                    const int seqLen)
 {
     if(env::enabled(MIOPEN_RNNBWDMS_EXP))
         return true;
+
+    // WA perf regression. Not tuned rocblas.
+    if(hDesc.GetType() == miopenDataType_t::miopenFloat &&
+       xDesc.GetLengths() == std::vector<std::size_t>{224, 32, 224} &&
+       hDesc.GetLengths() == std::vector<std::size_t>{8, 224, 1000})
+        return false;
 
     if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWDMS_EXP))
         return true;
@@ -158,7 +166,7 @@ void RNNDescriptor::ModularBackward(const Handle& handle,
     }
     else
     {
-        if(RNNBwdMSIsFast(xDesc.GetMaxSequenceLength()))
+        if(RNNBwdMSIsFast(xDesc, hDesc, xDesc.GetMaxSequenceLength()))
         {
             rnn_base::RNNModularMultiStreamBWD multi_stream{
                 *this, xDesc, yDesc, hDesc, miopenRNNFWDMode_t::miopenRNNTraining};
