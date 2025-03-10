@@ -26,6 +26,7 @@
 
 #include <cstddef>
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
@@ -890,7 +891,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a") &&
-       (!StartsWith(device_name, "gfx94")))
+       (!StartsWith(device_name, "gfx94")) && (!StartsWith(device_name, "gfx95")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -909,7 +910,8 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16() &&
-       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
+       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94") ||
+                               StartsWith(device_name, "gfx95"))))
         return false;
 
     if(problem.IsTensorsCasted())

@@ -40,7 +40,6 @@
 
 #include <../test/verify.hpp>
 
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/rnn.hpp>
 #include <miopen/tensor.hpp>
