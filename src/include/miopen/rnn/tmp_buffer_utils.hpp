@@ -30,7 +30,6 @@
 #include <miopen/rnn_util.hpp>
 
 #include <miopen/activ.hpp>
-#include <miopen/env.hpp>
 
 #include <vector>
 #include <array>

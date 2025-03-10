@@ -218,7 +218,7 @@ protected:
             assert(out_tensors.size() == 1);
 
             auto* mm_desc =
-                mAlloc.allocate(gr::MatmulBuilder().setComputeType(miopenFloat8).build());
+                mAlloc.allocate(gr::MatmulBuilder().setComputeType(miopenFloat8_fnuz).build());
             mGraphBuilder->addNode(mAlloc.allocate(gr::OperationMatmulBuilder{}
                                                        .setA(in_tensors[0])
                                                        .setB(in_tensors[1])

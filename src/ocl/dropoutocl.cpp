@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <miopen/config.h>
 #include <miopen/dropout.hpp>
-#include <miopen/env.hpp>
 #include <miopen/util.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/visit_float.hpp>

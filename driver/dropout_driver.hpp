@@ -37,7 +37,6 @@
 #include <../test/verify.hpp>
 
 #include <miopen/dropout.hpp>
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 
 #include <algorithm>
