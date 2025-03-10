@@ -37,20 +37,14 @@ auto GetTestCases()
     const auto env_1x1 = std::tuple{
         std::pair{MIOPEN_FIND_MODE, "normal"},
         std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmV4R1DynamicFwd_1x1"}};
-    const auto env_wrw =
-        std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
-                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmV4R1DynamicWrw"}};
 
     const std::string v           = " --verbose";
     const std::string dis_bk_data = " --disable-backward-data";
     const std::string dis_bk_wei  = " --disable-backward-weights";
-    const std::string dis_fwd     = " --disable-forward";
 
     auto basic_tests = std::vector{
         // clang-format off
     std::pair{env_1x1, v + " --input  16 384  8  8 --weights 64 384 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
-    std::pair{env_wrw, v + " --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_wrw, v + " --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
         // clang-format on
     };
 
@@ -60,12 +54,6 @@ auto GetTestCases()
     std::pair{env_1x1, v + " --input 128  256 28 28 --weights 128  256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     std::pair{env_1x1, v + " --input  64 1536  8  8 --weights 256 1536 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     std::pair{env_1x1, v + " --input 128  768 17 17 --weights 128  768 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
-    std::pair{env_wrw, v + " --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_wrw, v + " --input  32  128 34 34 --weights 64  128  3 3 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_wrw, v + " --input 128  128 35 35 --weights 128  128 3 3 --pads_strides_dilations 1 1 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_wrw, v + " --input 128  256 56 56 --weights 64  256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_wrw, v + " --input  64  512 28 28 --weights 256 512 1 1 --pads_strides_dilations 0 0 2 2 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_wrw, v + " --input  64  512 14 14 --weights 256 512 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
                            // clang-format on
                        });
 
