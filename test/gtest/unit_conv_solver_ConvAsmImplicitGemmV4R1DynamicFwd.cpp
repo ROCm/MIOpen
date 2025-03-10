@@ -64,7 +64,7 @@ const auto& GetTestParams()
 {
     static const auto params = [] {
         Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906;
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.CheckXnackDisabled();
         return p;
     }();
@@ -82,7 +82,8 @@ TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicFwd_FP32, ConvAsmImplicit
     this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmV4R1DynamicFwd{});
 };
 
-TEST_P(CPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicDevApplicabilityFwd_NONE, ConvAsmImplicitGemmV4R1DynamicFwd)
+TEST_P(CPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicDevApplicabilityFwd_NONE,
+       ConvAsmImplicitGemmV4R1DynamicFwd)
 {
     this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmV4R1DynamicFwd{});
 };
