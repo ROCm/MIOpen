@@ -891,7 +891,7 @@ loop_end:
         .endr
     .endm
 
-     .macro mbuffer_store_dwordx size, src, off, desc, soff, ioff=0
+     .macro m_buffer_store_dwordx size, src, off, desc, soff, ioff=0
         .if \size == 1
             buffer_store_dword v[\src], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
         .elseif \size == 2
@@ -903,7 +903,7 @@ loop_end:
         .elseif \size == 0
 
         .else
-            .error "mbuffer_store_dwordx unknown size"
+            .error "m_buffer_store_dwordx unknown size"
         .endif
     .endm
 
@@ -936,10 +936,10 @@ loop_end:
                     i_off\@ = \val_offset + it_acc\@ * 4 - \s_offset_surplus
                 .endif
                 .if tuple_alignment && (acc_ptr_\@ % 2)
-                    mbuffer_store_dwordx 1,            acc_ptr_\@,   \v_offset, \s_desc, \s_offset, i_off\@
-                    mbuffer_store_dwordx acc_cnt_\@-1, acc_ptr_\@+1, \v_offset, \s_desc, \s_offset, i_off\@ + 4
+                    m_buffer_store_dwordx 1,            acc_ptr_\@,   \v_offset, \s_desc, \s_offset, i_off\@
+                    m_buffer_store_dwordx acc_cnt_\@-1, acc_ptr_\@+1, \v_offset, \s_desc, \s_offset, i_off\@ + 4
                 .else
-                    mbuffer_store_dwordx acc_cnt_\@, acc_ptr_\@, \v_offset, \s_desc, \s_offset, i_off\@
+                    m_buffer_store_dwordx acc_cnt_\@, acc_ptr_\@, \v_offset, \s_desc, \s_offset, i_off\@
                 .endif
                 it_acc\@ = it_acc\@ + acc_cnt_\@
             .endr
