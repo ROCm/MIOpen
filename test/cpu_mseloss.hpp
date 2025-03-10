@@ -52,8 +52,8 @@ void cpu_mseloss_forward(const tensor<T> input,
         const auto tensor_layout = tensor_layout_t<5>(I_tv, i);
         const uint64_t Iidx      = I_tv.get_tensor_view_idx(tensor_layout);
         const uint64_t Tidx      = T_tv.get_tensor_view_idx(tensor_layout);
-        float sub                = static_cast<float>(input[Iidx]) - static_cast<float>(target[Tidx]);
-        float loss               = sub * sub;
+        float sub  = static_cast<float>(input[Iidx]) - static_cast<float>(target[Tidx]);
+        float loss = sub * sub;
         if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
             ref_output[O_tv.get_tensor_view_idx(tensor_layout)] = static_cast<T>(loss);
         else
@@ -90,7 +90,7 @@ void cpu_mseloss_backward(tensor<T> input,
         const uint64_t Iidx      = I_tv.get_tensor_view_idx(tensor_layout);
         const uint64_t Tidx      = T_tv.get_tensor_view_idx(tensor_layout);
 
-        float sub = static_cast<float>(input[Iidx]) - static_cast<float>(target[Tidx]);
+        float sub  = static_cast<float>(input[Iidx]) - static_cast<float>(target[Tidx]);
         float grad = 2.0f * sub *
                      static_cast<float>(dO[reduction == MIOPEN_LOSS_REDUCTION_NONE
                                                ? dO_tv.get_tensor_view_idx(tensor_layout)

@@ -67,7 +67,7 @@ miopenStatus_t MSELossForward(Handle& handle,
     const auto problem = mseloss::forward::ProblemDescription{iDesc, tDesc, oDesc, reduction};
 
     const auto invoke_params = [&]() {
-        auto tmp      = mseloss::forward::InvokeParams{};
+        auto tmp           = mseloss::forward::InvokeParams{};
         tmp.iDesc          = &iDesc;
         tmp.tDesc          = &tDesc;
         tmp.oDesc          = &oDesc;
@@ -104,17 +104,17 @@ miopenStatus_t MSELossBackward(Handle& handle,
         mseloss::backward::ProblemDescription{iDesc, tDesc, dODesc, dIDesc, dTDesc, reduction};
 
     const auto invoke_params = [&]() {
-        auto tmp    = mseloss::backward::InvokeParams{};
-        tmp.iDesc   = &iDesc;
-        tmp.tDesc   = &tDesc;
-        tmp.dODesc  = &dODesc;
-        tmp.dIDesc  = &dIDesc;
-        tmp.dTDesc  = &dTDesc;
-        tmp.i       = i;
-        tmp.t       = t;
-        tmp.dO      = dO;
-        tmp.dI      = dI;
-        tmp.dT      = dT;
+        auto tmp   = mseloss::backward::InvokeParams{};
+        tmp.iDesc  = &iDesc;
+        tmp.tDesc  = &tDesc;
+        tmp.dODesc = &dODesc;
+        tmp.dIDesc = &dIDesc;
+        tmp.dTDesc = &dTDesc;
+        tmp.i      = i;
+        tmp.t      = t;
+        tmp.dO     = dO;
+        tmp.dI     = dI;
+        tmp.dT     = dT;
 
         return tmp;
     }();

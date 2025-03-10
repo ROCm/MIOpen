@@ -708,8 +708,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
-  
-    Register(registry, ++id, Primitive::LossFunction, mseloss::forward::MSELossForward{}.SolverDbId());
+
+    Register(
+        registry, ++id, Primitive::LossFunction, mseloss::forward::MSELossForward{}.SolverDbId());
     Register(
         registry, ++id, Primitive::LossFunction, mseloss::backward::MSELossBackward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white

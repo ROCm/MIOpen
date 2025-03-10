@@ -23,20 +23,20 @@
  * SOFTWARE.
  *
  *******************************************************************************/
- #ifndef GUARD_KERNELS_MIOPEN_LOSS_REDUCTION_MODE_HPP
- #define GUARD_KERNELS_MIOPEN_LOSS_REDUCTION_MODE_HPP
- 
- enum class LossReductionMode_t
- {
-     NONE = 0,
-     SUM,
-     MEAN,
- };
- 
- #ifndef __HIP_DEVICE_COMPILE__
- static_assert(MIOPEN_LOSS_REDUCTION_NONE == static_cast<int>(LossReductionMode_t::NONE));
- static_assert(MIOPEN_LOSS_REDUCTION_SUM == static_cast<int>(LossReductionMode_t::SUM));
- static_assert(MIOPEN_LOSS_REDUCTION_MEAN == static_cast<int>(LossReductionMode_t::MEAN));
- #endif
+#ifndef GUARD_KERNELS_MIOPEN_LOSS_REDUCTION_MODE_HPP
+#define GUARD_KERNELS_MIOPEN_LOSS_REDUCTION_MODE_HPP
+
+enum class LossReductionMode_t
+{
+    NONE = 0,
+    SUM,
+    MEAN,
+};
+
+#ifndef __HIP_DEVICE_COMPILE__
+static_assert(MIOPEN_LOSS_REDUCTION_NONE == static_cast<int>(LossReductionMode_t::NONE));
+static_assert(MIOPEN_LOSS_REDUCTION_SUM == static_cast<int>(LossReductionMode_t::SUM));
+static_assert(MIOPEN_LOSS_REDUCTION_MEAN == static_cast<int>(LossReductionMode_t::MEAN));
+#endif
 
 #endif // GUARD_KERNELS_MIOPEN_LOSS_REDUCTION_MODE_HPP
