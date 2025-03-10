@@ -34,7 +34,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
-        TestCase{{16, 16, 16, 16}, {16, 16, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{64, 16, 14, 14}, {64, 16, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
         // clang-format on
     };
 }
@@ -45,17 +45,13 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
-        // https://github.com/ROCm/MIOpen/pull/350
-        TestCase{{ 16,   16, 56, 56}, { 64,   16, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
-        TestCase{{ 16,   64, 34, 34}, { 64,   64, 3, 3}, {0, 0}, {1, 1}, {1, 1}, datatype},
-        TestCase{{ 32,   32, 17, 17}, { 32,   32, 1, 7}, {0, 3}, {1, 1}, {1, 1}, datatype},
-        // https://github.com/ROCm/MIOpen/pull/166
-        TestCase{{ 64,   64, 56, 56}, {256,   64, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
-        TestCase{{ 64,  256, 34, 34}, {256,  256, 3, 3}, {0, 0}, {1, 1}, {1, 1}, datatype},
-        TestCase{{128,  128, 35, 35}, {128,  128, 3, 3}, {0, 0}, {2, 2}, {1, 1}, datatype},
-        TestCase{{ 64, 1536,  8,  8}, {256, 1536, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
-        TestCase{{128,   48,  7,  7}, {128,   48, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype},
-        TestCase{{128,  128, 17, 17}, {128,  128, 1, 7}, {0, 3}, {1, 1}, {1, 1}, datatype},
+        // https://github.com/ROCm/MIOpen/pull/272
+        TestCase{{ 64,  64, 28, 28}, { 16,  64, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{ 16, 128, 36, 36}, { 32, 128, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{ 64,  64, 56, 56}, {256,  64, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{ 32, 128, 34, 34}, { 64, 128, 3, 3}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{128, 128, 35, 35}, {128, 128, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype},
+        TestCase{{128, 256, 56, 56}, { 64, 256, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
         // clang-format on
     };
 }
@@ -73,37 +69,37 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicFwd_FP32 = GPU_UnitTestConvSolverFwd_FP32;
-using CPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicDevApplicabilityFwd_NONE =
-    CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
+using GPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicBwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
+using CPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicDevApplicabilityBwd_NONE =
+    CPU_UnitTestConvSolverDevApplicabilityBwd_NONE;
 
-TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicFwd_FP32, ConvAsmImplicitGemmV4R1DynamicFwd)
+TEST_P(GPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicBwd_FP32, ConvAsmImplicitGemmV4R1DynamicBwd)
 {
-    this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmV4R1DynamicFwd{});
+    this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmV4R1DynamicBwd{});
 };
 
-TEST_P(CPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicDevApplicabilityFwd_NONE,
-       ConvAsmImplicitGemmV4R1DynamicFwd)
+TEST_P(CPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicDevApplicabilityBwd_NONE,
+       ConvAsmImplicitGemmV4R1DynamicBwd)
 {
-    this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmV4R1DynamicFwd{});
+    this->RunTest(miopen::solver::conv::ConvAsmImplicitGemmV4R1DynamicBwd{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicFwd_FP32,
+                         GPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicBwd_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicDevApplicabilityFwd_NONE,
+                         CPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicDevApplicabilityBwd_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
 
 // Full tests
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicFwd_FP32,
+                         GPU_UnitTestConvSolverAsmImplicitGemmV4R1DynamicBwd_FP32,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvTestCasesFull(miopenFloat))));

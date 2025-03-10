@@ -36,16 +36,13 @@ auto GetTestCases()
 {
     const auto env = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
                                 std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                                          "ConvAsmImplicitGemmV4R1DynamicBwd;"
                                           "ConvAsmImplicitGemmV4R1DynamicWrw"}};
 
-    const std::string vb = " --verbose --disable-forward --disable-backward-weights";
     const std::string vw = " --verbose --disable-forward --disable-backward-data";
 
     return std::vector{
         // clang-format off
     //smoke_solver_ConvAsmImplicitGemmV4R1Dynamic
-    std::pair{env, vb + " --input 64 64 14 14 --weights 16 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
     std::pair{env, vw + " --input 1 32 28 28 --weights 32 32 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
         // clang-format on
     };
