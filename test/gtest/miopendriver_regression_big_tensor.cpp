@@ -28,7 +28,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
@@ -49,7 +48,7 @@ std::vector<std::string> GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class CPU_MIOpenDriverRegressionBigTensorTest_FP32
+class GPU_MIOpenDriverRegressionBigTensorTest_FP32
     : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
@@ -63,17 +62,17 @@ void RunMIOpenDriver()
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(CPU_MIOpenDriverRegressionBigTensorTest_FP32::GetParam());
+    RunMIOpenDriverTestCommand(GPU_MIOpenDriverRegressionBigTensorTest_FP32::GetParam());
 };
 
 } // namespace miopendriver_regression_big_tensor
 using namespace miopendriver_regression_big_tensor;
 
-TEST_P(CPU_MIOpenDriverRegressionBigTensorTest_FP32, MIOpenDriverRegressionBigTensor)
+TEST_P(GPU_MIOpenDriverRegressionBigTensorTest_FP32, MIOpenDriverRegressionBigTensor)
 {
     RunMIOpenDriver();
 };
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_MIOpenDriverRegressionBigTensorTest_FP32,
+                         GPU_MIOpenDriverRegressionBigTensorTest_FP32,
                          testing::Values(GetTestCases()));

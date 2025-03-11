@@ -91,9 +91,8 @@
 #pragma clang diagnostic ignored \
     "-Wunknown-warning-option" // clang in ROCm 4.3 does not support "reserved-identifier".
 #pragma clang diagnostic ignored "-Wreserved-identifier"
-extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane");
 #pragma clang diagnostic pop // "-Wreserved-identifier"
-#define uniform(x) __llvm_amdgcn_readfirstlane(x)
+#define uniform(x) __builtin_amdgcn_readfirstlane(x)
 #else
 #define uniform(x) (x)
 #endif
@@ -105,9 +104,8 @@ uint getWaveId()
 #if MLO_HW_WAVE_ID_SETTING && defined(__AMDGCN__)
     // (local_id/wavesize) has the same value in all workitems.
     // Make it scalar to enable scalarization optimizations.
-    extern uint __llvm_amdgcn_readfirstlane(uint) __asm("llvm.amdgcn.readfirstlane");
 
-    wave_id = __llvm_amdgcn_readfirstlane((uint)(get_local_id(0) >> MLO_LG2_WAVE_SZ));
+    wave_id = __builtin_amdgcn_readfirstlane((uint)(get_local_id(0) >> MLO_LG2_WAVE_SZ));
     // Alternate implementation:
     //__asm__ ("v_readfirstlane_b32 %0, %1" : "=s" (wave_id) : "v" ((uint)(get_local_id(0) >>
     // MLO_LG2_WAVE_SZ)) );

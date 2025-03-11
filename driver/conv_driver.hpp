@@ -46,7 +46,6 @@
 #include <miopen/find_controls.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/miopen.h>
-#include <miopen/miopen_internal.h>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/tensor.hpp>
 
@@ -166,8 +165,8 @@ static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
         {"fp32", miopenFloat},
         {"fp16", miopenHalf},
         {"bf16", miopenBFloat16},
-        {"fp8", miopenFloat8},
-        {"bf8", miopenBFloat8}};
+        {"fp8", miopenFloat8_fnuz},
+        {"bf8", miopenBFloat8_fnuz}};
 
     const auto res = conv_map.find(type);
     if(res != conv_map.end())
@@ -179,135 +178,6 @@ static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
         MIOPEN_THROW("Invalid compute/cast type short hand supplied");
     }
 }
-
-template <typename Tgpu>
-class GpumemTensor
-{
-    std::unique_ptr<GPUMem> dev;
-    tensor<Tgpu> host;
-    bool is_gpualloc = false;
-
-public:
-    void SetGpuallocMode(bool v) { is_gpualloc = v; }
-    tensor<Tgpu>& GetTensor() { return host; }
-
-    void AllocOnHost(miopenTensorDescriptor_t t)
-    {
-        host = tensor<Tgpu>(miopen::deref(t));
-        if(is_gpualloc) // We do not need host data.
-        {
-            host.data.clear();
-            host.data.shrink_to_fit(); // To free host memory.
-        }
-    }
-
-    std::vector<Tgpu>& GetVector()
-    {
-        if(is_gpualloc)
-            MIOPEN_THROW("[MIOpenDriver] GpumemTensor::GetVector should not be called in "
-                         "'--gpualloc 1' mode");
-        return host.data;
-    }
-
-    Tgpu* GetVectorData() { return is_gpualloc ? nullptr : host.data.data(); }
-    std::size_t GetVectorSize() const { return is_gpualloc ? 0 : host.data.size(); }
-
-    void
-    InitHostData(const size_t sz,     //
-                 const bool do_write, // If set to false, then only generate random data. This is
-                                      // necessary to reproduce values in input buffers even if some
-                                      // directions are skipped. For example, inputs for Backward
-                                      // will be the same for both "-F 0" and "-F 2".
-                 std::function<Tgpu()> generator)
-    {
-        if(is_gpualloc)
-        {
-            /// In gpualloc mode, we do not care about reproducibility of results, because
-            /// validation is not used. Therefore, we do not have to always generate random value
-            /// (\ref move_rand)
-            return;
-        }
-
-        for(size_t i = 0; i < sz; ++i)
-        {
-            /// \anchor move_rand
-            /// Generate random value, even if buffer is unused. This provides the same
-            /// initialization of input buffers regardless of which kinds of
-            /// convolutions are currently selectedfor testing (see the "-F" option).
-            /// Verification cache would be broken otherwise.
-            auto val = generator();
-            if(do_write)
-                GetVector()[i] = val;
-        }
-    }
-
-    status_t AllocOnDevice(stream, context_t ctx, const size_t sz)
-    {
-        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu));
-        return STATUS_SUCCESS;
-    }
-
-    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
-    {
-        AllocOnDevice(q, ctx, sz);
-        if(is_gpualloc)
-        {
-            /// \anchor gpualloc_random_init
-            /// In gpualloc mode, we do not want to leave input buffers uninitialized, because
-            /// there could be NaNs and Infs, which may affect the performance (which we are
-            /// interested to evaluate in this mode). Initialization with all 0's is not the
-            /// best choice as well, because GPU HW may optimize out computations with 0's and
-            /// that could affect performance of kernels too. That is why we are using
-            /// rocrand to initialize input buffers.
-            ///
-            /// However we do not care about precision in gpualloc mode, because validation
-            /// is not used. Therefore, range (0,1] is fine.
-            return gpumemrand::gen_0_1(static_cast<Tgpu*>(GetDevicePtr()), sz);
-        }
-        return dev->ToGPU(q, GetVectorData());
-    }
-
-    template <typename T>
-    status_t AllocOnDevice(stream, context_t ctx, const size_t sz, std::vector<T>&)
-    {
-        static_assert(std::is_same<T, float>::value           //
-                          || std::is_same<T, int32_t>::value, //
-                      "Before enabling more types, check thoroughly.");
-        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(T));
-        return STATUS_SUCCESS;
-    }
-
-    template <typename T>
-    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz, std::vector<T>& init)
-    {
-        AllocOnDevice(q, ctx, sz, init);
-        if(is_gpualloc)
-        {
-            /// \ref gpualloc_random_init
-            return gpumemrand::gen_0_1(static_cast<Tgpu*>(GetDevicePtr()), sz);
-        }
-        return dev->ToGPU(q, init.data());
-    }
-
-    status_t CopyFromDeviceToHost(stream q)
-    {
-        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, GetVectorData());
-    }
-
-    template <typename T>
-    status_t CopyFromDeviceToHost(stream q, tensor<T>& t)
-    {
-        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, t.data.data());
-    }
-
-    template <typename T>
-    status_t CopyFromDeviceToHost(stream q, std::vector<T>& v)
-    {
-        return is_gpualloc ? STATUS_SUCCESS : dev->FromGPU(q, v.data());
-    }
-
-    auto GetDevicePtr() -> auto { return dev->GetMem(); }
-};
 
 template <typename Tgpu>
 class GpumemVector
@@ -573,8 +443,8 @@ private:
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<Tgpu, bfloat16>::value)
             tolerance *= 8.0;
-        constexpr bool is_fp8  = std::is_same<Tgpu, float8>::value;
-        constexpr bool is_bfp8 = std::is_same<Tgpu, bfloat8>::value;
+        constexpr bool is_fp8  = std::is_same<Tgpu, float8_fnuz>::value;
+        constexpr bool is_bfp8 = std::is_same<Tgpu, bfloat8_fnuz>::value;
         if(is_bfp8 || is_fp8 || TensorsCasted())
             tolerance *= 37.0;
         return tolerance;
@@ -942,9 +812,7 @@ int ConvDriver<Tgpu, Tref>::GetandSetData()
     {
         out_len[0] *= miopen::deref(inputTensor).GetVectorLength();
     }
-    miopenDataType_t y_type =
-        (data_type == miopenInt8 || data_type == miopenInt8x4) ? miopenInt32 : data_type;
-    SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), y_type);
+    SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), data_type);
     if(inflags.GetValueStr("out_cast_type") != "-1")
     {
         const auto out_cast_type = DataTypeFromShortString(inflags.GetValueStr("out_cast_type"));
@@ -1394,10 +1262,11 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     bool is_int8      = data_type == miopenInt8 || data_type == miopenInt8x4;
     // Data generated for very low precision types follows the same constraints whether its fp8,
     // bfp8 or even if the interim tensors are being casted
-    bool is_fp8   = data_type == miopenFloat8 || data_type == miopenBFloat8 || TensorsCasted();
-    size_t in_sz  = GetTensorSize(inputTensor);
-    size_t wei_sz = GetTensorSize(weightTensor);
-    size_t out_sz = GetTensorSize(outputTensor);
+    bool is_fp8 =
+        data_type == miopenFloat8_fnuz || data_type == miopenBFloat8_fnuz || TensorsCasted();
+    size_t in_sz            = GetTensorSize(inputTensor);
+    size_t wei_sz           = GetTensorSize(weightTensor);
+    size_t out_sz           = GetTensorSize(outputTensor);
     auto subnorm_percentage = env::value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE);
     if(subnorm_percentage != 0)
         std::cout << "MIOPEN_DRIVER_SUBNORM_PERCENTAGE = " << subnorm_percentage << std::endl;
@@ -1750,8 +1619,8 @@ bool ConvDriver<Tgpu, Tref>::UseGPUReference()
     {
         if((miopen_type<Tref>{} == miopenFloat &&
             (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
-             miopen_type<Tgpu>{} == miopenBFloat16 || miopen_type<Tgpu>{} == miopenFloat8 ||
-             miopen_type<Tgpu>{} == miopenBFloat8)) ||
+             miopen_type<Tgpu>{} == miopenBFloat16 || miopen_type<Tgpu>{} == miopenFloat8_fnuz ||
+             miopen_type<Tgpu>{} == miopenBFloat8_fnuz)) ||
            (miopen_type<Tref>{} == miopenInt32 && miopen_type<Tgpu>{} == miopenInt8))
             return true;
         else
@@ -1860,8 +1729,8 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
         std::tie(out_n, out_c, out_d, out_h, out_w) =
             miopen::tien<5>(miopen::deref(outputTensor).GetLengths());
 
-        size_t flopCnt = static_cast<size_t>(2) * in_n * in_c * in_d * wei_h * wei_w * wei_d *
-                         out_c * out_d * out_h * out_w / group_count;
+        size_t flopCnt = static_cast<size_t>(2) * in_n * in_c * wei_h * wei_w * wei_d * out_c *
+                         out_d * out_h * out_w / group_count;
         size_t inputBytes = in_n * in_c * in_d * in_h * in_w *
                             miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
         size_t weightBytes = wei_n * wei_c * wei_d * wei_h * wei_w *
@@ -3709,8 +3578,8 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
             else if(std::is_same<Tgpu, float16>::value)
                 tolerance *= 5;
         }
-        // bfloat8 has very poor accuracy in wrw direction
-        if(std::is_same<Tgpu, bfloat8>::value)
+        // bfloat8_fnuz has very poor accuracy in wrw direction
+        if(std::is_same<Tgpu, bfloat8_fnuz>::value)
             tolerance = tolerance * 2;
 
         auto error_weights = is_wrw_run_failed

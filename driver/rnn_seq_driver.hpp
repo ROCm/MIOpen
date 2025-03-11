@@ -38,7 +38,6 @@
 
 #include <../test/verify.hpp>
 
-#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/miopen.h>
@@ -700,6 +699,10 @@ int RNNSeqDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     {
         algo = miopenRNNfundamental;
     }
+    else if((inflags.GetValueInt("rnnalgo")) == 2)
+    {
+        algo = miopenRNNroundedDynamic;
+    }
     else
     {
         printf("Incorrect RNN algorithm\n");
@@ -906,7 +909,9 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     workspace      = std::vector<Tgpu>(workSpace_sz, static_cast<Tgpu>(0));
     reservespace   = std::vector<Tgpu>(reserveSpace_sz, static_cast<Tgpu>(0));
     outhost        = std::vector<Tref>(out_host_sz, static_cast<Tref>(0));
-    workspace_host = std::vector<Tref>(workSpace_sz, static_cast<Tref>(0));
+    workspace_host = (inflags.GetValueInt("verify") == 1)
+                         ? std::vector<Tref>(workSpace_sz, static_cast<Tref>(0))
+                         : std::vector<Tref>{};
 
     /// dropout legacy format
     const std::size_t inputBatchLenSum = vectors_cnt_host;
@@ -927,7 +932,9 @@ int RNNSeqDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         reserveSpaceHost_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
         reserveSpaceHost_sz = (reserveSpaceHost_sz + sizeof(Tref) - 1) / sizeof(Tref);
     }
-    reservespace_host = std::vector<Tref>(reserveSpaceHost_sz, static_cast<Tref>(0));
+    reservespace_host = (inflags.GetValueInt("verify") == 1)
+                            ? std::vector<Tref>(reserveSpaceHost_sz, static_cast<Tref>(0))
+                            : std::vector<Tref>{};
     // end dropout
 
     if(inflags.GetValueInt("forw") != 1)
@@ -1078,13 +1085,12 @@ int RNNSeqDriver<Tgpu, Tref>::RunForwardGPU()
     RNNCombTimeLoger t(GetStream(), inflags.GetValueInt("iter"), inflags.GetValueInt("wall"));
 
     from_gpu_out = std::vector<Tgpu>(out_dev->GetSize() / sizeof(Tgpu), static_cast<Tgpu>(0));
+    out_dev->ToGPU(q, from_gpu_out.data());
+    workspace_dev->ToGPU(q, workspace.data());
+    reservespace_dev->ToGPU(q, reservespace.data());
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        out_dev->ToGPU(q, from_gpu_out.data());
-        workspace_dev->ToGPU(q, workspace.data());
-        reservespace_dev->ToGPU(q, reservespace.data());
-
         t.Start();
         miopenRNNForward(GetHandle(),
                          rnnDesc,

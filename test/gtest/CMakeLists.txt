@@ -18,6 +18,19 @@ if(MIOPEN_BACKEND_OPENCL)
   set(SKIP_TESTS dumpTensorTest.cpp)
 endif()
 
+function(add_gtest_negative_filter NEGATIVE_FILTER_TO_ADD)
+    set (TMP_FILTER ${MIOPEN_GTEST_FILTER_NEGATIVE})
+
+    if (NOT TMP_FILTER )
+        set (TMP_FILTER "-")
+    else()
+        set (TMP_FILTER "${TMP_FILTER}:")
+    endif()
+    set (TMP_FILTER ${TMP_FILTER}${NEGATIVE_FILTER_TO_ADD})
+
+    set (MIOPEN_GTEST_FILTER_NEGATIVE ${TMP_FILTER} PARENT_SCOPE)
+endfunction()
+
 function(add_gtest TEST_NAME TEST_CPP)
   message("Adding Test: " ${TEST_NAME} " : " ${TEST_CPP})
   add_executable(${TEST_NAME} ${TEST_CPP})
@@ -46,17 +59,10 @@ function(add_gtest TEST_NAME TEST_CPP)
   endif()
   if(MIOPEN_TEST_DISCRETE)
     string(CONCAT TEST_ENVIRONMENT_VARIABLES
-    "ENVIRONMENT;MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};"
-    "ENVIRONMENT;MIOPEN_TEST_MLIR=${MIOPEN_TEST_MLIR};"
-    "ENVIRONMENT;MIOPEN_TEST_COMPOSABLEKERNEL=${MIOPEN_TEST_COMPOSABLEKERNEL};"
-    "ENVIRONMENT;CODECOV_TEST=${CODECOV_TEST};"
-    "ENVIRONMENT;MIOPEN_TEST_DBSYNC=${MIOPEN_TEST_DBSYNC};"
-    "ENVIRONMENT;MIOPEN_TEST_CONV=${MIOPEN_TEST_CONV};"
-    "ENVIRONMENT;MIOPEN_TEST_DEEPBENCH=${MIOPEN_TEST_DEEPBENCH};"
-    "ENVIRONMENT;MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=${MIOPEN_DEBUG_TUNING_ITERATIONS_MAX};"
-    "ENVIRONMENT;MIOPEN_TEST_WITH_MIOPENDRIVER=${MIOPEN_TEST_WITH_MIOPENDRIVER};")
+    "ENVIRONMENT;MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};")
 
     set(MIOPEN_GTEST_PREFIX)
+    set(MIOPEN_GTEST_FILTER_NEGATIVE)
 
     if (MIOPEN_TEST_ALL)
       set(MIOPEN_GTEST_PREFIX "")
@@ -64,7 +70,28 @@ function(add_gtest TEST_NAME TEST_CPP)
       set(MIOPEN_GTEST_PREFIX "Smoke")
     endif()
 
-    set(MIOPEN_GTEST_FILTER "${MIOPEN_GTEST_PREFIX}*${MIOPEN_GTEST_SUFFIX}*")
+    if (NOT MIOPEN_TEST_MLIR)
+        add_gtest_negative_filter("*MLIRTest*")
+    endif()
+
+    if (NOT MIOPEN_TEST_DBSYNC)
+        add_gtest_negative_filter("*DBSync*")
+    endif()
+
+    if (NOT MIOPEN_TEST_DEEPBENCH)
+        add_gtest_negative_filter("*DeepBench*")
+    endif()
+    
+    if (NOT MIOPEN_TEST_CONV)
+        add_gtest_negative_filter("*MIOpenTestConv*")
+    endif()
+
+    if(MIOPEN_NO_GPU)
+        add_gtest_negative_filter("*GPU*")
+    endif()
+
+    # NONE datatype is explicitly enabled for all the state, all the NONE tests take 4 seconds to complete.
+    set(MIOPEN_GTEST_FILTER "${MIOPEN_GTEST_PREFIX}*${MIOPEN_GTEST_SUFFIX}*:${MIOPEN_GTEST_PREFIX}*NONE*${MIOPEN_GTEST_FILTER_NEGATIVE}")
 
     #it prints the message only once
     set(TMPFNAME _dummy_static_variable_${name})
@@ -78,7 +105,12 @@ function(add_gtest TEST_NAME TEST_CPP)
     # Enable CMake to discover the test binary
     # Note: Due to the following cmake issue with gtest_discover_tests https://gitlab.kitware.com/cmake/cmake/-/issues/17812 you cannot pass PROPERTIES as a list.
     #       To work around this limitation, we are passing the environment variables in the format ENVIRONMENT;value1=${value1};ENVIRONMENT;value2=${value2}.
-    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
+    # bn tests are run sequentially since running tests in parallel was causing large tensor case fail with insufficient memory error.
+    if("${TEST_NAME}" STREQUAL "test_bn_bwd_serial_run" OR "${TEST_NAME}" STREQUAL "test_bn_fwd_train_serial_run" OR "${TEST_NAME}" STREQUAL "test_bn_infer_serial_run") 
+      gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES RUN_SERIAL TRUE ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
+    else()
+      gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
+    endif()
   endif()
   target_link_libraries(${TEST_NAME} BZip2::BZip2)
   if(WIN32)
@@ -142,7 +174,7 @@ else()
     install(TARGETS miopen_gtest
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
         DESTINATION ${CMAKE_INSTALL_BINDIR}
-        COMPONENT client)
+        COMPONENT clients)
   endif()
 endif()
 
