@@ -346,15 +346,13 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                         ctx_copy.do_search = true;
                         ctx_copy.db_update = true;
 
-                        auto ret = FindCore(invoke_ctx,
+                        return FindCore(invoke_ctx,
                                         ctx_copy,
                                         problem,
                                         params,
                                         conv::GetConvSolverFinders(),
                                         std::nullopt,
                                         force_attach_binary);
-                        MIOPEN_LOG_I2("TrustVerify: FindCore optimal? " << ret.is_optimal);
-                        return ret;
                     }
                 });
             }
