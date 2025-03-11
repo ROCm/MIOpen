@@ -58,190 +58,311 @@ private:
     std::optional<std::string> prev;
 };
 
-} // namespace
-
-TEST(CPU_UnitTestLibEnvVarGetUnknownVariable_NONE, LibEnvVar)
+struct TestParams
 {
-    const std::string_view name = MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE.name;
-    [[gnu::used]] std::optional<std::string> value;
-    ASSERT_THROW(value = miopen::debug::env::GetEnvVariable(name), miopen::Exception);
-};
-
-TEST(CPU_UnitTestLibEnvVarUpdateUnknownVariable_NONE, LibEnvVar)
-{
-    const std::string_view name = MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE.name;
-    ASSERT_THROW(miopen::debug::env::UpdateEnvVariable(name, "SOME_VALUE"), miopen::Exception);
-};
-
-TEST(CPU_UnitTestLibEnvVarClearUnknownVariable_NONE, LibEnvVar)
-{
-    const std::string_view name = MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE.name;
-    ASSERT_THROW(miopen::debug::env::ClearEnvVariable(name), miopen::Exception);
-};
-
-TEST(CPU_UnitTestLibEnvVarRestore_NONE, LibEnvVar)
-{
-    const std::string_view name = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS.name;
-
-    const auto old_v = miopen::debug::env::GetEnvVariable(name);
-    if(!old_v.has_value())
+    friend std::ostream& operator<<(std::ostream& os, const TestParams& tp)
     {
-        {
-            EnvVarRestorer restorer(name);
-            miopen::debug::env::UpdateEnvVariable(name, "0");
-        }
-        const auto new_v = miopen::debug::env::GetEnvVariable(name);
-        ASSERT_TRUE(!new_v.has_value());
+        os << "none";
+        return os;
     }
-    else
-    {
-        {
-            EnvVarRestorer restorer(name);
-            miopen::debug::env::ClearEnvVariable(name);
-        }
-        auto new_v = miopen::debug::env::GetEnvVariable(name);
-        ASSERT_TRUE(new_v.has_value());
-        ASSERT_TRUE(new_v.value() == old_v.value());
+};
 
-        {
-            EnvVarRestorer restorer(name);
-            miopen::debug::env::UpdateEnvVariable(name, "1");
-        }
-        new_v = miopen::debug::env::GetEnvVariable(name);
-        ASSERT_TRUE(new_v.has_value());
-        ASSERT_TRUE(new_v.value() == old_v.value());
-
-        {
-            EnvVarRestorer restorer(name);
-            miopen::debug::env::UpdateEnvVariable(name, "0");
-        }
-        new_v = miopen::debug::env::GetEnvVariable(name);
-        ASSERT_TRUE(new_v.has_value());
-        ASSERT_TRUE(new_v.value() == old_v.value());
-    }
+const auto& GetTestParams()
+{
+    static const auto params = TestParams{};
+    return params;
 }
 
-TEST(CPU_UnitTestLibEnvVarBool_NONE, LibEnvVar)
+class UnitTestLibEnvVarGetUnknownVariable : public ::testing::TestWithParam<TestParams>
 {
-    const std::string_view name = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS.name;
-    EnvVarRestorer restorer(name);
-
-    // Set 0
-    miopen::debug::env::ClearEnvVariable(name);
-    miopen::debug::env::UpdateEnvVariable(name, "0");
-    ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "0");
-
-    // Set 1
-    miopen::debug::env::ClearEnvVariable(name);
-    miopen::debug::env::UpdateEnvVariable(name, "1");
-    ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "1");
-
-    // Set 100 --> 1
-    miopen::debug::env::ClearEnvVariable(name);
-    miopen::debug::env::UpdateEnvVariable(name, "100");
-    ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "1");
+public:
+    void RunTest()
+    {
+        const std::string_view name = MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE.name;
+        [[gnu::used]] std::optional<std::string> value;
+        ASSERT_THROW(value = miopen::debug::env::GetEnvVariable(name), miopen::Exception);
+    }
 };
 
-TEST(CPU_UnitTestLibEnvVarUInt64_NONE, LibEnvVar)
+class UnitTestLibEnvVarUpdateUnknownVariable : public ::testing::TestWithParam<TestParams>
 {
-    const std::string_view name = MIOPEN_DEBUG_TUNING_ITERATIONS_MAX.name;
-    EnvVarRestorer restorer(name);
-
-    // Set 0
-    miopen::debug::env::ClearEnvVariable(name);
-    miopen::debug::env::UpdateEnvVariable(name, "0");
-    ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "0");
-
-    // Set 1
-    miopen::debug::env::ClearEnvVariable(name);
-    miopen::debug::env::UpdateEnvVariable(name, "1");
-    ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "1");
-
-    // Set 18446744073709551615
-    miopen::debug::env::ClearEnvVariable(name);
-    miopen::debug::env::UpdateEnvVariable(name, "18446744073709551615");
-    ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "18446744073709551615");
+public:
+    void RunTest()
+    {
+        const std::string_view name = MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE.name;
+        ASSERT_THROW(miopen::debug::env::UpdateEnvVariable(name, "SOME_VALUE"), miopen::Exception);
+    }
 };
 
-TEST(CPU_UnitTestLibEnvVarString_NONE, LibEnvVar)
+class UnitTestLibEnvVarClearUnknownVariable : public ::testing::TestWithParam<TestParams>
 {
-    const std::string_view name = MIOPEN_DEBUG_FIND_ONLY_SOLVER.name;
-    EnvVarRestorer restorer(name);
-
-    // Set 0
-    miopen::debug::env::ClearEnvVariable(name);
-    miopen::debug::env::UpdateEnvVariable(name, "0");
-    ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "0");
-
-    // Set asdfghjkl
-    miopen::debug::env::ClearEnvVariable(name);
-    miopen::debug::env::UpdateEnvVariable(name, "asdfghjkl");
-    ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "asdfghjkl");
-
-    // Set qwertyuiop
-    miopen::debug::env::ClearEnvVariable(name);
-    miopen::debug::env::UpdateEnvVariable(name, "qwertyuiop");
-    ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "qwertyuiop");
+public:
+    void RunTest()
+    {
+        const std::string_view name = MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE.name;
+        ASSERT_THROW(miopen::debug::env::ClearEnvVariable(name), miopen::Exception);
+    }
 };
 
-TEST(CPU_UnitTestLibEnvVarWrapper_NONE, LibEnvVar)
+class UnitTestLibEnvVarRestore : public ::testing::TestWithParam<TestParams>
 {
-    const auto var = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS;
-    EnvVarRestorer restorer(var.name);
+public:
+    void RunTest()
+    {
+        const std::string_view name = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS.name;
 
-    // Set false
-    lib_env::clear(var);
-    lib_env::update(var, false);
-    ASSERT_EQ(lib_env::value<bool>(var), false);
-    ASSERT_EQ(lib_env::value<uint64_t>(var), 0);
-    ASSERT_EQ(lib_env::value<std::string>(var), std::string("0"));
+        const auto old_v = miopen::debug::env::GetEnvVariable(name);
+        if(!old_v.has_value())
+        {
+            {
+                EnvVarRestorer restorer(name);
+                miopen::debug::env::UpdateEnvVariable(name, "0");
+            }
+            const auto new_v = miopen::debug::env::GetEnvVariable(name);
+            ASSERT_TRUE(!new_v.has_value());
+        }
+        else
+        {
+            {
+                EnvVarRestorer restorer(name);
+                miopen::debug::env::ClearEnvVariable(name);
+            }
+            auto new_v = miopen::debug::env::GetEnvVariable(name);
+            ASSERT_TRUE(new_v.has_value());
+            ASSERT_TRUE(new_v.value() == old_v.value());
 
-    // Set true
-    lib_env::clear(var);
-    lib_env::update(var, true);
-    ASSERT_EQ(lib_env::value<bool>(var), true);
-    ASSERT_EQ(lib_env::value<uint64_t>(var), 1);
-    ASSERT_EQ(lib_env::value<std::string>(var), std::string("1"));
+            {
+                EnvVarRestorer restorer(name);
+                miopen::debug::env::UpdateEnvVariable(name, "1");
+            }
+            new_v = miopen::debug::env::GetEnvVariable(name);
+            ASSERT_TRUE(new_v.has_value());
+            ASSERT_TRUE(new_v.value() == old_v.value());
 
-    // Set "0"
-    lib_env::clear(var);
-    lib_env::update(var, "0");
-    ASSERT_EQ(lib_env::value<bool>(var), false);
-    ASSERT_EQ(lib_env::value<uint64_t>(var), 0);
-    ASSERT_EQ(lib_env::value<std::string>(var), std::string("0"));
-
-    // Set "1"
-    lib_env::clear(var);
-    lib_env::update(var, "1");
-    ASSERT_EQ(lib_env::value<bool>(var), true);
-    ASSERT_EQ(lib_env::value<uint64_t>(var), 1);
-    ASSERT_EQ(lib_env::value<std::string>(var), std::string("1"));
-
-    // Set std::string("0")
-    lib_env::clear(var);
-    lib_env::update(var, std::string("0"));
-    ASSERT_EQ(lib_env::value<bool>(var), false);
-    ASSERT_EQ(lib_env::value<uint64_t>(var), 0);
-    ASSERT_EQ(lib_env::value<std::string>(var), std::string("0"));
-
-    // Set std::string("1")
-    lib_env::clear(var);
-    lib_env::update(var, std::string("1"));
-    ASSERT_EQ(lib_env::value<bool>(var), true);
-    ASSERT_EQ(lib_env::value<uint64_t>(var), 1);
-    ASSERT_EQ(lib_env::value<std::string>(var), std::string("1"));
-
-    // Set std::string_view("0")
-    lib_env::clear(var);
-    lib_env::update(var, std::string_view("0"));
-    ASSERT_EQ(lib_env::value<bool>(var), false);
-    ASSERT_EQ(lib_env::value<uint64_t>(var), 0);
-    ASSERT_EQ(lib_env::value<std::string>(var), std::string("0"));
-
-    // Set std::string_view("1")
-    lib_env::clear(var);
-    lib_env::update(var, std::string_view("1"));
-    ASSERT_EQ(lib_env::value<bool>(var), true);
-    ASSERT_EQ(lib_env::value<uint64_t>(var), 1);
-    ASSERT_EQ(lib_env::value<std::string>(var), std::string("1"));
+            {
+                EnvVarRestorer restorer(name);
+                miopen::debug::env::UpdateEnvVariable(name, "0");
+            }
+            new_v = miopen::debug::env::GetEnvVariable(name);
+            ASSERT_TRUE(new_v.has_value());
+            ASSERT_TRUE(new_v.value() == old_v.value());
+        }
+    }
 };
+
+class UnitTestLibEnvVarBool : public ::testing::TestWithParam<TestParams>
+{
+public:
+    void RunTest()
+    {
+        const std::string_view name = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS.name;
+        EnvVarRestorer restorer(name);
+
+        // Set 0
+        miopen::debug::env::ClearEnvVariable(name);
+        miopen::debug::env::UpdateEnvVariable(name, "0");
+        ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "0");
+
+        // Set 1
+        miopen::debug::env::ClearEnvVariable(name);
+        miopen::debug::env::UpdateEnvVariable(name, "1");
+        ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "1");
+
+        // Set 100 --> 1
+        miopen::debug::env::ClearEnvVariable(name);
+        miopen::debug::env::UpdateEnvVariable(name, "100");
+        ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "1");
+    }
+};
+
+class UnitTestLibEnvVarUInt64 : public ::testing::TestWithParam<TestParams>
+{
+public:
+    void RunTest()
+    {
+        const std::string_view name = MIOPEN_DEBUG_TUNING_ITERATIONS_MAX.name;
+        EnvVarRestorer restorer(name);
+
+        // Set 0
+        miopen::debug::env::ClearEnvVariable(name);
+        miopen::debug::env::UpdateEnvVariable(name, "0");
+        ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "0");
+
+        // Set 1
+        miopen::debug::env::ClearEnvVariable(name);
+        miopen::debug::env::UpdateEnvVariable(name, "1");
+        ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "1");
+
+        // Set 18446744073709551615
+        miopen::debug::env::ClearEnvVariable(name);
+        miopen::debug::env::UpdateEnvVariable(name, "18446744073709551615");
+        ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "18446744073709551615");
+    }
+};
+
+class UnitTestLibEnvVarString : public ::testing::TestWithParam<TestParams>
+{
+public:
+    void RunTest()
+    {
+        const std::string_view name = MIOPEN_DEBUG_FIND_ONLY_SOLVER.name;
+        EnvVarRestorer restorer(name);
+
+        // Set 0
+        miopen::debug::env::ClearEnvVariable(name);
+        miopen::debug::env::UpdateEnvVariable(name, "0");
+        ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "0");
+
+        // Set asdfghjkl
+        miopen::debug::env::ClearEnvVariable(name);
+        miopen::debug::env::UpdateEnvVariable(name, "asdfghjkl");
+        ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "asdfghjkl");
+
+        // Set qwertyuiop
+        miopen::debug::env::ClearEnvVariable(name);
+        miopen::debug::env::UpdateEnvVariable(name, "qwertyuiop");
+        ASSERT_EQ(miopen::debug::env::GetEnvVariable(name), "qwertyuiop");
+    }
+};
+
+class UnitTestLibEnvVarWrapper : public ::testing::TestWithParam<TestParams>
+{
+public:
+    void RunTest()
+    {
+        const auto var = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS;
+        EnvVarRestorer restorer(var.name);
+
+        // Set false
+        lib_env::clear(var);
+        lib_env::update(var, false);
+        ASSERT_EQ(lib_env::value<bool>(var), false);
+        ASSERT_EQ(lib_env::value<uint64_t>(var), 0);
+        ASSERT_EQ(lib_env::value<std::string>(var), std::string("0"));
+
+        // Set true
+        lib_env::clear(var);
+        lib_env::update(var, true);
+        ASSERT_EQ(lib_env::value<bool>(var), true);
+        ASSERT_EQ(lib_env::value<uint64_t>(var), 1);
+        ASSERT_EQ(lib_env::value<std::string>(var), std::string("1"));
+
+        // Set "0"
+        lib_env::clear(var);
+        lib_env::update(var, "0");
+        ASSERT_EQ(lib_env::value<bool>(var), false);
+        ASSERT_EQ(lib_env::value<uint64_t>(var), 0);
+        ASSERT_EQ(lib_env::value<std::string>(var), std::string("0"));
+
+        // Set "1"
+        lib_env::clear(var);
+        lib_env::update(var, "1");
+        ASSERT_EQ(lib_env::value<bool>(var), true);
+        ASSERT_EQ(lib_env::value<uint64_t>(var), 1);
+        ASSERT_EQ(lib_env::value<std::string>(var), std::string("1"));
+
+        // Set std::string("0")
+        lib_env::clear(var);
+        lib_env::update(var, std::string("0"));
+        ASSERT_EQ(lib_env::value<bool>(var), false);
+        ASSERT_EQ(lib_env::value<uint64_t>(var), 0);
+        ASSERT_EQ(lib_env::value<std::string>(var), std::string("0"));
+
+        // Set std::string("1")
+        lib_env::clear(var);
+        lib_env::update(var, std::string("1"));
+        ASSERT_EQ(lib_env::value<bool>(var), true);
+        ASSERT_EQ(lib_env::value<uint64_t>(var), 1);
+        ASSERT_EQ(lib_env::value<std::string>(var), std::string("1"));
+
+        // Set std::string_view("0")
+        lib_env::clear(var);
+        lib_env::update(var, std::string_view("0"));
+        ASSERT_EQ(lib_env::value<bool>(var), false);
+        ASSERT_EQ(lib_env::value<uint64_t>(var), 0);
+        ASSERT_EQ(lib_env::value<std::string>(var), std::string("0"));
+
+        // Set std::string_view("1")
+        lib_env::clear(var);
+        lib_env::update(var, std::string_view("1"));
+        ASSERT_EQ(lib_env::value<bool>(var), true);
+        ASSERT_EQ(lib_env::value<uint64_t>(var), 1);
+        ASSERT_EQ(lib_env::value<std::string>(var), std::string("1"));
+    }
+};
+
+} // namespace
+
+using CPU_UnitTestLibEnvVarGetUnknownVariable_NONE = UnitTestLibEnvVarGetUnknownVariable;
+using CPU_UnitTestLibEnvVarUpdateUnknownVariable_NONE = UnitTestLibEnvVarUpdateUnknownVariable;
+using CPU_UnitTestLibEnvVarClearUnknownVariable_NONE = UnitTestLibEnvVarClearUnknownVariable;
+using CPU_UnitTestLibEnvVarRestore_NONE = UnitTestLibEnvVarRestore;
+using CPU_UnitTestLibEnvVarBool_NONE = UnitTestLibEnvVarBool;
+using CPU_UnitTestLibEnvVarUInt64_NONE = UnitTestLibEnvVarUInt64;
+using CPU_UnitTestLibEnvVarString_NONE = UnitTestLibEnvVarString;
+using CPU_UnitTestLibEnvVarWrapper_NONE = UnitTestLibEnvVarWrapper;
+
+TEST_P(CPU_UnitTestLibEnvVarGetUnknownVariable_NONE, LibEnvVar)
+{
+    this->RunTest();
+};
+TEST_P(CPU_UnitTestLibEnvVarUpdateUnknownVariable_NONE, LibEnvVar)
+{
+    this->RunTest();
+};
+TEST_P(CPU_UnitTestLibEnvVarClearUnknownVariable_NONE, LibEnvVar)
+{
+    this->RunTest();
+};
+TEST_P(CPU_UnitTestLibEnvVarRestore_NONE, LibEnvVar)
+{
+    this->RunTest();
+}
+TEST_P(CPU_UnitTestLibEnvVarBool_NONE, LibEnvVar)
+{
+    this->RunTest();
+};
+TEST_P(CPU_UnitTestLibEnvVarUInt64_NONE, LibEnvVar)
+{
+    this->RunTest();
+};
+TEST_P(CPU_UnitTestLibEnvVarString_NONE, LibEnvVar)
+{
+    this->RunTest();
+};
+TEST_P(CPU_UnitTestLibEnvVarWrapper_NONE, LibEnvVar)
+{
+    this->RunTest();
+};
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_UnitTestLibEnvVarGetUnknownVariable_NONE,
+                         testing::Values(GetTestParams()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_UnitTestLibEnvVarUpdateUnknownVariable_NONE,
+                         testing::Values(GetTestParams()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_UnitTestLibEnvVarClearUnknownVariable_NONE,
+                         testing::Values(GetTestParams()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_UnitTestLibEnvVarRestore_NONE,
+                         testing::Values(GetTestParams()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_UnitTestLibEnvVarBool_NONE,
+                         testing::Values(GetTestParams()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_UnitTestLibEnvVarUInt64_NONE,
+                         testing::Values(GetTestParams()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_UnitTestLibEnvVarString_NONE,
+                         testing::Values(GetTestParams()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         CPU_UnitTestLibEnvVarWrapper_NONE,
+                         testing::Values(GetTestParams()));
