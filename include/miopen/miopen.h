@@ -8226,6 +8226,92 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 // CLOSEOUT LossFunction DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
+#ifdef MIOPEN_BETA_API
+// HingeEmbeddingLoss APIs
+/** @addtogroup LossFunction
+ *
+ *  @{
+ */
+
+/*! @brief Helper function to query the minimum workspace size required by the hinge embedding loss
+ * call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param targetDesc               Tensor descriptor for target tensor (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param reduction                Reduction (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetHingeEmbeddingLossForwardWorkspaceSize(miopenHandle_t handle,
+                                                miopenTensorDescriptor_t inputDesc,
+                                                miopenTensorDescriptor_t targetDesc,
+                                                miopenTensorDescriptor_t outputDesc,
+                                                miopenLossReductionMode_t reduction,
+                                                size_t* sizeInBytes);
+
+/*! @brief Execute a HingeEmbeddingLoss forward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param targetDesc               Tensor descriptor for target tensor (input)
+ * @param target                   Data tensor target (input)
+ * @param outputDesc               Tensor descriptor for output tensor (input)
+ * @param output                   Data tensor output (output)
+ * @param margin                   Margin (input)
+ * @param reduction                Reduction (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenHingeEmbeddingLossForward(miopenHandle_t handle,
+                                                             void* workspace,
+                                                             size_t workspaceSizeInBytes,
+                                                             miopenTensorDescriptor_t inputDesc,
+                                                             const void* input,
+                                                             miopenTensorDescriptor_t targetDesc,
+                                                             const void* target,
+                                                             miopenTensorDescriptor_t outputDesc,
+                                                             void* output,
+                                                             float margin,
+                                                             miopenLossReductionMode_t reduction);
+
+/*! @brief Execute a HingeEmbeddingLoss backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param inputDesc                Tensor descriptor for input tensor (input)
+ * @param input                    Data tensor input (input)
+ * @param targetDesc               Tensor descriptor for target tensor (input)
+ * @param target                   Data tensor target (input)
+ * @param doutputDesc              Tensor descriptor for output gradient (input)
+ * @param doutput                  Gradient of output (input)
+ * @param dinputDesc               Tensor descriptor for input gradient (input)
+ * @param dinput                   Gradient of input (output)
+ * @param dtargetDesc              Tensor descriptor for target gradient (input)
+ * @param dtarget                  Gradient of target (output)
+ * @param margin                   Margin (input)
+ * @param reduction                Reduction (input)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenHingeEmbeddingLossBackward(miopenHandle_t handle,
+                                                              miopenTensorDescriptor_t inputDesc,
+                                                              const void* input,
+                                                              miopenTensorDescriptor_t targetDesc,
+                                                              const void* target,
+                                                              miopenTensorDescriptor_t doutputDesc,
+                                                              const void* doutput,
+                                                              miopenTensorDescriptor_t dinputDesc,
+                                                              void* dinput,
+                                                              float margin,
+                                                              miopenLossReductionMode_t reduction);
+
+/** @} */
+// CLOSEOUT LossFunction DOXYGEN GROUP
+#endif // MIOPEN_BETA_API
+
 #ifdef __cplusplus
 }
 #endif

@@ -33,6 +33,7 @@
 #include <miopen/glu/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
 #include <miopen/getitem/solvers.hpp>
+#include <miopen/hingeembeddingloss/solvers.hpp>
 #include <miopen/kthvalue/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
@@ -705,6 +706,14 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::HingeEmbeddingLoss,
+             hingeembeddingloss::HingeEmbeddingLossForward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::HingeEmbeddingLoss,
+             hingeembeddingloss::HingeEmbeddingLossBackward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
