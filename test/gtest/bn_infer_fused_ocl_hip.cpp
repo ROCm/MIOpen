@@ -28,7 +28,6 @@
 #include "random.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/batchnorm/problem_description.hpp>
@@ -42,7 +41,7 @@
 #define warpSize 32
 #endif
 
-void BatchNormFusedInferencGPU(miopen::Handle& handle,
+void BatchNormFusedInferencGPU(const miopen::Handle& handle,
                                miopenBatchNormMode_t bn_mode,
                                miopenActivationMode_t activ_mode,
                                const float activ_alpha,

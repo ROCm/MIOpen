@@ -32,7 +32,6 @@
 #include <miopen/scalar.hpp>
 
 #include <miopen/problem_description_base.hpp>
-#include <miopen/tensor.hpp>
 #include <miopen/convolution.hpp>
 
 #if MIOPEN_ENABLE_SQLITE
@@ -99,36 +98,6 @@ template <class TElement>
 constexpr TElement GetWofCHWN(const std::vector<TElement>& data)
 {
     return std::get<2>(GetCHWN(data));
-}
-
-template <class TElement>
-constexpr TElement GetN5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<0>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetC5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<1>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetD5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<2>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetH5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<3>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetW5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<4>(GetNCDHW(spatial_dims, data));
 }
 
 namespace conv {
@@ -309,17 +278,18 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
     bool IsInt8() const
     {
         return GetInDataType() == miopenInt8 && GetWeightsDataType() == miopenInt8 &&
-               (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenFloat);
+               (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenInt8 ||
+                GetOutDataType() == miopenFloat);
     }
     bool IsFp8() const
     {
-        return GetInDataType() == miopenFloat8 || GetWeightsDataType() == miopenFloat8 ||
-               GetOutDataType() == miopenFloat8;
+        return GetInDataType() == miopenFloat8_fnuz || GetWeightsDataType() == miopenFloat8_fnuz ||
+               GetOutDataType() == miopenFloat8_fnuz;
     }
     bool IsBfp8() const
     {
-        return GetInDataType() == miopenBFloat8 || GetWeightsDataType() == miopenBFloat8 ||
-               GetOutDataType() == miopenBFloat8;
+        return GetInDataType() == miopenBFloat8_fnuz ||
+               GetWeightsDataType() == miopenBFloat8_fnuz || GetOutDataType() == miopenBFloat8_fnuz;
     }
     bool IsTensorsCasted() const
     {
@@ -390,10 +360,6 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
         obj.Serialize(os);
         return os;
     }
-
-#if MIOPEN_ENABLE_SQLITE
-    static std::string table_name() { return "config"; }
-#endif
 
     template <class Self>
     static void Visit(Self&& self, std::function<void(int64_t, std::string)> f)

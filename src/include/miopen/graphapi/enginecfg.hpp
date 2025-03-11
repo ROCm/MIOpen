@@ -28,6 +28,7 @@
 
 #include <miopen/config.hpp>
 #include <miopen/graphapi/engine.hpp>
+#include <nlohmann/json.hpp>
 
 namespace miopen {
 
@@ -57,6 +58,16 @@ public:
 
     const Engine& getEngine() const noexcept { return mEngine; }
     Engine& getEngine() noexcept { return mEngine; }
+
+    friend void to_json(nlohmann::json& json, const EngineCfg& engineCfg)
+    {
+        json = engineCfg.mEngine;
+    }
+
+    friend void from_json(const nlohmann::json& json, EngineCfg& engineCfg)
+    {
+        json.get_to(engineCfg.mEngine);
+    }
 };
 
 /* For now we don't support tuning and a builder is not needed,
