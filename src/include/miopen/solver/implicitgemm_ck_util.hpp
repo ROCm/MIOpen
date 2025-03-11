@@ -1055,6 +1055,11 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                                        data_ctx.tensors,
                                                        data_ctx.alpha.GetAsFloat(),
                                                        data_ctx.beta.GetAsFloat());
+
+                if(data_ctx.workSpace)
+                {
+                    sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
+                }
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
 
                 // Zero out the buffer for output data since it won't always write all output
@@ -1083,6 +1088,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 }
             };
         };
+        result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
         return result;
     }
 }
@@ -1185,6 +1191,42 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         MIOPEN_THROW(
             miopenStatusInternalError,
             "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this data type");
+    }
+#else
+    return {};
+#endif
+}
+
+template <typename InvokerFactoryMakerNHWC>
+ConvSolution
+MakeSolutionGroupConvImplicitGemmNCHWXdlops(const miopen::conv::ProblemDescription& problem,
+                                        InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
+{
+
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    if(problem.IsLayoutDefault())
+    {
+        switch(problem.GetInDataType())
+        {
+        case miopenInt8: return invoker_factory_maker_ndhwc(int8_t{});
+        case miopenHalf: return invoker_factory_maker_ndhwc(ck::half_t{});
+        case miopenFloat: return invoker_factory_maker_ndhwc(float{});
+        case miopenBFloat16: return invoker_factory_maker_ndhwc(ck::bhalf_t{});
+        case miopenInt64:
+        case miopenInt32:
+        case miopenDouble:
+        case miopenFloat8:
+        case miopenBFloat8:
+        default:
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Convolution operation not implemented for this "
+                         "data type");
+        }
+    }
+    else
+    {
+      MIOPEN_THROW(miopenStatusInternalError,
+        "NHWC layout is not supported by this solver");
     }
 #else
     return {};
