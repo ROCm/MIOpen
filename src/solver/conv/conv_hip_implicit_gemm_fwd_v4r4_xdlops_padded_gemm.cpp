@@ -27,6 +27,7 @@
 #include <miopen/config.h>
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/hip_build_utils.hpp>

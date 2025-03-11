@@ -85,10 +85,11 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
-        FAIL() << "miopenFloat, miopenInt8, miopenInt32, miopenDouble, miopenFloat8, miopenBFloat8 "
+        FAIL() << "miopenFloat, miopenInt8, miopenInt32, miopenDouble, miopenFloat8_fnuz, "
+                  "miopenBFloat8_fnuz "
                   "data type not supported by test_conv_for_implicit_gemm test";
     }
 
@@ -114,7 +115,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
     if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
+       devName == "gfx942" || miopen::StartsWith(devName, "gfx103") ||
        miopen::StartsWith(devName, "gfx110"))
     {
         return true;

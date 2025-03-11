@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
@@ -940,8 +941,8 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a") &&
-       (!StartsWith(device_name, "gfx94")))
+    if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx942") &&
+       (!StartsWith(device_name, "gfx95")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -960,7 +961,8 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16() &&
-       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
+       !(problem.IsBfp16() &&
+         (device_name == "gfx90a" || device_name == "gfx942" || StartsWith(device_name, "gfx95"))))
         return false;
 
     if(problem.IsTensorsCasted())
@@ -1092,26 +1094,12 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     std::ostringstream options;
     std::ostringstream msg;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    if(ctx.GetStream().GetDeviceName() == "gfx940")
-    {
-        GenerateClangDefsym(options, "force_sc0_sc1", 1);
-        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
-        if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", force_sc0_sc1:1, atomic_add_using_cas:0 (gfx940)";
-    }
-    else if(ctx.GetStream().GetDeviceName() == "gfx941")
-    {
-        GenerateClangDefsym(options, "force_sc0_sc1", 1);
-        GenerateClangDefsym(options, "atomic_add_using_cas", 1);
-        if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", force_sc0_sc1:1, atomic_add_using_cas:1 (gfx941)";
-    }
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx94"))
+    if(ctx.GetStream().GetDeviceName() == "gfx942")
     {
         GenerateClangDefsym(options, "force_sc0_sc1", 0);
         GenerateClangDefsym(options, "atomic_add_using_cas", 0);
         if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942+)";
+            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942)";
     }
 
     std::ostringstream opts_0(options.str(), std::ios_base::ate);
