@@ -408,7 +408,7 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
     ctx.do_search             = false;
     ctx.disable_perfdb_access = true;
 
-    while(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
+    while(findMode.IsFast(ctx) || (findMode.IsHybrid(ctx) && !findMode.IsTrustVerify(ctx)))
     {
         /// \section ffind_gwss_why_not_0
         /// Basically we can return 0 here because
