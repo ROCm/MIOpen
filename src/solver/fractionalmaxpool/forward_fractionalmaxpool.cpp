@@ -69,6 +69,7 @@ ConvSolution FractionalMaxPoolForward::GetSolution(
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
         {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         {"I_TYPE", indices_dtype == "int64" ? "size_t" : indices_dtype},
+        {"MAX_FLOAT", std::numeric_limits<float>::max()},
     };
 
     if(problem.GetOutputDesc().GetNumDims() == 4)

@@ -85,7 +85,7 @@ __device__ void fractionalMaxPool2dForward(const T* input,
         output_tv.size[3],
         KW);
 
-    FLOAT_ACCUM m = log(0);
+    FLOAT_ACCUM m = -MAX_FLOAT;
 
     int64_t h_end = pool_h + KH;
     int64_t w_end = pool_w + KW;
@@ -230,7 +230,7 @@ __device__ void fractionalMaxPool3dForward(const T* input,
         output_tv.size[4],
         KW);
 
-    FLOAT_ACCUM m = log(0);
+    FLOAT_ACCUM m = -MAX_FLOAT;
 
     int64_t d_end = pool_d + KD;
     int64_t h_end = pool_h + KH;
