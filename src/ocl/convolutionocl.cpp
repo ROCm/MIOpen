@@ -299,12 +299,14 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                     auto db = MakeConvDbGetter(ctx);
                     solver::ConvSolution conv_sol =
                         solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
+
                     std::vector<solver::ConvSolution> conv_sols;
                     conv_sols.emplace_back(std::move(conv_sol));
 
                     // test timing of solver reported by system db
-                    const auto& handle = ctx.GetStream();
-                    bool is_optimal;
+                    const auto& handle = ctx_copy.GetStream();
+                    AutoEnableProfiling enableProfiling{handle};
+                    bool is_optimal = true;
                     AlgorithmName algo{
                         ConvolutionAlgoToDirectionalString(id.GetAlgo(), problem.GetDirection())};
                     static std::vector<Solution> eval_sols =
@@ -344,13 +346,15 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                         ctx_copy.do_search = true;
                         ctx_copy.db_update = true;
 
-                        return FindCore(invoke_ctx,
+                        auto ret = FindCore(invoke_ctx,
                                         ctx_copy,
                                         problem,
                                         params,
                                         conv::GetConvSolverFinders(),
                                         std::nullopt,
                                         force_attach_binary);
+                        MIOPEN_LOG_I2("TrustVerify: FindCore optimal? " << ret.is_optimal);
+                        return ret;
                     }
                 });
             }
@@ -360,14 +364,21 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                 MIOPEN_LOG_I2("TrustVerify: Using user db entry");
                 sol = ufdb_sols.front();
             }
+            else
+            {
+                MIOPEN_LOG_I2("TrustVerify: Found user db entry");
+            }
         }
 
-        /// It is possible to measure actual execution time and return it to the caller.
-        /// \todo Consider if we need (and want to spend time) for this.
-        const auto id      = solver::Id{sol->solution_id};
-        const auto& solver = id.GetSolver();
-        CompileSolution(id, ctx, problem);
-        results.push_back({id, sol->time, solver.GetWorkspaceSize(ctx, problem)});
+        if(results.empty())
+        {
+            /// It is possible to measure actual execution time and return it to the caller.
+            /// \todo Consider if we need (and want to spend time) for this.
+            const auto id      = solver::Id{sol->solution_id};
+            const auto& solver = id.GetSolver();
+            CompileSolution(id, ctx, problem);
+            results.push_back({id, sol->time, solver.GetWorkspaceSize(ctx, problem)});
+        }
     }
     else
     {
