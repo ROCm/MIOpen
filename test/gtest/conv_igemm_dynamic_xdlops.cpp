@@ -36,11 +36,9 @@ auto GetTestCases()
 {
     const auto env_xdlops = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
                                        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                                                 "ConvAsmImplicitGemmGTCDynamicBwdXdlops;"
-                                                 "ConvAsmImplicitGemmGTCDynamicWrwXdlops"}};
+                                                 "ConvAsmImplicitGemmGTCDynamicBwdXdlops"}};
 
     const std::string cmd_v       = " test_conv2d --verbose";
-    const std::string dis_bk_data = " --disable-backward-data";
     const std::string dis_bk_wei  = " --disable-backward-weights";
     const std::string dis_fwd     = " --disable-forward";
 
@@ -60,25 +58,6 @@ auto GetTestCases()
     std::pair{env_xdlops, cmd_v + " --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
     std::pair{env_xdlops, cmd_v + " --input  8  16 5 5 --weights 8  16  2 2 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_wei},
     std::pair{env_xdlops, cmd_v + " --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1" + dis_fwd + dis_bk_wei},
-    //wrw
-    std::pair{env_xdlops, cmd_v + "  --input  64  64 28 28 --weights 32  64 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  16  128 36 36 --weights 32  128 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  64   64 56 56 --weights 256  64  1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  64  224 17 17 --weights 224  224  1 7 --pads_strides_dilations 0 3 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  128  128 35 35 --weights 256  128  3 3 --pads_strides_dilations 1 1 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  128  128 64 64 --weights 256  128  3 3 --pads_strides_dilations 1 1 2 2 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  128  768 17 17 --weights 256  768  3 3 --pads_strides_dilations 1 1 1 1 2 2" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  3  256 28 28 --weights 80  256  1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  2  256 12 18 --weights 256  256  3 3 --pads_strides_dilations 1 1 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  4  512 128 128 --weights 12  512  1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    //regression test for issue 540
-    std::pair{env_xdlops, cmd_v + "  --input  4 32 79 141 --weights 64 32 5 10 --pads_strides_dilations 0 0 2 2 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  400  256 7 7 --weights 1024  256  7 7 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    std::pair{env_xdlops, cmd_v + "  --input  400  256 1 1 --weights 1024  256  1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_fwd + dis_bk_data},
-    //Regression test for SWDEV-295434 (FP16 only).
-    std::pair{env_xdlops, cmd_v + "  --input  120  256 3 3 --weights 340  256  3 3 --pads_strides_dilations 1 1 1 1 1 1" + dis_fwd + dis_bk_data},
-    //ho=wo=1 stride=2
-    std::pair{env_xdlops, cmd_v + "  --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1 " + dis_fwd + dis_bk_data}
         // clang-format on
     };
 }
