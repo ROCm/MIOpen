@@ -72,7 +72,6 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
- * @defgroup lppool
  *
  */
 
@@ -8228,8 +8227,8 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-// lppool APIs
-/** @addtogroup lppool
+// LPPool APIs
+/** @addtogroup pooling
  *
  *  @{
  */
@@ -8293,7 +8292,7 @@ MIOPEN_EXPORT miopenStatus_t miopenLPPoolBackward(miopenHandle_t handle,
                                                   const float norm_type);
 
 /** @} */
-// CLOSEOUT lppool DOXYGEN GROUP
+// CLOSEOUT pooling DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

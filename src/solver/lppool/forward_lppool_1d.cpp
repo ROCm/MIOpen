@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -66,7 +66,6 @@ LPPoolForward1d::GetSolution(const ExecutionContext& context,
     std::ignore = context;
 
     auto result       = ConvSolution{miopenStatusSuccess};
-    auto input_dtype  = miopen::GetDataType(problem.GetInputDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetOutputDesc().GetType());
     auto dtype        = problem.GetOutputDesc().GetType();
     uint64_t N_total  = problem.GetNtotal();
@@ -76,8 +75,8 @@ LPPoolForward1d::GetSolution(const ExecutionContext& context,
         {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
         {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
         {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-        {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
+        {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+    };
 
     result.construction_params.push_back(make_hip_kernel(
         {LOCAL_SIZE_FWD_1D}, {N_total}, "MIOpenLPPool.cpp", "LPPoolForward1d", build_params));

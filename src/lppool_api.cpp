@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -99,6 +99,7 @@ extern "C" miopenStatus_t miopenLPPoolForward(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, inputDesc, input, outputDesc, output, KD, KH, SD, SH, norm_type);
 
     LogCmdLPPool(inputDesc, outputDesc, KD, KH, SD, SH, norm_type, true);
+
     return miopen::try_([&] {
         miopen::lppool::LPPoolForward(miopen::deref(handle),
                                       miopen::deref(inputDesc),
@@ -144,6 +145,7 @@ extern "C" miopenStatus_t miopenLPPoolBackward(miopenHandle_t handle,
                         norm_type);
 
     LogCmdLPPool(inputGradDesc, outputGradDesc, KD, KH, SD, SH, norm_type, false);
+    
     return miopen::try_([&] {
         miopen::lppool::LPPoolBackward(miopen::deref(handle),
                                        miopen::deref(inputDesc),
