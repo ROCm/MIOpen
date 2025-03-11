@@ -34,13 +34,13 @@ namespace conv_igemm_dynamic_xdlops {
 
 auto GetTestCases()
 {
-    const auto env_xdlops = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
-                                       std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                                                 "ConvAsmImplicitGemmGTCDynamicBwdXdlops"}};
+    const auto env_xdlops = std::tuple{
+        std::pair{MIOPEN_FIND_MODE, "normal"},
+        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmGTCDynamicBwdXdlops"}};
 
-    const std::string cmd_v       = " test_conv2d --verbose";
-    const std::string dis_bk_wei  = " --disable-backward-weights";
-    const std::string dis_fwd     = " --disable-forward";
+    const std::string cmd_v      = " test_conv2d --verbose";
+    const std::string dis_bk_wei = " --disable-backward-weights";
+    const std::string dis_fwd    = " --disable-forward";
 
     return std::vector{
         // clang-format off

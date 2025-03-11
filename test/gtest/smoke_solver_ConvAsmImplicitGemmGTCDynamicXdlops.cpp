@@ -34,9 +34,9 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env = std::tuple{std::pair{MIOPEN_FIND_MODE, "normal"},
-                                std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                                          "ConvAsmImplicitGemmGTCDynamicBwdXdlops"}};
+    const auto env = std::tuple{
+        std::pair{MIOPEN_FIND_MODE, "normal"},
+        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmGTCDynamicBwdXdlops"}};
 
     const std::string vb = " --verbose --disable-forward --disable-backward-weights";
 
