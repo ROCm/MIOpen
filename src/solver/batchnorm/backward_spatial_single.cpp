@@ -225,7 +225,7 @@ BnBwdTrainingSpatialSingle::GetSolution(const ExecutionContext& context,
 #if WORKAROUND_ISSUE_1146
              (handle.GetDeviceName() != "gfx90a") &&
 #endif
-             (!StartsWith(handle.GetDeviceName(), "gfx94")) &&
+             (handle.GetDeviceName() != "gfx942") &&
              (!StartsWith(handle.GetDeviceName(), "gfx95")))) &&
            (!handle.GetTargetProperties().Xnack() || !*handle.GetTargetProperties().Xnack()))
         {
