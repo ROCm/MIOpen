@@ -4,7 +4,7 @@ def miopenCheckout()
         $class: 'GitSCM',
         branches: scm.branches,
         doGenerateSubmoduleConfigurations: true,
-        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
+        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true, depth: 1, shallow: true]],
        userRemoteConfigs: scm.userRemoteConfigs
    ])
 }
