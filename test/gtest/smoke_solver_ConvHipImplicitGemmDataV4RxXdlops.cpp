@@ -38,9 +38,9 @@ auto GetTestCases()
     // for this particulaer case it's not needed, but must be there to simplify the code
     const auto env_fwd = std::tuple{
         std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-        std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+        std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
         std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS, false},
-        std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+        std::pair{wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
         std::pair{MIOPEN_FIND_MODE, "normal"},
         std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmForwardV4R4Xdlops"}};
 
@@ -48,9 +48,9 @@ auto GetTestCases()
     // for this particulaer case it's not needed, but must be there to simplify the code
     const auto env_fwd_padded =
         std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                   std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
                    std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS, false},
-                   std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                   std::pair{wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
                    std::pair{MIOPEN_FIND_MODE, "normal"},
                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER,
                              "ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm"}};
@@ -59,9 +59,9 @@ auto GetTestCases()
     // for this particulaer case it's not needed, but must be there to simplify the code
     const auto env_fwd_v4r5 = std::tuple{
         std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-        std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+        std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
         std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS, false},
-        std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+        std::pair{wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
         std::pair{MIOPEN_FIND_MODE, "normal"},
         std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmForwardV4R5Xdlops"}};
 
@@ -71,9 +71,9 @@ auto GetTestCases()
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS=1 to enable the solver.
     const auto env_bwd = std::tuple{
         std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-        std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+        std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
         std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS, true},
-        std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+        std::pair{wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
         std::pair{MIOPEN_FIND_MODE, "normal"},
         std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmBwdDataV4R1Xdlops"}};
 
@@ -81,9 +81,9 @@ auto GetTestCases()
     // for this particulaer case it's not needed, but must be there to simplify the code
     const auto env_wrw =
         std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                   std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
                    std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS, false},
-                   std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                   std::pair{wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
                    std::pair{MIOPEN_FIND_MODE, "normal"},
                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmWrwV4R4Xdlops"}};
 
@@ -91,9 +91,9 @@ auto GetTestCases()
     // for this particulaer case it's not needed, but must be there to simplify the code
     const auto env_wrw_padded = std::tuple{
         std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-        std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+        std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
         std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS, false},
-        std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+        std::pair{wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
         std::pair{MIOPEN_FIND_MODE, "normal"},
         std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm"}};
 

@@ -53,7 +53,6 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
-#include <thread>
 #include <mutex>
 #include <shared_mutex>
 

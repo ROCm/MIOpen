@@ -37,7 +37,7 @@
 
 #include "../workspace.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
 
 namespace miopen {
 namespace unit_tests {
@@ -58,25 +58,60 @@ public:
         if(changed)
         {
             if(prev)
-                env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, false);
+                lib_env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, false);
             else
-                env::clear(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+                lib_env::clear(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
         }
     }
 
     void Enable()
     {
         if(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
-            prev = env::value(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+            prev = lib_env::value<bool>(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
         if(prev != true)
         {
-            env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, true);
+            lib_env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, true);
             changed = true;
         }
     }
 
 private:
     std::optional<bool> prev;
+    bool changed = false;
+};
+
+class ConvAttrFp16AltScopedSetter
+{
+public:
+    ConvAttrFp16AltScopedSetter() noexcept {}
+    ConvAttrFp16AltScopedSetter(const ConvAttrFp16AltScopedSetter&) = delete;
+    ConvAttrFp16AltScopedSetter(ConvAttrFp16AltScopedSetter&&)      = delete;
+    ConvAttrFp16AltScopedSetter& operator=(const ConvAttrFp16AltScopedSetter&) = delete;
+    ConvAttrFp16AltScopedSetter& operator=(ConvAttrFp16AltScopedSetter&&) = delete;
+
+    ~ConvAttrFp16AltScopedSetter()
+    {
+        if(changed)
+        {
+            if(prev)
+                lib_env::update(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, prev.value());
+            else
+                lib_env::clear(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
+        }
+    }
+
+    void SetValue(uint64_t value)
+    {
+        if(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+            prev = lib_env::value<uint64_t>(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
+        if(value == prev)
+            return;
+        lib_env::update(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, value);
+        changed = true;
+    }
+
+private:
+    std::optional<uint64_t> prev;
     bool changed = false;
 };
 
@@ -136,9 +171,10 @@ ConvTestCase::ConvTestCase(TensorDescriptorParams&& x_,
 {
     const auto num_spatial_dims = conv.GetNumSpatialDims();
     const auto num_tensor_dims  = num_spatial_dims + 2;
+    const auto group_count      = conv.GetGroupCount();
 
     if(x.GetNumDims() != num_tensor_dims || w.GetNumDims() != num_tensor_dims ||
-       x.GetLens()[1] != w.GetLens()[1])
+       x.GetLens()[1] != w.GetLens()[1] * group_count)
     {
         throw std::runtime_error("wrong test case format");
     }
@@ -221,6 +257,8 @@ void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
 }
 
 void UnitTestConvSolverParams::CheckXnackDisabled() { check_xnack_disabled = true; }
+
+void UnitTestConvSolverParams::SetConvAttrFp16Alt(uint64_t value) { conv_attr_fp16_alt = value; }
 
 namespace {
 
@@ -699,6 +737,9 @@ void RunSolver(const miopen::solver::conv::ConvSolverInterface& solver,
         case miopenBFloat16:
             RunSolver<bfloat16, bfloat16>(solver, params, direction, conv_config, algo);
             return;
+        case miopenInt8:
+            RunSolver<int8_t, int8_t>(solver, params, direction, conv_config, algo);
+            return;
         default:
             throw std::runtime_error("handling of this data type is not yet implemented");
         }
@@ -741,6 +782,10 @@ void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverI
         deprecated_solv_enabler.Enable();
     }
 
+    ConvAttrFp16AltScopedSetter conv_attr_fp16_alt_setter;
+    if(params.conv_attr_fp16_alt)
+        conv_attr_fp16_alt_setter.SetValue(params.conv_attr_fp16_alt.value());
+
     RunSolver(solver, params, direction, conv_config, algo);
 }
 
@@ -759,6 +804,10 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     {
         deprecated_solv_enabler.Enable();
     }
+
+    ConvAttrFp16AltScopedSetter conv_attr_fp16_alt_setter;
+    if(params.conv_attr_fp16_alt)
+        conv_attr_fp16_alt_setter.SetValue(params.conv_attr_fp16_alt.value());
 
     const auto problem = conv_config.GetProblemDescription(direction);
 
