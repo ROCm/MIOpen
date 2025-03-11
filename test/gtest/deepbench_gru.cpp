@@ -28,8 +28,6 @@
 #include "../gru.hpp"
 #include "get_handle.hpp"
 
-namespace env = miopen::env;
-
 namespace deepbench_gru {
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)

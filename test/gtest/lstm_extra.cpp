@@ -30,8 +30,6 @@
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
 
-namespace env = miopen::env;
-
 namespace lstm_extra {
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {

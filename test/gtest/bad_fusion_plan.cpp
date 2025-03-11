@@ -26,11 +26,13 @@
 #include <gtest/gtest.h>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
-#include <miopen/env.hpp>
 
 #include "tensor_holder.hpp"
 #include "get_handle.hpp"
 #include "conv_test_base.hpp"
+#include "lib_env_var.hpp"
+
+MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_ENFORCE)
 
 #if MIOPEN_BACKEND_HIP
 
@@ -237,7 +239,7 @@ TEST(GPU_FusionPlan_FP16, BadEmptyFusionPlan)
 
 TEST(GPU_FusionPlan_FP16, UnSupportedFusionPlanDuringSearchMode)
 {
-    env::setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "3");
+    lib_env::update(MIOPEN_FIND_ENFORCE, "3");
     GPU_FusionPlan_FP16<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     if(obj.Skip())
