@@ -129,6 +129,7 @@ static auto GetWindogradSolvers()
         miopen::solver::conv::ConvBinWinoRxS<2, 3>,
         miopen::solver::conv::ConvBinWinogradRxSf2x3g1,
         miopen::solver::conv::ConvBinWinogradRxS,
+        miopen::solver::conv::ConvMPBidirectWinograd<2, 3>,
         miopen::solver::conv::ConvMPBidirectWinograd<3, 3>,
         miopen::solver::conv::ConvMPBidirectWinograd<4, 3>,
         miopen::solver::conv::ConvMPBidirectWinograd<5, 3>,
