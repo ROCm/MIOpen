@@ -40,8 +40,8 @@ auto GetTestCases()
     // disabled by default via #2306
     const auto env_fwd =
         std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 2},
-                   std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                   std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 2},
+                   std::pair{wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
                    std::pair{MIOPEN_FIND_MODE, "normal"},
                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvCkIgemmFwdV6r1DlopsNchw"},
                    std::pair{MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW, true}};
