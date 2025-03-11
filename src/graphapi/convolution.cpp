@@ -1033,8 +1033,8 @@ void to_json(nlohmann::json& json, const Convolution& conv)
         {miopenInt8, "miopenInt8"},
         {miopenBFloat16, "miopenBFloat16"},
         {miopenDouble, "miopenDouble"},
-        {miopenFloat8, "miopenFloat8"},
-        {miopenBFloat8, "miopenBFloat8"},
+        {miopenFloat8_fnuz, "miopenFloat8"},
+        {miopenBFloat8_fnuz, "miopenBFloat8"},
         {miopenInt64, "miopenInt64"},
     };
 
@@ -1076,8 +1076,8 @@ void from_json(const nlohmann::json& json, Convolution& conv)
         {"miopenInt8", miopenInt8},
         {"miopenBFloat16", miopenBFloat16},
         {"miopenDouble", miopenDouble},
-        {"miopenFloat8", miopenFloat8},
-        {"miopenBFloat8", miopenBFloat8},
+        {"miopenFloat8", miopenFloat8_fnuz},
+        {"miopenBFloat8", miopenBFloat8_fnuz},
         {"miopenInt64", miopenInt64},
     };
 

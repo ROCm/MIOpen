@@ -26,7 +26,6 @@
 #include "get_handle.hpp"
 #include "random.hpp"
 #include <verify.hpp>
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
