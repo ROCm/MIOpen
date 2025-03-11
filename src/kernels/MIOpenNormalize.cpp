@@ -113,7 +113,9 @@ __device__ void normalizebackwardopt(const T* __restrict__ input,
     }
     __syncthreads();
 
+#pragma GCC diagnostic ignored "-Wfloat-equal"
     if(eps == div)
+#pragma GCC diagnostic warning "-Wfloat-equal"
     {
         input_grad[gid] = dy / eps;
     }
