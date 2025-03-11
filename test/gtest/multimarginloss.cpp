@@ -48,21 +48,18 @@ using multimarginloss::GPU_MultiMarginLoss_FP32;
 
 TEST_P(GPU_MultiMarginLoss_FP32, Test)
 {
-
     RunTest();
     Verify();
 };
 
 TEST_P(GPU_MultiMarginLoss_FP16, Test)
 {
-
     RunTest();
     Verify();
 };
 
 TEST_P(GPU_MultiMarginLoss_BFP16, Test)
 {
-
     RunTest();
     Verify();
 };
