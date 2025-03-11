@@ -53,6 +53,14 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
         // clang-format on
     }
 
+    if(datatype == miopenFloat)
+    {
+        // clang-format off
+        // Regression test for https://github.com/ROCm/MIOpen/issues/3540
+        cases.emplace_back(TestCase{{1024, 256, 32, 32}, {1, 256, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype});
+        // clang-format on
+    }
+
     return cases;
 }
 
@@ -125,3 +133,9 @@ INSTANTIATE_TEST_SUITE_P(Full,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoGEMM),
                                           testing::ValuesIn(GetConvTestCasesFull(miopenHalf))));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverGemmBwdRestBwd_FP32,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoGEMM),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenFloat))));

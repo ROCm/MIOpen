@@ -39,6 +39,23 @@ auto GetConvTestCases(miopenDataType_t datatype)
     };
 }
 
+auto GetConvTestCasesFull(miopenDataType_t datatype)
+{
+    using TestCase = miopen::unit_tests::ConvTestCase;
+
+    auto cases = std::vector<TestCase>{};
+
+    if(datatype == miopenFloat)
+    {
+        // clang-format off
+        // Accuracy test for https://github.com/ROCm/MIOpen/issues/3540
+        cases.emplace_back(TestCase{{1024, 256, 32, 32}, {256, 256, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype});
+        // clang-format on
+    }
+
+    return cases;
+}
+
 const auto& GetTestParams()
 {
     static const auto params = [] {
@@ -102,3 +119,10 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverOclBwdWrW53DevApplicability_NONE,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
+
+// Full tests
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverOclBwdWrW53_FP32,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenFloat))));
