@@ -386,6 +386,12 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
             const auto params =
                 conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
 
+            if(findMode.IsTrustVerify(ctx))
+            {
+                ctx_copy.do_search = true;
+                ctx_copy.db_update = true;
+            }
+
             return FindCore(invoke_ctx,
                             ctx_copy,
                             problem,
