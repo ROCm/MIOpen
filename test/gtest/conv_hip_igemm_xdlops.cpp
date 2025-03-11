@@ -53,8 +53,8 @@ void Run2dDriver(miopenDataType_t prec)
     switch(prec)
     {
     case miopenInt8: params = GPU_ConvHipIgemmXdlops_I8::GetParam(); break;
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenHalf:
     case miopenBFloat16:
     case miopenFloat:

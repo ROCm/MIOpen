@@ -118,6 +118,7 @@ set( MIOpen_Source
     embedding/problem_description.cpp
     embedding_api.cpp
     env.cpp
+    env_debug.cpp
     execution_context.cpp
     expanduser.cpp
     fin/fin_interface.cpp
