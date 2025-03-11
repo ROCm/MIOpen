@@ -293,47 +293,23 @@ public:
 
 } // namespace
 
-using CPU_UnitTestLibEnvVarGetUnknownVariable_NONE = UnitTestLibEnvVarGetUnknownVariable;
+using CPU_UnitTestLibEnvVarGetUnknownVariable_NONE    = UnitTestLibEnvVarGetUnknownVariable;
 using CPU_UnitTestLibEnvVarUpdateUnknownVariable_NONE = UnitTestLibEnvVarUpdateUnknownVariable;
-using CPU_UnitTestLibEnvVarClearUnknownVariable_NONE = UnitTestLibEnvVarClearUnknownVariable;
-using CPU_UnitTestLibEnvVarRestore_NONE = UnitTestLibEnvVarRestore;
-using CPU_UnitTestLibEnvVarBool_NONE = UnitTestLibEnvVarBool;
-using CPU_UnitTestLibEnvVarUInt64_NONE = UnitTestLibEnvVarUInt64;
-using CPU_UnitTestLibEnvVarString_NONE = UnitTestLibEnvVarString;
-using CPU_UnitTestLibEnvVarWrapper_NONE = UnitTestLibEnvVarWrapper;
+using CPU_UnitTestLibEnvVarClearUnknownVariable_NONE  = UnitTestLibEnvVarClearUnknownVariable;
+using CPU_UnitTestLibEnvVarRestore_NONE               = UnitTestLibEnvVarRestore;
+using CPU_UnitTestLibEnvVarBool_NONE                  = UnitTestLibEnvVarBool;
+using CPU_UnitTestLibEnvVarUInt64_NONE                = UnitTestLibEnvVarUInt64;
+using CPU_UnitTestLibEnvVarString_NONE                = UnitTestLibEnvVarString;
+using CPU_UnitTestLibEnvVarWrapper_NONE               = UnitTestLibEnvVarWrapper;
 
-TEST_P(CPU_UnitTestLibEnvVarGetUnknownVariable_NONE, LibEnvVar)
-{
-    this->RunTest();
-};
-TEST_P(CPU_UnitTestLibEnvVarUpdateUnknownVariable_NONE, LibEnvVar)
-{
-    this->RunTest();
-};
-TEST_P(CPU_UnitTestLibEnvVarClearUnknownVariable_NONE, LibEnvVar)
-{
-    this->RunTest();
-};
-TEST_P(CPU_UnitTestLibEnvVarRestore_NONE, LibEnvVar)
-{
-    this->RunTest();
-}
-TEST_P(CPU_UnitTestLibEnvVarBool_NONE, LibEnvVar)
-{
-    this->RunTest();
-};
-TEST_P(CPU_UnitTestLibEnvVarUInt64_NONE, LibEnvVar)
-{
-    this->RunTest();
-};
-TEST_P(CPU_UnitTestLibEnvVarString_NONE, LibEnvVar)
-{
-    this->RunTest();
-};
-TEST_P(CPU_UnitTestLibEnvVarWrapper_NONE, LibEnvVar)
-{
-    this->RunTest();
-};
+TEST_P(CPU_UnitTestLibEnvVarGetUnknownVariable_NONE, LibEnvVar) { this->RunTest(); };
+TEST_P(CPU_UnitTestLibEnvVarUpdateUnknownVariable_NONE, LibEnvVar) { this->RunTest(); };
+TEST_P(CPU_UnitTestLibEnvVarClearUnknownVariable_NONE, LibEnvVar) { this->RunTest(); };
+TEST_P(CPU_UnitTestLibEnvVarRestore_NONE, LibEnvVar) { this->RunTest(); }
+TEST_P(CPU_UnitTestLibEnvVarBool_NONE, LibEnvVar) { this->RunTest(); };
+TEST_P(CPU_UnitTestLibEnvVarUInt64_NONE, LibEnvVar) { this->RunTest(); };
+TEST_P(CPU_UnitTestLibEnvVarString_NONE, LibEnvVar) { this->RunTest(); };
+TEST_P(CPU_UnitTestLibEnvVarWrapper_NONE, LibEnvVar) { this->RunTest(); };
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_UnitTestLibEnvVarGetUnknownVariable_NONE,
@@ -347,22 +323,12 @@ INSTANTIATE_TEST_SUITE_P(Full,
                          CPU_UnitTestLibEnvVarClearUnknownVariable_NONE,
                          testing::Values(GetTestParams()));
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_UnitTestLibEnvVarRestore_NONE,
-                         testing::Values(GetTestParams()));
+INSTANTIATE_TEST_SUITE_P(Full, CPU_UnitTestLibEnvVarRestore_NONE, testing::Values(GetTestParams()));
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_UnitTestLibEnvVarBool_NONE,
-                         testing::Values(GetTestParams()));
+INSTANTIATE_TEST_SUITE_P(Full, CPU_UnitTestLibEnvVarBool_NONE, testing::Values(GetTestParams()));
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_UnitTestLibEnvVarUInt64_NONE,
-                         testing::Values(GetTestParams()));
+INSTANTIATE_TEST_SUITE_P(Full, CPU_UnitTestLibEnvVarUInt64_NONE, testing::Values(GetTestParams()));
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_UnitTestLibEnvVarString_NONE,
-                         testing::Values(GetTestParams()));
+INSTANTIATE_TEST_SUITE_P(Full, CPU_UnitTestLibEnvVarString_NONE, testing::Values(GetTestParams()));
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         CPU_UnitTestLibEnvVarWrapper_NONE,
-                         testing::Values(GetTestParams()));
+INSTANTIATE_TEST_SUITE_P(Full, CPU_UnitTestLibEnvVarWrapper_NONE, testing::Values(GetTestParams()));
