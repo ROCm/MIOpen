@@ -40,8 +40,6 @@
 
 #include <functional>
 #include <string>
-#include <chrono>
-#include <thread>
 
 namespace miopen {
 struct KernelConfig

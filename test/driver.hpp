@@ -277,8 +277,8 @@ struct test_driver
         case miopenInt64: ss << "--int64 "; break;
         case miopenFloat: ss << "--float "; break;
         case miopenDouble: ss << "--double "; break;
-        case miopenFloat8: ss << "--float8"; break;
-        case miopenBFloat8: ss << "--bfloat8"; break;
+        case miopenFloat8_fnuz: ss << "--float8"; break;
+        case miopenBFloat8_fnuz: ss << "--bfloat8"; break;
         }
         for(auto&& arg : this->arguments)
         {
@@ -306,8 +306,8 @@ struct test_driver
         case miopenInt64: ret.emplace_back("--int64"); break;
         case miopenFloat: ret.emplace_back("--float"); break;
         case miopenDouble: ret.emplace_back("--double"); break;
-        case miopenFloat8: ret.emplace_back("--float8"); break;
-        case miopenBFloat8: ret.emplace_back("--bfloat8"); break;
+        case miopenFloat8_fnuz: ret.emplace_back("--float8"); break;
+        case miopenBFloat8_fnuz: ret.emplace_back("--bfloat8"); break;
         }
 
         for(auto&& arg : this->arguments)
