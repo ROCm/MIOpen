@@ -136,7 +136,7 @@ pipeline {
         booleanParam(
             name: "USE_SCCACHE_DOCKER",
             defaultValue: true,
-            description: "Use the sccache for building CK in the Docke Image (default: ON)")
+            description: "Use the sccache for building CK in the Docker Image (default: ON)")
     }
 
     environment{
