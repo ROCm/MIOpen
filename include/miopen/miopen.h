@@ -72,7 +72,6 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
- * @defgroup adaptiveavgpool
  *
  */
 
@@ -8229,7 +8228,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 
 #ifdef MIOPEN_BETA_API
 // adaptiveavgpool APIs
-/** @addtogroup adaptiveavgpool
+/** @addtogroup pooling
  *
  *  @{
  */
@@ -8265,7 +8264,7 @@ miopenAdaptiveAvgPoolBackward(miopenHandle_t handle,
                               const miopenTensorDescriptor_t inputGradDesc,
                               void* input_grad);
 /** @} */
-// CLOSEOUT adaptiveavgpool DOXYGEN GROUP
+// CLOSEOUT pooling DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus
