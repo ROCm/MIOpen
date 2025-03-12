@@ -29,6 +29,7 @@
 #include <cstdint>
 
 #include <miopen/check_numerics.hpp>
+#include <miopen/env.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
@@ -279,8 +280,8 @@ void PerfConfigConvCKIgemmFwdBiasResAddActivFused::HeuristicInit(
     case miopenFloat: Init<float>(conv_problem); break;
     case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
     case miopenInt8: Init<int8_t, float>(conv_problem); break;
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
@@ -334,8 +335,8 @@ bool PerfConfigConvCKIgemmFwdBiasResAddActivFused::IsValid(
     case miopenFloat: return CheckIsSupportCKArgs<float>(conv_problem);
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(conv_problem);
     case miopenInt8: return CheckIsSupportCKArgs<int8_t, float>(conv_problem);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
@@ -430,8 +431,8 @@ bool ConvCKIgemmFwdBiasResAddActivFused::IsApplicable(const FusionContext& ctx,
     case miopenFloat: return CheckCKApplicability<float>(conv_problem);
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(conv_problem);
     case miopenInt8: return CheckCKApplicability<int8_t, float>(conv_problem);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
@@ -472,8 +473,8 @@ ConvSolution ConvCKIgemmFwdBiasResAddActivFused::GetSolution(
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "ConvHipImplicitGemmBwdXdlops operation not implemented for this data type");

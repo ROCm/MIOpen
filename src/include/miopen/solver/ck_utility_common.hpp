@@ -54,9 +54,8 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx906") ||
            StartsWith(handle.GetDeviceName(), "gfx908") ||
            StartsWith(handle.GetDeviceName(), "gfx90a") ||
-           StartsWith(handle.GetDeviceName(), "gfx940") ||
-           StartsWith(handle.GetDeviceName(), "gfx941") ||
            StartsWith(handle.GetDeviceName(), "gfx942") ||
+           StartsWith(handle.GetDeviceName(), "gfx950") ||
            StartsWith(handle.GetDeviceName(), "gfx1030") ||
            StartsWith(handle.GetDeviceName(), "gfx1031") ||
            StartsWith(handle.GetDeviceName(), "gfx1100") ||
@@ -68,12 +67,11 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
 
 // MI100 : gfx908
 // MI200 : gfx90a
-// MI300 : gfx940, gfx941, gfx942
+// MI300 : gfx942
 static inline bool is_ck_whitelist(const std::string& device_name)
 {
     return (StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||
-            StartsWith(device_name, "gfx940") || StartsWith(device_name, "gfx941") ||
-            StartsWith(device_name, "gfx942"));
+            StartsWith(device_name, "gfx942") || StartsWith(device_name, "gfx950"));
 }
 
 static inline bool is_ck_whitelist(const Handle& handle)
@@ -107,12 +105,10 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
         compiler_flag << " -DCK_AMD_GPU_GFX908";
     else if(StartsWith(device_name, "gfx90a"))
         compiler_flag << " -DCK_AMD_GPU_GFX90A";
-    else if(StartsWith(device_name, "gfx940"))
-        compiler_flag << " -DCK_AMD_GPU_GFX940";
-    else if(StartsWith(device_name, "gfx941"))
-        compiler_flag << " -DCK_AMD_GPU_GFX941";
     else if(StartsWith(device_name, "gfx942"))
         compiler_flag << " -DCK_AMD_GPU_GFX942";
+    else if(StartsWith(device_name, "gfx950"))
+        compiler_flag << " -DCK_AMD_GPU_GFX950";
     else if(StartsWith(device_name, "gfx1030"))
         compiler_flag << " -DCK_AMD_GPU_GFX1030";
     else if(StartsWith(device_name, "gfx1031"))

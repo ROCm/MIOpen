@@ -58,8 +58,8 @@ bool IsDataTypeSupported(miopenDataType_t t)
     case miopenHalf:
     case miopenFloat:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenBFloat16:
     case miopenDouble:
@@ -847,10 +847,10 @@ std::ostream& operator<<(std::ostream& stream, const TensorDescriptor& t)
     {
         stream << "cast_type: ";
         const auto ct = *t.cast_type;
-        if(ct == miopenFloat8)
-            stream << "miopenFloat8";
-        else if(ct == miopenBFloat8)
-            stream << "miopenBFloat8";
+        if(ct == miopenFloat8_fnuz)
+            stream << "miopenFloat8_fnuz";
+        else if(ct == miopenBFloat8_fnuz)
+            stream << "miopenBFloat8_fnuz";
         else
             stream << "Other";
     }
@@ -1484,10 +1484,12 @@ std::string GetCastTensorBuildOptionFromType(const std::string& buildOption, mio
     case miopenHalf: return option += "2";
     case miopenFloat: return option += "3";
     case miopenBFloat16: return option += "4";
-    case miopenFloat8:
-        MIOPEN_THROW(miopenStatusBadParm, "miopenFloat8 data type not supported in cast tensor.");
-    case miopenBFloat8:
-        MIOPEN_THROW(miopenStatusBadParm, "miopenBFloat8 data type not supported in cast tensor.");
+    case miopenFloat8_fnuz:
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "miopenFloat8_fnuz data type not supported in cast tensor.");
+    case miopenBFloat8_fnuz:
+        MIOPEN_THROW(miopenStatusBadParm,
+                     "miopenBFloat8_fnuz data type not supported in cast tensor.");
     case miopenDouble:
         // TODO
         MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported in cast tensor.");
