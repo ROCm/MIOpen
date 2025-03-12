@@ -148,7 +148,7 @@ int FractionalMaxPoolDriver<Tgpu, Tref, Tindices>::GetandSetData()
     out_len.insert(out_len.end(), out_len_temp.begin(), out_len_temp.end());
     if(out_len.size() != in_len.size())
     {
-        int ref = in_len.size() - out_len.size();
+        int ref = static_cast<int>(in_len.size()) - static_cast<int>(out_len.size());
         if(ref < 0)
             MIOPEN_THROW("Invalid output size");
         while((ref--) != 0)
@@ -156,10 +156,10 @@ int FractionalMaxPoolDriver<Tgpu, Tref, Tindices>::GetandSetData()
     }
 
     std::vector<int> ksize_int = inflags.GetValueTensor("kernel_size").lengths;
-    int k_numdim               = in_len.size() - 2;
+    int k_numdim               = static_cast<int>(in_len.size()) - 2;
     if(ksize_int.size() != k_numdim)
     {
-        int ref = k_numdim - ksize_int.size();
+        int ref = k_numdim - static_cast<int>(ksize_int.size());
         if(ref < 0)
             MIOPEN_THROW("Invalid kernel size");
         while((ref--) != 0)
