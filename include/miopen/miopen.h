@@ -664,8 +664,7 @@ typedef enum
               miss, uses the existing Find machinery with skipping non-dynamic kernels, thus saving
               compilation time. Faster start-up times than Hybrid Find, but GPU performance might be
               a bit worse. >*/
-    miopenConvolutionFindModeTrustVerify =
-        6,
+    miopenConvolutionFindModeTrustVerify = 6,
     miopenConvolutionFindModeDefault =
         miopenConvolutionFindModeDynamicHybrid /*!< Default FindMode >*/
 } miopenConvolutionFindMode_t;
