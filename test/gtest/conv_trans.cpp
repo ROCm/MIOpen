@@ -29,8 +29,6 @@
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-namespace env = miopen::env;
-
 namespace conv_trans {
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -54,8 +52,8 @@ void Run2dDriver(miopenDataType_t prec)
     {
     case miopenFloat: params = GPU_conv_trans_FP32::GetParam(); break;
     case miopenHalf:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
@@ -89,7 +87,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
     if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
+       devName == "gfx942" || miopen::StartsWith(devName, "gfx103") ||
        miopen::StartsWith(devName, "gfx110"))
         return true;
     else
