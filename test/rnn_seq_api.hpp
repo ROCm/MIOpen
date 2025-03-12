@@ -146,7 +146,7 @@ struct verify_rnn_api_base
 
     void fail(int badtensor) const
     {
-        std::cout << "./bin/MIOpenDriver rnn_seq ";
+        std::cout << "./lib/miopen/MIOpenDriver rnn_seq ";
 
         std::cout << " -F 0 "
                   << " -m ";

@@ -41,7 +41,7 @@
 #ifdef _WIN32
 #define MDEXE "MIOpenDriver.exe"
 #else
-#define MDEXE "./bin/MIOpenDriver"
+#define MDEXE "./lib/miopen/MIOpenDriver"
 #endif
 
 const std::string logConv =
