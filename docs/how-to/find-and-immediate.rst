@@ -237,6 +237,12 @@ modes by using the ``MIOPEN_FIND_MODE`` environment variable with one of these v
   entry. If there's a FindDb hit, it uses that entry. If there's a miss, it uses the existing find machinery,
   skipping non-dynamic kernels. It offers faster start-up times than hybrid find, but GPU performance
   might decrease.
+* ``TRUST_VERIFY``/``6`` (trust verify find): Checks :doc:`FindDb <../conceptual/finddb>` for an entry.
+  If there's a UserFindDb hit, it uses that entry.
+  If there's a FindDb hit the result is evaluated. If the ratio of evaluated to reported result time is
+  below the tolerance threshold, the result is used and added to the UserFindDb. Otherwise tuning will be triggered.
+  If there's a miss, tuning will be triggered, skipping non-dynamic kernels.
+  This mode may have slow start-up times, but typically selects the most performant solutions.
 
 The default find mode is ``DYNAMIC_HYBRID``. To run the full ``NORMAL`` find mode, use
 ``export MIOPEN_FIND_MODE=NORMAL`` or ``export MIOPEN_FIND_MODE=1``.
