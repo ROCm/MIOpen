@@ -162,7 +162,7 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
     -D CMAKE_C_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
     -D CMAKE_BUILD_TYPE=Release \
-    -D GPU_ARCHS="${GPU_ARCHS}" \
+    -D GPU_ARCHS=${GPU_ARCHS} \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
     make -j ${num_threads} install && \ 
     sccache -s
