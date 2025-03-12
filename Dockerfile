@@ -150,10 +150,8 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
-    num_threads=$(nproc) && \
-    if [ "$num_threads" -lt 32 ]; then \
-        num_threads=$(( num_threads / 2 )); \
-    else \
+    num_threads=$(( $(nproc) / 2 )) && \
+    if [ "$num_threads" -gt 32 ]; then \
         num_threads=32; \
     fi && \
     echo Building CK with ${num_threads} threads && \
