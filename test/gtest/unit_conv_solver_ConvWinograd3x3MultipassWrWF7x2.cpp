@@ -61,11 +61,12 @@ const auto& GetTestParamsFP32() { return GetTestParams<miopenFloat>(); }
 
 } // namespace
 
-using GPU_UnitTestConvSolverWinograd3x3MultipassF7x2Wrw_FP16 = GPU_UnitTestConvSolverWrw_FP16;
+using GPU_UnitTestConvSolverWinograd3x3MultipassF7x2Wrw_FP16  = GPU_UnitTestConvSolverWrw_FP16;
 using GPU_UnitTestConvSolverWinograd3x3MultipassF7x2Wrw_BFP16 = GPU_UnitTestConvSolverWrw_BFP16;
-using GPU_UnitTestConvSolverWinograd3x3MultipassF7x2Wrw_FP32 = GPU_UnitTestConvSolverWrw_FP32;
+using GPU_UnitTestConvSolverWinograd3x3MultipassF7x2Wrw_FP32  = GPU_UnitTestConvSolverWrw_FP32;
 
-using CPU_UnitTestConvSolverWinograd3x3MultipassF7x2DevApplicabilityWrw_NONE = CPU_UnitTestConvSolverDevApplicabilityWrw_NONE;
+using CPU_UnitTestConvSolverWinograd3x3MultipassF7x2DevApplicabilityWrw_NONE =
+    CPU_UnitTestConvSolverDevApplicabilityWrw_NONE;
 
 TEST_P(GPU_UnitTestConvSolverWinograd3x3MultipassF7x2Wrw_FP16, ConvWinograd3x3MultipassWrWF7x2)
 {
@@ -82,7 +83,8 @@ TEST_P(GPU_UnitTestConvSolverWinograd3x3MultipassF7x2Wrw_FP32, ConvWinograd3x3Mu
     this->RunTest(miopen::solver::conv::ConvWinograd3x3MultipassWrW<7, 2>{});
 };
 
-TEST_P(CPU_UnitTestConvSolverWinograd3x3MultipassF7x2DevApplicabilityWrw_NONE, ConvWinograd3x3MultipassWrWF7x2)
+TEST_P(CPU_UnitTestConvSolverWinograd3x3MultipassF7x2DevApplicabilityWrw_NONE,
+       ConvWinograd3x3MultipassWrWF7x2)
 {
     this->RunTest(miopen::solver::conv::ConvWinograd3x3MultipassWrW<7, 2>{});
 };
