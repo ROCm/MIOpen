@@ -28,7 +28,6 @@
 #include "random.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/kernel_build_params.hpp>
 

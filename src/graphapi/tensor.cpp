@@ -27,6 +27,7 @@
 #include <miopen/algorithm.hpp>
 #include <miopen/graphapi/tensor.hpp>
 #include <miopen/errors.hpp>
+#include <nlohmann/json.hpp>
 
 namespace miopen {
 
@@ -301,6 +302,20 @@ void BackendTensorDescriptor::getAttribute(miopenBackendAttributeName_t attribut
 
     default: MIOPEN_THROW(miopenStatusBadParm);
     }
+}
+
+void to_json(nlohmann::json& json, const Tensor& tensor)
+{
+    json                                = dynamic_cast<const TensorDescriptor&>(tensor);
+    json[Tensor::JsonFields::Id]        = tensor.mId;
+    json[Tensor::JsonFields::IsVirtual] = tensor.mVirtual;
+}
+
+void from_json(const nlohmann::json& json, Tensor& tensor)
+{
+    json.get_to<TensorDescriptor>(tensor);
+    json.at(Tensor::JsonFields::Id).get_to(tensor.mId);
+    json.at(Tensor::JsonFields::IsVirtual).get_to(tensor.mVirtual);
 }
 
 } // namespace graphapi

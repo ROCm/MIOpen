@@ -58,24 +58,16 @@ ReadonlyRamDb::GetCached(DbKinds db_kind_, const fs::path& path, bool warn_if_un
 
     // We don't have to store kind to properly index as different dbs would have different paths
     // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
-    static auto instances = std::map<fs::path, ReadonlyRamDb*>{};
+    static auto instances = std::map<fs::path, std::unique_ptr<ReadonlyRamDb>>{};
     const auto it         = instances.find(path);
 
     if(it != instances.end())
         return *it->second;
 
-    // The ReadonlyRamDb objects allocated here by "new" shall be alive during
-    // the calling app lifetime. Size of each is very small, and there couldn't
-    // be many of them (max number is number of _different_ GPU board installed
-    // in the user's system, which is _one_ for now). Therefore the total
-    // footprint in heap is very small. That is why we can omit deletion of
-    // these objects thus avoiding bothering with MP/MT syncronization.
-    // These will be destroyed altogether with heap.
-    // NOLINTNEXTLINE (cppcoreguidelines-owning-memory)
-    auto instance = new ReadonlyRamDb{db_kind_, path};
-    instances.emplace(path, instance);
-    instance->Prefetch(warn_if_unreadable);
-    return *instance;
+    auto& instance =
+        *instances.emplace(path, std::make_unique<ReadonlyRamDb>(db_kind_, path)).first->second;
+    instance.Prefetch(warn_if_unreadable);
+    return instance;
 }
 
 template <class TFunc>

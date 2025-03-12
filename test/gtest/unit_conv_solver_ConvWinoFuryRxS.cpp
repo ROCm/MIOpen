@@ -30,7 +30,7 @@ namespace {
 
 auto GetConvTestCases(miopenDataType_t datatype)
 {
-    using TestCase = ConvTestCase;
+    using TestCase = miopen::unit_tests::ConvTestCase;
 
     return std::vector{
         // clang-format off
@@ -42,7 +42,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
 auto GetConvTestCasesWrw(miopenDataType_t datatype)
 {
-    using TestCase = ConvTestCase;
+    using TestCase = miopen::unit_tests::ConvTestCase;
 
     return std::vector{
         // clang-format off
@@ -52,51 +52,64 @@ auto GetConvTestCasesWrw(miopenDataType_t datatype)
     };
 }
 
-Gpu GetSupportedDevices() { return Gpu::gfx110X; }
+const auto& GetTestParams()
+{
+    static const auto params = [] {
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx110X);
+        return p;
+    }();
+    return params;
+}
 
 } // namespace
 
-TEST_P(GPU_UnitTestConvSolverFwd_FP16, ConvWinoFuryRxSf2x3)
+using GPU_UnitTestConvSolverWinoFury2x3Fwd_FP16 = GPU_UnitTestConvSolverFwd_FP16;
+using GPU_UnitTestConvSolverWinoFury2x3Bwd_FP16 = GPU_UnitTestConvSolverBwd_FP16;
+using GPU_UnitTestConvSolverWinoFury2x3Wrw_FP16 = GPU_UnitTestConvSolverWrw_FP16;
+using CPU_UnitTestConvSolverWinoFury2x3DevApplicabilityFwd_NONE =
+    CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
+
+TEST_P(GPU_UnitTestConvSolverWinoFury2x3Fwd_FP16, ConvWinoFuryRxSf2x3)
 {
     this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
 
-TEST_P(GPU_UnitTestConvSolverBwd_FP16, ConvWinoFuryRxSf2x3)
+TEST_P(GPU_UnitTestConvSolverWinoFury2x3Bwd_FP16, ConvWinoFuryRxSf2x3)
 {
     this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
 
-TEST_P(GPU_UnitTestConvSolverWrw_FP16, ConvWinoFuryRxSf2x3)
+TEST_P(GPU_UnitTestConvSolverWinoFury2x3Wrw_FP16, ConvWinoFuryRxSf2x3)
 {
     this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
 
-TEST_P(CPU_UnitTestConvSolverDevApplicabilityFwd_NONE, ConvWinoFuryRxSf2x3)
+TEST_P(CPU_UnitTestConvSolverWinoFury2x3DevApplicabilityFwd_NONE, ConvWinoFuryRxSf2x3)
 {
     this->RunTest(miopen::solver::conv::ConvWinoFuryRxS<2, 3>{});
 };
 
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverFwd_FP16,
-                         testing::Combine(testing::Values(GetSupportedDevices()),
+                         GPU_UnitTestConvSolverWinoFury2x3Fwd_FP16,
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverBwd_FP16,
-                         testing::Combine(testing::Values(GetSupportedDevices()),
+                         GPU_UnitTestConvSolverWinoFury2x3Bwd_FP16,
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverWrw_FP16,
-                         testing::Combine(testing::Values(GetSupportedDevices()),
+                         GPU_UnitTestConvSolverWinoFury2x3Wrw_FP16,
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCasesWrw(miopenHalf))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverDevApplicabilityFwd_NONE,
-                         testing::Combine(testing::Values(GetSupportedDevices()),
+                         CPU_UnitTestConvSolverWinoFury2x3DevApplicabilityFwd_NONE,
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenHalf)[0])));

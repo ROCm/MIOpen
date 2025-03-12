@@ -43,29 +43,29 @@ int8_t RanGenWeights()
 }
 
 template <>
-float8 RanGenWeights()
+float8_fnuz RanGenWeights()
 {
     const auto tmp =
         prng::gen_0_to_B(1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
     // 1 in 2 chance of number being positive
     const float sign =
         (prng::gen_0_to_B(1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
-    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
+    const auto tmp2 = static_cast<float>(std::numeric_limits<float8_fnuz>::epsilon()) *
                       static_cast<float>(2) * sign * static_cast<float>(tmp);
-    return static_cast<float8>(tmp2);
+    return static_cast<float8_fnuz>(tmp2);
 }
 
 template <>
-bfloat8 RanGenWeights()
+bfloat8_fnuz RanGenWeights()
 {
     const auto tmp =
         prng::gen_0_to_B(1.0) > 0.5 ? static_cast<float>(0.0) : static_cast<float>(1.0);
     // 1 in 2 chance of number being positive
     const float sign =
         (prng::gen_0_to_B(1.0) > 0.5) ? static_cast<float>(-1) : static_cast<float>(1);
-    const auto tmp2 = static_cast<float>(std::numeric_limits<float8>::epsilon()) *
+    const auto tmp2 = static_cast<float>(std::numeric_limits<float8_fnuz>::epsilon()) *
                       static_cast<float>(2) * sign * static_cast<float>(tmp);
-    return static_cast<bfloat8>(tmp2);
+    return static_cast<bfloat8_fnuz>(tmp2);
 }
 
 } // namespace conv

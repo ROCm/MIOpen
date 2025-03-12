@@ -63,11 +63,7 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <miopen/ocldeviceinfo.hpp>
 #endif
 #include <miopen/db_path.hpp>
-#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
-#include <miopen/sqlite_db.hpp>
-#else
-#include <miopen/readonlyramdb.hpp>
-#endif
+#include <miopen/conv/db_getter.hpp>
 #include <miopen/execution_context.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/problem_description.hpp>
@@ -136,11 +132,6 @@ class DbTimer;
 
 struct AnyInvokeParams;
 
-#if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
-using PerformanceDb = DbTimer<MultiFileDb<SQLitePerfDb, SQLitePerfDb, true>>;
-#else
-using PerformanceDb = DbTimer<MultiFileDb<ReadonlyRamDb, RamDb, true>>;
-#endif
 MIOPEN_INTERNALS_EXPORT miopen::PerformanceDb GetDb(const miopen::ExecutionContext& ctx);
 
 template <class TTo>
@@ -274,7 +265,7 @@ struct mlo_construct_base
     /*
      * set library stream
      */
-    inline void setStream(miopen::Handle* stream) { _ctx.SetStream(stream); }
+    inline void setStream(const miopen::Handle* stream) { _ctx.SetStream(stream); }
 
 protected:
     miopen::ProblemDescriptionCompatTemporary _problem;
