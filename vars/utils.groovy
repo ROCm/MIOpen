@@ -255,8 +255,7 @@ def getDockerImage(Map conf=[:])
     if(params.INSTALL_MIOPEN == 'ON')
     {
         def freckle = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-        dockerArgs = ""
-        dockerArgs = dockerArgs + " --build-arg BASE_DOCKER=${image} --build-arg FRECKLE=${freckle} -f Dockerfile.perftests"
+        dockerArgs = " --build-arg BASE_DOCKER=${image} --build-arg FRECKLE=${freckle} -f Dockerfile.perftests"
 
         // Get updated image name for perf tests.
         image = getDockerImageName(dockerArgs)
