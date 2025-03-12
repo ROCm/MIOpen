@@ -28,7 +28,6 @@
 #define MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
 
 #include "miopen/miopen.h"
-#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
@@ -52,7 +51,7 @@ namespace solver {
 
 template <class Solver, class Context, class Problem, class Db>
 auto FindSolutionImpl(rank<1>,
-                      Solver s,
+                      const Solver& s,
                       const Context& context,
                       const Problem& problem,
                       Db&& db,
@@ -148,7 +147,7 @@ auto FindSolutionImpl(rank<1>,
 
 template <class Solver, class Context, class Problem, class Db>
 auto FindSolutionImpl(rank<0>,
-                      Solver s,
+                      const Solver& s,
                       const Context& context,
                       const Problem& problem,
                       Db&&,
@@ -200,7 +199,7 @@ auto GetInvokeFactoryImpl(
 /// Could take long if an exhaustive search is requested/performed.
 /// May read/write perfDb.
 template <class Solver, class Context, class Problem, class Db>
-ConvSolution FindSolution(Solver s,
+ConvSolution FindSolution(const Solver& s,
                           const Context& context,
                           const Problem& problem,
                           Db&& db,
@@ -438,41 +437,6 @@ struct SolverContainer
         return res;
     }
 
-    // Search for all applicable solutions among many solvers
-    template <class Context, class Problem>
-    bool IsAnySolverApplicable(const Context& ctx, const Problem& problem) const
-    {
-        const auto find_only = GetEnvFindOnlySolver();
-        auto found           = false;
-
-        miopen::each_args(
-            [&](auto solver) {
-                if(found || (find_only && (std::find(find_only->begin(),
-                                                     find_only->end(),
-                                                     Id{solver.SolverDbId()}) == find_only->end())))
-                    return;
-
-                // For better performance, check IsDynamic() first, because
-                // it is much faster than IsApplicable().
-                if(ctx.use_dynamic_solutions_only && !solver.IsDynamic())
-                {
-                    MIOPEN_LOG_I2(solver.SolverDbId() << ": Skipped (non-dynamic)");
-                    return;
-                }
-
-                if(solver.IsApplicable(ctx, problem))
-                {
-                    found = true;
-                    return;
-                }
-
-                MIOPEN_LOG_I2(solver.SolverDbId() << ": Not applicable");
-            },
-            Solvers{}...);
-
-        return found;
-    }
-
     template <class Problem>
     void ExecutePrimitive(const ExecutionContext& ctx,
                           const Problem& problem,
@@ -503,7 +467,7 @@ struct SolverContainer
     }
 
     template <class Problem>
-    void ExecutePrimitive(Handle& handle,
+    void ExecutePrimitive(const Handle& handle,
                           const Problem& problem,
                           const AlgorithmName& algo,
                           const AnyInvokeParams& invoke_params) const

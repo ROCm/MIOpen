@@ -36,7 +36,7 @@ auto GetTestCases()
 {
     const auto env_fwd = std::tuple{
         std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-        std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+        std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
         std::pair{MIOPEN_FIND_MODE, "normal"},
         std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC"}};
 
@@ -64,15 +64,16 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class GPU_Conv2dTuning_FP16 : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningDynamicFwdDlops_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(GPU_Conv2dTuning_FP16, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC)
+TEST_P(GPU_Conv2dTuningDynamicFwdDlops_FP16,
+       HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, GPU_Conv2dTuning_FP16>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningDynamicFwdDlops_FP16>(tuning_check);
     }
     else
     {
@@ -80,4 +81,6 @@ TEST_P(GPU_Conv2dTuning_FP16, HalfTest_smoke_solver_ConvAsmImplicitGemmGTCDynami
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_FP16, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dTuningDynamicFwdDlops_FP16,
+                         testing::Values(GetTestCases()));

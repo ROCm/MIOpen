@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include "miopen/conv/solvers.hpp"
+#include <miopen/env.hpp>
 #include "miopen/handle.hpp"
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
@@ -320,7 +321,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
     if(!problem.IsLayoutDefault())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
     auto tunables = GetImplicitGemmV4R1DynamicTunables();
@@ -366,7 +367,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
     if(!problem.IsLayoutDefault())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
     auto tunables = GetImplicitGemmV4R1DynamicTunables();

@@ -37,7 +37,7 @@ auto GetTestCases()
 {
     const auto env_fwd =
         std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                   std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                   std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
                    std::pair{MIOPEN_FIND_MODE, "normal"},
                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmBwdDataV1R1"}};
 
@@ -61,15 +61,17 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class GPU_Conv2dTuning_FP32 : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningHipImplicitGemmBwdDataV1R1_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(GPU_Conv2dTuning_FP32, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1)
+TEST_P(GPU_Conv2dTuningHipImplicitGemmBwdDataV1R1_FP32,
+       FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV1R1)
 {
     if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, GPU_Conv2dTuning_FP32>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningHipImplicitGemmBwdDataV1R1_FP32>(
+            tuning_check);
     }
     else
     {
@@ -77,4 +79,6 @@ TEST_P(GPU_Conv2dTuning_FP32, FloatTest_smoke_solver_ConvHipImplicitGemmBwdDataV
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuning_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dTuningHipImplicitGemmBwdDataV1R1_FP32,
+                         testing::Values(GetTestCases()));

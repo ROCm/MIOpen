@@ -26,7 +26,6 @@
 
 #include <miopen/ctc.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/env.hpp>
 
 namespace miopen {
 
@@ -37,7 +36,7 @@ CTCLossDescriptor::CTCLossDescriptor()
     blank_label_id      = 0;
 }
 
-size_t CTCLossDescriptor::GetCTCLossWorkspaceSize(Handle& handle,
+size_t CTCLossDescriptor::GetCTCLossWorkspaceSize(const Handle& handle,
                                                   const TensorDescriptor& probsDesc,
                                                   const TensorDescriptor& gradientsDesc,
                                                   const int* labels,

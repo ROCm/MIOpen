@@ -671,7 +671,7 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
     if(!ctx.rmv.IsV3())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 
@@ -679,8 +679,8 @@ static bool IsApplicableBase(const ExecutionContext& ctx, const ProblemDescripti
     if(!(StartsWith(name, "gfx9") || StartsWith(name, "gfx10") || StartsWith(name, "gfx11")))
         return false;
     if(problem.IsFp16() &&
-       !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
-         StartsWith(name, "gfx94") || StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") ||
+       !(name == "gfx906" || name == "gfx908" || name == "gfx90a" || name == "gfx942" ||
+         StartsWith(name, "gfx95") || name == "gfx1011" || name == "gfx1012" ||
          StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
         return false;
 
@@ -858,11 +858,9 @@ ConvSolution ConvBinWinoRxS<Winodata, Winofilter>::GetSolution(
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    const auto force_cache_bypass = (name == "gfx940") || (name == "gfx941");
-
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", 5},
-        {"FORCE_CACHE_BYPASS_ON_STORE", force_cache_bypass},
+        {"FORCE_CACHE_BYPASS_ON_STORE", false},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");

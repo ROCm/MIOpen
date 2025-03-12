@@ -25,15 +25,10 @@
  *******************************************************************************/
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <miopen/env.hpp>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_CONV)
-
 namespace miopen_conv {
-
-bool SkipTest() { return env::disabled(MIOPEN_TEST_CONV); }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -44,7 +39,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class GPU_Conv2d_miopen_conv_FP32 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_MIOpenTestConv_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -53,22 +48,22 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = GPU_Conv2d_miopen_conv_FP32::GetParam(); break;
+    case miopenFloat: params = GPU_Conv2d_MIOpenTestConv_FP32::GetParam(); break;
     case miopenInt8:
-    case miopenBFloat8:
-    case miopenFloat8:
+    case miopenBFloat8_fnuz:
+    case miopenFloat8_fnuz:
     case miopenHalf:
     case miopenBFloat16:
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-        FAIL() << "miopenInt8, miopenBFloat8, miopenFloat8, miopenHalf, miopenBFloat16, "
+        FAIL() << "miopenInt8, miopenBFloat8_fnuz, miopenFloat8_fnuz, miopenHalf, miopenBFloat16, "
                   "miopenInt32, "
                   "miopenDouble data "
                   "type not supported by "
                   "miopen_conv test";
 
-    default: params = GPU_Conv2d_miopen_conv_FP32::GetParam();
+    default: params = GPU_Conv2d_MIOpenTestConv_FP32::GetParam();
     }
 
     for(const auto& test_value : params)
@@ -92,7 +87,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
     if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
+       devName == "gfx942" || miopen::StartsWith(devName, "gfx103") ||
        miopen::StartsWith(devName, "gfx110"))
         return true;
     else
@@ -154,10 +149,10 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace miopen_conv
 using namespace miopen_conv;
 
-TEST_P(GPU_Conv2d_miopen_conv_FP32, FloatTest)
+TEST_P(GPU_Conv2d_MIOpenTestConv_FP32, FloatTest)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest())
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenFloat);
     }
@@ -168,5 +163,5 @@ TEST_P(GPU_Conv2d_miopen_conv_FP32, FloatTest)
 };
 
 INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_Conv2d_miopen_conv_FP32,
+                         GPU_Conv2d_MIOpenTestConv_FP32,
                          testing::Values(GetTestCases("--float")));

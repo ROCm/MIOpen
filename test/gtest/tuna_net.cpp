@@ -129,7 +129,16 @@ void TestSolverPredictionModel(miopen::conv::ProblemDescription& problem,
         GTEST_SKIP();
     miopen::ExecutionContext ctx;
     ctx.SetStream(&handle);
-    std::vector<std::size_t> solvers = miopen::ai::immed_mode::PredictSolver(problem, ctx, device);
+    std::vector<std::size_t> solvers;
+    try
+    {
+        solvers = miopen::ai::immed_mode::PredictSolver(problem, ctx, device);
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_I2("[Warning] Caught exception: (" << ex.what()
+                                                      << "), passing empty solver vector");
+    }
     std::size_t solver =
         std::distance(solvers.begin(), std::max_element(solvers.begin(), solvers.end()));
     ASSERT_EQ(solver, expected_solver)
