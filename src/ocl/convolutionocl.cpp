@@ -321,7 +321,9 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                     const float eval_time            = eval_sols.front().GetTime();
                     constexpr float VERIFY_TOLERANCE = 1.10f;
                     const float rel_perf             = eval_time / sol->time;
-                    MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time << ") / recorded(" << sol->time << ") < " << VERIFY_TOLERANCE << " ?");
+                    MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time << ") / recorded("
+                                                            << sol->time << ") < "
+                                                            << VERIFY_TOLERANCE << " ?");
                     if(rel_perf < VERIFY_TOLERANCE)
                     {
                         // system db result is good
