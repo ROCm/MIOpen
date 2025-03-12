@@ -145,7 +145,7 @@ extern "C" miopenStatus_t miopenLPPoolBackward(miopenHandle_t handle,
                         norm_type);
 
     LogCmdLPPool(inputGradDesc, outputGradDesc, KD, KH, SD, SH, norm_type, false);
-    
+
     return miopen::try_([&] {
         miopen::lppool::LPPoolBackward(miopen::deref(handle),
                                        miopen::deref(inputDesc),
