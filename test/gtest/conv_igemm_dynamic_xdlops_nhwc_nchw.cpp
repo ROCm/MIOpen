@@ -28,21 +28,20 @@
 #include <gtest/gtest.h>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "lib_env_var.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-
-namespace env = miopen::env;
+MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_MODE)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 
 namespace conv_igemm_dynamic_xdlops_nhwc_nchw {
 
 void SetupEnvVar()
 {
-    env::update(MIOPEN_FIND_MODE, "normal");
-    env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
-                "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-                "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
+    lib_env::update(MIOPEN_FIND_MODE, "normal");
+    lib_env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                    "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
+                    "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+                    "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -81,11 +80,11 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         FAIL() << "miopenInt8, miopenBFloat16, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "miopenDouble, miopenFloat8_fnuz, miopenBFloat8_fnuz "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_nchw test";
     }
 
@@ -115,7 +114,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
     std::string devName = handle.GetDeviceName();
     if(target.Xnack() && *target.Xnack())
         return false;
-    if(devName == "gfx908" || devName == "gfx90a" || miopen::StartsWith(devName, "gfx94"))
+    if(devName == "gfx908" || devName == "gfx90a" || devName == "gfx942")
         return true;
     else
         return false;

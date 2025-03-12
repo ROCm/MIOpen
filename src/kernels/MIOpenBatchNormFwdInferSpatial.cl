@@ -49,32 +49,35 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
                                   unsigned int hwStride,
                                   unsigned int batchStride)
 {
-    int xgid = get_global_id(0);
-    int ygid = get_global_id(1);
+    unsigned int xgid = get_global_id(0);
+    unsigned int ygid = get_global_id(1);
 
-    if(xgid >= c)
+    if(xgid * VEC_SIZE_X >= c || ygid * VEC_SIZE_Y >= hw)
         return;
 
     unsigned int index;
+    _FLOAT_PREC_C mean, variance, invVariance;
+    _FLOAT_PREC_C pscale, pbias;
+    _FLOAT_PREC_LS inhat;
+    _FLOAT_LS value;
 
-    _FLOAT_PREC mean, variance, invVariance;
-    _FLOAT_PREC inhat;
-    _FLOAT_PREC pscale, pbias;
+    mean        = *((const __global _FLOAT_PREC_C*)(estimatedMean + xgid * VEC_SIZE_X));
+    variance    = *((const __global _FLOAT_PREC_C*)(estimatedVariance + xgid * VEC_SIZE_X));
+    pscale      = *((const __global _FLOAT_PREC_C*)(scale + xgid * VEC_SIZE_X));
+    pbias       = *((const __global _FLOAT_PREC_C*)(bias + xgid * VEC_SIZE_X));
+    invVariance = rsqrt(fabs(variance + (_FLOAT_PREC_C)epsilon));
 
-    mean        = *(estimatedMean + xgid);
-    variance    = *(estimatedVariance + xgid);
-    pscale      = *(scale + xgid);
-    pbias       = *(bias + xgid);
-    invVariance = rsqrt(fabs(variance + epsilon));
-
-    for(int idx = ygid; idx < hw; idx += get_global_size(1))
+    for(int n = 0; n < batchSize; n++)
     {
-        for(int n = 0; n < batchSize; n++)
-        {
-            index      = (n * batchStride) + (xgid * cStride) + (idx * hwStride);
-            inhat      = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
-            out[index] = FLOATPREC2FLOAT(mad(pscale, inhat, pbias));
-        }
+        index = (n * batchStride) + (xgid * cStride * VEC_SIZE_X) + (ygid * hwStride * VEC_SIZE_Y);
+        value = *((const __global _FLOAT_LS*)(in + index));
+
+        inhat = FLOAT2FLOATPREC_VEC(value);
+        inhat = (inhat - mean) * invVariance;
+        inhat = mad(pscale, inhat, (_FLOAT_PREC_LS)pbias);
+        value = FLOATPREC2FLOAT_VEC(inhat);
+
+        *((__global _FLOAT_LS*)(out + index)) = value;
     }
 } // end spatial norm
 
