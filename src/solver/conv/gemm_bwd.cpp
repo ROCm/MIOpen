@@ -54,7 +54,7 @@ bool GemmBwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
     const auto& dyDesc             = problem.GetIn();
     const auto& wDesc              = problem.GetWeights();
     const auto& dxDesc             = problem.GetOut();
-    const auto rblas_fp8_supported = miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx94") ||
+    const auto rblas_fp8_supported = ctx.GetStream().GetDeviceName() == "gfx942" ||
                                      miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx95");
     if(problem.IsTensorsCasted())
     {

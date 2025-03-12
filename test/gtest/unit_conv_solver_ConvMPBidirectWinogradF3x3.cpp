@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,24 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <gtest/gtest_common.hpp>
 
-#if MIOPEN_USE_COMPOSABLEKERNEL
-#define WORAROUND_ISSUE_2533 1
-#endif
-
-// MI100 : gfx908
-// MI200 : gfx90a
-// MI300 : gfx942
-static inline bool IsDeviceSupportedForCK()
-{
-#if MIOPEN_USE_COMPOSABLEKERNEL
-#if WORAROUND_ISSUE_2533
-    return IsTestSupportedByDevice(Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X);
-#else
-    return true;
-#endif
-#else
-    return false;
-#endif
-}
+#define WINO_DATA_H 3
+#define WINO_FILTER_H 3
+#include "unit_conv_solver_ConvMPBidirectWinograd.hpp"
