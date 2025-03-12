@@ -60,6 +60,27 @@ auto GetConvTestCases(miopenDataType_t datatype)
     };
 }
 
+#if NUM_BATCH_LOOPS != 1
+auto GetConvTestCasesFull(miopenDataType_t datatype)
+{
+    using TestCase = miopen::unit_tests::ConvTestCase;
+
+    auto cases = std::vector<TestCase>{};
+
+    if(datatype == miopenFloat)
+    {
+        // clang-format off
+#if NUM_BATCH_LOOPS != 1
+        // Regression test for https://github.com/ROCm/MIOpen/issues/3540
+        cases.emplace_back(TestCase{{1024, 256, 32, 32}, {256, 256, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype});
+#endif
+        // clang-format on
+    }
+
+    return cases;
+}
+#endif
+
 const auto& GetTestParams()
 {
     static const auto params = [] {
@@ -122,3 +143,12 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          TEST_NAME_DEVAPP,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
+
+// Full tests
+#if NUM_BATCH_LOOPS != 1
+INSTANTIATE_TEST_SUITE_P(Full,
+                         TEST_NAME_FP32,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenFloat))));
+#endif
