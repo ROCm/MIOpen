@@ -44,9 +44,9 @@
 #include <half/half.hpp>
 #include <hip_float8.hpp>
 
-using float16 = half_float::half;
-using float8  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
-using bfloat8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
+using float16      = half_float::half;
+using float8_fnuz  = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using bfloat8_fnuz = miopen_f8::hip_f8<miopen_f8::hip_f8_type::bf8>;
 
 using namespace miopen;
 
@@ -336,14 +336,15 @@ TEST_F(GPU_HipBLASLtGEMMTest_FP8, CheckHipBLASLtGEMMException)
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
-    CheckExceptionsWithSkip<float8, d_mask, e_mask>(miopenDataType_t::miopenFloat8);
+    CheckExceptionsWithSkip<float8_fnuz, d_mask, e_mask>(miopenDataType_t::miopenFloat8_fnuz);
 };
 TEST_P(GPU_HipBLASLtGEMMTest_FP8, RunHipBLASLtGEMM)
 {
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
-    RunGemmDescriptors<float8, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenFloat8);
+    RunGemmDescriptors<float8_fnuz, d_mask, e_mask>(GetParam(),
+                                                    miopenDataType_t::miopenFloat8_fnuz);
 };
 INSTANTIATE_TEST_SUITE_P(Full, GPU_HipBLASLtGEMMTest_FP8, testing::ValuesIn(GetTestCases()));
 
@@ -353,9 +354,9 @@ TEST_F(GPU_HipBLASLtGEMMTest_BFP8, CheckHipBLASLtGEMMException)
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
-    CheckExceptionsWithSkip<bfloat8, d_mask, e_mask>(miopenDataType_t::miopenBFloat8);
+    CheckExceptionsWithSkip<bfloat8_fnuz, d_mask, e_mask>(miopenDataType_t::miopenBFloat8_fnuz);
 #else
-    CheckExceptions<bfloat8>(miopenDataType_t::miopenInt64);
+    CheckExceptions<bfloat8_fnuz>(miopenDataType_t::miopenInt64);
 #endif
 };
 TEST_P(GPU_HipBLASLtGEMMTest_BFP8, RunHipBLASLtGEMM)
@@ -364,7 +365,8 @@ TEST_P(GPU_HipBLASLtGEMMTest_BFP8, RunHipBLASLtGEMM)
     using e_mask = enabled<Gpu::gfx94X>;
     using d_mask =
         disabled<Gpu::gfx103X, Gpu::gfx900, Gpu::gfx906, Gpu::gfx908, Gpu::gfx90A, Gpu::gfx110X>;
-    RunGemmDescriptors<bfloat8, d_mask, e_mask>(GetParam(), miopenDataType_t::miopenBFloat8);
+    RunGemmDescriptors<bfloat8_fnuz, d_mask, e_mask>(GetParam(),
+                                                     miopenDataType_t::miopenBFloat8_fnuz);
 #else
     GTEST_SKIP();
 #endif

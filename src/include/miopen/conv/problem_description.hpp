@@ -283,13 +283,13 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
     }
     bool IsFp8() const
     {
-        return GetInDataType() == miopenFloat8 || GetWeightsDataType() == miopenFloat8 ||
-               GetOutDataType() == miopenFloat8;
+        return GetInDataType() == miopenFloat8_fnuz || GetWeightsDataType() == miopenFloat8_fnuz ||
+               GetOutDataType() == miopenFloat8_fnuz;
     }
     bool IsBfp8() const
     {
-        return GetInDataType() == miopenBFloat8 || GetWeightsDataType() == miopenBFloat8 ||
-               GetOutDataType() == miopenBFloat8;
+        return GetInDataType() == miopenBFloat8_fnuz ||
+               GetWeightsDataType() == miopenBFloat8_fnuz || GetOutDataType() == miopenBFloat8_fnuz;
     }
     bool IsTensorsCasted() const
     {
