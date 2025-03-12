@@ -510,7 +510,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenBFloat16:
-        return (StartsWith(ctx.GetStream().GetDeviceName(), "gfx94") ||
+        return (ctx.GetStream().GetDeviceName() == "gfx942" ||
                 StartsWith(ctx.GetStream().GetDeviceName(), "gfx95")) &&
                CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
