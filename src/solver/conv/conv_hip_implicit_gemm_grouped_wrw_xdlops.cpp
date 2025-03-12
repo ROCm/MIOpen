@@ -28,6 +28,7 @@
 #include <cstdint>
 
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
@@ -305,8 +306,8 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::ModelApplyToken(
             case miopenBFloat16: valid_split_k = CheckIsSupportCKArgs<ck::bhalf_t>(problem); break;
             case miopenInt64:
             case miopenInt32:
-            case miopenFloat8:
-            case miopenBFloat8:
+            case miopenFloat8_fnuz:
+            case miopenBFloat8_fnuz:
             case miopenDouble: break;
             }
             if(valid_split_k)
@@ -469,8 +470,8 @@ void PerformanceConfigHipImplicitGemmGroupWrwXdlops::HeuristicInit(
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -489,8 +490,8 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::SetNextValue(const ProblemD
         case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
         case miopenInt64:
         case miopenInt32:
-        case miopenFloat8:
-        case miopenBFloat8:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
         case miopenDouble: break;
         }
         assert(!valid_kernels.empty());
@@ -535,8 +536,8 @@ bool PerformanceConfigHipImplicitGemmGroupWrwXdlops::IsValid(
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -610,12 +611,12 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenBFloat16:
-        return StartsWith(ctx.GetStream().GetDeviceName(), "gfx94") &&
+        return ctx.GetStream().GetDeviceName() == "gfx942" &&
                CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
