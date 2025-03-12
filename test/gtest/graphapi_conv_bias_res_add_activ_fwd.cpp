@@ -26,7 +26,6 @@
 #include <gtest/gtest.h>
 #include <gtest/gtest_common.hpp>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 
 #include <miopen/graphapi/convolution.hpp>
 #include <miopen/graphapi/execution_plan.hpp>
@@ -338,6 +337,11 @@ public:
         ASSERT_NO_THROW(
             plan =
                 gr::ExecutionPlanBuilder().setEngineCfg(engineConfig).setHandle(handlePtr).build());
+
+        // Serialize and deserialize the plan to test JSON attribute
+        ASSERT_NO_THROW(plan = gr::ExecutionPlanBuilder()
+                                   .setJsonRepresentation(plan.getJsonRepresentation())
+                                   .build());
 
         Workspace ws(plan.getWorkspaceSize());
 

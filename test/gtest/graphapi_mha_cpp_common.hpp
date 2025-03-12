@@ -218,7 +218,7 @@ protected:
             assert(out_tensors.size() == 1);
 
             auto* mm_desc =
-                mAlloc.allocate(gr::MatmulBuilder().setComputeType(miopenFloat8).build());
+                mAlloc.allocate(gr::MatmulBuilder().setComputeType(miopenFloat8_fnuz).build());
             mGraphBuilder->addNode(mAlloc.allocate(gr::OperationMatmulBuilder{}
                                                        .setA(in_tensors[0])
                                                        .setB(in_tensors[1])
@@ -337,8 +337,13 @@ protected:
 
         auto engine_cfg = gr::EngineCfgBuilder().setEngine(engines[0]).build();
 
-        auto h    = static_cast<miopenHandle_t>(&handle);
+        auto h = static_cast<miopenHandle_t>(&handle);
+
         auto plan = gr::ExecutionPlanBuilder().setEngineCfg(engine_cfg).setHandle(h).build();
+
+        // Serialize and deserialize the plan to test JSON attribute
+        plan =
+            gr::ExecutionPlanBuilder().setJsonRepresentation(plan.getJsonRepresentation()).build();
 
         Workspace ws(plan.getWorkspaceSize());
 

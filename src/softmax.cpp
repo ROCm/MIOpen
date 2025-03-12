@@ -100,7 +100,7 @@ void from_json(const nlohmann::json& json, SoftmaxDescriptor& descriptor)
     json.at("mode").get_to(descriptor.mode);
 }
 
-miopenStatus_t SoftmaxForward(Handle& handle,
+miopenStatus_t SoftmaxForward(const Handle& handle,
                               const void* alpha,
                               const void* beta,
                               const TensorDescriptor& xDesc,
@@ -128,7 +128,7 @@ miopenStatus_t SoftmaxForward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t SoftmaxBackward(Handle& handle,
+miopenStatus_t SoftmaxBackward(const Handle& handle,
                                const void* alpha,
                                const TensorDescriptor& yDesc,
                                ConstData_t y,

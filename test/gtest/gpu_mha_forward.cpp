@@ -57,7 +57,7 @@ struct TensorStruct
 
     ~TensorStruct() = default;
 
-    std::variant<tensor<float>, tensor<float8>, tensor<int64_t>, tensor<half_float::half>>
+    std::variant<tensor<float>, tensor<float8_fnuz>, tensor<int64_t>, tensor<half_float::half>>
         m_cpu_tensor;
     Allocator::ManageDataPtr m_gpu_buffer;
 };
@@ -148,7 +148,7 @@ inline std::vector<TestCase> GetFp16FullTestCases()
 template <typename T>
 class Test_Fwd_Mha : public testing::TestWithParam<TestCase>
 {
-    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8> ||
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8_fnuz> ||
                   std::is_same_v<T, half_float::half>);
 
 protected:
@@ -156,7 +156,7 @@ protected:
     {
         prng::reset_seed();
         auto [n, h, s, d, drop] = GetParam();
-        Handle& handle          = get_handle();
+        const Handle& handle    = get_handle();
 
         if((drop > 0.0f) && (s % handle.GetWavefrontWidth() != 0))
         {
@@ -332,7 +332,7 @@ protected:
         }
     }
 
-    virtual void VerifyResults(Handle& handle)
+    virtual void VerifyResults(const Handle& handle)
     {
         auto GetResult = [this, &handle](miopenTensorArgumentId_t id, auto type) {
             using ResultT         = std::decay_t<decltype(type)>;
@@ -345,8 +345,9 @@ protected:
             return cpu_tensor;
         };
 
-        const double error_threshold     = 5e-6;
-        const double fp8_error_threshold = (std::is_same_v<T, float8>) ? 2e-4 : error_threshold;
+        const double error_threshold = 5e-6;
+        const double fp8_error_threshold =
+            (std::is_same_v<T, float8_fnuz>) ? 2e-4 : error_threshold;
 
         const auto& resAmaxS = GetResult(miopenTensorMhaAmaxS, float{});
         auto amaxS_abs_diff  = std::abs(amaxS_ref - resAmaxS[0]);
@@ -438,7 +439,7 @@ class GPU_Fwd_Mha_FP16 : public Test_Fwd_Mha<half_float::half>
             q_val, k_val, v_val, softmax, attn_max, Z_sum, output);
     }
 
-    void VerifyResults(Handle& handle) override
+    void VerifyResults(const Handle& handle) override
     {
         auto GetResult = [this, &handle](miopenTensorArgumentId_t id) {
             auto& tensorStructPtr = tensors[id];
@@ -466,7 +467,7 @@ class GPU_Fwd_Mha_FP16 : public Test_Fwd_Mha<half_float::half>
     }
 };
 
-class GPU_Fwd_Mha_FP8 : public Test_Fwd_Mha<float8>
+class GPU_Fwd_Mha_FP8 : public Test_Fwd_Mha<float8_fnuz>
 {
     void SetUp() override
     {
@@ -477,7 +478,7 @@ class GPU_Fwd_Mha_FP8 : public Test_Fwd_Mha<float8>
             GTEST_SKIP() << "FP8 is unsupported on this HW";
         }
 
-        Test_Fwd_Mha<float8>::SetUp();
+        Test_Fwd_Mha<float8_fnuz>::SetUp();
     }
 };
 
@@ -493,7 +494,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Fwd_Mha_FP16, testing::ValuesIn(GetFp16Smoke
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Fwd_Mha_FP16, testing::ValuesIn(GetFp16FullTestCases()));
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Fwd_Mha_FP16);
 
-TEST_P(GPU_Fwd_Mha_FP8, Test_float) { return Test_Fwd_Mha<float8>::TestBody(); };
+TEST_P(GPU_Fwd_Mha_FP8, Test_float) { return Test_Fwd_Mha<float8_fnuz>::TestBody(); };
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Fwd_Mha_FP8, testing::ValuesIn(GetSmokeCases()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Fwd_Mha_FP8, testing::ValuesIn(GetFullTestCases()));
