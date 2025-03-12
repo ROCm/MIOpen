@@ -59,16 +59,16 @@ regLDSreduce(_FLOAT_ACCUM* value, local _FLOAT_ACCUM* data, uint localID, _FLOAT
 
 #endif
 
-static inline void lds_reduce2_2d(_FLOAT_ACCUM* x,
-                                  _FLOAT_ACCUM* y,
+static inline void lds_reduce2_2d(_FLOAT_ACCUM_C* x,
+                                  _FLOAT_ACCUM_C* y,
                                   _FLOAT_ACCUM scale,
-                                  local _FLOAT_ACCUM* lcl_data_x,
-                                  local _FLOAT_ACCUM* lcl_data_y,
+                                  local _FLOAT_ACCUM_C* lcl_data_x,
+                                  local _FLOAT_ACCUM_C* lcl_data_y,
                                   unsigned int lid,
                                   unsigned int size)
 {
-    lcl_data_x[lid] = (_FLOAT_ACCUM)*x;
-    lcl_data_y[lid] = (_FLOAT_ACCUM)*y;
+    lcl_data_x[lid] = (_FLOAT_ACCUM_C)*x;
+    lcl_data_y[lid] = (_FLOAT_ACCUM_C)*y;
     barrier(CLK_LOCAL_MEM_FENCE);
     for(unsigned int red = (size >> 1); red > 0; red >>= 1)
     {
@@ -79,8 +79,8 @@ static inline void lds_reduce2_2d(_FLOAT_ACCUM* x,
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-    *x = (_FLOAT_ACCUM)(lcl_data_x[0] * scale);
-    *y = (_FLOAT_ACCUM)(lcl_data_y[0] * scale);
+    *x = (_FLOAT_ACCUM_C)(lcl_data_x[0] * scale);
+    *y = (_FLOAT_ACCUM_C)(lcl_data_y[0] * scale);
 }
 
 #if MIOPEN_USE_AMDGCN

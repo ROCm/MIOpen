@@ -83,6 +83,9 @@ std::vector<T> Network2DLarge();
 template <typename T>
 std::vector<T> Network3DBN();
 
+template <typename T>
+std::vector<T> Network3DSerialCase();
+
 template <>
 inline std::vector<BN2DTestCase> Network2DLarge()
 {
@@ -92,9 +95,6 @@ inline std::vector<BN2DTestCase> Network2DLarge()
         {64, 1, 1024, 1024, miopen::batchnorm::Direction::Backward, 1, 0},
         {192, 1, 8, 8, miopen::batchnorm::Direction::Backward, 1, 0},
         {12, 40, 122, 122, miopen::batchnorm::Direction::Backward, 1, 0},
-        {64, 2048, 7, 7, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 2048, 7, 7, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 2048, 7, 7, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 256, 14, 14, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 256, 14, 14, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 256, 14, 14, miopen::batchnorm::Direction::ForwardInference, 1, 0},
@@ -119,6 +119,8 @@ inline std::vector<BN2DTestCase> Network2DLarge()
         {64, 64, 56, 56, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 64, 56, 56, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 64, 56, 56, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 2048, 7, 7, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 2048, 17, 17, miopen::batchnorm::Direction::Backward, 0, 1},
         {128, 256, 14, 14, miopen::batchnorm::Direction::Backward, 0, 1},
         {128, 256, 16, 16, miopen::batchnorm::Direction::Backward, 0, 1},
         {670, 1, 224, 224, miopen::batchnorm::Direction::Backward, 0, 1},
@@ -128,10 +130,19 @@ inline std::vector<BN2DTestCase> Network2DLarge()
         {832, 1, 28, 28, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         // edge cases
         {69328, 1, 22, 22, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {69328, 1, 13, 79, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-
+        {69328, 1, 13, 79, miopen::batchnorm::Direction::ForwardTraining, 1, 1}
         };
     // clang-format on
+}
+
+// These are very large tensors which caused memory insufficient error
+// when ran parallely by ctest. Hence, these are run serially.
+// Shape: (2, 2048, 16, 128, 128) --> Size: 1.07e+09
+// For now any test case with tensor size greater then 1e09 need to be run serially.
+template <>
+inline std::vector<BN3DTestCase> Network3DSerialCase()
+{
+    return {{2, 2048, 16, 128, 128, miopen::batchnorm::Direction::Backward, 0, 1}};
 }
 
 template <>
@@ -145,7 +156,6 @@ inline std::vector<BN2DTestCase> Network2DSmall()
         {192, 2, 8, 8, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 56, 56, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 128, 256, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
-        {64, 2048, 17, 17, miopen::batchnorm::Direction::Backward, 0, 1}
     };
     // clang-format on
 }
@@ -157,8 +167,7 @@ inline std::vector<BN3DTestCase> Network3DBN()
     return {
         {2, 2, 3, 224, 224, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 132, 28, 28, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 16, 128, 128, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
-        {2, 2048, 16, 128, 128, miopen::batchnorm::Direction::Backward, 0, 1}
+        {16, 8, 16, 128, 128, miopen::batchnorm::Direction::ForwardTraining, 1, 0}
     };
     // clang-format on
 }

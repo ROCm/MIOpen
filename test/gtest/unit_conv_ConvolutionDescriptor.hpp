@@ -35,26 +35,30 @@ struct ConvolutionDescriptorParams
 {
     ConvolutionDescriptorParams(std::vector<int>&& pads_in,
                                 std::vector<int>&& strides_in,
-                                std::vector<int>&& dilations_in)
+                                std::vector<int>&& dilations_in,
+                                int group_count_in = 1)
         : pads(std::move(pads_in)),
           strides(std::move(strides_in)),
-          dilations(std::move(dilations_in))
+          dilations(std::move(dilations_in)),
+          group_count(group_count_in)
     {
     }
 
     std::size_t GetNumSpatialDims() const { return pads.size(); }
+    int GetGroupCount() const { return group_count; }
 
     miopen::ConvolutionDescriptor GetConvolutionDescriptor() const
     {
         const auto trans_output_pads = std::vector<int>(pads.size(), 0);
-        return {pads, strides, dilations, trans_output_pads};
+        return {pads, strides, dilations, trans_output_pads, group_count};
     }
 
     friend std::ostream& operator<<(std::ostream& os, const ConvolutionDescriptorParams& cp)
     {
         LogRange(os << "{", cp.pads, ",") << "}, ";
         LogRange(os << "{", cp.strides, ",") << "}, ";
-        LogRange(os << "{", cp.dilations, ",") << "}";
+        LogRange(os << "{", cp.dilations, ",") << "}, ";
+        os << cp.group_count;
         return os;
     }
 
@@ -62,6 +66,7 @@ private:
     std::vector<int> pads;
     std::vector<int> strides;
     std::vector<int> dilations;
+    int group_count;
 };
 
 } // namespace unit_tests

@@ -4,7 +4,7 @@ struct CPU_Mha_FP32 : test::cpu::CPUMHATest<float, float>
 {
 };
 
-struct CPU_Mha_FP8 : test::cpu::CPUMHATest<float, float8>
+struct CPU_Mha_FP8 : test::cpu::CPUMHATest<float, float8_fnuz>
 {
 };
 
