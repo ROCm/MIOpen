@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,7 +34,6 @@ int32_t mloAvgPoolForward2dRunHost(const miopenTensorDescriptor_t inputDesc,
                                    const miopenTensorDescriptor_t outputDesc,
                                    const Tgpu* input,
                                    Tcheck* output,
-                                   int64_t N,
                                    int64_t C,
                                    int64_t H,
                                    int64_t W,
@@ -120,7 +119,6 @@ int32_t mloAvgPoolForward3dRunHost(const miopenTensorDescriptor_t inputDesc,
                                    const miopenTensorDescriptor_t outputDesc,
                                    const Tgpu* input,
                                    Tcheck* output,
-                                   int64_t N,
                                    int64_t C,
                                    int64_t D,
                                    int64_t H,
@@ -219,7 +217,6 @@ int32_t mloAvgPoolBackward2dRunHost(const miopenTensorDescriptor_t outputGradDes
                                     const miopenTensorDescriptor_t inputGradDesc,
                                     const Tgpu* output_grad,
                                     Tcheck* input_grad,
-                                    int64_t N,
                                     int64_t C,
                                     int64_t H,
                                     int64_t W,
@@ -310,7 +307,6 @@ int32_t mloAvgPoolBackward3dRunHost(const miopenTensorDescriptor_t outputGradDes
                                     const miopenTensorDescriptor_t inputGradDesc,
                                     const Tgpu* output_grad,
                                     Tcheck* input_grad,
-                                    int64_t N,
                                     int64_t C,
                                     int64_t D,
                                     int64_t H,

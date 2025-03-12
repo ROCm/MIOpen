@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -43,6 +43,8 @@ namespace solver {
 
 namespace avgpool {
 
+namespace {
+
 bool IsOverRocmBwd2d(const miopen::avgpool::BwdProblemDescription& problem)
 {
     if(!problem.IsAllContiguous())
@@ -58,6 +60,8 @@ bool IsOverRocmBwd2d(const miopen::avgpool::BwdProblemDescription& problem)
     }
     return false;
 }
+
+} // namespace
 
 bool AvgPoolBackward2d::IsApplicable(const ExecutionContext&,
                                      const miopen::avgpool::BwdProblemDescription& problem) const
@@ -87,18 +91,16 @@ AvgPoolBackward2d::GetSolution(const ExecutionContext& context,
     std::ignore = context;
 
     auto result       = ConvSolution{miopenStatusSuccess};
-    auto input_dtype  = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetInputGradDesc().GetType());
     auto dtype        = problem.GetInputGradDesc().GetType();
     uint64_t N_total  = problem.GetNtotal();
 
-    auto build_params = KernelBuildParameters{
-        {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
-        {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
-        {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
-        {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-        {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-        {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
+    auto build_params =
+        KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
+                              {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
+                              {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
+                              {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
+                              {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype}};
 
     result.construction_params.push_back(make_hip_kernel(
         {LOCAL_SIZE_BWD_2D}, {N_total}, "MIOpenAvgPool.cpp", "AvgPoolBackward2d", build_params));

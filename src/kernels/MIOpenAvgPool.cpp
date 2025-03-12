@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,9 +31,9 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-template <typename TI, typename TO>
-__device__ void avgPoolForward2d(const TI* __restrict__ input,
-                                 TO* __restrict__ output,
+template <typename T>
+__device__ void avgPoolForward2d(const T* __restrict__ input,
+                                 T* __restrict__ output,
                                  int64_t N,
                                  int64_t C,
                                  int64_t H,
@@ -109,8 +109,8 @@ __device__ void avgPoolForward2d(const TI* __restrict__ input,
     output[output_tv.get_tensor_view_idx({n, c, oh, ow})] = CVT_ACCUM2FLOAT(val);
 }
 
-extern "C" __global__ void AvgPoolForward2d(const INPUT_TYPE* __restrict__ input,
-                                            OUTPUT_TYPE* __restrict__ output,
+extern "C" __global__ void AvgPoolForward2d(const D_TYPE* __restrict__ input,
+                                            D_TYPE* __restrict__ output,
                                             int64_t N,
                                             int64_t C,
                                             int64_t H,
@@ -128,29 +128,29 @@ extern "C" __global__ void AvgPoolForward2d(const INPUT_TYPE* __restrict__ input
                                             tensor_view_t<4> input_tv,
                                             tensor_view_t<4> output_tv)
 {
-    avgPoolForward2d<INPUT_TYPE, OUTPUT_TYPE>(input,
-                                              output,
-                                              N,
-                                              C,
-                                              H,
-                                              W,
-                                              OH,
-                                              OW,
-                                              R,
-                                              S,
-                                              sh,
-                                              sw,
-                                              ph,
-                                              pw,
-                                              count_include_pad,
-                                              divisor_override,
-                                              input_tv,
-                                              output_tv);
+    avgPoolForward2d<D_TYPE>(input,
+                             output,
+                             N,
+                             C,
+                             H,
+                             W,
+                             OH,
+                             OW,
+                             R,
+                             S,
+                             sh,
+                             sw,
+                             ph,
+                             pw,
+                             count_include_pad,
+                             divisor_override,
+                             input_tv,
+                             output_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void avgPoolForward3d(const TI* __restrict__ input,
-                                 TO* __restrict__ output,
+template <typename T>
+__device__ void avgPoolForward3d(const T* __restrict__ input,
+                                 T* __restrict__ output,
                                  int64_t N,
                                  int64_t C,
                                  int64_t D,
@@ -238,8 +238,8 @@ __device__ void avgPoolForward3d(const TI* __restrict__ input,
     output[output_tv.get_tensor_view_idx({n, c, od, oh, ow})] = CVT_ACCUM2FLOAT(val);
 }
 
-extern "C" __global__ void AvgPoolForward3d(const INPUT_TYPE* __restrict__ input,
-                                            OUTPUT_TYPE* __restrict__ output,
+extern "C" __global__ void AvgPoolForward3d(const D_TYPE* __restrict__ input,
+                                            D_TYPE* __restrict__ output,
                                             int64_t N,
                                             int64_t C,
                                             int64_t D,
@@ -262,34 +262,34 @@ extern "C" __global__ void AvgPoolForward3d(const INPUT_TYPE* __restrict__ input
                                             tensor_view_t<5> input_tv,
                                             tensor_view_t<5> output_tv)
 {
-    avgPoolForward3d<INPUT_TYPE, OUTPUT_TYPE>(input,
-                                              output,
-                                              N,
-                                              C,
-                                              D,
-                                              H,
-                                              W,
-                                              OD,
-                                              OH,
-                                              OW,
-                                              KD,
-                                              R,
-                                              S,
-                                              sd,
-                                              sh,
-                                              sw,
-                                              pd,
-                                              ph,
-                                              pw,
-                                              count_include_pad,
-                                              divisor_override,
-                                              input_tv,
-                                              output_tv);
+    avgPoolForward3d<D_TYPE>(input,
+                             output,
+                             N,
+                             C,
+                             D,
+                             H,
+                             W,
+                             OD,
+                             OH,
+                             OW,
+                             KD,
+                             R,
+                             S,
+                             sd,
+                             sh,
+                             sw,
+                             pd,
+                             ph,
+                             pw,
+                             count_include_pad,
+                             divisor_override,
+                             input_tv,
+                             output_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void avgPoolBackward2d(const TI* __restrict__ output_grad,
-                                  TO* __restrict__ input_grad,
+template <typename T>
+__device__ void avgPoolBackward2d(const T* __restrict__ output_grad,
+                                  T* __restrict__ input_grad,
                                   int64_t N,
                                   int64_t C,
                                   int64_t H,
@@ -370,8 +370,8 @@ __device__ void avgPoolBackward2d(const TI* __restrict__ output_grad,
     input_grad[input_grad_tv.get_tensor_view_idx({n, c, h, w})] = CVT_ACCUM2FLOAT(grad);
 }
 
-extern "C" __global__ void AvgPoolBackward2d(const INPUT_TYPE* __restrict__ output_grad,
-                                             OUTPUT_TYPE* __restrict__ input_grad,
+extern "C" __global__ void AvgPoolBackward2d(const D_TYPE* __restrict__ output_grad,
+                                             D_TYPE* __restrict__ input_grad,
                                              int64_t N,
                                              int64_t C,
                                              int64_t H,
@@ -389,29 +389,29 @@ extern "C" __global__ void AvgPoolBackward2d(const INPUT_TYPE* __restrict__ outp
                                              tensor_view_t<4> output_grad_tv,
                                              tensor_view_t<4> input_grad_tv)
 {
-    avgPoolBackward2d<INPUT_TYPE, OUTPUT_TYPE>(output_grad,
-                                               input_grad,
-                                               N,
-                                               C,
-                                               H,
-                                               W,
-                                               OH,
-                                               OW,
-                                               R,
-                                               S,
-                                               sh,
-                                               sw,
-                                               ph,
-                                               pw,
-                                               count_include_pad,
-                                               divisor_override,
-                                               output_grad_tv,
-                                               input_grad_tv);
+    avgPoolBackward2d<D_TYPE>(output_grad,
+                              input_grad,
+                              N,
+                              C,
+                              H,
+                              W,
+                              OH,
+                              OW,
+                              R,
+                              S,
+                              sh,
+                              sw,
+                              ph,
+                              pw,
+                              count_include_pad,
+                              divisor_override,
+                              output_grad_tv,
+                              input_grad_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void avgPoolBackward3d(const TI* __restrict__ output_grad,
-                                  TO* __restrict__ input_grad,
+template <typename T>
+__device__ void avgPoolBackward3d(const T* __restrict__ output_grad,
+                                  T* __restrict__ input_grad,
                                   int64_t N,
                                   int64_t C,
                                   int64_t D,
@@ -510,8 +510,8 @@ __device__ void avgPoolBackward3d(const TI* __restrict__ output_grad,
     input_grad[input_grad_tv.get_tensor_view_idx({n, c, d, h, w})] = CVT_ACCUM2FLOAT(grad);
 }
 
-extern "C" __global__ void AvgPoolBackward3d(const INPUT_TYPE* __restrict__ output_grad,
-                                             OUTPUT_TYPE* __restrict__ input_grad,
+extern "C" __global__ void AvgPoolBackward3d(const D_TYPE* __restrict__ output_grad,
+                                             D_TYPE* __restrict__ input_grad,
                                              int64_t N,
                                              int64_t C,
                                              int64_t D,
@@ -534,27 +534,27 @@ extern "C" __global__ void AvgPoolBackward3d(const INPUT_TYPE* __restrict__ outp
                                              tensor_view_t<5> output_grad_tv,
                                              tensor_view_t<5> input_grad_tv)
 {
-    avgPoolBackward3d<INPUT_TYPE, OUTPUT_TYPE>(output_grad,
-                                               input_grad,
-                                               N,
-                                               C,
-                                               D,
-                                               H,
-                                               W,
-                                               OD,
-                                               OH,
-                                               OW,
-                                               KD,
-                                               R,
-                                               S,
-                                               sd,
-                                               sh,
-                                               sw,
-                                               pd,
-                                               ph,
-                                               pw,
-                                               count_include_pad,
-                                               divisor_override,
-                                               output_grad_tv,
-                                               input_grad_tv);
+    avgPoolBackward3d<D_TYPE>(output_grad,
+                              input_grad,
+                              N,
+                              C,
+                              D,
+                              H,
+                              W,
+                              OD,
+                              OH,
+                              OW,
+                              KD,
+                              R,
+                              S,
+                              sd,
+                              sh,
+                              sw,
+                              pd,
+                              ph,
+                              pw,
+                              count_include_pad,
+                              divisor_override,
+                              output_grad_tv,
+                              input_grad_tv);
 }

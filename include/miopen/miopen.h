@@ -72,7 +72,6 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
- * @defgroup avgpool
  *
  */
 
@@ -8229,7 +8228,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 
 #ifdef MIOPEN_BETA_API
 // avgpool APIs
-/** @addtogroup avgpool
+/** @addtogroup pooling
  *
  *  @{
  */
@@ -8312,7 +8311,7 @@ MIOPEN_EXPORT miopenStatus_t miopenAvgPoolBackward(miopenHandle_t handle,
                                                    const bool count_include_pad,
                                                    const int64_t divisor_override);
 /** @} */
-// CLOSEOUT avgpool DOXYGEN GROUP
+// CLOSEOUT pooling DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

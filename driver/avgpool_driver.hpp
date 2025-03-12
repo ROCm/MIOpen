@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -132,7 +132,7 @@ int AvgPoolDriver<Tgpu, Tref>::GetandSetData()
 {
     in_dim                            = inflags.GetValueTensorUint64("input_dims").lengths;
     std::vector<uint64_t> in_stride   = ComputeStrides(in_dim);
-    int ksp_dim                       = in_dim.size() - 2;
+    int ksp_dim                       = static_cast<int>(in_dim.size()) - 2;
     std::vector<uint64_t> ksize_int   = inflags.GetValueTensorUint64("kernel_size").lengths;
     ksize                             = std::vector<int64_t>(ksize_int.begin(), ksize_int.end());
     std::vector<uint64_t> stride_int  = inflags.GetValueTensorUint64("stride").lengths;
@@ -142,7 +142,7 @@ int AvgPoolDriver<Tgpu, Tref>::GetandSetData()
 
     if(ksize.size() != ksp_dim)
     {
-        int ref = ksp_dim - ksize.size();
+        int ref = ksp_dim - static_cast<int>(ksize.size());
         if(ref < 0)
             MIOPEN_THROW("Invalid kernel size");
         while((ref--) != 0)
@@ -150,7 +150,7 @@ int AvgPoolDriver<Tgpu, Tref>::GetandSetData()
     }
     if(stride.size() != ksp_dim)
     {
-        int ref = ksp_dim - stride.size();
+        int ref = ksp_dim - static_cast<int>(stride.size());
         if(ref < 0)
             MIOPEN_THROW("Invalid stride size");
         while((ref--) != 0)
@@ -158,7 +158,7 @@ int AvgPoolDriver<Tgpu, Tref>::GetandSetData()
     }
     if(padding.size() != ksp_dim)
     {
-        int ref = ksp_dim - padding.size();
+        int ref = ksp_dim - static_cast<int>(padding.size());
         if(ref < 0)
             MIOPEN_THROW("Invalid padding size");
         while((ref--) != 0)
@@ -306,27 +306,39 @@ int AvgPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     input_grad_host = std::vector<Tref>(input_sz, static_cast<Tref>(0));
     output_grad     = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0));
 
-    int status;
-
-    for(int i = 0; i < input_sz; i++)
+    for(size_t i = 0; i < input_sz; i++)
     {
         input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0f), static_cast<Tgpu>(10.0f));
     }
-    status = input_dev->ToGPU(q, input.data());
+    if(input_dev->ToGPU(q, input.data()) != 0)
+    {
+        std::cerr << "Error copying (input_dev) to GPU, size: " << input_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= output_dev->ToGPU(q, output.data());
+    if(output_dev->ToGPU(q, output.data()) != 0)
+    {
+        std::cerr << "Error copying (output_dev) to GPU, size: " << output_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= input_grad_dev->ToGPU(q, input_grad.data());
+    if(input_grad_dev->ToGPU(q, input_grad.data()) != 0)
+    {
+        std::cerr << "Error copying (input_grad_dev) to GPU, size: " << input_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    for(int i = 0; i < output_sz; i++)
+    for(size_t i = 0; i < output_sz; i++)
     {
         output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
-    status |= output_grad_dev->ToGPU(q, output_grad.data());
-
-    if(status != 0)
+    if(output_grad_dev->ToGPU(q, output_grad.data()) != 0)
     {
-        std::cout << "Error copying data to GPU\n" << std::endl;
+        std::cerr << "Error copying (output_grad_dev) to GPU, size: " << output_grad_dev->GetSize()
+                  << std::endl;
         return miopenStatusInternalError;
     }
 
@@ -404,7 +416,6 @@ int AvgPoolDriver<Tgpu, Tref>::RunForwardCPU()
                                                         outputDesc,
                                                         input.data(),
                                                         output_host.data(),
-                                                        N,
                                                         C,
                                                         H,
                                                         W,
@@ -423,7 +434,6 @@ int AvgPoolDriver<Tgpu, Tref>::RunForwardCPU()
                                                         outputDesc,
                                                         input.data(),
                                                         output_host.data(),
-                                                        N,
                                                         C,
                                                         D,
                                                         H,
@@ -512,7 +522,6 @@ int AvgPoolDriver<Tgpu, Tref>::RunBackwardCPU()
                                                          inputGradDesc,
                                                          output_grad.data(),
                                                          input_grad_host.data(),
-                                                         N,
                                                          C,
                                                          H,
                                                          W,
@@ -531,7 +540,6 @@ int AvgPoolDriver<Tgpu, Tref>::RunBackwardCPU()
                                                          inputGradDesc,
                                                          output_grad.data(),
                                                          input_grad_host.data(),
-                                                         N,
                                                          C,
                                                          D,
                                                          H,
