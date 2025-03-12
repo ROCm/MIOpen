@@ -90,19 +90,24 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
     {
         size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize;
         size_t max_localsize = 256;
+        bool vectorize;
         if(problem.GetXDesc().GetLayout_t() == miopenTensorNHWC)
         {
-            xlocalsize = std::min(size_t{c}, max_localsize);
-            xgridsize  = xlocalsize * ((c + xlocalsize - 1) / xlocalsize);
-            ylocalsize = max_localsize / xlocalsize;
-            ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+            vectorize       = c % 4 == 0;
+            int vector_size = vectorize ? 4 : 1;
+            xlocalsize      = std::min(size_t{c / vector_size}, max_localsize);
+            xgridsize       = xlocalsize * ((c / vector_size + xlocalsize - 1) / xlocalsize);
+            ylocalsize      = max_localsize / xlocalsize;
+            ygridsize       = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
         }
         else
         {
-            xlocalsize = 1;
-            xgridsize  = c;
-            ylocalsize = max_localsize;
-            ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+            vectorize       = in_cstride % 4 == 0;
+            int vector_size = vectorize ? 4 : 1;
+            xlocalsize      = 1;
+            xgridsize       = c;
+            ylocalsize      = max_localsize;
+            ygridsize = ylocalsize * ((in_cstride / vector_size + ylocalsize - 1) / ylocalsize);
         }
         zlocalsize = 1;
         zgridsize  = 1;
@@ -133,6 +138,8 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
+            {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
+            {"MIO_BN_VECTORIZE", static_cast<int>(vectorize)},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});

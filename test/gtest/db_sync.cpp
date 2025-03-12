@@ -28,7 +28,9 @@
 
 #include <miopen/miopen.h>
 #include "get_handle.hpp"
+#include "../lib_env_var.hpp"
 #include <miopen/readonlyramdb.hpp>
+#include <miopen/env.hpp>
 #include <miopen/execution_context.hpp>
 
 #include <miopen/find_db.hpp>
@@ -43,6 +45,7 @@
 #include <cstdlib>
 #include <regex>
 #include <exception>
+#include <thread>
 #include <unordered_set>
 
 /// \todo HACK
@@ -51,9 +54,8 @@
 /// src/solver/conv_winoRxS.cpp
 #define WORKAROUND_ISSUE_2492 1
 
-#if WORKAROUND_ISSUE_2492 && defined(_WIN32)
-#define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#if WORKAROUND_ISSUE_2492
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492)
 #endif
 
 #define WORKAROUND_ISSUE_1987 0      // Allows testing FDB on gfx1030 (legacy fdb).
@@ -84,14 +86,6 @@ struct std::hash<KDBKey>
                (hash<string>()(k.program_args) << 1) >> 1;
     }
 };
-
-#if WORKAROUND_ISSUE_2492 && !defined(_WIN32)
-static void SetEnvironmentVariable(std::string_view name, std::string_view value)
-{
-    const auto ret = setenv(name.data(), value.data(), 1);
-    ASSERT_TRUE(ret == 0);
-}
-#endif // WORKAROUND_ISSUE_2492
 
 #if WORKAROUND_ISSUE_1987
 /// \todo Copied from src/db_record.cpp
@@ -527,9 +521,18 @@ void SetupPaths(fs::path& fdb_file_path,
 
 TEST(CPU_DBSync_NONE, KDBTargetID)
 {
+    // Skip this test for gfx11 and gfx12 to avoid test failure (we don't have databases for those
+    // devices yet)
+    const auto& handle = get_handle();
+    if(miopen::StartsWith(handle.GetDeviceName(), "gfx11") ||
+       miopen::StartsWith(handle.GetDeviceName(), "gfx12"))
+    {
+        GTEST_SKIP();
+    }
+
     fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
-    SetEnvironmentVariable("MIOPEN_DEBUG_WORKAROUND_ISSUE_2492", "0");
+    lib_env::update(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492, "0");
 #endif
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
     std::ignore = fdb_file_path;

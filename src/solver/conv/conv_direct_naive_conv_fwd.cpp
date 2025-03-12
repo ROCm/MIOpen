@@ -27,6 +27,7 @@
 #include <miopen/solver/conv_direct_naive_conv.hpp>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
+#include <miopen/env.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_NAIVE_CONV_FWD)
 
@@ -69,7 +70,7 @@ bool ConvDirectNaiveConvFwd::IsApplicable(const ExecutionContext& ctx,
             if(desc.GetCastType())
             {
                 const auto cast_type = *desc.GetCastType();
-                if(cast_type == miopenFloat8 || cast_type == miopenBFloat8)
+                if(cast_type == miopenFloat8_fnuz || cast_type == miopenBFloat8_fnuz)
                     return false;
             }
             // all tested tensors must have cast type set

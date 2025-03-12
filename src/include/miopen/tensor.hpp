@@ -113,8 +113,8 @@ inline std::size_t GetTypeSize(miopenDataType_t d)
     case miopenHalf:
     case miopenBFloat16: return 2;
     case miopenInt8:
-    case miopenFloat8:
-    case miopenBFloat8: return 1;
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz: return 1;
     case miopenDouble:
     case miopenInt64: return 8;
     }
