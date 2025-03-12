@@ -141,17 +141,17 @@ int LPPoolDriver<Tgpu, Tref>::GetandSetData()
     std::vector<uint64_t> stride_int = inflags.GetValueTensorUint64("stride").lengths;
     stride                           = std::vector<int64_t>(stride_int.begin(), stride_int.end());
 
-    if(ksize.size() != ksp_dim)
+    if(static_cast<int>(ksize.size()) != ksp_dim)
     {
-        int ref = ksp_dim - ksize.size();
+        int ref = ksp_dim - static_cast<int>(ksize.size());
         if(ref < 0)
             MIOPEN_THROW("Invalid kernel size");
         while((ref--) != 0)
             ksize.push_back(ksize[0]);
     }
-    if(stride.size() != ksp_dim)
+    if(static_cast<int>(stride.size()) != ksp_dim)
     {
-        int ref = ksp_dim - stride.size();
+        int ref = ksp_dim - static_cast<int>(stride.size());
         if(ref < 0)
             MIOPEN_THROW("Invalid stride size");
         while((ref--) != 0)
@@ -279,36 +279,46 @@ int LPPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     input_grad_host = std::vector<Tref>(input_sz, static_cast<Tref>(0));
     output_grad     = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0));
 
-    int status;
-
-    for(int i = 0; i < input_sz; i++)
+    for(size_t i = 0; i < input_sz; i++)
     {
         input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(1.0f), static_cast<Tgpu>(10.0f));
     }
-    status = input_dev->ToGPU(q, input.data());
+    if(input_dev->ToGPU(q, input.data()) != 0)
+    {
+        std::cerr << "Error copying input to GPU, size: " << input_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
     if(forw == 2)
     {
-        for(int i = 0; i < output_sz; i++)
+        for(size_t i = 0; i < output_sz; i++)
         {
             output[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(1.0f), static_cast<Tgpu>(10.0f));
         }
     }
-    status |= output_dev->ToGPU(q, output.data());
+    if(output_dev->ToGPU(q, output.data()) != 0)
+    {
+        std::cerr << "Error copying output to GPU, size: " << output_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    };
 
-    status |= input_grad_dev->ToGPU(q, input_grad.data());
+    if(input_grad_dev->ToGPU(q, input_grad.data()) != 0)
+    {
+        std::cerr << "Error copying input_grad to GPU, size: " << input_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    };
 
-    for(int i = 0; i < output_sz; i++)
+    for(size_t i = 0; i < output_sz; i++)
     {
         output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
-    status |= output_grad_dev->ToGPU(q, output_grad.data());
-
-    if(status != 0)
+    if(output_grad_dev->ToGPU(q, output_grad.data()) != 0)
     {
-        std::cout << "Error copying data to GPU\n" << std::endl;
+        std::cerr << "Error copying output_grad to GPU, size: " << output_grad_dev->GetSize()
+                  << std::endl;
         return miopenStatusInternalError;
-    }
+    };
 
     return miopenStatusSuccess;
 }
