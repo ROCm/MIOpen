@@ -165,8 +165,8 @@ static inline miopenDataType_t DataTypeFromShortString(const std::string& type)
         {"fp32", miopenFloat},
         {"fp16", miopenHalf},
         {"bf16", miopenBFloat16},
-        {"fp8", miopenFloat8},
-        {"bf8", miopenBFloat8}};
+        {"fp8", miopenFloat8_fnuz},
+        {"bf8", miopenBFloat8_fnuz}};
 
     const auto res = conv_map.find(type);
     if(res != conv_map.end())
@@ -443,8 +443,8 @@ private:
         // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
         if(std::is_same<Tgpu, bfloat16>::value)
             tolerance *= 8.0;
-        constexpr bool is_fp8  = std::is_same<Tgpu, float8>::value;
-        constexpr bool is_bfp8 = std::is_same<Tgpu, bfloat8>::value;
+        constexpr bool is_fp8  = std::is_same<Tgpu, float8_fnuz>::value;
+        constexpr bool is_bfp8 = std::is_same<Tgpu, bfloat8_fnuz>::value;
         if(is_bfp8 || is_fp8 || TensorsCasted())
             tolerance *= 37.0;
         return tolerance;
@@ -1262,10 +1262,11 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     bool is_int8      = data_type == miopenInt8 || data_type == miopenInt8x4;
     // Data generated for very low precision types follows the same constraints whether its fp8,
     // bfp8 or even if the interim tensors are being casted
-    bool is_fp8   = data_type == miopenFloat8 || data_type == miopenBFloat8 || TensorsCasted();
-    size_t in_sz  = GetTensorSize(inputTensor);
-    size_t wei_sz = GetTensorSize(weightTensor);
-    size_t out_sz = GetTensorSize(outputTensor);
+    bool is_fp8 =
+        data_type == miopenFloat8_fnuz || data_type == miopenBFloat8_fnuz || TensorsCasted();
+    size_t in_sz            = GetTensorSize(inputTensor);
+    size_t wei_sz           = GetTensorSize(weightTensor);
+    size_t out_sz           = GetTensorSize(outputTensor);
     auto subnorm_percentage = env::value(MIOPEN_DRIVER_SUBNORM_PERCENTAGE);
     if(subnorm_percentage != 0)
         std::cout << "MIOPEN_DRIVER_SUBNORM_PERCENTAGE = " << subnorm_percentage << std::endl;
@@ -1618,8 +1619,8 @@ bool ConvDriver<Tgpu, Tref>::UseGPUReference()
     {
         if((miopen_type<Tref>{} == miopenFloat &&
             (miopen_type<Tgpu>{} == miopenFloat || miopen_type<Tgpu>{} == miopenHalf ||
-             miopen_type<Tgpu>{} == miopenBFloat16 || miopen_type<Tgpu>{} == miopenFloat8 ||
-             miopen_type<Tgpu>{} == miopenBFloat8)) ||
+             miopen_type<Tgpu>{} == miopenBFloat16 || miopen_type<Tgpu>{} == miopenFloat8_fnuz ||
+             miopen_type<Tgpu>{} == miopenBFloat8_fnuz)) ||
            (miopen_type<Tref>{} == miopenInt32 && miopen_type<Tgpu>{} == miopenInt8))
             return true;
         else
@@ -1728,8 +1729,8 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
         std::tie(out_n, out_c, out_d, out_h, out_w) =
             miopen::tien<5>(miopen::deref(outputTensor).GetLengths());
 
-        size_t flopCnt = static_cast<size_t>(2) * in_n * in_c * in_d * wei_h * wei_w * wei_d *
-                         out_c * out_d * out_h * out_w / group_count;
+        size_t flopCnt = static_cast<size_t>(2) * in_n * in_c * wei_h * wei_w * wei_d * out_c *
+                         out_d * out_h * out_w / group_count;
         size_t inputBytes = in_n * in_c * in_d * in_h * in_w *
                             miopen::GetTypeSize(miopen::deref(inputTensor).GetType());
         size_t weightBytes = wei_n * wei_c * wei_d * wei_h * wei_w *
@@ -3577,8 +3578,8 @@ int ConvDriver<Tgpu, Tref>::VerifyBackward()
             else if(std::is_same<Tgpu, float16>::value)
                 tolerance *= 5;
         }
-        // bfloat8 has very poor accuracy in wrw direction
-        if(std::is_same<Tgpu, bfloat8>::value)
+        // bfloat8_fnuz has very poor accuracy in wrw direction
+        if(std::is_same<Tgpu, bfloat8_fnuz>::value)
             tolerance = tolerance * 2;
 
         auto error_weights = is_wrw_run_failed
