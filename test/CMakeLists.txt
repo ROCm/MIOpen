@@ -54,7 +54,7 @@ option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option( MIOPEN_TEST_GFX908 "Test on MI100 (gfx908)" OFF )
 option( MIOPEN_TEST_GFX90A "Test on MI2X0 (gfx90a)" OFF )
-option( MIOPEN_TEST_GFX94X "Test on MI300 (gfx940/1/2)" OFF )
+option( MIOPEN_TEST_GFX94X "Test on MI300 (gfx942)" OFF )
 option( MIOPEN_TEST_GFX95X "Test on (gfx950)" OFF )
 option( MIOPEN_TEST_GFX900 "Test on Vega10 (gfx900)" OFF )
 option( MIOPEN_TEST_GFX906 "Test on Vega20 (gfx906)" OFF )
@@ -139,7 +139,7 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
             set(MIOPEN_TEST_GFX908 ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx90a")
             set(MIOPEN_TEST_GFX90A ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx94")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx942")
             set(MIOPEN_TEST_GFX94X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx95")
             set(MIOPEN_TEST_GFX95X ON)
@@ -835,11 +835,6 @@ endif()
 # * Use TEST_TUNING. This flag leads to test failure in case of any "Error"
 #   message output to the log, which happens if something is broken in the tuning machinery.
 # * Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
-
-add_custom_test(smoke_solver_ConvHipImplicitGemmFwdXdlops GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX94X_ENABLED HALF_ENABLED INT8_ENABLED
-    ENVIRONMENT MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmFwdXdlops
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8} --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
-)
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
 add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x2 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON

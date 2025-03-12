@@ -32,8 +32,8 @@
 namespace regression_half_mi200 {
 void SetupEnvVar(void)
 {
-    env::update(MIOPEN_FIND_MODE, "normal");
-    env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmForwardV4R4Xdlops");
+    lib_env::update(MIOPEN_FIND_MODE, "normal");
+    lib_env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmForwardV4R4Xdlops");
 }
 
 std::vector<std::string> GetArgs(const std::string& param)
