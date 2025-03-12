@@ -116,6 +116,7 @@ set( MIOpen_Source
     dropout.cpp
     dropout_api.cpp
     env.cpp
+    env_debug.cpp
     execution_context.cpp
     expanduser.cpp
     fin/fin_interface.cpp
