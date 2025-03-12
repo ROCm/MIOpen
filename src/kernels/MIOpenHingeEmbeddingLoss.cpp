@@ -35,7 +35,7 @@
 template <typename DTYPE, int REDUCTION_T>
 __device__ void hingeembeddinglossforward(const DTYPE* __restrict__ input,
                                           const char* __restrict__ target,
-                                          const DTYPE* __restrict__ output,
+                                          void* __restrict__ output,
                                           const size_t num_elem,
                                           const float margin,
                                           tensor_view_t<5> input_tv,
@@ -64,9 +64,9 @@ __device__ void hingeembeddinglossforward(const DTYPE* __restrict__ input,
     }
 }
 
-extern "C" __global__ void HingeEmbeddingLossForward(const FLOAT* input,
-                                                     const char* target,
-                                                     FLOAT* output,
+extern "C" __global__ void HingeEmbeddingLossForward(const FLOAT* __restrict__ input,
+                                                     const char* __restrict__ target,
+                                                     void* __restrict__ output,
                                                      const size_t num_elem,
                                                      const float margin,
                                                      tensor_view_t<5> input_tv,

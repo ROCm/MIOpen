@@ -78,7 +78,7 @@ struct GPUMem
 {
 
 #if MIOPEN_BACKEND_OPENCL
-    GPUMem(){};
+    GPUMem() {};
     GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz) : sz(psz), data_sz(pdata_sz)
     {
         buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, nullptr, nullptr);
@@ -104,7 +104,7 @@ struct GPUMem
 
 #elif MIOPEN_BACKEND_HIP
 
-    GPUMem(){};
+    GPUMem() {};
     GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz)
     {
         auto status = hipMalloc(static_cast<void**>(&buf), GetSize());
@@ -314,7 +314,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
            "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], rope[bfp16|fp16], "
            "prelu[bfp16|fp16], kthvalue[bfp16|fp16], glu[bfp16|fp16], softmarginloss[bfp16|fp16], "
-           "multimarginloss[bfp16|fp16]\n");
+           "multimarginloss[bfp16|fp16], hingeembeddingloss[bfp16|fp16]\n");
     exit(0); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -352,7 +352,8 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "kthvaluebfp16" && arg != "glu" && arg != "glufp16" && arg != "glubfp16" &&
        arg != "softmarginloss" && arg != "softmarginlossfp16" && arg != "softmarginlossbfp16" &&
        arg != "multimarginloss" && arg != "multimarginlossfp16" && arg != "multimarginlossbfp16" &&
-       arg != "--version")
+       arg != "hingeembeddingloss" && arg != "hingeembeddinglossfp16" &&
+       arg != "hingeembeddinglossbfp16" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage();
