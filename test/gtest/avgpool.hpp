@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ template <class T>
 inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
