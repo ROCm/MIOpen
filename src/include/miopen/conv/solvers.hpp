@@ -1934,14 +1934,14 @@ struct ConvMPBidirectWinograd final : ConvSolver
             ConvMPBidirectWinograd<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
     bool IsDynamic() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
     bool MayNeedWorkspace() const override { return true; }
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     // kernel_file_name for solver identification
     static fs::path GetSolverFileNames(int id)
@@ -1967,20 +1967,12 @@ struct ConvMPBidirectWinograd final : ConvSolver
     static int GetSolverWinoXformHWSize() { return WinoDataH + WinoFilterH - 1; }
 };
 
-// To suppress misleading clang warnings
-#if defined(__clang__) && defined(CONV_MP_BIDIRECTIONAL_WINOGRAD_CPP)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-template-vtables"
-#endif
-
+#ifndef CONV_MP_BIDIRECTIONAL_WINOGRAD_CPP
 extern template struct ConvMPBidirectWinograd<2, 3>;
 extern template struct ConvMPBidirectWinograd<3, 3>;
 extern template struct ConvMPBidirectWinograd<4, 3>;
 extern template struct ConvMPBidirectWinograd<5, 3>;
 extern template struct ConvMPBidirectWinograd<6, 3>;
-
-#if defined(__clang__) && defined(CONV_MP_BIDIRECTIONAL_WINOGRAD_CPP)
-#pragma clang diagnostic pop
 #endif
 
 template <int WinoDataH, int WinoFilterH, int WinoDataW = WinoDataH, int WinoFilterW = WinoFilterH>
