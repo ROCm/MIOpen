@@ -37,6 +37,7 @@
 #include <vector>
 
 #include "../driver.hpp"
+#include "../lib_env_var.hpp"
 
 inline void default_check(const std::string& err) { std::cout << err; }
 
@@ -191,7 +192,8 @@ template <typename Case>
 std::vector<std::string> get_args(const Case& param)
 {
     const auto& [env_tuple, cmd] = param;
-    std::apply([](const auto&... env) { (env::update(env.first, env.second), ...); }, env_tuple);
+    std::apply([](const auto&... env) { (lib_env::update(env.first, env.second), ...); },
+               env_tuple);
 
     std::stringstream ss(cmd);
     std::istream_iterator<std::string> begin(ss);
@@ -227,23 +229,30 @@ void invoke_with_params(Check&& check)
     {                               \
         [&]() { FAIL() << MSG; }(); \
     } while(false);
-/// The types for env variables must be redefined, but
-/// do not mess up with the types - those variables are decalred in the library
-/// and if wrong type (STR|BOOl|UINT64) have been specified they won't be updated. Silently.
-/// There will be no compiler warnings or runtime errors.
-/// TODO: move ALL the env variables to the single header int the library to avoid such problems
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_WINOGRAD)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_FFT)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_GEMM)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_LOG_LEVEL)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_USE_GPU_REFERENCE)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_ENFORCE)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS)
+
+/// Env variables
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
+MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_MODE)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
+MIOPEN_LIB_ENV_VAR(MIOPEN_LOG_LEVEL)
+MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_ENFORCE)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS)
+
+/// \todo Remove workarounds
+namespace wa {
+
+// Workaround for redefinition of 'MIOPEN_DEBUG_TUNING_ITERATIONS_MAX'
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX)
+
+// Workaround for redefinition of 'MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL'
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+
+} // namespace wa

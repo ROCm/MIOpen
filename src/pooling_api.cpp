@@ -53,8 +53,8 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
         case miopenInt8:
         case miopenBFloat16:
         case miopenDouble:
-        case miopenFloat8:
-        case miopenBFloat8:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
         default:
             MIOPEN_LOG_W(
                 "Pooing cmd args logging is not implemented properly for " +
