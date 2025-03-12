@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -89,7 +89,6 @@ public:
 
 private:
     InputFlags inflags;
-
     int forw = 1;
 
     miopenTensorDescriptor_t inputDesc;
@@ -190,7 +189,6 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::GetandSetData()
 
     if(use_indices)
     {
-
         if(SetTensorNd(indicesDesc, indices_dim, miopen_type<int64_t>{}) != miopenStatusSuccess)
             MIOPEN_THROW("Error parsing indices tensor: " + inflags.GetValueStr("indices_dim") +
                          ".");
@@ -284,38 +282,55 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     input_grad_host = std::vector<Tref>(input_sz, static_cast<Tref>(0));
     output_grad     = std::vector<Tgpu>(output_sz, static_cast<Tgpu>(0));
 
-    int status;
-
-    for(int i = 0; i < input_sz; i++)
+    for(size_t i = 0; i < input_sz; i++)
     {
         input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0f), static_cast<Tgpu>(10.0f));
     }
-    status = input_dev->ToGPU(q, input.data());
+    if(input_dev->ToGPU(q, input.data()) != 0)
+    {
+        std::cerr << "Error copying (input_dev) to GPU, size: " << input_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= output_dev->ToGPU(q, output.data());
+    if(output_dev->ToGPU(q, output.data()) != 0)
+    {
+        std::cerr << "Error copying (output_dev) to GPU, size: " << output_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= input_grad_dev->ToGPU(q, input_grad.data());
+    if(input_grad_dev->ToGPU(q, input_grad.data()) != 0)
+    {
+        std::cerr << "Error copying (input_grad_dev) to GPU, size: " << input_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    for(int i = 0; i < output_sz; i++)
+    for(size_t i = 0; i < output_sz; i++)
     {
         output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-1.0), static_cast<Tgpu>(1.0));
     }
-    status |= output_grad_dev->ToGPU(q, output_grad.data());
+    if(output_grad_dev->ToGPU(q, output_grad.data()) != 0)
+    {
+        std::cerr << "Error copying (output_grad_dev) to GPU, size: " << output_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     if(use_indices)
     {
-        for(int i = 0; i < indices_sz; i++)
+        for(size_t i = 0; i < indices_sz; i++)
         {
             indices[i] =
                 prng::gen_A_to_B<int64_t>(static_cast<int64_t>(0), static_cast<int64_t>(10));
         }
-        status |= indices_dev->ToGPU(q, indices.data());
-    }
-
-    if(status != 0)
-    {
-        std::cout << "Error copying data to GPU\n" << std::endl;
-        return miopenStatusAllocFailed;
+        if(indices_dev->ToGPU(q, indices.data()) != 0)
+        {
+            std::cerr << "Error copying (indices_dev) to GPU, size: " << indices_dev->GetSize()
+                      << std::endl;
+            return miopenStatusInternalError;
+        }
     }
 
     return miopenStatusSuccess;
@@ -392,7 +407,6 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunForwardCPU()
                                                                 input.data(),
                                                                 output_host.data(),
                                                                 indices_host.data(),
-                                                                N,
                                                                 C,
                                                                 H,
                                                                 OH,
@@ -408,7 +422,6 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunForwardCPU()
                                                                 input.data(),
                                                                 output_host.data(),
                                                                 indices_host.data(),
-                                                                N,
                                                                 C,
                                                                 H,
                                                                 W,
@@ -426,7 +439,6 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunForwardCPU()
                                                                 input.data(),
                                                                 output_host.data(),
                                                                 indices_host.data(),
-                                                                N,
                                                                 C,
                                                                 D,
                                                                 H,
@@ -505,7 +517,6 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunBackwardCPU()
                                                                  indices.data(),
                                                                  output_grad.data(),
                                                                  input_grad_host.data(),
-                                                                 N,
                                                                  C,
                                                                  H,
                                                                  OH);
@@ -520,7 +531,6 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunBackwardCPU()
                                                                  indices.data(),
                                                                  output_grad.data(),
                                                                  input_grad_host.data(),
-                                                                 N,
                                                                  C,
                                                                  H,
                                                                  W,
@@ -537,7 +547,6 @@ int AdaptiveMaxPoolDriver<Tgpu, Tref>::RunBackwardCPU()
                                                                  indices.data(),
                                                                  output_grad.data(),
                                                                  input_grad_host.data(),
-                                                                 N,
                                                                  C,
                                                                  D,
                                                                  H,

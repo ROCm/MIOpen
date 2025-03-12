@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,6 @@ int32_t mloAdaptiveMaxPoolForward1dRunHost(const miopenTensorDescriptor_t inputD
                                            const Tgpu* input,
                                            Tcheck* output,
                                            int64_t* indices,
-                                           uint64_t N,
                                            uint64_t C,
                                            uint64_t H,
                                            uint64_t OH,
@@ -93,7 +92,6 @@ int32_t mloAdaptiveMaxPoolForward2dRunHost(const miopenTensorDescriptor_t inputD
                                            const Tgpu* input,
                                            Tcheck* output,
                                            int64_t* indices,
-                                           uint64_t N,
                                            uint64_t C,
                                            uint64_t H,
                                            uint64_t W,
@@ -164,7 +162,6 @@ int32_t mloAdaptiveMaxPoolForward3dRunHost(const miopenTensorDescriptor_t inputD
                                            const Tgpu* input,
                                            Tcheck* output,
                                            int64_t* indices,
-                                           uint64_t N,
                                            uint64_t C,
                                            uint64_t D,
                                            uint64_t H,
@@ -248,7 +245,6 @@ int32_t mloAdaptiveMaxPoolBackward1dRunHost(const miopenTensorDescriptor_t indic
                                             const int64_t* indices,
                                             const Tgpu* output_grad,
                                             Tcheck* input_grad,
-                                            uint64_t N,
                                             uint64_t C,
                                             uint64_t H,
                                             uint64_t OH)
@@ -289,7 +285,6 @@ int32_t mloAdaptiveMaxPoolBackward2dRunHost(const miopenTensorDescriptor_t indic
                                             const int64_t* indices,
                                             const Tgpu* output_grad,
                                             Tcheck* input_grad,
-                                            uint64_t N,
                                             uint64_t C,
                                             uint64_t H,
                                             uint64_t W,
@@ -339,7 +334,6 @@ int32_t mloAdaptiveMaxPoolBackward3dRunHost(const miopenTensorDescriptor_t indic
                                             const int64_t* indices,
                                             const Tgpu* output_grad,
                                             Tcheck* input_grad,
-                                            uint64_t N,
                                             uint64_t C,
                                             uint64_t D,
                                             uint64_t H,

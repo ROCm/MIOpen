@@ -72,7 +72,6 @@
  * @defgroup ReduceCalculation
  * @defgroup RotaryPositionalEmbeddings
  * @defgroup ReLU
- * @defgroup adaptivemaxpool
  *
  */
 
@@ -8229,7 +8228,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 
 #ifdef MIOPEN_BETA_API
 // adaptivemaxpool APIs
-/** @addtogroup adaptivemaxpool
+/** @addtogroup pooling
  *
  *  @{
  */
@@ -8274,7 +8273,7 @@ miopenAdaptiveMaxPoolBackward(miopenHandle_t handle,
                               const miopenTensorDescriptor_t inputGradDesc,
                               void* input_grad);
 /** @} */
-// CLOSEOUT adaptivemaxpool DOXYGEN GROUP
+// CLOSEOUT pooling DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
 #ifdef __cplusplus

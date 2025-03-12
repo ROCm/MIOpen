@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -38,7 +38,7 @@ template <class T>
 inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -208,16 +208,16 @@ protected:
         auto dims = input.desc.GetNumDims();
         if(dims == 3)
         {
-            cpu_adaptivemaxpool_forward_1d<T>(input, ref_output, ref_indices, N, C, H, OH);
+            cpu_adaptivemaxpool_forward_1d<T>(input, ref_output, ref_indices, C, H, OH);
         }
         else if(dims == 4)
         {
-            cpu_adaptivemaxpool_forward_2d<T>(input, ref_output, ref_indices, N, C, H, W, OH, OW);
+            cpu_adaptivemaxpool_forward_2d<T>(input, ref_output, ref_indices, C, H, W, OH, OW);
         }
         else if(dims == 5)
         {
             cpu_adaptivemaxpool_forward_3d<T>(
-                input, ref_output, ref_indices, N, C, D, H, W, OD, OH, OW);
+                input, ref_output, ref_indices, C, D, H, W, OD, OH, OW);
         }
         status = miopen::adaptivemaxpool::AdaptiveMaxPoolForward(handle,
                                                                  input.desc,
@@ -348,17 +348,17 @@ protected:
         auto dims = input_grad.desc.GetNumDims();
         if(dims == 3)
         {
-            cpu_adaptivemaxpool_backward_1d<T>(indices, output_grad, ref_input_grad, N, C, H, OH);
+            cpu_adaptivemaxpool_backward_1d<T>(indices, output_grad, ref_input_grad, C, H, OH);
         }
         else if(dims == 4)
         {
             cpu_adaptivemaxpool_backward_2d<T>(
-                indices, output_grad, ref_input_grad, N, C, H, W, OH, OW);
+                indices, output_grad, ref_input_grad, C, H, W, OH, OW);
         }
         else if(dims == 5)
         {
             cpu_adaptivemaxpool_backward_3d<T>(
-                indices, output_grad, ref_input_grad, N, C, D, H, W, OD, OH, OW);
+                indices, output_grad, ref_input_grad, C, D, H, W, OD, OH, OW);
         }
         status = miopen::adaptivemaxpool::AdaptiveMaxPoolBackward(handle,
                                                                   indices.desc,

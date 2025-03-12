@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,11 +26,11 @@
 
 #pragma once
 
-#include <miopen/common.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
+
 namespace adaptivemaxpool {
 
 struct FwdInvokeParams : public miopen::InvokeParams
@@ -68,4 +68,5 @@ struct BwdInvokeParams : public miopen::InvokeParams
 };
 
 } // namespace adaptivemaxpool
+
 } // namespace miopen

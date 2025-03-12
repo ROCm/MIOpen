@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
 #pragma once
 
 #include <miopen/conv_solution.hpp>
@@ -49,7 +48,7 @@ const auto make_hip_kernel = [](std::vector<size_t> localsize,
         localsize.push_back(1);
     while(gridsize.size() < 3)
         gridsize.push_back(1);
-    for(int i = 0; i < localsize.size(); ++i)
+    for(size_t i = 0; i < localsize.size(); ++i)
         gridsize[i] = AlignUp(gridsize[i], localsize[i]);
     return KernelInfo{
         build_params.GenerateFor(kbp::HIP{}), localsize, gridsize, kernel_file, kernel_name};

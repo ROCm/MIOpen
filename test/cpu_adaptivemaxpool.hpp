@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,13 +30,8 @@
 #include "ford.hpp"
 
 template <class T>
-void cpu_adaptivemaxpool_forward_1d(tensor<T> input,
-                                    tensor<T>& output,
-                                    tensor<int64_t>& indices,
-                                    size_t N,
-                                    size_t C,
-                                    size_t H,
-                                    size_t OH)
+void cpu_adaptivemaxpool_forward_1d(
+    tensor<T> input, tensor<T>& output, tensor<int64_t>& indices, size_t C, size_t H, size_t OH)
 {
     auto dims  = input.desc.GetLengths();
     auto numel = output.desc.GetElementSize();
@@ -83,7 +78,6 @@ template <class T>
 void cpu_adaptivemaxpool_forward_2d(tensor<T> input,
                                     tensor<T>& output,
                                     tensor<int64_t>& indices,
-                                    size_t N,
                                     size_t C,
                                     size_t H,
                                     size_t W,
@@ -147,7 +141,6 @@ template <class T>
 void cpu_adaptivemaxpool_forward_3d(tensor<T> input,
                                     tensor<T>& output,
                                     tensor<int64_t>& indices,
-                                    size_t N,
                                     size_t C,
                                     size_t D,
                                     size_t H,
@@ -224,7 +217,6 @@ template <class T>
 void cpu_adaptivemaxpool_backward_1d(tensor<int64_t> indices,
                                      tensor<T> output_grad,
                                      tensor<T>& input_grad,
-                                     size_t N,
                                      size_t C,
                                      size_t H,
                                      size_t OH)
@@ -261,7 +253,6 @@ template <class T>
 void cpu_adaptivemaxpool_backward_2d(tensor<int64_t> indices,
                                      tensor<T> output_grad,
                                      tensor<T>& input_grad,
-                                     size_t N,
                                      size_t C,
                                      size_t H,
                                      size_t W,
@@ -307,7 +298,6 @@ template <class T>
 void cpu_adaptivemaxpool_backward_3d(tensor<int64_t> indices,
                                      tensor<T> output_grad,
                                      tensor<T>& input_grad,
-                                     size_t N,
                                      size_t C,
                                      size_t D,
                                      size_t H,
