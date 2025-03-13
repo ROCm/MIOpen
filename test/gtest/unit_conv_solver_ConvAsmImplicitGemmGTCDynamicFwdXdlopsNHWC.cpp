@@ -74,7 +74,7 @@ auto GetConvFullTestCases(miopenDataType_t datatype)
 
 auto GetFullTestParams(miopenDataType_t datatype)
 {
-    Gpu supportedDevices = Gpu::gfx90A | Gpu::gfx94X;
+    Gpu supportedDevices = Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx95X;
     if(datatype != miopenBFloat16)
     {
         supportedDevices = supportedDevices | Gpu::gfx908;
