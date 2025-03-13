@@ -35,7 +35,7 @@
 
 namespace miopen {
 
-struct LRNDescriptor : miopenLRNDescriptor
+struct MIOPEN_INTERNALS_EXPORT LRNDescriptor : miopenLRNDescriptor
 {
     LRNDescriptor();
     LRNDescriptor(miopenLRNMode_t m, unsigned int pn, const double* pparms);

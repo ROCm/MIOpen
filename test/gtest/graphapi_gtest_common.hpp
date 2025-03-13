@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/graphapi/tensor.hpp>
 #include <miopen/miopen.h>
 
 #include <algorithm>
@@ -400,6 +401,46 @@ struct GTestGraphApiExecute
                 }
             }
             // clang-format on
+        }
+    }
+};
+
+class GMockBackendTensorDescriptor : public BackendTensorDescriptor
+{
+public:
+    GMockBackendTensorDescriptor& operator=(const Tensor& testCaseTensor)
+    {
+        auto dataType = testCaseTensor.GetType();
+        setAttribute(MIOPEN_ATTR_TENSOR_DATA_TYPE, MIOPEN_TYPE_DATA_TYPE, 1, &dataType);
+
+        auto& d = testCaseTensor.GetLengths();
+        std::vector<int64_t> dims{d.cbegin(), d.cend()};
+        setAttribute(MIOPEN_ATTR_TENSOR_DIMENSIONS, MIOPEN_TYPE_INT64, dims.size(), dims.data());
+
+        auto& s = testCaseTensor.GetStrides();
+        std::vector<int64_t> strides{s.cbegin(), s.cend()};
+        setAttribute(MIOPEN_ATTR_TENSOR_STRIDES, MIOPEN_TYPE_INT64, strides.size(), strides.data());
+
+        auto id = testCaseTensor.getId();
+        setAttribute(MIOPEN_ATTR_TENSOR_UNIQUE_ID, MIOPEN_TYPE_INT64, 1, &id);
+
+        auto isVirtual = testCaseTensor.isVirtual();
+        setAttribute(MIOPEN_ATTR_TENSOR_IS_VIRTUAL, MIOPEN_TYPE_BOOLEAN, 1, &isVirtual);
+
+        finalize();
+
+        return *this;
+    }
+
+    GMockBackendTensorDescriptor& operator=(const ValidatedValue<Tensor*>& validatedTestCaseTensor)
+    {
+        if(validatedTestCaseTensor.valid)
+        {
+            return *this = *validatedTestCaseTensor.value;
+        }
+        else
+        {
+            return *this;
         }
     }
 };

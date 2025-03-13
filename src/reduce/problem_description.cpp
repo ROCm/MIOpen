@@ -33,22 +33,65 @@ namespace miopen {
 
 namespace reduce {
 
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+NetworkConfig ProblemDescriptionExtreme::MakeNetworkConfig() const
 {
     auto xlength = xDesc.GetLengths();
-    auto ylength = yDesc.GetLengths();
+    std::vector<std::size_t> outputlength;
+    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MIN) ||
+       (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_MAX))
+        outputlength = yDesc.GetLengths();
+    else
+        outputlength = indiceDesc.GetLengths();
 
-    auto reduce_size  = xlength[dim];
-    auto output_numel = std::accumulate(
-        ylength.begin(), ylength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
-    auto dtype = xDesc.GetType();
+    auto size         = xlength[dim];
+    auto output_numel = std::accumulate(outputlength.begin(),
+                                        outputlength.end(),
+                                        static_cast<size_t>(1),
+                                        std::multiplies<size_t>());
+    auto inputdtype   = xDesc.GetType();
+    auto outputdtype  = yDesc.GetType();
 
     std::ostringstream ss;
 
-    ss << "dtype" << dtype;
+    ss << "inputdtype" << inputdtype;
+    ss << "outputdtype" << outputdtype;
+    if((reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMIN) ||
+       (reduceExtremeOp == MIOPEN_REDUCE_EXTREME_ARGMAX))
+    {
+        auto indicedtype = indiceDesc.GetType();
+        ss << "indicedtype" << indicedtype;
+    }
+
     ss << "dim" << dim;
-    ss << "reduce_size" << reduce_size;
+    ss << "size" << size;
     ss << "output_numel" << output_numel;
+    ss << "reduceExtremeOp" << reduceExtremeOp;
+
+    return NetworkConfig{ss.str()};
+}
+
+NetworkConfig ProblemDescriptionCalculation::MakeNetworkConfig() const
+{
+    auto xlength = xDesc.GetLengths();
+    std::vector<std::size_t> outputlength;
+    outputlength = yDesc.GetLengths();
+
+    auto size         = xlength[dim];
+    auto output_numel = std::accumulate(outputlength.begin(),
+                                        outputlength.end(),
+                                        static_cast<size_t>(1),
+                                        std::multiplies<size_t>());
+    auto inputdtype   = xDesc.GetType();
+    auto outputdtype  = yDesc.GetType();
+
+    std::ostringstream ss;
+
+    ss << "inputdtype" << inputdtype;
+    ss << "outputdtype" << outputdtype;
+    ss << "dim" << dim;
+    ss << "size" << size;
+    ss << "output_numel" << output_numel;
+    ss << "reduceCalculationOp" << reduceCalculationOp;
 
     return NetworkConfig{ss.str()};
 }

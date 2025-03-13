@@ -46,7 +46,7 @@ bool BnFwdTrgActivationFused::IsApplicable(const FusionContext& /*context*/,
     const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
         MIOPEN_THROW("");
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_BN_FWDTRG_ACTIV_FUSED)))
+    if(env::disabled(MIOPEN_DEBUG_BN_FWDTRG_ACTIV_FUSED))
         return false;
     if(desc.op_map.size() != 2)
         return false;
@@ -170,6 +170,7 @@ ConvSolution BnFwdTrgActivationFused::GetSolution(const FusionContext& context,
             {"MIO_BN_VARIANT", static_cast<int>(variant)},
             {"MIO_BN_GFX103X", static_cast<int>(StartsWith(handle.GetDeviceName(), "gfx103"))},
             {"MIO_BN_GFX110X", static_cast<int>(StartsWith(handle.GetDeviceName(), "gfx110"))},
+            {"MIO_BN_GFX120X", static_cast<int>(StartsWith(handle.GetDeviceName(), "gfx120"))},
             {"MIOPEN_YES_ACTIV", static_cast<int>(1)},
             {"MIOPEN_NRN_OP_ID", static_cast<int>(activ_op.activMode)},
             {"MIOPEN_USE_FP16", static_cast<int>(input_desc.GetType() == miopenHalf)},

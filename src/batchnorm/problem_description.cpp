@@ -36,6 +36,109 @@ namespace miopen {
 
 namespace batchnorm {
 
+bool is_fp16_or_bfp16(miopenDataType_t type)
+{
+    return ((type == miopenHalf) || (type == miopenBFloat16));
+}
+
+bool is_fp32_or_fp64(miopenDataType_t type)
+{
+    return ((type == miopenFloat) || (type == miopenDouble));
+}
+
+bool is_fp32(miopenDataType_t type) { return (type == miopenFloat); }
+
+bool IsOCLInferTypeValid(const ProblemDescription& bn_problem)
+{
+    // case 1 : mix type
+    return (
+        (is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+         is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())) ||
+        // case 2 : float type
+        (is_fp32(bn_problem.GetXDesc().GetType()) && is_fp32(bn_problem.GetYDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())));
+}
+
+bool IsCKInferTypeValid(const ProblemDescription& bn_problem)
+{
+    // case 1 : mix type
+    return ((is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+             is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
+             is_fp16_or_bfp16(bn_problem.GetBnScale().GetType()) &&
+             is_fp16_or_bfp16(bn_problem.GetBnBias().GetType()) &&
+             is_fp32(bn_problem.GetBnSMean().GetType()) &&
+             is_fp32(bn_problem.GetBnSVar().GetType())) ||
+            // case 2 : fp32 or fp64
+            (is_fp32_or_fp64(bn_problem.GetXDesc().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetYDesc().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnScale().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnBias().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnSMean().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnSVar().GetType())));
+}
+
+bool IsOCLFwdTrainTypeValid(const ProblemDescription& bn_problem)
+{
+    // case 1 : mix type
+    return (
+        (is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+         is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())) ||
+        // case 2 : float type
+        (is_fp32(bn_problem.GetXDesc().GetType()) && is_fp32(bn_problem.GetYDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())));
+}
+
+bool IsCKFwdTrainTypeValid(const ProblemDescription& bn_problem)
+{
+    // case 1 : mix type
+    return ((is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+             is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
+             is_fp16_or_bfp16(bn_problem.GetBnScale().GetType()) &&
+             is_fp16_or_bfp16(bn_problem.GetBnBias().GetType()) &&
+             is_fp32(bn_problem.GetBnSMean().GetType()) &&
+             is_fp32(bn_problem.GetBnSVar().GetType())) ||
+            // case 2 : fp32 or fp64
+            (is_fp32_or_fp64(bn_problem.GetXDesc().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetYDesc().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnScale().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnBias().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnSMean().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnSVar().GetType())));
+}
+
+bool IsOCLBwdTypeValid(const ProblemDescription& bn_problem)
+{
+    return (
+        (is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+         is_fp16_or_bfp16(bn_problem.GetDXDesc().GetType()) &&
+         is_fp16_or_bfp16(bn_problem.GetDYDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnSMean().GetType()) &&
+         is_fp32(bn_problem.GetBnSVar().GetType())) ||
+        // case 1 : fp32
+        (is_fp32(bn_problem.GetXDesc().GetType()) && is_fp32(bn_problem.GetDXDesc().GetType()) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType()) &&
+         is_fp32(bn_problem.GetBnSMean().GetType()) && is_fp32(bn_problem.GetBnSVar().GetType())));
+}
+
+bool IsCKBwdTypeValid(const ProblemDescription& bn_problem)
+{
+    return ((is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
+             bn_problem.GetDXDesc().GetType() == miopenFloat &&
+             is_fp16_or_bfp16(bn_problem.GetBnScale().GetType()) &&
+             bn_problem.GetDYDesc().GetType() == miopenFloat &&
+             bn_problem.GetBnSMean().GetType() == miopenFloat &&
+             bn_problem.GetBnSVar().GetType() == miopenFloat) ||
+            // case 1 : fp32 or fp64
+            (is_fp32_or_fp64(bn_problem.GetXDesc().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetDXDesc().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnScale().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnBias().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnSMean().GetType()) &&
+             is_fp32_or_fp64(bn_problem.GetBnSVar().GetType())));
+}
+
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
     switch(direction)
@@ -67,17 +170,9 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
     size_t ygridsize = 1;
 
     bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
-    if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
-    {
-        bfp16parm = true;
-        bfp32parm = false;
-    }
-    else if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
+    if(IsMix())
     {
         bfpmixparm = true;
-        bfp32parm  = false;
     }
 
     if(bn_mode == miopenBNSpatial)
@@ -123,7 +218,7 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         }
         // clang-format on
 
-        if((n > 768) && (in_cstride > 150) && bfp32parm)
+        if((n > 768) && (in_cstride > 150) && IsFp32())
         {
             variant            = 2;
             xlocalsize         = 1;
@@ -142,8 +237,11 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         {
             ss << "rs" << static_cast<int>(resultsave);
             ss << "rr" << static_cast<int>(resultrunning);
-            ss << "fp16" << static_cast<int>(bfp16parm);
-            ss << "fp32" << static_cast<int>(bfp32parm);
+            ss << "fp16" << static_cast<int>(IsFp16());
+            ss << "fp32" << static_cast<int>(IsFp32());
+            ss << "fp64" << static_cast<int>(IsFp64());
+            ss << "fbf16" << static_cast<int>(IsBFp16());
+            ss << "fmix" << static_cast<int>(IsMix());
             ss << "c" << c;
         }
         else
@@ -156,8 +254,11 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
             ss << "ldsgcn" << ldsgcn;
             ss << "rs" << static_cast<int>(resultsave);
             ss << "rr" << static_cast<int>(resultrunning);
-            ss << "fp16" << static_cast<int>(bfp16parm);
-            ss << "fp32" << static_cast<int>(bfp32parm);
+            ss << "fp16" << static_cast<int>(IsFp16());
+            ss << "fp32" << static_cast<int>(IsFp32());
+            ss << "fp64" << static_cast<int>(IsFp64());
+            ss << "fbf16" << static_cast<int>(IsBFp16());
+            ss << "fmix" << static_cast<int>(IsMix());
             ss << "single" << static_cast<int>(single);
             ss << "n" << n;
             ss << "c" << c;
@@ -172,8 +273,11 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         xgridsize                 = c;
         ygridsize                 = segment * ylocalsize;
 
-        ss << "fp16" << static_cast<int>(bfp16parm);
-        ss << "fp32" << static_cast<int>(bfp32parm);
+        ss << "fp16" << static_cast<int>(IsFp16());
+        ss << "fp32" << static_cast<int>(IsFp32());
+        ss << "fp64" << static_cast<int>(IsFp64());
+        ss << "fbf16" << static_cast<int>(IsBFp16());
+        ss << "fmix" << static_cast<int>(IsMix());
         ss << "gx" << xgridsize;
         ss << "gy" << ygridsize;
         ss << "lx" << xlocalsize;
@@ -185,6 +289,9 @@ NetworkConfig ProblemDescription::MakeForwardTrainingNetworkConfig() const
         ss << "c" << c;
         ss << "hw" << in_cstride;
     }
+    ss << "layout" << in_layout;
+    ss << "scaleType" << static_cast<int>(IsScaleFp16());
+    ss << "scaleType" << static_cast<int>(IsScaleFp32());
 
     return NetworkConfig{ss.str()};
 }
@@ -193,28 +300,22 @@ NetworkConfig ProblemDescription::MakeForwardInferenceNetworkConfig() const
 {
     std::ostringstream ss;
 
-    bool bfp16parm = false;
-    bool bfp32parm = true;
-    if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenHalf)
-    {
-        bfp16parm = true;
-        bfp32parm = false;
-    }
-    else if(xDesc.GetType() == miopenHalf && GetBnScaleBiasMeanVarDesc().GetType() == miopenFloat)
-    {
-        bfp32parm = false;
-    }
-
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(xDesc.GetLengths());
 
     const unsigned int in_cstride = h * w;
 
-    ss << "fp16" << static_cast<int>(bfp16parm);
-    ss << "fp32" << static_cast<int>(bfp32parm);
+    ss << "fp16" << static_cast<int>(IsFp16());
+    ss << "fp32" << static_cast<int>(IsFp32());
+    ss << "fp64" << static_cast<int>(IsFp64());
+    ss << "fbf16" << static_cast<int>(IsBFp16());
+    ss << "fmix" << static_cast<int>(IsMix());
     ss << "mode" << bn_mode;
     ss << "HWdims" << in_cstride;
     ss << "C" << c;
+    ss << "layout" << in_layout;
+    ss << "scaleType" << static_cast<int>(IsScaleFp16());
+    ss << "scaleType" << static_cast<int>(IsScaleFp32());
 
     return NetworkConfig{ss.str()};
 }
@@ -224,17 +325,9 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
     std::ostringstream ss;
 
     bool bfpmixparm = false;
-    bool bfp16parm  = false;
-    bool bfp32parm  = true;
-    if(xDesc.GetType() == miopenHalf && GetScaleBiasDiffDesc().GetType() == miopenHalf)
-    {
-        bfp16parm = true;
-        bfp32parm = false;
-    }
-    else if(xDesc.GetType() == miopenHalf && GetScaleBiasDiffDesc().GetType() == miopenFloat)
+    if(xDesc.GetType() == miopenHalf && GetBnScale().GetType() == miopenFloat)
     {
         bfpmixparm = true;
-        bfp32parm  = false;
     }
 
     int n, c, h, w;
@@ -282,7 +375,7 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
             else
             {
                 variant = 0;
-                if(bfp32parm)
+                if(IsFp32())
                 {
                     xlocalsize = 1024;
                     xgridsize  = 1024 * static_cast<size_t>(c);
@@ -322,8 +415,11 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
         ss << "lx" << xlocalsize;
         ss << "ly" << ylocalsize;
         ss << "us" << static_cast<int>(useSaved);
-        ss << "fp16" << static_cast<int>(bfp16parm);
-        ss << "fp32" << static_cast<int>(bfp32parm);
+        ss << "fp16" << static_cast<int>(IsFp16());
+        ss << "fp32" << static_cast<int>(IsFp32());
+        ss << "fp64" << static_cast<int>(IsFp64());
+        ss << "fbf16" << static_cast<int>(IsBFp16());
+        ss << "fmix" << static_cast<int>(IsMix());
         ss << "single" << static_cast<int>(single);
         ss << "gcn" << ldsgcn;
     }
@@ -342,10 +438,16 @@ NetworkConfig ProblemDescription::MakeBackwardNetworkConfig() const
         ss << "c" << c;
         ss << "hw" << in_cstride;
         ss << "u" << static_cast<int>(useSaved);
-        ss << "fp16" << static_cast<int>(bfp16parm);
-        ss << "fp32" << static_cast<int>(bfp32parm);
+        ss << "fp16" << static_cast<int>(IsFp16());
+        ss << "fp32" << static_cast<int>(IsFp32());
+        ss << "fp64" << static_cast<int>(IsFp64());
+        ss << "fbf16" << static_cast<int>(IsBFp16());
+        ss << "fmix" << static_cast<int>(IsMix());
         ss << "nhw" << in_nhw;
     }
+    ss << "layout" << in_layout;
+    ss << "scaleType" << static_cast<int>(IsScaleFp16());
+    ss << "scaleType" << static_cast<int>(IsScaleFp32());
 
     return NetworkConfig{ss.str()};
 }

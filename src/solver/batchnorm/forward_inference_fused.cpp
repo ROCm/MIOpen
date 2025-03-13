@@ -47,7 +47,7 @@ bool BnFwdInferActivationFused::IsApplicable(const FusionContext& /*context*/,
     const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
         MIOPEN_THROW("");
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_BN_FWDINFER_ACTIV_FUSED)))
+    if(env::disabled(MIOPEN_DEBUG_BN_FWDINFER_ACTIV_FUSED))
         return false;
     if(desc.op_map.size() != 2)
         return false;
@@ -55,7 +55,6 @@ bool BnFwdInferActivationFused::IsApplicable(const FusionContext& /*context*/,
         return false;
     if(desc.op_map.at(1)->kind() != miopenFusionOpActivForward)
         return false;
-
     return true;
 }
 

@@ -24,159 +24,66 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_TENSOR_VIEW_H
-#define GUARD_TENSOR_VIEW_H
+#ifndef GUARD_TENSOR_VIEW_HPP
+#define GUARD_TENSOR_VIEW_HPP
 
-#include <hip/hip_runtime.h>
+#include <initializer_list>
 
-struct tensor_view_5d_t
+template <int N>
+struct tensor_layout_t;
+
+template <int N>
+struct tensor_view_t
 {
-    size_t offset = 0;
-    size_t size[5];
-    size_t stride[5];
+    // Get index in tensor view at tensor layout
+    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
+    {
+        static_assert(N > 0);
+        uint64_t idx = 0;
+        for(auto i = 0; i < N; ++i)
+        {
+            idx += stride[i] * tensor_layout.layout[i];
+        }
+        return idx;
+    }
+    uint64_t stride[N];
+    uint64_t size[N];
 };
 
-struct tensor_view_4d_t
+template <int N>
+struct tensor_layout_t
 {
-    size_t offset = 0;
-    size_t size[4];
-    size_t stride[4];
+    // Make tensor layout at index using tensor view
+    constexpr tensor_layout_t(const tensor_view_t<N>& tensor_view, uint64_t idx)
+    {
+        static_assert(N > 0);
+        uint64_t temp = idx;
+        if constexpr(N == 1)
+        {
+            layout[0] = idx;
+        }
+        else
+        {
+            for(auto i = N - 1; i > 1; --i)
+            {
+                layout[i] = temp % tensor_view.size[i];
+                temp      = temp / tensor_view.size[i];
+            }
+            layout[1] = temp % tensor_view.size[1];
+            layout[0] = temp / tensor_view.size[1];
+        }
+    }
+
+    constexpr tensor_layout_t(std::initializer_list<uint64_t> layout_)
+    {
+        static_assert(N > 0);
+        for(auto i = 0; i < N; ++i)
+        {
+            layout[i] = layout_.begin()[i];
+        }
+    }
+
+    uint64_t layout[N];
 };
 
-struct padding_5d_t
-{
-    size_t val[10];
-};
-
-template <typename T, typename U>
-__host__ __device__ void inline getNCDHW(T* ncdhw, const U idx, const size_t size[5])
-{
-    ulong ncdh = (idx) / size[4];
-    ncdhw[4]   = (idx) % size[4];
-    ulong ncd  = ncdh / size[3];
-    ncdhw[3]   = ncdh % size[3];
-    ulong nc   = ncd / size[2];
-    ncdhw[2]   = ncd % size[2];
-    ncdhw[0]   = nc / size[1];
-    ncdhw[1]   = nc % size[1];
-}
-
-template <typename T, typename U>
-__host__ __device__ void inline getNCHW(T* nchw, const U idx, const size_t size[4])
-{
-    ulong nch = (idx) / size[3];
-    nchw[3]   = (idx) % size[3];
-    ulong nc  = nch / size[2];
-    nchw[2]   = nch % size[2];
-    nchw[0]   = nc / size[1];
-    nchw[1]   = nc % size[1];
-}
-
-template <typename T, typename U>
-__host__ __device__ void inline getNCHW(T& n, T& c, T& h, T& w, const U idx, const size_t size[4])
-{
-    T o[4];
-    getNCHW(o, idx, size);
-    n = o[0];
-    c = o[1];
-    h = o[2];
-    w = o[3];
-}
-
-template <typename T, typename U = size_t>
-__host__ __device__
-    T inline get5DValueAt(const T* x, const tensor_view_5d_t& x_tv, U n, U c, U d, U h, U w)
-{
-    return x[n * x_tv.stride[0] + c * x_tv.stride[1] + d * x_tv.stride[2] + h * x_tv.stride[3] +
-             w * x_tv.stride[4] + x_tv.offset];
-}
-
-template <typename T, typename U = size_t>
-__host__ __device__ T inline get4DValueAt(T* x, const tensor_view_4d_t& x_tv, U n, U c, U h, U w)
-{
-    return x[n * x_tv.stride[0] + c * x_tv.stride[1] + h * x_tv.stride[2] + w * x_tv.stride[3] +
-             x_tv.offset];
-}
-
-template <typename T, typename U = size_t>
-__host__ __device__ T inline get4DValueAt(const T* x, const tensor_view_4d_t& x_tv, U gid)
-{
-    size_t o[4];
-    getNCHW(o, gid, x_tv.size);
-    return get4DValueAt(x, x_tv, o[0], o[1], o[2], o[3]);
-}
-
-template <typename T, typename U = size_t>
-__host__ __device__ void inline set5DValueAt(
-    T* x, const tensor_view_5d_t& x_tv, U n, U c, U d, U h, U w, T val)
-{
-    x[n * x_tv.stride[0] + c * x_tv.stride[1] + d * x_tv.stride[2] + h * x_tv.stride[3] +
-      w * x_tv.stride[4] + x_tv.offset] = val;
-}
-
-template <typename T>
-__host__ __device__ void inline set5DValueAt(T* x, const tensor_view_5d_t& x_tv, size_t idx, T val)
-{
-    size_t o[5];
-    getNCDHW(o, idx, x_tv.size);
-    set5DValueAt(x, x_tv, o[0], o[1], o[2], o[3], o[4], val);
-}
-
-template <typename T>
-__host__ __device__ void inline set4DValueAt(
-    T* x, const tensor_view_4d_t& x_tv, size_t n, size_t c, size_t h, size_t w, T val)
-{
-    x[n * x_tv.stride[0] + c * x_tv.stride[1] + h * x_tv.stride[2] + w * x_tv.stride[3] +
-      x_tv.offset] = val;
-}
-
-template <typename T>
-__host__ __device__ void inline set4DValueAt(T* x, const tensor_view_4d_t& x_tv, size_t gid, T val)
-{
-    size_t n, c, h, w;
-    getNCHW(n, c, h, w, gid, x_tv.size);
-    set4DValueAt(x, x_tv, n, c, h, w, val);
-}
-
-template <typename T>
-__host__
-    __device__ T inline getTensorViewIndexAt(const tensor_view_5d_t& tv, const size_t idx, size_t n)
-{
-    return tv.stride[idx] * (n) + tv.offset;
-}
-
-template <typename T>
-__host__ __device__ T inline get1DIndexAt(const tensor_view_5d_t& tv, size_t n0)
-{
-    // offset do not exist yet.
-    return getTensorViewIndexAt<T>(tv, 0, n0);
-}
-
-template <typename T>
-__host__ __device__ T inline get2DIndexAt(const tensor_view_5d_t& tv, size_t n0, size_t n1)
-{
-    return getTensorViewIndexAt<T>(tv, 1, n1) + get1DIndexAt<T>(tv, n0);
-}
-
-template <typename T>
-__host__
-    __device__ T inline get3DIndexAt(const tensor_view_5d_t& tv, size_t n0, size_t n1, size_t n2)
-{
-    return getTensorViewIndexAt<T>(tv, 2, n2) + get2DIndexAt<T>(tv, n0, n1);
-}
-
-template <typename T>
-__host__ __device__
-    T inline get4DIndexAt(const tensor_view_5d_t& tv, size_t n0, size_t n1, size_t n2, size_t n3)
-{
-    return getTensorViewIndexAt<T>(tv, 3, n3) + get3DIndexAt<T>(tv, n0, n1, n2);
-}
-
-template <typename T>
-__host__ __device__ T inline get5DIndexAt(
-    const tensor_view_5d_t& tv, size_t n0, size_t n1, size_t n2, size_t n3, size_t n4)
-{
-    return getTensorViewIndexAt<T>(tv, 4, n4) + get4DIndexAt<T>(tv, n0, n1, n2, n3);
-}
-
-#endif
+#endif // GUARD_TENSOR_VIEW_HPP

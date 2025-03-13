@@ -53,15 +53,15 @@ std::size_t GetTuningIterationsMax()
 {
     if(debug::tuning_iterations_limit)
         return *debug::tuning_iterations_limit;
-    return Value(ENV(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX));
+    return env::value(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX);
 }
 
 std::chrono::milliseconds GetTuningTimeMax()
 {
-    return std::chrono::milliseconds{Value(ENV(MIOPEN_TUNING_TIME_MS_MAX))};
+    return std::chrono::milliseconds{env::value(MIOPEN_TUNING_TIME_MS_MAX)};
 }
 
-std::size_t GetTuningThreadsMax() { return Value(ENV(MIOPEN_COMPILE_PARALLEL_LEVEL)); }
+std::size_t GetTuningThreadsMax() { return env::value(MIOPEN_COMPILE_PARALLEL_LEVEL); }
 
 } // namespace solver
 } // namespace miopen

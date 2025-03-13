@@ -32,7 +32,7 @@
 #endif
 
 #define MIOPEN_USE_AMDGCN 0
-#if defined(__AMDGCN__) && !(MIO_BN_GFX103X || MIO_BN_GFX110X)
+#if defined(__AMDGCN__) && !(MIO_BN_GFX103X || MIO_BN_GFX110X || MIO_BN_GFX120X)
 #undef MIOPEN_USE_AMDGCN
 #define MIOPEN_USE_AMDGCN 1
 #endif
@@ -117,13 +117,20 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         {
             nid                = n * MIO_BN_SEGIHW + lidihw;
             index              = nid * MIO_BN_CHW + chwid;
-            _FLOAT_PREC xhat   = (((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance);
+            _FLOAT_PREC xhat   = (FLOAT2FLOATPREC(*(x_in + index)) - mean) * invVariance;
             _FLOAT_PREC bn_out = mad(xhat, lbns, lbnb);
             _FLOAT_PREC bn_dyin;
-            _FLOAT_PREC act_dyin = *(dy_in + index);
-            _FLOAT_PREC act_out  = *(y_in + index);
-            ActivationFunction_Diff(
-                1, &bn_dyin, &act_dyin, &bn_out, &act_out, diff_scale, gamma, beta, alpha);
+            _FLOAT_PREC act_dyin = FLOAT2FLOATPREC(*(dy_in + index));
+            _FLOAT_PREC act_out  = FLOAT2FLOATPREC(*(y_in + index));
+            ActivationFunction_Diff(1,
+                                    &bn_dyin,
+                                    &act_dyin,
+                                    &bn_out,
+                                    &act_out,
+                                    FLOAT2FLOATPREC(diff_scale),
+                                    FLOAT2FLOATPREC(gamma),
+                                    FLOAT2FLOATPREC(beta),
+                                    FLOAT2FLOATPREC(alpha));
             dyvalues[n] = bn_dyin;
             db += dyvalues[n];
             batchvalues[n] = xhat;
@@ -139,13 +146,20 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         index = nid * MIO_BN_CHW + chwid;
         if(index < MIO_BN_NCHW)
         {
-            _FLOAT_PREC xhat   = (((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance);
+            _FLOAT_PREC xhat   = (FLOAT2FLOATPREC(*(x_in + index)) - mean) * invVariance;
             _FLOAT_PREC bn_out = mad(xhat, lbns, lbnb);
             _FLOAT_PREC bn_dyin;
-            _FLOAT_PREC act_dyin = (_FLOAT_PREC)(*(dy_in + index));
-            _FLOAT_PREC act_out  = (_FLOAT_PREC)(*(y_in + index));
-            ActivationFunction_Diff(
-                1, &bn_dyin, &act_dyin, &bn_out, &act_out, diff_scale, gamma, beta, alpha);
+            _FLOAT_PREC act_dyin = FLOAT2FLOATPREC(*(dy_in + index));
+            _FLOAT_PREC act_out  = FLOAT2FLOATPREC(*(y_in + index));
+            ActivationFunction_Diff(1,
+                                    &bn_dyin,
+                                    &act_dyin,
+                                    &bn_out,
+                                    &act_out,
+                                    FLOAT2FLOATPREC(diff_scale),
+                                    FLOAT2FLOATPREC(gamma),
+                                    FLOAT2FLOATPREC(beta),
+                                    FLOAT2FLOATPREC(alpha));
             dyvalues[MIO_BN_NLOOPM] = bn_dyin;
 
 #if MIO_BN_CBA_WRITE_INTERMEDIATE
@@ -161,7 +175,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         db += dyvalues[MIO_BN_NLOOPM];
 
         batchvalues[MIO_BN_NLOOPM] = (index < MIO_BN_NCHW)
-                                         ? (((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance)
+                                         ? (FLOAT2FLOATPREC(*(x_in + index)) - mean) * invVariance
                                          : (_FLOAT_PREC)0.;
 
         // batchvalues is now xhat
@@ -191,7 +205,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp1          = mad(NHW, dyvalues[n], -db);
             tmp2          = -batchvalues[n] * ds;
             tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = (_FLOAT)(tmp3 * (tmp2 + tmp1));
+            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
         } // end for
         nid   = MIO_BN_SNHW + lidihw;
         index = nid * MIO_BN_CHW + chwid;
@@ -200,7 +214,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp1          = mad(NHW, dyvalues[MIO_BN_NLOOPM], -db);
             tmp2          = -batchvalues[MIO_BN_NLOOPM] * ds;
             tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = (_FLOAT)(tmp3 * (tmp2 + tmp1));
+            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
         }
     }
     if(lid == 0)
@@ -293,10 +307,10 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         xread4    = *((const global _FLOAT4*)(x_in + index));
         act_dyin4 = *((const global _FLOAT4*)(dy_in + index));
         act_out4  = *((const global _FLOAT4*)(y_in + index));
-        xhat4.x   = ((_FLOAT_PREC)xread4.x - mean) * invVariance;
-        xhat4.y   = ((_FLOAT_PREC)xread4.y - mean) * invVariance;
-        xhat4.z   = ((_FLOAT_PREC)xread4.z - mean) * invVariance;
-        xhat4.w   = ((_FLOAT_PREC)xread4.w - mean) * invVariance;
+        xhat4.x   = (FLOAT2FLOATPREC(xread4.x) - mean) * invVariance;
+        xhat4.y   = (FLOAT2FLOATPREC(xread4.y) - mean) * invVariance;
+        xhat4.z   = (FLOAT2FLOATPREC(xread4.z) - mean) * invVariance;
+        xhat4.w   = (FLOAT2FLOATPREC(xread4.w) - mean) * invVariance;
 
         bn_out4.x = mad(xhat4.x, lcl_scale, lcl_bias);
         bn_out4.y = mad(xhat4.y, lcl_scale, lcl_bias);
@@ -307,31 +321,59 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         _FLOAT_PREC pactdyin = act_dyin4.x;
         _FLOAT_PREC pbnout   = bn_out4.x;
         _FLOAT_PREC pactout  = act_out4.x;
-        ActivationFunction_Diff(
-            1, &pbndyin, &pactdyin, &pbnout, &pactout, diff_scale, gamma, beta, alpha);
+        ActivationFunction_Diff(1,
+                                &pbndyin,
+                                &pactdyin,
+                                &pbnout,
+                                &pactout,
+                                FLOAT2FLOATPREC(diff_scale),
+                                FLOAT2FLOATPREC(gamma),
+                                FLOAT2FLOATPREC(beta),
+                                FLOAT2FLOATPREC(alpha));
 
         db += pbndyin;
         ds       = mad(xhat4.x, pbndyin, ds);
         pactdyin = act_dyin4.y;
         pbnout   = bn_out4.y;
         pactout  = act_out4.y;
-        ActivationFunction_Diff(
-            1, &pbndyin, &pactdyin, &pbnout, &pactout, diff_scale, gamma, beta, alpha);
+        ActivationFunction_Diff(1,
+                                &pbndyin,
+                                &pactdyin,
+                                &pbnout,
+                                &pactout,
+                                FLOAT2FLOATPREC(diff_scale),
+                                FLOAT2FLOATPREC(gamma),
+                                FLOAT2FLOATPREC(beta),
+                                FLOAT2FLOATPREC(alpha));
 
         db += pbndyin;
         ds       = mad(xhat4.y, pbndyin, ds);
         pactdyin = act_dyin4.z;
         pbnout   = bn_out4.z;
         pactout  = act_out4.z;
-        ActivationFunction_Diff(
-            1, &pbndyin, &pactdyin, &pbnout, &pactout, diff_scale, gamma, beta, alpha);
+        ActivationFunction_Diff(1,
+                                &pbndyin,
+                                &pactdyin,
+                                &pbnout,
+                                &pactout,
+                                FLOAT2FLOATPREC(diff_scale),
+                                FLOAT2FLOATPREC(gamma),
+                                FLOAT2FLOATPREC(beta),
+                                FLOAT2FLOATPREC(alpha));
         db += pbndyin;
         ds       = mad(xhat4.z, pbndyin, ds);
         pactdyin = act_dyin4.w;
         pbnout   = bn_out4.w;
         pactout  = act_out4.w;
-        ActivationFunction_Diff(
-            1, &pbndyin, &pactdyin, &pbnout, &pactout, diff_scale, gamma, beta, alpha);
+        ActivationFunction_Diff(1,
+                                &pbndyin,
+                                &pactdyin,
+                                &pbnout,
+                                &pactout,
+                                FLOAT2FLOATPREC(diff_scale),
+                                FLOAT2FLOATPREC(gamma),
+                                FLOAT2FLOATPREC(beta),
+                                FLOAT2FLOATPREC(alpha));
         db += pbndyin;
         ds = mad(xhat4.w, pbndyin, ds);
 
@@ -359,10 +401,10 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         xread4    = *((const global _FLOAT4*)(x_in + index));
         act_dyin4 = *((const global _FLOAT4*)(dy_in + index));
         act_out4  = *((const global _FLOAT4*)(y_in + index));
-        xhat4.x   = ((_FLOAT_PREC)xread4.x - mean) * invVariance;
-        xhat4.y   = ((_FLOAT_PREC)xread4.y - mean) * invVariance;
-        xhat4.z   = ((_FLOAT_PREC)xread4.z - mean) * invVariance;
-        xhat4.w   = ((_FLOAT_PREC)xread4.w - mean) * invVariance;
+        xhat4.x   = (FLOAT2FLOATPREC(xread4.x) - mean) * invVariance;
+        xhat4.y   = (FLOAT2FLOATPREC(xread4.y) - mean) * invVariance;
+        xhat4.z   = (FLOAT2FLOATPREC(xread4.z) - mean) * invVariance;
+        xhat4.w   = (FLOAT2FLOATPREC(xread4.w) - mean) * invVariance;
 
         bn_out4.x = mad(xhat4.x, lcl_scale, lcl_bias);
         bn_out4.y = mad(xhat4.y, lcl_scale, lcl_bias);
@@ -373,31 +415,59 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         _FLOAT_PREC pactdyin = act_dyin4.x;
         _FLOAT_PREC pbnout   = bn_out4.x;
         _FLOAT_PREC pactout  = act_out4.x;
-        ActivationFunction_Diff(
-            1, &pbndyin, &pactdyin, &pbnout, &pactout, diff_scale, gamma, beta, alpha);
+        ActivationFunction_Diff(1,
+                                &pbndyin,
+                                &pactdyin,
+                                &pbnout,
+                                &pactout,
+                                FLOAT2FLOATPREC(diff_scale),
+                                FLOAT2FLOATPREC(gamma),
+                                FLOAT2FLOATPREC(beta),
+                                FLOAT2FLOATPREC(alpha));
 
         db += pbndyin;
         ds       = mad(xhat4.x, pbndyin, ds);
         pactdyin = act_dyin4.y;
         pbnout   = bn_out4.y;
         pactout  = act_out4.y;
-        ActivationFunction_Diff(
-            1, &pbndyin, &pactdyin, &pbnout, &pactout, diff_scale, gamma, beta, alpha);
+        ActivationFunction_Diff(1,
+                                &pbndyin,
+                                &pactdyin,
+                                &pbnout,
+                                &pactout,
+                                FLOAT2FLOATPREC(diff_scale),
+                                FLOAT2FLOATPREC(gamma),
+                                FLOAT2FLOATPREC(beta),
+                                FLOAT2FLOATPREC(alpha));
 
         db += pbndyin;
         ds       = mad(xhat4.y, pbndyin, ds);
         pactdyin = act_dyin4.z;
         pbnout   = bn_out4.z;
         pactout  = act_out4.z;
-        ActivationFunction_Diff(
-            1, &pbndyin, &pactdyin, &pbnout, &pactout, diff_scale, gamma, beta, alpha);
+        ActivationFunction_Diff(1,
+                                &pbndyin,
+                                &pactdyin,
+                                &pbnout,
+                                &pactout,
+                                FLOAT2FLOATPREC(diff_scale),
+                                FLOAT2FLOATPREC(gamma),
+                                FLOAT2FLOATPREC(beta),
+                                FLOAT2FLOATPREC(alpha));
         db += pbndyin;
         ds       = mad(xhat4.z, pbndyin, ds);
         pactdyin = act_dyin4.w;
         pbnout   = bn_out4.w;
         pactout  = act_out4.w;
-        ActivationFunction_Diff(
-            1, &pbndyin, &pactdyin, &pbnout, &pactout, diff_scale, gamma, beta, alpha);
+        ActivationFunction_Diff(1,
+                                &pbndyin,
+                                &pactdyin,
+                                &pbnout,
+                                &pactout,
+                                FLOAT2FLOATPREC(diff_scale),
+                                FLOAT2FLOATPREC(gamma),
+                                FLOAT2FLOATPREC(beta),
+                                FLOAT2FLOATPREC(alpha));
         db += pbndyin;
         ds = mad(xhat4.w, pbndyin, ds);
 
@@ -448,12 +518,19 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
             hwidx          = l - (nidx * MIO_BN_HW);
             index          = nidx * MIO_BN_CHW + chwid + hwidx;
             _FLOAT_PREC bn_dyin;
-            _FLOAT_PREC act_dyin = (_FLOAT_PREC) * (dy_in + index);
-            _FLOAT_PREC act_out  = (_FLOAT_PREC) * (y_in + index);
-            xhat                 = ((_FLOAT_PREC)(*(x_in + index)) - mean) * invVariance;
+            _FLOAT_PREC act_dyin = FLOAT2FLOATPREC(*(dy_in + index));
+            _FLOAT_PREC act_out  = FLOAT2FLOATPREC(*(y_in + index));
+            xhat                 = (FLOAT2FLOATPREC(*(x_in + index)) - mean) * invVariance;
             _FLOAT_PREC bn_out   = mad(xhat, lcl_scale, lcl_bias);
-            ActivationFunction_Diff(
-                1, &bn_dyin, &act_dyin, &bn_out, &act_out, diff_scale, gamma, beta, alpha);
+            ActivationFunction_Diff(1,
+                                    &bn_dyin,
+                                    &act_dyin,
+                                    &bn_out,
+                                    &act_out,
+                                    FLOAT2FLOATPREC(diff_scale),
+                                    FLOAT2FLOATPREC(gamma),
+                                    FLOAT2FLOATPREC(beta),
+                                    FLOAT2FLOATPREC(alpha));
             tmp1    = mad(NHW, bn_dyin, -db);
             tmp2    = -xhat * ds;
             vals[j] = tmp3 * (tmp2 + tmp1);
@@ -465,7 +542,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
             nidx              = l / MIO_BN_HW;
             hwidx             = l - (nidx * MIO_BN_HW);
             index             = nidx * MIO_BN_CHW + chwid + hwidx;
-            *(dx_out + index) = (_FLOAT)vals[j];
+            *(dx_out + index) = FLOATPREC2FLOAT(vals[j]);
         }
     }
 
@@ -480,12 +557,19 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         if(index < MIO_BN_NCHW)
         {
             _FLOAT_PREC bn_dyin;
-            _FLOAT_PREC act_dyin = (_FLOAT_PREC) * (dy_in + index);
-            _FLOAT_PREC act_out  = (_FLOAT_PREC) * (y_in + index);
+            _FLOAT_PREC act_dyin = FLOAT2FLOATPREC(*(dy_in + index));
+            _FLOAT_PREC act_out  = FLOAT2FLOATPREC(*(y_in + index));
             xhat                 = (*(x_in + index) - mean) * invVariance;
             _FLOAT_PREC bn_out   = mad(xhat, lcl_scale, lcl_bias);
-            ActivationFunction_Diff(
-                1, &bn_dyin, &act_dyin, &bn_out, &act_out, diff_scale, gamma, beta, alpha);
+            ActivationFunction_Diff(1,
+                                    &bn_dyin,
+                                    &act_dyin,
+                                    &bn_out,
+                                    &act_out,
+                                    FLOAT2FLOATPREC(diff_scale),
+                                    FLOAT2FLOATPREC(gamma),
+                                    FLOAT2FLOATPREC(beta),
+                                    FLOAT2FLOATPREC(alpha));
 
             tmp1    = mad(NHW, bn_dyin, -db);
             tmp2    = -xhat * ds;
@@ -501,7 +585,7 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         index          = nidx * MIO_BN_CHW + chwid + hwidx;
         if(index < MIO_BN_NCHW)
         {
-            *(dx_out + index) = (_FLOAT)vals[j];
+            *(dx_out + index) = FLOATPREC2FLOAT(vals[j]);
         }
     }
 #endif
@@ -575,20 +659,20 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
         for(unsigned n = 0; n < MIO_BN_N; n++)
         {
             index              = n * MIO_BN_CHW + cidx + lid;
-            _FLOAT_PREC xhat   = ((_FLOAT_PREC) * (x_in + index) - mean) * invVariance;
+            _FLOAT_PREC xhat   = (FLOAT2FLOATPREC(*(x_in + index)) - mean) * invVariance;
             _FLOAT_PREC bn_out = mad(xhat, lcl_scale, lcl_bias);
             _FLOAT_PREC bn_dyin;
-            _FLOAT_PREC act_dyin = (_FLOAT_PREC) * (dy_in + index);
-            _FLOAT_PREC act_out  = (_FLOAT_PREC) * (y_in + index);
+            _FLOAT_PREC act_dyin = FLOAT2FLOATPREC(*(dy_in + index));
+            _FLOAT_PREC act_out  = FLOAT2FLOATPREC(*(y_in + index));
             ActivationFunction_Diff(1,
                                     &bn_dyin,
                                     &act_dyin,
                                     &bn_out,
                                     &act_out,
-                                    (_FLOAT_PREC)diff_scale,
-                                    gamma,
-                                    beta,
-                                    alpha);
+                                    FLOAT2FLOATPREC(diff_scale),
+                                    FLOAT2FLOATPREC(gamma),
+                                    FLOAT2FLOATPREC(beta),
+                                    FLOAT2FLOATPREC(alpha));
 
 #if MIO_BN_CBA_WRITE_INTERMEDIATE
             // for debugging
@@ -638,19 +722,26 @@ MIOpenBatchNormActivBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp1          = mad(NHW, dyvalues[n], -db);
             tmp2          = -(batchvalues[n] * ds);
 #else
-            _FLOAT_PREC act_dyin = (_FLOAT_PREC) * (dy_in + index);
-            _FLOAT_PREC act_out  = (_FLOAT_PREC) * (y_in + index);
-            _FLOAT_PREC xhat     = ((_FLOAT_PREC) * (x_in + index) - mean) * invVariance;
+            _FLOAT_PREC act_dyin = FLOAT2FLOATPREC(*(dy_in + index));
+            _FLOAT_PREC act_out  = FLOAT2FLOATPREC(*(y_in + index));
+            _FLOAT_PREC xhat     = (FLOAT2FLOATPREC(*(x_in + index)) - mean) * invVariance;
             _FLOAT_PREC bn_out   = mad(xhat, lcl_scale, lcl_bias);
             _FLOAT_PREC bn_dyin;
-            ActivationFunction_Diff(
-                1, &bn_dyin, &act_dyin, &bn_out, &act_out, diff_scale, gamma, beta, alpha);
+            ActivationFunction_Diff(1,
+                                    &bn_dyin,
+                                    &act_dyin,
+                                    &bn_out,
+                                    &act_out,
+                                    FLOAT2FLOATPREC(diff_scale),
+                                    FLOAT2FLOATPREC(gamma),
+                                    FLOAT2FLOATPREC(beta),
+                                    FLOAT2FLOATPREC(alpha));
 
             tmp1 = mad(NHW, bn_dyin, -db);
             tmp2 = -(xhat)*ds;
 #endif
             tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = (_FLOAT)(tmp3 * (tmp2 + tmp1));
+            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
         }
     }
     if(lid == 0)

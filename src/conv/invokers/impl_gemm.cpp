@@ -139,8 +139,9 @@ InvokerFactory MakeImplGemmDataInvokerFactory(const ProblemDescription& problem)
                     {
                         if(tensors.wDesc.GetLengths()[2] == 1 && tensors.wDesc.GetLengths()[3] == 1)
                         { // filter = 1
-                            if(tensors.wDesc.GetSize() == 4 ||
-                               (tensors.wDesc.GetSize() == 5 && tensors.wDesc.GetLengths()[4] == 1))
+                            if(tensors.wDesc.GetNumDims() == 4 ||
+                               (tensors.wDesc.GetNumDims() == 5 &&
+                                tensors.wDesc.GetLengths()[4] == 1))
                             {
                                 is_1x1_s1 = true;
                             }

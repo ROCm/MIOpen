@@ -27,6 +27,7 @@
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/hipoc_kernel.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/handle_lock.hpp>
 #include <miopen/logger.hpp>
 
@@ -36,9 +37,35 @@
 #include <chrono>
 #include <thread>
 
+#define WORKAROUND_SWDEV_448157 1
+
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)
 
 namespace miopen {
+
+HipEventProfiler::HipEventProfiler(const Handle& handle_)
+    : handle(handle_), start(nullptr), stop(nullptr)
+{
+    if(handle.IsProfilingEnabled())
+    {
+        start = make_hip_event();
+        stop  = make_hip_event();
+        hipEventRecord(start.get(), handle.GetStream());
+    }
+}
+
+HipEventProfiler::~HipEventProfiler()
+{
+    if(start)
+    {
+        hipEventRecord(stop.get(), handle.GetStream());
+        hipEventSynchronize(stop.get());
+        float event_time = 0.0f;
+        hipEventElapsedTime(&event_time, start.get(), stop.get());
+        handle.ResetKernelTime();
+        handle.AccumKernelTime(event_time);
+    }
+}
 
 static std::string DimToFormattedString(const size_t* dims, size_t count)
 {
@@ -79,7 +106,7 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
         stop  = make_hip_event();
     }
 
-    const auto& arch = miopen::GetStringEnv(ENV(MIOPEN_DEVICE_ARCH));
+    const auto& arch = env::value(MIOPEN_DEVICE_ARCH);
     if(!arch.empty())
     {
         MIOPEN_THROW("MIOPEN_DEVICE_ARCH used, escaping launching kernel");
@@ -123,9 +150,83 @@ void HIPOCKernelInvoke::run(void* args, std::size_t size) const
     }
 }
 
-HIPOCKernelInvoke HIPOCKernel::Invoke(hipStream_t stream,
-                                      std::function<void(hipEvent_t, hipEvent_t)> callback) const
+void HIPOCKernelInvoke::run_cooperative(void** kern_args) const
 {
-    return HIPOCKernelInvoke{stream, fun, ldims, gdims, name, callback};
+    hipError_t status;
+
+    MIOPEN_LOG_I2("kernel_name = "
+                  << GetName() << ", global_work_dim = " << DimToFormattedString(gdims.data(), 3)
+                  << ", local_work_dim = " << DimToFormattedString(ldims.data(), 3));
+
+    const auto& arch = env::value(MIOPEN_DEVICE_ARCH);
+    if(!arch.empty())
+    {
+        MIOPEN_THROW("MIOPEN_DEVICE_ARCH used, escaping launching kernel");
+    }
+
+    HipEventPtr start = nullptr;
+    HipEventPtr stop  = nullptr;
+
+    if(callback)
+    {
+        start = make_hip_event();
+        stop  = make_hip_event();
+    }
+
+#if WORKAROUND_SWDEV_448157
+    if(gdims[0] >= (1ULL << 32) || gdims[1] >= (1ULL << 32) || gdims[2] >= (1ULL << 32))
+        MIOPEN_THROW("gridDim x blockDim >= 2^32");
+
+    if(gdims[0] % ldims[0] != 0 || gdims[1] % ldims[1] != 0 || gdims[2] % ldims[2] != 0)
+        MIOPEN_THROW(miopenStatusInternalError);
+
+    unsigned grid_dim_x = gdims[0] / ldims[0];
+    unsigned grid_dim_y = gdims[1] / ldims[1];
+    unsigned grid_dim_z = gdims[2] / ldims[2];
+
+    MIOPEN_HANDLE_LOCK
+
+    if(callback)
+    {
+        status = hipEventRecord(start.get(), stream);
+        if(status != hipSuccess)
+            MIOPEN_THROW_HIP_STATUS(status, "hipEventRecord() failed");
+    }
+
+    status = hipModuleLaunchCooperativeKernel(fun,
+                                              grid_dim_x,
+                                              grid_dim_y,
+                                              grid_dim_z,
+                                              ldims[0],
+                                              ldims[1],
+                                              ldims[2],
+                                              0,
+                                              stream,
+                                              kern_args);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status, "Failed to launch kernel");
+
+    if(callback)
+    {
+        status = hipEventRecord(stop.get(), stream);
+        if(status != hipSuccess)
+            MIOPEN_THROW_HIP_STATUS(status, "hipEventRecord() failed");
+    }
+#else
+#error "Doesn't work without workaround"
+#endif // WORKAROUND_SWDEV_448157
+
+    if(callback)
+    {
+        hipEventSynchronize(stop.get());
+        callback(start.get(), stop.get());
+    }
+}
+
+HIPOCKernelInvoke HIPOCKernel::Invoke(hipStream_t stream,
+                                      std::function<void(hipEvent_t, hipEvent_t)> callback,
+                                      bool coop_launch) const
+{
+    return HIPOCKernelInvoke{stream, fun, ldims, gdims, name, callback, coop_launch};
 }
 } // namespace miopen

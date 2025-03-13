@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/batched_transpose_sol.hpp>
+#include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/magic_div.hpp>
 #include <miopen/float_equal.hpp>
@@ -411,6 +412,27 @@ bool BatchedTransposeSolution::IsSkippable() const
 size_t BatchedTransposeSolution::GetOutputTensorSize() const
 {
     return miopen::GetTypeSize(data_type) * batch * height * width;
+}
+
+InvokerFactory BatchedTransposeSolution::MakeBatchedTransposeInvokerFactory() const
+{
+    std::vector<OpKernelArg> opArgs = GetKernelArg();
+
+    miopen::InvokerFactory invoker_factory([=](const std::vector<miopen::Kernel>& kernels) mutable {
+        return [=](const miopen::Handle& _handle,
+                   const miopen::AnyInvokeParams& primitive_param) mutable {
+            decltype(auto) invoke_params = primitive_param.CastTo<transpose_invoke_param>();
+
+            const auto k = _handle.Run(kernels[0]);
+
+            opArgs[0] = OpKernelArg(invoke_params.dst);
+            opArgs[1] = OpKernelArg(invoke_params.src);
+
+            k(opArgs);
+        };
+    });
+
+    return invoker_factory;
 }
 
 } // namespace miopen

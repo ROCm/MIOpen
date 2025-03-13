@@ -44,7 +44,7 @@
 
 namespace miopen {
 
-struct SeqTensorDescriptor : miopenSeqTensorDescriptor
+struct MIOPEN_INTERNALS_EXPORT SeqTensorDescriptor : miopenSeqTensorDescriptor
 {
     SeqTensorDescriptor();
 
