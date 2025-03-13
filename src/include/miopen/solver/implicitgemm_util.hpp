@@ -211,9 +211,9 @@ static inline bool IsXdlopsSupport(const ExecutionContext& ctx)
     // disable xdlops kernels by default due to possible failures:
     // 1) inline asm may crash
     // 2) llvm intrin may has incorrect results
-    const bool is_xdlops_supported = StartsWith(ctx.GetStream().GetDeviceName(), "gfx908") ||
-                                     StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a") ||
-                                     StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
+    const bool is_xdlops_supported = ctx.GetStream().GetDeviceName() == "gfx908" ||
+                                     ctx.GetStream().GetDeviceName() == "gfx90a" ||
+                                     ctx.GetStream().GetDeviceName() == "gfx942";
     return is_xdlops_supported && !env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS);
 }
 
@@ -573,13 +573,11 @@ static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ct
 
 static inline bool IsComposableKernelSupportedHardware(const ExecutionContext& c)
 {
-    return (StartsWith(c.GetStream().GetDeviceName(), "gfx803") &&
+    return (c.GetStream().GetDeviceName() == "gfx803" &&
             c.GetStream().GetMaxComputeUnits() == 64) ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx900") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx94") ||
+           c.GetStream().GetDeviceName() == "gfx900" || c.GetStream().GetDeviceName() == "gfx906" ||
+           c.GetStream().GetDeviceName() == "gfx908" || c.GetStream().GetDeviceName() == "gfx90a" ||
+           c.GetStream().GetDeviceName() == "gfx942" ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx103");
 }
 

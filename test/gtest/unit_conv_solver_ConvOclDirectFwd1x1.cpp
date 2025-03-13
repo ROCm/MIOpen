@@ -26,7 +26,7 @@
 
 #include "unit_conv_solver.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
 
 namespace {
 
@@ -36,9 +36,9 @@ public:
     WA_SWDEV_271887_ScopedDisabler()
     {
         if(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
-            prev = env::value(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1);
+            prev = lib_env::value<bool>(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1);
         if(prev != true)
-            env::update(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1, true);
+            lib_env::update(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1, true);
     }
 
     ~WA_SWDEV_271887_ScopedDisabler()
@@ -46,11 +46,11 @@ public:
         if(prev)
         {
             if(prev != true)
-                env::update(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1, false);
+                lib_env::update(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1, false);
         }
         else
         {
-            env::clear(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1);
+            lib_env::clear(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1);
         }
     }
 

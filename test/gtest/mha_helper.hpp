@@ -39,7 +39,7 @@
 namespace test {
 namespace cpu {
 
-using float8 = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
+using float8_fnuz = miopen_f8::hip_f8<miopen_f8::hip_f8_type::fp8>;
 
 struct CPUMHATestCase
 {
@@ -357,7 +357,7 @@ void SoftMax(const tensor<T>& q_dot_k_transpose,
     BroadCastMul(exp_q_dot_k_transpose_sub_attn_max, z_sum, softmax);
 }
 
-template <typename T = float8>
+template <typename T = float8_fnuz>
 void MultiHeadAttentionForwardfp8(const tensor<T>& q_val,
                                   const tensor<T>& k_val,
                                   const tensor<T>& v_val,
@@ -530,7 +530,7 @@ void MultiHeadAttentionBackwardDataf32(const tensor<T>& q_val,
     Dot_4D_T_4D(bwd_intermediate, q_val, dK_val);
 }
 
-template <typename T = float8, typename U = T>
+template <typename T = float8_fnuz, typename U = T>
 void MultiHeadAttentionBackwardDataf8(const tensor<T>& q_val,
                                       const tensor<T>& k_val,
                                       const tensor<T>& v_val,
