@@ -127,6 +127,7 @@ set( MIOpen_Source
     fusion/problem_description.cpp
     generic_search.cpp
     getitem_api.cpp
+    getitem/problem_description.cpp
     glu/problem_description.cpp
     glu_api.cpp
     graphapi/convolution.cpp
@@ -148,10 +149,9 @@ set( MIOpen_Source
     groupnorm_api.cpp
     groupnorm/problem_description.cpp
     handle_api.cpp
-    invoker_cache.cpp
-    getitem/problem_description.cpp
     interpolate_api.cpp
     interpolate/problem_description.cpp
+    invoker_cache.cpp
     kernel_build_params.cpp
     kernel_warnings.cpp
     kthvalue/problem_description.cpp
@@ -301,13 +301,10 @@ set( MIOpen_Source
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
+    solver/getitem/backward_getitem.cpp
     solver/glu/backward_glu.cpp
     solver/glu/forward_glu.cpp
     solver/groupnorm/forward_groupnorm.cpp
-    solver/getitem/backward_getitem.cpp
-    solver/kthvalue/forward_kthvalue.cpp
-    solver/layernorm/backward_t5layernorm.cpp
-    solver/layernorm/forward_addlayernorm.cpp
     solver/interpolate/bwd_bicubic_interpolate.cpp
     solver/interpolate/bwd_bilinear_interpolate.cpp
     solver/interpolate/bwd_linear_interpolate.cpp
@@ -317,6 +314,9 @@ set( MIOpen_Source
     solver/interpolate/fwd_bilinear_interpolate.cpp
     solver/interpolate/fwd_linear_interpolate.cpp
     solver/interpolate/fwd_nearest_interpolate.cpp
+    solver/kthvalue/forward_kthvalue.cpp
+    solver/layernorm/backward_t5layernorm.cpp
+    solver/layernorm/forward_addlayernorm.cpp
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
@@ -552,8 +552,8 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenGLU.cpp
         kernels/MIOpenGroupNorm.cpp
         kernels/MIOpenGetitem.cpp
-        kernels/MIOpenKthvalue.cpp
         kernels/MIOpenInterpolate.cpp
+        kernels/MIOpenKthvalue.cpp
         kernels/MIOpenLayerNorm.cpp
         kernels/MIOpenLRNBwd.cl
         kernels/MIOpenLRNFwd.cl

@@ -33,8 +33,8 @@
 #include <miopen/glu/solvers.hpp>
 #include <miopen/groupnorm/solvers.hpp>
 #include <miopen/getitem/solvers.hpp>
-#include <miopen/kthvalue/solvers.hpp>
 #include <miopen/interpolate/solvers.hpp>
+#include <miopen/kthvalue/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/prelu/solvers.hpp>
@@ -744,7 +744,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::Interpolate,
              interpolate::InterpolateBicubicBackward{}.SolverDbId());
-
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }

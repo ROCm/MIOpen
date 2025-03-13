@@ -338,12 +338,12 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" && arg != "layernormfp16" &&
        arg != "layernormbfp16" && arg != "sum" && arg != "sumfp16" && arg != "sumbfp16" &&
        arg != "groupnorm" && arg != "groupnormfp16" && arg != "groupnormbfp16" && arg != "cat" &&
-       arg != "catfp16" && arg != "catbfp16" && arg != "interpolate" && arg != "interpolatefp16" &&
-       arg != "interpolatebfp16" && arg != "addlayernorm" && arg != "addlayernormfp16" &&
-       arg != "addlayernormbfp16" && arg != "t5layernorm" && arg != "t5layernormfp16" &&
-       arg != "t5layernormbfp16" && arg != "adam" && arg != "adamfp16" && arg != "ampadam" &&
-       arg != "reduceextreme" && arg != "reduceextremefp16" && arg != "reduceextremebfp16" &&
-       arg != "adamw" && arg != "adamwfp16" && arg != "ampadamw" && arg != "transformersadamw" &&
+       arg != "catfp16" && arg != "catbfp16" && arg != "addlayernorm" &&
+       arg != "addlayernormfp16" && arg != "addlayernormbfp16" && arg != "t5layernorm" &&
+       arg != "t5layernormfp16" && arg != "t5layernormbfp16" && arg != "adam" &&
+       arg != "adamfp16" && arg != "ampadam" && arg != "reduceextreme" &&
+       arg != "reduceextremefp16" && arg != "reduceextremebfp16" && arg != "adamw" &&
+       arg != "adamwfp16" && arg != "ampadamw" && arg != "transformersadamw" &&
        arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "getitem" &&
        arg != "getitemfp16" && arg != "getitembfp16" && arg != "reducecalculation" &&
        arg != "reducecalculationfp16" && arg != "reducecalculationbfp16" && arg != "rope" &&
@@ -352,6 +352,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "kthvaluebfp16" && arg != "glu" && arg != "glufp16" && arg != "glubfp16" &&
        arg != "softmarginloss" && arg != "softmarginlossfp16" && arg != "softmarginlossbfp16" &&
        arg != "multimarginloss" && arg != "multimarginlossfp16" && arg != "multimarginlossbfp16" &&
+       arg != "interpolate" && arg != "interpolatefp16" && arg != "interpolatebfp16" &&
        arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
