@@ -534,9 +534,11 @@ set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix
 # Enabled via the MIOPEN_ENABLE_LOGGING_ROCTX env var.
 set(MIOPEN_USE_ROCTRACER ON CACHE BOOL "")
 if(NOT WIN32 AND MIOPEN_USE_ROCTRACER)
+    find_path(ROCTRACER_INCLUDE_DIR "roctracer/roctx.h")
     find_library(rocTracer roctx64)
-    if(rocTracer)
+    if(rocTracer AND ROCTRACER_INCLUDE_DIR)
         MESSAGE(STATUS "Build with rocTracer: " ${rocTracer})
+        MESSAGE(STATUS "rocTracer include directory: " ${ROCTRACER_INCLUDE_DIR})
         set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, roctracer")
     else()
         message(WARNING "rocTracer cannot be found! Build without rocTracer")
