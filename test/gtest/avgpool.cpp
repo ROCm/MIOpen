@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 #include "avgpool.hpp"
-#include "gtest/gtest.h"
 using float16 = half_float::half;
 
 // FORWARD TEST
