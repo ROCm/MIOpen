@@ -89,6 +89,59 @@ int32_t mloHingeEmbeddingLossBackwardRunHost(const miopenTensorDescriptor_t inpu
                                              const float margin,
                                              const miopenLossReductionMode_t reduction_mode)
 {
+    auto input_tv       = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto target_tv      = miopen::get_inner_expanded_tv<5>(miopen::deref(targetDesc));
+    auto output_grad_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
+    auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
+    const auto input_sz = miopen::deref(inputDesc).GetElementSize();
+    for(size_t gid = 0; gid < input_sz; ++gid)
+    {
+        tensor_layout_t<5> idx(input_tv, gid);
+        if(target[target_tv.get_tensor_view_idx(idx)] == 1)
+        {
+            if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
+            {
+                input_grad[input_grad_tv.get_tensor_view_idx(idx)] =
+                    static_cast<Tcheck>(output_grad[output_grad_tv.get_tensor_view_idx(idx)]);
+            }
+            else if(reduction_mode == MIOPEN_LOSS_REDUCTION_SUM)
+            {
+                input_grad[input_grad_tv.get_tensor_view_idx(idx)] =
+                    static_cast<Tcheck>(output_grad[0]);
+            }
+            else
+            {
+                input_grad[input_grad_tv.get_tensor_view_idx(idx)] =
+                    static_cast<Tcheck>(output_grad[0]) / input_sz;
+            }
+        }
+        else
+        {
+            if(margin - static_cast<Tcheck>(input[input_tv.get_tensor_view_idx(idx)]) > 0)
+            {
+                if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
+                {
+                    input_grad[input_grad_tv.get_tensor_view_idx(idx)] =
+                        static_cast<Tcheck>(-output_grad[output_grad_tv.get_tensor_view_idx(idx)]);
+                }
+                else if(reduction_mode == MIOPEN_LOSS_REDUCTION_SUM)
+                {
+                    input_grad[input_grad_tv.get_tensor_view_idx(idx)] =
+                        static_cast<Tcheck>(-output_grad[0]);
+                }
+                else
+                {
+                    input_grad[input_grad_tv.get_tensor_view_idx(idx)] =
+                        static_cast<Tcheck>(-output_grad[0]) / input_sz;
+                }
+            }
+            else
+            {
+                input_grad[input_grad_tv.get_tensor_view_idx(idx)] = 0;
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -294,12 +347,12 @@ int HingeEmbeddingLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     target_dev   = std::make_unique<GPUMem>(ctx, t_sz, sizeof(uint8_t));
     input        = std::vector<Tgpu>(i_sz);
     target       = std::vector<uint8_t>(t_sz);
-    for(int i = 0; i < i_sz; i++)
+    for(size_t i = 0; i < i_sz; i++)
     {
         input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0), static_cast<Tgpu>(1));
     }
     // 0 or 1
-    for(int i = 0; i < t_sz; i++)
+    for(size_t i = 0; i < t_sz; i++)
     {
         target[i] = prng::gen_A_to_B<uint8_t>(static_cast<uint8_t>(0), static_cast<uint8_t>(2));
     }
@@ -329,10 +382,18 @@ int HingeEmbeddingLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     {
         size_t o_sz     = GetTensorSpace(outputGradDesc);
         output_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, o_sz, sizeof(Tgpu)));
-        input_grad_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, i_sz, sizeof(Tgpu)));
         output_grad     = std::vector<Tgpu>(o_sz);
-        input_grad      = std::vector<Tgpu>(i_sz);
-        ref_input_grad  = std::vector<Tref>(i_sz);
+        for(size_t i = 0; i < o_sz; i++)
+        {
+            output_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0), static_cast<Tgpu>(1));
+        }
+        if(output_grad_dev->ToGPU(GetStream(), output_grad.data()) != 0)
+            std::cerr << "Error copying (output_grad) to GPU, size: " << output_grad_dev->GetSize()
+                      << std::endl;
+
+        input_grad_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, i_sz, sizeof(Tgpu)));
+        input_grad     = std::vector<Tgpu>(i_sz);
+        ref_input_grad = std::vector<Tref>(i_sz);
     }
 
     return miopenStatusSuccess;

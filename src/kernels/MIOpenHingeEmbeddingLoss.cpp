@@ -76,3 +76,88 @@ extern "C" __global__ void HingeEmbeddingLossForward(const FLOAT* __restrict__ i
     hingeembeddinglossforward<FLOAT, REDUCTION_TYPE>(
         input, target, output, num_elem, margin, input_tv, target_tv, output_tv);
 }
+
+template <typename DTYPE, int REDUCTION_T>
+__device__ void hingeembeddinglossbackward(const DTYPE* __restrict__ input,
+                                           const char* __restrict__ target,
+                                           const DTYPE* __restrict__ doutput,
+                                           DTYPE* __restrict__ dinput,
+                                           const size_t num_elem,
+                                           const float margin,
+                                           tensor_view_t<5> input_tv,
+                                           tensor_view_t<5> target_tv,
+                                           tensor_view_t<5> doutput_tv,
+                                           tensor_view_t<5> dinput_tv)
+{
+    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    tensor_layout_t<5> idx(input_tv, gid);
+    if(idx.layout[0] >= input_tv.size[0])
+        return;
+
+    // TODO: use shared memory to access doutput[0] for case != reduction_none
+    if(target[target_tv.get_tensor_view_idx(idx)] == 1)
+    {
+        switch(REDUCTION_T)
+        {
+        case 0:
+            dinput[dinput_tv.get_tensor_view_idx(idx)] =
+                doutput[doutput_tv.get_tensor_view_idx(idx)];
+            break;
+        case 1: dinput[dinput_tv.get_tensor_view_idx(idx)] = doutput[0]; break;
+        case 2:
+            dinput[dinput_tv.get_tensor_view_idx(idx)] =
+                CVT_ACCUM2FLOAT(CVT_FLOAT2ACCUM(doutput[0]) / num_elem);
+            break;
+        default: break;
+        }
+    }
+    else
+    {
+        if(margin - CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(idx)]) > 0)
+        {
+            switch(REDUCTION_T)
+            {
+            case 0:
+                dinput[dinput_tv.get_tensor_view_idx(idx)] =
+                    CVT_ACCUM2FLOAT(-CVT_FLOAT2ACCUM(doutput[doutput_tv.get_tensor_view_idx(idx)]));
+                break;
+            case 1:
+                dinput[dinput_tv.get_tensor_view_idx(idx)] =
+                    CVT_ACCUM2FLOAT(-CVT_FLOAT2ACCUM(doutput[0]));
+                break;
+            case 2:
+                dinput[dinput_tv.get_tensor_view_idx(idx)] =
+                    CVT_ACCUM2FLOAT(-CVT_FLOAT2ACCUM(doutput[0]) / num_elem);
+                break;
+            default: break;
+            }
+        }
+        else
+        {
+            dinput[dinput_tv.get_tensor_view_idx(idx)] = 0;
+        }
+    }
+}
+
+extern "C" __global__ void HingeEmbeddingLossBackward(const FLOAT* __restrict__ input,
+                                                      const char* __restrict__ target,
+                                                      const FLOAT* __restrict__ doutput,
+                                                      FLOAT* __restrict__ dinput,
+                                                      const size_t num_elem,
+                                                      const float margin,
+                                                      tensor_view_t<5> input_tv,
+                                                      tensor_view_t<5> target_tv,
+                                                      tensor_view_t<5> doutput_tv,
+                                                      tensor_view_t<5> dinput_tv)
+{
+    hingeembeddinglossbackward<FLOAT, REDUCTION_TYPE>(input,
+                                                      target,
+                                                      doutput,
+                                                      dinput,
+                                                      num_elem,
+                                                      margin,
+                                                      input_tv,
+                                                      target_tv,
+                                                      doutput_tv,
+                                                      dinput_tv);
+}
