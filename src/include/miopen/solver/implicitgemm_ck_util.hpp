@@ -78,22 +78,27 @@ using DeviceOpGWrwNCHW = ck::tensor_operation::device::DeviceGroupedConvBwdWeigh
     ck::tensor_operation::element_wise::PassThrough,
     ck::tensor_operation::element_wise::PassThrough>;
 template <typename DataType>
-using DeviceOpGWrwNCHWPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrwNCHW<DataType>>;
+using DeviceOpGWrwNCHWPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    DeviceOpGWrwNCHW<DataType>>;
 
-using InLayout    = ck::tensor_layout::convolution::NDHWGC;
-using WeiLayout   = ck::tensor_layout::convolution::GKZYXC;
-using OutLayout   = ck::tensor_layout::convolution::NDHWGK;
-using PassThrough = ck::tensor_operation::element_wise::PassThrough;
-using Bilinear    = ck::tensor_operation::element_wise::Bilinear;
-using Scale       = ck::tensor_operation::element_wise::Scale;
+// TODO: need to combine/template/refactor these CK parameters once finalizing
+// whether we keep the CK NHWGC + MIOpen transform solvers along with new CK NGCHW
+// slolvers
+using InLayoutNDHWGC  = ck::tensor_layout::convolution::NDHWGC;
+using InLayoutNGCDHW  = ck::tensor_layout::convolution::NGCDHW;
+using WeiLayout       = ck::tensor_layout::convolution::GKZYXC;
+using OutLayoutNDHWGK = ck::tensor_layout::convolution::NDHWGK;
+using OutLayoutNGKDHW = ck::tensor_layout::convolution::NGKDHW;
+using PassThrough     = ck::tensor_operation::element_wise::PassThrough;
+using Bilinear        = ck::tensor_operation::element_wise::Bilinear;
+using Scale           = ck::tensor_operation::element_wise::Scale;
 
 template <typename DataType>
 using DeviceOpGBwdWeightDefault =
     ck::tensor_operation::device::DeviceGroupedConvBwdWeight<3,
-                                                             InLayout,
+                                                             InLayoutNDHWGC,
                                                              WeiLayout,
-                                                             OutLayout,
+                                                             OutLayoutNDHWGK,
                                                              DataType,
                                                              DataType,
                                                              DataType,
@@ -104,9 +109,9 @@ using DeviceOpGBwdWeightDefault =
 template <typename DataType>
 using DeviceOpGBwdWeightBilinear =
     ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<3,
-                                                                      InLayout,
+                                                                      InLayoutNDHWGC,
                                                                       WeiLayout,
-                                                                      OutLayout,
+                                                                      OutLayoutNDHWGK,
                                                                       ck::Tuple<WeiLayout>,
                                                                       DataType,
                                                                       DataType,
@@ -119,9 +124,9 @@ using DeviceOpGBwdWeightBilinear =
 template <typename DataType>
 using DeviceOpGBwdWeightScale =
     ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<3,
-                                                                      InLayout,
+                                                                      InLayoutNDHWGC,
                                                                       WeiLayout,
-                                                                      OutLayout,
+                                                                      OutLayoutNDHWGK,
                                                                       ck::Tuple<>,
                                                                       DataType,
                                                                       DataType,
@@ -145,6 +150,64 @@ template <typename DataType>
 using DeviceOpGBwdWeightScalePtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOpGBwdWeightScale<DataType>>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightDefaultNGCDHW =
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeight<3,
+                                                             InLayoutNGCDHW,
+                                                             WeiLayout,
+                                                             OutLayoutNGKDHW,
+                                                             DataType,
+                                                             DataType,
+                                                             DataType,
+                                                             PassThrough,
+                                                             PassThrough,
+                                                             PassThrough>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightBilinearNGCDHW =
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<3,
+                                                                      InLayoutNGCDHW,
+                                                                      WeiLayout,
+                                                                      OutLayoutNGKDHW,
+                                                                      ck::Tuple<WeiLayout>,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      ck::Tuple<DataType>,
+                                                                      PassThrough,
+                                                                      Bilinear,
+                                                                      PassThrough>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightScaleNGCDHW =
+    ck::tensor_operation::device::DeviceGroupedConvBwdWeightMultipleD<3,
+                                                                      InLayoutNGCDHW,
+                                                                      WeiLayout,
+                                                                      OutLayoutNGKDHW,
+                                                                      ck::Tuple<>,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      DataType,
+                                                                      ck::Tuple<>,
+                                                                      PassThrough,
+                                                                      Scale,
+                                                                      PassThrough>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightDefaultPtrsNGCDHW =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightDefaultNGCDHW<DataType>>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightBilinearPtrsNGCDHW =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightBilinearNGCDHW<DataType>>;
+
+template <typename DataType>
+using DeviceOpGBwdWeightScalePtrsNGCDHW =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightScaleNGCDHW<DataType>>;
 
 } // namespace conv
 #endif
@@ -210,6 +273,7 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
 }
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+// TODO: need to refactor
 template <typename DeviceOpType>
 inline constexpr bool IsSplitKNeeded()
 {
@@ -232,7 +296,19 @@ inline constexpr bool IsSplitKNeeded()
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::half_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<float>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<int8_t>> ||
-           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::bhalf_t>>;
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrs<ck::bhalf_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrsNGCDHW<ck::half_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrsNGCDHW<float>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrsNGCDHW<int8_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrsNGCDHW<ck::bhalf_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrsNGCDHW<ck::half_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrsNGCDHW<float>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrsNGCDHW<int8_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightBilinearPtrsNGCDHW<ck::bhalf_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrsNGCDHW<ck::half_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrsNGCDHW<float>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrsNGCDHW<int8_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightScalePtrsNGCDHW<ck::bhalf_t>>;
 }
 #endif
 
@@ -958,6 +1034,8 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     return result;
 }
 
+// The name is kind of misleading
+// TODO: rename the function and change in all CK solvers.
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
@@ -1214,7 +1292,7 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
 template <typename InvokerFactoryMakerNHWC>
 ConvSolution
 MakeSolutionGroupConvImplicitGemmNCHWXdlops(const miopen::conv::ProblemDescription& problem,
-                                        InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
+                                            InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
 {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -1239,9 +1317,8 @@ MakeSolutionGroupConvImplicitGemmNCHWXdlops(const miopen::conv::ProblemDescripti
     }
     else
     {
-        MIOPEN_THROW(
-            miopenStatusInternalError,
-            "Convolution operation not implemented for this data type");
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Convolution operation not implemented for this data type");
     }
 #else
     return {};

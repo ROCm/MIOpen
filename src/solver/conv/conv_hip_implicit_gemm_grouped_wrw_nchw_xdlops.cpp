@@ -72,35 +72,9 @@ struct CKArgs
         output          = {G, N, K, Ho, Wo};
         weight          = {G, K, C, Y, X};
 
-        // CK strides are in GNCDHW order
-        if(problem.IsLayoutNHWC())
-        {
-            // first entry reserved for G's stride
-            auto copy_strides = [](const auto& src, auto& dst) {
-                assert(dst.size() == (src.size() + 1));
-                std::copy(src.begin(), src.end(), dst.begin() + 1);
-            };
-            copy_strides(problem.GetIn().GetStrides(), in_strides);
-            copy_strides(problem.GetOut().GetStrides(), out_strides);
-            copy_strides(problem.GetWeights().GetStrides(), wei_strides);
-
-            // On a backward pass, problem.GetIn() means y(or out),
-            // and problem.GetOut means x(or in)
-            /// \todo remove this when we stop swapping in and out tensors/descriptors
-            std::swap(in_strides, out_strides);
-
-            // Now compute G's stride
-            in_strides[0]  = C;
-            out_strides[0] = K;
-            wei_strides[0] = K * wei_strides[1];
-        }
-        else
-        {
-            assert(problem.IsLayoutDefault()); // already checked in IsApplicable
-            in_strides  = {Hi * Wi * C, Hi * Wi * G * C, Hi * Wi, Wi, 1};
-            out_strides = {Ho * Wo * K, Ho * Wo * G * K, Ho * Wo, Wo, 1};
-            wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-        }
+        in_strides  = {Hi * Wi * C, Hi * Wi * G * C, Hi * Wi, Wi, 1};
+        out_strides = {Ho * Wo * K, Ho * Wo * G * K, Ho * Wo, Wo, 1};
+        wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
@@ -249,7 +223,8 @@ static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
 /**
  * @param type is the kernel type predicted by the parameter prediction model
  */
-void PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops::InitHeuristicKernelIDs(const std::string& type)
+void PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops::InitHeuristicKernelIDs(
+    const std::string& type)
 {
     for(int i = 0; i < valid_kernels.size(); i++)
     {
@@ -468,7 +443,8 @@ void PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops::HeuristicInit(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops::SetNextValue(const ProblemDescription& problem)
+bool PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops::SetNextValue(
+    const ProblemDescription& problem)
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
@@ -558,16 +534,17 @@ bool ConvHipImplicitGemmGroupWrwCKNCHWXdlops::IsValidPerformanceConfig(
     return config.IsValid(problem);
 }
 
-size_t ConvHipImplicitGemmGroupWrwCKNCHWXdlops::GetWorkspaceSize(const ExecutionContext&,
-                                                           const ProblemDescription& problem) const
+size_t
+ConvHipImplicitGemmGroupWrwCKNCHWXdlops::GetWorkspaceSize(const ExecutionContext&,
+                                                          const ProblemDescription& problem) const
 {
     return GetWorkspaceSizeLayoutTransformConv(problem);
 }
 
 PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops
 ConvHipImplicitGemmGroupWrwCKNCHWXdlops::Search(const ExecutionContext& ctx,
-                                          const ProblemDescription& problem,
-                                          const AnyInvokeParams& invoke_ctx) const
+                                                const ProblemDescription& problem,
+                                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
@@ -620,15 +597,13 @@ ConvSolution ConvHipImplicitGemmGroupWrwCKNCHWXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupWrwCKNCHWXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeSolutionGroupConvImplicitGemmNCHWXdlops(
-        problem,
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGWrwNCHWPtrs<T>,
-                                          CKArgs,
-                                          miopen::conv::WrWInvokeParams>(
-                ctx, problem, config.kernel_id);
-        });
+    return MakeSolutionGroupConvImplicitGemmNCHWXdlops(problem, [&](auto data_type_val) {
+        using T = decltype(data_type_val);
+        return InitInvokerFactoryNHWC<DeviceOpGWrwNCHWPtrs<T>,
+                                      CKArgs,
+                                      miopen::conv::WrWInvokeParams>(
+            ctx, problem, config.kernel_id);
+    });
 
 #else
     return {};

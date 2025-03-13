@@ -75,37 +75,9 @@ struct CKArgs
         out_lengths = {G, N, K, Do, Ho, Wo};
         wei_lengths = {G, K, C, Z, Y, X};
 
-        // CK strides are in GNCDHW order
-        if(problem.IsLayoutNHWC())
-        {
-            // first entry reserved for G's stride
-            auto copy_strides = [](const auto& src, auto& dst) {
-                assert(dst.size() == (src.size() + 1));
-                std::copy(src.begin(), src.end(), dst.begin() + 1);
-            };
-            copy_strides(problem.GetIn().GetStrides(), in_strides);
-            copy_strides(problem.GetOut().GetStrides(), out_strides);
-            copy_strides(problem.GetWeights().GetStrides(), wei_strides);
-
-            // On a backward pass, problem.GetIn() means y(or out),
-            // and problem.GetOut means x(or in)
-            /// \todo remove this when we stop swapping in and out tensors/descriptors
-            std::swap(in_strides, out_strides);
-
-            // Now compute G's stride
-            in_strides[0]  = C;
-            out_strides[0] = K;
-            wei_strides[0] = K * wei_strides[1];
-        }
-        else
-        {
-            assert(problem.IsLayoutDefault()); // already checked in IsApplicable
-            // for default layout, we produce packed strides for NHWC layout
-            // because we transpose to NHWC layout before calling CK kernel
-            in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
-            out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
-            wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
-        }
+        in_strides  = {Di * Hi * Wi * C, Di * Hi * Wi * G * C, Di * Hi * Wi, Hi * Wi, Wi, 1};
+        out_strides = {Do * Ho * Wo * K, Do * Ho * Wo * G * K, Do * Ho * Wo, Ho * Wo, Wo, 1};
+        wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
         filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                           ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
@@ -134,11 +106,11 @@ struct CKArgs
                     int split_k) const
     {
         using DeviceP = std::remove_pointer_t<decltype(conv_ptr.get())>;
-        if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightBilinear<DataType>>)
+        if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightBilinearNGCDHW<DataType>>)
         {
             return MakeBilinearArgPtr(conv_ptr, x, dw, dy, alpha, beta, split_k);
         }
-        else if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightScale<DataType>>)
+        else if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightScaleNGCDHW<DataType>>)
         {
             (void)beta;
             return MakeScaleArgPtr(conv_ptr, x, dw, dy, alpha, split_k);
@@ -147,7 +119,7 @@ struct CKArgs
         {
             (void)alpha;
             (void)beta;
-            static_assert(std::is_same_v<DeviceP, DeviceOpGBwdWeightDefault<DataType>>,
+            static_assert(std::is_same_v<DeviceP, DeviceOpGBwdWeightDefaultNGCDHW<DataType>>,
                           "Default should be wrw pass through");
             return MakeDefaultArgPtr(conv_ptr, x, dw, dy, split_k);
         }
@@ -263,12 +235,8 @@ struct CKArgs
     {
         auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
 
-        if(CKWrwRequireWorkspace(G, C1, K1, data_type, alpha_beta_case))
-        {
-            // Creat dummy workspace to pass the ck IsSupportedArgument check.
-            int dummy_var = 1;
-            conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
-        }
+        int dummy_var = 1;
+        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -309,16 +277,18 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwCKNCHWXdlops::Init(const ProblemD
     {
     case BILINEAR:
         valid_kernels =
-            FillValidKernelsIDs<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(
+            FillValidKernelsIDs<DeviceOpGBwdWeightBilinearPtrsNGCDHW<DataType>, CKArgs<DataType>>(
                 problem);
         break;
     case SCALE:
         valid_kernels =
-            FillValidKernelsIDs<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(problem);
+            FillValidKernelsIDs<DeviceOpGBwdWeightScalePtrsNGCDHW<DataType>, CKArgs<DataType>>(
+                problem);
         break;
     default:
         valid_kernels =
-            FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
+            FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrsNGCDHW<DataType>, CKArgs<DataType>>(
+                problem);
         break;
     }
     index     = 0;
@@ -333,13 +303,13 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwCKNCHWXdlops::CheckIsSupportCKArg
     switch(problem.GetAlphaBetaCase())
     {
     case BILINEAR:
-        return IsCKArgsSupported<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(
+        return IsCKArgsSupported<DeviceOpGBwdWeightBilinearPtrsNGCDHW<DataType>, CKArgs<DataType>>(
             problem, kernel_id);
     case SCALE:
-        return IsCKArgsSupported<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(
+        return IsCKArgsSupported<DeviceOpGBwdWeightScalePtrsNGCDHW<DataType>, CKArgs<DataType>>(
             problem, kernel_id);
     default:
-        return IsCKArgsSupported<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(
+        return IsCKArgsSupported<DeviceOpGBwdWeightDefaultPtrsNGCDHW<DataType>, CKArgs<DataType>>(
             problem, kernel_id);
     }
 }
@@ -351,11 +321,14 @@ bool ConvHipImplicitGemm3DGroupWrwCKNCHWXdlops::CheckCKApplicability(
     switch(problem.GetAlphaBetaCase())
     {
     case BILINEAR:
-        return IsCKApplicable<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
+        return IsCKApplicable<DeviceOpGBwdWeightBilinearPtrsNGCDHW<DataType>, CKArgs<DataType>>(
+            problem);
     case SCALE:
-        return IsCKApplicable<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(problem);
+        return IsCKApplicable<DeviceOpGBwdWeightScalePtrsNGCDHW<DataType>, CKArgs<DataType>>(
+            problem);
     default:
-        return IsCKApplicable<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
+        return IsCKApplicable<DeviceOpGBwdWeightDefaultPtrsNGCDHW<DataType>, CKArgs<DataType>>(
+            problem);
     }
 }
 #endif
@@ -466,15 +439,15 @@ bool ConvHipImplicitGemm3DGroupWrwCKNCHWXdlops::IsValidPerformanceConfig(
 
 size_t
 ConvHipImplicitGemm3DGroupWrwCKNCHWXdlops::GetWorkspaceSize(const ExecutionContext&,
-                                                      const ProblemDescription& problem) const
+                                                            const ProblemDescription& problem) const
 {
     return GetWorkspaceSizeLayoutTransformConv(problem);
 }
 
 PerformanceConfigHipImplicitGemm3DGroupWrwCKNCHWXdlops
 ConvHipImplicitGemm3DGroupWrwCKNCHWXdlops::Search(const ExecutionContext& ctx,
-                                            const ProblemDescription& problem,
-                                            const AnyInvokeParams& invoke_ctx) const
+                                                  const ProblemDescription& problem,
+                                                  const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
@@ -496,7 +469,7 @@ bool ConvHipImplicitGemm3DGroupWrwCKNCHWXdlops::IsApplicable(
         return false;
     if(!problem.Is3d())
         return false;
-    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
+    if(!problem.IsLayoutDefault())
         return false;
     // needed because layout transpose kernel does not support non-packed tensors
     if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
@@ -527,53 +500,27 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwCKNCHWXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupWrwCKNCHWXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeSolutionGroupConvImplicitGemmXdlops(
-        problem,
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            switch(problem.GetAlphaBetaCase())
-            {
-            case BILINEAR:
-                return InitInvokerFactoryWrwNCHW<3,
-                                                 DeviceOpGBwdWeightBilinearPtrs<T>,
-                                                 CKArgs<T>,
-                                                 miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            case SCALE:
-                return InitInvokerFactoryWrwNCHW<3,
-                                                 DeviceOpGBwdWeightScalePtrs<T>,
-                                                 CKArgs<T>,
-                                                 miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            default:
-                return InitInvokerFactoryWrwNCHW<3,
-                                                 DeviceOpGBwdWeightDefaultPtrs<T>,
-                                                 CKArgs<T>,
-                                                 miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            }
-        },
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            switch(problem.GetAlphaBetaCase())
-            {
-            case BILINEAR:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightBilinearPtrs<T>,
-                                              CKArgs<T>,
-                                              miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            case SCALE:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightScalePtrs<T>,
-                                              CKArgs<T>,
-                                              miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            default:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightDefaultPtrs<T>,
-                                              CKArgs<T>,
-                                              miopen::conv::WrWInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            }
-        });
+    return MakeSolutionGroupConvImplicitGemmNCHWXdlops(problem, [&](auto data_type_val) {
+        using T = decltype(data_type_val);
+        switch(problem.GetAlphaBetaCase())
+        {
+        case BILINEAR:
+            return InitInvokerFactoryNHWC<DeviceOpGBwdWeightBilinearPtrsNGCDHW<T>,
+                                          CKArgs<T>,
+                                          miopen::conv::WrWInvokeParams>(
+                ctx, problem, config.kernel_id);
+        case SCALE:
+            return InitInvokerFactoryNHWC<DeviceOpGBwdWeightScalePtrsNGCDHW<T>,
+                                          CKArgs<T>,
+                                          miopen::conv::WrWInvokeParams>(
+                ctx, problem, config.kernel_id);
+        default:
+            return InitInvokerFactoryNHWC<DeviceOpGBwdWeightDefaultPtrsNGCDHW<T>,
+                                          CKArgs<T>,
+                                          miopen::conv::WrWInvokeParams>(
+                ctx, problem, config.kernel_id);
+        }
+    });
 
 #else
     return {};
