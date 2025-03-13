@@ -41,7 +41,7 @@ auto GetConvSmokeTestCases(miopenDataType_t datatype)
 
 auto GetSmokeTestParams(miopenDataType_t datatype)
 {
-    Gpu supportedDevices = Gpu::gfx90A | Gpu::gfx94X;
+    Gpu supportedDevices = Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx950;
     if(datatype != miopenBFloat16)
     {
         supportedDevices = supportedDevices | Gpu::gfx908;
@@ -74,7 +74,7 @@ auto GetConvFullTestCases(miopenDataType_t datatype)
 
 auto GetFullTestParams(miopenDataType_t datatype)
 {
-    Gpu supportedDevices = Gpu::gfx90A | Gpu::gfx94X;
+    Gpu supportedDevices = Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx950;
     if(datatype != miopenBFloat16)
     {
         supportedDevices = supportedDevices | Gpu::gfx908;
