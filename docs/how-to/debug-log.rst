@@ -161,6 +161,7 @@ Some of the solutions have individual controls, which affect both find and immed
     Fwd/Bwd F(2,3) Winograd, serves group convolutions only
   * ``MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1`` -- ``ConvBinWinogradRxSf2x3g1``, ``FP32``/``FP16``
     Fwd/Bwd F(2,3) Winograd, for non-group convolutions
+  * ``MIOPEN_DEBUG_AMD_FUSED_WINOGRAD`` -- Fused ``FP32`` F(3,3) Winograd, variable filter size.
 
 * Multi-pass Winograd:
 
@@ -189,8 +190,6 @@ Some of the solutions have individual controls, which affect both find and immed
     * ``ConvWinograd3x3MultipassWrW<7-3>``, WrW F(7,3)
     * ``ConvWinograd3x3MultipassWrW<7-3-1-1>``, WrW F(7x1,3x1)
     * ``ConvWinograd3x3MultipassWrW<1-1-7-3>``, WrW F(1x7,1x3)
-
-  * ``MIOPEN_DEBUG_AMD_FUSED_WINOGRAD`` -- Fused ``FP32`` F(3,3) Winograd, variable filter size.
 
 Implicit GEMM solutions:
 
