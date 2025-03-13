@@ -123,13 +123,12 @@ static auto GetImplicitGemmSolvers()
 
 static auto GetWindogradSolvers()
 {
-    return miopen::solver::SolverContainer<
-        miopen::solver::conv::ConvBinWinograd3x3U,
-        miopen::solver::conv::ConvBinWinoRxS<3, 2>,
-        miopen::solver::conv::ConvBinWinoRxS<2, 3>,
-        miopen::solver::conv::ConvBinWinogradRxSf2x3g1,
-        miopen::solver::conv::ConvBinWinogradRxS,
-        miopen::solver::conv::ConvWinoFuryRxS<2, 3>>{};
+    return miopen::solver::SolverContainer<miopen::solver::conv::ConvBinWinograd3x3U,
+                                           miopen::solver::conv::ConvBinWinoRxS<3, 2>,
+                                           miopen::solver::conv::ConvBinWinoRxS<2, 3>,
+                                           miopen::solver::conv::ConvBinWinogradRxSf2x3g1,
+                                           miopen::solver::conv::ConvBinWinogradRxS,
+                                           miopen::solver::conv::ConvWinoFuryRxS<2, 3>>{};
 }
 
 static auto GetImplicitGemmWrWSolvers()
