@@ -75,7 +75,6 @@ bool AvgPoolBackward3d::IsApplicable(const ExecutionContext&,
         return false;
     }
     if(!(problem.GetOutputGradDesc().GetType() == miopenHalf ||
-         problem.GetOutputGradDesc().GetType() == miopenFloat ||
          problem.GetOutputGradDesc().GetType() == miopenBFloat16))
     {
         return false;
