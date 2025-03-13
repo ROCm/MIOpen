@@ -180,7 +180,6 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
 {
     const auto args      = CKArgsType{problem};
     const auto conv_ptrs = DeviceOpType::GetInstances();
-    std::cout<<"~~~~~ ck instances vector size: "<<conv_ptrs.size()<<std::endl;
     assert(!conv_ptrs.empty());
 
     std::vector<std::string> valid_kernels;
@@ -270,7 +269,6 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
     const auto args = CKArgsType{problem};
 
     const auto ptrs = DeviceOpType::GetInstances();
-    std::cout<<"ptrs.size(): "<<ptrs.size()<<std::endl;
     return std::any_of(
         ptrs.begin(), ptrs.end(), [&args](auto& ptr) { return args.IsSupportedBy(ptr); });
 }
@@ -1062,7 +1060,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 {
                     sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
                 }
-                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+                auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
 
                 // Zero out the buffer for output data since it won't always write all output
                 // values.
@@ -1202,7 +1200,7 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
 template <typename InvokerFactoryMakerNCHW>
 ConvSolution
 MakeSolutionGroupConvImplicitGemmCKNCHWXdlops(const miopen::conv::ProblemDescription& problem,
-                                        InvokerFactoryMakerNCHW&& invoker_factory_maker_ncdhw)
+                                              InvokerFactoryMakerNCHW&& invoker_factory_maker_ncdhw)
 {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -1226,9 +1224,8 @@ MakeSolutionGroupConvImplicitGemmCKNCHWXdlops(const miopen::conv::ProblemDescrip
     }
     else
     {
-        MIOPEN_THROW(
-            miopenStatusInternalError,
-            "convolution operation not implemented for this layout type");
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "convolution operation not implemented for this layout type");
     }
 #else
     return {};

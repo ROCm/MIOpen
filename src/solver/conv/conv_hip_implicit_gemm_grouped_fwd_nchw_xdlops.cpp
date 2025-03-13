@@ -152,7 +152,7 @@ struct CKArgs
         auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
 
         int dummy_var = 1;
-        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);       
+        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -222,7 +222,8 @@ static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
     return tokens;
 }
 
-void PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::InitHeuristicKernelIDs(const std::string& type)
+void PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::InitHeuristicKernelIDs(
+    const std::string& type)
 {
     for(int i = 0; i < valid_kernels.size(); i++)
     {
@@ -235,8 +236,8 @@ void PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::InitHeuristicKernelID
 }
 
 bool PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::ModelApplyToken(int idx,
-                                                                     std::string value,
-                                                                     const std::string& arch)
+                                                                           std::string value,
+                                                                           const std::string& arch)
 {
     if(arch == "gfx90a")
     {
@@ -411,7 +412,8 @@ void PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::HeuristicInit(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::SetNextValue(const ProblemDescription& problem)
+bool PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::SetNextValue(
+    const ProblemDescription& problem)
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
@@ -490,16 +492,17 @@ bool ConvHipImplicitGemmGroupFwdCKNCHWXdlops::IsValidPerformanceConfig(
     return config.IsValid(problem);
 }
 
-size_t ConvHipImplicitGemmGroupFwdCKNCHWXdlops::GetWorkspaceSize(const ExecutionContext&,
-                                                           const ProblemDescription& problem) const
+size_t
+ConvHipImplicitGemmGroupFwdCKNCHWXdlops::GetWorkspaceSize(const ExecutionContext&,
+                                                          const ProblemDescription& problem) const
 {
     return GetWorkspaceSizeLayoutTransformConv(problem);
 }
 
 PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops
 ConvHipImplicitGemmGroupFwdCKNCHWXdlops::Search(const ExecutionContext& ctx,
-                                          const ProblemDescription& problem,
-                                          const AnyInvokeParams& invoke_ctx) const
+                                                const ProblemDescription& problem,
+                                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
@@ -532,7 +535,6 @@ bool ConvHipImplicitGemmGroupFwdCKNCHWXdlops::IsApplicable(
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    std::cout<<"~~~ pass here~~~~"<<std::endl;
     switch(problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
@@ -555,15 +557,11 @@ ConvSolution ConvHipImplicitGemmGroupFwdCKNCHWXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeSolutionGroupConvImplicitGemmCKNCHWXdlops(
-        problem,
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>,
-                                             CKArgs,
-                                             miopen::conv::DataInvokeParams>(
-                ctx, problem, config.kernel_id);
-        });
+    return MakeSolutionGroupConvImplicitGemmCKNCHWXdlops(problem, [&](auto data_type_val) {
+        using T = decltype(data_type_val);
+        return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>, CKArgs, miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
+    });
 #else
     return {};
 #endif
