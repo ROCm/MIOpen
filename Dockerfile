@@ -115,10 +115,10 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
     num_threads=$(nproc) && \
-    if [ "$num_threads" -gt 128 ]; then \
-        num_threads=64; \
-    elif [ "$num_threads" -gt 32 ]; then \
+    if [ "$num_threads" -lt 32 ]; then \
         num_threads=$(( num_threads / 2 )); \
+    else \
+        num_threads=32; \
     fi && \
     echo Building CK with ${num_threads} threads && \
     CXX=/opt/rocm/bin/amdclang++ cmake \
