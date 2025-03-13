@@ -190,29 +190,6 @@ Some of the solutions have individual controls, which affect both find and immed
     * ``ConvWinograd3x3MultipassWrW<7-3-1-1>``, WrW F(7x1,3x1)
     * ``ConvWinograd3x3MultipassWrW<1-1-7-3>``, WrW F(1x7,1x3)
 
-  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F2X3`` -- ``ConvMPBidirectWinograd<2-3>``,
-    FWD/BWD F(2,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F3X3`` -- ``ConvMPBidirectWinograd<3-3>``,
-    FWD/BWD F(3,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F4X3`` -- ``ConvMPBidirectWinograd<4-3>``,
-    FWD/BWD F(4,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F5X3`` -- ``ConvMPBidirectWinograd<5-3>``,
-    FWD/BWD F(5,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_F6X3`` -- ``ConvMPBidirectWinograd<6-3>``,
-    FWD/BWD F(6,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F2X3`` --
-    ``ConvMPBidirectWinograd_xdlops<2-3>``, FWD/BWD F(2,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F3X3`` --
-    ``ConvMPBidirectWinograd_xdlops<3-3>``, FWD/BWD F(3,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F4X3`` --
-    ``ConvMPBidirectWinograd_xdlops<4-3>``, FWD/BWD F(4,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F5X3`` --
-    ``ConvMPBidirectWinograd_xdlops<5-3>``, FWD/BWD F(5,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_XDLOPS_WINOGRAD_F6X3`` --
-    ``ConvMPBidirectWinograd_xdlops<6-3>``, FWD/BWD F(6,3)
-  * ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_EXPEREMENTAL_FP16_TRANSFORM`` --
-    ``ConvMPBidirectWinograd*``, FWD/BWD FP16 experimental mode (use at your own risk). Disabled
-    by default.
   * ``MIOPEN_DEBUG_AMD_FUSED_WINOGRAD`` -- Fused ``FP32`` F(3,3) Winograd, variable filter size.
 
 Implicit GEMM solutions:
@@ -381,8 +358,6 @@ Winograd multi-pass maximum workspace throttling
 
 * ``MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_WORKSPACE_MAX``:
   ``ConvWinograd3x3MultipassWrW``, WrW
-* ``MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_WORKSPACE_MAX``: ``ConvMPBidirectWinograd*``,
-  FWD BWD
 
 Syntax of value:
 

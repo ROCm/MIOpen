@@ -454,16 +454,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        conv::ConvAsmImplicitGemmV4R1DynamicWrw{},
                        miopenConvolutionAlgoImplicitGEMM);
 
-    RegisterWithSolver(
-        registry, ++id, conv::ConvMPBidirectWinograd<2, 3>{}, miopenConvolutionAlgoWinograd);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvMPBidirectWinograd<3, 3>{}, miopenConvolutionAlgoWinograd);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvMPBidirectWinograd<4, 3>{}, miopenConvolutionAlgoWinograd);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvMPBidirectWinograd<5, 3>{}, miopenConvolutionAlgoWinograd);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvMPBidirectWinograd<6, 3>{}, miopenConvolutionAlgoWinograd);
+    ++id; // removed solver ConvMPBidirectWinograd<2, 3>
+    ++id; // removed solver ConvMPBidirectWinograd<3, 3>
+    ++id; // removed solver ConvMPBidirectWinograd<4, 3>
+    ++id; // removed solver ConvMPBidirectWinograd<5, 3>
+    ++id; // removed solver ConvMPBidirectWinograd<6, 3>
 
     RegisterWithSolver(registry,
                        ++id,
@@ -479,16 +474,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        conv::ConvAsmImplicitGemmGTCDynamicFwdXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
 
-    RegisterWithSolver(
-        registry, ++id, conv::ConvMPBidirectWinograd_xdlops<2, 3>{}, miopenConvolutionAlgoWinograd);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvMPBidirectWinograd_xdlops<3, 3>{}, miopenConvolutionAlgoWinograd);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvMPBidirectWinograd_xdlops<4, 3>{}, miopenConvolutionAlgoWinograd);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvMPBidirectWinograd_xdlops<5, 3>{}, miopenConvolutionAlgoWinograd);
-    RegisterWithSolver(
-        registry, ++id, conv::ConvMPBidirectWinograd_xdlops<6, 3>{}, miopenConvolutionAlgoWinograd);
+    ++id; // removed solver ConvMPBidirectWinograd_xdlops<2, 3>
+    ++id; // removed solver ConvMPBidirectWinograd_xdlops<3, 3>
+    ++id; // removed solver ConvMPBidirectWinograd_xdlops<4, 3>
+    ++id; // removed solver ConvMPBidirectWinograd_xdlops<5, 3>
+    ++id; // removed solver ConvMPBidirectWinograd_xdlops<6, 3>
 
     RegisterWithSolver(registry,
                        ++id,

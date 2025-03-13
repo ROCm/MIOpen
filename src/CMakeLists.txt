@@ -270,7 +270,6 @@ set( MIOpen_Source
     solver/conv/conv_hip_implicit_gemm_wrw_v4r4.cpp
     solver/conv/conv_hip_implicit_gemm_wrw_v4r4_xdlops.cpp
     solver/conv/conv_hip_implicit_gemm_wrw_v4r4_xdlops_padded_gemm.cpp
-    solver/conv/conv_MP_bidirectional_winograd.cpp
     solver/conv/conv_mlir_igemm_bwd.cpp
     solver/conv/conv_mlir_igemm_bwd_xdlops.cpp
     solver/conv/conv_mlir_igemm_fwd.cpp
@@ -507,7 +506,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c32_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1024vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_metadata.inc
-        kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
         kernels/xform_metadata.inc
@@ -643,9 +641,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c32_stride1.s
         kernels/xform_data.s
         kernels/xform_filter.s
-        kernels/xform_bidirect_winograd_data.s
-        kernels/xform_bidirect_winograd_filter.s
-        kernels/xform_bidirect_winograd_out.s
         kernels/UniversalTranspose.cl)
 
     # Kernels in development lists.

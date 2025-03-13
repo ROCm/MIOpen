@@ -306,11 +306,6 @@ AnySolver<miopen::ExecutionContext, miopen::conv::ProblemDescription>::AnySolver
     case 61: SetObject<miopen::solver::conv::ConvHipImplicitGemmV4R4WrW>(); break;
     case 64: SetObject<miopen::solver::conv::ConvHipImplicitGemmForwardV4R4Xdlops>(); break;
     case 73: SetObject<miopen::solver::conv::ConvHipImplicitGemmWrwV4R4Xdlops>(); break;
-    case 75: SetObject<miopen::solver::conv::ConvMPBidirectWinograd_xdlops<2, 3>>(); break;
-    case 76: SetObject<miopen::solver::conv::ConvMPBidirectWinograd_xdlops<3, 3>>(); break;
-    case 77: SetObject<miopen::solver::conv::ConvMPBidirectWinograd_xdlops<4, 3>>(); break;
-    case 78: SetObject<miopen::solver::conv::ConvMPBidirectWinograd_xdlops<5, 3>>(); break;
-    case 79: SetObject<miopen::solver::conv::ConvMPBidirectWinograd_xdlops<6, 3>>(); break;
     case 80: SetObject<miopen::solver::conv::ConvHipImplicitGemmForwardV4R5Xdlops>(); break;
     case 81:
         SetObject<miopen::solver::conv::ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm>();
