@@ -32,46 +32,43 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-template <typename DTYPE>
-__device__ DTYPE clamp(DTYPE val, DTYPE min, DTYPE max)
+template <typename TIO>
+__device__ TIO clamp(TIO val, TIO min, TIO max)
 {
     val = val < min ? min : val;
     val = val > max ? max : val;
     return val;
 }
-template <typename DTYPE>
-__device__ void DeviceRgbToGrayscale(const DTYPE* __restrict__ img,
-                                     DTYPE* __restrict__ gray,
-                                     const tensor_view_4d_t img_tv,
-                                     const tensor_view_4d_t gray_tv,
-                                     const ulong N)
+
+template <typename TIO>
+__device__ void DeviceRgbToGrayscale(
+    const TIO* img, TIO* gray, size_t N, tensor_view_t<4> img_tv, tensor_view_t<4> gray_tv)
 {
     size_t gid = blockDim.x * blockIdx.x + threadIdx.x;
     if(gid >= N)
         return;
 
-    int n, c, h, w;
-    getNCHW(n, c, h, w, gid, gray_tv.size);
+    tensor_layout_t<4> gray_layout(gray_tv, gid);
+    auto n = gray_layout.layout[0];
+    auto h = gray_layout.layout[2];
+    auto w = gray_layout.layout[3];
 
-    FLOAT_ACCUM r = CVT_FLOAT2ACCUM(get4DValueAt(img, img_tv, n, 0, h, w));
-    FLOAT_ACCUM g = CVT_FLOAT2ACCUM(get4DValueAt(img, img_tv, n, 1, h, w));
-    FLOAT_ACCUM b = CVT_FLOAT2ACCUM(get4DValueAt(img, img_tv, n, 2, h, w));
+    FLOAT_ACCUM r = CVT_FLOAT2ACCUM(img[img_tv.get_tensor_view_idx({n, 0, h, w})]);
+    FLOAT_ACCUM g = CVT_FLOAT2ACCUM(img[img_tv.get_tensor_view_idx({n, 1, h, w})]);
+    FLOAT_ACCUM b = CVT_FLOAT2ACCUM(img[img_tv.get_tensor_view_idx({n, 2, h, w})]);
 
-    DTYPE value = CVT_ACCUM2FLOAT(0.2989f * r + 0.587f * g + 0.114f * b);
+    TIO value = CVT_ACCUM2FLOAT(0.2989f * r + 0.587f * g + 0.114f * b);
 
-    gray[gray_tv.offset + gid] = value;
+    gray[gid] = value;
 }
 
-template <typename DTYPE>
-__device__ void DeviceBlendContiguous(const DTYPE* __restrict__ img1,
-                                      const DTYPE* __restrict__ img2,
-                                      DTYPE* __restrict__ output,
-                                      const ulong img1_off,
-                                      const ulong img2_off,
-                                      const ulong output_off,
-                                      const ulong n_stride,
-                                      const ulong c_stride,
-                                      const ulong N,
+template <typename TIO>
+__device__ void DeviceBlendContiguous(const TIO* img1,
+                                      const TIO* img2,
+                                      TIO* output,
+                                      size_t n_stride,
+                                      size_t c_stride,
+                                      size_t N,
                                       float ratio,
                                       float bound)
 {
@@ -79,38 +76,31 @@ __device__ void DeviceBlendContiguous(const DTYPE* __restrict__ img1,
     if(gid >= N)
         return;
 
-    const ulong n       = gid / n_stride;
-    const ulong img2_id = n * c_stride + gid % c_stride;
+    const size_t n       = gid / n_stride;
+    const size_t img2_id = n * c_stride + gid % c_stride;
 
-    FLOAT_ACCUM img1_v = CVT_FLOAT2ACCUM(img1[img1_off + gid]);
-    FLOAT_ACCUM img2_v = CVT_FLOAT2ACCUM(img2[img2_off + img2_id]);
+    FLOAT_ACCUM img1_v = CVT_FLOAT2ACCUM(img1[gid]);
+    FLOAT_ACCUM img2_v = CVT_FLOAT2ACCUM(img2[img2_id]);
 
-    DTYPE value = CVT_ACCUM2FLOAT(clamp((ratio * img1_v + (1.0f - ratio) * img2_v), 0.0f, bound));
+    TIO value = CVT_ACCUM2FLOAT(clamp((ratio * img1_v + (1.0f - ratio) * img2_v), 0.0f, bound));
 
-    output[output_off + gid] = value;
+    output[gid] = value;
 }
 
-extern "C" __global__ void RGBToGrayscale(const FLOAT* __restrict__ img,
-                                          FLOAT* __restrict__ gray,
-                                          const tensor_view_4d_t img_tv,
-                                          const tensor_view_4d_t gray_tv,
-                                          const ulong N)
+extern "C" __global__ void RGBToGrayscale(
+    const DTYPE* img, DTYPE* gray, size_t N, tensor_view_t<4> img_tv, tensor_view_t<4> gray_tv)
 {
-    DeviceRgbToGrayscale(img, gray, img_tv, gray_tv, N);
+    DeviceRgbToGrayscale(img, gray, N, img_tv, gray_tv);
 }
 
-extern "C" __global__ void BlendContiguous(const FLOAT* __restrict__ img1,
-                                           const FLOAT* __restrict__ img2,
-                                           FLOAT* __restrict__ output,
-                                           const ulong img1_off,
-                                           const ulong img2_off,
-                                           const ulong output_off,
-                                           const ulong n_stride,
-                                           const ulong c_stride,
-                                           const ulong N,
+extern "C" __global__ void BlendContiguous(const DTYPE* img1,
+                                           const DTYPE* img2,
+                                           DTYPE* output,
+                                           size_t n_stride,
+                                           size_t c_stride,
+                                           size_t N,
                                            float ratio,
                                            float bound)
 {
-    DeviceBlendContiguous(
-        img1, img2, output, img1_off, img2_off, output_off, n_stride, c_stride, N, ratio, bound);
+    DeviceBlendContiguous(img1, img2, output, n_stride, c_stride, N, ratio, bound);
 }

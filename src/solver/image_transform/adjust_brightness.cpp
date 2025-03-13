@@ -24,28 +24,50 @@
  *
  *******************************************************************************/
 
-#include "miopen/image_transform/adjust_brightness/invoke_params.hpp"
-#include "miopen/image_transform/adjust_brightness/problem_description.hpp"
-#include "miopen/image_transform/solvers.hpp"
-#include "miopen/kernel_build_params.hpp"
-#include "miopen/kernel_info.hpp"
-#include "miopen/miopen.h"
-#include "miopen/solver.hpp"
-#include "miopen/tensor_view.hpp"
+#include <miopen/datatype.hpp>
+#include <miopen/image_transform/adjust_brightness/invoke_params.hpp>
+#include <miopen/image_transform/adjust_brightness/problem_description.hpp>
+#include <miopen/image_transform/solvers.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/kernel_info.hpp>
+#include <miopen/miopen.h>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
+
 namespace solver {
+
 namespace image_transform {
+
 namespace adjust_brightness {
 
-bool ImageAdjustBrightness::IsApplicable(
-    const ExecutionContext& /* context */,
+bool ImageAdjustBrightness::IsImprovementOverROCm(
+    const ExecutionContext& /*context*/,
     const miopen::image_transform::adjust_brightness::ProblemDescription& problem) const
 {
-    if(!problem.IsSameType())
+    if(problem.GetInputTensorDesc().IsContiguous() && problem.GetOutputTensorDesc().IsContiguous())
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool ImageAdjustBrightness::IsApplicable(
+    const ExecutionContext& context,
+    const miopen::image_transform::adjust_brightness::ProblemDescription& problem) const
+{
+    if(!(problem.GetInputTensorDesc().GetType() == miopenFloat ||
+         problem.GetInputTensorDesc().GetType() == miopenHalf ||
+         problem.GetInputTensorDesc().GetType() == miopenBFloat16))
+    {
         return false;
-    if(!problem.IsImprovementOverROCm())
+    }
+
+    if(!IsImprovementOverROCm(context, problem))
         return false;
+
     return true;
 }
 
@@ -55,8 +77,9 @@ ConvSolution ImageAdjustBrightness::GetSolution(
 {
     auto result = ConvSolution{miopenStatusSuccess};
 
-    auto dtype = problem.GetInputTensorDesc().GetType();
-    auto numel = problem.GetInputTensorDesc().GetElementSize();
+    auto dtype    = problem.GetInputTensorDesc().GetType();
+    auto io_dtype = GetDataType(dtype);
+    auto numel    = problem.GetInputTensorDesc().GetElementSize();
 
     size_t xlocalsize = 256;
     size_t xgridsize  = AlignUp(numel, xlocalsize);
@@ -72,8 +95,8 @@ ConvSolution ImageAdjustBrightness::GetSolution(
     const auto build_params =
         KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
                               {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-                              {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
-                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)}};
+                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
+                              {"DTYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -94,19 +117,9 @@ ConvSolution ImageAdjustBrightness::GetSolution(
                 raw_params.CastTo<miopen::image_transform::adjust_brightness::InvokeParams>();
 
             auto xdesc = miopen::deref(params.inputTensorDesc);
-            auto ydesc = miopen::deref(params.outputTensorDesc);
+            size_t N   = xdesc.GetElementSize();
 
-            auto x_tv = get_inner_expanded_4d_tv(xdesc);
-            auto y_tv = get_inner_expanded_4d_tv(ydesc);
-
-            size_t N = xdesc.GetElementSize();
-
-            kernel(params.input_buf,
-                   params.output_buf,
-                   x_tv.offset,
-                   y_tv.offset,
-                   N,
-                   params.brightness_factor);
+            kernel(params.input, params.output, N, params.brightness_factor);
         };
     };
 
@@ -114,6 +127,9 @@ ConvSolution ImageAdjustBrightness::GetSolution(
 }
 
 } // namespace adjust_brightness
+
 } // namespace image_transform
+
 } // namespace solver
+
 } // namespace miopen

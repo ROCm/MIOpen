@@ -24,18 +24,12 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MIOPEN_IMAGE_ADJUST_SATURATION_DRIVER_HPP
-#define GUARD_MIOPEN_IMAGE_ADJUST_SATURATION_DRIVER_HPP
+#pragma once
 
 #include "../test/tensor_holder.hpp"
 #include "../test/verify.hpp"
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "image_adjust_driver_common.hpp"
-#include "miopen/errors.hpp"
-#include "miopen/miopen.h"
-#include "miopen/tensor.hpp"
-#include "miopen/tensor_view.hpp"
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "tensor_view.hpp"
@@ -45,93 +39,83 @@
 #include <memory>
 #include <vector>
 
+#include <miopen/errors.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
+
 template <typename Tgpu, typename Tref>
-void RGBToGrayscale(const Tgpu* src,
-                    Tref* dst,
-                    const tensor_view_4d_t src_tv,
-                    const tensor_view_4d_t dst_tv,
-                    const size_t N)
+int RGBToGrayscaleRunHost(const miopenTensorDescriptor_t inputDesc, const Tgpu* src, Tref* gray)
 {
+    auto input_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
+    auto N        = miopen::deref(inputDesc).GetElementSize() / 3;
+
     for(size_t gid = 0; gid < N; gid++)
     {
-        int n, c, h, w;
-        getNCHW(n, c, h, w, gid, dst_tv.size);
+        tensor_layout_t<4> input_layout(input_tv, gid);
+        auto n = input_layout.layout[0];
+        auto h = input_layout.layout[2];
+        auto w = input_layout.layout[3];
 
-        Tref r = get4DValueAt(src, src_tv, n, 0, h, w);
-        Tref g = get4DValueAt(src, src_tv, n, 1, h, w);
-        Tref b = get4DValueAt(src, src_tv, n, 2, h, w);
+        Tref r = src[input_tv.get_tensor_view_idx({n, 0, h, w})];
+        Tref g = src[input_tv.get_tensor_view_idx({n, 1, h, w})];
+        Tref b = src[input_tv.get_tensor_view_idx({n, 2, h, w})];
 
         Tref value = 0.2989f * r + 0.587f * g + 0.114f * b;
 
         // We expect the workspace here to always stay contiguous
-        dst[dst_tv.offset + gid] = value;
+        gray[gid] = value;
     }
+
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
-void Blend(const Tgpu* img1,
-           const Tref* img2,
-           Tref* output,
-           const tensor_view_4d_t img1_tv,
-           const tensor_view_4d_t img2_tv,
-           const tensor_view_4d_t output_tv,
-           const size_t n_stride,
-           const size_t c_stride,
-           const size_t N,
-           float ratio,
-           float bound)
+int BlendContiguousRunHost(const miopenTensorDescriptor_t inputDesc,
+                           const Tgpu* img1,
+                           const Tref* img2,
+                           Tref* output,
+                           float ratio)
 
 {
+    auto N        = miopen::deref(inputDesc).GetElementSize();
+    auto input_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
+    auto c_stride = input_tv.size[2] * input_tv.size[3];
+    auto n_stride = c_stride * input_tv.size[1];
+    float bound   = 1.0f;
+
     for(size_t gid = 0; gid < N; gid++)
     {
         const size_t n        = gid / n_stride;
         const size_t img2_idx = n * c_stride + gid % c_stride;
 
-        Tref img1_v = get4DValueAt(img1, img1_tv, gid);
-        Tref img2_v = img2[img2_tv.offset + img2_idx];
+        Tref img1_v = img1[gid];
+        Tref img2_v = img2[img2_idx];
 
         Tref result = std::clamp((ratio * img1_v + (1.0f - ratio) * img2_v), 0.0f, bound);
 
-        set4DValueAt(output, output_tv, gid, result);
+        output[gid] = result;
     }
+
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
-void mloImageAdjustSaturationRunHost(miopen::TensorDescriptor inputDesc,
-                                     miopen::TensorDescriptor outputDesc,
-                                     const Tgpu* input,
-                                     Tref* output,
-                                     float saturation_factor)
+int mloImageAdjustSaturationRunHost(miopenTensorDescriptor_t inputDesc,
+                                    const Tgpu* input,
+                                    Tref* output,
+                                    float saturation_factor)
 
 {
-    tensor_view_4d_t input_tv  = get_inner_expanded_4d_tv(inputDesc);
-    tensor_view_4d_t output_tv = get_inner_expanded_4d_tv(outputDesc);
+    auto input_numel = miopen::deref(inputDesc).GetElementSize();
 
     // temporary view for workspace (basically a contiguous vector with same size as input_tv)
-    std::vector<Tref> workspace = std::vector<Tref>(inputDesc.GetElementSize(), 0);
-    miopen::TensorDescriptor wsDesc =
-        miopen::TensorDescriptor{inputDesc.GetType(), inputDesc.GetLengths()};
+    std::vector<Tref> workspace = std::vector<Tref>(input_numel, 0);
 
-    auto ws_tv = get_inner_expanded_4d_tv(wsDesc);
+    RGBToGrayscale(inputDesc, input, workspace.data());
+    Blend(inputDesc, input, workspace.data(), output, saturation_factor);
 
-    auto N        = inputDesc.GetElementSize();
-    auto c_stride = input_tv.size[2] * input_tv.size[3];
-    auto n_stride = c_stride * input_tv.size[1];
-
-    float bound = 1.0f;
-
-    RGBToGrayscale(input, workspace.data(), input_tv, ws_tv, N / 3);
-    Blend(input,
-          workspace.data(),
-          output,
-          input_tv,
-          ws_tv,
-          output_tv,
-          n_stride,
-          c_stride,
-          N,
-          saturation_factor,
-          bound);
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
@@ -187,9 +171,9 @@ private:
 template <typename Tgpu, typename Tref>
 int ImageAdjustSaturationDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only the forward pass", "int");
+    inflags.AddInputFlag("forw", 'F', "1", "Run only the forward pass (Default=1)", "int");
 
-    inflags.AddTensorFlag("input", 'I', "1x3x96x96", "Input Tensor Size");
+    inflags.AddTensorFlag("input", 'I', "1x3x96x96", "Input Tensor Size (Default=1x3x96x96)");
     inflags.AddInputFlag("contiguous", 'Z', "1", "Use Contiguous Tensors", "int");
     inflags.AddInputFlag("saturation", 'S', "0.5", "Saturation", "double");
 
@@ -214,25 +198,22 @@ int ImageAdjustSaturationDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* ar
         miopenEnableProfiling(GetHandle(), true);
     }
 
+    forw = inflags.GetValueInt("forw");
+    if(forw != 1)
+    {
+        MIOPEN_THROW("Only forward pass is supported for Image Adjust Saturation");
+    }
+
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int ImageAdjustSaturationDriver<Tgpu, Tref>::GetandSetData()
 {
-    TensorParameters input_vec = inflags.GetValueTensor("input");
-    assert(input_vec.lengths.size() == 4 || input_vec.lengths.size() == 3);
-    if(input_vec.lengths.size() == 3)
-    {
-        // If we get a 3d tensor, adds n=1 (to make it conforms to 4d input)
-        input_vec.lengths.insert(input_vec.lengths.begin(), 1);
-    }
+    auto input_dims = inflags.GetValueTensor("input").lengths;
 
-    assert(input_vec.lengths[1] == 3);
-    auto strides = ComputeStrides(input_vec.lengths, inflags.GetValueInt("contiguous") == 1);
-
-    SetTensorNd(inputTensorDesc, input_vec.lengths, strides, data_type);
-    SetTensorNd(outputTensorDesc, input_vec.lengths, strides, data_type);
+    SetTensorNd(inputTensorDesc, input_dims, data_type);
+    SetTensorNd(outputTensorDesc, input_dims, data_type);
 
     return miopenStatusSuccess;
 }
@@ -328,24 +309,22 @@ int ImageAdjustSaturationDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int ImageAdjustSaturationDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
 int ImageAdjustSaturationDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloImageAdjustSaturationRunHost(miopen::deref(inputTensorDesc),
-                                    miopen::deref(outputTensorDesc),
-                                    input_host.data(),
-                                    output_ref.data(),
-                                    saturation_factor);
+    mloImageAdjustSaturationRunHost(
+        miopen::deref(inputTensorDesc), input_host.data(), output_ref.data(), saturation_factor);
+
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int ImageAdjustSaturationDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
@@ -372,7 +351,5 @@ int ImageAdjustSaturationDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int ImageAdjustSaturationDriver<Tgpu, Tref>::VerifyBackward()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
-
-#endif

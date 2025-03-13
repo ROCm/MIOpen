@@ -24,39 +24,62 @@
  *
  *******************************************************************************/
 
-#include "miopen/image_transform/normalize/invoke_params.hpp"
-#include "miopen/image_transform/solvers.hpp"
-#include "miopen/kernel_build_params.hpp"
-#include "miopen/kernel_info.hpp"
-#include "miopen/miopen.h"
-#include "miopen/tensor_view.hpp"
+#include <miopen/datatype.hpp>
+#include <miopen/image_transform/normalize/invoke_params.hpp>
+#include <miopen/image_transform/solvers.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/kernel_info.hpp>
+#include <miopen/miopen.h>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <cstddef>
+
 namespace miopen {
+
 namespace solver {
+
 namespace image_transform {
+
 namespace normalize {
+
+bool ImageNormalize::IsImprovementOverROCm(
+    const ExecutionContext& /*context*/,
+    const miopen::image_transform::normalize::ProblemDescription& problem) const
+{
+    if(problem.GetInputTensorDesc().IsContiguous() && problem.GetOutputTensorDesc().IsContiguous())
+    {
+        return true;
+    }
+
+    return false;
+}
 
 bool ImageNormalize::IsApplicable(
     const ExecutionContext& context,
     const miopen::image_transform::normalize::ProblemDescription& problem) const
 {
-    if(!problem.IsSameType())
+    if(!(problem.GetInputTensorDesc().GetType() == miopenFloat ||
+         problem.GetInputTensorDesc().GetType() == miopenHalf ||
+         problem.GetInputTensorDesc().GetType() == miopenBFloat16))
+    {
         return false;
-    if(!problem.IsImprovementOverROCm())
+    }
+
+    if(!IsImprovementOverROCm(context, problem))
         return false;
-    if(!problem.IsInputSizesValid())
-        return false;
+
     return true;
 };
 
 ConvSolution ImageNormalize::GetSolution(
-    const ExecutionContext& context,
+    const ExecutionContext& /*context*/,
     const miopen::image_transform::normalize::ProblemDescription& problem) const
 {
 
-    auto result = ConvSolution{miopenStatusSuccess};
-    auto dtype  = problem.GetInputTensorDesc().GetType();
-    auto numel  = problem.GetInputTensorDesc().GetElementSize();
+    auto result   = ConvSolution{miopenStatusSuccess};
+    auto dtype    = problem.GetInputTensorDesc().GetType();
+    auto io_dtype = GetDataType(dtype);
+    auto numel    = problem.GetInputTensorDesc().GetElementSize();
 
     size_t xlocalsize = 256;
     size_t xgridsize  = AlignUp(numel, xlocalsize);
@@ -72,8 +95,8 @@ ConvSolution ImageNormalize::GetSolution(
     const auto build_params =
         KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
                               {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-                              {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
-                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)}};
+                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
+                              {"DTYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -93,32 +116,23 @@ ConvSolution ImageNormalize::GetSolution(
             decltype(auto) params =
                 raw_params.CastTo<miopen::image_transform::normalize::InvokeParams>();
 
-            auto input_tv  = get_inner_expanded_4d_tv(miopen::deref(params.inputTensorDesc));
-            auto output_tv = get_inner_expanded_4d_tv(miopen::deref(params.outputTensorDesc));
-            auto mean_tv   = get_inner_expanded_4d_tv(miopen::deref(params.meanTensorDesc));
-            auto std_tv    = get_inner_expanded_4d_tv(miopen::deref(params.stddevTensorDesc));
+            auto input_tv = get_inner_expanded_tv<4>(miopen::deref(params.inputTensorDesc));
 
             size_t N        = miopen::deref(params.inputTensorDesc).GetElementSize();
             size_t C        = input_tv.size[1];
             size_t c_stride = input_tv.stride[1];
 
-            kernel(params.input_buf,
-                   params.mean_buf,
-                   params.stddev_buf,
-                   params.output_buf,
-                   input_tv.offset,
-                   mean_tv.offset,
-                   std_tv.offset,
-                   output_tv.offset,
-                   c_stride,
-                   C,
-                   N);
+            kernel(params.input, params.mean, params.stddev, params.output, c_stride, C, N);
         };
     };
 
     return result;
 }
+
 } // namespace normalize
+
 } // namespace image_transform
+
 } // namespace solver
+
 } // namespace miopen

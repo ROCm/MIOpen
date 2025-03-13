@@ -30,21 +30,18 @@
 #endif
 
 #include "float_types.h"
-#include "tensor_view.hpp"
 
-template <typename DTYPE>
-__device__ DTYPE clamp(DTYPE val, DTYPE min, DTYPE max)
+template <typename TIO>
+__device__ TIO clamp(TIO val, TIO min, TIO max)
 {
     val = val < min ? min : val;
     val = val > max ? max : val;
     return val;
 }
 
-template <typename DTYPE>
-__device__ void DeviceImageAdjustBrightnessContiguous(DTYPE* input,
-                                                      DTYPE* output,
-                                                      size_t input_off,
-                                                      size_t output_off,
+template <typename TIO>
+__device__ void DeviceImageAdjustBrightnessContiguous(const TIO* input,
+                                                      TIO* output,
                                                       size_t N,
                                                       float brightness_factor)
 {
@@ -52,20 +49,17 @@ __device__ void DeviceImageAdjustBrightnessContiguous(DTYPE* input,
     if(gid >= N)
         return;
 
-    DTYPE pixel    = input[input_off + gid];
+    TIO pixel      = input[gid];
     FLOAT_ACCUM fp = CVT_FLOAT2ACCUM(pixel);
 
-    FLOAT_ACCUM result       = clamp(fp * brightness_factor, 0.0f, 1.0f);
-    output[output_off + gid] = CVT_ACCUM2FLOAT(result);
+    FLOAT_ACCUM result = clamp(fp * brightness_factor, 0.0f, 1.0f);
+    output[gid]        = CVT_ACCUM2FLOAT(result);
 }
 
-extern "C" __global__ void ImageAdjustBrightnessContiguous(FLOAT* input,
-                                                           FLOAT* output,
-                                                           size_t input_off,
-                                                           size_t output_off,
+extern "C" __global__ void ImageAdjustBrightnessContiguous(const DTYPE* input,
+                                                           DTYPE* output,
                                                            size_t N,
                                                            float brightness_factor)
 {
-    DeviceImageAdjustBrightnessContiguous<FLOAT>(
-        input, output, input_off, output_off, N, brightness_factor);
+    DeviceImageAdjustBrightnessContiguous<DTYPE>(input, output, N, brightness_factor);
 }

@@ -46,9 +46,9 @@ add_executable(MIOpenDriver
     dm_getitem.cpp
     dm_glu.cpp
     dm_groupnorm.cpp
+    dm_imagetransform.cpp
     dm_kthvalue.cpp
     dm_layernorm.cpp
-    dm_imagetransform.cpp
     dm_lrn.cpp
     dm_multimarginloss.cpp
     dm_pool.cpp

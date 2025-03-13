@@ -26,15 +26,18 @@
 
 #pragma once
 
-#include "miopen/miopen.h"
-#include "miopen/names.hpp"
-#include "miopen/problem_description_base.hpp"
-#include "miopen/tensor.hpp"
+#include <miopen/names.hpp>
+#include <miopen/problem_description_base.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+
 struct NetworkConfig;
+
 namespace image_transform {
+
 namespace adjust_brightness {
+
 struct ProblemDescription : public ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& inputTensorDesc_,
@@ -44,6 +47,11 @@ struct ProblemDescription : public ProblemDescriptionBase
           outputTensorDesc(outputTensorDesc_),
           brightness_factor(brightness_factor_)
     {
+        if(!IsSameType())
+            MIOPEN_THROW("Input and output tensors have different types.");
+
+        if(!IsSameSize())
+            MIOPEN_THROW("Input and output tensors have different sizes.");
     }
 
     NetworkConfig MakeNetworkConfig() const override;
@@ -67,28 +75,14 @@ struct ProblemDescription : public ProblemDescriptionBase
         return true;
     }
 
-    bool IsInputSizesValid()
-    {
-        // We can only really support 4d tensors (ala. NCHW).
-        if(inputTensorDesc.GetLengths().size() == 4)
-            return true;
-
-        return false;
-    }
-
-    bool IsImprovementOverROCm() const
-    {
-        if(inputTensorDesc.IsContiguous() && outputTensorDesc.IsContiguous())
-            return true;
-
-        return false;
-    }
-
 private:
     TensorDescriptor inputTensorDesc;
     TensorDescriptor outputTensorDesc;
     float brightness_factor;
 };
+
 } // namespace adjust_brightness
+
 } // namespace image_transform
+
 } // namespace miopen

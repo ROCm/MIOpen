@@ -24,38 +24,31 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MIOPEN_IMAGE_NORMALIZE_DRIVER_HPP
-#define GUARD_MIOPEN_IMAGE_NORMALIZE_DRIVER_HPP
+#pragma once
 
 #include "../test/tensor_holder.hpp"
 #include "../test/verify.hpp"
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "image_adjust_driver_common.hpp"
-#include "miopen/miopen.h"
-#include "miopen/tensor.hpp"
-#include "miopen/tensor_view.hpp"
 #include "tensor_driver.hpp"
 #include "tensor_view.hpp"
 #include "timer.hpp"
 #include <memory>
+#include <miopen/errors.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 template <typename Tgpu, typename Tref>
-void mloImageNormalizeRunHost(miopen::TensorDescriptor inputDesc,
-                              miopen::TensorDescriptor outputDesc,
-                              miopen::TensorDescriptor meanDesc,
-                              miopen::TensorDescriptor stdvarDesc,
-                              const Tgpu* input,
-                              Tref* output,
-                              const Tgpu* mean,
-                              const Tgpu* stdvar)
+int mloImageNormalizeContiguousRunHost(const miopenTensorDescriptor_t inputDesc,
+                                       const Tgpu* input,
+                                       Tref* output,
+                                       const Tgpu* mean,
+                                       const Tgpu* stdvar)
 {
-    tensor_view_4d_t input_tv  = get_inner_expanded_4d_tv(inputDesc);
-    tensor_view_4d_t output_tv = get_inner_expanded_4d_tv(outputDesc);
-    tensor_view_4d_t mean_tv   = get_inner_expanded_4d_tv(meanDesc);
-    tensor_view_4d_t stdvar_tv = get_inner_expanded_4d_tv(stdvarDesc);
+    auto input_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
 
-    auto N         = inputDesc.GetElementSize();
+    auto N         = miopen::deref(inputDesc).GetElementSize();
     auto C         = input_tv.size[1];
     auto c_strides = input_tv.stride[1];
 
@@ -63,11 +56,12 @@ void mloImageNormalizeRunHost(miopen::TensorDescriptor inputDesc,
     {
         auto c = gid / c_strides % C;
 
-        Tref pixel  = get4DValueAt(input, input_tv, gid);
-        Tref result = (pixel - static_cast<Tref>(mean[c + mean_tv.offset])) /
-                      static_cast<Tref>(stdvar[c + stdvar_tv.offset]);
-        set4DValueAt(output, output_tv, gid, result);
+        Tref pixel  = input[gid];
+        Tref result = (pixel - static_cast<Tref>(mean[c])) / static_cast<Tref>(stdvar[c]);
+        output[gid] = result;
     }
+
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
@@ -133,11 +127,10 @@ private:
 template <typename Tgpu, typename Tref>
 int ImageNormalizeDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only the forward pass", "int");
-    inflags.AddTensorFlag("input", 'I', "1x3x96x96", "Input Tensor Size");
-    inflags.AddTensorFlag("mean", 'M', "3", "Mean Tensor Sequence Size");
-    inflags.AddTensorFlag("stdvar", 'S', "3", "Stdvar Tensor Sequence Size");
-    inflags.AddInputFlag("contiguous", 'Z', "1", "Use Contiguous Tensors", "int");
+    inflags.AddInputFlag("forw", 'F', "1", "Run only the forward pass (Default=1)", "int");
+    inflags.AddTensorFlag("input", 'I', "1x3x96x96", "Input Tensor Size (Default=1x3x96x96)");
+    inflags.AddTensorFlag("mean", 'M', "3", "Mean Tensor Sequence Size (Default=3)");
+    inflags.AddTensorFlag("stdvar", 'S', "3", "Stdvar Tensor Sequence Size (Default=3)");
 
     inflags.AddInputFlag("iter", 'i', "10", "Number of iterations", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
@@ -157,35 +150,37 @@ int ImageNormalizeDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
         miopenEnableProfiling(GetHandle(), true);
     }
 
+    forw = inflags.GetValueInt("forw");
+    if(forw == 1)
+    {
+        MIOPEN_THROW("Only forward pass is supported for ImageNormalize");
+    }
+
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int ImageNormalizeDriver<Tgpu, Tref>::GetandSetData()
 {
-    TensorParameters input_vec = inflags.GetValueTensor("input");
+    auto input_dims = inflags.GetValueTensor("input").lengths;
 
-    assert(input_vec.lengths.size() == 4 || input_vec.lengths.size() == 3);
-    if(input_vec.lengths.size() == 3)
+    if(input_dims.size() == 4)
     {
-        // If we get a 3d tensor, adds n=1 (to make it conforms to 4d input)
-        input_vec.lengths.insert(input_vec.lengths.begin(), 1);
+        MIOPEN_THROW("Only 4D tensors are supported for ImageNormalize");
     }
 
-    auto strides = ComputeStrides(input_vec.lengths, inflags.GetValueInt("contiguous") == 1);
+    SetTensorNd(inputTensorDesc, input_dims, data_type);
+    SetTensorNd(outputTensorDesc, input_dims, data_type);
 
-    SetTensorNd(inputTensorDesc, input_vec.lengths, strides, data_type);
-    SetTensorNd(outputTensorDesc, input_vec.lengths, strides, data_type);
-
-    TensorParameters mean_vec   = inflags.GetValueTensor("mean");
-    TensorParameters stdvar_vec = inflags.GetValueTensor("stdvar");
+    auto mean_dims   = inflags.GetValueTensor("mean").lengths;
+    auto stdvar_dims = inflags.GetValueTensor("stdvar").lengths;
 
     // Assert that these are at least as large as the input channels
-    assert(mean_vec.lengths[0] >= input_vec.lengths[1]);
-    assert(stdvar_vec.lengths[0] >= input_vec.lengths[1]);
+    // assert(mean_vec.lengths[0] >= input_vec.lengths[1]);
+    // assert(stdvar_vec.lengths[0] >= input_vec.lengths[1]);
 
-    SetTensorNd(meanTensorDesc, mean_vec.lengths, data_type);
-    SetTensorNd(stdvarTensorDesc, stdvar_vec.lengths, data_type);
+    SetTensorNd(meanTensorDesc, mean_dims, data_type);
+    SetTensorNd(stdvarTensorDesc, stdvar_dims, data_type);
 
     return miopenStatusSuccess;
 }
@@ -293,20 +288,17 @@ int ImageNormalizeDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int ImageNormalizeDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
 int ImageNormalizeDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloImageNormalizeRunHost(miopen::deref(inputTensorDesc),
-                             miopen::deref(outputTensorDesc),
-                             miopen::deref(meanTensorDesc),
-                             miopen::deref(stdvarTensorDesc),
-                             input_host.data(),
-                             out_ref.data(),
-                             mean_host.data(),
-                             stdvar_host.data());
+    mloImageNormalizeContiguousRunHost(miopen::deref(inputTensorDesc),
+                                       input_host.data(),
+                                       out_ref.data(),
+                                       mean_host.data(),
+                                       stdvar_host.data());
 
     return miopenStatusSuccess;
 }
@@ -314,7 +306,7 @@ int ImageNormalizeDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int ImageNormalizeDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
@@ -341,7 +333,5 @@ int ImageNormalizeDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int ImageNormalizeDriver<Tgpu, Tref>::VerifyBackward()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
-
-#endif

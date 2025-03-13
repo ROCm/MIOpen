@@ -26,14 +26,16 @@
 
 #pragma once
 
-#include "miopen/miopen.h"
-#include "miopen/names.hpp"
-#include "miopen/problem_description_base.hpp"
-#include "miopen/tensor.hpp"
+#include <miopen/names.hpp>
+#include <miopen/problem_description_base.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+
 struct NetworkConfig;
+
 namespace image_transform {
+
 namespace adjust_hue {
 
 struct ProblemDescription : ProblemDescriptionBase
@@ -43,15 +45,17 @@ struct ProblemDescription : ProblemDescriptionBase
                        const float hue_)
         : inputTensorDesc(inputTensorDesc_), outputTensorDesc(outputTensorDesc_), hue(hue_)
     {
-        // These are critical checks, should be run every time
         if(!IsHueInRange())
             MIOPEN_THROW("hue must be between -0.5 and 0.5");
 
         if(!IsSameSize())
             MIOPEN_THROW("input and output must have the same size");
 
+        if(!IsSameType())
+            MIOPEN_THROW("input and output must have the same type");
+
         if(!IsInputSizesValid())
-            MIOPEN_THROW("input sizes must be 4d");
+            MIOPEN_THROW("input tensor must be 4d tensor with 3 channels");
     }
 
     NetworkConfig MakeNetworkConfig() const override;
@@ -90,9 +94,9 @@ struct ProblemDescription : ProblemDescriptionBase
         return true;
     }
 
-    bool IsImprovementOverROCm() const
+    bool IsAllContiguous() const
     {
-        return true; // So far, yes.
+        return inputTensorDesc.IsContiguous() && outputTensorDesc.IsContiguous();
     }
 
 private:
@@ -100,6 +104,9 @@ private:
     TensorDescriptor outputTensorDesc;
     float hue;
 };
+
 } // namespace adjust_hue
+
 } // namespace image_transform
+
 } // namespace miopen

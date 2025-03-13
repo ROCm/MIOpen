@@ -24,8 +24,7 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MIOPEN_IMAGE_ADJUST_HUE_DRIVER_HPP
-#define GUARD_MIOPEN_IMAGE_ADJUST_HUE_DRIVER_HPP
+#pragma once
 
 #include "../test/tensor_holder.hpp"
 #include "../test/verify.hpp"
@@ -384,7 +383,5 @@ int ImageAdjustHueDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int ImageAdjustHueDriver<Tgpu, Tref>::VerifyBackward()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
-
-#endif

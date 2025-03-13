@@ -26,15 +26,18 @@
 
 #pragma once
 
-#include "miopen/miopen.h"
-#include "miopen/names.hpp"
-#include "miopen/problem_description_base.hpp"
-#include "miopen/tensor.hpp"
+#include <miopen/names.hpp>
+#include <miopen/problem_description_base.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+
 struct NetworkConfig;
+
 namespace image_transform {
+
 namespace normalize {
+
 struct ProblemDescription : public ProblemDescriptionBase
 {
     ProblemDescription(const TensorDescriptor& inputTensorDesc_,
@@ -48,6 +51,17 @@ struct ProblemDescription : public ProblemDescriptionBase
     {
         if(!IsMeanAndStdDevContiguous())
             MIOPEN_THROW("Mean and stddev tensors are not contiguous.");
+
+        if(!IsSameType())
+            MIOPEN_THROW("Input and output tensors have different types.");
+
+        if(!IsSameSize())
+            MIOPEN_THROW("Input and output tensors have different sizes.");
+
+        if(!IsInputSizesValid())
+        {
+            MIOPEN_THROW("Input tensor must have 4 dimensions.");
+        }
     }
 
     NetworkConfig MakeNetworkConfig() const override;
@@ -73,16 +87,7 @@ struct ProblemDescription : public ProblemDescriptionBase
     }
     bool IsInputSizesValid() const
     {
-        // We can only really support 4d tensors (ala. NCHW).
         if(inputTensorDesc.GetLengths().size() == 4)
-            return true;
-
-        return false;
-    }
-
-    bool IsImprovementOverROCm() const
-    {
-        if(inputTensorDesc.IsContiguous() && outputTensorDesc.IsContiguous())
             return true;
 
         return false;
@@ -100,6 +105,9 @@ private:
     TensorDescriptor stddevTensorDesc;
     TensorDescriptor outputTensorDesc;
 };
+
 } // namespace normalize
+
 } // namespace image_transform
+
 } // namespace miopen

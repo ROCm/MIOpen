@@ -32,51 +32,53 @@
 #include "float_types.h"
 #include "tensor_view.hpp"
 
-template <typename DTYPE = FLOAT_ACCUM>
-__device__ DTYPE clamp(DTYPE val, DTYPE min, DTYPE max)
+template <typename TIO = FLOAT_ACCUM>
+__device__ TIO clamp(TIO val, TIO min, TIO max)
 {
     val = val < min ? min : val;
     val = val > max ? max : val;
     return val;
 }
 
-template <typename DTYPE = FLOAT_ACCUM>
-__device__ void
-convertRGBToHSV(const DTYPE r, const DTYPE g, const DTYPE b, DTYPE* h, DTYPE* s, DTYPE* v)
+template <typename TIO = FLOAT_ACCUM>
+__device__ void convertRGBToHSV(const TIO r, const TIO g, const TIO b, TIO* h, TIO* s, TIO* v)
 {
-    DTYPE minc = fmin(r, fmin(g, b));
-    DTYPE maxc = fmax(r, fmax(g, b));
+    TIO minc = fmin(r, fmin(g, b));
+    TIO maxc = fmax(r, fmax(g, b));
 
     *v = maxc;
 
-    DTYPE cr = maxc - minc;
+    TIO cr   = maxc - minc;
     bool eqc = (cr == 0);
 
-    *s = cr / (eqc ? (DTYPE)1.0 : maxc);
+    *s = cr / (eqc ? static_cast<TIO>(1.0) : maxc);
 
-    DTYPE cr_divisor = eqc ? (DTYPE)1.0 : cr;
-    DTYPE rc         = (maxc - r) / cr_divisor;
-    DTYPE gc         = (maxc - g) / cr_divisor;
-    DTYPE bc         = (maxc - b) / cr_divisor;
+    TIO cr_divisor = eqc ? static_cast<TIO>(1.0) : cr;
+    TIO rc         = (maxc - r) / cr_divisor;
+    TIO gc         = (maxc - g) / cr_divisor;
+    TIO bc         = (maxc - b) / cr_divisor;
 
-    DTYPE hr = (maxc == r) * (bc - gc);
-    DTYPE hg = ((maxc == g) & (maxc != r)) * ((DTYPE)2.0 + rc - bc);
-    DTYPE hb = ((maxc != g) & (maxc != r)) * ((DTYPE)4.0 + gc - rc);
+    TIO hr = (maxc == r) * (bc - gc);
+    TIO hg = ((maxc == g) & (maxc != r)) * (static_cast<TIO>(2.0) + rc - bc);
+    TIO hb = ((maxc != g) & (maxc != r)) * (static_cast<TIO>(4.0) + gc - rc);
 
-    *h = fmod((hr + hg + hb) / (DTYPE)6.0 + (DTYPE)1.0, (DTYPE)1.0);
+    *h =
+        fmod((hr + hg + hb) / static_cast<TIO>(6.0) + static_cast<TIO>(1.0), static_cast<TIO>(1.0));
 }
 
-template <typename DTYPE = FLOAT_ACCUM>
-__device__ void
-convertHSVToRGB(const DTYPE h, const DTYPE s, const DTYPE v, DTYPE* r, DTYPE* g, DTYPE* b)
+template <typename TIO = FLOAT_ACCUM>
+__device__ void convertHSVToRGB(const TIO h, const TIO s, const TIO v, TIO* r, TIO* g, TIO* b)
 {
-    DTYPE i    = floor(h * (DTYPE)6.0);
-    DTYPE f    = (h * (DTYPE)6.0) - i;
-    int i_case = ((int)i + 6) % 6;
+    TIO i      = floor(h * static_cast<TIO>(6.0));
+    TIO f      = (h * static_cast<TIO>(6.0)) - i;
+    int i_case = (static_cast<int>(i) + 6) % 6;
 
-    DTYPE p = clamp(v * ((DTYPE)1.0 - s), (DTYPE)0.0, (DTYPE)1.0);
-    DTYPE q = clamp(v * ((DTYPE)1.0 - s * f), (DTYPE)0.0, (DTYPE)1.0);
-    DTYPE t = clamp(v * ((DTYPE)1.0 - s * ((DTYPE)1.0 - f)), (DTYPE)0.0, (DTYPE)1.0);
+    TIO p = clamp(v * (static_cast<TIO>(1.0) - s), static_cast<TIO>(0.0), static_cast<TIO>(1.0));
+    TIO q =
+        clamp(v * (static_cast<TIO>(1.0) - s * f), static_cast<TIO>(0.0), static_cast<TIO>(1.0));
+    TIO t = clamp(v * (static_cast<TIO>(1.0) - s * (static_cast<TIO>(1.0) - f)),
+                  static_cast<TIO>(0.0),
+                  static_cast<TIO>(1.0));
 
     switch(i_case)
     {
@@ -114,27 +116,29 @@ convertHSVToRGB(const DTYPE h, const DTYPE s, const DTYPE v, DTYPE* r, DTYPE* g,
     }
 }
 
-template <typename DTYPE>
-__device__ void DeviceImageAdjustHue(const DTYPE* __restrict__ input,
-                                     DTYPE* __restrict__ output,
-                                     const float hue_factor,
-                                     const size_t N,
-                                     const size_t /* c_stride */,
-                                     const tensor_view_4d_t input_tv,
-                                     const tensor_view_4d_t output_tv)
+template <typename TIO>
+__device__ void DeviceImageAdjustHue(const TIO* input,
+                                     TIO* output,
+                                     float hue_factor,
+                                     size_t N,
+                                     tensor_view_t<4> input_tv,
+                                     tensor_view_t<4> output_tv)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
         return;
 
-    int n, c, h, w;
-    getNCHW(n, c, h, w, gid, input_tv.size);
+    tensor_layout_t<4> input_layout(input_tv, gid);
+    auto n = input_layout.layout[0];
+    auto c = input_layout.layout[1];
+    auto h = input_layout.layout[2];
+    auto w = input_layout.layout[3];
 
     n = n * 3 + c;
 
-    DTYPE r = get4DValueAt(input, input_tv, n, 0, h, w);
-    DTYPE g = get4DValueAt(input, input_tv, n, 1, h, w);
-    DTYPE b = get4DValueAt(input, input_tv, n, 2, h, w);
+    TIO r = input[input_tv.get_tensor_view_idx({n, 0, h, w})];
+    TIO g = input[input_tv.get_tensor_view_idx({n, 1, h, w})];
+    TIO b = input[input_tv.get_tensor_view_idx({n, 2, h, w})];
 
     FLOAT_ACCUM fr = CVT_FLOAT2ACCUM(r);
     FLOAT_ACCUM fg = CVT_FLOAT2ACCUM(g);
@@ -145,19 +149,14 @@ __device__ void DeviceImageAdjustHue(const DTYPE* __restrict__ input,
     hue = fmod(hue + hue_factor, 1.0f);
     convertHSVToRGB(hue, sat, val, &fr, &fg, &fb);
 
-    set4DValueAt(output, output_tv, n, 0, h, w, CVT_ACCUM2FLOAT(fr));
-    set4DValueAt(output, output_tv, n, 1, h, w, CVT_ACCUM2FLOAT(fg));
-    set4DValueAt(output, output_tv, n, 2, h, w, CVT_ACCUM2FLOAT(fb));
+    output[output_tv.get_tensor_view_idx({n, 0, h, w})] = CVT_ACCUM2FLOAT(fr);
+    output[output_tv.get_tensor_view_idx({n, 1, h, w})] = CVT_ACCUM2FLOAT(fg);
+    output[output_tv.get_tensor_view_idx({n, 2, h, w})] = CVT_ACCUM2FLOAT(fb);
 }
 
-template <typename DTYPE>
-__device__ void DeviceImageAdjustHueContiguous(const DTYPE* __restrict__ input,
-                                               DTYPE* __restrict__ output,
-                                               const float hue_factor,
-                                               const size_t N,
-                                               const size_t c_stride,
-                                               const size_t input_off,
-                                               const size_t output_off)
+template <typename TIO>
+__device__ void DeviceImageAdjustHueContiguous(
+    const TIO* input, TIO* output, float hue_factor, size_t N, size_t c_stride)
 {
     size_t gid = blockIdx.x * blockDim.x + threadIdx.x;
     if(gid >= N)
@@ -168,9 +167,9 @@ __device__ void DeviceImageAdjustHueContiguous(const DTYPE* __restrict__ input,
 
     size_t pixel_idx = idx + n * c_stride * 3;
 
-    DTYPE r = input[pixel_idx + input_off];
-    DTYPE g = input[pixel_idx + c_stride + input_off];
-    DTYPE b = input[pixel_idx + c_stride * 2 + input_off];
+    TIO r = input[pixel_idx];
+    TIO g = input[pixel_idx + c_stride];
+    TIO b = input[pixel_idx + c_stride * 2];
 
     FLOAT_ACCUM fr = CVT_FLOAT2ACCUM(r);
     FLOAT_ACCUM fg = CVT_FLOAT2ACCUM(g);
@@ -182,31 +181,25 @@ __device__ void DeviceImageAdjustHueContiguous(const DTYPE* __restrict__ input,
     hue = fmod(hue + hue_factor, 1.0f);
     convertHSVToRGB(hue, sat, val, &fr, &fg, &fb);
 
-    output[pixel_idx + output_off]                = CVT_ACCUM2FLOAT(fr);
-    output[pixel_idx + c_stride + output_off]     = CVT_ACCUM2FLOAT(fg);
-    output[pixel_idx + c_stride * 2 + output_off] = CVT_ACCUM2FLOAT(fb);
+    output[pixel_idx]                = CVT_ACCUM2FLOAT(fr);
+    output[pixel_idx + c_stride]     = CVT_ACCUM2FLOAT(fg);
+    output[pixel_idx + c_stride * 2] = CVT_ACCUM2FLOAT(fb);
 }
 
 // Trampolines
-extern "C" __global__ void ImageAdjustHue(const FLOAT* __restrict__ input,
-                                          FLOAT* __restrict__ output,
-                                          const float hue_factor,
-                                          const size_t N,
-                                          const size_t c_stride,
-                                          const tensor_view_4d_t input_tv,
-                                          const tensor_view_4d_t output_tv)
+extern "C" __global__ void ImageAdjustHue(const DTYPE* input,
+                                          DTYPE* output,
+                                          float hue_factor,
+                                          size_t N,
+                                          size_t c_stride,
+                                          tensor_view_t<4> input_tv,
+                                          tensor_view_t<4> output_tv)
 {
-    DeviceImageAdjustHue<FLOAT>(input, output, hue_factor, N, c_stride, input_tv, output_tv);
+    DeviceImageAdjustHue<DTYPE>(input, output, hue_factor, N, c_stride, input_tv, output_tv);
 }
 
-extern "C" __global__ void ImageAdjustHueContiguous(const FLOAT* __restrict__ input,
-                                                    FLOAT* __restrict__ output,
-                                                    const float hue_factor,
-                                                    const size_t N,
-                                                    const size_t c_stride,
-                                                    const size_t input_off,
-                                                    const size_t output_off)
+extern "C" __global__ void ImageAdjustHueContiguous(
+    const DTYPE* input, DTYPE* output, float hue_factor, size_t N, size_t c_stride)
 {
-    DeviceImageAdjustHueContiguous<FLOAT>(
-        input, output, hue_factor, N, c_stride, input_off, output_off);
+    DeviceImageAdjustHueContiguous<DTYPE>(input, output, hue_factor, N, c_stride);
 }

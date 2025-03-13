@@ -26,17 +26,20 @@
 
 #pragma once
 
-#include "miopen/conv_solution.hpp"
-#include "miopen/image_transform/adjust_brightness/problem_description.hpp"
-#include "miopen/image_transform/adjust_hue/problem_description.hpp"
-#include "miopen/image_transform/adjust_saturation/problem_description.hpp"
-#include "miopen/image_transform/normalize/problem_description.hpp"
-#include "miopen/solver.hpp"
+#include <miopen/conv_solution.hpp>
+#include <miopen/image_transform/adjust_brightness/problem_description.hpp>
+#include <miopen/image_transform/adjust_hue/problem_description.hpp>
+#include <miopen/image_transform/adjust_saturation/problem_description.hpp>
+#include <miopen/image_transform/normalize/problem_description.hpp>
+#include <miopen/solver.hpp>
 #include <string>
 
 namespace miopen {
+
 namespace solver {
+
 namespace image_transform {
+
 namespace adjust_hue {
 
 using ImageAdjustHueSolver =
@@ -50,12 +53,15 @@ struct ImageAdjustHue final : ImageAdjustHueSolver
         const ExecutionContext& context,
         const miopen::image_transform::adjust_hue::ProblemDescription& problem) const override;
 
+    bool IsImprovementOverROCm(
+        const ExecutionContext& context,
+        const miopen::image_transform::adjust_hue::ProblemDescription& problem) const;
+
     ConvSolution GetSolution(
         const ExecutionContext& context,
         const miopen::image_transform::adjust_hue::ProblemDescription& problem) const override;
-
-    bool MayNeedWorkspace() const override { return false; }
 };
+
 } // namespace adjust_hue
 
 namespace adjust_brightness {
@@ -71,6 +77,10 @@ struct ImageAdjustBrightness final : ImageAdjustBrightnessSolver
         return GetSolverDbId<ImageAdjustBrightness>();
     }
 
+    bool IsImprovementOverROCm(
+        const ExecutionContext& context,
+        const miopen::image_transform::adjust_brightness::ProblemDescription& problem) const;
+
     bool IsApplicable(const ExecutionContext& context,
                       const miopen::image_transform::adjust_brightness::ProblemDescription& problem)
         const override;
@@ -78,9 +88,8 @@ struct ImageAdjustBrightness final : ImageAdjustBrightnessSolver
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::image_transform::adjust_brightness::ProblemDescription&
                                  problem) const override;
-
-    bool MayNeedWorkspace() const override { return false; }
 };
+
 } // namespace adjust_brightness
 
 namespace adjust_saturation {
@@ -100,16 +109,21 @@ struct ImageAdjustSaturation final : ImageAdjustSaturationSolver
                       const miopen::image_transform::adjust_saturation::ProblemDescription& problem)
         const override;
 
+    bool IsImprovementOverROCm(
+        const ExecutionContext& context,
+        const miopen::image_transform::adjust_saturation::ProblemDescription& problem) const;
+
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::image_transform::adjust_saturation::ProblemDescription&
                                  problem) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    size_t GetWorkspaceSize([[maybe_unused]] const ExecutionContext& context,
+    size_t GetWorkspaceSize(const ExecutionContext& context,
                             const miopen::image_transform::adjust_saturation::ProblemDescription&
                                 problem) const override;
 };
+
 } // namespace adjust_saturation
 
 namespace normalize {
@@ -125,11 +139,19 @@ struct ImageNormalize final : ImageNormalizeSolver
         const ExecutionContext& context,
         const miopen::image_transform::normalize::ProblemDescription& problem) const override;
 
+    bool IsImprovementOverROCm(
+        const ExecutionContext& context,
+        const miopen::image_transform::normalize::ProblemDescription& problem) const;
+
     ConvSolution GetSolution(
         const ExecutionContext& context,
         const miopen::image_transform::normalize::ProblemDescription& problem) const override;
 };
+
 } // namespace normalize
+
 } // namespace image_transform
+
 } // namespace solver
+
 } // namespace miopen

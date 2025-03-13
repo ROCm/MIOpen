@@ -24,31 +24,33 @@
  *
  *******************************************************************************/
 
-#include "miopen/image_transform.hpp"
-#include "miopen/common.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/find_solution.hpp"
-#include "miopen/image_transform/adjust_brightness/invoke_params.hpp"
-#include "miopen/image_transform/adjust_brightness/problem_description.hpp"
-#include "miopen/image_transform/adjust_hue/invoke_params.hpp"
-#include "miopen/image_transform/adjust_hue/problem_description.hpp"
-#include "miopen/image_transform/adjust_saturation/invoke_params.hpp"
-#include "miopen/image_transform/adjust_saturation/problem_description.hpp"
-#include "miopen/image_transform/normalize/invoke_params.hpp"
-#include "miopen/image_transform/normalize/problem_description.hpp"
-#include "miopen/image_transform/solvers.hpp"
-#include "miopen/miopen.h"
-#include "miopen/names.hpp"
-#include "miopen/tensor.hpp"
+#include <miopen/common.hpp>
+#include <miopen/execution_context.hpp>
+#include <miopen/find_solution.hpp>
+#include <miopen/image_transform.hpp>
+#include <miopen/image_transform/adjust_brightness/invoke_params.hpp>
+#include <miopen/image_transform/adjust_brightness/problem_description.hpp>
+#include <miopen/image_transform/adjust_hue/invoke_params.hpp>
+#include <miopen/image_transform/adjust_hue/problem_description.hpp>
+#include <miopen/image_transform/adjust_saturation/invoke_params.hpp>
+#include <miopen/image_transform/adjust_saturation/problem_description.hpp>
+#include <miopen/image_transform/normalize/invoke_params.hpp>
+#include <miopen/image_transform/normalize/problem_description.hpp>
+#include <miopen/image_transform/solvers.hpp>
+#include <miopen/miopen.h>
+#include <miopen/names.hpp>
+#include <miopen/tensor.hpp>
 #include <cstddef>
 
 namespace miopen {
 
+namespace image_transform {
+
 miopenStatus_t ImageAdjustHue(Handle& handle,
                               const TensorDescriptor& inputTensorDesc,
                               const TensorDescriptor& outputTensorDesc,
-                              ConstData_t input_buf,
-                              Data_t output_buf,
+                              ConstData_t input,
+                              Data_t output,
                               float hue)
 {
     auto ctx = ExecutionContext{&handle};
@@ -59,8 +61,8 @@ miopenStatus_t ImageAdjustHue(Handle& handle,
         auto tmp             = image_transform::adjust_hue::InvokeParams{};
         tmp.inputTensorDesc  = &inputTensorDesc;
         tmp.outputTensorDesc = &outputTensorDesc;
-        tmp.input_buf        = input_buf;
-        tmp.output_buf       = output_buf;
+        tmp.input            = input;
+        tmp.output           = output;
         tmp.hue              = hue;
         return tmp;
     }();
@@ -77,8 +79,8 @@ miopenStatus_t ImageAdjustHue(Handle& handle,
 miopenStatus_t ImageAdjustBrightness(Handle& handle,
                                      const TensorDescriptor& inputTensorDesc,
                                      const TensorDescriptor& outputTensorDesc,
-                                     ConstData_t input_buf,
-                                     Data_t output_buf,
+                                     ConstData_t input,
+                                     Data_t output,
                                      const float brightness_factor)
 {
     auto ctx           = ExecutionContext{&handle};
@@ -89,8 +91,8 @@ miopenStatus_t ImageAdjustBrightness(Handle& handle,
         auto tmp              = image_transform::adjust_brightness::InvokeParams{};
         tmp.inputTensorDesc   = &inputTensorDesc;
         tmp.outputTensorDesc  = &outputTensorDesc;
-        tmp.input_buf         = input_buf;
-        tmp.output_buf        = output_buf;
+        tmp.input             = input;
+        tmp.output            = output;
         tmp.brightness_factor = brightness_factor;
         return tmp;
     }();
@@ -109,10 +111,10 @@ miopenStatus_t ImageNormalize(Handle& handle,
                               const TensorDescriptor& meanTensorDesc,
                               const TensorDescriptor& stdTensorDesc,
                               const TensorDescriptor& outputTensorDesc,
-                              ConstData_t input_buf,
-                              ConstData_t mean_buf,
-                              ConstData_t std_buf,
-                              Data_t output_buf)
+                              ConstData_t input,
+                              ConstData_t mean,
+                              ConstData_t std,
+                              Data_t output)
 {
     auto ctx           = ExecutionContext{&handle};
     const auto problem = image_transform::normalize::ProblemDescription{
@@ -124,10 +126,10 @@ miopenStatus_t ImageNormalize(Handle& handle,
         tmp.meanTensorDesc   = &meanTensorDesc;
         tmp.stddevTensorDesc = &stdTensorDesc;
         tmp.outputTensorDesc = &outputTensorDesc;
-        tmp.input_buf        = input_buf;
-        tmp.mean_buf         = mean_buf;
-        tmp.stddev_buf       = std_buf;
-        tmp.output_buf       = output_buf;
+        tmp.input            = input;
+        tmp.mean             = mean;
+        tmp.stddev           = std;
+        tmp.output           = output;
         return tmp;
     }();
 
@@ -143,9 +145,9 @@ miopenStatus_t ImageNormalize(Handle& handle,
 miopenStatus_t ImageAdjustSaturation(Handle& handle,
                                      const TensorDescriptor& inputTensorDesc,
                                      const TensorDescriptor& outputTensorDesc,
-                                     ConstData_t input_buf,
-                                     Data_t workspace_buf,
-                                     Data_t output_buf,
+                                     ConstData_t input,
+                                     Data_t workspace,
+                                     Data_t output,
                                      float saturation_factor)
 {
     auto ctx           = ExecutionContext{&handle};
@@ -156,9 +158,9 @@ miopenStatus_t ImageAdjustSaturation(Handle& handle,
         auto tmp              = image_transform::adjust_saturation::InvokeParams{};
         tmp.inputTensorDesc   = &inputTensorDesc;
         tmp.outputTensorDesc  = &outputTensorDesc;
-        tmp.input_buf         = input_buf;
-        tmp.workspace_buf     = workspace_buf;
-        tmp.output_buf        = output_buf;
+        tmp.input             = input;
+        tmp.workspace         = workspace;
+        tmp.output            = output;
         tmp.saturation_factor = saturation_factor;
         return tmp;
     }();
@@ -191,4 +193,7 @@ size_t ImageAdjustSaturationGetWorkspaceSize(Handle& handle,
 
     return workspace_sizes.empty() ? static_cast<size_t>(0) : workspace_sizes.front().second;
 }
+
+} // namespace image_transform
+
 } // namespace miopen

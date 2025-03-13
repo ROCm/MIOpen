@@ -24,42 +24,38 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MIOPEN_IMAGE_ADJUST_BRIGHTNESS_DRIVER_HPP
-#define GUARD_MIOPEN_IMAGE_ADJUST_BRIGHTNESS_DRIVER_HPP
+#pragma once
 
 #include "../test/tensor_holder.hpp"
 #include "../test/verify.hpp"
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "image_adjust_driver_common.hpp"
-#include "miopen/miopen.h"
-#include "miopen/tensor.hpp"
-#include "miopen/tensor_view.hpp"
 #include "tensor_driver.hpp"
-#include "tensor_view.hpp"
 #include "timer.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <memory>
 
-template <typename Tgpu, typename Tref>
-void mloImageAdjustBrightnessRunHost(const Tgpu* input,
-                                     Tref* output,
-                                     miopen::TensorDescriptor inputDesc,
-                                     miopen::TensorDescriptor outputDesc,
-                                     const float brightness_factor)
-{
-    tensor_view_4d_t input_tv  = get_inner_expanded_4d_tv(inputDesc);
-    tensor_view_4d_t output_tv = get_inner_expanded_4d_tv(outputDesc);
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
 
-    size_t N = inputDesc.GetElementSize();
+template <typename Tgpu, typename Tref>
+int mloImageAdjustBrightnessContiguousRunHost(const Tgpu* input,
+                                              Tref* output,
+                                              const miopenTensorDescriptor_t inputDesc,
+                                              const float brightness_factor)
+{
+    size_t N = miopen::deref(inputDesc).GetElementSize();
 
     for(size_t gid = 0; gid < N; gid++)
     {
-        Tref pixel  = get4DValueAt(input, input_tv, gid);
-        Tref result = std::clamp(pixel * brightness_factor, Tref(0.0f), Tref(1.0f));
-        set4DValueAt(output, output_tv, gid, result);
+        Tref pixel = input[gid];
+        Tref result =
+            std::clamp(pixel * brightness_factor, static_cast<Tref>(0.0f), static_cast<Tref>(1.0f));
+        output[gid] = result;
     }
+
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
@@ -119,13 +115,12 @@ private:
 template <typename Tgpu, typename Tref>
 int ImageAdjustBrightnessDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only the forward pass", "int");
+    inflags.AddInputFlag("forw", 'F', "1", "Run only the forward pass (Default=1)", "int");
 
-    inflags.AddTensorFlag("input", 'I', "1x3x96x96", "Input Tensor Size");
-    inflags.AddInputFlag("contiguous", 'Z', "1", "Use Contiguous Tensors", "int");
-    inflags.AddInputFlag("brightness", 'B', "0.2", "Brightness factor", "double");
+    inflags.AddTensorFlag("input", 'I', "1x3x96x96", "Input Tensor Size (Default=1x3x96x96)");
+    inflags.AddInputFlag("brightness", 'B', "0.2", "Brightness factor (Default=0.2)", "double");
 
-    inflags.AddInputFlag("iter", 'i', "10", "Number of iterations", "int");
+    inflags.AddInputFlag("iter", 'i', "10", "Number of iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
@@ -146,24 +141,22 @@ int ImageAdjustBrightnessDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* ar
         miopenEnableProfiling(GetHandle(), true);
     }
 
+    forw = inflags.GetValueInt("forw");
+    if(forw != 1)
+    {
+        MIOPEN_THROW("Only forward pass is supported for Image Adjust Brightness");
+    }
+
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 int ImageAdjustBrightnessDriver<Tgpu, Tref>::GetandSetData()
 {
-    TensorParameters input_vec = inflags.GetValueTensor("input");
-    assert(input_vec.lengths.size() == 4 || input_vec.lengths.size() == 3);
-    if(input_vec.lengths.size() == 3)
-    {
-        // If we get a 3d tensor, adds n=1 (to make it conforms to 4d input)
-        input_vec.lengths.insert(input_vec.lengths.begin(), 1);
-    }
+    auto input_dims = inflags.GetValueTensor("input").lengths;
 
-    auto strides = ComputeStrides(input_vec.lengths, inflags.GetValueInt("contiguous") == 1);
-
-    SetTensorNd(inputTensorDesc, input_vec.lengths, strides, data_type);
-    SetTensorNd(outputTensorDesc, input_vec.lengths, strides, data_type);
+    SetTensorNd(inputTensorDesc, input_dims, data_type);
+    SetTensorNd(outputTensorDesc, input_dims, data_type);
 
     return miopenStatusSuccess;
 }
@@ -248,11 +241,8 @@ int ImageAdjustBrightnessDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int ImageAdjustBrightnessDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloImageAdjustBrightnessRunHost(in_host.data(),
-                                    out_ref.data(),
-                                    miopen::deref(inputTensorDesc),
-                                    miopen::deref(outputTensorDesc),
-                                    brightness_factor);
+    mloImageAdjustBrightnessContiguousRunHost(
+        in_host.data(), out_ref.data(), miopen::deref(inputTensorDesc), brightness_factor);
     return miopenStatusSuccess;
 }
 
@@ -280,22 +270,17 @@ int ImageAdjustBrightnessDriver<Tgpu, Tref>::VerifyForward()
 template <typename Tgpu, typename Tref>
 int ImageAdjustBrightnessDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    // Does not exist
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
 int ImageAdjustBrightnessDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    // Does not exist
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
 int ImageAdjustBrightnessDriver<Tgpu, Tref>::VerifyBackward()
 {
-    // Does not exist
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
-
-#endif

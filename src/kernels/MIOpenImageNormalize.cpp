@@ -24,54 +24,43 @@
  *
  *******************************************************************************/
 
-#include <cstddef>
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #endif
 
 #include "float_types.h"
-#include "tensor_view.hpp"
 
-template <typename DTYPE>
-__device__ void DeviceImageNormalizeFwdContiguous(const DTYPE* __restrict__ input,
-                                                  const DTYPE* __restrict__ mean,
-                                                  const DTYPE* __restrict__ std,
-                                                  DTYPE* __restrict__ output,
-                                                  const size_t input_off,
-                                                  const size_t mean_off,
-                                                  const size_t std_off,
-                                                  const size_t output_off,
-                                                  const long c_stride,
-                                                  const long C,
-                                                  const long N)
+template <typename TIO>
+__device__ void DeviceImageNormalizeFwdContiguous(const TIO* input,
+                                                  const TIO* mean,
+                                                  const TIO* std,
+                                                  TIO* output,
+                                                  size_t c_stride,
+                                                  size_t C,
+                                                  size_t N)
 {
     size_t gid = blockDim.x * blockIdx.x + threadIdx.x;
     if(gid >= N)
         return;
 
-    int c = gid / c_stride % C;
+    size_t c = gid / c_stride % C;
 
-    FLOAT_ACCUM pixel  = CVT_FLOAT2ACCUM(input[gid + input_off]);
-    FLOAT_ACCUM mean_p = CVT_FLOAT2ACCUM(mean[c + mean_off]);
-    FLOAT_ACCUM std_p  = CVT_FLOAT2ACCUM(std[c + std_off]);
+    FLOAT_ACCUM pixel  = CVT_FLOAT2ACCUM(input[gid]);
+    FLOAT_ACCUM mean_p = CVT_FLOAT2ACCUM(mean[c]);
+    FLOAT_ACCUM std_p  = CVT_FLOAT2ACCUM(std[c]);
     FLOAT_ACCUM result = (pixel - mean_p) / std_p;
 
-    output[gid + output_off] = CVT_ACCUM2FLOAT(result);
+    output[gid] = CVT_ACCUM2FLOAT(result);
 }
 
-extern "C" __global__ void ImageNormalizeContiguous(const FLOAT* __restrict__ input,
-                                                    const FLOAT* __restrict__ mean,
-                                                    const FLOAT* __restrict__ std,
-                                                    FLOAT* __restrict__ output,
-                                                    const size_t input_off,
-                                                    const size_t mean_off,
-                                                    const size_t std_off,
-                                                    const size_t output_off,
-                                                    const size_t c_stride,
-                                                    const size_t C,
-                                                    const size_t N)
+extern "C" __global__ void ImageNormalizeContiguous(const DTYPE* input,
+                                                    const DTYPE* mean,
+                                                    const DTYPE* std,
+                                                    DTYPE* output,
+                                                    size_t c_stride,
+                                                    size_t C,
+                                                    size_t N)
 {
-    DeviceImageNormalizeFwdContiguous<FLOAT>(
-        input, mean, std, output, input_off, mean_off, std_off, output_off, c_stride, C, N);
+    DeviceImageNormalizeFwdContiguous<DTYPE>(input, mean, std, output, c_stride, C, N);
 }

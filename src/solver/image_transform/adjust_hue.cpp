@@ -24,34 +24,40 @@
  *
  *******************************************************************************/
 
-#include "miopen/conv_solution.hpp"
-#include "miopen/datatype.hpp"
-#include "miopen/errors.hpp"
-#include "miopen/image_transform/adjust_hue/invoke_params.hpp"
-#include "miopen/image_transform/adjust_hue/problem_description.hpp"
-#include "miopen/image_transform/solvers.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/kernel_build_params.hpp"
-#include "miopen/miopen.h"
-#include "miopen/mlo_internal.hpp"
-#include "miopen/solver.hpp"
-#include "miopen/image_transform.hpp"
-#include "miopen/tensor_view.hpp"
+#include "miopen/tensor_view_utils.hpp"
+#include <miopen/conv_solution.hpp>
+#include <miopen/datatype.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/image_transform.hpp>
+#include <miopen/image_transform/adjust_hue/invoke_params.hpp>
+#include <miopen/image_transform/adjust_hue/problem_description.hpp>
+#include <miopen/image_transform/solvers.hpp>
+#include <miopen/invoke_params.hpp>
+#include <miopen/kernel_build_params.hpp>
+#include <miopen/miopen.h>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/solver.hpp>
 #include <vector>
 
 namespace miopen {
+
 namespace solver {
+
 namespace image_transform {
+
 namespace adjust_hue {
 
 bool ImageAdjustHue::IsApplicable(
     const ExecutionContext& /* context */,
     const miopen::image_transform::adjust_hue::ProblemDescription& problem) const
 {
-    if(!problem.IsSameType())
+    if(!(problem.GetInputTensorDesc().GetType() == miopenFloat ||
+         problem.GetInputTensorDesc().GetType() == miopenHalf ||
+         problem.GetInputTensorDesc().GetType() == miopenBFloat16))
+    {
         return false;
-    if(!problem.IsImprovementOverROCm())
-        return false;
+    }
+
     return true;
 }
 
@@ -61,9 +67,9 @@ ConvSolution ImageAdjustHue::GetSolution(
 {
     auto result = ConvSolution(miopenStatusSuccess);
 
-    auto dtype   = problem.GetInputTensorDesc().GetType();
-    auto io_type = miopen::GetDataType(dtype);
-    auto numel   = problem.GetInputTensorDesc().GetElementSize();
+    auto dtype    = problem.GetInputTensorDesc().GetType();
+    auto io_dtype = miopen::GetDataType(dtype);
+    auto numel    = problem.GetInputTensorDesc().GetElementSize();
 
     auto input_size = numel / 3; // RGB image
 
@@ -79,7 +85,8 @@ ConvSolution ImageAdjustHue::GetSolution(
     auto kernel = KernelInfo{};
 
     kernel.kernel_file = "MIOpenImageAdjustHue.cpp";
-    if(problem.GetInputTensorDesc().IsContiguous() && problem.GetOutputTensorDesc().IsContiguous())
+    auto is_all_cont   = problem.IsAllContiguous();
+    if(is_all_cont)
         kernel.kernel_name = "ImageAdjustHueContiguous";
     else
         kernel.kernel_name = "ImageAdjustHue";
@@ -87,8 +94,8 @@ ConvSolution ImageAdjustHue::GetSolution(
     const auto build_params =
         KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int32_t>(dtype == miopenHalf)},
                               {"MIOPEN_USE_FP32", static_cast<int32_t>(dtype == miopenFloat)},
-                              {"MIOPEN_USE_FP64", static_cast<int32_t>(dtype == miopenDouble)},
-                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)}};
+                              {"MIOPEN_USE_BFP16", static_cast<int32_t>(dtype == miopenBFloat16)},
+                              {"DTYPE", io_dtype == "bfloat16" ? "ushort" : io_dtype}};
 
     kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
@@ -102,39 +109,36 @@ ConvSolution ImageAdjustHue::GetSolution(
 
     result.construction_params.push_back(kernel);
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [is_all_cont](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params =
                 raw_params.CastTo<miopen::image_transform::adjust_hue::InvokeParams>();
 
-            auto xdesc = miopen::deref(params.inputTensorDesc);
-            auto ydesc = miopen::deref(params.outputTensorDesc);
+            auto inputDesc  = miopen::deref(params.inputTensorDesc);
+            auto outputDesc = miopen::deref(params.outputTensorDesc);
 
-            auto x_tv = get_inner_expanded_4d_tv(xdesc);
-            auto y_tv = get_inner_expanded_4d_tv(ydesc);
+            auto input_tv  = get_inner_expanded_tv<4>(inputDesc);
+            auto output_tv = get_inner_expanded_tv<4>(outputDesc);
 
-            size_t N        = xdesc.GetElementSize() / 3;
-            size_t c_stride = xdesc.GetLengths()[2] * xdesc.GetLengths()[3];
+            size_t N        = inputDesc.GetElementSize() / 3;
+            size_t c_stride = inputDesc.GetLengths()[2] * inputDesc.GetLengths()[3];
 
-            if(kernel.name == "ImageAdjustHueContiguous")
+            if(is_all_cont)
             {
-                kernel(params.input_buf,
-                       params.output_buf,
-                       params.hue,
-                       N,
-                       c_stride,
-                       x_tv.offset,
-                       y_tv.offset);
+                kernel(params.input, params.output, params.hue, N, c_stride);
             }
             else
-                kernel(params.input_buf, params.output_buf, params.hue, N, c_stride, x_tv, y_tv);
+                kernel(params.input, params.output, params.hue, N, c_stride, input_tv, output_tv);
         };
     };
     return result;
 }
 
 } // namespace adjust_hue
+
 } // namespace image_transform
+
 } // namespace solver
+
 } // namespace miopen

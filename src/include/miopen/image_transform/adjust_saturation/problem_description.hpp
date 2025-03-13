@@ -25,13 +25,16 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/names.hpp"
-#include "miopen/problem_description_base.hpp"
-#include "miopen/tensor.hpp"
+#include <miopen/names.hpp>
+#include <miopen/problem_description_base.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
+
 struct NetworkConfig;
+
 namespace image_transform {
+
 namespace adjust_saturation {
 
 struct ProblemDescription : ProblemDescriptionBase
@@ -45,6 +48,18 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(!IsSaturationValueValid())
             MIOPEN_THROW("saturation must be larger than 0.0");
+
+        if(!IsSameType())
+            MIOPEN_THROW("input and output must have the same type");
+
+        if(!IsSameSize())
+            MIOPEN_THROW("input and output must have the same size");
+
+        if(!IsInputSizesValid())
+            MIOPEN_THROW("input tensor must be 4d tensor with 3 channels");
+
+        if(!IsAllContiguous())
+            MIOPEN_THROW("input and output must be contiguous");
     }
 
     NetworkConfig MakeNetworkConfig() const override;
@@ -66,6 +81,12 @@ struct ProblemDescription : ProblemDescriptionBase
 
         return true;
     }
+
+    bool IsAllContiguous() const
+    {
+        return inputTensorDesc.IsContiguous() && outputTensorDesc.IsContiguous();
+    }
+
     bool IsInputSizesValid() const
     {
         // We can only really support 4d tensors (ala. NCHW).
@@ -79,14 +100,6 @@ struct ProblemDescription : ProblemDescriptionBase
         return false;
     }
 
-    bool IsImprovementOverROCm() const
-    {
-        if(inputTensorDesc.IsContiguous() && outputTensorDesc.IsContiguous())
-            return true;
-
-        return false;
-    }
-
     bool IsSaturationValueValid() const { return saturation_factor >= 0.0f; }
 
 private:
@@ -95,6 +108,9 @@ private:
 
     float saturation_factor;
 };
+
 } // namespace adjust_saturation
+
 } // namespace image_transform
+
 } // namespace miopen
