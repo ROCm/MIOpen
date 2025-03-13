@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/env.hpp>
 #include <miopen/softmax/solvers.hpp>
 
 #include <miopen/softmax/invoke_params.hpp>
@@ -126,7 +127,7 @@ bool Softmax::IsApplicable(
     [[maybe_unused]] const ExecutionContext& context,
     [[maybe_unused]] const miopen::softmax::ProblemDescription& problem) const
 {
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_OCL_SOFTMAX));
+    return !env::disabled(MIOPEN_DEBUG_OCL_SOFTMAX);
 }
 
 std::size_t

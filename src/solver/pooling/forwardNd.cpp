@@ -30,6 +30,7 @@
 #include <miopen/datatype.hpp>
 #include <miopen/pooling.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
 
 namespace miopen {
 
@@ -108,9 +109,9 @@ bool PoolingForwardNd::IsApplicable(const ExecutionContext& context,
 {
 
     return problem.GetDirection() == miopen::pooling::Direction::Forward                      //
-           && problem.GetXDesc().GetSize() == 5                                               //
-           && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW"                                //
-           && problem.GetYDesc().GetLayout("NCDHW") == "NCDHW"                                //
+           && problem.GetXDesc().GetNumDims() == 5                                            //
+           && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW")                                //
+           && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW")                                //
            && problem.GetXDesc().GetType() == problem.GetYDesc().GetType()                    //
            && (problem.GetXDesc().GetType() == miopenFloat                                    //
                || problem.GetXDesc().GetType() == miopenHalf)                                 //

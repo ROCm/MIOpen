@@ -31,12 +31,15 @@
 #include <miopen/conv_solution.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/mlo_internal.hpp>
+#include <miopen/legacy_exhaustive_search.hpp>
 
 #include <miopen/generic_search.hpp>
 
 #include <cassert>
 #include <memory>
 #include <typeinfo>
+
+#define FIN_ANY_SOLVER_FIND_SOLUTION_COMPAT
 
 namespace miopen {
 namespace solver {
@@ -86,6 +89,8 @@ struct AnySolver
         return ptr_value->Type();
     };
     bool IsEmpty() const { return ptr_value == nullptr; };
+
+#if defined(FIN_ANY_SOLVER_FIND_SOLUTION_COMPAT)
     ConvSolution FindSolution(const ExecutionContext& ctx,
                               const miopen::conv::ProblemDescription& problem,
                               PerformanceDb& db,
@@ -94,6 +99,35 @@ struct AnySolver
     {
         assert(ptr_value != nullptr);
         return ptr_value->FindSolution(ctx, problem, db, invoke_ctx, perf_cfg);
+    }
+#endif
+
+    ConvSolution FindSolution(const ExecutionContext& ctx,
+                              const miopen::conv::ProblemDescription& problem,
+                              std::function<PerformanceDb&()>& db_getter,
+                              const miopen::AnyInvokeParams& invoke_ctx,
+                              const std::string& perf_cfg = "") const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->FindSolution(ctx, problem, db_getter, invoke_ctx, perf_cfg);
+    }
+
+    ConvSolution FindSolution(const ExecutionContext& ctx,
+                              const miopen::conv::ProblemDescription& problem,
+                              DbGetter& db_getter,
+                              const miopen::AnyInvokeParams& invoke_ctx,
+                              const std::string& perf_cfg = "") const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->FindSolution(ctx, problem, db_getter, invoke_ctx, perf_cfg);
+    }
+
+    InvokerFactory GetInvokeFactory(const ExecutionContext& ctx,
+                                    const miopen::conv::ProblemDescription& problem,
+                                    const std::string& perf_cfg = "") const
+    {
+        assert(ptr_value != nullptr);
+        return ptr_value->GetInvokeFactory(ctx, problem, perf_cfg);
     };
     std::string GetPerfCfgParams(const ExecutionContext& ctx,
                                  const miopen::conv::ProblemDescription& problem,
@@ -146,6 +180,19 @@ struct AnySolver
                                           PerformanceDb& db,
                                           const miopen::AnyInvokeParams& invoke_ctx,
                                           const std::string& perf_cfg) const                   = 0;
+        virtual ConvSolution FindSolution(const ExecutionContext& ctx,
+                                          const miopen::conv::ProblemDescription& problem,
+                                          std::function<PerformanceDb&()>& db_getter,
+                                          const miopen::AnyInvokeParams& invoke_ctx,
+                                          const std::string& perf_cfg) const                   = 0;
+        virtual ConvSolution FindSolution(const ExecutionContext& ctx,
+                                          const miopen::conv::ProblemDescription& problem,
+                                          DbGetter& db_getter,
+                                          const miopen::AnyInvokeParams& invoke_ctx,
+                                          const std::string& perf_cfg) const                   = 0;
+        virtual InvokerFactory GetInvokeFactory(const ExecutionContext& ctx,
+                                                const miopen::conv::ProblemDescription& problem,
+                                                const std::string& perf_cfg) const             = 0;
         virtual std::string GetPerfCfgParams(const ExecutionContext& ctx,
                                              const miopen::conv::ProblemDescription& problem,
                                              PerformanceDb& db) const                          = 0;
@@ -297,7 +344,34 @@ struct AnySolver
                                   const std::string& perf_cfg) const override
         {
             return miopen::solver::FindSolution(value, ctx, problem, db, invoke_ctx, perf_cfg);
-        };
+        }
+
+        ConvSolution FindSolution(const ExecutionContext& ctx,
+                                  const miopen::conv::ProblemDescription& problem,
+                                  std::function<PerformanceDb&()>& db_getter,
+                                  const miopen::AnyInvokeParams& invoke_ctx,
+                                  const std::string& perf_cfg) const override
+        {
+            return miopen::solver::FindSolution(
+                value, ctx, problem, db_getter, invoke_ctx, perf_cfg);
+        }
+
+        ConvSolution FindSolution(const ExecutionContext& ctx,
+                                  const miopen::conv::ProblemDescription& problem,
+                                  DbGetter& db_getter,
+                                  const miopen::AnyInvokeParams& invoke_ctx,
+                                  const std::string& perf_cfg) const override
+        {
+            return miopen::solver::FindSolution(
+                value, ctx, problem, db_getter, invoke_ctx, perf_cfg);
+        }
+
+        InvokerFactory GetInvokeFactory(const ExecutionContext& ctx,
+                                        const miopen::conv::ProblemDescription& problem,
+                                        const std::string& perf_cfg) const override
+        {
+            return miopen::solver::GetInvokeFactory(value, ctx, problem, perf_cfg);
+        }
 
         std::string GetPerfCfgParams(const ExecutionContext& ctx,
                                      const miopen::conv::ProblemDescription& problem,

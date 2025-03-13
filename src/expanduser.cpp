@@ -25,10 +25,9 @@
  *******************************************************************************/
 
 #include <miopen/env.hpp>
-#include <miopen/logger.hpp>
-#include <miopen/stringutils.hpp>
-
+#include <miopen/expanduser.hpp>
 #include <miopen/filesystem.hpp>
+#include <miopen/logger.hpp>
 
 #include <string>
 #ifdef _WIN32
@@ -37,15 +36,17 @@
 #endif
 
 #ifdef __linux__
+#include <miopen/stringutils.hpp>
 #include <errno.h>
 #include <string.h>
 #include <sys/vfs.h>
 #include <linux/magic.h>
 
+// The magic number 0x0BD00BD0 (LL_SUPER_MAGIC) is defined in the Lustre filesystem source code.
+// Please refer to the Lustre project's documentation or source code for details.
 #ifndef LL_SUPER_MAGIC
-#define LL_SUPER_MAGIC \
-    0x0BD00BD0 // LUSTRE
-               // https://github.com/whamcloud/lustre/blob/a336d7c7c1cd62a5a5213835aa85b8eaa87b076a/lustre/include/uapi/linux/lustre/lustre_user.h#L252
+#define LL_SUPER_MAGIC 0x0BD00BD0 // LUSTRE
+
 #endif
 #ifndef CEPH_SUPER_MAGIC
 #define CEPH_SUPER_MAGIC 0x00c36400
@@ -86,6 +87,12 @@
 #endif // __linux__
 
 MIOPEN_DECLARE_ENV_VAR_STR(HOME)
+
+#ifdef _WIN32
+MIOPEN_DECLARE_ENV_VAR_STR(USERPROFILE, miopen::fs::temp_directory_path().string())
+MIOPEN_DECLARE_ENV_VAR_STR(HOMEPATH, miopen::fs::temp_directory_path().string())
+MIOPEN_DECLARE_ENV_VAR_STR(HOMEDRIVE)
+#endif
 
 namespace miopen {
 
@@ -178,7 +185,7 @@ bool IsNetworkedFilesystem(const fs::path& path_)
 namespace {
 std::string GetHomeDir()
 {
-    const auto p = GetStringEnv(ENV(HOME));
+    const auto p = env::value(HOME);
     if(!(p.empty() || p == std::string("/")))
     {
         return p;
@@ -187,52 +194,32 @@ std::string GetHomeDir()
     // need to figure out what is the correct thing to do here
     // in tensoflow unit tests run via bazel, $HOME is not set, so this can happen
     // setting home_dir to the /tmp for now
-    return {fs::temp_directory_path().string()};
+    return fs::temp_directory_path().string();
 }
 } // namespace
 
-fs::path ExpandUser(const std::string& path)
+fs::path ExpandUser(const fs::path& path)
 {
-    static const std::string home_dir = GetHomeDir();
-    return {ReplaceString(path, "~", home_dir)};
+    static const auto home_dir = GetHomeDir();
+    return {ReplaceString(path.string(), "~", home_dir)};
 }
 
 #else
 
 namespace {
-std::optional<std::string> GetEnvironmentVariable(const std::string_view name)
+std::optional<std::pair<std::string::size_type, std::string>> ReplaceVariable(
+    std::string_view path, const env::detail::EnvVar<std::string>& t, std::size_t offset = 0)
 {
-    std::size_t required_size;
-    getenv_s(&required_size, nullptr, 0, name.data());
-    if(required_size == 0)
-    {
-        return std::nullopt;
-    }
-    // getenv_s returns the required size of a string including '\0' character.
-    std::string result(required_size - 1, 'A');
-    getenv_s(&required_size, result.data(), required_size, name.data());
-    return {result};
-}
-
-std::optional<std::pair<std::string::size_type, std::string>>
-ReplaceVariable(const std::string& path, std::string_view name, std::size_t offset = 0)
-{
-    std::vector<std::string> variables{
-        "$" + std::string{name}, "$env:" + std::string{name}, "%" + std::string{name} + "%"};
+    std::vector<std::string> variables{"$" + std::string{t.name()},
+                                       "$env:" + std::string{t.name()},
+                                       "%" + std::string{t.name()} + "%"};
     for(auto& variable : variables)
     {
         auto pos{path.find(variable, offset)};
         if(pos != std::string::npos)
         {
-            auto result{path};
-            auto value{GetEnvironmentVariable(name)};
-            if(!value)
-            {
-                // TODO: log warning message that the name used
-                //       does not correspond to an environment variable.
-                value = fs::temp_directory_path().string();
-            }
-            result.replace(pos, variable.length(), *value);
+            std::string result{path};
+            result.replace(pos, variable.length(), t.value<std::string>());
             return {{pos, result}};
         }
     }
@@ -240,18 +227,18 @@ ReplaceVariable(const std::string& path, std::string_view name, std::size_t offs
 }
 } // namespace
 
-fs::path ExpandUser(const std::string& path)
+fs::path ExpandUser(const fs::path& path)
 {
-    auto result{ReplaceVariable(path, "USERPROFILE")};
+    auto result{ReplaceVariable(path.string(), USERPROFILE)};
     if(!result)
     {
-        result = ReplaceVariable(path, "HOME");
+        result = ReplaceVariable(path.string(), HOME);
         if(!result)
         {
-            result = ReplaceVariable(path, "HOMEDRIVE");
+            result = ReplaceVariable(path.string(), HOMEDRIVE);
             if(result)
             {
-                result = ReplaceVariable(std::get<1>(*result), "HOMEPATH", std::get<0>(*result));
+                result = ReplaceVariable(result->second, HOMEPATH, result->first);
                 // TODO: if (not result): log warning message that
                 //       HOMEDRIVE and HOMEPATH work in conjunction, respectively.
             }

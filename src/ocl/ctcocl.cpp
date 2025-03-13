@@ -28,10 +28,8 @@
 #include <miopen/softmax.hpp>
 #include <miopen/ctc.hpp>
 #include <miopen/db.hpp>
-#include <miopen/env.hpp>
 #include <miopen/find_db.hpp>
 #include <miopen/util.hpp>
-#include <miopen/solver.hpp>
 #include <miopen/float_equal.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/check_numerics.hpp>
@@ -44,7 +42,7 @@
 
 namespace miopen {
 
-void CTCLossDescriptor::CTCLoss(Handle& handle,
+void CTCLossDescriptor::CTCLoss(const Handle& handle,
                                 const TensorDescriptor& probsDesc,
                                 ConstData_t probs,
                                 const int* labels,

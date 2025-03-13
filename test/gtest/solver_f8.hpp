@@ -85,7 +85,7 @@ protected:
         weights = tensor<T>{conv_config.k, conv_config.C, conv_config.y, conv_config.x};
 
         auto gen_fp8_value = [=](auto...) {
-            return prng::gen_A_to_B(static_cast<float8>(-0.5), static_cast<float8>(0.5));
+            return prng::gen_A_to_B(static_cast<float8_fnuz>(-0.5), static_cast<float8_fnuz>(0.5));
         };
 
         input.generate(gen_fp8_value);
@@ -134,8 +134,8 @@ protected:
             weight_func);
 
         output.data = handle.Read<Tout>(out_dev, output.data.size());
-        EXPECT_FALSE(miopen::f8_range_zero(ref_out)) << "Cpu data is all zeros";
-        EXPECT_FALSE(miopen::f8_range_zero(output)) << "Gpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(ref_out)) << "Cpu data is all zeros";
+        EXPECT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
         EXPECT_TRUE(miopen::range_distance(ref_out) == miopen::range_distance(output));
 
         const float tolerance = 80.0;

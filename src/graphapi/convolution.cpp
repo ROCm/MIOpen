@@ -26,6 +26,10 @@
 #include <miopen/algorithm.hpp>
 #include <miopen/graphapi/convolution.hpp>
 #include <miopen/errors.hpp>
+#include <nlohmann/json.hpp>
+
+#include <map>
+#include <string>
 
 namespace miopen {
 
@@ -394,9 +398,7 @@ void BackendConvolutionDescriptor::getDilations(miopenBackendAttributeType_t att
         const auto& dilations = mConvolution.getDilations();
         *elementCount         = dilations.size();
         std::copy_n(dilations.begin(),
-                    // WORKAROUND: building on Windows is failing due to conflicting definitions
-                    // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                    *elementCount < requestedElementCount ? *elementCount : requestedElementCount,
+                    minimum(*elementCount, requestedElementCount),
                     static_cast<int64_t*>(arrayOfElements));
     }
     else
@@ -415,9 +417,7 @@ void BackendConvolutionDescriptor::getFilterStrides(miopenBackendAttributeType_t
         const auto& strides = mConvolution.getFilterStrides();
         *elementCount       = strides.size();
         std::copy_n(strides.begin(),
-                    // WORKAROUND: building on Windows is failing due to conflicting definitions
-                    // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                    *elementCount < requestedElementCount ? *elementCount : requestedElementCount,
+                    minimum(*elementCount, requestedElementCount),
                     static_cast<int64_t*>(arrayOfElements));
     }
     else
@@ -436,9 +436,7 @@ void BackendConvolutionDescriptor::getPrePaddings(miopenBackendAttributeType_t a
         const auto& pads = mConvolution.getPrePaddings();
         *elementCount    = pads.size();
         std::copy_n(pads.begin(),
-                    // WORKAROUND: building on Windows is failing due to conflicting definitions
-                    // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                    *elementCount < requestedElementCount ? *elementCount : requestedElementCount,
+                    minimum(*elementCount, requestedElementCount),
                     static_cast<int64_t*>(arrayOfElements));
     }
     else
@@ -457,9 +455,7 @@ void BackendConvolutionDescriptor::getPostPaddings(miopenBackendAttributeType_t 
         const auto& postPads = mConvolution.getPostPaddings();
         *elementCount        = postPads.size();
         std::copy_n(postPads.begin(),
-                    // WORKAROUND: building on Windows is failing due to conflicting definitions
-                    // of std::min() between the MSVC standard library and HIP Clang wrappers.
-                    *elementCount < requestedElementCount ? *elementCount : requestedElementCount,
+                    minimum(*elementCount, requestedElementCount),
                     static_cast<int64_t*>(arrayOfElements));
     }
     else
@@ -1026,6 +1022,74 @@ OperationConvolutionBuilder& BackendOperationConvolutionBackwardFilterDescriptor
 OperationConvolution& BackendOperationConvolutionBackwardFilterDescriptor::getOperationConvolution()
 {
     return mOperation;
+}
+
+void to_json(nlohmann::json& json, const Convolution& conv)
+{
+    static const std::map<miopenDataType_t, std::string> CompType2Str{
+        {miopenHalf, "miopenHalf"},
+        {miopenFloat, "miopenFloat"},
+        {miopenInt32, "miopenInt32"},
+        {miopenInt8, "miopenInt8"},
+        {miopenBFloat16, "miopenBFloat16"},
+        {miopenDouble, "miopenDouble"},
+        {miopenFloat8_fnuz, "miopenFloat8"},
+        {miopenBFloat8_fnuz, "miopenBFloat8"},
+        {miopenInt64, "miopenInt64"},
+    };
+
+    static const std::map<miopenConvolutionMode_t, std::string> Mode2Str{
+        {miopenConvolution, "miopenConvolution"},
+        {miopenTranspose, "miopenTranspose"},
+        {miopenGroupConv, "miopenGroupConv"},
+        {miopenDepthwise, "miopenDepthwise"},
+    };
+
+    std::string sMode     = Mode2Str.at(conv.mMode);
+    std::string sCompType = CompType2Str.at(conv.mCompType);
+
+    json = nlohmann::json{
+        {Convolution::JsonFields::SpatialDims, conv.mSpatialDims},
+        {Convolution::JsonFields::Dilations, conv.mDilations},
+        {Convolution::JsonFields::FilterStrides, conv.mFilterStrides},
+        {Convolution::JsonFields::PrePaddings, conv.mPrePaddings},
+        {Convolution::JsonFields::PostPaddings, conv.mPostPaddings},
+        {Convolution::JsonFields::CompType, sCompType},
+        {Convolution::JsonFields::Mode, sMode},
+    };
+}
+
+void from_json(const nlohmann::json& json, Convolution& conv)
+{
+    json.at(Convolution::JsonFields::SpatialDims).get_to(conv.mSpatialDims);
+    json.at(Convolution::JsonFields::Dilations).get_to(conv.mDilations);
+    json.at(Convolution::JsonFields::FilterStrides).get_to(conv.mFilterStrides);
+    json.at(Convolution::JsonFields::PrePaddings).get_to(conv.mPrePaddings);
+    json.at(Convolution::JsonFields::PostPaddings).get_to(conv.mPostPaddings);
+    auto sCompType = json.at(Convolution::JsonFields::CompType).get<std::string>();
+    auto sMode     = json.at(Convolution::JsonFields::Mode).get<std::string>();
+
+    static const std::map<std::string, miopenDataType_t> Str2CompType{
+        {"miopenHalf", miopenHalf},
+        {"miopenFloat", miopenFloat},
+        {"miopenInt32", miopenInt32},
+        {"miopenInt8", miopenInt8},
+        {"miopenBFloat16", miopenBFloat16},
+        {"miopenDouble", miopenDouble},
+        {"miopenFloat8", miopenFloat8_fnuz},
+        {"miopenBFloat8", miopenBFloat8_fnuz},
+        {"miopenInt64", miopenInt64},
+    };
+
+    static const std::map<std::string, miopenConvolutionMode_t> Str2Mode{
+        {"miopenConvolution", miopenConvolution},
+        {"miopenTranspose", miopenTranspose},
+        {"miopenGroupConv", miopenGroupConv},
+        {"miopenDepthwise", miopenDepthwise},
+    };
+
+    conv.mCompType = Str2CompType.at(sCompType);
+    conv.mMode     = Str2Mode.at(sMode);
 }
 
 } // namespace graphapi

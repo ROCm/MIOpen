@@ -28,32 +28,20 @@
 #include <gtest/gtest.h>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "lib_env_var.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_MODE)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 
 namespace conv_igemm_dynamic_xdlops_nhwc_nchw {
 
-static bool SkipTest(const std::string& float_arg)
+void SetupEnvVar()
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-        return false;
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
-        if(miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg)
-            return false;
-    return true;
-}
-
-void SetupEnvVar(void)
-{
-    miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
-    miopen::UpdateEnvVar(
-        ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-        std::string(
-            "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-            "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC"));
+    lib_env::update(MIOPEN_FIND_MODE, "normal");
+    lib_env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                    "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
+                    "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+                    "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -65,12 +53,12 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dFloat_conv_igemm_dynamic_xdlops_nhwc_nchw
+class GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP32
     : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
-class Conv2dHalf_conv_igemm_dynamic_xdlops_nhwc_nchw
+class GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP16
     : public testing::TestWithParam<std::vector<std::string>>
 {
 };
@@ -81,17 +69,22 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenFloat: params = Conv2dFloat_conv_igemm_dynamic_xdlops_nhwc_nchw::GetParam(); break;
-    case miopenHalf: params = Conv2dHalf_conv_igemm_dynamic_xdlops_nhwc_nchw::GetParam(); break;
+    case miopenFloat:
+        params = GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP32::GetParam();
+        break;
+    case miopenHalf:
+        params = GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP16::GetParam();
+        break;
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         FAIL() << "miopenInt8, miopenBFloat16, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "miopenDouble, miopenFloat8_fnuz, miopenBFloat8_fnuz "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_nchw test";
     }
 
@@ -117,11 +110,11 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
-    const auto target   = handle.GetTargetProperties();
+    const auto& target  = handle.GetTargetProperties();
     std::string devName = handle.GetDeviceName();
     if(target.Xnack() && *target.Xnack())
         return false;
-    if(devName == "gfx908" || devName == "gfx90a" || miopen::StartsWith(devName, "gfx94"))
+    if(devName == "gfx908" || devName == "gfx90a" || devName == "gfx942")
         return true;
     else
         return false;
@@ -163,7 +156,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     {flags + "  --input 2048  1 512 1024 --weights 1  1 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei + in_nhwc + fil_nhwc + out_nhwc},
     // ho=wo=1 stride=2
     {flags + "  --input  256 2048 2 2 --weights 1024  2048  1 1 --pads_strides_dilations 0 0 2 2 1 1" + dis_bk_data + dis_bk_wei + in_nhwc + fil_nhwc + out_nhwc},
-    
+
     //nhwc_fwd_nchw
     {flags + "  --input  64 256   7   7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
     {flags + "  --input  32 160  73  73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1" + dis_bk_data + dis_bk_wei},
@@ -285,11 +278,11 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 using namespace conv_igemm_dynamic_xdlops_nhwc_nchw;
 
-TEST_P(Conv2dFloat_conv_igemm_dynamic_xdlops_nhwc_nchw,
+TEST_P(GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP32,
        FloatTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest("--float"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenFloat);
     }
@@ -299,10 +292,11 @@ TEST_P(Conv2dFloat_conv_igemm_dynamic_xdlops_nhwc_nchw,
     }
 };
 
-TEST_P(Conv2dHalf_conv_igemm_dynamic_xdlops_nhwc_nchw, HalfTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
+TEST_P(GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP16,
+       HalfTest_conv_igemm_dynamic_xdlops_nhwc_nchw)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest("--half"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenHalf);
     }
@@ -312,10 +306,10 @@ TEST_P(Conv2dHalf_conv_igemm_dynamic_xdlops_nhwc_nchw, HalfTest_conv_igemm_dynam
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsNhwcNchw,
-                         Conv2dFloat_conv_igemm_dynamic_xdlops_nhwc_nchw,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP32,
                          testing::Values(GetTestCases("--float")));
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsNhwcNchw,
-                         Conv2dHalf_conv_igemm_dynamic_xdlops_nhwc_nchw,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP16,
                          testing::Values(GetTestCases("--half")));

@@ -82,7 +82,7 @@ __kernel void MIOpenBatchNormFwdTrainPerActivation(
         for(int n = 0; n < MIO_BN_N; n++)
         {
             index = in_nstride * n + adjIndex;
-            mean += (_FLOAT_PREC)in[index];
+            mean += FLOAT2FLOATPREC(in[index]);
         } // end for(n)
         mean *= invN;
         variance = 0.;
@@ -90,10 +90,10 @@ __kernel void MIOpenBatchNormFwdTrainPerActivation(
         for(int n = 0; n < MIO_BN_N; n++)
         {
             index             = in_nstride * n + adjIndex;
-            _FLOAT_PREC xdiff = (_FLOAT_PREC)(in[index] - mean);
+            _FLOAT_PREC xdiff = FLOAT2FLOATPREC(in[index]) - mean;
             variance += (xdiff * xdiff);
         } // end for(n)
-        variance *= (_FLOAT_PREC)invN;
+        variance *= invN;
         invVariance = rsqrt(variance + epsilon);
         pvt_scale   = *(scale + adjIndex);
         pvt_bias    = *(bias + adjIndex);
@@ -110,8 +110,8 @@ __kernel void MIOpenBatchNormFwdTrainPerActivation(
         for(int n = 0; n < MIO_BN_N; n++)
         { // per (x-dims) channel load a block of data unsigned into LDS
             index      = in_nstride * n + adjIndex;
-            inhat      = ((_FLOAT_PREC)in[index] - mean) * invVariance;
-            out[index] = (_FLOAT)(mad(pvt_scale, inhat, pvt_bias));
+            inhat      = (FLOAT2FLOATPREC(in[index]) - mean) * invVariance;
+            out[index] = FLOATPREC2FLOAT(mad(pvt_scale, inhat, pvt_bias));
         } // end for(n)
     }     // end for(img_offset) //image mini_batch is processed
 }

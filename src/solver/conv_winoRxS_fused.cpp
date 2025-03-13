@@ -24,8 +24,6 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
-
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/compiled_in_parameters.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
@@ -152,7 +150,7 @@ namespace fusion {
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
                                                  const FusionDescription& problem) const
 {
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1)))
+    if(env::disabled(MIOPEN_DEBUG_AMD_WINOGRAD_RXS_F2X3_G1))
         return false;
     if(!WinoCommonIsApplicable(context, problem))
         return false;
@@ -166,7 +164,7 @@ bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
 
     if(conv_problem.IsFp16() &&
        !(StartsWith(name, "gfx906") || StartsWith(name, "gfx908") || StartsWith(name, "gfx90a") ||
-         StartsWith(name, "gfx94") || StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") ||
+         StartsWith(name, "gfx942") || StartsWith(name, "gfx1011") || StartsWith(name, "gfx1012") ||
          StartsWith(name, "gfx103") || StartsWith(name, "gfx11")))
         return false;
 
@@ -223,11 +221,9 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
 
-    const auto force_cache_bypass = (name == "gfx940") || (name == "gfx941");
-
     KernelBuildParameters options{
         {"ROCM_METADATA_VERSION", 5},
-        {"FORCE_CACHE_BYPASS_ON_STORE", force_cache_bypass},
+        {"FORCE_CACHE_BYPASS_ON_STORE", false},
     };
     kernel.comp_options = options.GenerateFor(kbp::GcnAsm{});
     kernel.comp_options += std::string(" -mcumode -mwavefrontsize64");
@@ -254,14 +250,6 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     kernel.kernel_name += kernel_postfix;
     kernel.kernel_file += kernel_postfix + ".s";
     result.construction_params.push_back(kernel);
-
-    const auto x = conv_problem.GetWeightsWidth();
-    const auto y = conv_problem.GetWeightsHeight();
-
-    if(x == 3 && y == 3)
-        result.weight = 100;
-    else
-        result.weight = 5;
 
     const auto& desc    = *problem.fusion_plan_desc;
     const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
@@ -417,7 +405,12 @@ ConvSolution ConvBinWinogradRxSf2x3g1Fused::GetSolution(const FusionContext& con
     };
     return result;
 }
-
+float ConvBinWinogradRxSf2x3g1Fused::GetWti(const FusionContext& ctx,
+                                            const FusionDescription& problem) const
+{
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    return conv::ConvBinWinogradRxSf2x3g1().GetWti(ctx, conv_problem);
+}
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

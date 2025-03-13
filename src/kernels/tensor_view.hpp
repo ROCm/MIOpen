@@ -24,8 +24,10 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_TENSOR_VIEW_H
-#define GUARD_TENSOR_VIEW_H
+#ifndef GUARD_TENSOR_VIEW_HPP
+#define GUARD_TENSOR_VIEW_HPP
+
+#include <initializer_list>
 
 template <int N>
 struct tensor_layout_t;
@@ -34,7 +36,7 @@ template <int N>
 struct tensor_view_t
 {
     // Get index in tensor view at tensor layout
-    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout) const
+    constexpr uint64_t get_tensor_view_idx(const tensor_layout_t<N>& tensor_layout)
     {
         static_assert(N > 0);
         uint64_t idx = 0;
@@ -72,47 +74,16 @@ struct tensor_layout_t
         }
     }
 
-    constexpr tensor_layout_t(uint64_t n, uint64_t c, uint64_t d, uint64_t h, uint64_t w)
+    constexpr tensor_layout_t(std::initializer_list<uint64_t> layout_)
     {
-        static_assert(N == 5);
-        layout[0] = n;
-        layout[1] = c;
-        layout[2] = d;
-        layout[3] = h;
-        layout[4] = w;
-    }
-
-    constexpr tensor_layout_t(uint64_t n, uint64_t c, uint64_t h, uint64_t w)
-    {
-        static_assert(N == 4);
-        layout[0] = n;
-        layout[1] = c;
-        layout[2] = h;
-        layout[3] = w;
-    }
-
-    constexpr tensor_layout_t(uint64_t n, uint64_t h, uint64_t w)
-    {
-        static_assert(N == 3);
-        layout[0] = n;
-        layout[1] = h;
-        layout[2] = w;
-    }
-
-    constexpr tensor_layout_t(uint64_t n, uint64_t w)
-    {
-        static_assert(N == 2);
-        layout[0] = n;
-        layout[1] = w;
-    }
-
-    constexpr tensor_layout_t(uint64_t n)
-    {
-        static_assert(N == 1);
-        layout[0] = n;
+        static_assert(N > 0);
+        for(auto i = 0; i < N; ++i)
+        {
+            layout[i] = layout_.begin()[i];
+        }
     }
 
     uint64_t layout[N];
 };
 
-#endif // GUARD_TENSOR_VIEW_H
+#endif // GUARD_TENSOR_VIEW_HPP

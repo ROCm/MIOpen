@@ -205,16 +205,16 @@ inline static bool NextFlag(bool& v)
 
 static inline bool IsXdlopsSupport(const ExecutionContext& ctx)
 {
-    if(miopen::IsEnabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE)))
+    if(env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE))
         return true;
 
     // disable xdlops kernels by default due to possible failures:
     // 1) inline asm may crash
     // 2) llvm intrin may has incorrect results
-    const bool is_xdlops_supported = StartsWith(ctx.GetStream().GetDeviceName(), "gfx908") ||
-                                     StartsWith(ctx.GetStream().GetDeviceName(), "gfx90a") ||
-                                     StartsWith(ctx.GetStream().GetDeviceName(), "gfx94");
-    return is_xdlops_supported && !miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS));
+    const bool is_xdlops_supported = ctx.GetStream().GetDeviceName() == "gfx908" ||
+                                     ctx.GetStream().GetDeviceName() == "gfx90a" ||
+                                     ctx.GetStream().GetDeviceName() == "gfx942";
+    return is_xdlops_supported && !env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS);
 }
 
 ///\todo remove
@@ -443,7 +443,7 @@ static inline bool use_amd_inline_asm(const ExecutionContext& ctx,
        problem.IsFp16())
         return false;
 
-    return !miopen::IsDisabled(ENV(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM));
+    return !env::disabled(MIOPEN_DEBUG_IMPLICIT_GEMM_NON_XDLOPS_INLINE_ASM);
 }
 
 static inline bool is_use_amd_buffer_load_store(const ExecutionContext& ctx)
@@ -552,9 +552,8 @@ static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ct
     // LDS sync
     compiler_flag +=
         std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
-        (miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM))
-             ? '0'
-             : '1');
+        (env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM) ? '0'
+                                                                                         : '1');
 
     // workaround
     compiler_flag +=
@@ -574,13 +573,11 @@ static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ct
 
 static inline bool IsComposableKernelSupportedHardware(const ExecutionContext& c)
 {
-    return (StartsWith(c.GetStream().GetDeviceName(), "gfx803") &&
+    return (c.GetStream().GetDeviceName() == "gfx803" &&
             c.GetStream().GetMaxComputeUnits() == 64) ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx900") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx906") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx908") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx90a") ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx94") ||
+           c.GetStream().GetDeviceName() == "gfx900" || c.GetStream().GetDeviceName() == "gfx906" ||
+           c.GetStream().GetDeviceName() == "gfx908" || c.GetStream().GetDeviceName() == "gfx90a" ||
+           c.GetStream().GetDeviceName() == "gfx942" ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx103");
 }
 
