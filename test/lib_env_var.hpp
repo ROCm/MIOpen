@@ -50,15 +50,18 @@ template <class T>
 constexpr bool is_type_int = (std::is_integral_v<T> && !is_type_bool<T>);
 
 template <class T>
-constexpr bool is_type_str = (std::is_same_v<T, std::string> ||
-                              std::is_same_v<T, std::string_view>);
+constexpr bool is_type_str_r = (std::is_same_v<T, std::string>);
+
+template <class T>
+constexpr bool is_type_str_w = (std::is_same_v<T, std::string> ||
+                                std::is_same_v<T, std::string_view>);
 
 template <class T>
 constexpr bool is_type_char_ptr =
     (std::is_pointer_v<T> && std::is_same_v<std::remove_const_t<std::remove_pointer_t<T>>, char>);
 
 template <class T,
-          std::enable_if_t<is_type_bool<T> || is_type_int<T> || is_type_str<T>, bool> = true>
+          std::enable_if_t<is_type_bool<T> || is_type_int<T> || is_type_str_r<T>, bool> = true>
 inline T value(const LibEnvVar& env)
 {
     const auto value = miopen::debug::env::GetEnvVariable(env.name);
@@ -84,7 +87,7 @@ inline T value(const LibEnvVar& env)
         }
         return ivalue;
     }
-    else if constexpr(is_type_str<T>)
+    else if constexpr(is_type_str_r<T>)
     {
         return value.value();
     }
@@ -92,7 +95,7 @@ inline T value(const LibEnvVar& env)
 
 template <
     class T,
-    std::enable_if_t<is_type_bool<T> || is_type_int<T> || is_type_str<T> || is_type_char_ptr<T>,
+    std::enable_if_t<is_type_bool<T> || is_type_int<T> || is_type_str_w<T> || is_type_char_ptr<T>,
                      bool> = true>
 inline void update(const LibEnvVar& env, T value)
 {
@@ -104,7 +107,7 @@ inline void update(const LibEnvVar& env, T value)
     {
         miopen::debug::env::UpdateEnvVariable(env.name, std::to_string(value));
     }
-    else if constexpr(is_type_str<T>)
+    else if constexpr(is_type_str_w<T>)
     {
         miopen::debug::env::UpdateEnvVariable(env.name, value);
     }
