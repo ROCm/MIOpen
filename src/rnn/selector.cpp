@@ -55,9 +55,17 @@ bool RNNBwdMSIsFast(const SeqTensorDescriptor& xDesc,
         return true;
 
     // WA perf regression. Not tuned rocblas.
-    if(hDesc.GetType() == miopenDataType_t::miopenFloat &&
-       xDesc.GetLengths() == std::vector<std::size_t>{224, 32, 224} &&
-       hDesc.GetLengths() == std::vector<std::size_t>{8, 224, 1000})
+    bool is_wa_config = [&]() {
+        const std::vector<std::size_t> x_conf{224, 32, 224};
+        const std::vector<std::size_t> h_conf{8, 224, 1000};
+
+        // Some customers sending hDesc with 5 dims {x,x,x,1,1}
+        return xDesc.GetType() == miopenDataType_t::miopenFloat &&
+               std::equal(x_conf.begin(), x_conf.end(), std::begin(xDesc.GetLengths())) &&
+               std::equal(h_conf.begin(), h_conf.end(), std::begin(hDesc.GetLengths()));
+    }();
+
+    if(is_wa_config)
         return false;
 
     if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWDMS_EXP))
@@ -65,12 +73,28 @@ bool RNNBwdMSIsFast(const SeqTensorDescriptor& xDesc,
     return false;
 }
 
-bool RNNBwWeightMSIsFast(const int seqLen)
+bool RNNBwWeightMSIsFast(const SeqTensorDescriptor& xDesc,
+                         const TensorDescriptor& hDesc,
+                         const int seqLen)
 {
-    if(env::enabled(MIOPEN_RNNBWDMS_EXP))
+    if(env::enabled(MIOPEN_RNNBWMS_EXP))
         return true;
 
-    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWDMS_EXP))
+    // WA perf regression. Not tuned rocblas.
+    bool is_wa_config = [&]() {
+        const std::vector<std::size_t> x_conf{224, 32, 224};
+        const std::vector<std::size_t> h_conf{8, 224, 1000};
+
+        // Some customers sending hDesc with 5 dims {x,x,x,1,1}
+        return xDesc.GetType() == miopenDataType_t::miopenFloat &&
+               std::equal(x_conf.begin(), x_conf.end(), std::begin(xDesc.GetLengths())) &&
+               std::equal(h_conf.begin(), h_conf.end(), std::begin(hDesc.GetLengths()));
+    }();
+
+    if(is_wa_config)
+        return false;
+
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWMS_EXP))
         return true;
     return false;
 }
@@ -204,7 +228,7 @@ void RNNDescriptor::ModularBackwardWeights(const Handle& handle,
     }
     else
     {
-        if(RNNBwWeightMSIsFast(xDesc.GetMaxSequenceLength()))
+        if(RNNBwWeightMSIsFast(xDesc, hDesc, xDesc.GetMaxSequenceLength()))
         {
             rnn_base::RNNModularMultiStreamBWWeights multi_stream{*this, xDesc, yDesc, hDesc};
             multi_stream.Compute(
