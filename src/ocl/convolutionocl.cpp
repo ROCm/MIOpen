@@ -91,8 +91,7 @@ template <class TDb>
 std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
                                                const conv::ProblemDescription& problem,
                                                const size_t maxSolutionCount,
-                                               const AnyInvokeParams* const invokeParams,
-                                               const bool ufdb_only = false)
+                                               const AnyInvokeParams* const invokeParams)
 {
     auto algo_resolver = std::function<int(const std::string&)>{};
 
