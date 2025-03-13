@@ -26,6 +26,7 @@
 #ifndef GUARD_GPU_CONV_HPP
 #define GUARD_GPU_CONV_HPP
 
+#include <miopen/env.hpp>
 #include <miopen/convolution.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 

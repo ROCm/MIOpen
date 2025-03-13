@@ -6,7 +6,7 @@
 MIOpen documentation
 ********************************************************************
 
-MIOpen is AMD's open-source, deep-learning primitives library for GPUs. It implements fusion to
+MIOpen is the AMD open-source, deep-learning primitives library for GPUs. It implements fusion to
 optimize for memory bandwidth and GPU launch overheads, providing an auto-tuning infrastructure
 to overcome the large design space of problem configurations. It also implements different algorithms
 to optimize convolutions for different filter and input sizes.
@@ -32,6 +32,7 @@ The MIOpen public repository is located at `<https://github.com/ROCm/MIOpen>`_.
     * :doc:`Find database <./conceptual/finddb>`
     * :doc:`Kernel cache <./conceptual/cache>`
     * :doc:`Performance database <./conceptual/perfdb>`
+    * :doc:`Manual tuning <./conceptual/tuningdb>`
     * :doc:`MI200 alternate implementation <./conceptual/MI200-alt-implementation>`
     * :doc:`Porting to MIOpen <./conceptual/porting-guide>`
 
