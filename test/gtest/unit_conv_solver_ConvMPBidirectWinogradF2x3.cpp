@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,17 +24,6 @@
  *
  *******************************************************************************/
 
-#pragma once
-
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-
-namespace env = miopen::env;
-
-inline bool IsTestRunWith(const char* float_arg)
-{
-    assert(float_arg != nullptr);
-    const auto& s_envVar = env::value(MIOPEN_TEST_FLOAT_ARG);
-    return (s_envVar.compare(float_arg) == 0);
-}
+#define WINO_DATA_H 2
+#define WINO_FILTER_H 3
+#include "unit_conv_solver_ConvMPBidirectWinograd.hpp"

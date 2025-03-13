@@ -176,7 +176,7 @@ inline void gemm(const Handle& handle,
             && cvtMiopen2Rocblas(BType) != rocblas_datatype::rocblas_datatype_invalid          //
             && (AType == BType || AType == miopenBFloat8_fnuz || BType == miopenBFloat8_fnuz)) //
     {
-        assert(miopen::StartsWith(handle.GetDeviceName(), "gfx94"));
+        assert(handle.GetDeviceName() == "gfx942");
 #if USE_ROCBLAS_EX3
         rocblas_gemm_strided_batched_ex3(
             handle.rhandle().get(),

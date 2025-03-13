@@ -44,7 +44,6 @@
 #include <boost/optional/optional.hpp>
 #include "sqlite3.h"
 #include <mutex>
-#include <thread>
 
 #include <string>
 #include <chrono>
