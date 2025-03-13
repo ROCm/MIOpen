@@ -76,7 +76,7 @@ template <miopenDataType_t datatype>
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        Gpu supported_gpus = Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx95X |
+        Gpu supported_gpus = Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx950 |
                              Gpu::gfx103X | Gpu::gfx110X;
         if constexpr(datatype == miopenFloat)
         {
