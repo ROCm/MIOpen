@@ -354,7 +354,8 @@ int HingeEmbeddingLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     // 0 or 1
     for(size_t i = 0; i < t_sz; i++)
     {
-        target[i] = prng::gen_A_to_B<uint8_t>(static_cast<uint8_t>(0), static_cast<uint8_t>(2));
+        target[i] =
+            prng::gen_A_to_B<uint8_t>(static_cast<uint8_t>(0), static_cast<uint8_t>(2)) * 2 - 1;
     }
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
         std::cerr << "Error copying (input) to GPU, size: " << input_dev->GetSize() << std::endl;
