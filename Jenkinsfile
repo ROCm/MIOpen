@@ -314,21 +314,22 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Debug gfx1101') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI32 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("navi32") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
-                        }
-                    }
-                }
+                //Navi 3 fails to build with error about instruction no support on GPU..
+                // stage('Fp32 Hip Debug gfx1101') {
+                //     when {
+                //         beforeAgent true
+                //         expression { params.TARGET_NAVI32 }
+                //     }
+                //     options {
+                //         retry(2)
+                //     }
+                //     agent{ label rocmnode("navi32") }
+                //     steps{
+                //         script {
+                //             utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
+                //         }
+                //     }
+                // }
                 stage('Fp32 Hip Debug gfx1201') {
                     when {
                         beforeAgent true
