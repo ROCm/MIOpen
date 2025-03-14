@@ -30,6 +30,7 @@
 
 #include "float_types.h"
 #include "tensor_view.hpp"
+#include "hip_atomic.hpp"
 
 __device__ inline FLOAT_ACCUM compute_linear_scale_factor(FLOAT_ACCUM scale_factor,
                                                           int64_t input_size,
@@ -156,9 +157,9 @@ __device__ inline FLOAT_ACCUM compute_back_lambda(int64_t dest,
     return get_back_lambda(src, index0, index1, lambda0, lambda1);
 }
 
-template <typename TI, typename TO>
-__device__ inline void interpolateLinearForward(const TI* __restrict__ input,
-                                                TO* __restrict__ output,
+template <typename T>
+__device__ inline void interpolateLinearForward(const T* __restrict__ input,
+                                                T* __restrict__ output,
                                                 tensor_view_t<3> input_tv,
                                                 tensor_view_t<3> output_tv,
                                                 const size_t nelems,
@@ -204,21 +205,21 @@ __device__ inline void interpolateLinearForward(const TI* __restrict__ input,
         CVT_ACCUM2FLOAT(input0 * lambda0 + input1 * lambda1);
 }
 
-extern "C" __global__ void InterpolateLinearForward(const INPUT_TYPE* __restrict__ input,
-                                                    OUTPUT_TYPE* __restrict__ output,
+extern "C" __global__ void InterpolateLinearForward(const D_TYPE* __restrict__ input,
+                                                    D_TYPE* __restrict__ output,
                                                     tensor_view_t<3> input_tv,
                                                     tensor_view_t<3> output_tv,
                                                     const size_t nelems,
                                                     const float* scale_factors,
                                                     const bool align_corners)
 {
-    interpolateLinearForward<INPUT_TYPE, OUTPUT_TYPE>(
+    interpolateLinearForward<D_TYPE>(
         input, output, input_tv, output_tv, nelems, scale_factors, align_corners);
 }
 
-template <typename TI, typename TO>
-__device__ inline void interpolateLinearBackward(TO* __restrict__ input_grad,
-                                                 const TI* __restrict__ output_grad,
+template <typename T>
+__device__ inline void interpolateLinearBackward(T* __restrict__ input_grad,
+                                                 const T* __restrict__ output_grad,
                                                  tensor_view_t<3> input_grad_tv,
                                                  tensor_view_t<3> output_grad_tv,
                                                  const size_t nelems,
@@ -261,26 +262,26 @@ __device__ inline void interpolateLinearBackward(TO* __restrict__ input_grad,
     input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(output);
 }
 
-extern "C" __global__ void InterpolateLinearBackward(OUTPUT_TYPE* __restrict__ input_grad,
-                                                     const INPUT_TYPE* __restrict__ output_grad,
+extern "C" __global__ void InterpolateLinearBackward(D_TYPE* __restrict__ input_grad,
+                                                     const D_TYPE* __restrict__ output_grad,
                                                      tensor_view_t<3> input_grad_tv,
                                                      tensor_view_t<3> output_grad_tv,
                                                      const size_t nelems,
                                                      const float* scale_factors,
                                                      const bool align_corners)
 {
-    interpolateLinearBackward<INPUT_TYPE, OUTPUT_TYPE>(input_grad,
-                                                       output_grad,
-                                                       input_grad_tv,
-                                                       output_grad_tv,
-                                                       nelems,
-                                                       scale_factors,
-                                                       align_corners);
+    interpolateLinearBackward<D_TYPE>(input_grad,
+                                      output_grad,
+                                      input_grad_tv,
+                                      output_grad_tv,
+                                      nelems,
+                                      scale_factors,
+                                      align_corners);
 }
 
-template <typename TI, typename TO>
-__device__ inline void interpolateBilinearForward(const TI* __restrict__ input,
-                                                  TO* __restrict__ output,
+template <typename T>
+__device__ inline void interpolateBilinearForward(const T* __restrict__ input,
+                                                  T* __restrict__ output,
                                                   tensor_view_t<4> input_tv,
                                                   tensor_view_t<4> output_tv,
                                                   const size_t nelems,
@@ -349,21 +350,21 @@ __device__ inline void interpolateBilinearForward(const TI* __restrict__ input,
             hlambda1);
 }
 
-extern "C" __global__ void InterpolateBilinearForward(const INPUT_TYPE* __restrict__ input,
-                                                      OUTPUT_TYPE* __restrict__ output,
+extern "C" __global__ void InterpolateBilinearForward(const D_TYPE* __restrict__ input,
+                                                      D_TYPE* __restrict__ output,
                                                       tensor_view_t<4> input_tv,
                                                       tensor_view_t<4> output_tv,
                                                       const size_t nelems,
                                                       const float* scale_factors,
                                                       const bool align_corners)
 {
-    interpolateBilinearForward<INPUT_TYPE, OUTPUT_TYPE>(
+    interpolateBilinearForward<D_TYPE>(
         input, output, input_tv, output_tv, nelems, scale_factors, align_corners);
 }
 
-template <typename TI, typename TO>
-__device__ inline void interpolateBilinearBackward(TO* __restrict__ input_grad,
-                                                   const TI* __restrict__ output_grad,
+template <typename T>
+__device__ inline void interpolateBilinearBackward(T* __restrict__ input_grad,
+                                                   const T* __restrict__ output_grad,
                                                    tensor_view_t<4> input_grad_tv,
                                                    tensor_view_t<4> output_grad_tv,
                                                    const size_t nelems,
@@ -437,26 +438,26 @@ __device__ inline void interpolateBilinearBackward(TO* __restrict__ input_grad,
     input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(output);
 }
 
-extern "C" __global__ void InterpolateBilinearBackward(OUTPUT_TYPE* __restrict__ input_grad,
-                                                       const INPUT_TYPE* __restrict__ output_grad,
+extern "C" __global__ void InterpolateBilinearBackward(D_TYPE* __restrict__ input_grad,
+                                                       const D_TYPE* __restrict__ output_grad,
                                                        tensor_view_t<4> input_grad_tv,
                                                        tensor_view_t<4> output_grad_tv,
                                                        const size_t nelems,
                                                        const float* scale_factors,
                                                        const bool align_corners)
 {
-    interpolateBilinearBackward<INPUT_TYPE, OUTPUT_TYPE>(input_grad,
-                                                         output_grad,
-                                                         input_grad_tv,
-                                                         output_grad_tv,
-                                                         nelems,
-                                                         scale_factors,
-                                                         align_corners);
+    interpolateBilinearBackward<D_TYPE>(input_grad,
+                                        output_grad,
+                                        input_grad_tv,
+                                        output_grad_tv,
+                                        nelems,
+                                        scale_factors,
+                                        align_corners);
 }
 
-template <typename TI, typename TO>
-__device__ inline void interpolateTrilinearBackward(TO* __restrict__ input_grad,
-                                                    const TI* __restrict__ output_grad,
+template <typename T>
+__device__ inline void interpolateTrilinearBackward(T* __restrict__ input_grad,
+                                                    const T* __restrict__ output_grad,
                                                     tensor_view_t<5> input_grad_tv,
                                                     tensor_view_t<5> output_grad_tv,
                                                     const size_t nelems,
@@ -554,21 +555,21 @@ __device__ inline void interpolateTrilinearBackward(TO* __restrict__ input_grad,
     input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(output);
 }
 
-extern "C" __global__ void InterpolateTrilinearBackward(OUTPUT_TYPE* __restrict__ input_grad,
-                                                        const INPUT_TYPE* __restrict__ output_grad,
+extern "C" __global__ void InterpolateTrilinearBackward(D_TYPE* __restrict__ input_grad,
+                                                        const D_TYPE* __restrict__ output_grad,
                                                         tensor_view_t<5> input_grad_tv,
                                                         tensor_view_t<5> output_grad_tv,
                                                         const size_t nelems,
                                                         const float* scale_factors,
                                                         const bool align_corners)
 {
-    interpolateTrilinearBackward<INPUT_TYPE, OUTPUT_TYPE>(input_grad,
-                                                          output_grad,
-                                                          input_grad_tv,
-                                                          output_grad_tv,
-                                                          nelems,
-                                                          scale_factors,
-                                                          align_corners);
+    interpolateTrilinearBackward<D_TYPE>(input_grad,
+                                         output_grad,
+                                         input_grad_tv,
+                                         output_grad_tv,
+                                         nelems,
+                                         scale_factors,
+                                         align_corners);
 }
 
 __device__ inline FLOAT_ACCUM
@@ -595,9 +596,9 @@ nearest_idx(int64_t output_index, int64_t input_size, int64_t output_size, FLOAT
     }
 }
 
-template <typename TI, typename TO>
-__device__ inline void interpolateNearestForward(const TI* __restrict__ input,
-                                                 TO* __restrict__ output,
+template <typename T>
+__device__ inline void interpolateNearestForward(const T* __restrict__ input,
+                                                 T* __restrict__ output,
                                                  tensor_view_t<5> input_tv,
                                                  tensor_view_t<5> output_tv,
                                                  const size_t nelems,
@@ -635,15 +636,14 @@ __device__ inline void interpolateNearestForward(const TI* __restrict__ input,
         input[input_tv.get_tensor_view_idx(input_layout)];
 }
 
-extern "C" __global__ void InterpolateNearestForward(const INPUT_TYPE* __restrict__ input,
-                                                     OUTPUT_TYPE* __restrict__ output,
+extern "C" __global__ void InterpolateNearestForward(const D_TYPE* __restrict__ input,
+                                                     D_TYPE* __restrict__ output,
                                                      tensor_view_t<5> input_tv,
                                                      tensor_view_t<5> output_tv,
                                                      const size_t nelems,
                                                      const float* scale_factors)
 {
-    interpolateNearestForward<INPUT_TYPE, OUTPUT_TYPE>(
-        input, output, input_tv, output_tv, nelems, scale_factors);
+    interpolateNearestForward<D_TYPE>(input, output, input_tv, output_tv, nelems, scale_factors);
 }
 
 __device__ inline int64_t
@@ -664,9 +664,9 @@ nearest_idx_back(int64_t input_index, int64_t input_size, int64_t output_size, F
     }
 }
 
-template <typename TI, typename TO>
-__device__ inline void interpolateNearestBackward(TO* __restrict__ input_grad,
-                                                  const TI* __restrict__ output_grad,
+template <typename T>
+__device__ inline void interpolateNearestBackward(T* __restrict__ input_grad,
+                                                  const T* __restrict__ output_grad,
                                                   tensor_view_t<5> input_grad_tv,
                                                   tensor_view_t<5> output_grad_tv,
                                                   const size_t nelems,
@@ -717,14 +717,14 @@ __device__ inline void interpolateNearestBackward(TO* __restrict__ input_grad,
     input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(grad);
 }
 
-extern "C" __global__ void InterpolateNearestBackward(OUTPUT_TYPE* __restrict__ input_grad,
-                                                      const INPUT_TYPE* __restrict__ output_grad,
+extern "C" __global__ void InterpolateNearestBackward(D_TYPE* __restrict__ input_grad,
+                                                      const D_TYPE* __restrict__ output_grad,
                                                       tensor_view_t<5> input_grad_tv,
                                                       tensor_view_t<5> output_grad_tv,
                                                       const size_t nelems,
                                                       const float* scale_factors)
 {
-    interpolateNearestBackward<INPUT_TYPE, OUTPUT_TYPE>(
+    interpolateNearestBackward<D_TYPE>(
         input_grad, output_grad, input_grad_tv, output_grad_tv, nelems, scale_factors);
 }
 
@@ -779,9 +779,9 @@ __device__ inline int64_t bound(int64_t p, int64_t max_size)
     return max(min(p, max_size - 1), 0l);
 }
 
-template <typename TI, typename TO>
-__device__ inline void interpolateBicubicForward(const TI* __restrict__ input,
-                                                 TO* __restrict__ output,
+template <typename T>
+__device__ inline void interpolateBicubicForward(const T* __restrict__ input,
+                                                 T* __restrict__ output,
                                                  tensor_view_t<4> input_tv,
                                                  tensor_view_t<4> output_tv,
                                                  const size_t nelems,
@@ -845,21 +845,21 @@ __device__ inline void interpolateBicubicForward(const TI* __restrict__ input,
         cubic_interp1d(coefficients[0], coefficients[1], coefficients[2], coefficients[3], t_y));
 }
 
-extern "C" __global__ void InterpolateBicubicForward(const INPUT_TYPE* __restrict__ input,
-                                                     OUTPUT_TYPE* __restrict__ output,
+extern "C" __global__ void InterpolateBicubicForward(const D_TYPE* __restrict__ input,
+                                                     D_TYPE* __restrict__ output,
                                                      tensor_view_t<4> input_tv,
                                                      tensor_view_t<4> output_tv,
                                                      const size_t nelems,
                                                      const float* scale_factors,
                                                      const bool align_corners)
 {
-    interpolateBicubicForward<INPUT_TYPE, OUTPUT_TYPE>(
+    interpolateBicubicForward<D_TYPE>(
         input, output, input_tv, output_tv, nelems, scale_factors, align_corners);
 }
 
-template <typename TI, typename TD>
-__device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
-                                                  const TI* __restrict__ output_grad,
+template <typename T>
+__device__ inline void interpolateBicubicBackward(T* __restrict__ input_grad,
+                                                  const T* __restrict__ output_grad,
                                                   tensor_view_t<4> input_grad_tv,
                                                   tensor_view_t<4> output_grad_tv,
                                                   const size_t nelems,
@@ -883,7 +883,7 @@ __device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
 
     if(Hin == Hout && Win == Wout)
     {
-        workspace[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
+        input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
             CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(tensor_layout)]);
         return;
     }
@@ -919,49 +919,25 @@ __device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
             int64_t input_w = bound(in_x - 1 + j, Win);
             tensor_layout_t<4> in_grad_layout({n, c, input_h, input_w});
 
-            atomicAdd(workspace + input_grad_tv.get_tensor_view_idx(in_grad_layout),
-                      out_value * y_coeffs[i] * x_coeffs[j]);
+            atomic_add_g(input_grad + input_grad_tv.get_tensor_view_idx(in_grad_layout),
+                         out_value * y_coeffs[i] * x_coeffs[j]);
         }
     }
 }
 
-template <typename TD, typename TO>
-__device__ inline void interpolateBicubicBackward_paste(TO* __restrict__ input_grad,
-                                                        const TD* __restrict__ workspace,
-                                                        tensor_view_t<4> input_grad_tv,
-                                                        const size_t nelems)
-{
-    int64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
-    if(gid >= nelems)
-        return;
-
-    auto tensor_layout = tensor_layout_t<4>(input_grad_tv, gid);
-    input_grad[input_grad_tv.get_tensor_view_idx(tensor_layout)] =
-        CVT_ACCUM2FLOAT(workspace[input_grad_tv.get_tensor_view_idx(tensor_layout)]);
-}
-
-extern "C" __global__ void InterpolateBicubicBackward(DTYPE* __restrict__ workspace,
-                                                      const INPUT_TYPE* __restrict__ output_grad,
+extern "C" __global__ void InterpolateBicubicBackward(D_TYPE* __restrict__ input_grad,
+                                                      const D_TYPE* __restrict__ output_grad,
                                                       tensor_view_t<4> input_grad_tv,
                                                       tensor_view_t<4> output_grad_tv,
                                                       const size_t nelems,
                                                       const float* scale_factors,
                                                       const bool align_corners)
 {
-    interpolateBicubicBackward<INPUT_TYPE, DTYPE>(workspace,
-                                                  output_grad,
-                                                  input_grad_tv,
-                                                  output_grad_tv,
-                                                  nelems,
-                                                  scale_factors,
-                                                  align_corners);
-}
-
-extern "C" __global__ void InterpolateBicubicBackward_paste(OUTPUT_TYPE* __restrict__ input_grad,
-                                                            const DTYPE* __restrict__ workspace,
-                                                            tensor_view_t<4> input_grad_tv,
-                                                            const size_t nelems)
-{
-    interpolateBicubicBackward_paste<DTYPE, OUTPUT_TYPE>(
-        input_grad, workspace, input_grad_tv, nelems);
+    interpolateBicubicBackward<D_TYPE>(input_grad,
+                                       output_grad,
+                                       input_grad_tv,
+                                       output_grad_tv,
+                                       nelems,
+                                       scale_factors,
+                                       align_corners);
 }

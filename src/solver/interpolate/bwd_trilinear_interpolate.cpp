@@ -95,7 +95,6 @@ ConvSolution InterpolateTrilinearBackward::GetSolution(
     std::ignore = context;
 
     auto result       = ConvSolution{miopenStatusSuccess};
-    auto input_dtype  = miopen::GetDataType(problem.GetOutputGradDesc().GetType());
     auto output_dtype = miopen::GetDataType(problem.GetInputGradDesc().GetType());
 
     {
@@ -109,9 +108,7 @@ ConvSolution InterpolateTrilinearBackward::GetSolution(
             {"MIOPEN_USE_FP32", static_cast<int>(dtype == miopenFloat)},
             {"MIOPEN_USE_FP64", static_cast<int>(dtype == miopenDouble)},
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
-            {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
-            {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
-            {"DTYPE", "float"},
+            {"D_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
         };
 
         result.construction_params.push_back(make_hip_kernel({LOCAL_SIZE_BWD_TRILINEAR},

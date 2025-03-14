@@ -123,34 +123,7 @@ extern "C" miopenStatus_t miopenInterpolateForward(miopenHandle_t handle,
     });
 }
 
-extern "C" miopenStatus_t
-miopenGetInterpolateBackwardWorkspaceSize(miopenHandle_t handle,
-                                          const miopenTensorDescriptor_t outputGradDesc,
-                                          const miopenTensorDescriptor_t inputGradDesc,
-                                          const miopenTensorDescriptor_t scaleFactorsDesc,
-                                          const miopenInterpolateMode_t mode,
-                                          const bool align_corners,
-                                          size_t* sizeInBytes)
-{
-
-    MIOPEN_LOG_FUNCTION(
-        handle, outputGradDesc, inputGradDesc, scaleFactorsDesc, mode, align_corners, sizeInBytes);
-
-    return miopen::try_([&] {
-        miopen::deref(sizeInBytes) =
-            miopen::interpolate::GetInterpolateBicubicBackwardWorkspaceSize(
-                miopen::deref(handle),
-                miopen::deref(outputGradDesc),
-                miopen::deref(inputGradDesc),
-                miopen::deref(scaleFactorsDesc),
-                mode,
-                align_corners);
-    });
-}
-
 extern "C" miopenStatus_t miopenInterpolateBackward(miopenHandle_t handle,
-                                                    void* workspace,
-                                                    size_t workspaceSizeInBytes,
                                                     const miopenTensorDescriptor_t inputGradDesc,
                                                     void* input_grad,
                                                     const miopenTensorDescriptor_t outputGradDesc,
@@ -188,8 +161,6 @@ extern "C" miopenStatus_t miopenInterpolateBackward(miopenHandle_t handle,
     {
         return miopen::try_([&] {
             miopen::interpolate::InterpolateBicubicBackward(miopen::deref(handle),
-                                                            DataCast(workspace),
-                                                            workspaceSizeInBytes,
                                                             miopen::deref(inputGradDesc),
                                                             DataCast(input_grad),
                                                             miopen::deref(outputGradDesc),

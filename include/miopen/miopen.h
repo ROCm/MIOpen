@@ -8278,37 +8278,9 @@ miopenInterpolateForward(miopenHandle_t handle,
                          const miopenInterpolateMode_t mode,
                          const bool align_corners);
 
-/*! @brief Helper function to query the minimum workspace size required by the Interpolate Bicubic
- * Backward call
- *
- * @param handle                   MIOpen Handle (input)
- * @param outputGradDesc           Tensor descriptor for output grad tensor (input)
- * @param inputGradDesc            Tensor descriptor for input grad tensor (input)
- * @param scaleFactorsDesc         Tensor descriptor for scale factors tensor (input)
- * @param mode                     Interpolation mode (input)
- * @param align_corners            If set to True, the input and output tensors are aligned by the
- * center points of their corner pixels, preserving the values at the corner pixels. If set to
- * False, the input and output tensors are aligned by the corner points of their corner pixels, and
- * the interpolation uses edge value padding for out-of-boundary values, making this operation
- * independent of input size when scale_factor is kept the same. This only has an effect when mode
- * is 'linear', 'bilinear', 'bicubic' or 'trilinear'. (input)
- * @param sizeInBytes              Pointer to data to return the minimum workspace size (output)
- * @return                         miopenStatus_t
- */
-MIOPEN_EXPORT miopenStatus_t
-miopenGetInterpolateBackwardWorkspaceSize(miopenHandle_t handle,
-                                          const miopenTensorDescriptor_t outputGradDesc,
-                                          const miopenTensorDescriptor_t inputGradDesc,
-                                          const miopenTensorDescriptor_t scaleFactorsDesc,
-                                          const miopenInterpolateMode_t mode,
-                                          const bool align_corners,
-                                          size_t* sizeInBytes);
-
 /*! @brief Execute a interpolate backward layer
  *
  * @param handle                MIOpen handle (input)
- * @param workspace             Pointer to workspace (input)
- * @param workspaceSizeInBytes  Size of workspace buffer (input)
  * @param inputGradDesc         Tensor descriptor for input grad tensor (input)
  * @param input_grad            Data tensor input grad (output)
  * @param outputGradDesc        Tensor descriptor for output grad tensor (input)
@@ -8326,8 +8298,6 @@ miopenGetInterpolateBackwardWorkspaceSize(miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenInterpolateBackward(miopenHandle_t handle,
-                          void* workspace,
-                          size_t workspaceSizeInBytes,
                           const miopenTensorDescriptor_t inputGradDesc,
                           void* input_grad,
                           const miopenTensorDescriptor_t outputGradDesc,

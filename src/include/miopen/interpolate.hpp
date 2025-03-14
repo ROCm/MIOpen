@@ -54,18 +54,8 @@ InterpolateLinearCubicForward(Handle& handle,
                               miopenInterpolateMode_t mode,
                               bool align_corners);
 
-MIOPEN_INTERNALS_EXPORT size_t
-GetInterpolateBicubicBackwardWorkspaceSize(Handle& handle,
-                                           const TensorDescriptor& outputGradDesc,
-                                           const TensorDescriptor& inputGradDesc,
-                                           const TensorDescriptor& scaleFactorsDesc,
-                                           miopenInterpolateMode_t mode,
-                                           bool align_corners);
-
 MIOPEN_INTERNALS_EXPORT miopenStatus_t
 InterpolateBicubicBackward(Handle& handle,
-                           Data_t workspace,
-                           size_t workspaceSizeInBytes,
                            const TensorDescriptor& inputGradDesc,
                            Data_t input_grad,
                            const TensorDescriptor& outputGradDesc,

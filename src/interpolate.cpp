@@ -141,28 +141,7 @@ miopenStatus_t InterpolateNearestBackward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-size_t GetInterpolateBicubicBackwardWorkspaceSize(Handle& handle,
-                                                  const TensorDescriptor& outputGradDesc,
-                                                  const TensorDescriptor& inputGradDesc,
-                                                  const TensorDescriptor& scaleFactorsDesc,
-                                                  const miopenInterpolateMode_t mode,
-                                                  const bool align_corners)
-{
-    auto ctx           = ExecutionContext{&handle};
-    const auto problem = interpolate::BwdProblemDescription{
-        inputGradDesc, outputGradDesc, scaleFactorsDesc, mode, align_corners};
-
-    const auto algo    = AlgorithmName{"InterpolateBackward"};
-    const auto solvers = solver::SolverContainer<solver::interpolate::InterpolateBicubicBackward>{};
-
-    auto pair_size_vector = solvers.GetWorkspaceSizes(ctx, problem);
-
-    return pair_size_vector.empty() ? static_cast<size_t>(-1) : pair_size_vector.front().second;
-}
-
 miopenStatus_t InterpolateBicubicBackward(Handle& handle,
-                                          Data_t workspace,
-                                          size_t workspaceSizeInBytes,
                                           const TensorDescriptor& inputGradDesc,
                                           Data_t input_grad,
                                           const TensorDescriptor& outputGradDesc,
@@ -187,9 +166,6 @@ miopenStatus_t InterpolateBicubicBackward(Handle& handle,
 
         tmp.mode          = mode;
         tmp.align_corners = align_corners;
-
-        tmp.workspace            = workspace;
-        tmp.workspaceSizeInBytes = workspaceSizeInBytes;
 
         return tmp;
     }();

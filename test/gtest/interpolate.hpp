@@ -281,19 +281,6 @@ protected:
         ref_input_grad = tensor<T>{in_grad_dim, in_strides};
         std::fill(ref_input_grad.begin(), ref_input_grad.end(), static_cast<T>(0.f));
 
-        if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
-        {
-            ws_sizeInBytes = miopen::interpolate::GetInterpolateBicubicBackwardWorkspaceSize(
-                handle, output_grad.desc, input_grad.desc, scale_factors.desc, mode, align_corners);
-            if(ws_sizeInBytes == static_cast<size_t>(-1))
-                GTEST_SKIP();
-
-            workspace = tensor<float>{in_grad_dim, in_strides};
-            std::fill(workspace.begin(), workspace.end(), 0.f);
-
-            workspace_dev = handle.Write(workspace.data);
-        }
-
         output_grad_dev   = handle.Write(output_grad.data);
         input_grad_dev    = handle.Write(input_grad.data);
         scale_factors_dev = handle.Write(scale_factors.data);
@@ -323,8 +310,6 @@ protected:
         else if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
         {
             status = miopen::interpolate::InterpolateBicubicBackward(handle,
-                                                                     workspace_dev.get(),
-                                                                     ws_sizeInBytes,
                                                                      input_grad.desc,
                                                                      input_grad_dev.get(),
                                                                      output_grad.desc,
@@ -374,7 +359,4 @@ protected:
     miopen::Allocator::ManageDataPtr input_grad_dev;
     miopen::Allocator::ManageDataPtr output_grad_dev;
     miopen::Allocator::ManageDataPtr scale_factors_dev;
-    miopen::Allocator::ManageDataPtr workspace_dev;
-
-    size_t ws_sizeInBytes;
 };
