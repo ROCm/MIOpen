@@ -30,7 +30,7 @@ library "jenkins-shared@${get_branch_name()}"
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Performance Dataset" is a performance test with a specified dataset.
-/// Target := { gfx908 | gfx90a | gfx1030 } [ Xnack+ ]
+/// Target := { gfx908 | gfx90a } [ Xnack+ ]
 
 
 pipeline {
@@ -83,11 +83,11 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_GFX94X",
-            defaultValue: false,
+            defaultValue: env.BRANCH_NAME == "AD/CiTargets" ? true : false,
             description: "")
         booleanParam(
             name: "TARGET_NAVI32",
-            defaultValue: false,
+            defaultValue: env.BRANCH_NAME == "AD/CiTargets" ? true : false,
             description: "")
         booleanParam(
             name: "DATATYPE_NA",
