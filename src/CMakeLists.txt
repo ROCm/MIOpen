@@ -953,9 +953,7 @@ if(hipblas_FOUND)
     target_include_directories( MIOpen INTERFACE $<BUILD_INTERFACE:${HIPBLAS-COMMON_INCLUDE_DIR}> )
 endif()
 
-if(rocrand_FOUND)
-    target_include_directories( MIOpen PRIVATE ${ROCRAND_INCLUDE_DIR} )
-endif()
+target_include_directories( MIOpen PRIVATE ${ROCRAND_INCLUDE_DIR} )
 
 # For backward compatibility with ROCm 5.3
 # Build with library libMLIRMIOpen
