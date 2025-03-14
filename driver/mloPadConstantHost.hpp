@@ -26,36 +26,35 @@
 
 #pragma once
 
-#include "tensor_holder.hpp"
-
-#include "../src/kernels/MIOpenPadConstant.hpp"
-
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
-template <class T>
-void cpu_pad_constant_fwd(const tensor<T> input,
-                          tensor<T>& output,
-                          const std::vector<int64_t> padding_vec,
-                          const T value)
-{
-    auto input_tv  = miopen::get_inner_expanded_tv<5>(input.desc);
-    auto output_tv = miopen::get_inner_expanded_tv<5>(output.desc);
+#include <../test/ford.hpp>
 
-    size_t output_size = output.desc.GetElementSize();
+template <typename Tgpu, typename Tcheck>
+int32_t mloConstantPadForwardRunHost(miopenTensorDescriptor_t inputDesc,
+                                     miopenTensorDescriptor_t outputDesc,
+                                     Tgpu* input,
+                                     Tcheck* output,
+                                     std::vector<int64_t> padding_vec,
+                                     const Tgpu value)
+{
+    auto input_tv        = miopen::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto output_tv       = miopen::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    int64_t padding_size = padding_vec.size();
 
     // Prepare padding
-    auto padding_size = padding_vec.size();
-    // int64_t padding_args[10] = {0};
-    padding_5d_t padding_args = {};
-
-    int io_dim_size = input.desc.GetNumDims();
+    int64_t padding_args[10] = {0};
+    int io_dim_size          = miopen::deref(inputDesc).GetNumDims();
     for(uint64_t i = 0; i < padding_size / 2; i++)
     {
-        uint64_t idx                  = io_dim_size - i - 1;
-        padding_args.val[idx * 2]     = padding_vec[i * 2];
-        padding_args.val[idx * 2 + 1] = padding_vec[i * 2 + 1];
+        uint64_t idx              = io_dim_size - i - 1;
+        padding_args[idx * 2]     = padding_vec[i * 2];
+        padding_args[idx * 2 + 1] = padding_vec[i * 2 + 1];
     }
 
+    size_t output_size = miopen::deref(outputDesc).GetElementSize();
     for(uint64_t gid = 0; gid < output_size; ++gid)
     {
         bool flag            = true;
@@ -64,7 +63,7 @@ void cpu_pad_constant_fwd(const tensor<T> input,
 
         for(uint64_t i = 0; i < 5; i++)
         {
-            int64_t idx = o_tensor_layout.layout[i] - padding_args.val[2 * i];
+            int64_t idx = o_tensor_layout.layout[i] - padding_args[2 * i];
             if(idx < 0 || idx >= input_tv.size[i])
             {
                 flag = false;
@@ -77,30 +76,32 @@ void cpu_pad_constant_fwd(const tensor<T> input,
         output[output_tv.get_tensor_view_idx(o_tensor_layout)] =
             flag ? input[input_tv.get_tensor_view_idx(i_tensor_layout)] : value;
     }
+
+    return miopenStatusSuccess;
 }
 
-template <class T>
-void cpu_pad_constant_bwd(const tensor<T> output_grad,
-                          tensor<T>& input_grad,
-                          const std::vector<int64_t> padding_vec)
+template <typename Tgpu, typename Tcheck>
+int32_t mloConstantPadBackwardRunHost(miopenTensorDescriptor_t inputGradDesc,
+                                      miopenTensorDescriptor_t outputGradDesc,
+                                      Tcheck* input_grad,
+                                      Tgpu* output_grad,
+                                      std::vector<int64_t>& padding_vec)
 {
-    auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(input_grad.desc);
-    auto output_grad_tv = miopen::get_inner_expanded_tv<5>(output_grad.desc);
+    auto input_grad_tv  = miopen::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
+    auto output_grad_tv = miopen::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
+    int io_dim_size     = miopen::deref(inputGradDesc).GetNumDims();
 
     // Prepare padding
-    // int64_t padding_args[10] = {0};
-    padding_5d_t padding_args = {};
-    int io_dim_size           = input_grad.desc.GetNumDims();
-    auto padding_size         = padding_vec.size();
+    int64_t padding_args[10] = {0};
+    auto padding_size        = padding_vec.size();
     for(uint64_t i = 0; i < padding_size / 2; i++)
     {
-        size_t idx                    = io_dim_size - i - 1;
-        padding_args.val[idx * 2]     = padding_vec[i * 2];
-        padding_args.val[idx * 2 + 1] = padding_vec[i * 2 + 1];
+        size_t idx                = io_dim_size - i - 1;
+        padding_args[idx * 2]     = padding_vec[i * 2];
+        padding_args[idx * 2 + 1] = padding_vec[i * 2 + 1];
     }
 
-    auto input_grad_numels = input_grad.desc.GetElementSize();
-
+    auto input_grad_numels = miopen::deref(inputGradDesc).GetElementSize();
     for(size_t gid = 0; gid < input_grad_numels; ++gid)
     {
         bool flag             = true;
@@ -109,7 +110,7 @@ void cpu_pad_constant_bwd(const tensor<T> output_grad,
 
         for(uint64_t i = 0; i < 5; i++)
         {
-            int64_t idx = ig_tensor_layout.layout[i] + padding_args.val[2 * i];
+            int64_t idx = ig_tensor_layout.layout[i] + padding_args[2 * i];
             if(idx < 0 || idx >= output_grad_tv.size[i])
             {
                 flag = false;
@@ -121,6 +122,8 @@ void cpu_pad_constant_bwd(const tensor<T> output_grad,
 
         input_grad[input_grad_tv.get_tensor_view_idx(ig_tensor_layout)] =
             flag ? output_grad[output_grad_tv.get_tensor_view_idx(og_tensor_layout)]
-                 : static_cast<T>(0);
+                 : static_cast<Tcheck>(0);
     }
+
+    return miopenStatusSuccess;
 }

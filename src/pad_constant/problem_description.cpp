@@ -31,16 +31,18 @@ namespace miopen {
 namespace pad_constant_fwd {
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    // Should be the only thing we need? (After all paddings are all the same operation kind)
     auto dtype = xDesc.GetType();
 
     std::ostringstream ss;
-    if(IsContiguous())
-        ss << "contiguous-";
-    ss << "fwd-";
+    ss << "padconstant_fwd";
     ss << "dtype" << dtype;
-    ss << "xDesc" << xDesc.GetElementSize();
-    ss << "yDesc" << yDesc.GetElementSize();
+    ss << "contiguous" << IsContiguous();
+    ss << "input_dims" << xDesc.GetNumDims();
+    ss << "output_size" << yDesc.GetElementSize();
+    auto padding_vec = GetPadding();
+    ss << "padding_values";
+    for(auto i : padding_vec)
+        ss << i << ",";
 
     return NetworkConfig{ss.str()};
 }
@@ -48,15 +50,18 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 namespace pad_constant_bwd {
 NetworkConfig ProblemDescription::MakeNetworkConfig() const
 {
-    auto dtype = dyDesc.GetType();
+    auto dtype = dxDesc.GetType();
 
     std::ostringstream ss;
-    if(IsContiguous())
-        ss << "contiguous-";
-    ss << "bwd-";
+    ss << "padconstant_bwd";
     ss << "dtype" << dtype;
-    ss << "xDesc" << dxDesc.GetElementSize();
-    ss << "yDesc" << dyDesc.GetElementSize();
+    ss << "contiguous" << IsContiguous();
+    ss << "input_dims" << dxDesc.GetNumDims();
+    ss << "output_size" << dyDesc.GetElementSize();
+    ss << "padding_values";
+    auto padding_vec = GetPadding();
+    for(auto i : padding_vec)
+        ss << i << ",";
 
     return NetworkConfig{ss.str()};
 }

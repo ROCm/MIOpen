@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/bfloat16.hpp"
 #include "pad_constant_driver.hpp"
 #include "registry_driver_maker.hpp"
 
@@ -33,9 +32,9 @@ static Driver* makeDriver(const std::string& base_arg)
     if(base_arg == "padconstant")
         return new ConstantPadDriver<float, float>();
     if(base_arg == "padconstantbfp16")
-        return new ConstantPadDriver<bfloat16, bfloat16>();
+        return new ConstantPadDriver<float16, float>();
     if(base_arg == "padconstantfp16")
-        return new ConstantPadDriver<half, half>();
+        return new ConstantPadDriver<bfloat16, float>();
     return nullptr;
 }
 

@@ -8233,24 +8233,24 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-
-/*! Pad Constant Forward API
- * @addtogroup pad
- * @brief Pads the input tensor boundaries with a constant value.
+// PadConstant APIs
+/** @addtogroup pad
  *
- *  @param [in]  handle An instance of miopenHandle_t
- *  @param [in]  xDesc Descriptor of the input tensor
- *  @param [in]  yDesc Descriptor of the output tensor
- *  @param [in]  x Input
- *  @param [out] y Padded output
- *  @param [in]  padding Padding dimension array
- *  @param [in]  padding_size The size of the padding
- *  @param [in]  value The padding value
- *
- *  @retval miopenStatusSuccess        The memory was destroyed successfully
- *  @retval miopenStatusBadParm        An invalid or inconsistent argument value is encountered.
+ *  @{
  */
 
+/*! @brief Execute a Pad Constant forward layer
+ *
+ * @param [in]  handle          MIOpen handle
+ * @param [in]  xDesc           Input tensor descriptor
+ * @param [in]  yDesc           Output tensor descriptor
+ * @param [in]  x               Input tensor
+ * @param [out] y               Output tensor
+ * @param [in]  padding         Padding dimension array
+ * @param [in]  padding_size    The size of the padding array
+ * @param [in]  value           The padding value
+ * @return                      miopenStatus_t
+ */
 MIOPEN_EXPORT miopenStatus_t miopenPadConstantFwd(miopenHandle_t handle,
                                                   miopenTensorDescriptor_t xDesc,
                                                   miopenTensorDescriptor_t yDesc,
@@ -8258,24 +8258,20 @@ MIOPEN_EXPORT miopenStatus_t miopenPadConstantFwd(miopenHandle_t handle,
                                                   void* y,
                                                   const int64_t* padding,
                                                   const int padding_size,
-                                                  float value);
+                                                  const float value);
 
-/*! Pad Constant Backward API
- * @addtogroup pad
- * @brief Pads the input tensor boundaries with a constant value (backward pass)
+/*! @brief Execute a Pad Constant backward layer
  *
- *  @param [in]  handle An instance of miopenHandle_t
- *  @param [in]  dxDesc Descriptor of the output tensor
- *  @param [in]  dyDesc Descriptor of the input gradient tensor
- *  @param [out] dx Output tensor
- *  @param [in]  dy Input gradiant tensor
- *  @param [in]  padding Padding dimension array
- *  @param [in]  padding_size The size of the padding array
- *
- *  @retval miopenStatusSuccess        The memory was destroyed successfully
- *  @retval miopenStatusBadParm        An invalid or inconsistent argument value is encountered.
+ * @param [in]  handle          MIOpen handle
+ * @param [in]  dxDesc          Input grad tensor descriptor
+ * @param [in]  dyDesc          Output grad tensor descriptor
+ * @param [out] dx              Input grad tensor
+ * @param [in]  dy              Output grad tensor
+ * @param [in]  padding         Padding dimension array
+ * @param [in]  padding_size    The size of the padding array
+ * @param [in]  value           The padding value
+ * @return                      miopenStatus_t
  */
-
 MIOPEN_EXPORT miopenStatus_t miopenPadConstantBwd(miopenHandle_t handle,
                                                   miopenTensorDescriptor_t dxDesc,
                                                   miopenTensorDescriptor_t dyDesc,

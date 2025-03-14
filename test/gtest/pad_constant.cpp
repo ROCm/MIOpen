@@ -28,28 +28,68 @@
 
 using float16 = half_float::half;
 
-using GPU_ConstantPad_FP32  = PadConstantTest<float>;
-using GPU_ConstantPad_FP16  = PadConstantTest<float16>;
-using GPU_ConstantPad_BFP16 = PadConstantTest<bfloat16>;
+// FORWARD TEST
+using GPU_ConstantPad_fwd_FP32  = PadConstantFwdTest<float>;
+using GPU_ConstantPad_fwd_FP16  = PadConstantFwdTest<float16>;
+using GPU_ConstantPad_fwd_BFP16 = PadConstantFwdTest<bfloat16>;
 
-TEST_P(GPU_ConstantPad_FP32, Test)
+TEST_P(GPU_ConstantPad_fwd_FP32, Test)
 {
     RunTest();
     Verify();
 }
 
-TEST_P(GPU_ConstantPad_FP16, Test)
+TEST_P(GPU_ConstantPad_fwd_FP16, Test)
 {
     RunTest();
     Verify();
 }
 
-TEST_P(GPU_ConstantPad_BFP16, Test)
+TEST_P(GPU_ConstantPad_fwd_BFP16, Test)
 {
     RunTest();
     Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_ConstantPad_FP32, testing::ValuesIn(PadConstantTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_ConstantPad_FP16, testing::ValuesIn(PadConstantTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_ConstantPad_BFP16, testing::ValuesIn(PadConstantTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConstantPad_fwd_FP32,
+                         testing::ValuesIn(PadConstantTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConstantPad_fwd_FP16,
+                         testing::ValuesIn(PadConstantTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConstantPad_fwd_BFP16,
+                         testing::ValuesIn(PadConstantTestConfigs()));
+
+// BACKWARD TEST
+using GPU_ConstantPad_bwd_FP32  = PadConstantBwdTest<float>;
+using GPU_ConstantPad_bwd_FP16  = PadConstantBwdTest<float16>;
+using GPU_ConstantPad_bwd_BFP16 = PadConstantBwdTest<bfloat16>;
+
+TEST_P(GPU_ConstantPad_bwd_FP32, Test)
+{
+    RunTest();
+    Verify();
+}
+
+TEST_P(GPU_ConstantPad_bwd_FP16, Test)
+{
+    RunTest();
+    Verify();
+}
+
+TEST_P(GPU_ConstantPad_bwd_BFP16, Test)
+{
+    RunTest();
+    Verify();
+}
+
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConstantPad_bwd_FP32,
+                         testing::ValuesIn(PadConstantTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConstantPad_bwd_FP16,
+                         testing::ValuesIn(PadConstantTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConstantPad_bwd_BFP16,
+                         testing::ValuesIn(PadConstantTestConfigs()));

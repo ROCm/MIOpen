@@ -24,55 +24,11 @@
  *
  *******************************************************************************/
 
-// #include "miopen/common.hpp"
-// #include "miopen/invoke_params.hpp"
-// #include "miopen/tensor.hpp"
-// #include <cstddef>
-// #include <miopen/miopen.h>
-
 #pragma once
 
-#include <miopen/common.hpp>
-#include <miopen/invoke_params.hpp>
-#include <miopen/tensor.hpp>
+#include <hip/hip_runtime.h>
 
-namespace miopen {
-namespace pad_constant_fwd {
-struct InvokeParams : public miopen::InvokeParams
+struct padding_5d_t
 {
-    InvokeParams() = default;
-
-    const TensorDescriptor* xDesc = nullptr;
-    const TensorDescriptor* yDesc = nullptr;
-
-    ConstData_t x = nullptr;
-    Data_t y      = nullptr;
-
-    const int64_t* padding = nullptr;
-    int padding_size       = 0;
-    float padding_value    = 0.0f;
-
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    int64_t val[10];
 };
-} // namespace pad_constant_fwd
-
-namespace pad_constant_bwd {
-struct InvokeParams : public miopen::InvokeParams
-{
-    InvokeParams() = default;
-
-    const TensorDescriptor* dxDesc = nullptr;
-    const TensorDescriptor* dyDesc = nullptr;
-
-    Data_t dx      = nullptr;
-    ConstData_t dy = nullptr;
-
-    const int64_t* padding = nullptr;
-    int padding_size       = 0;
-
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
-};
-} // namespace pad_constant_bwd
-} // namespace miopen

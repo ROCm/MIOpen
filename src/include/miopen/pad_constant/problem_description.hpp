@@ -26,12 +26,16 @@
 
 #pragma once
 
-#include "miopen/errors.hpp"
-#include "miopen/names.hpp"
-#include "miopen/problem_description_base.hpp"
-#include "miopen/tensor.hpp"
-#include <cstddef>
-#include <miopen/miopen.h>
+// #include "miopen/errors.hpp"
+// #include "miopen/names.hpp"
+// #include "miopen/problem_description_base.hpp"
+// #include "miopen/tensor.hpp"
+// #include <cstddef>
+// #include <miopen/miopen.h>
+// #include "../src/kernels/tensor_view_5d.hpp"
+
+#include <miopen/problem_description_base.hpp>
+#include <miopen/tensor.hpp>
 
 namespace miopen {
 namespace pad_constant_fwd {
@@ -43,62 +47,101 @@ struct ProblemDescription : ProblemDescriptionBase
                        const int padding_size_ = 0)
         : xDesc(xDesc_), yDesc(yDesc_), padding(padding_), padding_size(padding_size_)
     {
+        std::cout << "[ProblemDescription constructor] padding[0], padding[1]: " << padding[0]
+                  << ", " << padding[1] << std::endl;
         // Consistency checks
-        if(!IsPaddingValid())
-            MIOPEN_THROW("Padding is not valid");
-        if(!IsSameShape())
-            MIOPEN_THROW("Tensors do not have the same shapes");
-        if(!IsSameType())
-            MIOPEN_THROW("Tensor values do not have the same type");
+        // if(!IsSameShape())
+        //     MIOPEN_THROW("Tensors do not have the same shapes");
+
+        // if(!IsPaddingValid())
+        //     MIOPEN_THROW("Padding is not valid");
+
+        // if(!IsSameType())
+        //     MIOPEN_THROW("Tensor values do not have the same type");
+        IsSameType();
+        IsSameShape();
+        IsValidPadding();
+        IsValidIODims();
     }
 
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
+    int64_t GetPaddingSize() const { return padding_size; }
+    std::vector<int64_t> GetPadding() const
+    {
+        // print padding[0] and padding[1]
+        //  std::cout << "[GetPadding()] padding[0], padding[1]: " << padding[0] << ", " <<
+        //  padding[1] << std::endl;
+        return {padding, padding + padding_size};
+        // std::vector::int64_t result =
+        // create a new vector from padding
+
+        // Create a new vector from padding
+        // std::vector<int64_t> result = std::vector<int64_t>(padding, padding + padding_size);
+
+        // return result;
+    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
-    bool IsSameType() const
-    {
-        if(xDesc.GetType() == yDesc.GetType())
-            return true;
-        return false;
-    }
-
     bool IsSameShape() const
     {
-        if(xDesc.GetNumDims() == yDesc.GetNumDims())
-            return true;
-        return false;
+        if(xDesc.GetNumDims() != yDesc.GetNumDims())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadConstantFwd: Input and output tensors' dimensions don't match");
+        return true;
+    }
+
+    bool IsSameType() const
+    {
+        if(xDesc.GetType() != yDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadConstantFwd: Input and output tensors' types don't match");
+
+        return true;
     }
 
     bool IsContiguous() const { return xDesc.IsContiguous() && yDesc.IsContiguous(); }
 
-    bool IsImprovementOverROCm() const
-    {
-        if(IsContiguous())
-            // No contiguous case is faster
-            return false;
-        else
-            // Slower if n is padded (at all)
-            return padding[0] == 0 && padding[1] == 0;
-    }
+    bool IsImprovementOverROCm() const { return (!IsContiguous() && !IsPadFirstDim()); }
 
-    bool IsPaddingValid() const
+    bool IsValidPadding() const
     {
         if(padding_size % 2 != 0)
+            MIOPEN_THROW(miopenStatusBadParm, "PadConstantFwd: Padding size must be even");
+
+        if(xDesc.GetNumDims() < padding_size / 2)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadConstantFwd: Padding size is larger than input's dimensions");
+
+        return true;
+    }
+
+    bool IsValidIODims() const
+    {
+        auto input_dims = xDesc.GetLengths();
+        std::vector<size_t> input_with_padding_dims(input_dims);
+        for(uint64_t i = 0; i < padding_size / 2; i++)
+        {
+            int idx = input_dims.size() - i - 1;
+            input_with_padding_dims[idx] += padding[i * 2] + padding[i * 2 + 1];
+        }
+
+        if(input_with_padding_dims != yDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadConstantFwd: Input + padding tensor and output tensor do not match");
+
+        return true;
+    }
+
+    bool IsPadFirstDim() const
+    {
+        if(padding_size / 2 != xDesc.GetNumDims())
             return false;
 
-        std::vector<size_t> input_and_padding = std::vector<size_t>(yDesc.GetLengths().size());
+        auto padding_vec = GetPadding();
 
-        for(int i = 0; i < xDesc.GetLengths().size(); i++)
-        {
-            input_and_padding[i] = xDesc.GetLengths()[i] + padding[2 * i] + padding[2 * i + 1];
-            if(input_and_padding[i] != yDesc.GetLengths()[i])
-            {
-                return false;
-            }
-        }
-        return true;
+        return padding_vec[padding_size - 1] != 0 || padding_vec[padding_size - 2] != 0;
     }
 
 private:
@@ -118,84 +161,87 @@ struct ProblemDescription : ProblemDescriptionBase
                        const int padding_size_ = 0)
         : dxDesc(dxDesc_), dyDesc(dyDesc_), padding(padding_), padding_size(padding_size_)
     {
-        if(!IsPaddingValid())
-            MIOPEN_THROW("Padding is not valid");
-        if(!IsSameShape())
-            MIOPEN_THROW("Tensors do not have the same shapes");
-        if(!IsSameType())
-            MIOPEN_THROW("Tensor values do not have the same type");
+
+        IsSameType();
+        IsSameShape();
+        IsValidPadding();
+        IsValidIODims();
     }
 
-    const TensorDescriptor& GetXDesc() const { return dxDesc; }
-    const TensorDescriptor& GetYDesc() const { return dyDesc; }
+    const TensorDescriptor& GetdXDesc() const { return dxDesc; }
+    const TensorDescriptor& GetdYDesc() const { return dyDesc; }
+    int64_t GetPaddingSize() const { return padding_size; }
+    std::vector<int64_t> GetPadding() const { return {padding, padding + padding_size}; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
     bool IsSameType() const
     {
-        if(dxDesc.GetType() == dyDesc.GetType())
-            return true;
-        return false;
+        if(dyDesc.GetType() != dxDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadConstanhtBwd: Input grad and output grad tensors' types don't match");
+
+        return true;
     }
 
     bool IsSameShape() const
     {
-        if(dxDesc.GetNumDims() == dyDesc.GetNumDims())
-            return true;
-        return false;
+        if(dxDesc.GetNumDims() != dyDesc.GetNumDims())
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "PadConstantBwd: Input grad and output grad tensors' dimensions don't match: " +
+                    std::to_string(dxDesc.GetNumDims()) + " vs " +
+                    std::to_string(dyDesc.GetNumDims()));
+
+        return true;
     }
 
-    bool IsContiguous() const { return dxDesc.IsContiguous() && dyDesc.IsContiguous(); }
+    bool IsContiguous() const { return dyDesc.IsContiguous() && dxDesc.IsContiguous(); }
 
-    bool IsImprovementOverROCm() const
-    {
-        if(IsContiguous())
-        {
-            // Contiguous case
-            // No winning over ROCm, only ~7% of tested cases get > 20% improvement
-            return false;
-        }
-        else
-        {
-            // Non contiguous case
-            // We win over ROCm unless the only padded dimension is n
-            bool all_zero = true;
-            for(int i = 10; i < 0; i++)
-            {
-                if(i == 0 || i == 1)
-                {
-                    if(all_zero && padding[i] != 0)
-                        return false;
-                }
-                else
-                {
-                    if(padding[i] != 0)
-                        all_zero = false;
-                }
-            }
-            return true;
-        }
-    }
+    bool IsImprovementOverROCm() const { return (!IsContiguous() && !IsOnlyPadFirstDim()); }
 
-    bool IsPaddingValid() const
+    bool IsValidPadding() const
     {
         if(padding_size % 2 != 0)
-        {
-            printf("Padding size must be even\n");
-            return false;
-        }
+            MIOPEN_THROW(miopenStatusBadParm, "PadConstantBwd: Padding size must be even");
 
-        std::vector<size_t> input_and_padding = std::vector<size_t>(dyDesc.GetLengths().size());
+        if(dxDesc.GetNumDims() < padding_size / 2)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadConstantBwd: Padding size is larger than input grad's dimensions");
 
-        for(int i = 0; i < dxDesc.GetLengths().size(); i++)
-        {
-            input_and_padding[i] = dyDesc.GetLengths()[i] - padding[2 * i] - padding[2 * i + 1];
-            if(input_and_padding[i] != dxDesc.GetLengths()[i])
-            {
-                return false;
-            }
-        }
         return true;
+    }
+
+    bool IsValidIODims() const
+    {
+        auto input_dims = dxDesc.GetLengths();
+        std::vector<size_t> input_with_padding_dims(input_dims);
+        for(uint64_t i = 0; i < padding_size / 2; i++)
+        {
+            int idx = input_dims.size() - i - 1;
+            input_with_padding_dims[idx] += padding[i * 2] + padding[i * 2 + 1];
+        }
+
+        if(input_with_padding_dims != dyDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "ConstantPadBwd: Input + padding tensor and output tensor do not match");
+
+        return true;
+    }
+
+    bool IsOnlyPadFirstDim() const
+    {
+        if(padding_size / 2 != dxDesc.GetNumDims())
+            return false;
+
+        auto padding_vec = GetPadding();
+
+        bool is_pad_first_dim =
+            padding_vec[padding_size - 1] != 0 || padding_vec[padding_size - 2] != 0;
+        bool is_remaining_zeros =
+            std::all_of(padding_vec.begin(), padding_vec.end() - 2, [](int x) { return x == 0; });
+
+        return is_pad_first_dim && is_remaining_zeros;
     }
 
 private:
