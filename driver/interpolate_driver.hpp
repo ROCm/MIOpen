@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_INTERPOLATE_DRIVER_HPP
-#define GUARD_MIOPEN_INTERPOLATE_DRIVER_HPP
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
@@ -32,7 +31,6 @@
 #include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "util_driver.hpp"
 
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
@@ -42,21 +40,6 @@
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <vector>
-
-inline std::vector<int> GetStrides(std::vector<int> lengths, int contiguous)
-{
-    if(contiguous != 0 && contiguous != 1)
-        std::cerr << "Error Tensor Contiguous should be 0 or 1" << std::endl;
-    if(contiguous == 0)
-        std::swap(lengths.front(), lengths.back());
-    std::vector<int> strides(lengths.size());
-    strides.back() = 1;
-    for(int i = lengths.size() - 2; i >= 0; --i)
-        strides[i] = strides[i + 1] * lengths[i + 1];
-    if(contiguous == 0)
-        std::swap(strides.front(), strides.back());
-    return strides;
-}
 
 template <typename Tgpu, typename Tref>
 class InterpolateDriver : public Driver
@@ -73,6 +56,7 @@ public:
         data_type = miopen_type<Tgpu>{};
     }
 
+    std::vector<int> ComputeStrides(std::vector<int> input);
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
@@ -135,12 +119,14 @@ private:
     miopenInterpolateMode_t mode;
     bool align_corners;
     size_t ws_sizeInBytes = 0;
+    bool isContiguous;
 };
 
 template <typename Tgpu, typename Tref>
 int InterpolateDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+    isContiguous = inflags.GetValueInt("is-contiguous") == 1 ? true : false;
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -183,8 +169,8 @@ std::vector<T> InterpolateDriver<Tgpu, Tref>::GetTensorFromCmd(const char* param
 template <typename Tgpu, typename Tref>
 int InterpolateDriver<Tgpu, Tref>::GetandSetData()
 {
-    in_len               = GetTensorFromCmd<int>("input_dims");
-    size                 = GetTensorFromCmd<int>("size");
+    in_len               = inflags.GetValueTensor("input_dims").lengths;
+    size                 = inflags.GetValueTensor("size").lengths;
     config_scale_factors = GetTensorFromCmd<float>("scale_factors");
     mode                 = static_cast<miopenInterpolateMode_t>(inflags.GetValueInt("mode"));
     align_corners        = static_cast<bool>(inflags.GetValueInt("align_corners"));
@@ -192,7 +178,7 @@ int InterpolateDriver<Tgpu, Tref>::GetandSetData()
     if(config_scale_factors[0] == -1 && size[0] == -1)
     {
         config_scale_factors[0] = 1;
-        for(int i = 1; i < in_len.size() - 2; i++)
+        for(size_t i = 1; i < in_len.size() - 2; i++)
         {
             config_scale_factors.push_back(1);
         }
@@ -202,18 +188,18 @@ int InterpolateDriver<Tgpu, Tref>::GetandSetData()
     {
         if(mode != MIOPEN_INTERPOLATE_MODE_NEAREST)
         {
-            for(int i = 0; i < in_len.size() - 2; i++)
+            for(size_t i = 0; i < in_len.size() - 2; i++)
             {
                 scale_factors.push_back(config_scale_factors[i]);
             }
         }
         else
         {
-            for(int i = 0; i < in_len.size() - 2; i++)
+            for(size_t i = 0; i < in_len.size() - 2; i++)
             {
                 scale_factors.push_back(config_scale_factors[i]);
             }
-            for(int i = in_len.size() - 2; i < 3; i++)
+            for(size_t i = in_len.size() - 2; i < 3; i++)
             {
                 scale_factors.push_back(0);
             }
@@ -223,7 +209,7 @@ int InterpolateDriver<Tgpu, Tref>::GetandSetData()
     auto out_len = std::vector<int>({in_len[0], in_len[1]});
     if(size[0] != -1)
     {
-        for(int i = 0; i < size.size(); i++)
+        for(size_t i = 0; i < size.size(); i++)
         {
             if(size[i] == 0)
                 out_len.push_back(static_cast<int>(ceil(in_len[i + 2] * scale_factors[i])));
@@ -243,15 +229,15 @@ int InterpolateDriver<Tgpu, Tref>::GetandSetData()
     }
     else
     {
-        for(int i = 0; i < in_len.size() - 2; i++)
+        for(size_t i = 0; i < in_len.size() - 2; i++)
         {
             out_len.push_back(static_cast<int>(ceil(in_len[i + 2] * scale_factors[i])));
             scale_factors[i] = static_cast<float>(out_len[i + 2]) / in_len[i + 2];
         }
     }
 
-    auto in_strides     = GetStrides(in_len, inflags.GetValueInt("contiguous"));
-    auto output_strides = GetStrides(out_len, 1);
+    auto in_strides     = ComputeStrides(in_len);
+    auto output_strides = ComputeStrides(out_len);
 
     SetTensorNd(inputDesc, in_len, in_strides, data_type);
     SetTensorNd(outputDesc, out_len, output_strides, data_type);
@@ -265,23 +251,36 @@ int InterpolateDriver<Tgpu, Tref>::GetandSetData()
     return miopenStatusSuccess;
 }
 
+// Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
+template <typename Tgpu, typename Tref>
+std::vector<int> InterpolateDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!isContiguous)
+        std::swap(inputDim.front(), inputDim.back());
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!isContiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
+}
+
 template <typename Tgpu, typename Tref>
 int InterpolateDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "1", "Run only Forward Interpolate (Default=1)", "int");
-    inflags.AddInputFlag(
+    inflags.AddTensorFlag(
         "input_dims",
         'D',
-        "16,256,1",
+        "16x256x1",
         "The dimensional lengths of the input tensor (>=3 and <=5 dimensions): N,C,D,H,W. "
-        "Example: 16,256,1.",
-        "string");
-    inflags.AddInputFlag("size",
-                         'S',
-                         "-1",
-                         "Output Spatial Size: D,H,W. "
-                         "Default: -1 - Use scale factors instead",
-                         "string");
+        "Example: 16x256x1.");
+    inflags.AddTensorFlag("size",
+                          'S',
+                          "1",
+                          "Output Spatial Size: DxHxW. "
+                          "Default: 1. If size = -1 use scale factors instead");
     inflags.AddInputFlag("scale_factors",
                          's',
                          "-1",
@@ -300,7 +299,7 @@ int InterpolateDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "This only has an effect when mode is 'linear', 'bilinear', 'bicubic' or "
                          "'trilinear'. Default: False",
                          "int");
-    inflags.AddInputFlag("contiguous",
+    inflags.AddInputFlag("is-contiguous",
                          'c',
                          "1",
                          "Is input tensor contiguous? (Default=1 for contiguous tensor)",
@@ -355,30 +354,54 @@ int InterpolateDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     in_grad_host = std::vector<Tref>(in_grad_sz, static_cast<Tref>(0));
     workspace    = std::vector<float>(ws_sizeInBytes / sizeof(float), static_cast<float>(0));
 
-    int status;
-
-    for(int i = 0; i < in_sz; i++)
+    for(size_t i = 0; i < in_sz; i++)
     {
         in[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-5.0f), static_cast<Tgpu>(1.0f));
     }
-    status = in_dev->ToGPU(q, in.data());
+    if(in_dev->ToGPU(q, in.data()) != 0)
+    {
+        std::cerr << "Error copying data (in_dev) to GPU, size: " << in_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= out_dev->ToGPU(q, out.data());
+    if(out_dev->ToGPU(q, out.data()) != 0)
+    {
+        std::cerr << "Error copying data (out_dev) to GPU, size: " << out_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= scale_factors_dev->ToGPU(q, scale_factors.data());
+    if(scale_factors_dev->ToGPU(q, scale_factors.data()) != 0)
+    {
+        std::cerr << "Error copying data (scale_factors_dev) to GPU, size: "
+                  << scale_factors_dev->GetSize() << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= in_grad_dev->ToGPU(q, in_grad.data());
+    if(in_grad_dev->ToGPU(q, in_grad.data()) != 0)
+    {
+        std::cerr << "Error copying data (in_grad_dev) to GPU, size: " << in_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    status |= workspace_dev->ToGPU(q, workspace.data());
+    if(workspace_dev->ToGPU(q, workspace.data()) != 0)
+    {
+        std::cerr << "Error copying data (workspace_dev) to GPU, size: " << workspace_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
-    for(int i = 0; i < out_grad_sz; i++)
+    for(size_t i = 0; i < out_grad_sz; i++)
     {
         out_grad[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(-10.0), static_cast<Tgpu>(10.0));
     }
-    status |= out_grad_dev->ToGPU(q, out_grad.data());
-
-    if(status != 0)
-        std::cout << "Error copying data to GPU\n" << std::endl;
+    if(out_grad_dev->ToGPU(q, out_grad.data()) != 0)
+    {
+        std::cerr << "Error copying data (out_grad_dev) to GPU, size: " << out_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -394,15 +417,16 @@ int InterpolateDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenInterpolateForward(GetHandle(),
-                                 inputDesc,
-                                 in_dev->GetMem(),
-                                 outputDesc,
-                                 out_dev->GetMem(),
-                                 scaleFactorsDesc,
-                                 scale_factors_dev->GetMem(),
-                                 mode,
-                                 align_corners);
+        auto status = miopenInterpolateForward(GetHandle(),
+                                               inputDesc,
+                                               in_dev->GetMem(),
+                                               outputDesc,
+                                               out_dev->GetMem(),
+                                               scaleFactorsDesc,
+                                               scale_factors_dev->GetMem(),
+                                               mode,
+                                               align_corners);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenInterpolateForward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -416,14 +440,21 @@ int InterpolateDriver<Tgpu, Tref>::RunForwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward Interpolate Elapsed: %f ms\n", t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Forward Interpolate Elapsed: " << t.gettime_ms() / iter
+                      << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Forward Interpolate Elapsed: %f ms\n", kernel_average_time);
+        std::cout << "GPU Kernel Time Forward Interpolate Elapsed: " << kernel_average_time
+                  << " ms\n";
     }
 
-    out_dev->FromGPU(GetStream(), out.data());
+    if(out_dev->FromGPU(GetStream(), out.data()) != 0)
+    {
+        std::cerr << "Error copying data (out_dev) from GPU, size: " << out_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -431,17 +462,20 @@ int InterpolateDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int InterpolateDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    size_t nelems = out_host.size();
-    mlo_interpolate_forward<Tgpu, Tref>(inputDesc,
-                                        outputDesc,
-                                        in.data(),
-                                        out_host.data(),
-                                        nelems,
-                                        scale_factors.data(),
-                                        align_corners,
-                                        mode);
+    int status = miopenStatusSuccess;
 
-    return miopenStatusSuccess;
+    size_t nelems = out_host.size();
+    status        = mlo_interpolate_forward<Tgpu, Tref>(inputDesc,
+                                                 outputDesc,
+                                                 in.data(),
+                                                 out_host.data(),
+                                                 nelems,
+                                                 scale_factors.data(),
+                                                 align_corners,
+                                                 mode);
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mlo_interpolate_forward");
+
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
@@ -455,19 +489,30 @@ int InterpolateDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        in_grad_dev->ToGPU(q, in_grad.data());
-        workspace_dev->ToGPU(q, workspace.data());
-        miopenInterpolateBackward(GetHandle(),
-                                  workspace_dev->GetMem(),
-                                  ws_sizeInBytes,
-                                  inputGradDesc,
-                                  in_grad_dev->GetMem(),
-                                  outputGradDesc,
-                                  out_grad_dev->GetMem(),
-                                  scaleFactorsDesc,
-                                  scale_factors_dev->GetMem(),
-                                  mode,
-                                  align_corners);
+        if(in_grad_dev->ToGPU(q, in_grad.data()) != 0)
+        {
+            std::cerr << "Error copying data (in_grad_dev) to GPU, size: " << in_grad_dev->GetSize()
+                      << std::endl;
+            return miopenStatusInternalError;
+        }
+        if(workspace_dev->ToGPU(q, workspace.data()) != 0)
+        {
+            std::cerr << "Error copying data (workspace_dev) to GPU, size: "
+                      << workspace_dev->GetSize() << std::endl;
+            return miopenStatusInternalError;
+        }
+        auto status = miopenInterpolateBackward(GetHandle(),
+                                                workspace_dev->GetMem(),
+                                                ws_sizeInBytes,
+                                                inputGradDesc,
+                                                in_grad_dev->GetMem(),
+                                                outputGradDesc,
+                                                out_grad_dev->GetMem(),
+                                                scaleFactorsDesc,
+                                                scale_factors_dev->GetMem(),
+                                                mode,
+                                                align_corners);
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenInterpolateBackward");
 
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
@@ -481,14 +526,21 @@ int InterpolateDriver<Tgpu, Tref>::RunBackwardGPU()
         STOP_TIME
         int iter = inflags.GetValueInt("iter");
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backward Interpolate Elapsed: %f ms\n", t.gettime_ms() / iter);
+            std::cout << "Wall-clock Time Backward Interpolate Elapsed: " << t.gettime_ms() / iter
+                      << " ms\n";
 
         float kernel_average_time =
             iter > 1 ? (kernel_total_time - kernel_first_time) / (iter - 1) : kernel_first_time;
-        printf("GPU Kernel Time Backward Interpolate Elapsed: %f ms\n", kernel_average_time);
+        std::cout << "GPU Kernel Time Backward Interpolate Elapsed: " << kernel_average_time
+                  << " ms\n";
     }
 
-    in_grad_dev->FromGPU(GetStream(), in_grad.data());
+    if(in_grad_dev->FromGPU(GetStream(), in_grad.data()) != 0)
+    {
+        std::cerr << "Error copying data (in_grad_dev) from GPU, size: " << in_grad_dev->GetSize()
+                  << std::endl;
+        return miopenStatusInternalError;
+    }
 
     return miopenStatusSuccess;
 }
@@ -496,16 +548,20 @@ int InterpolateDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int InterpolateDriver<Tgpu, Tref>::RunBackwardCPU()
 {
+    int status = miopenStatusSuccess;
+
     size_t nelems = in_grad_host.size();
-    mlo_interpolate_backward<Tgpu, Tref>(inputGradDesc,
-                                         outputGradDesc,
-                                         in_grad_host.data(),
-                                         out_grad.data(),
-                                         nelems,
-                                         scale_factors.data(),
-                                         align_corners,
-                                         mode);
-    return miopenStatusSuccess;
+    status        = mlo_interpolate_backward<Tgpu, Tref>(inputGradDesc,
+                                                  outputGradDesc,
+                                                  in_grad_host.data(),
+                                                  out_grad.data(),
+                                                  nelems,
+                                                  scale_factors.data(),
+                                                  align_corners,
+                                                  mode);
+    MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in mlo_interpolate_backward");
+
+    return status;
 }
 
 template <typename Tgpu, typename Tref>
@@ -522,7 +578,8 @@ int InterpolateDriver<Tgpu, Tref>::VerifyForward()
     }
     else
     {
-        printf("Output Forward Interpolate Verifies on CPU and GPU (err=%f)\n", error);
+        std::cout << "Forward Interpolate Verifies on CPU and GPU (err=" << error << ")"
+                  << std::endl;
     }
 
     return miopenStatusSuccess;
@@ -539,16 +596,13 @@ int InterpolateDriver<Tgpu, Tref>::VerifyBackward()
     {
         std::cout << "Backward Interpolate in Input Grad FAILED: " << error
                   << " while tolerance: " << tolerance << std::endl;
-        return EC_VerifyFwd;
+        return EC_VerifyBwd;
     }
     else
     {
-        printf("Backward Interpolate Verifies in Input Grad on CPU and GPU "
-               "(err=%f)\n",
-               error);
+        std::cout << "Backward Interpolate Verifies on CPU and GPU (error=" << error << ")"
+                  << std::endl;
     }
 
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_INTERPOLATE_DRIVER_HPP

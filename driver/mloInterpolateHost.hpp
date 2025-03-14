@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,16 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MLO_INTERPOLATE_H_
-#define MLO_INTERPOLATE_H_
-
-#include "driver.hpp"
-#include <cstdio>
 #pragma once
 
-#include <cmath>
 #include <miopen/tensor.hpp>
-#include <miopen/interpolate/utils.hpp>
+#include <miopen/tensor_view_utils.hpp>
+#include <../test/ford.hpp>
 
 inline float compute_linear_scale_factor(float scale_factor,
                                          long input_size,
@@ -103,7 +98,6 @@ inline void compute_linear_back_index_from_to(long src,
 inline void compute_source_index_and_lambda(long h,
                                             float scale_factor,
                                             long Hin,
-                                            long Hout,
                                             bool align_corners,
                                             long* hin_index0,
                                             long* hin_index1,
@@ -149,7 +143,7 @@ inline float compute_back_lambda(
     float lambda0;
     float lambda1;
     compute_source_index_and_lambda(
-        dest, scale_factor, Hin, Hout, align_corners, &index0, &index1, &lambda0, &lambda1);
+        dest, scale_factor, Hin, align_corners, &index0, &index1, &lambda0, &lambda1);
     return get_back_lambda(src, index0, index1, lambda0, lambda1);
 }
 
@@ -162,11 +156,10 @@ int32_t mlo_interpolate_linear_forward(const miopenTensorDescriptor_t inputDesc,
                                        const float* scale_factors,
                                        const bool align_corners)
 {
-    auto input_tv = miopen::solver::interpolate::get_inner_expanded_tv<3>(miopen::deref(inputDesc));
-    auto output_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<3>(miopen::deref(outputDesc));
+    auto input_tv  = get_inner_expanded_tv<3>(miopen::deref(inputDesc));
+    auto output_tv = get_inner_expanded_tv<3>(miopen::deref(outputDesc));
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(size_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<3>(output_tv, gid);
         long n             = tensor_layout.layout[0];
@@ -189,18 +182,11 @@ int32_t mlo_interpolate_linear_forward(const miopenTensorDescriptor_t inputDesc,
         long hin_index1;
         float lambda1;
         float lambda0;
-        compute_source_index_and_lambda(h,
-                                        scale_factor_h,
-                                        Hin,
-                                        Hout,
-                                        align_corners,
-                                        &hin_index0,
-                                        &hin_index1,
-                                        &lambda0,
-                                        &lambda1);
+        compute_source_index_and_lambda(
+            h, scale_factor_h, Hin, align_corners, &hin_index0, &hin_index1, &lambda0, &lambda1);
 
-        tensor_layout_t<3> input_layout0(n, c, hin_index0);
-        tensor_layout_t<3> input_layout1(n, c, hin_index1);
+        tensor_layout_t<3> input_layout0{n, c, hin_index0};
+        tensor_layout_t<3> input_layout1{n, c, hin_index1};
 
         float input0 = input[input_tv.get_tensor_view_idx(input_layout0)];
         float input1 = input[input_tv.get_tensor_view_idx(input_layout1)];
@@ -221,12 +207,10 @@ int32_t mlo_interpolate_linear_backward(const miopenTensorDescriptor_t inputGrad
                                         const float* scale_factors,
                                         const bool align_corners)
 {
-    auto output_grad_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<3>(miopen::deref(outputGradDesc));
-    auto input_grad_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<3>(miopen::deref(inputGradDesc));
+    auto output_grad_tv = get_inner_expanded_tv<3>(miopen::deref(outputGradDesc));
+    auto input_grad_tv  = get_inner_expanded_tv<3>(miopen::deref(inputGradDesc));
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(size_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<3>(input_grad_tv, gid);
         long n             = tensor_layout.layout[0];
@@ -252,7 +236,7 @@ int32_t mlo_interpolate_linear_backward(const miopenTensorDescriptor_t inputGrad
         float output = 0;
         for(long i = from; i < to; i++)
         {
-            tensor_layout_t<3> output_layout(n, c, i);
+            tensor_layout_t<3> output_layout{n, c, i};
             output +=
                 static_cast<float>(output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
                 compute_back_lambda(i, h, scale_factor, Hin, Hout, align_corners);
@@ -272,11 +256,10 @@ int32_t mlo_interpolate_bilinear_forward(const miopenTensorDescriptor_t inputDes
                                          const float* scale_factors,
                                          const bool align_corners)
 {
-    auto input_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
-    auto output_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
+    auto input_tv  = get_inner_expanded_tv<4>(miopen::deref(inputDesc));
+    auto output_tv = get_inner_expanded_tv<4>(miopen::deref(outputDesc));
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(size_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<4>(output_tv, gid);
         long n             = tensor_layout.layout[0];
@@ -308,7 +291,6 @@ int32_t mlo_interpolate_bilinear_forward(const miopenTensorDescriptor_t inputDes
             compute_source_index_and_lambda(h,
                                             scale_factor_h_,
                                             Hin,
-                                            Hout,
                                             align_corners,
                                             &hin_index0,
                                             &hin_index1,
@@ -328,7 +310,6 @@ int32_t mlo_interpolate_bilinear_forward(const miopenTensorDescriptor_t inputDes
             compute_source_index_and_lambda(w,
                                             scale_factor_w_,
                                             Win,
-                                            Wout,
                                             align_corners,
                                             &win_index0,
                                             &win_index1,
@@ -336,10 +317,10 @@ int32_t mlo_interpolate_bilinear_forward(const miopenTensorDescriptor_t inputDes
                                             &wlambda1);
         }
 
-        tensor_layout_t<4> input_layout00(n, c, hin_index0, win_index0);
-        tensor_layout_t<4> input_layout01(n, c, hin_index0, win_index1);
-        tensor_layout_t<4> input_layout10(n, c, hin_index1, win_index0);
-        tensor_layout_t<4> input_layout11(n, c, hin_index1, win_index1);
+        tensor_layout_t<4> input_layout00{n, c, hin_index0, win_index0};
+        tensor_layout_t<4> input_layout01{n, c, hin_index0, win_index1};
+        tensor_layout_t<4> input_layout10{n, c, hin_index1, win_index0};
+        tensor_layout_t<4> input_layout11{n, c, hin_index1, win_index1};
 
         output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(
             (static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout00)]) * wlambda0 +
@@ -362,12 +343,10 @@ int32_t mlo_interpolate_bilinear_backward(const miopenTensorDescriptor_t inputGr
                                           const float* scale_factors,
                                           const bool align_corners)
 {
-    auto output_grad_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
-    auto input_grad_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
+    auto output_grad_tv = get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
+    auto input_grad_tv  = get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(size_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<4>(input_grad_tv, gid);
         long n             = tensor_layout.layout[0];
@@ -422,7 +401,7 @@ int32_t mlo_interpolate_bilinear_backward(const miopenTensorDescriptor_t inputGr
                 float w_lambda =
                     compute_back_lambda(j, w, scale_factor_w_, Win, Wout, align_corners);
 
-                tensor_layout_t<4> output_layout(n, c, i, j);
+                tensor_layout_t<4> output_layout{n, c, i, j};
 
                 output += static_cast<float>(
                               output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
@@ -444,11 +423,10 @@ int32_t mlo_interpolate_trilinear_forward(const miopenTensorDescriptor_t inputDe
                                           const float* scale_factors,
                                           const bool align_corners)
 {
-    auto input_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
-    auto output_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    auto input_tv  = get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto output_tv = get_inner_expanded_tv<5>(miopen::deref(outputDesc));
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(size_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<5>(output_tv, gid);
         long n             = tensor_layout.layout[0];
@@ -483,7 +461,6 @@ int32_t mlo_interpolate_trilinear_forward(const miopenTensorDescriptor_t inputDe
             compute_source_index_and_lambda(d,
                                             scale_factor_d_,
                                             Din,
-                                            Dout,
                                             align_corners,
                                             &din_index0,
                                             &din_index1,
@@ -503,7 +480,6 @@ int32_t mlo_interpolate_trilinear_forward(const miopenTensorDescriptor_t inputDe
             compute_source_index_and_lambda(h,
                                             scale_factor_h_,
                                             Hin,
-                                            Hout,
                                             align_corners,
                                             &hin_index0,
                                             &hin_index1,
@@ -523,7 +499,6 @@ int32_t mlo_interpolate_trilinear_forward(const miopenTensorDescriptor_t inputDe
             compute_source_index_and_lambda(w,
                                             scale_factor_w_,
                                             Win,
-                                            Wout,
                                             align_corners,
                                             &win_index0,
                                             &win_index1,
@@ -531,14 +506,14 @@ int32_t mlo_interpolate_trilinear_forward(const miopenTensorDescriptor_t inputDe
                                             &wlambda1);
         }
 
-        tensor_layout_t<5> input_layout000(n, c, din_index0, hin_index0, win_index0);
-        tensor_layout_t<5> input_layout001(n, c, din_index0, hin_index0, win_index1);
-        tensor_layout_t<5> input_layout010(n, c, din_index0, hin_index1, win_index0);
-        tensor_layout_t<5> input_layout011(n, c, din_index0, hin_index1, win_index1);
-        tensor_layout_t<5> input_layout100(n, c, din_index1, hin_index0, win_index0);
-        tensor_layout_t<5> input_layout101(n, c, din_index1, hin_index0, win_index1);
-        tensor_layout_t<5> input_layout110(n, c, din_index1, hin_index1, win_index0);
-        tensor_layout_t<5> input_layout111(n, c, din_index1, hin_index1, win_index1);
+        tensor_layout_t<5> input_layout000{n, c, din_index0, hin_index0, win_index0};
+        tensor_layout_t<5> input_layout001{n, c, din_index0, hin_index0, win_index1};
+        tensor_layout_t<5> input_layout010{n, c, din_index0, hin_index1, win_index0};
+        tensor_layout_t<5> input_layout011{n, c, din_index0, hin_index1, win_index1};
+        tensor_layout_t<5> input_layout100{n, c, din_index1, hin_index0, win_index0};
+        tensor_layout_t<5> input_layout101{n, c, din_index1, hin_index0, win_index1};
+        tensor_layout_t<5> input_layout110{n, c, din_index1, hin_index1, win_index0};
+        tensor_layout_t<5> input_layout111{n, c, din_index1, hin_index1, win_index1};
 
         output[output_tv.get_tensor_view_idx(tensor_layout)] = static_cast<Tcheck>(
             (static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout000)]) * wlambda0 +
@@ -566,12 +541,10 @@ int32_t mlo_interpolate_trilinear_backward(const miopenTensorDescriptor_t inputG
                                            const float* scale_factors,
                                            const bool align_corners)
 {
-    auto output_grad_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
-    auto input_grad_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
+    auto output_grad_tv = get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
+    auto input_grad_tv  = get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(size_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<5>(input_grad_tv, gid);
         long n             = tensor_layout.layout[0];
@@ -619,7 +592,7 @@ int32_t mlo_interpolate_trilinear_backward(const miopenTensorDescriptor_t inputG
                 {
                     float w_lambda =
                         compute_back_lambda(k, w, scale_factor_w_, Win, Wout, align_corners);
-                    tensor_layout_t<5> output_layout(n, c, i, j, k);
+                    tensor_layout_t<5> output_layout{n, c, i, j, k};
 
                     output += output_grad[output_grad_tv.get_tensor_view_idx(output_layout)] *
                               d_lambda * h_lambda * w_lambda;
@@ -662,11 +635,10 @@ int32_t mlo_nearest_forward(const miopenTensorDescriptor_t inputDesc,
                             const size_t nelems,
                             const float* scale_factors)
 {
-    auto input_tv = miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(inputDesc));
-    auto output_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(outputDesc));
+    auto input_tv  = get_inner_expanded_tv<5>(miopen::deref(inputDesc));
+    auto output_tv = get_inner_expanded_tv<5>(miopen::deref(outputDesc));
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(size_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<5>(output_tv, gid);
         long n             = tensor_layout.layout[0];
@@ -686,7 +658,7 @@ int32_t mlo_nearest_forward(const miopenTensorDescriptor_t inputDesc,
         long y = nearest_idx(h, Hin, Hout, scale_factors[1]);
         long z = nearest_idx(w, Win, Wout, scale_factors[2]);
 
-        tensor_layout_t<5> input_layout(n, c, x, y, z);
+        tensor_layout_t<5> input_layout{n, c, x, y, z};
 
         output[output_tv.get_tensor_view_idx(tensor_layout)] =
             input[input_tv.get_tensor_view_idx(input_layout)];
@@ -720,12 +692,10 @@ int32_t mlo_nearest_backward(const miopenTensorDescriptor_t inputGradDesc,
                              const size_t nelems,
                              const float* scale_factors)
 {
-    auto output_grad_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
-    auto input_grad_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
+    auto output_grad_tv = get_inner_expanded_tv<5>(miopen::deref(outputGradDesc));
+    auto input_grad_tv  = get_inner_expanded_tv<5>(miopen::deref(inputGradDesc));
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(size_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<5>(input_grad_tv, gid);
         long n             = tensor_layout.layout[0];
@@ -759,7 +729,7 @@ int32_t mlo_nearest_backward(const miopenTensorDescriptor_t inputGradDesc,
             {
                 for(long w = wstart; w < wlimit; w++)
                 {
-                    tensor_layout_t<5> output_grad_layout(n, c, d, h, w);
+                    tensor_layout_t<5> output_grad_layout{n, c, d, h, w};
                     grad += static_cast<float>(
                         output_grad[output_grad_tv.get_tensor_view_idx(output_grad_layout)]);
                 }
@@ -824,11 +794,10 @@ int32_t mlo_bicubic_forward(const miopenTensorDescriptor_t inputDesc,
                             const float* scale_factors,
                             const bool align_corners)
 {
-    auto input_tv = miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(inputDesc));
-    auto output_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(outputDesc));
+    auto input_tv  = get_inner_expanded_tv<4>(miopen::deref(inputDesc));
+    auto output_tv = get_inner_expanded_tv<4>(miopen::deref(outputDesc));
 
-    for(unsigned long gid = 0; gid < nelems; ++gid)
+    for(size_t gid = 0; gid < nelems; ++gid)
     {
         auto tensor_layout = tensor_layout_t<4>(output_tv, gid);
         long n             = tensor_layout.layout[0];
@@ -866,10 +835,10 @@ int32_t mlo_bicubic_forward(const miopenTensorDescriptor_t inputDesc,
         for(int k = 0; k < 4; k++)
         {
             long y = bound(in_y - 1 + k, Hin);
-            tensor_layout_t<4> input_layout0(n, c, y, bound(in_x - 1, Win));
-            tensor_layout_t<4> input_layout1(n, c, y, bound(in_x, Win));
-            tensor_layout_t<4> input_layout2(n, c, y, bound(in_x + 1, Win));
-            tensor_layout_t<4> input_layout3(n, c, y, bound(in_x + 2, Win));
+            tensor_layout_t<4> input_layout0{n, c, y, bound(in_x - 1, Win)};
+            tensor_layout_t<4> input_layout1{n, c, y, bound(in_x, Win)};
+            tensor_layout_t<4> input_layout2{n, c, y, bound(in_x + 1, Win)};
+            tensor_layout_t<4> input_layout3{n, c, y, bound(in_x + 2, Win)};
 
             coefficients[k] = cubic_interp1d(
                 static_cast<float>(input[input_tv.get_tensor_view_idx(input_layout0)]),
@@ -894,10 +863,8 @@ int32_t mlo_bicubic_backward(const miopenTensorDescriptor_t inputGradDesc,
                              const float* scale_factors,
                              const bool align_corners)
 {
-    auto output_grad_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
-    auto input_grad_tv =
-        miopen::solver::interpolate::get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
+    auto output_grad_tv = get_inner_expanded_tv<4>(miopen::deref(outputGradDesc));
+    auto input_grad_tv  = get_inner_expanded_tv<4>(miopen::deref(inputGradDesc));
 
     std::vector<float> workspace;
     workspace.resize(nelems, 0);
@@ -950,7 +917,7 @@ int32_t mlo_bicubic_backward(const miopenTensorDescriptor_t inputGradDesc,
             for(int j = 0; j < 4; j++)
             {
                 int64_t input_w = bound(in_x - 1 + j, Win);
-                tensor_layout_t<4> in_grad_layout(n, c, input_h, input_w);
+                tensor_layout_t<4> in_grad_layout{n, c, input_h, input_w};
 
                 workspace[input_grad_tv.get_tensor_view_idx(in_grad_layout)] +=
                     out_value * y_coeffs[i] * x_coeffs[j];
@@ -1067,5 +1034,3 @@ int32_t mlo_interpolate_backward(const miopenTensorDescriptor_t inputGradDesc,
 
     return 0;
 }
-
-#endif // MLO_INTERPOLATE_H_

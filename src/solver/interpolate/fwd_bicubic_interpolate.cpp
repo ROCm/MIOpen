@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,17 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include <miopen/interpolate/solvers.hpp>
-#include <miopen/interpolate/utils.hpp>
-
-#include <miopen/interpolate/invoke_params.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
 #include <miopen/interpolate.hpp>
+#include <miopen/interpolate/invoke_params.hpp>
+#include <miopen/interpolate/solvers.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE_FWD_BICUBIC 256
 
@@ -42,6 +39,8 @@ namespace miopen {
 namespace solver {
 
 namespace interpolate {
+
+namespace {
 
 bool IsOverRocmBicubicFwd(const miopen::interpolate::FwdProblemDescription& problem)
 {
@@ -58,11 +57,19 @@ bool IsOverRocmBicubicFwd(const miopen::interpolate::FwdProblemDescription& prob
     return true;
 }
 
+} // namespace
+
 bool InterpolateBicubicForward::IsApplicable(
     const ExecutionContext&, const miopen::interpolate::FwdProblemDescription& problem) const
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_BICUBIC)
         return false;
+    if(!(problem.GetOutputDesc().GetType() == miopenHalf ||
+         problem.GetOutputDesc().GetType() == miopenFloat ||
+         problem.GetOutputDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
     if(!IsOverRocmBicubicFwd(problem))
         return false;
 

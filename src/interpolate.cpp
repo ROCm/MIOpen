@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/miopen.h"
 #include <miopen/interpolate.hpp>
 #include <miopen/kernel_cache.hpp>
 #include <miopen/float_equal.hpp>
@@ -34,6 +32,8 @@
 #include <miopen/find_solution.hpp>
 
 namespace miopen {
+
+namespace interpolate {
 
 miopenStatus_t InterpolateNearestForward(Handle& handle,
                                          const TensorDescriptor& inputDesc,
@@ -239,5 +239,7 @@ miopenStatus_t InterpolateLinearBackward(Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+} // namespace interpolate
 
 } // namespace miopen

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,92 +23,30 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/env.hpp>
 #include "interpolate.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace interpolate {
-
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct GPU_Interpolate_fwd_FP32 : InterpolateTestFwd<float>
-{
-};
-
-struct GPU_Interpolate_fwd_FP16 : InterpolateTestFwd<half>
-{
-};
-
-struct GPU_Interpolate_fwd_BFP16 : InterpolateTestFwd<bfloat16>
-{
-};
-
-struct GPU_Interpolate_bwd_FP32 : InterpolateTestBwd<float>
-{
-};
-
-struct GPU_Interpolate_bwd_FP16 : InterpolateTestBwd<half>
-{
-};
-
-struct GPU_Interpolate_bwd_BFP16 : InterpolateTestBwd<bfloat16>
-{
-};
-
-} // namespace interpolate
-using namespace interpolate;
+using float16 = half_float::half;
 
 // FORWARD TEST
+using GPU_Interpolate_fwd_FP32  = InterpolateTestFwd<float>;
+using GPU_Interpolate_fwd_FP16  = InterpolateTestFwd<float16>;
+using GPU_Interpolate_fwd_BFP16 = InterpolateTestFwd<bfloat16>;
+
 TEST_P(GPU_Interpolate_fwd_FP32, InterpolateTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Interpolate_fwd_FP16, InterpolateTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Interpolate_fwd_BFP16, InterpolateTest)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -122,46 +60,26 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::ValuesIn(InterpolateTestFwdConfigs()));
 
 // BACKWARD TEST
+using GPU_Interpolate_bwd_FP32  = InterpolateTestBwd<float>;
+using GPU_Interpolate_bwd_FP16  = InterpolateTestBwd<float16>;
+using GPU_Interpolate_bwd_BFP16 = InterpolateTestBwd<bfloat16>;
+
 TEST_P(GPU_Interpolate_bwd_FP32, InterpolateTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--float") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Interpolate_bwd_FP16, InterpolateTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--half") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 TEST_P(GPU_Interpolate_bwd_BFP16, InterpolateTestBwd)
 {
-    if((miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && GetFloatArg() == "--bfloat16") ||
-       miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 };
 
 INSTANTIATE_TEST_SUITE_P(Smoke,

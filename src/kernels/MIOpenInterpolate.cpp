@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -159,8 +159,8 @@ __device__ inline FLOAT_ACCUM compute_back_lambda(int64_t dest,
 template <typename TI, typename TO>
 __device__ inline void interpolateLinearForward(const TI* __restrict__ input,
                                                 TO* __restrict__ output,
-                                                const tensor_view_t<3> input_tv,
-                                                const tensor_view_t<3> output_tv,
+                                                tensor_view_t<3> input_tv,
+                                                tensor_view_t<3> output_tv,
                                                 const size_t nelems,
                                                 const float* scale_factors,
                                                 const bool align_corners)
@@ -193,9 +193,9 @@ __device__ inline void interpolateLinearForward(const TI* __restrict__ input,
     compute_source_index_and_lambda(
         h, scale_factor_h, Hin, align_corners, &hin_index0, &hin_index1, &lambda0, &lambda1);
 
-    tensor_layout_t<3> input_layout0(n, c, hin_index0);
+    tensor_layout_t<3> input_layout0({n, c, hin_index0});
 
-    tensor_layout_t<3> input_layout1(n, c, hin_index1);
+    tensor_layout_t<3> input_layout1({n, c, hin_index1});
 
     FLOAT_ACCUM input0 = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout0)]);
     FLOAT_ACCUM input1 = CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout1)]);
@@ -206,8 +206,8 @@ __device__ inline void interpolateLinearForward(const TI* __restrict__ input,
 
 extern "C" __global__ void InterpolateLinearForward(const INPUT_TYPE* __restrict__ input,
                                                     OUTPUT_TYPE* __restrict__ output,
-                                                    const tensor_view_t<3> input_tv,
-                                                    const tensor_view_t<3> output_tv,
+                                                    tensor_view_t<3> input_tv,
+                                                    tensor_view_t<3> output_tv,
                                                     const size_t nelems,
                                                     const float* scale_factors,
                                                     const bool align_corners)
@@ -219,8 +219,8 @@ extern "C" __global__ void InterpolateLinearForward(const INPUT_TYPE* __restrict
 template <typename TI, typename TO>
 __device__ inline void interpolateLinearBackward(TO* __restrict__ input_grad,
                                                  const TI* __restrict__ output_grad,
-                                                 const tensor_view_t<3> input_grad_tv,
-                                                 const tensor_view_t<3> output_grad_tv,
+                                                 tensor_view_t<3> input_grad_tv,
+                                                 tensor_view_t<3> output_grad_tv,
                                                  const size_t nelems,
                                                  const float* scale_factors,
                                                  const bool align_corners)
@@ -254,7 +254,7 @@ __device__ inline void interpolateLinearBackward(TO* __restrict__ input_grad,
     FLOAT_ACCUM output = 0;
     for(int64_t i = from; i < to; i++)
     {
-        tensor_layout_t<3> output_layout(n, c, i);
+        tensor_layout_t<3> output_layout({n, c, i});
         output += CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
                   compute_back_lambda(i, h, scale_factor, Hin, Hout, align_corners);
     }
@@ -263,8 +263,8 @@ __device__ inline void interpolateLinearBackward(TO* __restrict__ input_grad,
 
 extern "C" __global__ void InterpolateLinearBackward(OUTPUT_TYPE* __restrict__ input_grad,
                                                      const INPUT_TYPE* __restrict__ output_grad,
-                                                     const tensor_view_t<3> input_grad_tv,
-                                                     const tensor_view_t<3> output_grad_tv,
+                                                     tensor_view_t<3> input_grad_tv,
+                                                     tensor_view_t<3> output_grad_tv,
                                                      const size_t nelems,
                                                      const float* scale_factors,
                                                      const bool align_corners)
@@ -281,8 +281,8 @@ extern "C" __global__ void InterpolateLinearBackward(OUTPUT_TYPE* __restrict__ i
 template <typename TI, typename TO>
 __device__ inline void interpolateBilinearForward(const TI* __restrict__ input,
                                                   TO* __restrict__ output,
-                                                  const tensor_view_t<4> input_tv,
-                                                  const tensor_view_t<4> output_tv,
+                                                  tensor_view_t<4> input_tv,
+                                                  tensor_view_t<4> output_tv,
                                                   const size_t nelems,
                                                   const float* scale_factors,
                                                   const bool align_corners)
@@ -335,10 +335,10 @@ __device__ inline void interpolateBilinearForward(const TI* __restrict__ input,
             w, scale_factor_w_, Win, align_corners, &win_index0, &win_index1, &wlambda0, &wlambda1);
     }
 
-    tensor_layout_t<4> input_layout00(n, c, hin_index0, win_index0);
-    tensor_layout_t<4> input_layout01(n, c, hin_index0, win_index1);
-    tensor_layout_t<4> input_layout10(n, c, hin_index1, win_index0);
-    tensor_layout_t<4> input_layout11(n, c, hin_index1, win_index1);
+    tensor_layout_t<4> input_layout00({n, c, hin_index0, win_index0});
+    tensor_layout_t<4> input_layout01({n, c, hin_index0, win_index1});
+    tensor_layout_t<4> input_layout10({n, c, hin_index1, win_index0});
+    tensor_layout_t<4> input_layout11({n, c, hin_index1, win_index1});
 
     output[output_tv.get_tensor_view_idx(tensor_layout)] = CVT_ACCUM2FLOAT(
         (CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout00)]) * wlambda0 +
@@ -351,8 +351,8 @@ __device__ inline void interpolateBilinearForward(const TI* __restrict__ input,
 
 extern "C" __global__ void InterpolateBilinearForward(const INPUT_TYPE* __restrict__ input,
                                                       OUTPUT_TYPE* __restrict__ output,
-                                                      const tensor_view_t<4> input_tv,
-                                                      const tensor_view_t<4> output_tv,
+                                                      tensor_view_t<4> input_tv,
+                                                      tensor_view_t<4> output_tv,
                                                       const size_t nelems,
                                                       const float* scale_factors,
                                                       const bool align_corners)
@@ -364,8 +364,8 @@ extern "C" __global__ void InterpolateBilinearForward(const INPUT_TYPE* __restri
 template <typename TI, typename TO>
 __device__ inline void interpolateBilinearBackward(TO* __restrict__ input_grad,
                                                    const TI* __restrict__ output_grad,
-                                                   const tensor_view_t<4> input_grad_tv,
-                                                   const tensor_view_t<4> output_grad_tv,
+                                                   tensor_view_t<4> input_grad_tv,
+                                                   tensor_view_t<4> output_grad_tv,
                                                    const size_t nelems,
                                                    const float* scale_factors,
                                                    const bool align_corners)
@@ -427,7 +427,7 @@ __device__ inline void interpolateBilinearBackward(TO* __restrict__ input_grad,
             FLOAT_ACCUM w_lambda =
                 compute_back_lambda(j, w, scale_factor_w_, Win, Wout, align_corners);
 
-            tensor_layout_t<4> output_layout(n, c, i, j);
+            tensor_layout_t<4> output_layout({n, c, i, j});
 
             output +=
                 CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
@@ -439,8 +439,8 @@ __device__ inline void interpolateBilinearBackward(TO* __restrict__ input_grad,
 
 extern "C" __global__ void InterpolateBilinearBackward(OUTPUT_TYPE* __restrict__ input_grad,
                                                        const INPUT_TYPE* __restrict__ output_grad,
-                                                       const tensor_view_t<4> input_grad_tv,
-                                                       const tensor_view_t<4> output_grad_tv,
+                                                       tensor_view_t<4> input_grad_tv,
+                                                       tensor_view_t<4> output_grad_tv,
                                                        const size_t nelems,
                                                        const float* scale_factors,
                                                        const bool align_corners)
@@ -457,8 +457,8 @@ extern "C" __global__ void InterpolateBilinearBackward(OUTPUT_TYPE* __restrict__
 template <typename TI, typename TO>
 __device__ inline void interpolateTrilinearBackward(TO* __restrict__ input_grad,
                                                     const TI* __restrict__ output_grad,
-                                                    const tensor_view_t<5> input_grad_tv,
-                                                    const tensor_view_t<5> output_grad_tv,
+                                                    tensor_view_t<5> input_grad_tv,
+                                                    tensor_view_t<5> output_grad_tv,
                                                     const size_t nelems,
                                                     const float* scale_factors,
                                                     const bool align_corners)
@@ -543,7 +543,7 @@ __device__ inline void interpolateTrilinearBackward(TO* __restrict__ input_grad,
             {
                 FLOAT_ACCUM w_lambda =
                     compute_back_lambda(k, w, scale_factor_w_, Win, Wout, align_corners);
-                tensor_layout_t<5> output_layout(n, c, i, j, k);
+                tensor_layout_t<5> output_layout({n, c, i, j, k});
 
                 output += CVT_FLOAT2ACCUM(
                               output_grad[output_grad_tv.get_tensor_view_idx(output_layout)]) *
@@ -556,8 +556,8 @@ __device__ inline void interpolateTrilinearBackward(TO* __restrict__ input_grad,
 
 extern "C" __global__ void InterpolateTrilinearBackward(OUTPUT_TYPE* __restrict__ input_grad,
                                                         const INPUT_TYPE* __restrict__ output_grad,
-                                                        const tensor_view_t<5> input_grad_tv,
-                                                        const tensor_view_t<5> output_grad_tv,
+                                                        tensor_view_t<5> input_grad_tv,
+                                                        tensor_view_t<5> output_grad_tv,
                                                         const size_t nelems,
                                                         const float* scale_factors,
                                                         const bool align_corners)
@@ -598,8 +598,8 @@ nearest_idx(int64_t output_index, int64_t input_size, int64_t output_size, FLOAT
 template <typename TI, typename TO>
 __device__ inline void interpolateNearestForward(const TI* __restrict__ input,
                                                  TO* __restrict__ output,
-                                                 const tensor_view_t<5> input_tv,
-                                                 const tensor_view_t<5> output_tv,
+                                                 tensor_view_t<5> input_tv,
+                                                 tensor_view_t<5> output_tv,
                                                  const size_t nelems,
                                                  const float* scale_factors)
 {
@@ -629,7 +629,7 @@ __device__ inline void interpolateNearestForward(const TI* __restrict__ input,
     int64_t y = nearest_idx(h, Hin, Hout, scale_factor_h);
     int64_t z = nearest_idx(w, Win, Wout, scale_factor_w);
 
-    tensor_layout_t<5> input_layout(n, c, x, y, z);
+    tensor_layout_t<5> input_layout({n, c, x, y, z});
 
     output[output_tv.get_tensor_view_idx(tensor_layout)] =
         input[input_tv.get_tensor_view_idx(input_layout)];
@@ -637,8 +637,8 @@ __device__ inline void interpolateNearestForward(const TI* __restrict__ input,
 
 extern "C" __global__ void InterpolateNearestForward(const INPUT_TYPE* __restrict__ input,
                                                      OUTPUT_TYPE* __restrict__ output,
-                                                     const tensor_view_t<5> input_tv,
-                                                     const tensor_view_t<5> output_tv,
+                                                     tensor_view_t<5> input_tv,
+                                                     tensor_view_t<5> output_tv,
                                                      const size_t nelems,
                                                      const float* scale_factors)
 {
@@ -667,8 +667,8 @@ nearest_idx_back(int64_t input_index, int64_t input_size, int64_t output_size, F
 template <typename TI, typename TO>
 __device__ inline void interpolateNearestBackward(TO* __restrict__ input_grad,
                                                   const TI* __restrict__ output_grad,
-                                                  const tensor_view_t<5> input_grad_tv,
-                                                  const tensor_view_t<5> output_grad_tv,
+                                                  tensor_view_t<5> input_grad_tv,
+                                                  tensor_view_t<5> output_grad_tv,
                                                   const size_t nelems,
                                                   const float* scale_factors)
 {
@@ -708,7 +708,7 @@ __device__ inline void interpolateNearestBackward(TO* __restrict__ input_grad,
         {
             for(int64_t w = wstart; w < wlimit; w++)
             {
-                tensor_layout_t<5> output_grad_layout(n, c, d, h, w);
+                tensor_layout_t<5> output_grad_layout({n, c, d, h, w});
                 grad += CVT_FLOAT2ACCUM(
                     output_grad[output_grad_tv.get_tensor_view_idx(output_grad_layout)]);
             }
@@ -719,8 +719,8 @@ __device__ inline void interpolateNearestBackward(TO* __restrict__ input_grad,
 
 extern "C" __global__ void InterpolateNearestBackward(OUTPUT_TYPE* __restrict__ input_grad,
                                                       const INPUT_TYPE* __restrict__ output_grad,
-                                                      const tensor_view_t<5> input_grad_tv,
-                                                      const tensor_view_t<5> output_grad_tv,
+                                                      tensor_view_t<5> input_grad_tv,
+                                                      tensor_view_t<5> output_grad_tv,
                                                       const size_t nelems,
                                                       const float* scale_factors)
 {
@@ -782,8 +782,8 @@ __device__ inline int64_t bound(int64_t p, int64_t max_size)
 template <typename TI, typename TO>
 __device__ inline void interpolateBicubicForward(const TI* __restrict__ input,
                                                  TO* __restrict__ output,
-                                                 const tensor_view_t<4> input_tv,
-                                                 const tensor_view_t<4> output_tv,
+                                                 tensor_view_t<4> input_tv,
+                                                 tensor_view_t<4> output_tv,
                                                  const size_t nelems,
                                                  const float* scale_factors,
                                                  const bool align_corners)
@@ -828,10 +828,10 @@ __device__ inline void interpolateBicubicForward(const TI* __restrict__ input,
     for(int k = 0; k < 4; k++)
     {
         int64_t y = bound(in_y - 1 + k, Hin);
-        tensor_layout_t<4> input_layout0(n, c, y, bound(in_x - 1, Win));
-        tensor_layout_t<4> input_layout1(n, c, y, bound(in_x, Win));
-        tensor_layout_t<4> input_layout2(n, c, y, bound(in_x + 1, Win));
-        tensor_layout_t<4> input_layout3(n, c, y, bound(in_x + 2, Win));
+        tensor_layout_t<4> input_layout0({n, c, y, bound(in_x - 1, Win)});
+        tensor_layout_t<4> input_layout1({n, c, y, bound(in_x, Win)});
+        tensor_layout_t<4> input_layout2({n, c, y, bound(in_x + 1, Win)});
+        tensor_layout_t<4> input_layout3({n, c, y, bound(in_x + 2, Win)});
 
         coefficients[k] =
             cubic_interp1d(CVT_FLOAT2ACCUM(input[input_tv.get_tensor_view_idx(input_layout0)]),
@@ -847,8 +847,8 @@ __device__ inline void interpolateBicubicForward(const TI* __restrict__ input,
 
 extern "C" __global__ void InterpolateBicubicForward(const INPUT_TYPE* __restrict__ input,
                                                      OUTPUT_TYPE* __restrict__ output,
-                                                     const tensor_view_t<4> input_tv,
-                                                     const tensor_view_t<4> output_tv,
+                                                     tensor_view_t<4> input_tv,
+                                                     tensor_view_t<4> output_tv,
                                                      const size_t nelems,
                                                      const float* scale_factors,
                                                      const bool align_corners)
@@ -860,8 +860,8 @@ extern "C" __global__ void InterpolateBicubicForward(const INPUT_TYPE* __restric
 template <typename TI, typename TD>
 __device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
                                                   const TI* __restrict__ output_grad,
-                                                  const tensor_view_t<4> input_grad_tv,
-                                                  const tensor_view_t<4> output_grad_tv,
+                                                  tensor_view_t<4> input_grad_tv,
+                                                  tensor_view_t<4> output_grad_tv,
                                                   const size_t nelems,
                                                   const float* scale_factors,
                                                   const bool align_corners)
@@ -917,7 +917,7 @@ __device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
         for(int j = 0; j < 4; j++)
         {
             int64_t input_w = bound(in_x - 1 + j, Win);
-            tensor_layout_t<4> in_grad_layout(n, c, input_h, input_w);
+            tensor_layout_t<4> in_grad_layout({n, c, input_h, input_w});
 
             atomicAdd(workspace + input_grad_tv.get_tensor_view_idx(in_grad_layout),
                       out_value * y_coeffs[i] * x_coeffs[j]);
@@ -928,7 +928,7 @@ __device__ inline void interpolateBicubicBackward(TD* __restrict__ workspace,
 template <typename TD, typename TO>
 __device__ inline void interpolateBicubicBackward_paste(TO* __restrict__ input_grad,
                                                         const TD* __restrict__ workspace,
-                                                        const tensor_view_t<4> input_grad_tv,
+                                                        tensor_view_t<4> input_grad_tv,
                                                         const size_t nelems)
 {
     int64_t gid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -942,8 +942,8 @@ __device__ inline void interpolateBicubicBackward_paste(TO* __restrict__ input_g
 
 extern "C" __global__ void InterpolateBicubicBackward(DTYPE* __restrict__ workspace,
                                                       const INPUT_TYPE* __restrict__ output_grad,
-                                                      const tensor_view_t<4> input_grad_tv,
-                                                      const tensor_view_t<4> output_grad_tv,
+                                                      tensor_view_t<4> input_grad_tv,
+                                                      tensor_view_t<4> output_grad_tv,
                                                       const size_t nelems,
                                                       const float* scale_factors,
                                                       const bool align_corners)
@@ -959,7 +959,7 @@ extern "C" __global__ void InterpolateBicubicBackward(DTYPE* __restrict__ worksp
 
 extern "C" __global__ void InterpolateBicubicBackward_paste(OUTPUT_TYPE* __restrict__ input_grad,
                                                             const DTYPE* __restrict__ workspace,
-                                                            const tensor_view_t<4> input_grad_tv,
+                                                            tensor_view_t<4> input_grad_tv,
                                                             const size_t nelems)
 {
     interpolateBicubicBackward_paste<DTYPE, OUTPUT_TYPE>(

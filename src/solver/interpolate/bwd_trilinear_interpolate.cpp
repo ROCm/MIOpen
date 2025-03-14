@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/activ.hpp"
-#include "miopen/conv_solution.hpp"
-#include "miopen/execution_context.hpp"
-#include "miopen/invoke_params.hpp"
-#include "miopen/miopen.h"
-#include <miopen/interpolate/solvers.hpp>
-#include <miopen/interpolate/utils.hpp>
-
-#include <miopen/interpolate/invoke_params.hpp>
 #include <miopen/datatype.hpp>
+#include <miopen/kernel_build_params.hpp>
 #include <miopen/interpolate.hpp>
+#include <miopen/interpolate/invoke_params.hpp>
+#include <miopen/interpolate/solvers.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/target_properties.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE_BWD_TRILINEAR 256
 
@@ -44,6 +39,8 @@ namespace miopen {
 namespace solver {
 
 namespace interpolate {
+
+namespace {
 
 bool IsOverRocmTrilinearBwd(const miopen::interpolate::BwdProblemDescription& problem)
 {
@@ -72,11 +69,19 @@ bool IsOverRocmTrilinearBwd(const miopen::interpolate::BwdProblemDescription& pr
     return true;
 }
 
+} // namespace
+
 bool InterpolateTrilinearBackward::IsApplicable(
     const ExecutionContext&, const miopen::interpolate::BwdProblemDescription& problem) const
 {
     if(problem.GetMode() != miopenInterpolateMode_t::MIOPEN_INTERPOLATE_MODE_TRILINEAR)
         return false;
+    if(!(problem.GetOutputGradDesc().GetType() == miopenHalf ||
+         problem.GetOutputGradDesc().GetType() == miopenFloat ||
+         problem.GetOutputGradDesc().GetType() == miopenBFloat16))
+    {
+        return false;
+    }
     if(!IsOverRocmTrilinearBwd(problem))
         return false;
 

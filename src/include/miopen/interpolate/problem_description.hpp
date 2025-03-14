@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,9 +26,9 @@
 
 #pragma once
 
-#include "miopen/miopen.h"
-#include <miopen/problem_description_base.hpp>
+#include <miopen/miopen.h>
 #include <miopen/activ.hpp>
+#include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
@@ -67,8 +67,6 @@ struct ProblemDescription : ProblemDescriptionBase
     {
         if(scaleFactorsDesc.GetType() != miopenFloat)
         {
-            std::cout << "scaleFactorsDesc.GetType() = " << scaleFactorsDesc.GetType()
-                      << "miopenFloat type:" << miopenFloat << std::endl;
             MIOPEN_THROW(miopenStatusBadParm,
                          "Interpolate: Scale factor type should be miopenFloat.");
         }
@@ -103,19 +101,19 @@ struct FwdProblemDescription : ProblemDescription
 
     bool IsValidLength() const
     {
-        if(inputDesc.GetSize() < 3 || inputDesc.GetSize() > 5)
+        if(inputDesc.GetNumDims() < 3 || inputDesc.GetNumDims() > 5)
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "Interpolate: Input or output tensor size < 3 or > 5 is not valid.");
         }
 
-        if(outputDesc.GetSize() != inputDesc.GetSize())
+        if(outputDesc.GetNumDims() != inputDesc.GetNumDims())
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "Interpolate: Input and output tensor size do not match.");
         }
 
-        if((outputDesc.GetSize() - 2) != scaleFactorsDesc.GetElementSize())
+        if((outputDesc.GetNumDims() - 2) != scaleFactorsDesc.GetElementSize())
         {
             if(mode != MIOPEN_INTERPOLATE_MODE_NEAREST)
             {
@@ -131,14 +129,14 @@ struct FwdProblemDescription : ProblemDescription
     {
         if(mode == MIOPEN_INTERPOLATE_MODE_LINEAR)
         {
-            if(inputDesc.GetSize() != 3)
+            if(inputDesc.GetNumDims() != 3)
             {
                 MIOPEN_THROW(miopenStatusBadParm, "Interpolate: Linear mode requires 3D tensors.");
             }
         }
         if(mode == MIOPEN_INTERPOLATE_MODE_BILINEAR)
         {
-            if(inputDesc.GetSize() != 4)
+            if(inputDesc.GetNumDims() != 4)
             {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Interpolate: Bilinear mode requires 4D tensors.");
@@ -146,14 +144,14 @@ struct FwdProblemDescription : ProblemDescription
         }
         if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
         {
-            if(inputDesc.GetSize() != 4)
+            if(inputDesc.GetNumDims() != 4)
             {
                 MIOPEN_THROW(miopenStatusBadParm, "Interpolate: Bicubic mode requires 4D tensors.");
             }
         }
         if(mode == MIOPEN_INTERPOLATE_MODE_TRILINEAR)
         {
-            if(inputDesc.GetSize() != 5)
+            if(inputDesc.GetNumDims() != 5)
             {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Interpolate: Trilinear mode requires 5D tensors.");
@@ -199,20 +197,20 @@ struct BwdProblemDescription : ProblemDescription
 
     bool IsValidLength() const
     {
-        if(inputGradDesc.GetSize() < 3 || inputGradDesc.GetSize() > 5)
+        if(inputGradDesc.GetNumDims() < 3 || inputGradDesc.GetNumDims() > 5)
         {
             MIOPEN_THROW(
                 miopenStatusBadParm,
                 "Interpolate: Input grad or output grad tensor size < 3 or > 5 is not valid.");
         }
 
-        if(outputGradDesc.GetSize() != inputGradDesc.GetSize())
+        if(outputGradDesc.GetNumDims() != inputGradDesc.GetNumDims())
         {
             MIOPEN_THROW(miopenStatusBadParm,
                          "Interpolate: Input grad and output grad tensor size do not match.");
         }
 
-        if((outputGradDesc.GetSize() - 2) != scaleFactorsDesc.GetElementSize())
+        if((outputGradDesc.GetNumDims() - 2) != scaleFactorsDesc.GetElementSize())
         {
             if(mode != MIOPEN_INTERPOLATE_MODE_NEAREST)
             {
@@ -227,14 +225,14 @@ struct BwdProblemDescription : ProblemDescription
     {
         if(mode == MIOPEN_INTERPOLATE_MODE_LINEAR)
         {
-            if(inputGradDesc.GetSize() != 3)
+            if(inputGradDesc.GetNumDims() != 3)
             {
                 MIOPEN_THROW(miopenStatusBadParm, "Interpolate: Linear mode requires 3D tensors.");
             }
         }
         if(mode == MIOPEN_INTERPOLATE_MODE_BILINEAR)
         {
-            if(inputGradDesc.GetSize() != 4)
+            if(inputGradDesc.GetNumDims() != 4)
             {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Interpolate: Bilinear mode requires 4D tensors.");
@@ -242,14 +240,14 @@ struct BwdProblemDescription : ProblemDescription
         }
         if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
         {
-            if(inputGradDesc.GetSize() != 4)
+            if(inputGradDesc.GetNumDims() != 4)
             {
                 MIOPEN_THROW(miopenStatusBadParm, "Interpolate: Bicubic mode requires 4D tensors.");
             }
         }
         if(mode == MIOPEN_INTERPOLATE_MODE_TRILINEAR)
         {
-            if(inputGradDesc.GetSize() != 5)
+            if(inputGradDesc.GetNumDims() != 5)
             {
                 MIOPEN_THROW(miopenStatusBadParm,
                              "Interpolate: Trilinear mode requires 5D tensors.");

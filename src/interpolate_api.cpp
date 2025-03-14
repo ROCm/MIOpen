@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-#include "miopen/miopen.h"
 #include <miopen/interpolate.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -34,7 +32,7 @@
 inline std::ostream& operator<<(std::ostream& os, const std::vector<size_t>& v)
 {
     os << '{';
-    for(int i = 0; i < v.size(); ++i)
+    for(size_t i = 0; i < v.size(); ++i)
     {
         if(i != 0)
             os << ',';
@@ -102,26 +100,26 @@ extern "C" miopenStatus_t miopenInterpolateForward(miopenHandle_t handle,
     if(mode == MIOPEN_INTERPOLATE_MODE_NEAREST)
     {
         return miopen::try_([&] {
-            miopen::InterpolateNearestForward(miopen::deref(handle),
-                                              miopen::deref(inputDesc),
-                                              DataCast(input),
-                                              miopen::deref(outputDesc),
-                                              DataCast(output),
-                                              miopen::deref(scaleFactorsDesc),
-                                              DataCast(scale_factors),
-                                              mode);
+            miopen::interpolate::InterpolateNearestForward(miopen::deref(handle),
+                                                           miopen::deref(inputDesc),
+                                                           DataCast(input),
+                                                           miopen::deref(outputDesc),
+                                                           DataCast(output),
+                                                           miopen::deref(scaleFactorsDesc),
+                                                           DataCast(scale_factors),
+                                                           mode);
         });
     }
     return miopen::try_([&] {
-        miopen::InterpolateLinearCubicForward(miopen::deref(handle),
-                                              miopen::deref(inputDesc),
-                                              DataCast(input),
-                                              miopen::deref(outputDesc),
-                                              DataCast(output),
-                                              miopen::deref(scaleFactorsDesc),
-                                              DataCast(scale_factors),
-                                              mode,
-                                              align_corners);
+        miopen::interpolate::InterpolateLinearCubicForward(miopen::deref(handle),
+                                                           miopen::deref(inputDesc),
+                                                           DataCast(input),
+                                                           miopen::deref(outputDesc),
+                                                           DataCast(output),
+                                                           miopen::deref(scaleFactorsDesc),
+                                                           DataCast(scale_factors),
+                                                           mode,
+                                                           align_corners);
     });
 }
 
@@ -140,12 +138,13 @@ miopenGetInterpolateBackwardWorkspaceSize(miopenHandle_t handle,
 
     return miopen::try_([&] {
         miopen::deref(sizeInBytes) =
-            miopen::GetInterpolateBicubicBackwardWorkspaceSize(miopen::deref(handle),
-                                                               miopen::deref(outputGradDesc),
-                                                               miopen::deref(inputGradDesc),
-                                                               miopen::deref(scaleFactorsDesc),
-                                                               mode,
-                                                               align_corners);
+            miopen::interpolate::GetInterpolateBicubicBackwardWorkspaceSize(
+                miopen::deref(handle),
+                miopen::deref(outputGradDesc),
+                miopen::deref(inputGradDesc),
+                miopen::deref(scaleFactorsDesc),
+                mode,
+                align_corners);
     });
 }
 
@@ -175,41 +174,41 @@ extern "C" miopenStatus_t miopenInterpolateBackward(miopenHandle_t handle,
     if(mode == MIOPEN_INTERPOLATE_MODE_NEAREST)
     {
         return miopen::try_([&] {
-            miopen::InterpolateNearestBackward(miopen::deref(handle),
-                                               miopen::deref(inputGradDesc),
-                                               DataCast(input_grad),
-                                               miopen::deref(outputGradDesc),
-                                               DataCast(output_grad),
-                                               miopen::deref(scaleFactorsDesc),
-                                               DataCast(scale_factors),
-                                               mode);
+            miopen::interpolate::InterpolateNearestBackward(miopen::deref(handle),
+                                                            miopen::deref(inputGradDesc),
+                                                            DataCast(input_grad),
+                                                            miopen::deref(outputGradDesc),
+                                                            DataCast(output_grad),
+                                                            miopen::deref(scaleFactorsDesc),
+                                                            DataCast(scale_factors),
+                                                            mode);
         });
     }
     else if(mode == MIOPEN_INTERPOLATE_MODE_BICUBIC)
     {
         return miopen::try_([&] {
-            miopen::InterpolateBicubicBackward(miopen::deref(handle),
-                                               DataCast(workspace),
-                                               workspaceSizeInBytes,
-                                               miopen::deref(inputGradDesc),
-                                               DataCast(input_grad),
-                                               miopen::deref(outputGradDesc),
-                                               DataCast(output_grad),
-                                               miopen::deref(scaleFactorsDesc),
-                                               DataCast(scale_factors),
-                                               mode,
-                                               align_corners);
+            miopen::interpolate::InterpolateBicubicBackward(miopen::deref(handle),
+                                                            DataCast(workspace),
+                                                            workspaceSizeInBytes,
+                                                            miopen::deref(inputGradDesc),
+                                                            DataCast(input_grad),
+                                                            miopen::deref(outputGradDesc),
+                                                            DataCast(output_grad),
+                                                            miopen::deref(scaleFactorsDesc),
+                                                            DataCast(scale_factors),
+                                                            mode,
+                                                            align_corners);
         });
     }
     return miopen::try_([&] {
-        miopen::InterpolateLinearBackward(miopen::deref(handle),
-                                          miopen::deref(inputGradDesc),
-                                          DataCast(input_grad),
-                                          miopen::deref(outputGradDesc),
-                                          DataCast(output_grad),
-                                          miopen::deref(scaleFactorsDesc),
-                                          DataCast(scale_factors),
-                                          mode,
-                                          align_corners);
+        miopen::interpolate::InterpolateLinearBackward(miopen::deref(handle),
+                                                       miopen::deref(inputGradDesc),
+                                                       DataCast(input_grad),
+                                                       miopen::deref(outputGradDesc),
+                                                       DataCast(output_grad),
+                                                       miopen::deref(scaleFactorsDesc),
+                                                       DataCast(scale_factors),
+                                                       mode,
+                                                       align_corners);
     });
 }
