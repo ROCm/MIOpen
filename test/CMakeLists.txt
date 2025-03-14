@@ -54,7 +54,7 @@ option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option( MIOPEN_TEST_GFX908 "Test on MI100 (gfx908)" OFF )
 option( MIOPEN_TEST_GFX90A "Test on MI2X0 (gfx90a)" OFF )
-option( MIOPEN_TEST_GFX94X "Test on MI300 (gfx940/1/2)" OFF )
+option( MIOPEN_TEST_GFX94X "Test on MI300 (gfx942)" OFF )
 option( MIOPEN_TEST_GFX95X "Test on (gfx950)" OFF )
 option( MIOPEN_TEST_GFX900 "Test on Vega10 (gfx900)" OFF )
 option( MIOPEN_TEST_GFX906 "Test on Vega20 (gfx906)" OFF )
@@ -139,7 +139,7 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
             set(MIOPEN_TEST_GFX908 ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx90a")
             set(MIOPEN_TEST_GFX90A ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx94")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx942")
             set(MIOPEN_TEST_GFX94X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx95")
             set(MIOPEN_TEST_GFX95X ON)
@@ -732,43 +732,12 @@ endif()
 
 set(DYNAMIC_IMPLICITGEMM_COMMON
     MIOPEN_FIND_MODE=normal)
-set(DYNAMIC_IMPLICITGEMM_ENVS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd)
-set(DYNAMIC_IMPLICITGEMM_1X1_ENVS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd_1x1)
-set(DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlops)
-set(DYNAMIC_IMPLICITGEMM_BWD_ENVS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicBwd)
-set(DYNAMIC_IMPLICITGEMM_WRW_ENVS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicWrw)
-set(DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlops)
-set(DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlops)
 set(DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC)
 set(DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC)
-
-# TODO: disabled for WORKAROUND_ISSUE_1979
-#add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_group SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-#    ENVIRONMENT ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS}
-#    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 28 28 --weights 16  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 2 --disable-forward --disable-backward-weights
-#    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 17 17 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4 --disable-forward --disable-backward-weights
-#    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  8  128 56 56 --weights 128 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 8 --disable-forward --disable-backward-weights
-#)
-
-# Be careful to add testings for (x=1, y=1, c % 8 != 0) due to WORKAROUND_SWDEV_306318
 
 set(DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
@@ -835,11 +804,6 @@ endif()
 # * Use TEST_TUNING. This flag leads to test failure in case of any "Error"
 #   message output to the log, which happens if something is broken in the tuning machinery.
 # * Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
-
-add_custom_test(smoke_solver_ConvHipImplicitGemmFwdXdlops GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX94X_ENABLED HALF_ENABLED INT8_ENABLED
-    ENVIRONMENT MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmFwdXdlops
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8} --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
-)
 
 # FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
 add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x2 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON

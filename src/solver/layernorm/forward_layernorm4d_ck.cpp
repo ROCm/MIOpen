@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/env.hpp>
 #include <miopen/layernorm.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/layernorm/invoke_params.hpp>
@@ -31,6 +32,7 @@
 #include <ck/library/tensor_operation_instance/gpu/normalization_fwd.hpp>
 #include <miopen/solver/ck_utility_common.hpp>
 #endif
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)
 
 namespace miopen {
@@ -278,7 +280,7 @@ ConvSolution Layernorm4DCKForward::GetSolution(
     case miopenBFloat8_fnuz:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
+                     "Layernorm4DCKForward operation not implemented for this data type");
     }
 #endif
     return {};
