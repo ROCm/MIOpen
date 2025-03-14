@@ -23,7 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>

@@ -170,7 +170,7 @@ pipeline {
                     agent{ label rocmnode("nogpu") }
                     steps{
                         script {
-                            utils.buildHipClangJobAndReboot( package_build: "true", needs_gpu:false, needs_reboot:false)
+                            utils.buildHipClangJobAndReboot( package_build:true, needs_gpu:false, needs_reboot:false)
                         }
                     }
                 }
@@ -212,6 +212,19 @@ pipeline {
                         }
                     }
                 }
+                stage('Check GTest Format') {
+                agent { label rocmnode("nogpu") }
+                when {
+                    changeset "**/test/gtest/**"
+                }
+                steps {
+                    script {
+                        checkout scm
+                        sh 'cd ./test/utils && python3 gtest_formating_checks.py'
+                        }
+                    }
+                }
+
                 stage('HipNoGPU Debug Build Test') {
                     when {
                         beforeAgent true
