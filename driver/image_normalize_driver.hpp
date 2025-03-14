@@ -294,11 +294,8 @@ int ImageNormalizeDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int ImageNormalizeDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloImageNormalizeContiguousRunHost(miopen::deref(inputTensorDesc),
-                                       input_host.data(),
-                                       out_ref.data(),
-                                       mean_host.data(),
-                                       stdvar_host.data());
+    mloImageNormalizeContiguousRunHost(
+        inputTensorDesc, input_host.data(), out_ref.data(), mean_host.data(), stdvar_host.data());
 
     return miopenStatusSuccess;
 }

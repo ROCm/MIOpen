@@ -25,89 +25,43 @@
  *******************************************************************************/
 
 #include "image_adjust_hue.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace image_adjust_hue {
 
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct ImageAdjustHueTestFloat : ImageAdjustHueTest<float>
-{
-};
-
-struct ImageAdjustHueTestHalf : ImageAdjustHueTest<half>
-{
-};
-
-struct ImageAdjustHueTestBfloat16 : ImageAdjustHueTest<bfloat16>
-{
-};
+using GPU_ImageAdjustHue_FP32  = ImageAdjustHueTest<float>;
+using GPU_ImageAdjustHue_FP16  = ImageAdjustHueTest<half>;
+using GPU_ImageAdjustHue_BFP16 = ImageAdjustHueTest<bfloat16>;
 
 } // namespace image_adjust_hue
 
 using namespace image_adjust_hue;
 
-TEST_P(ImageAdjustHueTestFloat, ImageAdjustHueTestFw)
+TEST_P(GPU_ImageAdjustHue_FP32, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(ImageAdjustHueTestHalf, ImageAdjustHueTestFw)
+TEST_P(GPU_ImageAdjustHue_FP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(ImageAdjustHueTestBfloat16, ImageAdjustHueTestFw)
+TEST_P(GPU_ImageAdjustHue_BFP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(ImageAdjustHueTest,
-                         ImageAdjustHueTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageAdjustHue_FP32,
                          testing::ValuesIn(ImageAdjustHueTestConfigs()));
 
-INSTANTIATE_TEST_SUITE_P(ImageAdjustHueTest,
-                         ImageAdjustHueTestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageAdjustHue_FP16,
                          testing::ValuesIn(ImageAdjustHueTestConfigs()));
 
-INSTANTIATE_TEST_SUITE_P(ImageAdjustHueTest,
-                         ImageAdjustHueTestBfloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageAdjustHue_BFP16,
                          testing::ValuesIn(ImageAdjustHueTestConfigs()));

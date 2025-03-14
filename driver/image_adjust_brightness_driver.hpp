@@ -242,7 +242,7 @@ template <typename Tgpu, typename Tref>
 int ImageAdjustBrightnessDriver<Tgpu, Tref>::RunForwardCPU()
 {
     mloImageAdjustBrightnessContiguousRunHost(
-        in_host.data(), out_ref.data(), miopen::deref(inputTensorDesc), brightness_factor);
+        in_host.data(), out_ref.data(), inputTensorDesc, brightness_factor);
     return miopenStatusSuccess;
 }
 

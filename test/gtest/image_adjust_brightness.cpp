@@ -25,89 +25,43 @@
  *******************************************************************************/
 
 #include "image_adjust_brightness.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace image_adjust_brightness {
 
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct ImageAdjustBrightnessTestFloat : ImageAdjustBrightnessTest<float>
-{
-};
-
-struct ImageAdjustBrightnessTestHalf : ImageAdjustBrightnessTest<half>
-{
-};
-
-struct ImageAdjustBrightnessTestBfloat16 : ImageAdjustBrightnessTest<bfloat16>
-{
-};
+using GPU_ImageAdjustBrightness_FP32  = ImageAdjustBrightnessTest<float>;
+using GPU_ImageAdjustBrightness_FP16  = ImageAdjustBrightnessTest<half>;
+using GPU_ImageAdjustBrightness_BFP16 = ImageAdjustBrightnessTest<bfloat16>;
 
 } // namespace image_adjust_brightness
 
 using namespace image_adjust_brightness;
 
-TEST_P(ImageAdjustBrightnessTestFloat, ImageAdjustBrightnessTestFw)
+TEST_P(GPU_ImageAdjustBrightness_FP32, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(ImageAdjustBrightnessTestHalf, ImageAdjustBrightnessTestFw)
+TEST_P(GPU_ImageAdjustBrightness_FP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(ImageAdjustBrightnessTestBfloat16, ImageAdjustBrightnessTestFw)
+TEST_P(GPU_ImageAdjustBrightness_BFP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(ImageAdjustBrightnessTest,
-                         ImageAdjustBrightnessTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageAdjustBrightness_FP32,
                          testing::ValuesIn(ImageAdjustBrightnessTestConfigs()));
 
-INSTANTIATE_TEST_SUITE_P(ImageAdjustBrightnessTest,
-                         ImageAdjustBrightnessTestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageAdjustBrightness_FP16,
                          testing::ValuesIn(ImageAdjustBrightnessTestConfigs()));
 
-INSTANTIATE_TEST_SUITE_P(ImageAdjustBrightnessTest,
-                         ImageAdjustBrightnessTestBfloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageAdjustBrightness_BFP16,
                          testing::ValuesIn(ImageAdjustBrightnessTestConfigs()));

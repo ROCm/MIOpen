@@ -25,15 +25,17 @@
  *******************************************************************************/
 
 #include "get_handle.hpp"
-#include "miopen/allocator.hpp"
-#include "miopen/image_transform.hpp"
+#include "gtest/cpu_image_adjust.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include "gtest/cpu_image_adjust.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <gtest/gtest.h>
 #include <limits>
+
+#include <miopen/allocator.hpp>
+#include <miopen/image_transform.hpp>
+
 struct ImageAdjustSaturationTestCase
 {
     size_t N;
@@ -121,18 +123,18 @@ protected:
         auto&& handle = get_handle();
         cpu_image_adjust_saturation(input, ref_output, test_config.saturation);
 
-        workspace_size = miopen::ImageAdjustSaturationGetWorkspaceSize(
+        workspace_size = miopen::image_transform::ImageAdjustSaturationGetWorkspaceSize(
             handle, input.desc, output.desc, test_config.saturation);
 
         workspace_ptr = handle.Create(workspace_size);
 
-        auto status = miopen::ImageAdjustSaturation(handle,
-                                                    input.desc,
-                                                    output.desc,
-                                                    input_ptr.get(),
-                                                    workspace_ptr.get(),
-                                                    output_ptr.get(),
-                                                    test_config.saturation);
+        auto status = miopen::image_transform::ImageAdjustSaturation(handle,
+                                                                     input.desc,
+                                                                     output.desc,
+                                                                     input_ptr.get(),
+                                                                     workspace_ptr.get(),
+                                                                     output_ptr.get(),
+                                                                     test_config.saturation);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -144,8 +146,8 @@ protected:
         auto threashold = std::numeric_limits<T>::epsilon();
         auto error      = miopen::rms_range(ref_output, output);
 
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threashold) << "Outputs do not match each other. Error:" << error;
+        EXPECT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, threashold);
     }
 
     ImageAdjustSaturationTestCase test_config;

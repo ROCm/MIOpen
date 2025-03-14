@@ -30,21 +30,20 @@
 #include "../test/verify.hpp"
 #include "InputFlags.hpp"
 #include "driver.hpp"
-#include "image_adjust_driver_common.hpp"
-#include "miopen/errors.hpp"
-#include "miopen/miopen.h"
-#include "miopen/tensor.hpp"
-#include "miopen/tensor_view.hpp"
 #include "random.hpp"
 #include "tensor_driver.hpp"
-#include "tensor_view.hpp"
 #include "timer.hpp"
 #include <cassert>
 #include <cmath>
 #include <memory>
 
+#include <miopen/errors.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
+
 template <typename T = float>
-void mloConvertRGBToHSV(const T r, const T g, const T b, T* h, T* s, T* v)
+int mloConvertRGBToHSV(const T r, const T g, const T b, T* h, T* s, T* v)
 {
     T minc = std::min(r, std::min(g, b));
     T maxc = std::max(r, std::max(g, b));
@@ -56,24 +55,26 @@ void mloConvertRGBToHSV(const T r, const T g, const T b, T* h, T* s, T* v)
 
     *s = cr / (eqc ? 1.0f : maxc);
 
-    T cr_divisor = eqc ? (T)1.0f : cr;
+    T cr_divisor = eqc ? static_cast<T>(1.0f) : cr;
     T rc         = (maxc - r) / cr_divisor;
     T gc         = (maxc - g) / cr_divisor;
     T bc         = (maxc - b) / cr_divisor;
 
     T hr = (maxc == r) * (bc - gc);
-    T hg = ((maxc == g) && (maxc != r)) * ((T)2.0f + rc - bc);
-    T hb = ((maxc != g) && (maxc != r)) * ((T)4.0f + gc - rc);
+    T hg = ((maxc == g) && (maxc != r)) * (static_cast<T>(2.0f) + rc - bc);
+    T hb = ((maxc != g) && (maxc != r)) * (static_cast<T>(4.0f) + gc - rc);
 
     *h = fmod((hr + hg + hb) / 6.0 + 1.0, 1.0);
+
+    return 0;
 }
 
 template <typename T = float>
-void mloConvertHSVToRGB(const T h, const T s, const T v, T* r, T* g, T* b)
+int mloConvertHSVToRGB(const T h, const T s, const T v, T* r, T* g, T* b)
 {
     T i        = floor(h * 6.0);
     T f        = h * 6.0 - i;
-    int i_case = ((int)i + 6) % 6;
+    int i_case = (static_cast<int>(i) + 6) % 6;
 
     T p = std::clamp(v * (1.0 - s), 0.0, 1.0);
     T q = std::clamp(v * (1.0 - s * f), 0.0, 1.0);
@@ -115,42 +116,47 @@ void mloConvertHSVToRGB(const T h, const T s, const T v, T* r, T* g, T* b)
         // This case should never happen (i_case is guaranteed to be in range [0,5])
         // Just in case this ever does, panic immediately
         MIOPEN_THROW("i_case out of range");
-        break;
     }
+
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
-void mloRunImageAdjustHueHost(Tgpu* input_buf,
-                              Tref* output_buf,
-                              miopen::TensorDescriptor inputTensorDesc,
-                              miopen::TensorDescriptor outputTensorDesc,
-                              float hue_factor)
+int mloRunImageAdjustHueHost(const Tgpu* input,
+                             Tref* output,
+                             const miopenTensorDescriptor_t inputTensorDesc,
+                             const miopenTensorDescriptor_t outputTensorDesc,
+                             float hue_factor)
 {
-    size_t N       = inputTensorDesc.GetElementSize() / 3;
-    auto input_tv  = get_inner_expanded_4d_tv(inputTensorDesc);
-    auto output_tv = get_inner_expanded_4d_tv(outputTensorDesc);
+    size_t N       = miopen::deref(inputTensorDesc).GetElementSize() / 3;
+    auto input_tv  = miopen::get_inner_expanded_tv<4>(miopen::deref(inputTensorDesc));
+    auto output_tv = miopen::get_inner_expanded_tv<4>(miopen::deref(outputTensorDesc));
 
-    int n, c, h, w;
     for(auto gid = 0; gid < N; gid++)
     {
-        getNCHW(n, c, h, w, gid, input_tv.size);
+        tensor_layout_t<4> input_layout(input_tv, gid);
+        auto n = input_layout.layout[0];
+        auto c = input_layout.layout[1];
+        auto h = input_layout.layout[2];
+        auto w = input_layout.layout[3];
 
         n = n * 3 + c;
 
-        Tref r = static_cast<Tref>(get4DValueAt(input_buf, input_tv, n, 0, h, w));
-        Tref g = static_cast<Tref>(get4DValueAt(input_buf, input_tv, n, 1, h, w));
-        Tref b = static_cast<Tref>(get4DValueAt(input_buf, input_tv, n, 2, h, w));
+        Tref r = static_cast<Tref>(input[input_tv.get_tensor_view_idx({n, 0, h, w})]);
+        Tref g = static_cast<Tref>(input[input_tv.get_tensor_view_idx({n, 1, h, w})]);
+        Tref b = static_cast<Tref>(input[input_tv.get_tensor_view_idx({n, 2, h, w})]);
 
         Tref hue, sat, val;
-
         mloConvertRGBToHSV(r, g, b, &hue, &sat, &val);
         hue = fmod(hue + hue_factor, 1.0);
         mloConvertHSVToRGB(hue, sat, val, &r, &g, &b);
 
-        set4DValueAt(output_buf, output_tv, n, 0, h, w, r);
-        set4DValueAt(output_buf, output_tv, n, 1, h, w, g);
-        set4DValueAt(output_buf, output_tv, n, 2, h, w, b);
+        output[output_tv.get_tensor_view_idx({n, 0, h, w})] = r;
+        output[output_tv.get_tensor_view_idx({n, 1, h, w})] = g;
+        output[output_tv.get_tensor_view_idx({n, 2, h, w})] = b;
     }
+
+    return 0;
 }
 
 template <typename Tgpu, typename Tref>
@@ -169,6 +175,7 @@ public:
     int ParseCmdLineArgs(int argc, char* argv[]) override;
     InputFlags& GetInputFlags() override { return inflags; }
 
+    std::vector<int> ComputeStrides(std::vector<int> inputDim);
     int GetandSetData() override;
 
     int AllocateBuffersAndCopy() override;
@@ -192,6 +199,7 @@ private:
     InputFlags inflags;
 
     int forw;
+    bool isContiguous;
 
     miopenTensorDescriptor_t inputTensorDesc;
     miopenTensorDescriptor_t outputTensorDesc;
@@ -210,13 +218,13 @@ private:
 template <typename Tgpu, typename Tref>
 int ImageAdjustHueDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
-    inflags.AddInputFlag("forw", 'F', "1", "Run only the forward pass", "int");
+    inflags.AddInputFlag("forw", 'F', "1", "Run only the forward pass (Default=1)", "int");
 
-    inflags.AddTensorFlag("input", 'I', "1x3x96x96", "Input Tensor Size");
-    inflags.AddInputFlag("contiguous", 'Z', "1", "Use Contiguous Tensors", "int");
-    inflags.AddInputFlag("hue", 'H', "0.2", "Hue", "double");
+    inflags.AddTensorFlag("input", 'I', "1x3x96x96", "Input Tensor Size (Default=1x3x96x96)");
+    inflags.AddInputFlag("contiguous", 'Z', "1", "Use Contiguous Tensors (Default=1)", "int");
+    inflags.AddInputFlag("hue", 'H', "0.2", "Hue (Default=0.2)", "double");
 
-    inflags.AddInputFlag("iter", 'i', "10", "Number of iterations", "int");
+    inflags.AddInputFlag("iter", 'i', "10", "Number of iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag(
@@ -230,31 +238,46 @@ int ImageAdjustHueDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
-    hue = inflags.GetValueDouble("hue");
+    hue          = inflags.GetValueDouble("hue");
+    isContiguous = inflags.GetValueInt("contiguous") == 0 ? false : true;
 
     if(inflags.GetValueInt("time") == 1)
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
+    forw = inflags.GetValueInt("forw");
+    if(forw != 1)
+    {
+        MIOPEN_THROW("Only forward pass is supported");
+    }
+
     return miopenStatusSuccess;
+}
+
+// Equivalent to: tensor.tranpose(0, -1).contiguous().tranpose(0, -1) incase contiguous = False
+template <typename Tgpu, typename Tref>
+std::vector<int> ImageAdjustHueDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!isContiguous)
+        std::swap(inputDim.front(), inputDim.back());
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!isContiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
 }
 
 template <typename Tgpu, typename Tref>
 int ImageAdjustHueDriver<Tgpu, Tref>::GetandSetData()
 {
-    TensorParameters input_vec = inflags.GetValueTensor("input");
-    assert(input_vec.lengths.size() == 4 || input_vec.lengths.size() == 3);
-    if(input_vec.lengths.size() == 3)
-    {
-        // If we get a 3d tensor, adds n=1 (to make it conforms to 4d input)
-        input_vec.lengths.insert(input_vec.lengths.begin(), 1);
-    }
-    assert(input_vec.lengths[1] == 3);
+    auto input_dims = inflags.GetValueTensor("input").lengths;
+    auto strides    = ComputeStrides(input_dims);
 
-    auto strides = ComputeStrides(input_vec.lengths, inflags.GetValueInt("contiguous") == 1);
-
-    SetTensorNd(inputTensorDesc, input_vec.lengths, strides, data_type);
-    SetTensorNd(outputTensorDesc, input_vec.lengths, strides, data_type);
+    SetTensorNd(inputTensorDesc, input_dims, strides, data_type);
+    SetTensorNd(outputTensorDesc, input_dims, strides, data_type);
 
     return miopenStatusSuccess;
 }
@@ -337,18 +360,14 @@ int ImageAdjustHueDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 int ImageAdjustHueDriver<Tgpu, Tref>::RunBackwardGPU()
 {
-    // Does not exist
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
 int ImageAdjustHueDriver<Tgpu, Tref>::RunForwardCPU()
 {
-    mloRunImageAdjustHueHost(in_host.data(),
-                             out_ref.data(),
-                             miopen::deref(inputTensorDesc),
-                             miopen::deref(outputTensorDesc),
-                             hue);
+    mloRunImageAdjustHueHost(
+        in_host.data(), out_ref.data(), inputTensorDesc, outputTensorDesc, hue);
 
     return miopenStatusSuccess;
 }
@@ -356,7 +375,7 @@ int ImageAdjustHueDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int ImageAdjustHueDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>

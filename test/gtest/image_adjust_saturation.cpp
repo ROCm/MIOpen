@@ -25,91 +25,43 @@
  *******************************************************************************/
 
 #include "image_adjust_saturation.hpp"
-#include "miopen/bfloat16.hpp"
-#include "tensor_holder.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace image_adjust_saturation {
 
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct ImageAdjustSaturationTestFloat : ImageAdjustSaturationTest<float>
-{
-};
-
-struct ImageAdjustSaturationTestHalf : ImageAdjustSaturationTest<half>
-{
-};
-
-struct ImageAdjustSaturationBfloat16 : ImageAdjustSaturationTest<bfloat16>
-{
-};
+using GPU_ImageAdjustSaturation_FP32  = ImageAdjustSaturationTest<float>;
+using GPU_ImageAdjustSaturation_FP16  = ImageAdjustSaturationTest<half>;
+using GPU_ImageAdjustSaturation_BFP16 = ImageAdjustSaturationTest<bfloat16>;
 
 } // namespace image_adjust_saturation
 
 using namespace image_adjust_saturation;
 
-TEST_P(ImageAdjustSaturationTestFloat, ImageAdjustSaturationTestFw)
+TEST_P(GPU_ImageAdjustSaturation_FP32, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(ImageAdjustSaturationTestHalf, ImageAdjustSaturationTestFw)
+TEST_P(GPU_ImageAdjustSaturation_FP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(ImageAdjustSaturationBfloat16, ImageAdjustSaturationTestFw)
+TEST_P(GPU_ImageAdjustSaturation_BFP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(ImageAdjustSaturationTest,
-                         ImageAdjustSaturationTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageAdjustSaturation_FP32,
                          testing::ValuesIn(ImageAdjustSaturationTestConfigs()));
 
-INSTANTIATE_TEST_SUITE_P(ImageAdjustSaturationTest,
-                         ImageAdjustSaturationTestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageAdjustSaturation_FP16,
                          testing::ValuesIn(ImageAdjustSaturationTestConfigs()));
 
-INSTANTIATE_TEST_SUITE_P(ImageAdjustSaturationTest,
-                         ImageAdjustSaturationBfloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageAdjustSaturation_BFP16,
                          testing::ValuesIn(ImageAdjustSaturationTestConfigs()));

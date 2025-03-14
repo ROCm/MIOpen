@@ -25,89 +25,43 @@
  *******************************************************************************/
 
 #include "image_normalize.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace image_normalize {
 
-std::string GetFloatArg()
-{
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
-
-struct ImageNormalizeTestFloat : ImageNormalizeTest<float>
-{
-};
-
-struct ImageNormalizeTestHalf : ImageNormalizeTest<half>
-{
-};
-
-struct ImageNormalizeTestBfloat16 : ImageNormalizeTest<bfloat16>
-{
-};
+using GPU_ImageNormalize_FP32  = ImageNormalizeTest<float>;
+using GPU_ImageNormalize_FP16  = ImageNormalizeTest<half>;
+using GPU_ImageNormalize_BFP16 = ImageNormalizeTest<bfloat16>;
 
 } // namespace image_normalize
 
 using namespace image_normalize;
 
-TEST_P(ImageNormalizeTestFloat, ImageNormalizeTestFw)
+TEST_P(GPU_ImageNormalize_FP32, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(ImageNormalizeTestHalf, ImageNormalizeTestFw)
+TEST_P(GPU_ImageNormalize_FP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-TEST_P(ImageNormalizeTestBfloat16, ImageNormalizeTestFw)
+TEST_P(GPU_ImageNormalize_BFP16, Test)
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)) ||
-       (miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16")))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
+    RunTest();
+    Verify();
 }
 
-INSTANTIATE_TEST_SUITE_P(ImageNormalizeTestFloat,
-                         ImageNormalizeTestFloat,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageNormalize_FP32,
                          testing::ValuesIn(ImageNormalizeTestConfigs()));
 
-INSTANTIATE_TEST_SUITE_P(ImageNormalizeTestHalf,
-                         ImageNormalizeTestHalf,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageNormalize_FP16,
                          testing::ValuesIn(ImageNormalizeTestConfigs()));
 
-INSTANTIATE_TEST_SUITE_P(ImageNormalizeTestBfloat16,
-                         ImageNormalizeTestBfloat16,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ImageNormalize_BFP16,
                          testing::ValuesIn(ImageNormalizeTestConfigs()));

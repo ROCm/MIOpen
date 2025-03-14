@@ -101,7 +101,7 @@ int BlendContiguousRunHost(const miopenTensorDescriptor_t inputDesc,
 }
 
 template <typename Tgpu, typename Tref>
-int mloImageAdjustSaturationRunHost(miopenTensorDescriptor_t inputDesc,
+int mloImageAdjustSaturationRunHost(const miopenTensorDescriptor_t inputDesc,
                                     const Tgpu* input,
                                     Tref* output,
                                     float saturation_factor)
@@ -112,8 +112,8 @@ int mloImageAdjustSaturationRunHost(miopenTensorDescriptor_t inputDesc,
     // temporary view for workspace (basically a contiguous vector with same size as input_tv)
     std::vector<Tref> workspace = std::vector<Tref>(input_numel, 0);
 
-    RGBToGrayscale(inputDesc, input, workspace.data());
-    Blend(inputDesc, input, workspace.data(), output, saturation_factor);
+    RGBToGrayscaleRunHost(inputDesc, input, workspace.data());
+    BlendContiguousRunHost(inputDesc, input, workspace.data(), output, saturation_factor);
 
     return 0;
 }
@@ -316,7 +316,7 @@ template <typename Tgpu, typename Tref>
 int ImageAdjustSaturationDriver<Tgpu, Tref>::RunForwardCPU()
 {
     mloImageAdjustSaturationRunHost(
-        miopen::deref(inputTensorDesc), input_host.data(), output_ref.data(), saturation_factor);
+        inputTensorDesc, input_host.data(), output_ref.data(), saturation_factor);
 
     return miopenStatusSuccess;
 }

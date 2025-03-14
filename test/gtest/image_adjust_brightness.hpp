@@ -25,13 +25,15 @@
  *******************************************************************************/
 
 #include "get_handle.hpp"
-#include "miopen/allocator.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include "miopen/image_transform.hpp"
 #include "gtest/cpu_image_adjust.hpp"
 #include <algorithm>
 #include <gtest/gtest.h>
+
+#include <miopen/allocator.hpp>
+#include <miopen/image_transform.hpp>
+
 struct ImageAdjustBrightnessTestCase
 {
     size_t N;
@@ -113,29 +115,31 @@ protected:
         input_ptr  = handle.Write(input.data);
         output_ptr = handle.Write(output.data);
     }
+
     void RunTest()
     {
         auto&& handle = get_handle();
         cpu_image_adjust_brightness(input, ref_output, test_config.brightness);
 
-        auto status = miopen::ImageAdjustBrightness(handle,
-                                                    input.desc,
-                                                    output.desc,
-                                                    input_ptr.get(),
-                                                    output_ptr.get(),
-                                                    test_config.brightness);
+        auto status = miopen::image_transform::ImageAdjustBrightness(handle,
+                                                                     input.desc,
+                                                                     output.desc,
+                                                                     input_ptr.get(),
+                                                                     output_ptr.get(),
+                                                                     test_config.brightness);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
         output.data = handle.Read<T>(output_ptr, output.data.size());
     }
+
     void Verify()
     {
         auto threashold = std::numeric_limits<T>::epsilon();
         auto error      = miopen::rms_range(ref_output, output);
 
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threashold) << "Outputs do not match each other. Error:" << error;
+        EXPECT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, threashold);
     }
 
     ImageAdjustBrightnessTestCase test_config;

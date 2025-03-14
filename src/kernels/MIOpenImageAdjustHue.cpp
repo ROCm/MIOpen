@@ -191,11 +191,10 @@ extern "C" __global__ void ImageAdjustHue(const DTYPE* input,
                                           DTYPE* output,
                                           float hue_factor,
                                           size_t N,
-                                          size_t c_stride,
                                           tensor_view_t<4> input_tv,
                                           tensor_view_t<4> output_tv)
 {
-    DeviceImageAdjustHue<DTYPE>(input, output, hue_factor, N, c_stride, input_tv, output_tv);
+    DeviceImageAdjustHue<DTYPE>(input, output, hue_factor, N, input_tv, output_tv);
 }
 
 extern "C" __global__ void ImageAdjustHueContiguous(

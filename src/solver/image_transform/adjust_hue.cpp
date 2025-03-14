@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/tensor_view_utils.hpp"
 #include <miopen/conv_solution.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/errors.hpp>
@@ -37,6 +36,7 @@
 #include <miopen/miopen.h>
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include <vector>
 
 namespace miopen {
@@ -129,9 +129,10 @@ ConvSolution ImageAdjustHue::GetSolution(
                 kernel(params.input, params.output, params.hue, N, c_stride);
             }
             else
-                kernel(params.input, params.output, params.hue, N, c_stride, input_tv, output_tv);
+                kernel(params.input, params.output, params.hue, N, input_tv, output_tv);
         };
     };
+
     return result;
 }
 

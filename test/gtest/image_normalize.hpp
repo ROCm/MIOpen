@@ -25,15 +25,16 @@
  *******************************************************************************/
 
 #include "get_handle.hpp"
-#include "miopen/allocator.hpp"
-#include "miopen/image_transform.hpp"
+#include "gtest/cpu_image_adjust.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include "gtest/cpu_image_adjust.hpp"
 #include <algorithm>
 #include <cstddef>
 #include <gtest/gtest.h>
 #include <limits>
+
+#include <miopen/allocator.hpp>
+#include <miopen/image_transform.hpp>
 
 struct ImageNormalizeTestCase
 {
@@ -119,32 +120,34 @@ protected:
         mean_ptr   = handle.Write(mean.data);
         stdvar_ptr = handle.Write(stdvar.data);
     }
+
     void RunTest()
     {
         auto&& handle = get_handle();
         cpu_image_normalize(input, ref_output, mean, stdvar);
 
-        auto status = miopen::ImageNormalize(handle,
-                                             input.desc,
-                                             mean.desc,
-                                             stdvar.desc,
-                                             output.desc,
-                                             input_ptr.get(),
-                                             mean_ptr.get(),
-                                             stdvar_ptr.get(),
-                                             output_ptr.get());
+        auto status = miopen::image_transform::ImageNormalize(handle,
+                                                              input.desc,
+                                                              mean.desc,
+                                                              stdvar.desc,
+                                                              output.desc,
+                                                              input_ptr.get(),
+                                                              mean_ptr.get(),
+                                                              stdvar_ptr.get(),
+                                                              output_ptr.get());
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
         output.data = handle.Read<T>(output_ptr, output.data.size());
     }
+
     void Verify()
     {
         auto threashold = sizeof(T) == 4 ? 1e-5 : 5e-2;
         auto error      = miopen::rms_range(ref_output, output);
 
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threashold) << "Outputs do not match each other. Error:" << error;
+        EXPECT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, threashold);
     }
 
     ImageNormalizeTestCase test_config;

@@ -25,14 +25,16 @@
  *******************************************************************************/
 
 #include "get_handle.hpp"
-#include "miopen/allocator.hpp"
-#include "miopen/image_transform.hpp"
+#include "gtest/cpu_image_adjust.hpp"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
-#include "gtest/cpu_image_adjust.hpp"
 #include <algorithm>
 #include <gtest/gtest.h>
 #include <limits>
+
+#include <miopen/allocator.hpp>
+#include <miopen/image_transform.hpp>
+
 struct ImageAdjustHueTestCase
 {
     size_t N;
@@ -121,7 +123,7 @@ protected:
         cpu_image_adjust_hue(input, ref_output, test_config.hue);
         miopenStatus_t status;
 
-        status = miopen::ImageAdjustHue(
+        status = miopen::image_transform::ImageAdjustHue(
             handle, input.desc, output.desc, input_ptr.get(), output_ptr.get(), test_config.hue);
 
         EXPECT_EQ(status, miopenStatusSuccess);
@@ -134,8 +136,8 @@ protected:
         auto threashold = std::numeric_limits<T>::epsilon();
         auto error      = miopen::rms_range(ref_output, output);
 
-        EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
-        EXPECT_TRUE(error < threashold) << "Outputs do not match each other. Error:" << error;
+        EXPECT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, threashold);
     }
 
     ImageAdjustHueTestCase test_config;

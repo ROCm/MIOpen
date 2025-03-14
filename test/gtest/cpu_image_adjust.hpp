@@ -24,11 +24,12 @@
  *
  *******************************************************************************/
 
-#ifndef TEST_GTEST_CPU_IMAGE_ADJUST_HPP
-#define TEST_GTEST_CPU_IMAGE_ADJUST_HPP
+#pragma once
 
-#include "miopen/tensor_view.hpp"
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 #include "tensor_holder.hpp"
+#include "tensor_view.hpp"
 
 template <typename T>
 T clamp(T val, T min, T max)
@@ -51,14 +52,14 @@ void mloConvertRGBToHSV(const T r, const T g, const T b, T* h, T* s, T* v)
 
     *s = cr / (eqc ? 1.0f : maxc);
 
-    T cr_divisor = eqc ? (T)1.0f : cr;
+    T cr_divisor = eqc ? static_cast<T>(1.0f) : cr;
     T rc         = (maxc - r) / cr_divisor;
     T gc         = (maxc - g) / cr_divisor;
     T bc         = (maxc - b) / cr_divisor;
 
     T hr = static_cast<T>((maxc == r) * (bc - gc));
-    T hg = static_cast<T>(((maxc == g) && (maxc != r)) * ((T)2.0f + rc - bc));
-    T hb = static_cast<T>(((maxc != g) && (maxc != r)) * ((T)4.0f + gc - rc));
+    T hg = static_cast<T>(((maxc == g) && (maxc != r)) * (static_cast<T>(2.0f) + rc - bc));
+    T hb = static_cast<T>(((maxc != g) && (maxc != r)) * (static_cast<T>(4.0f) + gc - rc));
 
     *h = fmod((hr + hg + hb) / 6.0 + 1.0, 1.0);
 }
@@ -68,7 +69,7 @@ void mloConvertHSVToRGB(const T h, const T s, const T v, T* r, T* g, T* b)
 {
     T i        = static_cast<T>(floor(h * 6.0));
     T f        = static_cast<T>(h * 6.0 - i);
-    int i_case = ((int)i + 6) % 6;
+    int i_case = (static_cast<int>(i) + 6) % 6;
 
     T p = static_cast<T>(clamp(v * (1.0f - s), 0.0f, 1.0f));
     T q = static_cast<T>(clamp(v * (1.0f - s * f), 0.0f, 1.0f));
@@ -110,31 +111,33 @@ void mloConvertHSVToRGB(const T h, const T s, const T v, T* r, T* g, T* b)
         // This case should never happen (i_case is guaranteed to be in range [0,5])
         // Just in case this ever does, panic immediately
         MIOPEN_THROW("i_case out of range");
-        break;
     }
 }
 
 template <typename T>
-void mloRunImageAdjustHueHost(T* input_buf,
-                              T* output_buf,
+void mloRunImageAdjustHueHost(const T* input,
+                              T* output,
                               miopen::TensorDescriptor inputTensorDesc,
                               miopen::TensorDescriptor outputTensorDesc,
                               float hue_factor)
 {
     size_t N       = inputTensorDesc.GetElementSize() / 3;
-    auto input_tv  = get_inner_expanded_4d_tv(inputTensorDesc);
-    auto output_tv = get_inner_expanded_4d_tv(outputTensorDesc);
+    auto input_tv  = miopen::get_inner_expanded_tv<4>(inputTensorDesc);
+    auto output_tv = miopen::get_inner_expanded_tv<4>(outputTensorDesc);
 
-    int n, c, h, w;
     for(auto gid = 0; gid < N; gid++)
     {
-        getNCHW(n, c, h, w, gid, input_tv.size);
+        tensor_layout_t<4> input_layout(input_tv, gid);
+        auto n = input_layout.layout[0];
+        auto c = input_layout.layout[1];
+        auto h = input_layout.layout[2];
+        auto w = input_layout.layout[3];
 
         n = n * 3 + c;
 
-        T r = static_cast<T>(get4DValueAt(input_buf, input_tv, n, 0, h, w));
-        T g = static_cast<T>(get4DValueAt(input_buf, input_tv, n, 1, h, w));
-        T b = static_cast<T>(get4DValueAt(input_buf, input_tv, n, 2, h, w));
+        T r = static_cast<T>(input[input_tv.get_tensor_view_idx({n, 0, h, w})]);
+        T g = static_cast<T>(input[input_tv.get_tensor_view_idx({n, 1, h, w})]);
+        T b = static_cast<T>(input[input_tv.get_tensor_view_idx({n, 2, h, w})]);
 
         T hue, sat, val;
 
@@ -142,14 +145,14 @@ void mloRunImageAdjustHueHost(T* input_buf,
         hue = fmod(hue + hue_factor, 1.0);
         mloConvertHSVToRGB(hue, sat, val, &r, &g, &b);
 
-        set4DValueAt(output_buf, output_tv, n, 0, h, w, r);
-        set4DValueAt(output_buf, output_tv, n, 1, h, w, g);
-        set4DValueAt(output_buf, output_tv, n, 2, h, w, b);
+        output[output_tv.get_tensor_view_idx({n, 0, h, w})] = r;
+        output[output_tv.get_tensor_view_idx({n, 1, h, w})] = g;
+        output[output_tv.get_tensor_view_idx({n, 2, h, w})] = b;
     }
 }
 
 template <typename T>
-void cpu_image_adjust_hue(tensor<T> input, tensor<T>& output, float hue)
+void cpu_image_adjust_hue(const tensor<T>& input, tensor<T>& output, float hue)
 {
     mloRunImageAdjustHueHost(input.data.data(), output.data.data(), input.desc, output.desc, hue);
 }
@@ -161,46 +164,46 @@ void mloImageAdjustBrightnessRunHost(const T* input,
                                      miopen::TensorDescriptor outputDesc,
                                      const float brightness_factor)
 {
-    tensor_view_4d_t input_tv  = get_inner_expanded_4d_tv(inputDesc);
-    tensor_view_4d_t output_tv = get_inner_expanded_4d_tv(outputDesc);
+    auto input_tv  = miopen::get_inner_expanded_tv<4>(inputDesc);
+    auto output_tv = miopen::get_inner_expanded_tv<4>(outputDesc);
 
     size_t N = inputDesc.GetElementSize();
 
     for(size_t gid = 0; gid < N; gid++)
     {
-        T pixel  = get4DValueAt(input, input_tv, gid);
+        tensor_layout_t<4> input_layout(input_tv, gid);
+        T pixel  = input[input_tv.get_tensor_view_idx(input_layout)];
         T result = static_cast<T>(clamp(static_cast<float>(pixel) * brightness_factor, 0.0f, 1.0f));
-        set4DValueAt(output, output_tv, gid, result);
+        output[output_tv.get_tensor_view_idx(input_layout)] = result;
     }
 }
 
 template <typename T>
-void cpu_image_adjust_brightness(tensor<T> input, tensor<T>& output, float brightness)
+void cpu_image_adjust_brightness(const tensor<T>& input, tensor<T>& output, float brightness)
 {
     mloImageAdjustBrightnessRunHost(
         input.data.data(), output.data.data(), input.desc, output.desc, brightness);
 }
 
 template <typename T>
-void RGBToGrayscale(const T* src,
-                    T* dst,
-                    const tensor_view_4d_t src_tv,
-                    const tensor_view_4d_t dst_tv,
-                    const size_t N)
+void RGBToGrayscale(
+    const T* src, T* dst, tensor_view_t<4> src_tv, tensor_view_t<4> dst_tv, size_t N)
 {
     for(size_t gid = 0; gid < N; gid++)
     {
-        int n, c, h, w;
-        getNCHW(n, c, h, w, gid, dst_tv.size);
+        tensor_layout_t<4> dst_layout(dst_tv, gid);
+        auto n = dst_layout.layout[0];
+        auto h = dst_layout.layout[2];
+        auto w = dst_layout.layout[3];
 
-        T r = get4DValueAt(src, src_tv, n, 0, h, w);
-        T g = get4DValueAt(src, src_tv, n, 1, h, w);
-        T b = get4DValueAt(src, src_tv, n, 2, h, w);
+        T r = src[src_tv.get_tensor_view_idx({n, 0, h, w})];
+        T g = src[src_tv.get_tensor_view_idx({n, 1, h, w})];
+        T b = src[src_tv.get_tensor_view_idx({n, 2, h, w})];
 
         T value = static_cast<T>(0.2989 * r + 0.587 * g + 0.114 * b);
 
         // We expect the workspace here to always stay contiguous
-        dst[dst_tv.offset + gid] = value;
+        dst[gid] = value;
     }
 }
 
@@ -208,9 +211,8 @@ template <typename T>
 void Blend(const T* img1,
            const T* img2,
            T* output,
-           const tensor_view_4d_t img1_tv,
-           const tensor_view_4d_t img2_tv,
-           const tensor_view_4d_t output_tv,
+           tensor_view_t<4> img1_tv,
+           tensor_view_t<4> output_tv,
            const size_t n_stride,
            const size_t c_stride,
            const size_t N,
@@ -223,12 +225,14 @@ void Blend(const T* img1,
         const size_t n        = gid / n_stride;
         const size_t img2_idx = n * c_stride + gid % c_stride;
 
-        T img1_v = get4DValueAt(img1, img1_tv, gid);
-        T img2_v = img2[img2_tv.offset + img2_idx];
+        tensor_layout_t<4> img1_layout(img1_tv, gid);
+        T img1_v = img1[img1_tv.get_tensor_view_idx(img1_layout)];
+        T img2_v = img2[img2_idx];
 
         T result = static_cast<T>(clamp((ratio * img1_v + (1.0f - ratio) * img2_v), 0.0f, bound));
 
-        set4DValueAt(output, output_tv, gid, result);
+        tensor_layout_t<4> output_layout(output_tv, gid);
+        output[output_tv.get_tensor_view_idx(output_layout)] = result;
     }
 }
 
@@ -240,15 +244,15 @@ void mloImageAdjustSaturationRunHost(miopen::TensorDescriptor inputDesc,
                                      float saturation_factor)
 
 {
-    tensor_view_4d_t input_tv  = get_inner_expanded_4d_tv(inputDesc);
-    tensor_view_4d_t output_tv = get_inner_expanded_4d_tv(outputDesc);
+    auto input_tv  = miopen::get_inner_expanded_tv<4>(inputDesc);
+    auto output_tv = miopen::get_inner_expanded_tv<4>(outputDesc);
 
     // temporary view for workspace (basically a contiguous vector with same size as input_tv)
     std::vector<T> workspace = std::vector<T>(inputDesc.GetElementSize(), static_cast<T>(0.0f));
     miopen::TensorDescriptor wsDesc =
         miopen::TensorDescriptor{inputDesc.GetType(), inputDesc.GetLengths()};
 
-    auto ws_tv = get_inner_expanded_4d_tv(wsDesc);
+    auto ws_tv = miopen::get_inner_expanded_tv<4>(wsDesc);
 
     auto N        = inputDesc.GetElementSize();
     auto c_stride = input_tv.size[2] * input_tv.size[3];
@@ -261,7 +265,6 @@ void mloImageAdjustSaturationRunHost(miopen::TensorDescriptor inputDesc,
           workspace.data(),
           output,
           input_tv,
-          ws_tv,
           output_tv,
           n_stride,
           c_stride,
@@ -271,7 +274,7 @@ void mloImageAdjustSaturationRunHost(miopen::TensorDescriptor inputDesc,
 }
 
 template <typename T>
-void cpu_image_adjust_saturation(tensor<T> input, tensor<T>& output, float saturation_factor)
+void cpu_image_adjust_saturation(const tensor<T>& input, tensor<T>& output, float saturation_factor)
 {
     mloImageAdjustSaturationRunHost(
         input.desc, output.desc, input.data.data(), output.data.data(), saturation_factor);
@@ -280,17 +283,13 @@ void cpu_image_adjust_saturation(tensor<T> input, tensor<T>& output, float satur
 template <typename T>
 void mloImageNormalizeRunHost(miopen::TensorDescriptor inputDesc,
                               miopen::TensorDescriptor outputDesc,
-                              miopen::TensorDescriptor meanDesc,
-                              miopen::TensorDescriptor stdvarDesc,
                               const T* input,
                               T* output,
                               const T* mean,
                               const T* stdvar)
 {
-    tensor_view_4d_t input_tv  = get_inner_expanded_4d_tv(inputDesc);
-    tensor_view_4d_t output_tv = get_inner_expanded_4d_tv(outputDesc);
-    tensor_view_4d_t mean_tv   = get_inner_expanded_4d_tv(meanDesc);
-    tensor_view_4d_t stdvar_tv = get_inner_expanded_4d_tv(stdvarDesc);
+    auto input_tv  = miopen::get_inner_expanded_tv<4>(inputDesc);
+    auto output_tv = miopen::get_inner_expanded_tv<4>(outputDesc);
 
     auto N         = inputDesc.GetElementSize();
     auto C         = input_tv.size[1];
@@ -300,24 +299,24 @@ void mloImageNormalizeRunHost(miopen::TensorDescriptor inputDesc,
     {
         auto c = gid / c_strides % C;
 
-        T pixel  = get4DValueAt(input, input_tv, gid);
-        T result = (pixel - static_cast<T>(mean[c + mean_tv.offset])) /
-                   static_cast<T>(stdvar[c + stdvar_tv.offset]);
-        set4DValueAt(output, output_tv, gid, result);
+        tensor_layout_t<4> input_layout(input_tv, gid);
+        T pixel  = input[input_tv.get_tensor_view_idx(input_layout)];
+        T result = (pixel - static_cast<T>(mean[c])) / static_cast<T>(stdvar[c]);
+        tensor_layout_t<4> output_layout(output_tv, gid);
+        output[output_tv.get_tensor_view_idx(output_layout)] = result;
     }
 }
 
 template <typename T>
-void cpu_image_normalize(tensor<T> input, tensor<T>& output, tensor<T> mean, tensor<T> stdvar)
+void cpu_image_normalize(const tensor<T>& input,
+                         tensor<T>& output,
+                         const tensor<T>& mean,
+                         const tensor<T>& stdvar)
 {
     mloImageNormalizeRunHost(input.desc,
                              output.desc,
-                             mean.desc,
-                             stdvar.desc,
                              input.data.data(),
                              output.data.data(),
                              mean.data.data(),
                              stdvar.data.data());
 }
-
-#endif
