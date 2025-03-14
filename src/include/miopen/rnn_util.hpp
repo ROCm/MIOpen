@@ -38,7 +38,7 @@ namespace miopen {
 
 struct RnnHipAutoProfiler
 {
-    RnnHipAutoProfiler(Handle& handle) : is_profiling_active(handle.IsProfilingEnabled())
+    RnnHipAutoProfiler(const Handle& handle) : is_profiling_active(handle.IsProfilingEnabled())
     {
         if(is_profiling_active)
         {
@@ -93,9 +93,9 @@ private:
     }
 
 #if MIOPEN_BACKEND_HIP
-    Handle* attached_handle = nullptr;
-    HipEventPtr start       = nullptr;
-    HipEventPtr stop        = nullptr;
+    const Handle* attached_handle = nullptr;
+    HipEventPtr start             = nullptr;
+    HipEventPtr stop              = nullptr;
 #endif
     bool is_profiling_active = false;
 };
@@ -193,7 +193,7 @@ struct RNNTensorPaddingConverter
         size_t total_batch = std::accumulate(
             desc_array.data,
             desc_array.data + desc_array.size(),
-            0,
+            0ULL,
             [](size_t x, miopenTensorDescriptor_t y) { return x + deref(y).GetLengths()[0]; });
 
         return GetTempPackedBuffersSpace(rnn_desc, total_batch, desc_array[0].GetLengths()[1]);
@@ -255,7 +255,7 @@ struct RNNTensorBaseLayoutConverter
         size_t total_batch = std::accumulate(
             desc_array.data,
             desc_array.data + desc_array.size(),
-            0,
+            0ULL,
             [](size_t x, miopenTensorDescriptor_t y) { return x + deref(y).GetLengths()[0]; });
 
         return GetTempPackedBuffersSpace(rnn_desc, total_batch, desc_array[0].GetLengths()[1]);

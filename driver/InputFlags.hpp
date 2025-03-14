@@ -63,6 +63,25 @@ struct TensorParameters
     void CalculateStrides();
 };
 
+struct TensorParametersUint64
+{
+    std::vector<uint64_t> lengths = {};
+    std::vector<uint64_t> strides = {};
+    std::string layout            = "";
+
+    TensorParametersUint64 FillMissing(const TensorParametersUint64& other) const
+    {
+        return {
+            (lengths.empty() ? other.lengths : lengths),
+            (strides.empty() ? other.strides : strides),
+            (layout.empty() ? other.layout : layout),
+        };
+    }
+
+    uint64_t SetTensordDescriptor(miopenTensorDescriptor_t result, miopenDataType_t data_type);
+    void CalculateStrides();
+};
+
 class InputFlags
 {
     std::map<char, Input> MapInputs;
@@ -90,6 +109,11 @@ public:
     uint64_t GetValueUint64(const std::string& _long_name) const;
     double GetValueDouble(const std::string& _long_name) const;
     TensorParameters GetValueTensor(const std::string& long_name) const;
+    TensorParametersUint64 GetValueTensorUint64(const std::string& long_name) const;
+    std::vector<int32_t> GetValueVectorInt(const std::string& long_name) const;
+    std::vector<uint64_t> GetValueVectorUint64(const std::string& long_name) const;
+    std::vector<std::vector<int32_t>> GetValue2dVectorInt(const std::string& long_name) const;
+    std::vector<std::vector<uint64_t>> GetValue2dVectorUint64(const std::string& long_name) const;
     void SetValue(const std::string& long_name, const std::string& new_value);
     void StoreOptionalFlagValue(char short_name, const std::string& input_value);
 

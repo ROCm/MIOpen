@@ -48,6 +48,9 @@ struct HandleImpl
     bool enable_profiling = false;
     StreamPtr stream      = nullptr;
     rocblas_handle_ptr rhandle_;
+#if MIOPEN_USE_HIPBLASLT
+    hipblasLt_handle_ptr hip_blasLt_handle;
+#endif
     float profiling_result = 0.0;
     int device             = -1;
     std::string device_name;

@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/env.hpp>
 #include <miopen/layernorm.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/layernorm/invoke_params.hpp>
@@ -213,7 +214,7 @@ bool Layernorm2DCKForward::IsApplicable(
     [[maybe_unused]] const miopen::layernorm::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN)))
+    if(env::disabled(MIOPEN_DEBUG_LAYERNORM2DCKFORWARD_CONV_CK_LN))
         return false;
     if(!problem.IsSameType())
         return false;
@@ -236,10 +237,11 @@ bool Layernorm2DCKForward::IsApplicable(
         return CheckCKApplicability<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>>(problem);
     case miopenBFloat16:
     case miopenDouble:
+    case miopenInt64:
     case miopenInt32:
     case miopenInt8:
-    case miopenFloat8:
-    case miopenBFloat8: return false;
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz: return false;
     }
 #endif
     return false;
@@ -264,11 +266,12 @@ ConvSolution Layernorm2DCKForward::GetSolution(
     case miopenBFloat16:
     case miopenInt8:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenInt64:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
+                     "Layernorm2DCKForward operation not implemented for this data type");
     }
 #endif
     return {};

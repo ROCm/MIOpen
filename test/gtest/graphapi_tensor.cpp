@@ -23,10 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/miopen.h>
 #include <gtest/gtest.h>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+#include <miopen/graphapi/tensor.hpp>
 
-TEST(BackendApi, Tensor)
+TEST(CPU_BackendApi_NONE, Tensor)
 {
     miopenBackendDescriptor_t tensorDescriptor;
 
@@ -227,3 +229,65 @@ TEST(BackendApi, Tensor)
     EXPECT_EQ(elementCount, 1);
     EXPECT_TRUE(retrievedIsVirtual == isVirtual);
 }
+
+namespace gr = miopen::graphapi;
+
+namespace graph_api_tensor_test {
+
+static bool TestIsApplicable() { return true; }
+
+using TestCase = std::tuple<std::vector<size_t>,
+                            std::vector<size_t>,
+                            miopenDataType_t,
+                            std::optional<miopenTensorLayout_t>>;
+static std::vector<TestCase> TestConfigs()
+{
+    return {{{1, 4, 14, 11, 1}, {616, 1, 44, 4, 4}, miopenFloat, miopenTensorNDHWC},
+            {{1, 4, 14, 11, 1}, {616, 154, 11, 1, 1}, miopenFloat, miopenTensorNCDHW},
+            {{1, 4, 11, 1}, {44, 1, 4, 4}, miopenFloat, miopenTensorNHWC},
+            {{1, 4, 11, 1}, {44, 11, 1, 1}, miopenFloat, miopenTensorNCHW},
+            {{1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, miopenFloat, miopenTensorNCDHW},
+            {{1, 1, 1, 1}, {1, 1, 1, 1}, miopenFloat, miopenTensorNCHW},
+            {{3, 5, 6}, {30, 6, 1}, miopenFloat, std::nullopt}};
+}
+
+class CPU_GraphTensor_NONE : public ::testing::TestWithParam<TestCase>
+{
+public:
+    void SetUp() override
+    {
+        if(!TestIsApplicable())
+        {
+            GTEST_SKIP();
+        }
+    }
+
+    void Run()
+    {
+        std::vector<std::size_t> dimensions;
+        std::vector<std::size_t> strides;
+        miopenDataType_t dataType;
+        std::optional<miopenTensorLayout_t> layout;
+
+        std::tie(dimensions, strides, dataType, layout) = GetParam();
+
+        auto descriptor =
+            layout ? miopen::TensorDescriptor(dataType, layout.value(), dimensions, strides)
+                   : miopen::TensorDescriptor(dataType, dimensions, strides);
+
+        gr::Tensor graphTensorFromDescription(descriptor, 0, false);
+        EXPECT_EQ(graphTensorFromDescription, descriptor);
+        EXPECT_EQ(graphTensorFromDescription.GetLayoutEnum(), descriptor.GetLayoutEnum());
+
+        gr::Tensor graphTensorFromParams(dataType, dimensions, strides, 0, false);
+        EXPECT_EQ(graphTensorFromParams, descriptor);
+        EXPECT_EQ(graphTensorFromParams.GetLayoutEnum(), descriptor.GetLayoutEnum());
+    }
+};
+
+} // namespace graph_api_tensor_test
+using namespace graph_api_tensor_test;
+
+TEST_P(CPU_GraphTensor_NONE, Test) { Run(); }
+
+INSTANTIATE_TEST_SUITE_P(Unit, CPU_GraphTensor_NONE, testing::ValuesIn(TestConfigs()));

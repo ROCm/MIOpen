@@ -30,9 +30,14 @@
 #include <miopen/tensor.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/datatype.hpp>
-
-#if MIOPEN_BACKEND_HIP
 #include <miopen/hipoc_kernel.hpp>
+
+#if MIOPEN_USE_HIPBLASLT
+#include <hipblaslt/hipblaslt.h>
+// Only enable BF8 support if hipBLASLt is 0.8 or above
+#if MIOPEN_HIPBLASLT_VERSION_FLAT >= 8000
+#define ENABLE_HIPBLASLT_BF8
+#endif
 #endif
 
 #if MIOPEN_USE_ROCBLAS
@@ -40,11 +45,7 @@
 #pragma clang diagnostic ignored "-Wunused-macros"
 #define ROCBLAS_BETA_FEATURES_API 1
 #pragma clang diagnostic pop
-#if !defined(_WIN32)
 #include <half/half.hpp>
-#else
-#include <half.hpp>
-#endif
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
 #else
@@ -94,19 +95,19 @@ FlagsForRocblasFp32Fp16Call(const miopen::GemmDescriptor& desc) // bool gfx90aFp
 #if USE_ROCBLAS_GEMM_EX3
 static inline rocblas_computetype rocBlasComputeType_ex3(const miopen::GemmDescriptor& desc)
 {
-    if(desc.a_cast_type == miopenFloat8 && desc.b_cast_type == miopenFloat8)
+    if(desc.a_cast_type == miopenFloat8_fnuz && desc.b_cast_type == miopenFloat8_fnuz)
     {
         return rocblas_compute_type_f8_f8_f32;
     }
-    else if(desc.a_cast_type == miopenFloat8 && desc.b_cast_type == miopenBFloat8)
+    else if(desc.a_cast_type == miopenFloat8_fnuz && desc.b_cast_type == miopenBFloat8_fnuz)
     {
         return rocblas_compute_type_f8_bf8_f32;
     }
-    else if(desc.a_cast_type == miopenBFloat8 && desc.b_cast_type == miopenFloat8)
+    else if(desc.a_cast_type == miopenBFloat8_fnuz && desc.b_cast_type == miopenFloat8_fnuz)
     {
         return rocblas_compute_type_bf8_f8_f32;
     }
-    else if(desc.a_cast_type == miopenBFloat8 && desc.b_cast_type == miopenBFloat8)
+    else if(desc.a_cast_type == miopenBFloat8_fnuz && desc.b_cast_type == miopenBFloat8_fnuz)
     {
         return rocblas_compute_type_bf8_bf8_f32;
     }
@@ -130,9 +131,9 @@ auto rocBlasDataType(miopenDataType_t data_type)
     /// \todo Not all supported data types are handled here.
     /// This is fine so far because this function is used only with FP16/F8.
 #if USE_ROCBLAS_GEMM_EX3
-    if(data_type == miopenFloat8)
+    if(data_type == miopenFloat8_fnuz)
         return rocblas_datatype::rocblas_datatype_f8_r;
-    if(data_type == miopenBFloat8)
+    if(data_type == miopenBFloat8_fnuz)
         return rocblas_datatype::rocblas_datatype_bf8_r;
 #endif
     if(data_type == miopenHalf)
@@ -197,7 +198,8 @@ rocblas_status miopen_rocblas_gemm_ex3(const miopen::Handle& handle,
     std::ignore      = C;
     std::ignore      = c_offset;
 #endif
-    MIOPEN_THROW(miopenStatusBadParm, "An appropriate version of rocBLAS is required for this op");
+    MIOPEN_THROW(miopenStatusInternalError,
+                 "An appropriate version of rocBLAS is required for this op");
     std::ignore = handle;
     std::ignore = gemm_desc;
     return rb_status;
@@ -311,7 +313,6 @@ inline void SetRocblasAtomics(const miopen::Handle& handle, rocblas_atomics_mode
 
 #endif
 
-#if MIOPEN_BACKEND_HIP
 inline void ProfilingRecordStart(const Handle& handle, HipEventPtr& start, HipEventPtr& stop)
 {
     start = make_hip_event();
@@ -328,90 +329,347 @@ inline void ProfilingRecordStop(const Handle& handle, HipEventPtr& start, HipEve
     handle.ResetKernelTime();
     handle.AccumKernelTime(mS);
 }
+
+#if MIOPEN_USE_HIPBLASLT
+
+struct HipBLASLtMemoryHandles
+{
+    hipblasLtMatrixLayout_t matA, matB, matC, matD;
+    hipblasLtMatmulDesc_t matmul;
+    hipblasLtMatmulPreference_t pref;
+
+    HipBLASLtMemoryHandles()
+        : matA(nullptr), matB(nullptr), matC(nullptr), matD(nullptr), matmul(nullptr), pref(nullptr)
+    {
+    }
+
+    ~HipBLASLtMemoryHandles()
+    {
+        hipblasLtMatrixLayoutDestroy(matA);
+        hipblasLtMatrixLayoutDestroy(matB);
+        hipblasLtMatrixLayoutDestroy(matC);
+        hipblasLtMatrixLayoutDestroy(matD);
+        hipblasLtMatmulDescDestroy(matmul);
+        hipblasLtMatmulPreferenceDestroy(pref);
+    }
+};
+
+static inline void check_hipblas_status(hipblasStatus_t status)
+{
+    if(status != hipblasStatus_t::HIPBLAS_STATUS_SUCCESS)
+    {
+        std::cout << "error msg" << std::endl;
+        MIOPEN_THROW(miopenStatusInternalError, "hipBlasLt error encountered");
+    }
+}
+
+template <typename DataTypeAB, typename DataTypeC>
+static void miopen_hipblasLt_gemm(const miopen::Handle& handle,
+                                  const miopen::GemmDescriptor& gemm_desc,
+                                  ConstData_t A,
+                                  std::size_t a_offset,
+                                  ConstData_t B,
+                                  std::size_t b_offset,
+                                  hipDataType hip_type_AB,
+                                  Data_t C,
+                                  std::size_t c_offset,
+                                  hipDataType hip_type_C,
+                                  bool skip_batches)
+{
+    HipBLASLtMemoryHandles hipBLASLtHandles;
+
+    if(gemm_desc.transA)
+    {
+        check_hipblas_status(hipblasLtMatrixLayoutCreate(
+            &hipBLASLtHandles.matA, hip_type_AB, gemm_desc.k, gemm_desc.m, gemm_desc.lda));
+    }
+    else
+    {
+        check_hipblas_status(hipblasLtMatrixLayoutCreate(
+            &hipBLASLtHandles.matA, hip_type_AB, gemm_desc.m, gemm_desc.k, gemm_desc.lda));
+    }
+
+    if(gemm_desc.transB)
+    {
+        check_hipblas_status(hipblasLtMatrixLayoutCreate(
+            &hipBLASLtHandles.matB, hip_type_AB, gemm_desc.n, gemm_desc.k, gemm_desc.ldb));
+    }
+    else
+    {
+        check_hipblas_status(hipblasLtMatrixLayoutCreate(
+            &hipBLASLtHandles.matB, hip_type_AB, gemm_desc.k, gemm_desc.n, gemm_desc.ldb));
+    }
+
+    check_hipblas_status(hipblasLtMatrixLayoutCreate(
+        &hipBLASLtHandles.matC, hip_type_C, gemm_desc.m, gemm_desc.n, gemm_desc.ldc));
+    check_hipblas_status(hipblasLtMatrixLayoutCreate(
+        &hipBLASLtHandles.matD, hip_type_C, gemm_desc.m, gemm_desc.n, gemm_desc.ldc));
+
+    if(gemm_desc.batch_count > 1 && !skip_batches)
+    {
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matA,
+                                                               HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+                                                               &gemm_desc.batch_count,
+                                                               sizeof(gemm_desc.batch_count)));
+        check_hipblas_status(
+            hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matA,
+                                              HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+                                              &gemm_desc.strideA,
+                                              sizeof(gemm_desc.strideA)));
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matB,
+                                                               HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+                                                               &gemm_desc.batch_count,
+                                                               sizeof(gemm_desc.batch_count)));
+        check_hipblas_status(
+            hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matB,
+                                              HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+                                              &gemm_desc.strideB,
+                                              sizeof(gemm_desc.strideB)));
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matC,
+                                                               HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+                                                               &gemm_desc.batch_count,
+                                                               sizeof(gemm_desc.batch_count)));
+        check_hipblas_status(
+            hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matC,
+                                              HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+                                              &gemm_desc.strideC,
+                                              sizeof(gemm_desc.strideC)));
+        check_hipblas_status(hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matD,
+                                                               HIPBLASLT_MATRIX_LAYOUT_BATCH_COUNT,
+                                                               &gemm_desc.batch_count,
+                                                               sizeof(gemm_desc.batch_count)));
+        check_hipblas_status(
+            hipblasLtMatrixLayoutSetAttribute(hipBLASLtHandles.matD,
+                                              HIPBLASLT_MATRIX_LAYOUT_STRIDED_BATCH_OFFSET,
+                                              &gemm_desc.strideC,
+                                              sizeof(gemm_desc.strideC)));
+    }
+
+    check_hipblas_status(
+        hipblasLtMatmulDescCreate(&hipBLASLtHandles.matmul, HIPBLAS_COMPUTE_32F, HIP_R_32F));
+
+    hipblasOperation_t opTypeA = gemm_desc.transA ? HIPBLAS_OP_T : HIPBLAS_OP_N;
+    hipblasOperation_t opTypeB = gemm_desc.transB ? HIPBLAS_OP_T : HIPBLAS_OP_N;
+    check_hipblas_status(hipblasLtMatmulDescSetAttribute(
+        hipBLASLtHandles.matmul, HIPBLASLT_MATMUL_DESC_TRANSA, &opTypeA, sizeof(opTypeA)));
+    check_hipblas_status(hipblasLtMatmulDescSetAttribute(
+        hipBLASLtHandles.matmul, HIPBLASLT_MATMUL_DESC_TRANSB, &opTypeB, sizeof(opTypeB)));
+
+    hipblasLtEpilogue_t epilogue = HIPBLASLT_EPILOGUE_DEFAULT;
+    check_hipblas_status(hipblasLtMatmulDescSetAttribute(
+        hipBLASLtHandles.matmul, HIPBLASLT_MATMUL_DESC_EPILOGUE, &epilogue, sizeof(epilogue)));
+
+    /// \todo Need to request additional workspace for optimal gemm performance, and pass down
+    /// workspace size & pointer. --BrianHarrisonAMD June 2024
+    size_t max_workspace_size = 0;
+    void* workspace           = nullptr;
+    check_hipblas_status(hipblasLtMatmulPreferenceCreate(&hipBLASLtHandles.pref));
+    check_hipblas_status(
+        hipblasLtMatmulPreferenceSetAttribute(hipBLASLtHandles.pref,
+                                              HIPBLASLT_MATMUL_PREF_MAX_WORKSPACE_BYTES,
+                                              &max_workspace_size,
+                                              sizeof(max_workspace_size)));
+
+    const int requestSolutions = 1;
+    hipblasLtMatmulHeuristicResult_t heuristicResult[requestSolutions];
+    int returnedAlgoCount = 0;
+    check_hipblas_status(hipblasLtMatmulAlgoGetHeuristic(handle.HipblasLtHandle().get(),
+                                                         hipBLASLtHandles.matmul,
+                                                         hipBLASLtHandles.matA,
+                                                         hipBLASLtHandles.matB,
+                                                         hipBLASLtHandles.matC,
+                                                         hipBLASLtHandles.matD,
+                                                         hipBLASLtHandles.pref,
+                                                         requestSolutions,
+                                                         heuristicResult,
+                                                         &returnedAlgoCount));
+
+    if(returnedAlgoCount == 0)
+    {
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "no solution found for hipBLASLt hipBLASLtHandles.matmul");
+    }
+
+    float alpha       = gemm_desc.alpha;
+    float beta        = gemm_desc.beta;
+    const void* aData = static_cast<const DataTypeAB*>(A) + a_offset;
+    const void* bData = static_cast<const DataTypeAB*>(B) + b_offset;
+    const void* cData = static_cast<const DataTypeC*>(C) + c_offset;
+    void* dData       = static_cast<DataTypeC*>(C) + c_offset;
+
+    {
+        HipEventProfiler profiler(handle);
+        check_hipblas_status(hipblasLtMatmul(handle.HipblasLtHandle().get(),
+                                             hipBLASLtHandles.matmul,
+                                             &alpha,
+                                             aData,
+                                             hipBLASLtHandles.matA,
+                                             bData,
+                                             hipBLASLtHandles.matB,
+                                             &beta,
+                                             cData,
+                                             hipBLASLtHandles.matC,
+                                             dData,
+                                             hipBLASLtHandles.matD,
+                                             &heuristicResult[0].algo,
+                                             workspace,
+                                             max_workspace_size,
+                                             handle.GetStream()));
+    }
+}
+
+static void call_miopen_hipblasLt_gemm(const miopen::Handle& handle,
+                                       const miopen::GemmDescriptor& gemm_desc,
+                                       ConstData_t A,
+                                       std::size_t a_offset,
+                                       ConstData_t B,
+                                       std::size_t b_offset,
+                                       Data_t C,
+                                       std::size_t c_offset,
+                                       bool skip_batches)
+{
+    switch(gemm_desc.dataType)
+    {
+    case miopenInt8: {
+        MIOPEN_THROW(miopenStatusInternalError, "miopenInt8 is not supported for hipBLASLt");
+    }
+    break;
+    case miopenInt32: {
+        MIOPEN_THROW(miopenStatusInternalError, "miopenInt32 is not supported for hipBLASLt");
+    }
+    break;
+    case miopenHalf: {
+        miopen_hipblasLt_gemm<hipblasLtHalf, hipblasLtHalf>(handle,
+                                                            gemm_desc,
+                                                            A,
+                                                            a_offset,
+                                                            B,
+                                                            b_offset,
+                                                            HIP_R_16F,
+                                                            C,
+                                                            c_offset,
+                                                            HIP_R_16F,
+                                                            skip_batches);
+    }
+    break;
+    case miopenBFloat16: {
+        miopen_hipblasLt_gemm<hipblasLtBfloat16, hipblasLtBfloat16>(handle,
+                                                                    gemm_desc,
+                                                                    A,
+                                                                    a_offset,
+                                                                    B,
+                                                                    b_offset,
+                                                                    HIP_R_16BF,
+                                                                    C,
+                                                                    c_offset,
+                                                                    HIP_R_16BF,
+                                                                    skip_batches);
+    }
+    break;
+    case miopenFloat: {
+        miopen_hipblasLt_gemm<hipblasLtFloat, hipblasLtFloat>(handle,
+                                                              gemm_desc,
+                                                              A,
+                                                              a_offset,
+                                                              B,
+                                                              b_offset,
+                                                              HIP_R_32F,
+                                                              C,
+                                                              c_offset,
+                                                              HIP_R_32F,
+                                                              skip_batches);
+    }
+    break;
+    case miopenFloat8_fnuz: {
+        const auto is_gfx942 = handle.GetDeviceName() == "gfx942";
+        if(is_gfx942)
+        {
+            miopen_hipblasLt_gemm<hipblaslt_f8_fnuz, hipblaslt_f8_fnuz>(handle,
+                                                                        gemm_desc,
+                                                                        A,
+                                                                        a_offset,
+                                                                        B,
+                                                                        b_offset,
+                                                                        HIP_R_8F_E4M3_FNUZ,
+                                                                        C,
+                                                                        c_offset,
+                                                                        HIP_R_8F_E4M3_FNUZ,
+                                                                        skip_batches);
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenFloat8_fnuz is only supported for hipBlasLt on gfx942");
+        }
+    }
+    break;
+    case miopenBFloat8_fnuz: {
+        const auto is_gfx942 = handle.GetDeviceName() == "gfx942";
+        if(is_gfx942)
+        {
+#ifdef ENABLE_HIPBLASLT_BF8
+            miopen_hipblasLt_gemm<hipblaslt_bf8_fnuz, hipblaslt_bf8_fnuz>(handle,
+                                                                          gemm_desc,
+                                                                          A,
+                                                                          a_offset,
+                                                                          B,
+                                                                          b_offset,
+                                                                          HIP_R_8F_E5M2_FNUZ,
+                                                                          C,
+                                                                          c_offset,
+                                                                          HIP_R_8F_E5M2_FNUZ,
+                                                                          skip_batches);
+#else
+            MIOPEN_THROW(
+                miopenStatusInternalError,
+                "miopenBFloat8_fnuz is not supported for this version of hipBlasLt on gfx942");
+#endif
+        }
+        else
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenBFloat8_fnuz is only supported for hipBlasLt on gfx942");
+        }
+    }
+    break;
+    case miopenDouble: {
+        MIOPEN_THROW(miopenStatusInternalError, "miopenDouble is not supported for hipBlasLt");
+    }
+    break;
+    case miopenInt64: {
+        MIOPEN_THROW(miopenStatusInternalError, "miopenInt64 is not supported for hipBlasLt");
+    }
+    break;
+    }
+}
 #endif
 
 // hacks: control GEMM backend by enviroment variable and build option
 // very nasty
-static GemmBackend_t enforce_gemm_backend(miopenDataType_t data_type,
-                                          GemmBackend_t gemm_backend_preferred)
+static GemmBackend_t enforce_gemm_backend(GemmBackend_t gemm_backend_preferred)
 {
-    GemmBackend_t gemm_backend_enforced = GemmBackend_t::nogemmbackend;
-    GemmBackend_t gemm_backend_env      = GemmBackend_t::nogemmbackend;
+    GemmBackend_t gemm_backend_env = GemmBackend_t::nogemmbackend;
 
     // enforce backend based on env variable
     // I have left the commented lines here to preserve values for the enforce and hint at why are
-    // they 1 and 3
-    switch(Value(ENV(MIOPEN_GEMM_ENFORCE_BACKEND)))
+    // they 1, 3, and 5
+    switch(env::value(MIOPEN_GEMM_ENFORCE_BACKEND))
     {
+#if MIOPEN_USE_ROCBLAS
     case 1: gemm_backend_env = GemmBackend_t::rocblas; break;
+#endif
     // case 2: gemm_backend_env = GemmBackend_t::miopengemm; break;
-    case 3: gemm_backend_env = GemmBackend_t::nogemmbackend; break;
-    // case 4: gemm_backend_env = GemmBackend_t::miopentensile; break;
+    case 3:
+        gemm_backend_env = GemmBackend_t::nogemmbackend;
+        break;
+        // case 4: gemm_backend_env = GemmBackend_t::miopentensile; break;
+#if MIOPEN_USE_HIPBLASLT
+    case 5: gemm_backend_env = GemmBackend_t::hipblaslt; break;
+#endif
     default: gemm_backend_env = gemm_backend_preferred;
     }
 
-// make sure backend chosen based on env variable is suppported
-#if MIOPEN_USE_ROCBLAS
-    (void)data_type;
-    switch(gemm_backend_env)
-    {
-    case GemmBackend_t::nogemmbackend: gemm_backend_enforced = GemmBackend_t::nogemmbackend; break;
-    case GemmBackend_t::rocblas: gemm_backend_enforced = GemmBackend_t::rocblas; break;
-    }
-#else
-    gemm_backend_enforced = GemmBackend_t::nogemmbackend;
-#endif
-
-    return gemm_backend_enforced;
-}
-
-miopenStatus_t CallGemmTimeMeasure(const Handle& handle,
-                                   GemmDescriptor gemm_desc,
-                                   ConstData_t A,
-                                   std::size_t a_offset,
-                                   ConstData_t B,
-                                   std::size_t b_offset,
-                                   Data_t C,
-                                   std::size_t c_offset,
-                                   bool time_precision,
-                                   CallGemmType_t call_gemm_type,
-                                   GemmBackend_t gemm_backend)
-{
-    switch(call_gemm_type)
-    {
-    case callGemm: {
-        if(time_precision)
-        {
-            // rocBLAS need a warm-up call for accurate timing
-            CallGemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-        }
-
-        return CallGemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-    }
-    case callGemmStridedBatched: {
-        if(time_precision)
-        {
-            // rocBLAS need extra warm-up call for accurate timing
-            CallGemmStridedBatched(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-        }
-
-        return CallGemmStridedBatched(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-    }
-    case callGemmStridedBatchedSequential: {
-        if(time_precision)
-        {
-            // rocBLAS need a warm-up call for accurate timing
-            CallGemmStridedBatchedSequential(
-                handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-        }
-
-        return CallGemmStridedBatchedSequential(
-            handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, gemm_backend);
-    }
-    }
-    return miopenStatusNotImplemented;
+    return gemm_backend_env;
 }
 
 miopenStatus_t CallGemm(const Handle& handle,
@@ -426,7 +684,7 @@ miopenStatus_t CallGemm(const Handle& handle,
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
-    gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
+    gemm_backend = enforce_gemm_backend(gemm_backend);
 
     if(!gemm_desc.isColMajor)
     {
@@ -444,7 +702,7 @@ miopenStatus_t CallGemm(const Handle& handle,
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
-        MIOPEN_LOG_FUNCTION("rocBLAS");
+        MIOPEN_LOG_I2("rocBLAS");
 
         HipEventPtr start = nullptr;
         HipEventPtr stop  = nullptr;
@@ -497,14 +755,15 @@ miopenStatus_t CallGemm(const Handle& handle,
         break;
         case miopenInt32: break;
         case miopenHalf: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+            const auto is_gfx942 = handle.GetDeviceName() == "gfx942";
             // We need ex3 API if any of the dataType or the cast type is an 8-bit floating type
             const auto needs_ex3 = [&]() {
-                if((gemm_desc.dataType == miopenFloat8 || gemm_desc.dataType == miopenBFloat8) ||
-                   (gemm_desc.a_cast_type == miopenFloat8 ||
-                    gemm_desc.a_cast_type == miopenBFloat8) ||
-                   (gemm_desc.b_cast_type == miopenBFloat8 ||
-                    gemm_desc.b_cast_type == miopenFloat8))
+                if((gemm_desc.dataType == miopenFloat8_fnuz ||
+                    gemm_desc.dataType == miopenBFloat8_fnuz) ||
+                   (gemm_desc.a_cast_type == miopenFloat8_fnuz ||
+                    gemm_desc.a_cast_type == miopenBFloat8_fnuz) ||
+                   (gemm_desc.b_cast_type == miopenBFloat8_fnuz ||
+                    gemm_desc.b_cast_type == miopenFloat8_fnuz))
                 {
                     return true;
                 }
@@ -513,18 +772,18 @@ miopenStatus_t CallGemm(const Handle& handle,
                     return false;
                 }
             }();
-            // ex3 API only works on the gfx94x ASIC;
+            // ex3 API only works on the gfx942 ASIC;
             if(needs_ex3)
             {
-                if(is_gfx94x)
+                if(is_gfx942)
                 {
                     rb_status = miopen_rocblas_gemm_ex3<rocblas_half>(
                         handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
                 }
                 else
                 {
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "8-bit floating types are only supported on gfx94x");
+                    MIOPEN_THROW(miopenStatusInternalError,
+                                 "8-bit floating types are only supported on gfx942");
                 }
             }
             else
@@ -628,25 +887,31 @@ miopenStatus_t CallGemm(const Handle& handle,
         }
         break;
 
-        case miopenFloat8:
-        case miopenBFloat8: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
-            if(is_gfx94x)
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz: {
+            const auto is_gfx942 = handle.GetDeviceName() == "gfx942";
+            if(is_gfx942)
             {
                 rb_status = miopen_rocblas_gemm_ex3<char>(
                     handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
             }
             else
             {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "8-bit floating types are only supported on gfx94x");
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "8-bit floating types are only supported on gfx942");
             }
         };
         break;
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenDouble data type not supported by rocBLAS.");
         };
+        break;
+
+        case miopenInt64: {
+            MIOPEN_THROW(miopenStatusInternalError, "miopenInt64 is not currently supported.");
+        }
         break;
         }
 
@@ -658,6 +923,14 @@ miopenStatus_t CallGemm(const Handle& handle,
 
         if(gemm_desc.deterministic)
             SetRocblasAtomics(handle, cur_mode);
+        return miopenStatusSuccess;
+#else
+        return miopenStatusNotImplemented;
+#endif
+    }
+    case GemmBackend_t::hipblaslt: {
+#if MIOPEN_USE_HIPBLASLT
+        call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, true);
         return miopenStatusSuccess;
 #else
         return miopenStatusNotImplemented;
@@ -680,7 +953,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
-    gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
+    gemm_backend = enforce_gemm_backend(gemm_backend);
 
     if(!gemm_desc.isColMajor)
     {
@@ -699,7 +972,7 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
-        MIOPEN_LOG_FUNCTION("rocBLAS");
+        MIOPEN_LOG_I2("rocBLAS");
 
         HipEventPtr start = nullptr;
         HipEventPtr stop  = nullptr;
@@ -757,14 +1030,15 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         case miopenInt32: break;
 
         case miopenHalf: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+            const auto is_gfx942 = handle.GetDeviceName() == "gfx942";
             // We need ex3 API if any of the dataType or the cast type is an 8-bit floating type
             const auto needs_ex3 = [&]() {
-                if((gemm_desc.dataType == miopenFloat8 || gemm_desc.dataType == miopenBFloat8) ||
-                   (gemm_desc.a_cast_type == miopenFloat8 ||
-                    gemm_desc.a_cast_type == miopenBFloat8) ||
-                   (gemm_desc.b_cast_type == miopenBFloat8 ||
-                    gemm_desc.b_cast_type == miopenFloat8))
+                if((gemm_desc.dataType == miopenFloat8_fnuz ||
+                    gemm_desc.dataType == miopenBFloat8_fnuz) ||
+                   (gemm_desc.a_cast_type == miopenFloat8_fnuz ||
+                    gemm_desc.a_cast_type == miopenBFloat8_fnuz) ||
+                   (gemm_desc.b_cast_type == miopenBFloat8_fnuz ||
+                    gemm_desc.b_cast_type == miopenFloat8_fnuz))
                 {
                     return true;
                 }
@@ -773,18 +1047,18 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
                     return false;
                 }
             }();
-            // ex3 API only works on the gfx94x ASIC;
+            // ex3 API only works on the gfx942 ASIC;
             if(needs_ex3)
             {
-                if(is_gfx94x)
+                if(is_gfx942)
                 {
                     rb_status = miopen_rocblas_gemm_strided_batched_ex3<rocblas_half>(
                         handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
                 }
                 else
                 {
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "8-bit floating types are only supported on gfx94x");
+                    MIOPEN_THROW(miopenStatusInternalError,
+                                 "8-bit floating types are only supported on gfx942");
                 }
             }
             else
@@ -901,25 +1175,30 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         }
         break;
 
-        case miopenFloat8:
-        case miopenBFloat8: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
-            if(is_gfx94x)
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz: {
+            const auto is_gfx942 = handle.GetDeviceName() == "gfx942";
+            if(is_gfx942)
             {
                 rb_status = miopen_rocblas_gemm_strided_batched_ex3<char>(
                     handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
             }
             else
             {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "8-bit floating types are only supported on gfx94x");
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "8-bit floating types are only supported on gfx942");
             }
 
             break;
         }
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenDouble data type not supported by rocBLAS.");
+        }
+        break;
+        case miopenInt64: {
+            MIOPEN_THROW(miopenStatusInternalError, "miopenInt64 is not currently supported.");
         }
         break;
         }
@@ -933,6 +1212,14 @@ miopenStatus_t CallGemmStridedBatched(const Handle& handle,
         if(gemm_desc.deterministic)
             SetRocblasAtomics(handle, cur_mode);
 
+        return miopenStatusSuccess;
+#else
+        return miopenStatusNotImplemented;
+#endif
+    }
+    case GemmBackend_t::hipblaslt: {
+#if MIOPEN_USE_HIPBLASLT
+        call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, false);
         return miopenStatusSuccess;
 #else
         return miopenStatusNotImplemented;
@@ -955,7 +1242,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
 {
     MIOPEN_LOG_I2("gemm_desc: " << gemm_desc);
 
-    gemm_backend = enforce_gemm_backend(gemm_desc.dataType, gemm_backend);
+    gemm_backend = enforce_gemm_backend(gemm_backend);
 
     if(!gemm_desc.isColMajor)
     {
@@ -974,7 +1261,7 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
     case GemmBackend_t::nogemmbackend: return miopenStatusNotImplemented;
     case GemmBackend_t::rocblas: {
 #if MIOPEN_USE_ROCBLAS
-        MIOPEN_LOG_FUNCTION("rocBLAS");
+        MIOPEN_LOG_I2("rocBLAS");
 
         HipEventPtr start = nullptr;
         HipEventPtr stop  = nullptr;
@@ -1032,14 +1319,15 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         break;
         case miopenInt32: break;
         case miopenHalf: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
+            const auto is_gfx942 = handle.GetDeviceName() == "gfx942";
             // We need ex3 API if any of the dataType or the cast type is an 8-bit floating type
             const auto needs_ex3 = [&]() {
-                if((gemm_desc.dataType == miopenFloat8 || gemm_desc.dataType == miopenBFloat8) ||
-                   (gemm_desc.a_cast_type == miopenFloat8 ||
-                    gemm_desc.a_cast_type == miopenBFloat8) ||
-                   (gemm_desc.b_cast_type == miopenBFloat8 ||
-                    gemm_desc.b_cast_type == miopenFloat8))
+                if((gemm_desc.dataType == miopenFloat8_fnuz ||
+                    gemm_desc.dataType == miopenBFloat8_fnuz) ||
+                   (gemm_desc.a_cast_type == miopenFloat8_fnuz ||
+                    gemm_desc.a_cast_type == miopenBFloat8_fnuz) ||
+                   (gemm_desc.b_cast_type == miopenBFloat8_fnuz ||
+                    gemm_desc.b_cast_type == miopenFloat8_fnuz))
                 {
                     return true;
                 }
@@ -1048,18 +1336,18 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
                     return false;
                 }
             }();
-            // ex3 API only works on the gfx94x ASIC;
+            // ex3 API only works on the gfx942 ASIC;
             if(needs_ex3)
             {
-                if(is_gfx94x)
+                if(is_gfx942)
                 {
                     rb_status = miopen_rocblas_gemm_strided_batched_ex3<rocblas_half>(
                         handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
                 }
                 else
                 {
-                    MIOPEN_THROW(miopenStatusBadParm,
-                                 "8-bit floating types are only supported on gfx94x");
+                    MIOPEN_THROW(miopenStatusInternalError,
+                                 "8-bit floating types are only supported on gfx942");
                 }
             }
             else
@@ -1173,25 +1461,31 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         }
         break;
 
-        case miopenFloat8:
-        case miopenBFloat8: {
-            const auto is_gfx94x = miopen::StartsWith(handle.GetDeviceName(), "gfx94");
-            if(is_gfx94x)
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz: {
+            const auto is_gfx942 = handle.GetDeviceName() == "gfx942";
+            if(is_gfx942)
             {
                 rb_status = miopen_rocblas_gemm_strided_batched_ex3<char>(
                     handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset);
             }
             else
             {
-                MIOPEN_THROW(miopenStatusBadParm,
-                             "8-bit floating types are only supported on gfx94x");
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "8-bit floating types are only supported on gfx942");
             }
 
             break;
         }
 
         case miopenDouble: {
-            MIOPEN_THROW(miopenStatusBadParm, "miopenDouble data type not supported by rocBLAS.");
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "miopenDouble data type not supported by rocBLAS.");
+        }
+        break;
+
+        case miopenInt64: {
+            MIOPEN_THROW(miopenStatusInternalError, "miopenInt64 is not currently supported.");
         }
         break;
         }
@@ -1205,6 +1499,16 @@ miopenStatus_t CallGemmStridedBatchedSequential(const Handle& handle,
         if(gemm_desc.deterministic)
             SetRocblasAtomics(handle, cur_mode);
 
+        return miopenStatusSuccess;
+#else
+        return miopenStatusNotImplemented;
+#endif
+    }
+    case GemmBackend_t::hipblaslt: {
+#if MIOPEN_USE_HIPBLASLT
+        // todo bharriso - find out if we need to support iterative variant, or if using regular
+        // batching is alright.
+        call_miopen_hipblasLt_gemm(handle, gemm_desc, A, a_offset, B, b_offset, C, c_offset, false);
         return miopenStatusSuccess;
 #else
         return miopenStatusNotImplemented;

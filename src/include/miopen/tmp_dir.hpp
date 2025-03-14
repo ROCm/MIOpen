@@ -3,10 +3,11 @@
 
 #include <string_view>
 #include <miopen/filesystem.hpp>
+#include <miopen/config.hpp>
 
 namespace miopen {
 
-struct TmpDir
+struct MIOPEN_INTERNALS_EXPORT TmpDir
 {
     fs::path path;
     explicit TmpDir(std::string_view prefix = "");
@@ -19,7 +20,7 @@ struct TmpDir
     operator const fs::path&() const { return path; }
     operator std::string() const { return path.string(); }
 
-    int Execute(std::string_view cmd, std::string_view args) const;
+    int Execute(std::string_view cmd, std::string_view args, bool allowChangingCwd = true) const;
 
     ~TmpDir();
 };

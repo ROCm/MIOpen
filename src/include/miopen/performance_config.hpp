@@ -29,6 +29,7 @@
 
 #include <miopen/miopen.h>
 #include <miopen/serializable.hpp>
+#include <miopen/config.hpp>
 
 #include <iostream>
 #include <sstream>
@@ -38,7 +39,7 @@
 namespace miopen {
 namespace solver {
 
-struct PerfConfig
+struct MIOPEN_INTERNALS_EXPORT PerfConfig
 {
     virtual ~PerfConfig() = default;
 
@@ -52,7 +53,7 @@ protected:
     PerfConfig& operator=(const PerfConfig&) = default;
 };
 
-std::ostream& operator<<(std::ostream& os, const PerfConfig& c);
+MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& os, const PerfConfig& c);
 
 template <class Derived>
 struct PerfConfigBase : PerfConfig

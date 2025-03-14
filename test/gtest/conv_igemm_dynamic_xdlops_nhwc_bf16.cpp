@@ -28,32 +28,20 @@
 #include <gtest/gtest.h>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "lib_env_var.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
+MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_MODE)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
 
 namespace conv_igemm_dynamic_xdlops_nhwc_bf16 {
 
-static bool SkipTest(const std::string& float_arg)
+void SetupEnvVar()
 {
-    if(miopen::IsUnset(ENV(MIOPEN_TEST_ALL)))
-        return false;
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)))
-        if(miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG)) == float_arg)
-            return false;
-    return true;
-}
-
-void SetupEnvVar(void)
-{
-    miopen::UpdateEnvVar(ENV(MIOPEN_FIND_MODE), std::string("normal"));
-    miopen::UpdateEnvVar(
-        ENV(MIOPEN_DEBUG_FIND_ONLY_SOLVER),
-        std::string(
-            "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-            "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC"));
+    lib_env::update(MIOPEN_FIND_MODE, "normal");
+    lib_env::update(
+        MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+        "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+        "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
 }
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
@@ -65,7 +53,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
         tokens.push_back(*begin++);
 }
 
-class Conv2dBf16 : public testing::TestWithParam<std::vector<std::string>>
+class GPU_Conv2d_BFP16 : public testing::TestWithParam<std::vector<std::string>>
 {
 };
 
@@ -75,19 +63,20 @@ void Run2dDriver(miopenDataType_t prec)
     std::vector<std::string> params;
     switch(prec)
     {
-    case miopenBFloat16: params = Conv2dBf16::GetParam(); break;
+    case miopenBFloat16: params = GPU_Conv2d_BFP16::GetParam(); break;
     case miopenFloat:
     case miopenHalf:
     case miopenInt8:
     case miopenInt32:
+    case miopenInt64:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
         FAIL() << "miopenFloat, miopenHalf, miopenInt8, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "miopenDouble, miopenFloat8_fnuz, miopenBFloat8_fnuz "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_bf16 test";
 
-    default: params = Conv2dBf16::GetParam();
+    default: params = GPU_Conv2d_BFP16::GetParam();
     }
 
     SetupEnvVar();
@@ -112,12 +101,12 @@ void Run2dDriver(miopenDataType_t prec)
 
 bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
-    const auto target   = handle.GetTargetProperties();
+    const auto& target  = handle.GetTargetProperties();
     std::string devName = handle.GetDeviceName();
     if(target.Xnack() && *target.Xnack())
         return false;
 
-    if(devName == "gfx90a" || miopen::StartsWith(devName, "gfx94"))
+    if(devName == "gfx90a" || devName == "gfx942")
         return true;
     else
         return false;
@@ -156,7 +145,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     {flags + " --input  64   3 78 78 --weights  64   3 7 7 --pads_strides_dilations 0 0 2 2 1 1" + args_nhwc_fwd},
     {flags + " --input  16 192 17 17 --weights 224 192 1 7 --pads_strides_dilations 0 3 1 1 1 1" + args_nhwc_fwd},
     {flags + " --input  16   3 17 17 --weights  64   3 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_fwd},
-    
+
     //nhwc_bwd
     {flags + " --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
     {flags + " --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
@@ -174,7 +163,7 @@ std::vector<std::string> GetTestCases(const std::string& precision)
     {flags + " --input  16  16 25 25 --weights  64  16 3 3 --pads_strides_dilations 0 0 1 1 1 1" + args_nhwc_bwd},
     {flags + " --input  15 256 1  1  --weights 340 256 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_bwd},
     {flags + " --input  15 128 10 10 --weights 340 128 3 3 --pads_strides_dilations 1 1 1 1 1 1" + args_nhwc_bwd},
-    
+
     //nhwc_wrw
     {flags + " --input  64 256  7  7 --weights 128 256 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
     {flags + " --input  32 160 73 73 --weights  64 160 1 1 --pads_strides_dilations 0 0 1 1 1 1 " + args_nhwc_wrw},
@@ -205,10 +194,10 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 } // namespace conv_igemm_dynamic_xdlops_nhwc_bf16
 using namespace conv_igemm_dynamic_xdlops_nhwc_bf16;
 
-TEST_P(Conv2dBf16, Bf16Test_conv_igemm_dynamic_xdlops_nhwc_bf16)
+TEST_P(GPU_Conv2d_BFP16, Bf16Test_conv_igemm_dynamic_xdlops_nhwc_bf16)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest("--bfloat16"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenBFloat16);
     }
@@ -218,6 +207,4 @@ TEST_P(Conv2dBf16, Bf16Test_conv_igemm_dynamic_xdlops_nhwc_bf16)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(ConvIgemmDynamicXdlopsNhwc,
-                         Conv2dBf16,
-                         testing::Values(GetTestCases("--bfloat16")));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Conv2d_BFP16, testing::Values(GetTestCases("--bfloat16")));

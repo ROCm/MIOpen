@@ -45,38 +45,39 @@ __device__ static inline ushort ____half_as_ushort(__half x)
     return tmp;
 }
 
-__device__ inline void atomic_add_g(volatile ushort* addr, const float val)
+__device__ inline void atomic_add_g(ushort* addr, const float val)
 {
-    size_t offset               = (size_t)addr & 0x2;
-    bool is_32_align            = offset;
-    volatile uint* addr_as_uint = (volatile uint*)((volatile char*)addr - offset);
-    uint current                = *addr_as_uint;
+    size_t offset    = reinterpret_cast<size_t>(addr) & 0x2;
+    bool is_32_align = offset;
+    uint32_t* addr_as_uint32_t =
+        reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(addr) - offset);
+    uint32_t current = *addr_as_uint32_t;
 
-    uint expected;
+    uint32_t expected;
 
     do
     {
         expected              = current;
         ushort current_ushort = is_32_align ? current >> 16 : current & 0xffff;
 
-        float next_float = __uint_as_float((uint)current_ushort << 16) + val;
+        float next_float   = __uint_as_float(static_cast<uint32_t>(current_ushort) << 16) + val;
+        ushort next_ushort = static_cast<ushort>(__float_as_uint(next_float) >> 16);
+        uint32_t next      = is_32_align ? (current & 0xffff) | (next_ushort << 16)
+                                         : (current & 0xffff0000) | next_ushort;
 
-        ushort next_ushort = (ushort)(__float_as_uint(next_float) >> 16);
-
-        uint next = is_32_align ? (current & 0xffff) | (next_ushort << 16)
-                                : (current & 0xffff0000) | next_ushort;
-        current   = atomicCAS(const_cast<uint*>(addr_as_uint), expected, next);
+        current = atomicCAS(addr_as_uint32_t, expected, next);
     } while(current != expected);
 }
 
-__device__ inline void atomic_add_g(volatile __half* addr, const __half val)
+__device__ inline void atomic_add_g(__half* addr, const __half val)
 {
-    size_t offset               = (size_t)addr & 0x2;
-    bool is_32_align            = offset;
-    volatile uint* addr_as_uint = (volatile uint*)((volatile char*)addr - offset);
-    uint current                = *addr_as_uint;
+    size_t offset    = reinterpret_cast<size_t>(addr) & 0x2;
+    bool is_32_align = offset;
+    uint32_t* addr_as_uint32_t =
+        reinterpret_cast<uint32_t*>(reinterpret_cast<size_t>(addr) - offset);
+    uint32_t current = *addr_as_uint32_t;
 
-    uint expected;
+    uint32_t expected;
 
     do
     {
@@ -84,20 +85,11 @@ __device__ inline void atomic_add_g(volatile __half* addr, const __half val)
         ushort current_ushort = is_32_align ? current >> 16 : current & 0xffff;
 
         ushort next_ushort = ____half_as_ushort(__ushort_as___half(current_ushort) + val);
-        uint next          = is_32_align ? (current & 0xffff) | (next_ushort << 16)
+        uint32_t next      = is_32_align ? (current & 0xffff) | (next_ushort << 16)
                                          : (current & 0xffff0000) | next_ushort;
-        current            = atomicCAS(const_cast<uint*>(addr_as_uint), expected, next);
+
+        current = atomicCAS(addr_as_uint32_t, expected, next);
     } while(current != expected);
 }
 
-__device__ inline void atomic_add_g(volatile float* addr, const float val)
-{
-    uint next, expected, current;
-    current = __float_as_uint(*addr);
-    do
-    {
-        expected = current;
-        next     = __float_as_uint(__uint_as_float(expected) + val);
-        current  = atomicCAS(reinterpret_cast<uint*>(const_cast<float*>(addr)), expected, next);
-    } while(current != expected);
-}
+__device__ inline void atomic_add_g(float* addr, const float val) { atomicAdd(addr, val); }

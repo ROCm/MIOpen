@@ -26,6 +26,7 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/mlo_internal.hpp>
 #include <miopen/pooling.hpp>
 #include <miopen/pooling/invoke_params.hpp>
 #include <miopen/pooling/solvers.hpp>
@@ -76,13 +77,13 @@ bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
                || problem.GetPooling().GetMode() == miopenPoolingAverage           //
                || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) //
            && (                                                                    //
-                  (problem.GetXDesc().GetSize() == 5                               //
-                   && problem.GetXDesc().GetLayout("NCDHW") == "NCDHW"             //
-                   && problem.GetYDesc().GetLayout("NCDHW") == "NCDHW")            //
+                  (problem.GetXDesc().GetNumDims() == 5                            //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW")             //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW"))            //
                   ||                                                               //
-                  (problem.GetXDesc().GetSize() == 4                               //
-                   && problem.GetXDesc().GetLayout("NCHW") == "NCHW"               //
-                   && problem.GetYDesc().GetLayout("NCHW") == "NCHW")              //
+                  (problem.GetXDesc().GetNumDims() == 4                            //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCHW")              //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCHW"))             //
               );
 }
 
@@ -94,7 +95,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
 
     const auto bot  = problem.GetXDesc();
     const auto top  = problem.GetYDesc();
-    const bool is2d = (bot.GetSize() == 4);
+    const bool is2d = (bot.GetNumDims() == 4);
 
     // To compact code:
     const auto& pooling = problem.GetPooling();

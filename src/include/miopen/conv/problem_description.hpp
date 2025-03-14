@@ -29,9 +29,9 @@
 #include <boost/any.hpp>
 #include <miopen/conv_algo_name.hpp>
 #include <miopen/names.hpp>
+#include <miopen/scalar.hpp>
 
 #include <miopen/problem_description_base.hpp>
-#include <miopen/tensor.hpp>
 #include <miopen/convolution.hpp>
 
 #if MIOPEN_ENABLE_SQLITE
@@ -42,7 +42,7 @@ namespace miopen {
 
 struct ExecutionContext;
 
-std::string
+MIOPEN_INTERNALS_EXPORT std::string
 EncodeDataTypesForKey(miopenDataType_t in, miopenDataType_t weights, miopenDataType_t out);
 
 template <class TElement>
@@ -100,42 +100,15 @@ constexpr TElement GetWofCHWN(const std::vector<TElement>& data)
     return std::get<2>(GetCHWN(data));
 }
 
-template <class TElement>
-constexpr TElement GetN5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<0>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetC5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<1>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetD5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<2>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetH5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<3>(GetNCDHW(spatial_dims, data));
-}
-
-template <class TElement>
-constexpr TElement GetW5(unsigned spatial_dims, const std::vector<TElement>& data)
-{
-    return std::get<4>(GetNCDHW(spatial_dims, data));
-}
-
 namespace conv {
 
-struct ProblemDescription : ProblemDescriptionBase
+MIOPEN_INTERNALS_EXPORT miopenAlphaBetaCase_t ClassifyAlphaBeta(const Scalar& alpha,
+                                                                const Scalar& beta);
+
+struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase
 #if MIOPEN_ENABLE_SQLITE
     ,
-                            SQLiteSerializable<ProblemDescription>
+                                                    SQLiteSerializable<ProblemDescription>
 #endif
 {
     ProblemDescription() = default;
@@ -146,7 +119,9 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& out_, // y for Forward, x for Backward*
                        const ConvolutionDescriptor& conv_,
                        Direction direction_,
-                       int bias_ = 0)
+                       int bias_            = 0,
+                       const Scalar& alpha_ = Scalar(1.0),
+                       const Scalar& beta_  = Scalar(0.0))
         : in(in_),
           weights(weights_),
           out(out_),
@@ -155,7 +130,10 @@ struct ProblemDescription : ProblemDescriptionBase
           weights_layout(ComputeWeightsLayout()),
           out_layout(ComputeOutLayout()),
           direction(direction_),
-          bias(bias_)
+          bias(bias_),
+          alpha(alpha_),
+          beta(beta_),
+          alpha_beta_case(ClassifyAlphaBeta(alpha, beta))
     {
         HeuristicUpdateLayouts();
     }
@@ -189,24 +167,8 @@ struct ProblemDescription : ProblemDescriptionBase
     std::size_t GetInStrideH() const { return GetH5(GetSpatialDims(), in.GetStrides()); }
     std::size_t GetInStrideW() const { return GetW5(GetSpatialDims(), in.GetStrides()); }
     std::string GetInLayout() const { return in_layout; }
-    std::string ComputeInLayout() const
-    {
-        if(GetSpatialDims() == 2)
-        {
-            return in.GetLayout(in.GetLayout_str());
-        }
-        else
-        {
-            return in.GetLayout("NCDHW");
-        }
-    }
     std::size_t GetInElementSize() const { return GetTypeSize(GetInDataType()); }
-
-    std::size_t GetInSize() const
-    {
-        return GetInBatchSize() * GetInChannels() * GetInDepth() * GetInHeight() * GetInWidth() *
-               GetInElementSize();
-    }
+    std::size_t GetInSize() const { return in.GetNumBytes(); }
 
     // Out getters
     miopenDataType_t GetOutDataType() const { return out.GetType(); }
@@ -222,24 +184,8 @@ struct ProblemDescription : ProblemDescriptionBase
     std::size_t GetOutStrideH() const { return GetH5(GetSpatialDims(), out.GetStrides()); }
     std::size_t GetOutStrideW() const { return GetW5(GetSpatialDims(), out.GetStrides()); }
     std::string GetOutLayout() const { return out_layout; }
-    std::string ComputeOutLayout() const
-    {
-        if(GetSpatialDims() == 2)
-        {
-            return out.GetLayout(out.GetLayout_str());
-        }
-        else
-        {
-            return out.GetLayout("NCDHW");
-        }
-    }
     std::size_t GetOutElementSize() const { return GetTypeSize(GetOutDataType()); }
-
-    std::size_t GetOutSize() const
-    {
-        return GetOutBatchSize() * GetOutChannels() * GetOutDepth() * GetOutHeight() *
-               GetOutWidth() * GetOutElementSize();
-    }
+    std::size_t GetOutSize() const { return out.GetNumBytes(); }
 
     // Weights getters
     miopenDataType_t GetWeightsDataType() const { return weights.GetType(); }
@@ -247,43 +193,26 @@ struct ProblemDescription : ProblemDescriptionBase
     std::size_t GetWeightsDepth() const { return GetD5(GetSpatialDims(), weights.GetLengths()); }
     std::size_t GetWeightsHeight() const
     {
-        if(weights.GetLayout_str() == "CHWNc")
+        if(weights_layout == "CHWNc")
             return GetHofCHWN(weights.GetLengths());
         else
             return GetH5(GetSpatialDims(), weights.GetLengths());
     }
     std::size_t GetWeightsWidth() const
     {
-        if(weights.GetLayout_str() == "CHWNc")
+        if(weights_layout == "CHWNc")
             return GetWofCHWN(weights.GetLengths());
         else
             return GetW5(GetSpatialDims(), weights.GetLengths());
     }
-    // std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims(), weights.GetStrides());
-    // }
-    // std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims(), weights.GetStrides());
-    // }
-    // std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides());
-    // }
+    std::size_t GetWeightsStrideK() const { return GetN5(GetSpatialDims(), weights.GetStrides()); }
+    std::size_t GetWeightsStrideC() const { return GetC5(GetSpatialDims(), weights.GetStrides()); }
+    std::size_t GetWeightsStrideD() const { return GetD5(GetSpatialDims(), weights.GetStrides()); }
+    std::size_t GetWeightsStrideH() const { return GetH5(GetSpatialDims(), weights.GetStrides()); }
+    std::size_t GetWeightsStrideW() const { return GetW5(GetSpatialDims(), weights.GetStrides()); }
     std::string GetWeightsLayout() const { return weights_layout; }
-    std::string ComputeWeightsLayout() const
-    {
-        if(GetSpatialDims() == 2)
-        {
-            return weights.GetLayout(weights.GetLayout_str());
-        }
-        else
-        {
-            return weights.GetLayout("NCDHW");
-        }
-    }
     std::size_t GetWeightsElementSize() const { return GetTypeSize(GetWeightsDataType()); }
-
-    std::size_t GetWeightsSize() const
-    {
-        return GetInChannels() * GetOutChannels() * GetWeightsDepth() * GetWeightsHeight() *
-               GetWeightsWidth() * GetWeightsElementSize();
-    }
+    std::size_t GetWeightsSize() const { return weights.GetNumBytes(); }
 
     const TensorDescriptor& GetIn() const { return in; }
     const TensorDescriptor& GetWeights() const { return weights; }
@@ -295,6 +224,13 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsDirectionBackwardData() const { return direction == conv::Direction::BackwardData; }
     bool IsDirectionBackwardWrW() const { return direction == conv::Direction::BackwardWeights; }
     std::string GetDirectionStr() const;
+
+    const Scalar& GetAlpha() const { return alpha; }
+    const Scalar& GetBeta() const { return beta; }
+
+    miopenAlphaBetaCase_t GetAlphaBetaCase() const { return alpha_beta_case; }
+
+    std::string GetAlphaBetaCaseStr() const;
 
     int GetBias() const { return bias; }
 
@@ -342,17 +278,18 @@ struct ProblemDescription : ProblemDescriptionBase
     bool IsInt8() const
     {
         return GetInDataType() == miopenInt8 && GetWeightsDataType() == miopenInt8 &&
-               (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenFloat);
+               (GetOutDataType() == miopenInt32 || GetOutDataType() == miopenInt8 ||
+                GetOutDataType() == miopenFloat);
     }
     bool IsFp8() const
     {
-        return GetInDataType() == miopenFloat8 || GetWeightsDataType() == miopenFloat8 ||
-               GetOutDataType() == miopenFloat8;
+        return GetInDataType() == miopenFloat8_fnuz || GetWeightsDataType() == miopenFloat8_fnuz ||
+               GetOutDataType() == miopenFloat8_fnuz;
     }
     bool IsBfp8() const
     {
-        return GetInDataType() == miopenBFloat8 || GetWeightsDataType() == miopenBFloat8 ||
-               GetOutDataType() == miopenBFloat8;
+        return GetInDataType() == miopenBFloat8_fnuz ||
+               GetWeightsDataType() == miopenBFloat8_fnuz || GetOutDataType() == miopenBFloat8_fnuz;
     }
     bool IsTensorsCasted() const
     {
@@ -396,6 +333,12 @@ struct ProblemDescription : ProblemDescriptionBase
         return in.AllDimsFitIntoInt() && weights.AllDimsFitIntoInt() && out.AllDimsFitIntoInt();
     }
 
+    bool AllTensorsLengthsFitIntoInt() const
+    {
+        return in.AllLengthsFitIntoInt() && weights.AllLengthsFitIntoInt() &&
+               out.AllLengthsFitIntoInt();
+    }
+
     void HeuristicUpdateLayouts();
 
     void MakeNetworkConfig(std::string& conf_key) const;
@@ -417,10 +360,6 @@ struct ProblemDescription : ProblemDescriptionBase
         obj.Serialize(os);
         return os;
     }
-
-#if MIOPEN_ENABLE_SQLITE
-    static std::string table_name() { return "config"; }
-#endif
 
     template <class Self>
     static void Visit(Self&& self, std::function<void(int64_t, std::string)> f)
@@ -470,6 +409,11 @@ struct ProblemDescription : ProblemDescriptionBase
     void SetupFloats(ExecutionContext& ctx) const;
 
 private:
+    std::string ComputeLayout(const TensorDescriptor& td) const;
+    std::string ComputeInLayout() const;
+    std::string ComputeOutLayout() const;
+    std::string ComputeWeightsLayout() const;
+
     TensorDescriptor in;
     TensorDescriptor weights;
     TensorDescriptor out;
@@ -477,8 +421,11 @@ private:
     std::string in_layout;
     std::string weights_layout;
     std::string out_layout;
-    Direction direction = Direction::Forward;
-    int bias            = 0;
+    Direction direction                   = Direction::Forward;
+    int bias                              = 0;
+    Scalar alpha                          = Scalar(1.0);
+    Scalar beta                           = Scalar(0.0);
+    miopenAlphaBetaCase_t alpha_beta_case = DEFAULT;
 };
 
 } // namespace conv

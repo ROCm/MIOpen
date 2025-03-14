@@ -231,11 +231,12 @@ inline int GetDataTypeSize(miopenDataType_t t)
     case miopenHalf: return (2);
     case miopenFloat: return (4);
     case miopenDouble: return (8);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8: return (1);
     case miopenBFloat16: return (2);
     case miopenInt32: return (4);
+    case miopenInt64:
     default: MIOPEN_THROW("Only float, half, double, bfloat16, int8 data types are supported.");
     };
 };
@@ -290,10 +291,13 @@ inline int GetDataTypeId(miopenDataType_t t)
     case miopenBFloat16: return (static_cast<int>('B'));
     case miopenDouble: return (static_cast<int>('D'));
     case miopenInt8:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt32: return (static_cast<int>('O'));
-    default: MIOPEN_THROW("Only float, half, bfloat16, float8, bfloat8 data type is supported.");
+    case miopenInt64:
+    default:
+        MIOPEN_THROW(
+            "Only float, half, bfloat16, float8_fnuz, bfloat8_fnuz data type is supported.");
     };
 };
 
@@ -330,8 +334,9 @@ static ck::DataTypeEnum_t mapDataTypeId(miopenDataType_t t)
     case miopenDouble: return DataTypeEnum_t::Double;
     case miopenInt8: return DataTypeEnum_t::Int8;
     case miopenInt32: return DataTypeEnum_t::Int32;
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
+    case miopenInt64:
     default: MIOPEN_THROW("Only float, half, double data type is supported.");
     };
 };
@@ -551,7 +556,7 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
 
     int blockSize;
 
-    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
+    if(!env::disabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION))
     {
         const tunable_generic_reduction* tunable = &default_tunable_generic_reduction;
         blockSize                                = tunable->BlockSize;
@@ -576,7 +581,7 @@ std::size_t ReduceTensorDescriptor::GetWorkspaceSize(const Handle& handle,
                             64 + sizeof(int) + workspaceAlignRequirementBytes;
 
     // dynamic reduction use one additional page for storing tensor descriptors
-    if(!miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
+    if(!env::disabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION))
         wsSizeInBytes += 4096;
 
     return (wsSizeInBytes);
@@ -642,8 +647,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
 
     const tunable_generic_reduction* tunable = &default_tunable_generic_reduction;
 
-    const int blockSize =
-        !miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)) ? tunable->BlockSize : 256;
+    const int blockSize = !env::disabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION) ? tunable->BlockSize : 256;
     detail::ReductionKernelConfigurator configurator(blockSize, handle.GetWavefrontWidth());
 
     const bool need_indices =
@@ -726,7 +730,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
                          ? static_cast<float>(*reinterpret_cast<const double*>(beta))
                          : *reinterpret_cast<const float*>(beta);
 
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_DYNAMIC_REDUCTION)))
+    if(env::disabled(MIOPEN_DEBUG_DYNAMIC_REDUCTION))
     { // use static reduction
         std::vector<std::size_t> invariantLengths;
         std::vector<std::size_t> invariantStrides;

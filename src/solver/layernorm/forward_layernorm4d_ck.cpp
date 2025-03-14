@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/env.hpp>
 #include <miopen/layernorm.hpp>
 #include <miopen/layernorm/solvers.hpp>
 #include <miopen/layernorm/invoke_params.hpp>
@@ -31,6 +32,7 @@
 #include <ck/library/tensor_operation_instance/gpu/normalization_fwd.hpp>
 #include <miopen/solver/ck_utility_common.hpp>
 #endif
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)
 
 namespace miopen {
@@ -221,7 +223,7 @@ bool Layernorm4DCKForward::IsApplicable(
     [[maybe_unused]] const miopen::layernorm::ProblemDescription& problem) const
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN)))
+    if(env::disabled(MIOPEN_DEBUG_LAYERNORM4DCKFORWARD_CONV_CK_LN))
         return false;
     if(!problem.IsSameType())
         return false;
@@ -244,10 +246,11 @@ bool Layernorm4DCKForward::IsApplicable(
         return CheckCKApplicability<DeviceOpLnFwdPtrs<F32, F32, F32, F32, F32>>(problem);
     case miopenBFloat16:
     case miopenDouble:
+    case miopenInt64:
     case miopenInt32:
     case miopenInt8:
-    case miopenFloat8:
-    case miopenBFloat8: return false;
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz: return false;
     }
 #endif
     return false;
@@ -272,11 +275,12 @@ ConvSolution Layernorm4DCKForward::GetSolution(
     case miopenBFloat16:
     case miopenInt8:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenInt64:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     default:
         MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmFwdXdlops operation not implemented for this data type");
+                     "Layernorm4DCKForward operation not implemented for this data type");
     }
 #endif
     return {};

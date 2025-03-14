@@ -25,38 +25,29 @@
  *******************************************************************************/
 
 #include "layernorm.hpp"
-#include <miopen/env.hpp>
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
 
 namespace layernorm {
 
-std::string GetFloatArg()
+struct GPU_LayerNormTest_FP32 : LayerNormTest<float>
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
-}
+};
 
-struct LayerNormTestFloat : LayerNormTest<float>
+struct GPU_LayerNormTest_FP16 : LayerNormTest<half_float::half>
+{
+};
+
+struct GPU_LayerNormTest_BFP16 : LayerNormTest<bfloat16>
 {
 };
 
 } // namespace layernorm
 using namespace layernorm;
 
-TEST_P(LayerNormTestFloat, LayerNormTestFw)
+TEST_P(GPU_LayerNormTest_FP32, LayerNormTestFw)
 {
-    auto TypeArg       = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
     const auto& handle = get_handle();
-    if((miopen::StartsWith(handle.GetDeviceName(), "gfx908") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx90a") ||
-        miopen::StartsWith(handle.GetDeviceName(), "gfx94")) &&
-       miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
+    if(handle.GetDeviceName() == "gfx908" || handle.GetDeviceName() == "gfx90a" ||
+       handle.GetDeviceName() == "gfx942")
     {
         RunTest();
         Verify();
@@ -67,6 +58,36 @@ TEST_P(LayerNormTestFloat, LayerNormTestFw)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(LayerNormTestSet,
-                         LayerNormTestFloat,
-                         testing::ValuesIn(LayerNormTestConfigs()));
+TEST_P(GPU_LayerNormTest_FP16, LayerNormTestFw)
+{
+    const auto& handle = get_handle();
+    if(handle.GetDeviceName() == "gfx908" || handle.GetDeviceName() == "gfx90a" ||
+       handle.GetDeviceName() == "gfx942")
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(GPU_LayerNormTest_BFP16, LayerNormTestFw)
+{
+    const auto& handle = get_handle();
+    if(handle.GetDeviceName() == "gfx908" || handle.GetDeviceName() == "gfx90a" ||
+       handle.GetDeviceName() == "gfx942")
+    {
+        RunTest();
+        Verify();
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormTest_FP32, testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormTest_FP16, testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormTest_BFP16, testing::ValuesIn(LayerNormTestConfigs()));

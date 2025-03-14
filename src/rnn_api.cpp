@@ -106,7 +106,10 @@ miopenGetRNNDataSeqTensorDescriptor(miopenSeqTensorDescriptor_t seqTensorDesc,
 extern "C" miopenStatus_t miopenCreateRNNDescriptor(miopenRNNDescriptor_t* rnnDesc)
 {
     MIOPEN_LOG_FUNCTION(rnnDesc);
-    return miopen::try_([&] { miopen::deref(rnnDesc) = new miopen::RNNDescriptor(); });
+    return miopen::try_([&] {
+        auto& desc = miopen::deref(rnnDesc);
+        desc       = new miopen::RNNDescriptor();
+    });
 }
 
 extern "C" miopenStatus_t miopenDestroyRNNDescriptor(miopenRNNDescriptor_t rnnDesc)

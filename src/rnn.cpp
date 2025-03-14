@@ -33,8 +33,8 @@
 #include <numeric>
 #include <ostream>
 
-// MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ROCM_PRECOMPILED_BINARIES)
-// MIOPEN_DECLARE_ENV_VAR(MIOPEN_DEBUG_AMD_ASM_KERNELS_PERF_FILTERING)
+#include "miopen/env.hpp"
+#include "miopen/rnn/solvers.hpp"
 
 // Disable specific warnings
 #define MIO_RNN_DEBUG 0
@@ -458,7 +458,7 @@ size_t RNNDescriptor::GetMainSolWorkspaceSize(size_t batchLenSum,
     return (workspaceScale * nLayers * batchLenSum * hsize * typeSize) * (is_bidirect ? 2 : 1);
 }
 
-size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
+size_t RNNDescriptor::GetWorkspaceSize(const Handle& handle,
                                        const SeqTensorDescriptor& xDesc,
                                        miopenRNNFWDMode_t fwdMode) const
 {
@@ -476,21 +476,32 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
         transformer_tmp_space = RNNTransformerWorkspaceSize(xDesc, fwdMode);
     }
 
-    const std::size_t total_sequence_len = xDesc.GetTotalSequenceLen();
+    size_t solution_ws = 0;
 
-    size_t reduction_ws = ReductionWorkspaceSize(handle,
-                                                 total_sequence_len,
-                                                 nHiddenTensorsPerLayer,
-                                                 workspaceScale,
-                                                 hsize,
-                                                 dirMode == miopenRNNbidirection,
-                                                 dataType);
+    if(CheckDynamicAlgoSelection(handle, xDesc, fwdMode))
+    {
+        auto [ws, rs] = GetTmpSpaceSizeDynamicAlgo(handle, xDesc, miopenRNNTraining);
+        solution_ws   = ws;
+    }
+    else
+    {
+        const std::size_t total_sequence_len = xDesc.GetTotalSequenceLen();
+        size_t reduction_ws                  = ReductionWorkspaceSize(handle,
+                                                     total_sequence_len,
+                                                     nHiddenTensorsPerLayer,
+                                                     workspaceScale,
+                                                     hsize,
+                                                     dirMode == miopenRNNbidirection,
+                                                     dataType);
+        solution_ws =
+            reduction_ws +
+            GetMainSolWorkspaceSize(total_sequence_len, fwdMode, miopenRNNDataSeqMajorNotPadded);
+    }
 
-    return transformer_tmp_space + reduction_ws +
-           GetMainSolWorkspaceSize(total_sequence_len, fwdMode, miopenRNNDataSeqMajorNotPadded);
+    return transformer_tmp_space + solution_ws;
 }
 
-size_t RNNDescriptor::GetMaxWorkspaceSize(Handle& handle,
+size_t RNNDescriptor::GetMaxWorkspaceSize(const Handle& handle,
                                           const SeqTensorDescriptor& xDesc,
                                           miopenRNNFWDMode_t fwdMode) const
 {
@@ -507,7 +518,7 @@ size_t RNNDescriptor::GetMaxWorkspaceSize(Handle& handle,
 }
 
 // legacy
-size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
+size_t RNNDescriptor::GetWorkspaceSize(const Handle& handle,
                                        const int seqLength,
                                        c_array_view<const miopenTensorDescriptor_t> xDesc) const
 {
@@ -525,23 +536,34 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
         padding_converter_tmp_space = packedXInSpace + packedYOutSpace;
     }
 
-    std::size_t total_sequence_len = 0;
-    total_sequence_len             = std::accumulate(
-        xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
-            return x + deref(y).GetLengths()[0];
-        });
+    SeqTensorDescriptor xSeqTDesc =
+        makeSeqTensorDescriptor(xDesc, seqLength, miopenRNNDataSeqMajorNotPadded);
 
-    size_t reduction_ws = ReductionWorkspaceSize(handle,
-                                                 total_sequence_len,
-                                                 nHiddenTensorsPerLayer,
-                                                 workspaceScale,
-                                                 hsize,
-                                                 dirMode == miopenRNNbidirection,
-                                                 dataType);
+    if(CheckDynamicAlgoSelection(handle, xSeqTDesc, miopenRNNTraining))
+    {
+        auto [ws, rs] = GetTmpSpaceSizeDynamicAlgo(handle, xSeqTDesc, miopenRNNTraining);
 
-    return padding_converter_tmp_space + reduction_ws +
-           GetMainSolWorkspaceSize(
-               total_sequence_len, miopenRNNInference, miopenRNNDataSeqMajorNotPadded);
+        return ws + padding_converter_tmp_space;
+    }
+    else
+    {
+        std::size_t total_sequence_len = std::accumulate(
+            xDesc.data, xDesc.data + seqLength, 0ULL, [](size_t x, miopenTensorDescriptor_t y) {
+                return x + deref(y).GetLengths()[0];
+            });
+
+        size_t reduction_ws = ReductionWorkspaceSize(handle,
+                                                     total_sequence_len,
+                                                     nHiddenTensorsPerLayer,
+                                                     workspaceScale,
+                                                     hsize,
+                                                     dirMode == miopenRNNbidirection,
+                                                     dataType);
+
+        return padding_converter_tmp_space + reduction_ws +
+               GetMainSolWorkspaceSize(
+                   total_sequence_len, miopenRNNInference, miopenRNNDataSeqMajorNotPadded);
+    }
 }
 
 /////////////////////////////////
@@ -549,7 +571,8 @@ size_t RNNDescriptor::GetWorkspaceSize(Handle& handle,
 size_t RNNDescriptor::GetReserveSize(size_t batchLenSum) const
 {
     auto x = 2 * workspaceScale * nLayers * batchLenSum * hsize * typeSize;
-    if(algoMode == miopenRNNdefault && rnnMode == miopenLSTM)
+    if((algoMode == miopenRNNdefault || algoMode == miopenRNNroundedDynamic) &&
+       rnnMode == miopenLSTM)
     {
         x /= 2;
         x += nLayers * batchLenSum * hsize * typeSize;
@@ -567,18 +590,25 @@ size_t RNNDescriptor::GetReserveSize(size_t batchLenSum) const
 //  with tensor with maximum sequence length and maximum count of non empty sequences.
 // The previous version of this function returned a size sufficient only for the current tensor
 // size.
-size_t RNNDescriptor::GetMaxReserveSize(Handle& /* handle */,
+size_t RNNDescriptor::GetMaxReserveSize(const Handle& handle,
                                         const SeqTensorDescriptor& xDesc) const
 {
     if(xDesc.GetType() != dataType)
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
+
+    if(CheckDynamicAlgoSelection(handle, xDesc, miopenRNNTraining))
+    {
+        auto [ws, rs] = GetTmpSpaceSizeDynamicAlgo(handle, xDesc, miopenRNNTraining);
+        return rs;
+    }
+
     return GetReserveSize(xDesc.GetMaxSequenceLength() * xDesc.GetMaxCountOfSequences());
 }
 
 // Legacy.
-size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
+size_t RNNDescriptor::GetReserveSize(const Handle& handle,
                                      const int seqLength,
                                      c_array_view<const miopenTensorDescriptor_t> xDesc) const
 {
@@ -587,12 +617,23 @@ size_t RNNDescriptor::GetReserveSize(Handle& /* handle */,
     {
         MIOPEN_THROW(miopenStatusBadParm, "Data type mismatch between descriptors");
     }
-    std::size_t inputBatchLenSum = 0;
-    inputBatchLenSum             = std::accumulate(
-        xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
-            return x + deref(y).GetLengths()[0];
-        });
-    return GetReserveSize(inputBatchLenSum);
+    SeqTensorDescriptor xSeqTDesc =
+        makeSeqTensorDescriptor(xDesc, seqLength, miopenRNNDataSeqMajorNotPadded);
+
+    if(CheckDynamicAlgoSelection(handle, xSeqTDesc, miopenRNNTraining))
+    {
+        auto [ws, rs] = GetTmpSpaceSizeDynamicAlgo(handle, xSeqTDesc, miopenRNNTraining);
+        return rs;
+    }
+    else
+    {
+        std::size_t inputBatchLenSum = 0;
+        inputBatchLenSum             = std::accumulate(
+            xDesc.data, xDesc.data + seqLength, 0ULL, [](size_t x, miopenTensorDescriptor_t y) {
+                return x + deref(y).GetLengths()[0];
+            });
+        return GetReserveSize(inputBatchLenSum);
+    }
 }
 
 size_t RNNDescriptor::GetParamsSize(size_t inputVector) const
@@ -620,7 +661,7 @@ size_t RNNDescriptor::GetParamsSize(size_t inputVector) const
     return size_t(typeSize * sz);
 }
 
-size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
+size_t RNNDescriptor::GetParamsSize(const Handle& /* handle */,
                                     const TensorDescriptor& xDesc,
                                     miopenDataType_t dtype) const
 {
@@ -634,7 +675,7 @@ size_t RNNDescriptor::GetParamsSize(Handle& /* handle */,
     return GetParamsSize(input_vector_len);
 }
 
-size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
+size_t RNNDescriptor::GetRNNInputSuperTensorSize(const Handle& /* handle */,
                                                  const int seqLength,
                                                  c_array_view<miopenTensorDescriptor_t> xDesc) const
 {
@@ -646,7 +687,7 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
     if(paddingMode == miopenRNNIONotPadded)
     {
         inputBatchLenSum = std::accumulate(
-            xDesc.data, xDesc.data + seqLength, 0, [](size_t x, miopenTensorDescriptor_t y) {
+            xDesc.data, xDesc.data + seqLength, 0ULL, [](size_t x, miopenTensorDescriptor_t y) {
                 return x + deref(y).GetLengths()[0];
             });
     }
@@ -661,7 +702,7 @@ size_t RNNDescriptor::GetRNNInputSuperTensorSize(Handle& /* handle */,
 }
 
 size_t
-RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& /* handle */,
+RNNDescriptor::GetRNNHiddenSuperTensorSize(const Handle& /* handle */,
                                            c_array_view<miopenTensorDescriptor_t> xDesc) const
 {
     if(xDesc[0].GetType() != dataType)
@@ -672,7 +713,7 @@ RNNDescriptor::GetRNNHiddenSuperTensorSize(Handle& /* handle */,
     return size_t(dirMode == miopenRNNbidirection ? 2 * x : x);
 }
 
-void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
+void RNNDescriptor::GetParamsDescriptor(const Handle& /* handle */,
                                         const TensorDescriptor& xDesc,
                                         TensorDescriptor& wDesc,
                                         miopenDataType_t dtype) const
@@ -700,7 +741,7 @@ void RNNDescriptor::GetParamsDescriptor(Handle& /* handle */,
     wDesc = miopen::TensorDescriptor(dtype, weight_lens);
 }
 
-std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
+std::size_t RNNDescriptor::GetLayerParamSize(const Handle& /*handle*/,
                                              int layer,
                                              const TensorDescriptor& xDesc,
                                              int paramID) const
@@ -733,7 +774,7 @@ std::size_t RNNDescriptor::GetLayerParamSize(Handle& /*handle*/,
 }
 
 std::size_t
-RNNDescriptor::GetLayerBiasSize(Handle& /* handle */, int /*layer*/, int /*biasID*/) const
+RNNDescriptor::GetLayerBiasSize(const Handle& /* handle */, int /*layer*/, int /*biasID*/) const
 {
     return size_t(typeSize * hsize); // is ther more needed here?
 }
@@ -1089,6 +1130,60 @@ SeqTensorDescriptor RNNDescriptor::makeSeqTensorDescriptor(miopenDataType_t t,
             padded_sequences};
 }
 
+SeqTensorDescriptor
+RNNDescriptor::makeSeqTensorDescriptor(c_array_view<const miopenTensorDescriptor_t> descs,
+                                       size_t seq_len,
+                                       miopenRNNBaseLayout_t layout)
+{
+    assert(layout == miopenRNNDataSeqMajorNotPadded || layout == miopenRNNDataSeqMajorPadded);
+
+    auto max_batch = descs[0].GetLengths()[0];
+    auto vec_size  = descs[0].GetLengths()[1];
+
+    std::vector<size_t> lens_per_seq;
+    lens_per_seq.reserve(max_batch);
+    auto push_back_n_lens = [&lens_per_seq](auto N, auto seq) {
+        for(auto i = N; i > 0; --i)
+            lens_per_seq.push_back(seq);
+    };
+
+    std::vector<size_t> batch_cache =
+        [](c_array_view<const miopenTensorDescriptor_t> const& descs_array) {
+            auto size = descs_array.size();
+            std::vector<size_t> vec;
+            vec.reserve(size);
+            for(size_t i = 0; i < size; ++i)
+                vec.push_back(descs_array[i].GetLengths()[0]);
+            return vec;
+        }(descs);
+
+    size_t last_cnt = 0;
+    auto it         = batch_cache.rbegin();
+
+    while(it != batch_cache.rend())
+    {
+        const auto new_cnt = *it;
+
+        if(new_cnt != 0)
+            push_back_n_lens(new_cnt - last_cnt, std::distance(it, batch_cache.rend()));
+
+        last_cnt = new_cnt;
+        it       = std::lower_bound(it, batch_cache.rend(), *it, std::less_equal<size_t>{});
+    }
+
+    const std::vector<size_t> lens = {max_batch, seq_len, vec_size};
+
+    const auto [dim_order, padded_sequences] = convertRNNBaseLayout(layout);
+
+    return {descs[0].GetType(),
+            dim_order,
+            lens,
+            lens_per_seq,
+            std::vector<char>{},
+            true,
+            padded_sequences};
+}
+
 void RNNDescriptor::SeqTensorToTensorDescArray(const SeqTensorDescriptor& desc,
                                                std::vector<miopen::TensorDescriptor>& td,
                                                std::vector<miopenTensorDescriptor_t>& ptd)
@@ -1112,7 +1207,7 @@ void RNNDescriptor::SeqTensorToTensorDescArray(const SeqTensorDescriptor& desc,
     });
 }
 
-void RNNDescriptor::RNNVanillaForward(Handle& handle,
+void RNNDescriptor::RNNVanillaForward(const Handle& handle,
                                       miopenRNNFWDMode_t fwdMode,
                                       ConstData_t w,
                                       const SeqTensorDescriptor& xDesc,
@@ -1160,6 +1255,8 @@ void RNNDescriptor::RNNVanillaForward(Handle& handle,
                                                hy,
                                                cDesc,
                                                cy,
+                                               workSpace,
+                                               workSpaceSize,
                                                reserveSpace,
                                                reserveSpaceSize);
     }
@@ -1187,7 +1284,7 @@ void RNNDescriptor::RNNVanillaForward(Handle& handle,
     }
 }
 
-void RNNDescriptor::RNNVanillaBackwardData(Handle& handle,
+void RNNDescriptor::RNNVanillaBackwardData(const Handle& handle,
                                            const SeqTensorDescriptor& yDesc,
                                            ConstData_t dy,
                                            const TensorDescriptor& hDesc,
@@ -1238,7 +1335,7 @@ void RNNDescriptor::RNNVanillaBackwardData(Handle& handle,
                                         reserveSpaceSize);
 }
 
-void RNNDescriptor::RNNVanillaBackwardWeights(Handle& handle,
+void RNNDescriptor::RNNVanillaBackwardWeights(const Handle& handle,
                                               const SeqTensorDescriptor& xDesc,
                                               ConstData_t x,
                                               const TensorDescriptor& hDesc,
@@ -1277,7 +1374,7 @@ void RNNDescriptor::RNNVanillaBackwardWeights(Handle& handle,
                                            reserveSpaceSize);
 }
 
-void RNNDescriptor::RNNForward(Handle& handle,
+void RNNDescriptor::RNNForward(const Handle& handle,
                                miopenRNNFWDMode_t fwdMode,
                                const SeqTensorDescriptor& xDesc,
                                ConstData_t x,
@@ -1300,7 +1397,7 @@ void RNNDescriptor::RNNForward(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hDesc.GetSize() != cDesc.GetSize())
+    if(hDesc.GetNumDims() != cDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1379,7 +1476,7 @@ void RNNDescriptor::RNNForward(Handle& handle,
 #endif
 }
 
-void RNNDescriptor::RNNBackwardData(Handle& handle,
+void RNNDescriptor::RNNBackwardData(const Handle& handle,
                                     const SeqTensorDescriptor& yDesc,
                                     ConstData_t,
                                     ConstData_t dy,
@@ -1405,7 +1502,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
-    if(hDesc.GetSize() != cDesc.GetSize())
+    if(hDesc.GetNumDims() != cDesc.GetNumDims())
     {
         MIOPEN_THROW(miopenStatusBadParm);
     }
@@ -1487,7 +1584,7 @@ void RNNDescriptor::RNNBackwardData(Handle& handle,
 #endif
 }
 
-void RNNDescriptor::RNNBackwardWeights(Handle& handle,
+void RNNDescriptor::RNNBackwardWeights(const Handle& handle,
                                        const SeqTensorDescriptor& xDesc,
                                        ConstData_t x,
                                        const TensorDescriptor& hDesc,
