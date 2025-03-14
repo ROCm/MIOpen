@@ -90,6 +90,10 @@ pipeline {
             defaultValue: env.BRANCH_NAME == "AD/CiTargets" ? true : false,
             description: "")
         booleanParam(
+            name: "TARGET_NAVI4",
+            defaultValue: env.BRANCH_NAME == "AD/CiTargets" ? true : false,
+            description: "")
+        booleanParam(
             name: "DATATYPE_NA",
             defaultValue: true,
             description: "")
@@ -304,6 +308,36 @@ pipeline {
                         retry(2)
                     }
                     agent{ label rocmnode("gfx94X") }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
+                        }
+                    }
+                }
+                stage('Fp32 Hip Debug gfx1101') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI32 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("navi32") }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
+                        }
+                    }
+                }
+                stage('Fp32 Hip Debug gfx1201') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI4 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx1200 && matthew") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
