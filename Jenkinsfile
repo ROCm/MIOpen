@@ -86,10 +86,6 @@ pipeline {
             defaultValue: false,
             description: "")
         booleanParam(
-            name: "TARGET_NAVI21",
-            defaultValue: false,
-            description: "")
-        booleanParam(
             name: "TARGET_NAVI32",
             defaultValue: false,
             description: "")
@@ -580,7 +576,6 @@ pipeline {
             environment{
                 // WORKAROUND_ISSUE_1148: "CTEST_PARALLEL_LEVEL=2"
                 // WORKAROUND_SWDEV_290754: "LLVM_PATH=/opt/rocm/llvm"
-                Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
             }
             parallel{
                 stage('Dbsync gfx908') {
@@ -691,21 +686,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp16 Hip All gfx1030') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP16 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("navi21") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_cmd: Navi21_build_cmd)
-                        }
-                    }
-                }
                 stage('Fp16 Hip All gfx1101') {
                     when {
                         beforeAgent true
@@ -775,21 +755,6 @@ pipeline {
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Full_test, needs_reboot:false)
-                        }
-                    }
-                }
-                stage('Fp32 Hip All Install gfx1030') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("navi21") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot(setup_flags: Full_test, build_cmd: Navi21_build_cmd, build_install: true)
                         }
                     }
                 }
