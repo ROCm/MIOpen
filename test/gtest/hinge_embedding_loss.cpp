@@ -24,32 +24,55 @@
  *
  *******************************************************************************/
 
-#include <miopen/hingeembeddingloss/problem_description.hpp>
-#include <miopen/names.hpp>
-#include <sstream>
-
-namespace miopen {
+#include "hinge_embedding_loss.hpp"
 
 namespace hingeembeddingloss {
 
-NetworkConfig ForwardProblemDescription::MakeNetworkConfig() const
+struct GPU_HingeEmbeddingLoss_FP32 : HingeEmbeddingLossTest<float>
 {
-    std::ostringstream ss;
-    ss << "itype" << inputDesc.GetType();
-    ss << "isize" << inputDesc.GetElementSize();
-    ss << "reduction" << reduction;
-    return NetworkConfig{ss.str()};
-}
+};
 
-NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
+struct GPU_HingeEmbeddingLoss_FP16 : HingeEmbeddingLossTest<half_float::half>
 {
-    std::ostringstream ss;
-    ss << "itype" << inputDesc.GetType();
-    ss << "isize" << inputDesc.GetElementSize();
-    ss << "reduction" << reduction;
-    return NetworkConfig{ss.str()};
-}
+};
+
+struct GPU_HingeEmbeddingLoss_BFP16 : HingeEmbeddingLossTest<bfloat16>
+{
+};
 
 } // namespace hingeembeddingloss
 
-} // namespace miopen
+using hingeembeddingloss::GPU_HingeEmbeddingLoss_BFP16;
+using hingeembeddingloss::GPU_HingeEmbeddingLoss_FP16;
+using hingeembeddingloss::GPU_HingeEmbeddingLoss_FP32;
+
+TEST_P(GPU_HingeEmbeddingLoss_FP32, Test)
+{
+    RunTest();
+    Verify();
+};
+
+TEST_P(GPU_HingeEmbeddingLoss_FP16, Test)
+{
+    RunTest();
+    Verify();
+};
+
+TEST_P(GPU_HingeEmbeddingLoss_BFP16, Test)
+{
+    RunTest();
+    Verify();
+};
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_HingeEmbeddingLoss_FP32,
+                         testing::ValuesIn(HingeEmbeddingLossTestConfigs()));
+
+//  Use smaller test cases to avoid overflow, underflow output in FP16
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_HingeEmbeddingLoss_FP16,
+                         testing::ValuesIn(HingeEmbeddingLossFp16TestConfigs()));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_HingeEmbeddingLoss_BFP16,
+                         testing::ValuesIn(HingeEmbeddingLossTestConfigs()));

@@ -94,7 +94,8 @@ __device__ void hingeembeddinglossbackward(const DTYPE* __restrict__ input,
     if(idx.layout[0] >= input_tv.size[0])
         return;
 
-    // TODO: use shared memory to access doutput[0] for case != reduction_none
+    // TODO: Can optimize perf by vectorization and use shared memory to access doutput[0] for case
+    // != reduction_none
     if(target[target_tv.get_tensor_view_idx(idx)] == 1)
     {
         switch(REDUCTION_T)

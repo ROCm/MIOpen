@@ -45,6 +45,7 @@ bool HingeEmbeddingLossBackward::IsApplicable(
     const ExecutionContext& /*context*/,
     const miopen::hingeembeddingloss::BackwardProblemDescription& problem) const
 {
+    // Loss should not be used in FP16 because output will be underflow and overflow
     if(!(problem.GetInputDesc().GetType() == miopenFloat ||
          problem.GetInputDesc().GetType() == miopenHalf ||
          problem.GetInputDesc().GetType() == miopenBFloat16))
