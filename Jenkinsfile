@@ -314,7 +314,7 @@ pipeline {
                         }
                     }
                 }
-                //Navi 3 fails to build with error about instruction no support on GPU..
+                //Navi 3 fails to build with error about instruction not supported on GPU..
                 // stage('Fp32 Hip Debug gfx1101') {
                 //     when {
                 //         beforeAgent true
