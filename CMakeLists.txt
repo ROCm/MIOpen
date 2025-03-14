@@ -371,6 +371,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "Build with hipbBLAS ${hipblas_VERSION} ${hipblas_DIR}")
         find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
         message(STATUS "Build with hipbBLASLt ${hipblaslt_VERSION} ${hipblaslt_DIR}")
+        find_package(hipblas-common REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
     else()
         message(STATUS "Build without hipbBLASLt")
     endif()

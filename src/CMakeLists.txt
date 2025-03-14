@@ -947,12 +947,14 @@ if(hipblaslt_FOUND)
 endif()
 
 if(hipblas_FOUND)
-    target_link_libraries( MIOpen INTERFACE $<BUILD_INTERFACE:roc::hipblas> )
-    target_link_libraries( MIOpen PRIVATE roc::hipblas )
+    target_include_directories( MIOpen PRIVATE ${HIPBLAS_INCLUDE_DIR} )
+    target_include_directories( MIOpen INTERFACE $<BUILD_INTERFACE:${HIPBLAS_INCLUDE_DIR}> )
+    #hipblas.h includes #hipblas-common.h
+    target_include_directories( MIOpen INTERFACE $<BUILD_INTERFACE:${HIPBLAS-COMMON_INCLUDE_DIR}> )
 endif()
 
 if(rocrand_FOUND)
-    target_link_libraries( MIOpen PRIVATE roc::rocrand )
+    target_include_directories( MIOpen PRIVATE ${ROCRAND_INCLUDE_DIR} )
 endif()
 
 # For backward compatibility with ROCm 5.3
