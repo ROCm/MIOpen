@@ -607,10 +607,6 @@ pipeline {
             when {
                 expression { params.BUILD_FULL_TESTS}
             }
-            environment{
-                // WORKAROUND_ISSUE_1148: "CTEST_PARALLEL_LEVEL=2"
-                // WORKAROUND_SWDEV_290754: "LLVM_PATH=/opt/rocm/llvm"
-            }
             parallel{
                 stage('Dbsync gfx908') {
                     when {
