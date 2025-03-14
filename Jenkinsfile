@@ -30,8 +30,7 @@ library "jenkins-shared@${get_branch_name()}"
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Performance Dataset" is a performance test with a specified dataset.
-/// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
-///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
+/// Target := { gfx908 | gfx90a | gfx1030 } [ Xnack+ ]
 
 
 pipeline {
@@ -73,14 +72,6 @@ pipeline {
         booleanParam(
             name: "TARGET_NOGPU",
             defaultValue: true,
-            description: "")
-        booleanParam(
-            name: "TARGET_VEGA10",
-            defaultValue: false,
-            description: "")
-        booleanParam(
-            name: "TARGET_VEGA20",
-            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_GFX908",
@@ -383,24 +374,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Debug Embedded Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    environment{
-                        Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60'"
-                    }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ', build_install: true)
-                        }
-                    }
-                }
                 stage('Fp32 Hip Static gfx90a') {
                     when {
                         beforeAgent true
@@ -508,36 +481,6 @@ pipeline {
                 expression { params.BUILD_SMOKE_FP16_BF16_INT8 }
             }
             parallel{
-                stage('Fp16 Hip Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: true)
-                        }
-                    }
-                }
-                stage('Bf16 Hip Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: true)
-                        }
-                    }
-                }
                 stage('Fp16 Hip gfx908') {
                     when {
                         beforeAgent true
@@ -703,21 +646,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Int8 HIP All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test)
-                        }
-                    }
-                }
                 stage('Bf16 Hip Install All gfx908') {
                     when {
                         beforeAgent true
@@ -847,36 +775,6 @@ pipeline {
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Full_test, needs_reboot:false)
-                        }
-                    }
-                }
-                stage('Fp16 Hip Install All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_install: true)
-                        }
-                    }
-                }
-                stage('Fp32 Hip All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot( setup_flags: Full_test)
                         }
                     }
                 }
