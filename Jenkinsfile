@@ -337,7 +337,7 @@ pipeline {
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx1200 && matthew") }
+                    agent{ label rocmnode("gfx1201 && matthew") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
