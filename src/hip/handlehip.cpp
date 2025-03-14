@@ -53,7 +53,6 @@
 #include <algorithm>
 #include <cassert>
 #include <chrono>
-#include <thread>
 #include <mutex>
 #include <shared_mutex>
 
@@ -755,7 +754,7 @@ std::size_t Handle::GetWavefrontWidth() const
 
 // No HIP API that could return maximum memory allocation size
 // for a single object.
-std::size_t Handle::GetMaxMemoryAllocSize()
+std::size_t Handle::GetMaxMemoryAllocSize() const
 {
     if(m_MaxMemoryAllocSizeCached == 0)
     {
@@ -782,7 +781,7 @@ bool Handle::CooperativeLaunchSupported() const
 
 std::string Handle::GetDeviceNameImpl() const { return this->impl->get_device_name(); }
 
-std::string Handle::GetDeviceName() const { return this->impl->target_properties.Name(); }
+std::string Handle::GetDeviceName() const { return this->GetTargetProperties().Name(); }
 
 const TargetProperties& Handle::GetTargetProperties() const
 {

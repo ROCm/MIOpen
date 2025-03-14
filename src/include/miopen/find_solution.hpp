@@ -28,7 +28,6 @@
 #define MIOPEN_GUARD_MLOPEN_FIND_SOLUTION_HPP
 
 #include "miopen/miopen.h"
-#include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/conv_solution.hpp>
 #include <miopen/execution_context.hpp>
@@ -468,7 +467,7 @@ struct SolverContainer
     }
 
     template <class Problem>
-    void ExecutePrimitive(Handle& handle,
+    void ExecutePrimitive(const Handle& handle,
                           const Problem& problem,
                           const AlgorithmName& algo,
                           const AnyInvokeParams& invoke_params) const
