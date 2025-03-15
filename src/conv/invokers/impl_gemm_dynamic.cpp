@@ -683,7 +683,9 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             };
 
             size_t wMemorySize = roundUp(tensors.wDesc.GetNumBytes());
-            size_t xMemorySize = roundUp(tensors.inDesc.GetNumBytes());
+
+            auto xDesc = tensors.inDesc;
+            size_t xMemorySize = roundUp(xDesc.GetNumBytes());
 
             auto yDesc = need_cast ? cast_desc : tensors.outDesc;
             size_t yMemorySize = roundUp(yDesc.GetNumBytes());
@@ -699,7 +701,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
 
 
             const size_t wOffsetIntoMemory = wMemorySize - tensors.wDesc.GetNumBytes() - extraOffset;
-            const size_t xOffsetIntoMemory = xMemorySize - tensors.inDesc.GetNumBytes() - extraOffset;
+            const size_t xOffsetIntoMemory = xMemorySize - xDesc.GetNumBytes() - extraOffset;
             const size_t yOffsetIntoMemory = yMemorySize - yDesc.GetNumBytes() - extraOffset;
             
             // Allocate an empty buffer to use that is memoryPageSize big
@@ -734,7 +736,7 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
             std::cout << "wOffset memory address: " << wOffset << std::endl;
 
             std::cout << "x allocated: " << xMemorySize << std::endl;
-            std::cout << "x bytes: " << tensors.inDesc.GetNumBytes() << std::endl;
+            std::cout << "x bytes: " << xDesc.GetNumBytes() << std::endl;
             std::cout << "xoffsetSize: " << xOffsetIntoMemory << std::endl;
             std::cout << "Allocated address; " << xMem << std::endl;
             std::cout << "xOffset memory address: " << xOffset << std::endl;
@@ -1070,48 +1072,88 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
                 }
             }
 
-            // Allocate 2MB which should give us a full page of memory for testing with.
-            const size_t memoryPageSize = 2097152;
+           // Allocate at least 2MB which should give us a full page of memory for testing with.
+           const size_t memoryPageSize = 2097152;
 
-            // Can change this to have extra offset room from the end of the page.
-            // This can be used to find how far past the end of the buffer is being accessed.
-            // Increasing extraOffset will eventually stop the memory faults, can use this to approximate how far past the end of a buffer is being accessed.
-            const size_t extraOffset = 50;
+           auto roundUp = [&](size_t bytes){
+               return ((bytes + memoryPageSize) / memoryPageSize) * memoryPageSize;
+           };
 
-            // Calculate an offset that will place the W buffer at the end of our allocated memory.
-            // This will cause a memory access fault if memory is accessed outside the page boundary.
-            // Essentially, doing this to flag memory access faults that typically are hidden due to the large page size.
-            const size_t offsetIntoMemory = memoryPageSize - tensors.wDesc.GetNumBytes() - extraOffset;
-            
-            // Allocate an empty wMem buffer to use that is memoryPageSize big
-            void* wMem = nullptr;
-            auto status = hipMalloc(static_cast<void**>(&wMem), memoryPageSize);
+           size_t wMemorySize = roundUp(tensors.wDesc.GetNumBytes());
 
-            // Offset wMem to be at the end of the page of allocated memory
-            auto cdata = reinterpret_cast<char*>(wMem);
-            void* wOffset = reinterpret_cast<void*>(cdata + offsetIntoMemory);
+           auto xDesc = need_cast ? cast_desc : tensors.outDesc;
+           size_t xMemorySize = roundUp(xDesc.GetNumBytes());
 
-            // Log addresses, and sizes.
-            // w bytes is how many bytes W is.
-            // offsetSize is how much we are offsetting from the start of the allocated page
-            // allocated address is where the address of the page start
-            // wOffset memory address is where the offset address starts
-            std::cout << "w bytes: " << tensors.wDesc.GetNumBytes() << std::endl;
-            std::cout << "offsetSize: " << offsetIntoMemory << std::endl;
-            std::cout << "Allocated address; " << wMem << std::endl;
-            std::cout << "wOffset memory address: " << wOffset << std::endl;
+           auto yDesc = tensors.inDesc;
+           size_t yMemorySize = roundUp(yDesc.GetNumBytes());
 
-            opArgs[0] = need_cast ? OpKernelArg(cast_buf.get())
-                                  : ((is_nchw && !trans_input_skippable)
-                                         ? OpKernelArg(trans_input_buf.get())
-                                         : OpKernelArg(tensors.out));
+           // Can change this to have extra offset room from the end of the page.
+           // This can be used to find how far past the end of the buffer is being accessed.
+           // Increasing extraOffset will eventually stop the memory faults, can use this to approximate how far past the end of a buffer is being accessed.
+           const size_t extraOffset = 0;
 
-            // Force using wOffset pointer for this example
+           // Calculate an offset that will place the W buffer at the end of our allocated memory.
+           // This will cause a memory access fault if memory is accessed outside the page boundary.
+           // Essentially, doing this to flag memory access faults that typically are hidden due to the large page size.
+
+
+           const size_t wOffsetIntoMemory = wMemorySize - tensors.wDesc.GetNumBytes() - extraOffset;
+           const size_t xOffsetIntoMemory = xMemorySize - xDesc.GetNumBytes() - extraOffset;
+           const size_t yOffsetIntoMemory = yMemorySize - yDesc.GetNumBytes() - extraOffset;
+           
+           // Allocate an empty buffer to use that is memoryPageSize big
+           void* wMem = nullptr;
+           auto status = hipMalloc(static_cast<void**>(&wMem), wMemorySize);
+
+           void* xMem = nullptr;
+           status = hipMalloc(static_cast<void**>(&xMem), xMemorySize);
+
+           void* yMem = nullptr;
+           status = hipMalloc(static_cast<void**>(&yMem), yMemorySize);
+
+           // Offset wMem to be at the end of the page of allocated memory
+           auto wcdata = reinterpret_cast<char*>(wMem);
+           void* wOffset = reinterpret_cast<void*>(wcdata + wOffsetIntoMemory);
+
+           auto xcdata = reinterpret_cast<char*>(xMem);
+           void* xOffset = reinterpret_cast<void*>(xcdata + xOffsetIntoMemory);
+
+           auto ycdata = reinterpret_cast<char*>(yMem);
+           void* yOffset = reinterpret_cast<void*>(ycdata + yOffsetIntoMemory);
+
+           // Log addresses, and sizes.
+           // w bytes is how many bytes W is.
+           // offsetSize is how much we are offsetting from the start of the allocated page
+           // allocated address is where the address of the page start
+           // wOffset memory address is where the offset address starts
+           std::cout << "w allocated: " << wMemorySize << std::endl;
+           std::cout << "w bytes: " << tensors.wDesc.GetNumBytes() << std::endl;
+           std::cout << "woffsetSize: " << wOffsetIntoMemory << std::endl;
+           std::cout << "Allocated address; " << wMem << std::endl;
+           std::cout << "wOffset memory address: " << wOffset << std::endl;
+
+           std::cout << "x allocated: " << xMemorySize << std::endl;
+           std::cout << "x bytes: " << xDesc.GetNumBytes() << std::endl;
+           std::cout << "xoffsetSize: " << xOffsetIntoMemory << std::endl;
+           std::cout << "Allocated address; " << xMem << std::endl;
+           std::cout << "xOffset memory address: " << xOffset << std::endl;
+
+           std::cout << "y allocated: " << yMemorySize << std::endl;
+           std::cout << "y bytes: " << yDesc.GetNumBytes() << std::endl;
+           std::cout << "yoffsetSize: " << yOffsetIntoMemory << std::endl;
+           std::cout << "Allocated address; " << yMem << std::endl;
+           std::cout << "yOffset memory address: " << yOffset << std::endl;
+           std::cout << "need cast" << need_cast << std::endl;
+
+            opArgs[0] = OpKernelArg(xOffset);
             opArgs[1] = OpKernelArg(wOffset);
-            opArgs[2] = (is_nchw && !trans_output_skippable) ? OpKernelArg(trans_output_buf.get())
-                                                             : OpKernelArg(tensors.in);
+            opArgs[2] = OpKernelArg(yOffset);
 
             ker(opArgs);
+            status = hipFree(wMem);
+            status = hipFree(yMem);
+            status = hipFree(xMem);
+
             if(handle.IsProfilingEnabled())
                 elapsed += handle.GetKernelTime();
 
