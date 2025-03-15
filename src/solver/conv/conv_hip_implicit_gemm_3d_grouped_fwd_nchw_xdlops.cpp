@@ -389,8 +389,8 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdCKNCHWXdlops::HeuristicInit(
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -432,8 +432,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdCKNCHWXdlops::IsValid(
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -511,8 +511,8 @@ bool ConvHipImplicitGemm3DGroupFwdCKNCHWXdlops::IsApplicable(
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
