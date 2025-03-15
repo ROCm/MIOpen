@@ -1197,10 +1197,10 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
 #endif
 }
 
-template <typename InvokerFactoryMakerNCHW>
+template <typename SlolutionMakerNCHW>
 ConvSolution
 MakeSolutionGroupConvImplicitGemmCKNCHWXdlops(const miopen::conv::ProblemDescription& problem,
-                                              InvokerFactoryMakerNCHW&& invoker_factory_maker_ncdhw)
+                                              SlolutionMakerNCHW&& solution_maker_ndchw)
 {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -1208,10 +1208,10 @@ MakeSolutionGroupConvImplicitGemmCKNCHWXdlops(const miopen::conv::ProblemDescrip
     {
         switch(problem.GetInDataType())
         {
-        case miopenInt8: return invoker_factory_maker_ncdhw(int8_t{});
-        case miopenHalf: return invoker_factory_maker_ncdhw(ck::half_t{});
-        case miopenFloat: return invoker_factory_maker_ncdhw(float{});
-        case miopenBFloat16: return invoker_factory_maker_ncdhw(ck::bhalf_t{});
+        case miopenInt8: return solution_maker_ndchw(int8_t{});
+        case miopenHalf: return solution_maker_ndchw(ck::half_t{});
+        case miopenFloat: return solution_maker_ndchw(float{});
+        case miopenBFloat16: return solution_maker_ndchw(ck::bhalf_t{});
         case miopenInt64:
         case miopenInt32:
         case miopenDouble:
