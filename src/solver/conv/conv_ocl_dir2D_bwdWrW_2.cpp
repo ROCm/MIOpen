@@ -470,7 +470,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ExecutionContext& ctx
     {
         return false;
     }
-#endif    
+#endif
 
     if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2))
         return false;
