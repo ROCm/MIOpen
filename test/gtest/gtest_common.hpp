@@ -56,19 +56,20 @@ inline void db_check(const std::string& err)
 
 enum class Gpu : int
 {
-    Default = 0, // \todo remove
-    None    = 0,
-    gfx900  = 1 << 0,
-    gfx906  = 1 << 1,
-    gfx908  = 1 << 2,
-    gfx90A  = 1 << 3,
-    gfx94X  = 1 << 4,
-    gfx950  = 1 << 5,
-    gfx103X = 1 << 6,
-    gfx110X = 1 << 7,
-    gfx120X = 1 << 8,
-    gfxLast = Gpu::gfx120X, // \note Change the value when adding a new device
-    All     = -1
+    Default             = 0, // \todo remove
+    None                = 0,
+    gfx900              = 1 << 0,
+    gfx906              = 1 << 1,
+    gfx908              = 1 << 2,
+    gfx90A              = 1 << 3,
+    gfx94X              = 1 << 4,
+    gfx950              = 1 << 5,
+    gfx103X             = 1 << 6,
+    gfx110X             = 1 << 7,
+    gfx120X             = 1 << 8,
+    gfxLast             = Gpu::gfx120X, // \note Change the value when adding a new device
+    All                 = -1,
+    AllButGfx11AndGfx12 = All & ~(gfx110X | gfx120X)
 };
 
 inline Gpu operator~(Gpu lhs)

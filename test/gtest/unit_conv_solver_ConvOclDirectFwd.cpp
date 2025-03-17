@@ -41,10 +41,10 @@ auto GetConvTestCases(miopenDataType_t datatype)
     };
 }
 
-const auto& GetTestParams(Gpu devices = Gpu::All)
+const auto& GetTestParams()
 {
     const auto params = [] {
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(devices);
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::AllButGfx11AndGfx12);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         return p;
@@ -104,25 +104,25 @@ TEST_P(CPU_UnitTestConvSolverOclDirectFwdDevApplicabilityFwd_NONE, ConvOclDirect
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverOclDirectFwdFwd_FP16,
-                         testing::Combine(testing::Values(GetTestParams(AllDevicesButGfx11AndGfx12),
+                         testing::Combine(testing::Values(GetTestParams(),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverOclDirectFwdBwd_FP16,
-                         testing::Combine(testing::Values(GetTestParams(AllDevicesButGfx11AndGfx12)),
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverOclDirectFwdFwd_BFP16,
-                         testing::Combine(testing::Values(GetTestParams(AllDevicesButGfx11AndGfx12)),
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverOclDirectFwdBwd_BFP16,
-                         testing::Combine(testing::Values(GetTestParams(AllDevicesButGfx11AndGfx12)),
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 

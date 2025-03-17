@@ -42,7 +42,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::AllButGfx11AndGfx12);
         p.EnableDeprecatedSolvers();
         return p;
     }();

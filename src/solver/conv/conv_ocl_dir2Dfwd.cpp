@@ -41,6 +41,14 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvOclDirectFwd::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
+    // Disable this already deprecated solver for gfx11 and gfx12 because it works unstable for
+    // newer video cards
+    const auto device = ctx.GetStream().GetTargetProperties().Name();
+    if(miopen::StartsWith(device, "gfx11") || miopen::StartsWith(device, "gfx12"))
+    {
+        return false;
+    }
+
     if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
