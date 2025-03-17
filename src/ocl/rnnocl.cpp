@@ -38,7 +38,6 @@
 #include <algorithm>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNFWD_EXP)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNNWRW_EXP)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNNFWD_MS_DISPATCH)
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNN_MS_STREAM_CNT)
 
@@ -281,9 +280,17 @@ void RNNDescriptor::RNNForwardMS(const Handle& handle,
 
     std::tie(std::ignore, max_batch, hidden_size) = miopen::tien<3>(hxDesc.GetLengths());
 
-    const int extra_stream_cnt = env::value_or(MIOPEN_RNN_MS_STREAM_CNT, 4);
+    // For MI300 and above, it is necessary to use the maximum number of stream.
+    // For MI250 and lower compute power, limiting to 2 streams is sufficient,
+    //     as these tasks are enough to fully utilize all the available compute.
+    //   TODO: add job size calculation.
 
-    MultiStreamController ms_controller{handle, extra_stream_cnt};
+    const auto device_name = handle.GetDeviceName();
+
+    const auto stream_cnt = StartsWith(device_name, "gfx90") ? 2 : 4;
+
+    MultiStreamController ms_controller{handle,
+                                        env::value_or(MIOPEN_RNN_MS_STREAM_CNT, stream_cnt)};
 
     constexpr auto root_stream_id = MultiStreamController::rootStreamId;
     ms_controller.ChangeActiveStream(root_stream_id);
@@ -1057,8 +1064,8 @@ void RNNDescriptor::RNNForwardMS(const Handle& handle,
 
     if(dispatch_strategy == DispatchStrategy::Spiral)
     {
-        const auto first_stream = extra_stream_cnt > 0 ? 1 : 0;
-        const auto last_stream  = extra_stream_cnt > 0 ? extra_stream_cnt : 0;
+        const auto first_stream = stream_cnt > 0 ? 1 : 0;
+        const auto last_stream  = stream_cnt > 0 ? stream_cnt : 0;
 
         spiral_dispatch(first_stream, last_stream);
     }
