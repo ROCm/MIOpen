@@ -133,6 +133,10 @@ pipeline {
             name: "WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE",
             defaultValue: false,
             description: "")
+        booleanParam(
+            name: "USE_SCCACHE_DOCKER",
+            defaultValue: true,
+            description: "Use the sccache for building CK in the Docker Image (default: ON)")
     }
 
     environment{
@@ -212,6 +216,19 @@ pipeline {
                         }
                     }
                 }
+                stage('Check GTest Format') {
+                agent { label rocmnode("nogpu") }
+                when {
+                    changeset "**/test/gtest/**"
+                }
+                steps {
+                    script {
+                        checkout scm
+                        sh 'cd ./test/utils && python3 gtest_formating_checks.py'
+                        }
+                    }
+                }
+
                 stage('HipNoGPU Debug Build Test') {
                     when {
                         beforeAgent true

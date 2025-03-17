@@ -23,6 +23,8 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
+#include <miopen/env.hpp>
 #include <miopen/rnn/solvers.hpp>
 
 #include <miopen/rnn/multi_stream_utils.hpp>
@@ -61,7 +63,17 @@ void RNNModularMultiStreamBWWeights::Compute(const Handle& handle,
     const runtimeArgsBWWeights args{
         &handle, x, hx, dw, back_data_space, reserveSpace, free_ws, free_ws_size};
 
-    MultiStreamController ms_controller{handle, env::value_or(MIOPEN_RNN_MS_STREAM_CNT, 4)};
+    // For MI300 and above, it is necessary to use the maximum number of stream.
+    // For MI250 and lower compute power, limiting to 2 streams is sufficient,
+    //     as these tasks are enough to fully utilize all the available compute.
+    // TODO: add job size calculation.
+
+    const auto device_name = handle.GetDeviceName();
+
+    const auto stream_cnt = StartsWith(device_name, "gfx90") ? 2 : 4;
+
+    MultiStreamController ms_controller{handle,
+                                        env::value_or(MIOPEN_RNN_MS_STREAM_CNT, stream_cnt)};
 
     PrologueDispatch(args);
 

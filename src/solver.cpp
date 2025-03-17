@@ -713,7 +713,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
-    static const bool device_is_allowed = [&]() {
+    const bool device_is_allowed = [&]() {
         if(env::enabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS))
             return true;
         const auto device = ctx.GetStream().GetTargetProperties().Name();

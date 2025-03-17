@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/env.hpp>
 #include <miopen/softmax/solvers.hpp>
 
 #include <miopen/softmax/invoke_params.hpp>
