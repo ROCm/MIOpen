@@ -27,8 +27,8 @@
 #include "test.hpp"
 #include "driver.hpp"
 #include "get_handle.hpp"
+#include "lib_env_var.hpp"
 #include "workspace.hpp"
-#include <miopen/env.hpp>
 
 #include <miopen/miopen.h>
 
@@ -40,6 +40,8 @@
 #include <nlohmann/json.hpp>
 
 #include <vector>
+
+MIOPEN_LIB_ENV_VAR(MIOPEN_LOG_LEVEL)
 
 namespace miopen {
 struct Find2Test : test_driver
@@ -367,6 +369,6 @@ private:
 
 int main(int argc, const char* argv[])
 {
-    miopen::env::setEnvironmentVariable("MIOPEN_LOG_LEVEL", "6");
+    lib_env::update(MIOPEN_LOG_LEVEL, 6);
     test_drive<miopen::Find2Test>(argc, argv);
 }
