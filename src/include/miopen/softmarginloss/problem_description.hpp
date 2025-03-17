@@ -25,10 +25,7 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/miopen.h"
-#include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
-#include <miopen/tensor.hpp>
 
 namespace miopen {
 
@@ -96,11 +93,29 @@ struct BackwardProblemDescription : ProblemDescriptionBase
         {
             MIOPEN_THROW(miopenStatusBadParm, "SoftMarginLoss: Tensor types do not match.");
         }
-        if(iDesc.GetLengths() != tDesc.GetLengths() || iDesc.GetLengths() != dODesc.GetLengths() ||
-           iDesc.GetLengths() != dIDesc.GetLengths())
+        if(iDesc.GetLengths() != tDesc.GetLengths() || iDesc.GetLengths() != dIDesc.GetLengths())
         {
             MIOPEN_THROW(miopenStatusBadParm,
-                         "SoftMarginLoss: Tensor dimension lengths do not match.");
+                         "SoftMarginLoss: Input, target and input gradient tensors "
+                         "need to be same shape.");
+        }
+        if(reduction == MIOPEN_LOSS_REDUCTION_NONE)
+        {
+            if(iDesc.GetLengths() != dODesc.GetLengths())
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "SoftMarginLoss: When doing backward non-reduction, output gradient"
+                             "tensor need to be same shape as input tensor.");
+            }
+        }
+        else
+        {
+            if(dODesc.GetNumDims() != 1 || dODesc.GetLengths()[0] != 1)
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "SoftMarginLoss: When doing backward reduction, output gradient"
+                             "tensor need to be a scalar.");
+            }
         }
     }
 

@@ -26,8 +26,6 @@
 
 #pragma once
 
-#include "miopen/errors.hpp"
-#include "miopen/tensor.hpp"
 #include <miopen/problem_description_base.hpp>
 
 namespace miopen {

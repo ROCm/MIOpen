@@ -25,7 +25,6 @@
  *******************************************************************************/
 #include <miopen/softmarginloss/problem_description.hpp>
 #include <miopen/names.hpp>
-
 #include <sstream>
 
 namespace miopen {

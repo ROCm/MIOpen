@@ -26,10 +26,10 @@
 
 #include "cpu_softmarginloss.hpp"
 #include "get_handle.hpp"
+#include "miopen/miopen.h"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>
-#include <miopen/miopen.h>
 #include <miopen/softmarginloss.hpp>
 
 struct SoftMarginLossTestCase
@@ -122,8 +122,8 @@ protected:
 
         if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
         {
-            output     = tensor<T>{in_dims, in_strides};
-            ref_output = tensor<T>{in_dims, in_strides};
+            output     = tensor<T>{in_dims};
+            ref_output = tensor<T>{in_dims};
         }
         else
         {
@@ -131,20 +131,16 @@ protected:
             output     = tensor<T>{std::vector<size_t>{1}};
             ref_output = tensor<T>{std::vector<size_t>{1}};
         }
-        std::fill(output.begin(), output.end(), 0);
-        std::fill(ref_output.begin(), ref_output.end(), 0);
-        output_dev = handle.Write(output.data);
+        output_dev = handle.Create<T>(output.GetSize());
 
         ws_sizeInBytes = miopen::GetSoftMarginLossForwardWorkspaceSize(
             handle, input.desc, target.desc, output.desc, reduction_mode);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
-            GTEST_FAIL() << "Call GetMultiMarginLossForwardWorkspaceSize failed!";
+            GTEST_FAIL() << "Call GetSoftMarginLossForwardWorkspaceSize failed!";
 
         if(ws_sizeInBytes > 0)
         {
-            workspace = tensor<float>{std::vector<size_t>{ws_sizeInBytes / sizeof(float)}};
-            std::fill(workspace.begin(), workspace.end(), 0);
-            workspace_dev = handle.Write(workspace.data);
+            workspace_dev = handle.Create<std::byte>(ws_sizeInBytes);
         }
         else
         {
@@ -187,7 +183,6 @@ protected:
     tensor<T> input;
     tensor<T> target;
     tensor<T> output;
-    tensor<float> workspace;
 
     tensor<T> ref_output;
 
@@ -226,24 +221,29 @@ protected:
         target     = tensor<T>{in_dims, in_strides}.generate(gen_target_value);
         target_dev = handle.Write(target.data);
 
-        dO = tensor<T>{in_dims, in_strides};
+        if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
+        {
+            dO = tensor<T>{in_dims};
+        }
+        else
+        {
+            // Tensor with 1 element to store result after reduce
+            dO = tensor<T>{std::vector<size_t>{1}};
+        }
         std::fill(dO.begin(), dO.end(), 1);
         dO_dev = handle.Write(dO.data);
 
-        dI = tensor<T>{in_dims, in_strides};
-        std::fill(dI.begin(), dI.end(), 0);
-        dI_dev = handle.Write(dI.data);
-
-        ref_dI = tensor<T>{in_dims, in_strides};
-        std::fill(ref_dI.begin(), ref_dI.end(), 0);
+        dI     = tensor<T>{in_dims};
+        dI_dev = handle.Create<T>(dI.GetSize());
+        ref_dI = tensor<T>{in_dims};
     }
     void RunTest()
     {
         auto&& handle = get_handle();
 
         cpu_softmarginloss_backward<T>(input, target, dO, ref_dI, reduction_mode);
-        miopenStatus_t status;
 
+        miopenStatus_t status;
         status = miopen::SoftMarginLossBackward(handle,
                                                 input.desc,
                                                 input_dev.get(),

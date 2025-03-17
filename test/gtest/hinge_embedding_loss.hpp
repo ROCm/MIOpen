@@ -26,7 +26,6 @@
 
 #include "cpu_hinge_embedding_loss.hpp"
 #include "get_handle.hpp"
-#include "miopen/miopen.h"
 #include "tensor_holder.hpp"
 #include "verify.hpp"
 #include <gtest/gtest.h>

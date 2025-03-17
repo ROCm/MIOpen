@@ -98,7 +98,9 @@ int32_t mloSoftMarginLossBackwardRunHost(miopenTensorDescriptor_t inputDesc,
         tensor_layout_t<5> idx(i_tv, gid);
         double i   = input[i_tv.get_tensor_view_idx(idx)];
         double t   = target[t_tv.get_tensor_view_idx(idx)];
-        double _dO = dO[dO_tv.get_tensor_view_idx(idx)];
+        double _dO = (reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
+                         ? dO[dO_tv.get_tensor_view_idx(idx)]
+                         : dO[0];
         if(reduction_mode == MIOPEN_LOSS_REDUCTION_MEAN)
             dIhost[dI_tv.get_tensor_view_idx(idx)] =
                 static_cast<Tcheck>(-t / (exp(i * t) + 1) * _dO / input_numel);
@@ -294,7 +296,15 @@ int SoftMarginLossDriver<Tgpu, Tref>::GetandSetData()
     // Set dO, dI tensor description (forw = 2 or 0)
     if(forw == 0 || forw == 2)
     {
-        SetTensorNd(dODesc, in_len, data_type);
+        if(reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
+        {
+            SetTensorNd(dODesc, in_len, data_type);
+        }
+        else
+        {
+            std::vector<int> o_lens = {1};
+            SetTensorNd(dODesc, o_lens, data_type);
+        }
         SetTensorNd(dIDesc, in_len, data_type);
     }
 

@@ -24,7 +24,6 @@
  *
  *******************************************************************************/
 
-#include "miopen/hingeembeddingloss/problem_description.hpp"
 #include <miopen/mlo_internal.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>

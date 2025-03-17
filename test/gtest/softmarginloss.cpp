@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include "softmarginloss.hpp"
-#include "miopen/miopen.h"
 
 namespace softmarginloss {
 

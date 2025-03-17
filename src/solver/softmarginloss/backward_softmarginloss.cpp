@@ -24,13 +24,12 @@
  *
  *******************************************************************************/
 
-#include "miopen/mlo_internal.hpp"
+#include <miopen/mlo_internal.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/softmarginloss/invoke_params.hpp>
 #include <miopen/softmarginloss/solvers.hpp>
 #include <miopen/softmarginloss.hpp>
-#include <miopen/target_properties.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
 #define LOCAL_SIZE 256

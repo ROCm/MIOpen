@@ -92,10 +92,17 @@ __device__ void softmarginlossbackward5d(const DTYPE* __restrict__ I,
     if(idx.layout[0] >= I_tv.size[0])
         return;
 
-    FLOAT_ACCUM i        = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx(idx)]);
-    FLOAT_ACCUM t        = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx(idx)]);
-    FLOAT_ACCUM dO_accum = CVT_FLOAT2ACCUM(dO[dO_tv.get_tensor_view_idx(idx)]);
-    FLOAT_ACCUM loss     = -t / (exp(i * t) + 1) * dO_accum;
+    FLOAT_ACCUM i = CVT_FLOAT2ACCUM(I[I_tv.get_tensor_view_idx(idx)]);
+    FLOAT_ACCUM t = CVT_FLOAT2ACCUM(T[T_tv.get_tensor_view_idx(idx)]);
+    FLOAT_ACCUM dO_accum;
+    switch(REDUCTION_T)
+    {
+    case 0: dO_accum = CVT_FLOAT2ACCUM(dO[dO_tv.get_tensor_view_idx(idx)]); break;
+    case 1:
+    case 2: dO_accum = CVT_FLOAT2ACCUM(dO[0]); break;
+    default: break;
+    }
+    FLOAT_ACCUM loss = -t / (exp(i * t) + 1) * dO_accum;
     switch(REDUCTION_T)
     {
     case 0:

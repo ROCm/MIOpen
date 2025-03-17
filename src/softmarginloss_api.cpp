@@ -23,7 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "miopen/miopen.h"
 #include <miopen/softmarginloss.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>

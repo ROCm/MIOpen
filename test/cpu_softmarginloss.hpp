@@ -25,7 +25,6 @@
  *******************************************************************************/
 #pragma once
 
-#include "miopen/miopen.h"
 #include "tensor_holder.hpp"
 #include <miopen/tensor_view_utils.hpp>
 
@@ -77,7 +76,9 @@ void cpu_softmarginloss_backward(const tensor<T>& input,
         // Convert to double for better precision
         double i   = input[i_tv.get_tensor_view_idx(idx)];
         double t   = target[t_tv.get_tensor_view_idx(idx)];
-        double _dO = dO[dO_tv.get_tensor_view_idx(idx)];
+        double _dO = (reduction_mode == MIOPEN_LOSS_REDUCTION_NONE)
+                         ? dO[dO_tv.get_tensor_view_idx(idx)]
+                         : dO[0];
         if(reduction_mode != MIOPEN_LOSS_REDUCTION_MEAN)
             ref_dI[dI_tv.get_tensor_view_idx(idx)] = -t / (exp(i * t) + 1) * _dO;
         else
