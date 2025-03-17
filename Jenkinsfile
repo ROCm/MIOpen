@@ -314,7 +314,7 @@ pipeline {
                         }
                     }
                 }
-                //Navi 3 fails to build with error about instruction not supported on GPU..
+                //Navi 3 fails to build with error about instruction not supported on GPU...
                 // stage('Fp32 Hip Debug gfx1101') {
                 //     when {
                 //         beforeAgent true
@@ -330,21 +330,22 @@ pipeline {
                 //         }
                 //     }
                 // }
-                stage('Fp32 Hip Debug gfx1201') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI4 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("gfx1201 && matthew") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
-                        }
-                    }
-                }
+                // Navi 4 fails to build with error about instruction not supported on GPU...
+                // stage('Fp32 Hip Debug gfx1201') {
+                //     when {
+                //         beforeAgent true
+                //         expression { params.TARGET_NAVI4 }
+                //     }
+                //     options {
+                //         retry(2)
+                //     }
+                //     agent{ label rocmnode("gfx1201 && matthew") }
+                //     steps{
+                //         script {
+                //             utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
+                //         }
+                //     }
+                // }
             }
         }
         stage("Smoke Aux 1") {
