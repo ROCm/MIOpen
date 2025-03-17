@@ -152,7 +152,9 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "x" << ComputeInLayout();
     ss << "x" << ComputeOutLayout();
     if(direction == Direction::Backward)
+    {
         ss << "x" << ComputeDinLayout();
+    }
     // data type
     ss << "x" << GetDataTypeName(xDesc.GetType());
     ss << "x" << GetDataTypeName(yOrDyDesc.GetType());
@@ -161,8 +163,24 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     ss << "x" << GetDataTypeName(sMeanDesc.GetType());
     ss << "x" << GetDataTypeName(sVarianceDesc.GetType());
     if(direction == Direction::Backward)
+    {
         ss << "x" << GetDataTypeName(dxDesc.GetType());
+    }
     ss << "x" << IsMix();
+
+    // direction
+    ss << "x" << GetDirectionStr();
+    // save and running
+    if(direction == Direction::ForwardTraining)
+    {
+        ss << "x" << resultsave;
+        ss << "x" << resultrunning;
+    }
+    if(direction == Direction::Backward)
+    {
+        ss << "x" << useSaved;
+    }
+    ss << "x" << GetModeStr();
 
     return NetworkConfig{ss.str()};
 }
