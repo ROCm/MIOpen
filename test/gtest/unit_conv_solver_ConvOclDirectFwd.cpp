@@ -28,8 +28,6 @@
 
 namespace {
 
-const AllDevicesButGfx11AndGfx12 = Gpu::All & !(Gpu::gfx110X | Gpu::gfx120X);
-
 auto GetConvTestCases(miopenDataType_t datatype)
 {
     using TestCase = miopen::unit_tests::ConvTestCase;
@@ -43,8 +41,8 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
 const auto& GetTestParams()
 {
-    const auto params = [] {
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::AllButGfx11AndGfx12);
+    static const auto params = [] {
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(WORKAROUND_SWDEV_503936_DEVICES);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         return p;
@@ -104,7 +102,7 @@ TEST_P(CPU_UnitTestConvSolverOclDirectFwdDevApplicabilityFwd_NONE, ConvOclDirect
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverOclDirectFwdFwd_FP16,
-                         testing::Combine(testing::Values(GetTestParams(),
+                         testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 

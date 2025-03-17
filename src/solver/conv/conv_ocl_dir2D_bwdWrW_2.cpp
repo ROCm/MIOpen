@@ -461,6 +461,8 @@ template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
+
+#ifdef WORKAROUND_SWDEV_503936
     // Disable this already deprecated solver for gfx11 and gfx12 because it works unstable for
     // newer video cards
     const auto device = ctx.GetStream().GetTargetProperties().Name();
@@ -468,6 +470,7 @@ bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ExecutionContext& ctx
     {
         return false;
     }
+#endif    
 
     if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2))
         return false;
