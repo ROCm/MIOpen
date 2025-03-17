@@ -347,15 +347,17 @@ int HingeEmbeddingLossDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     target_dev   = std::make_unique<GPUMem>(ctx, t_sz, sizeof(uint8_t));
     input        = std::vector<Tgpu>(i_sz);
     target       = std::vector<uint8_t>(t_sz);
+    // Because this operation performance is data-dependent, we need to set the input data
+    // to a specific value to have a fair comparison with ROCm Pytorch.
     for(size_t i = 0; i < i_sz; i++)
     {
-        input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0), static_cast<Tgpu>(1));
+        // 0, 0.1, 0.2, ..., 0.8
+        input[i] = static_cast<Tgpu>(i % 9) / 10.0;
     }
-    // 0 or 1
     for(size_t i = 0; i < t_sz; i++)
     {
-        target[i] =
-            prng::gen_A_to_B<uint8_t>(static_cast<uint8_t>(0), static_cast<uint8_t>(2)) * 2 - 1;
+        // -1 or 1
+        target[i] = (i % 2) * 2 - 1;
     }
     if(input_dev->ToGPU(GetStream(), input.data()) != 0)
         std::cerr << "Error copying (input) to GPU, size: " << input_dev->GetSize() << std::endl;
