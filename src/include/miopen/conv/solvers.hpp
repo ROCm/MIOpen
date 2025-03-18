@@ -42,8 +42,6 @@
 #include <unordered_map>
 #include <vector>
 
-#define WORKAROUND_SWDEV_503936 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
-
 namespace miopen {
 
 namespace debug {

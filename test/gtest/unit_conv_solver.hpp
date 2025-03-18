@@ -32,12 +32,6 @@
 #include "unit_conv_ConvolutionDescriptor.hpp"
 #include "unit_TensorDescriptor.hpp"
 
-#if WORKAROUND_SWDEV_503936
-#define WORKAROUND_SWDEV_503936_DEVICES (Gpu::All & ~(Gpu::gfx110X | Gpu::gfx120X))
-#else
-#define WORKAROUND_SWDEV_503936_DEVICES (Gpu::All)
-#endif
-
 namespace miopen {
 namespace unit_tests {
 
