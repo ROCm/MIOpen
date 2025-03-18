@@ -520,7 +520,7 @@ auto GenericSearch(const Solver s,
                 // If the 1st probe is NOT too bad (measured time <= 1.10 * worst sample of the best
                 // config), then gather 9 more samples, and remove positive z-score outliers. Use
                 // the mean value with outliers removed for calculating best config.
-                constexpr int N_RUNS = 10;
+                constexpr int N_RUNS = 2;
                 if(elapsed_time / worst_time < 1.10f)
                 {
                     MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time
