@@ -829,6 +829,10 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
             return false;
     }
 #endif
+#if WORKAROUND_SWDEV_498660
+    if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS))
+        return false;
+#endif
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
