@@ -93,6 +93,23 @@ auto GetConvTestCases(miopenDataType_t datatype)
     };
 }
 
+auto GetConvTestCasesFull(miopenDataType_t datatype)
+{
+    using TestCase = miopen::unit_tests::ConvTestCase;
+
+    auto cases = std::vector<TestCase>{};
+
+    if(datatype == miopenHalf)
+    {
+        // clang-format off
+        // Regression test for SWDEV-291202 (gfx908)
+        cases.emplace_back(TestCase{{128, 24, 14, 14}, {64, 24, 5, 5}, {2, 2}, {1, 1}, {1, 1}, miopenHalf});
+        // clang-format on
+    }
+
+    return cases;
+}
+
 const auto& GetTestParams()
 {
     static const auto params = [] {
@@ -101,6 +118,18 @@ const auto& GetTestParams()
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
+        return p;
+    }();
+    return params;
+}
+
+const auto& GetTestParamsFull()
+{
+    static const auto params = [] {
+        Gpu supported_gpus = Gpu::gfx908;
+        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        p.EnableDeprecatedSolvers();
+        p.Tunable(5);
         return p;
     }();
     return params;
@@ -171,3 +200,10 @@ INSTANTIATE_TEST_SUITE_P(
     CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd_NONE,
     testing::Combine(testing::Values(GetTestParams()),
                      testing::Values(GetConvTestCases(miopenFloat)[0])));
+
+// Full tests
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsBwd_FP16,
+                         testing::Combine(testing::Values(GetTestParamsFull()),
+                                          testing::Values(miopenConvolutionAlgoImplicitGEMM),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenHalf))));

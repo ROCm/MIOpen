@@ -212,8 +212,8 @@ ConvTestCase::GetProblemDescription(miopen::conv::Direction direction) const
     switch(direction)
     {
     case miopen::conv::Direction::Forward:
-    case miopen::conv::Direction::BackwardData:
         return miopen::conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, direction);
+    case miopen::conv::Direction::BackwardData:
     case miopen::conv::Direction::BackwardWeights:
         return miopen::conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, direction);
     default: throw std::runtime_error("unknown direction");
