@@ -41,7 +41,7 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvOclDirectFwd::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
-#ifdef WORKAROUND_SWDEV_503936
+#if WORKAROUND_SWDEV_503936
     // Disable this already deprecated solver for gfx11 and gfx12 because it works unstable for
     // newer video cards
     const auto device = ctx.GetStream().GetTargetProperties().Name();
