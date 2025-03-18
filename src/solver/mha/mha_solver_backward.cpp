@@ -26,9 +26,11 @@
 
 #include "mha_common.hpp"
 
+#include <miopen/env.hpp>
 #include <miopen/mha/solvers.hpp>
 
 #include <miopen/mha/invoke_params.hpp>
+#include <miopen/buffer_info.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
 #include <miopen/target_properties.hpp>
@@ -91,35 +93,35 @@ bool MhaBackward::IsApplicable([[maybe_unused]] const ExecutionContext& context,
 
     auto [N, H, S, D] = miopen::tien<4>(descsBwd.kDesc.GetLengths());
 
-    return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_BWD)                //
-           && S <= std::numeric_limits<uint32_t>::max()               //
-           && D <= std::numeric_limits<uint32_t>::max()               //
-           && descsBwd.kDesc.IsPacked()                               //
-           && descsBwd.qDesc.IsPacked()                               //
-           && descsBwd.vDesc.IsPacked()                               //
-           && descsBwd.oDesc.IsPacked()                               //
-           && descsBwd.doDesc.IsPacked()                              //
-           && descsBwd.mDesc.IsPacked()                               //
-           && descsBwd.zInvDesc.IsPacked()                            //
-           && descsBwd.dkDesc.IsPacked()                              //
-           && descsBwd.dqDesc.IsPacked()                              //
-           && descsBwd.dvDesc.IsPacked()                              //
-           && descsBwd.mDesc.GetType() == miopenFloat                 //
-           && descsBwd.zInvDesc.GetType() == miopenFloat              //
-           && descsBwd.kDesc.GetType() == descsBwd.qDesc.GetType()    //
-           && descsBwd.kDesc.GetType() == descsBwd.vDesc.GetType()    //
-           && descsBwd.kDesc.GetType() == descsBwd.oDesc.GetType()    //
-           && descsBwd.kDesc.GetType() == descsBwd.dqDesc.GetType()   //
-           && descsBwd.kDesc.GetType() == descsBwd.dkDesc.GetType()   //
-           && descsBwd.kDesc.GetType() == descsBwd.dvDesc.GetType()   //
-           && ((descsBwd.kDesc.GetType() == miopenFloat)              //
-               || (USE_ROCBLAS_EX3                                    //
-                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)            //
-                   && (descsBwd.kDesc.GetType() == miopenFloat8)))    //
-           && ((descsBwd.doDesc.GetType() == miopenFloat)             //
-               || (USE_ROCBLAS_EX3                                    //
-                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)            //
-                   && (descsBwd.doDesc.GetType() == miopenBFloat8))); //
+    return !env::disabled(MIOPEN_DEBUG_ATTN_NAIVE_BWD)                     //
+           && S <= std::numeric_limits<uint32_t>::max()                    //
+           && D <= std::numeric_limits<uint32_t>::max()                    //
+           && descsBwd.kDesc.IsPacked()                                    //
+           && descsBwd.qDesc.IsPacked()                                    //
+           && descsBwd.vDesc.IsPacked()                                    //
+           && descsBwd.oDesc.IsPacked()                                    //
+           && descsBwd.doDesc.IsPacked()                                   //
+           && descsBwd.mDesc.IsPacked()                                    //
+           && descsBwd.zInvDesc.IsPacked()                                 //
+           && descsBwd.dkDesc.IsPacked()                                   //
+           && descsBwd.dqDesc.IsPacked()                                   //
+           && descsBwd.dvDesc.IsPacked()                                   //
+           && descsBwd.mDesc.GetType() == miopenFloat                      //
+           && descsBwd.zInvDesc.GetType() == miopenFloat                   //
+           && descsBwd.kDesc.GetType() == descsBwd.qDesc.GetType()         //
+           && descsBwd.kDesc.GetType() == descsBwd.vDesc.GetType()         //
+           && descsBwd.kDesc.GetType() == descsBwd.oDesc.GetType()         //
+           && descsBwd.kDesc.GetType() == descsBwd.dqDesc.GetType()        //
+           && descsBwd.kDesc.GetType() == descsBwd.dkDesc.GetType()        //
+           && descsBwd.kDesc.GetType() == descsBwd.dvDesc.GetType()        //
+           && ((descsBwd.kDesc.GetType() == miopenFloat)                   //
+               || (USE_ROCBLAS_EX3                                         //
+                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)                 //
+                   && (descsBwd.kDesc.GetType() == miopenFloat8_fnuz)))    //
+           && ((descsBwd.doDesc.GetType() == miopenFloat)                  //
+               || (USE_ROCBLAS_EX3                                         //
+                   && (MIOPEN_FP8_IEEE_EXPONENT_BIAS == 0)                 //
+                   && (descsBwd.doDesc.GetType() == miopenBFloat8_fnuz))); //
 #else
     return false;
 #endif
@@ -377,28 +379,28 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                  true);
             HipEventPtr event_bwd2 = recordSyncEvent();
 
-            decltype(auto) scale_reduce_kernel = handle_.Run(kernels[2]);
-
             handle_.SetStreamFromPool(1);
+            decltype(auto) scale_reduce_kerneldSxK = handle_.Run(kernels[2]);
             waitSyncEvent(std::move(event_bwd1));
-            scale_reduce_kernel(fp32_dSxK_ws,
-                                dataBwd.dqData,
-                                dataBwd.amaxDQData,
-                                dataBwd.descaleDSData,
-                                dataBwd.descaleKData,
-                                dataBwd.scaleDQData,
-                                nhsd);
+            scale_reduce_kerneldSxK(fp32_dSxK_ws,
+                                    dataBwd.dqData,
+                                    dataBwd.amaxDQData,
+                                    dataBwd.descaleDSData,
+                                    dataBwd.descaleKData,
+                                    dataBwd.scaleDQData,
+                                    nhsd);
             HipEventPtr event_bwd3 = recordSyncEvent();
 
             handle_.SetStreamFromPool(2);
+            decltype(auto) scale_reduce_kerneldSxQ = handle_.Run(kernels[2]);
             waitSyncEvent(std::move(event_bwd2));
-            scale_reduce_kernel(fp32_dSxQ_ws,
-                                dataBwd.dkData,
-                                dataBwd.amaxDKData,
-                                dataBwd.descaleDSData,
-                                dataBwd.descaleQData,
-                                dataBwd.scaleDKData,
-                                nhsd);
+            scale_reduce_kerneldSxQ(fp32_dSxQ_ws,
+                                    dataBwd.dkData,
+                                    dataBwd.amaxDKData,
+                                    dataBwd.descaleDSData,
+                                    dataBwd.descaleQData,
+                                    dataBwd.scaleDKData,
+                                    nhsd);
             HipEventPtr event_bwd4 = recordSyncEvent();
 
             handle_.SetStreamFromPool(0);
@@ -423,13 +425,14 @@ ConvSolution MhaBackward::GetSolution(const ExecutionContext& context,
                  fp32_dOxO_SxdO_ws,
                  true);
 
-            scale_reduce_kernel(fp32_dOxO_SxdO_ws,
-                                dataBwd.dvData,
-                                dataBwd.amaxDVData,
-                                dataBwd.descaleSData,
-                                dataBwd.descaleDOData,
-                                dataBwd.scaleDVData,
-                                nhsd);
+            decltype(auto) scale_reduce_kernelSxdO = handle_.Run(kernels[2]);
+            scale_reduce_kernelSxdO(fp32_dOxO_SxdO_ws,
+                                    dataBwd.dvData,
+                                    dataBwd.amaxDVData,
+                                    dataBwd.descaleSData,
+                                    dataBwd.descaleDOData,
+                                    dataBwd.scaleDVData,
+                                    nhsd);
 
             waitSyncEvent(std::move(event_bwd3));
             waitSyncEvent(std::move(event_bwd4));

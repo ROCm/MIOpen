@@ -1,0 +1,987 @@
+def rocmnode(name) {
+    return '(rocmtest || miopen) && (' + name + ')'
+}
+
+def get_branch_name(){
+    def shared_library_branch = scm.branches[0].name
+    if (shared_library_branch .contains("*/")) {
+        shared_library_branch  = shared_library_branch.split("\\*/")[1]
+    }
+    echo "${shared_library_branch}"
+    return shared_library_branch
+}
+
+library "jenkins-shared@${get_branch_name()}"
+
+pipeline {
+  agent none
+    environment {
+      docker_args="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined -v=/var/jenkins/:/var/jenkins"
+      extra_log_env   = " MIOPEN_LOG_LEVEL=5 "
+      Fp16_flags      = " -DMIOPEN_TEST_HALF=Off"
+      Bf16_flags      = " -DMIOPEN_TEST_BFLOAT16=Off"
+      Int8_flags      = " -DMIOPEN_TEST_INT8=Off"
+      Full_test       = " -DMIOPEN_TEST_ALL=Off"
+      Smoke_targets   = " check MIOpenDriver"
+      NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
+      NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
+      perftest_image  = docker.image('ubuntu:22.04')
+  }
+  parameters {
+    booleanParam(name: 'COMPARE_TO_BASE', defaultValue : true, description: 'Compare test results to base results')
+    booleanParam(name: 'PERF_TEST_FP32', defaultValue : true, description: 'Run FP32 tests')
+    booleanParam(name: 'PERF_TEST_FP16', defaultValue : true, description: 'Run FP16 tests')
+    booleanParam(name: 'PERF_TEST_ARCHIVE', defaultValue : true, description: 'Archive results from this run')
+    booleanParam(name: "USE_SCCACHE_DOCKER", defaultValue: true, description: "Use the sccache for building CK in the Docker Image (default: ON)")
+    string(name: 'PERF_TEST_OVERRIDE', defaultValue: '',  description: 'Add extra env vars for the MIOpenDriver cmd, comma separated')
+    choice(name: 'INSTALL_MIOPEN', choices: ['ON', 'OFF'], description: 'Build/Install MIOpen inside docker')
+  }
+  stages {
+        stage('Build Docker'){
+            agent{ label rocmnode("gfx90a") }
+            steps{
+                script {
+                    echo "Build Docker Stage"
+                    def (docker_image, image_name) = utils.getDockerImage()
+                    perftest_image = docker_image
+                }
+            }
+        }
+        stage("Performance Tests - gfx90a") {
+            parallel{
+                stage('Fp32 BS128 Hip Performance Resnet50_v1.5 gfx90A'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Resnet50_v1.5 gfx90A'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Resnet50_v1.5 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1.5_FP16_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP16_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS4 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS4.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS64 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS64.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Alexnet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Alexnet_v1_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Densenet201_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Densenet201_v1_FP16_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Densenet201_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Densenet201_v1_FP32_BS256.txt",  docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Densenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Densenet_v1_FP16_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Densenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Densenet_v1_FP32_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Googlenet_v1_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Googlenet_v1_FP16_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Googlenet_v1_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Googlenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Googlenet_v1_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Inception3_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Inception3_v1_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Inception3_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Inception3_v1_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Inception3_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Inception3_v1_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Inception4_v1_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Inception4_v1_FP16_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Inception4_v1_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Inception4_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Inception4_v1_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS4 Hip Performance Mobilenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Mobilenet_v1_FP32_BS4.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS64 Hip Performance Mobilenet_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Mobilenet_v1_FP32_BS64.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS32 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS32.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP16_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Resnet101_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet101_v1_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Resnet152_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet152_v1_FP16_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Resnet152_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet152_v1_FP32_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet152_v2_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet152_v2_FP16_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet152_v2_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Resnet152_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet152_v2_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS32 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS32.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS64 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS64.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 B512 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP16_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS256 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance Resnet50_v1 gfx90a'){
+
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Resnet50_v1_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance Shufflenet_v2 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "Shufflenet_v2_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance SSD_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "SSD_v1_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance SSD_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "SSD_v1_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG11_v1_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS256 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG11_v1_FP16_BS256.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG11_v1_FP16_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance VGG11_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG11_v1_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG16_v1_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS4 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS4.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS64 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS64.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance VGG16_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG16_v1_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS128 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG19_v1_FP16_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp16 BS512 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP16}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG19_v1_FP16_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS128 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG19_v1_FP32_BS128.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+                stage('Fp32 BS512 Hip Performance VGG19_v1 gfx90a'){
+                    when {
+                        expression {params.PERF_TEST_FP32}
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                        utils.RunPerfTest(filename: "VGG19_v1_FP32_BS512.txt", docker_image: perftest_image)
+                        }
+                    }
+                }
+            }
+        }
+  }
+}

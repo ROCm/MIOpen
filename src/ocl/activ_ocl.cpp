@@ -34,7 +34,7 @@
 
 namespace miopen {
 
-miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
+miopenStatus_t ActivationDescriptor::Forward(const Handle& handle,
                                              const void* alpha,
                                              const TensorDescriptor& xDesc,
                                              ConstData_t x,
@@ -42,7 +42,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
                                              const TensorDescriptor& yDesc,
                                              Data_t y,
                                              size_t xOffset,
-                                             size_t yOffset)
+                                             size_t yOffset) const
 {
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))
@@ -74,7 +74,7 @@ miopenStatus_t ActivationDescriptor::Forward(Handle& handle,
     return miopenStatusSuccess;
 }
 
-miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
+miopenStatus_t ActivationDescriptor::Backward(const Handle& handle,
                                               const void* alpha,
                                               const TensorDescriptor& yDesc,
                                               ConstData_t y,
@@ -88,7 +88,7 @@ miopenStatus_t ActivationDescriptor::Backward(Handle& handle,
                                               size_t yOffset,
                                               size_t dyOffset,
                                               size_t xOffset,
-                                              size_t dxOffset)
+                                              size_t dxOffset) const
 {
     if(!float_equal(*(static_cast<const float*>(alpha)), 1.0) ||
        !float_equal(*(static_cast<const float*>(beta)), 0))

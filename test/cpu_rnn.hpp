@@ -31,7 +31,7 @@
  **********************************************/
 
 template <class T>
-void LSTMFwdCPUVerify(miopen::Handle& handle,
+void LSTMFwdCPUVerify(const miopen::Handle& handle,
                       bool use_dropout,
                       const miopen::DropoutDescriptor& dropoutDesc,
                       const std::vector<T>& in,
@@ -88,14 +88,14 @@ void LSTMFwdCPUVerify(miopen::Handle& handle,
     int wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
 
     // initial dropoput
-    std::vector<prngStates> dropout_states_host;
+    std::vector<rocrand_state_xorwow> dropout_states_host;
     std::vector<unsigned char> dropout_reservespace_host;
     std::vector<T> dropout_hid_state;
     miopenTensorDescriptor_t dropout_inputTensor{}, dropout_outputTensor{};
     if(use_dropout)
     {
-        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(prngStates);
-        dropout_states_host = std::vector<prngStates>(states_size);
+        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(rocrand_state_xorwow);
+        dropout_states_host = std::vector<rocrand_state_xorwow>(states_size);
         InitKernelStateEmulator(dropout_states_host, dropoutDesc);
 
         std::array<int, 2> drop_in_len  = {{batch_n_cpu, hy_h * bi}};
@@ -1563,7 +1563,7 @@ void LSTMBwdWeightCPUVerify(bool use_dropout_cpu,
  * rnn_vanilla_common.hpp
  **********************************************/
 template <typename T>
-void RNNFwdTrainCPUVerify(miopen::Handle& handle,
+void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
                           bool use_dropout,
                           const miopen::DropoutDescriptor& dropoutDesc,
                           const std::vector<T>& in,
@@ -1617,14 +1617,14 @@ void RNNFwdTrainCPUVerify(miopen::Handle& handle,
     int wei_shift_bias = ((in_h + hy_h) * bi + (bi * hy_h + hy_h) * bi * (numlayer - 1)) * hy_h;
 
     // initial dropoput
-    std::vector<prngStates> dropout_states_host;
+    std::vector<rocrand_state_xorwow> dropout_states_host;
     std::vector<unsigned char> dropout_reservespace_host;
     std::vector<T> dropout_hid_state;
     miopenTensorDescriptor_t dropout_inputTensor{}, dropout_outputTensor{};
     if(use_dropout)
     {
-        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(prngStates);
-        dropout_states_host = std::vector<prngStates>(states_size);
+        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(rocrand_state_xorwow);
+        dropout_states_host = std::vector<rocrand_state_xorwow>(states_size);
         InitKernelStateEmulator(dropout_states_host, dropoutDesc);
 
         std::array<int, 2> drop_in_len  = {{batch_n, hy_h * bi}};
@@ -2728,7 +2728,7 @@ void RNNBwdWeightCPUVerify(bool use_dropout,
  **********************************************/
 
 template <typename T>
-void GRUFwdCPUVerify(miopen::Handle& handle,
+void GRUFwdCPUVerify(const miopen::Handle& handle,
                      bool use_dropout,
                      const miopen::DropoutDescriptor& dropoutDesc,
                      const std::vector<T>& in,
@@ -2782,14 +2782,14 @@ void GRUFwdCPUVerify(miopen::Handle& handle,
     int wei_shift_bias = (in_h + hy_h + (bi * hy_h + hy_h) * (numlayer - 1)) * wei_stride;
 
     // initial dropoput
-    std::vector<prngStates> dropout_states_host;
+    std::vector<rocrand_state_xorwow> dropout_states_host;
     std::vector<unsigned char> dropout_reservespace_host;
     std::vector<T> dropout_hid_state;
     miopenTensorDescriptor_t dropout_inputTensor{}, dropout_outputTensor{};
     if(use_dropout)
     {
-        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(prngStates);
-        dropout_states_host = std::vector<prngStates>(states_size);
+        size_t states_size  = dropoutDesc.stateSizeInBytes / sizeof(rocrand_state_xorwow);
+        dropout_states_host = std::vector<rocrand_state_xorwow>(states_size);
         InitKernelStateEmulator(dropout_states_host, dropoutDesc);
 
         std::array<int, 2> drop_in_len  = {{batch_n, hy_h * bi}};
@@ -4488,7 +4488,7 @@ void GRUBwdWeightCPUVerify(bool use_dropout,
  **********************************************/
 template <class T>
 void UniformRNNFwdTrainCPUVerify(
-    miopen::Handle& handle,
+    const miopen::Handle& handle,
     bool use_dropout,
     const miopen::DropoutDescriptor& dropoutDesc,
     const std::vector<T>& in,

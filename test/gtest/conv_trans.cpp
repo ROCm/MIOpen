@@ -26,13 +26,8 @@
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
-#include <miopen/env.hpp>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
-namespace env = miopen::env;
 
 namespace conv_trans {
 
@@ -57,8 +52,8 @@ void Run2dDriver(miopenDataType_t prec)
     {
     case miopenFloat: params = GPU_conv_trans_FP32::GetParam(); break;
     case miopenHalf:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenBFloat16:
     case miopenInt32:
@@ -92,7 +87,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
 {
     std::string devName = handle.GetDeviceName();
     if(devName == "gfx900" || devName == "gfx906" || devName == "gfx908" || devName == "gfx90a" ||
-       miopen::StartsWith(devName, "gfx94") || miopen::StartsWith(devName, "gfx103") ||
+       devName == "gfx942" || miopen::StartsWith(devName, "gfx103") ||
        miopen::StartsWith(devName, "gfx110"))
         return true;
     else
@@ -148,7 +143,7 @@ using namespace conv_trans;
 TEST_P(GPU_conv_trans_FP32, FloatTest_conv_trans)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && env::enabled(MIOPEN_TEST_ALL))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenFloat);
     }

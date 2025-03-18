@@ -25,18 +25,18 @@
  *******************************************************************************/
 #include "solver_fwd.hpp"
 
-struct ConvFwdSolverTestFloat : ConvFwdSolverTest<float>
+struct GPU_ConvFwdSolverTest_FP32 : ConvFwdSolverTest<float>
 {
 };
 
-TEST_P(ConvFwdSolverTestFloat, DISABLED_ConvASM3x3UFwd)
+TEST_P(GPU_ConvFwdSolverTest_FP32, DISABLED_ConvASM3x3UFwd)
 {
     miopen::solver::conv::ConvAsm3x3U solv{};
     SolverFwd(solv);
 }
 
-INSTANTIATE_TEST_SUITE_P(ConvFwdTest,
-                         ConvFwdSolverTestFloat,
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ConvFwdSolverTest_FP32,
                          testing::Combine(testing::Values(Gpu::All),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(ConvTestConfigs<ConvTestCaseBase>())));

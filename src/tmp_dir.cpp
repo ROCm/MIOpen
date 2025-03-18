@@ -50,13 +50,13 @@ TmpDir::TmpDir(std::string_view prefix) : path{fs::temp_directory_path()}
     fs::create_directories(path);
 }
 
-int TmpDir::Execute(std::string_view cmd, std::string_view args) const
+int TmpDir::Execute(std::string_view cmd, std::string_view args, bool allowChangingCwd) const
 {
     if(env::enabled(MIOPEN_DEBUG_SAVE_TEMP_DIR))
     {
         MIOPEN_LOG_I2(path);
     }
-    auto status = Process{cmd}(args, path);
+    auto status = Process{cmd}(args, allowChangingCwd ? path : "");
     if(env::enabled(MIOPEN_DEBUG_EXIT_STATUS_TEMP_DIR))
     {
         MIOPEN_LOG_I2(status);

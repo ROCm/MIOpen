@@ -32,7 +32,6 @@
 #include <miopen/conv_algo_name.hpp>
 
 #include <cstdint>
-#include <unordered_map>
 
 namespace miopen {
 
@@ -43,6 +42,7 @@ struct ForceInit
 namespace solver {
 
 struct AnySolver;
+struct SolverBase;
 
 enum class Primitive
 {
@@ -61,7 +61,10 @@ enum class Primitive
     Adam,
     Item,
     RoPE,
-    ReLU
+    ReLU,
+    Kthvalue,
+    SoftMarginLoss,
+    MultiMarginLoss
 };
 
 struct MIOPEN_INTERNALS_EXPORT Id
@@ -76,6 +79,7 @@ struct MIOPEN_INTERNALS_EXPORT Id
 
     std::string ToString() const;
     AnySolver GetSolver() const;
+    const SolverBase* GetSolverBase() const;
     std::string GetAlgo(conv::Direction dir) const;
     miopenConvAlgorithm_t GetAlgo() const;
     Primitive GetPrimitive() const;

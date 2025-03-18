@@ -29,7 +29,7 @@
 #include "conv_common.hpp"
 #include "get_handle.hpp"
 #include <miopen/conv/data_invoke_params.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include "conv_test_base.hpp"
 #include "../workspace.hpp"
@@ -39,7 +39,7 @@ struct ConvFwdSolverTest
     : public ::testing::TestWithParam<std::tuple<Gpu, miopenConvAlgorithm_t, ConvTestCaseBase>>,
       ConvFwdSolverTestBase<T, Tref, use_cpu_ref>
 {
-    void SolverFwd(const miopen::solver::conv::ConvSolverBase& solv)
+    void SolverFwd(const miopen::solver::conv::ConvSolverInterface& solv)
     {
         auto&& handle = get_handle();
 

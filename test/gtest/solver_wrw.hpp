@@ -29,7 +29,7 @@
 #include "conv_common.hpp"
 #include "get_handle.hpp"
 #include <miopen/conv/wrw_invoke_params.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 
 #include "conv_test_base.hpp"
 #include "conv_tensor_gen.hpp"
@@ -40,7 +40,7 @@ template <typename T = float, typename Tref = float, bool use_cpu_ref = false>
 struct ConvWrwSolverTest
     : public ::testing::TestWithParam<std::tuple<Gpu, miopenConvAlgorithm_t, ConvTestCaseBase>>
 {
-    void SolverWrw(const miopen::solver::conv::ConvSolverBase& solv)
+    void SolverWrw(const miopen::solver::conv::ConvSolverInterface& solv)
     {
         auto&& handle = get_handle();
 

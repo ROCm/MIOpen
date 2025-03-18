@@ -28,6 +28,7 @@
 
 #include <miopen/batchnorm/invoke_params.hpp>
 #include <miopen/batch_norm.hpp>
+#include <miopen/env.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
@@ -55,7 +56,6 @@ bool BnFwdInferActivationFused::IsApplicable(const FusionContext& /*context*/,
         return false;
     if(desc.op_map.at(1)->kind() != miopenFusionOpActivForward)
         return false;
-
     return true;
 }
 

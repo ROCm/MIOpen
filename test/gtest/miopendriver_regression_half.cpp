@@ -28,7 +28,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/process.hpp>
 
@@ -52,7 +51,7 @@ std::vector<std::string> GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-class MIOpenDriverRegressionHalfTest : public testing::TestWithParam<std::vector<TestCase>>
+class GPU_MIOpenDriverRegressionTest_FP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
 };
 
@@ -60,19 +59,19 @@ void RunMIOpenDriver()
 {
     using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
     using d_mask = disabled<Gpu::Default>;
-    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>("--half", true))
+    if(!ShouldRunMIOpenDriverTest<d_mask, e_mask>())
     {
         GTEST_SKIP();
     }
 
-    RunMIOpenDriverTestCommand(MIOpenDriverRegressionHalfTest::GetParam());
+    RunMIOpenDriverTestCommand(GPU_MIOpenDriverRegressionTest_FP16::GetParam());
 };
 
 } // namespace miopendriver_regression_half
 using namespace miopendriver_regression_half;
 
-TEST_P(MIOpenDriverRegressionHalfTest, MIOpenDriverRegressionHalf) { RunMIOpenDriver(); };
+TEST_P(GPU_MIOpenDriverRegressionTest_FP16, MIOpenDriverRegressionHalf) { RunMIOpenDriver(); };
 
-INSTANTIATE_TEST_SUITE_P(MIOpenDriverRegressionHalfTestSet,
-                         MIOpenDriverRegressionHalfTest,
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_MIOpenDriverRegressionTest_FP16,
                          testing::Values(GetTestCases()));

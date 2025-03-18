@@ -25,7 +25,8 @@
  *******************************************************************************/
 
 #include <cstddef>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
@@ -34,6 +35,7 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/batched_transpose_sol.hpp>
+#include <miopen/buffer_info.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS_NHWC)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP16)
@@ -888,8 +890,8 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a") &&
-       (!StartsWith(device_name, "gfx94")))
+    if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx942") &&
+       (!StartsWith(device_name, "gfx95")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -908,7 +910,8 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16() &&
-       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94"))))
+       !(problem.IsBfp16() &&
+         (device_name == "gfx90a" || device_name == "gfx942" || StartsWith(device_name, "gfx95"))))
         return false;
 
     if(problem.IsTensorsCasted())
@@ -917,7 +920,7 @@ bool ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::IsApplicable(
     if(!ctx.rmv.IsV3())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false; // NOLINT (readability-simplify-boolean-expr)
 
@@ -1116,8 +1119,8 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
     const auto isFp16                 = problem.IsFp16();
     const auto isGfx90aFp16altSupport = (ctx.GetStream().GetDeviceName() == "gfx90a") && isFp16;
-    const bool need_cast              = (problem.IsBfp16() && gemm_k_global_splits >= 1) ||
-                           (isFp16 && gemm_k_global_splits >= 1 &&
+    const bool need_cast              = (problem.IsBfp16() && config.gemm_k_global_split >= 1) ||
+                           (isFp16 && config.gemm_k_global_split >= 1 &&
                             (config.tensor_b_thread_lengths[3] == 1 || config.vector_store == 1));
 
     const auto is_nchw = problem.IsLayoutDefault();
@@ -1126,26 +1129,12 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
     std::ostringstream options;                   // Common options for both kernels.
     std::ostringstream msg;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    if(ctx.GetStream().GetDeviceName() == "gfx940")
-    {
-        GenerateClangDefsym(options, "force_sc0_sc1", 1);
-        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
-        if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", force_sc0_sc1:1, atomic_add_using_cas:0 (gfx940)";
-    }
-    else if(ctx.GetStream().GetDeviceName() == "gfx941")
-    {
-        GenerateClangDefsym(options, "force_sc0_sc1", 1);
-        GenerateClangDefsym(options, "atomic_add_using_cas", 1);
-        if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", force_sc0_sc1:1, atomic_add_using_cas:1 (gfx941)";
-    }
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx94"))
+    if(ctx.GetStream().GetDeviceName() == "gfx942")
     {
         GenerateClangDefsym(options, "force_sc0_sc1", 0);
         GenerateClangDefsym(options, "atomic_add_using_cas", 0);
         if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942+)";
+            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942)";
     }
 
     std::ostringstream opts_0(options.str(), std::ios_base::ate); // Options for normal kernel.

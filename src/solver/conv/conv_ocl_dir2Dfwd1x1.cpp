@@ -26,11 +26,13 @@
 
 #include <miopen/handle.hpp>
 #include <miopen/legacy_exhaustive_search.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 #include <miopen/stringutils.hpp>
 
+/// WORKAROUND_SWDEV_271887 disables ConvOclDirectFwd1x1 solver on gfx10 and gfx11 due to precision
+/// issues.
 #define WORKAROUND_SWDEV_271887 1
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1)
@@ -45,11 +47,13 @@ bool ConvOclDirectFwd1x1::IsApplicable(const ExecutionContext& ctx,
                                        const ProblemDescription& problem) const
 {
 #if WORKAROUND_SWDEV_271887
-    if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
-       StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
     {
-        if(!env::enabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1))
-            return false;
+        if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx10") ||
+           StartsWith(ctx.GetStream().GetDeviceName(), "gfx11"))
+        {
+            if(!env::enabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD1X1))
+                return false;
+        }
     }
 #endif
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))

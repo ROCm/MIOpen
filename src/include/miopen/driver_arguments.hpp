@@ -67,6 +67,10 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
                                     bool print_for_conv_driver = true);
 
 std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
+                                     miopenTensorDescriptor_t yDesc,
+                                     miopenTensorDescriptor_t scaleDesc,
+                                     miopenTensorDescriptor_t biasDesc,
+                                     miopenTensorDescriptor_t saveMeanDesc,
                                      miopenBatchNormMode_t bn_mode,
                                      const void* resultRunningMean,
                                      const void* resultRunningVariance,

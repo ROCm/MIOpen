@@ -24,7 +24,7 @@
  *
  *******************************************************************************/
 
-#include <miopen/solver.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/env.hpp>
@@ -58,7 +58,7 @@ bool ConvAsm5x10u2v2f1::IsApplicable(const ExecutionContext& ctx,
     if(!ctx.rmv.IsV2orV3())
         return false;
 
-    const auto target = ctx.GetStream().GetTargetProperties();
+    const auto& target = ctx.GetStream().GetTargetProperties();
     if(target.Xnack() && *target.Xnack())
         return false;
 

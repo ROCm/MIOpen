@@ -30,8 +30,6 @@
 
 #include "../conv2d.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
-
 namespace {
 
 auto GetTestCases()
@@ -54,8 +52,6 @@ auto GetTestCases()
 
 using TestCase = decltype(GetTestCases())::value_type;
 
-bool SkipTest() { return env::disabled(MIOPEN_TEST_ALL); }
-
 bool IsTestSupportedForDevice()
 {
     using e_mask = enabled<Gpu::Default>;
@@ -65,15 +61,15 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dDefaultHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dDefaultRegressionMI100_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dDefaultHalf, HalfTest_regression_half_mi100)
+TEST_P(GPU_Conv2dDefaultRegressionMI100_FP16, HalfTest_regression_half_mi100)
 {
-    if(IsTestSupportedForDevice() && !SkipTest())
+    if(IsTestSupportedForDevice())
     {
-        invoke_with_params<conv2d_driver, Conv2dDefaultHalf>(default_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dDefaultRegressionMI100_FP16>(default_check);
     }
     else
     {
@@ -81,4 +77,6 @@ TEST_P(Conv2dDefaultHalf, HalfTest_regression_half_mi100)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(RegressionMi100, Conv2dDefaultHalf, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dDefaultRegressionMI100_FP16,
+                         testing::Values(GetTestCases()));

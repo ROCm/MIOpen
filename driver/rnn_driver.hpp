@@ -40,7 +40,6 @@
 
 #include <../test/verify.hpp>
 
-#include <miopen/env.hpp>
 #include <miopen/miopen.h>
 #include <miopen/rnn.hpp>
 #include <miopen/tensor.hpp>
@@ -158,7 +157,7 @@ private:
     std::vector<Tref> cy_host;
     std::vector<Tref> dhx_host;
     std::vector<Tref> dcx_host;
-    std::vector<prngStates> dropout_states_host;
+    std::vector<rocrand_state_xorwow> dropout_states_host;
 
     miopenRNNDescriptor_t rnnDesc;
 
@@ -470,6 +469,10 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
     {
         algo = miopenRNNfundamental;
     }
+    else if((inflags.GetValueInt("rnnalgo")) == 2)
+    {
+        algo = miopenRNNroundedDynamic;
+    }
     else
     {
         printf("Incorrect RNN algorithm\n");
@@ -487,7 +490,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
 
         size_t statesSizeInBytes = 0;
         miopenDropoutGetStatesSize(GetHandle(), &statesSizeInBytes);
-        size_t states_size = statesSizeInBytes / sizeof(prngStates);
+        size_t states_size = statesSizeInBytes / sizeof(rocrand_state_xorwow);
 
         DEFINE_CONTEXT(ctx);
 #if MIOPEN_BACKEND_OPENCL
@@ -495,7 +498,7 @@ int RNNDriver<Tgpu, Tref>::SetRNNDescriptorFromCmdLineArgs()
 #endif
 
         dropout_states_dev =
-            std::unique_ptr<GPUMem>(new GPUMem(ctx, states_size, sizeof(prngStates)));
+            std::unique_ptr<GPUMem>(new GPUMem(ctx, states_size, sizeof(rocrand_state_xorwow)));
 
         miopenSetDropoutDescriptor(DropoutDesc,
                                    GetHandle(),
@@ -616,7 +619,9 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     workspace      = std::vector<Tgpu>(workSpace_sz, static_cast<Tgpu>(0));
     reservespace   = std::vector<Tgpu>(reserveSpace_sz, static_cast<Tgpu>(0));
     outhost        = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-    workspace_host = std::vector<Tref>(workSpace_sz, static_cast<Tref>(0));
+    workspace_host = (inflags.GetValueInt("verify") == 1)
+                         ? std::vector<Tref>(workSpace_sz, static_cast<Tref>(0))
+                         : std::vector<Tref>{};
 
     int nseq              = inflags.GetValueInt("seq_len");
     std::vector<int> in_n = GetInputTensorLengthsFromCmdLine();
@@ -641,7 +646,9 @@ int RNNDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         reserveSpaceHost_sz += (layer - 1) * inputBatchLenSum * hid_h * (bidir + 1);
         reserveSpaceHost_sz = (reserveSpaceHost_sz + sizeof(Tref) - 1) / sizeof(Tref);
     }
-    reservespace_host = std::vector<Tref>(reserveSpaceHost_sz, static_cast<Tref>(0));
+    reservespace_host = (inflags.GetValueInt("verify") == 1)
+                            ? std::vector<Tref>(reserveSpaceHost_sz, static_cast<Tref>(0))
+                            : std::vector<Tref>{};
 
     if(inflags.GetValueInt("forw") != 1)
     {

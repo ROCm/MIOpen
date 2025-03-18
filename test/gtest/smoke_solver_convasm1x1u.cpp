@@ -35,8 +35,8 @@ namespace {
 auto GetTestCases()
 {
     const auto env = std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                                std::pair{MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
-                                std::pair{MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
+                                std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
+                                std::pair{wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
                                 std::pair{MIOPEN_FIND_MODE, "normal"},
                                 std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsm1x1U"}};
 
@@ -64,19 +64,19 @@ bool IsTestSupportedForDevice()
 
 } // namespace
 
-class Conv2dTuningAltFloat : public FloatTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningAltAsm1x1U_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
 };
 
-class Conv2dTuningAltHalf : public HalfTestCase<std::vector<TestCase>>
+class GPU_Conv2dTuningAltAsm1x1U_FP16 : public HalfTestCase<std::vector<TestCase>>
 {
 };
 
-TEST_P(Conv2dTuningAltFloat, FloatTest_smoke_solver_convasm1x1u)
+TEST_P(GPU_Conv2dTuningAltAsm1x1U_FP32, FloatTest_smoke_solver_convasm1x1u)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningAltFloat>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningAltAsm1x1U_FP32>(tuning_check);
     }
     else
     {
@@ -84,11 +84,11 @@ TEST_P(Conv2dTuningAltFloat, FloatTest_smoke_solver_convasm1x1u)
     }
 };
 
-TEST_P(Conv2dTuningAltHalf, HalftTest_smoke_solver_convasm1x1u)
+TEST_P(GPU_Conv2dTuningAltAsm1x1U_FP16, HalftTest_smoke_solver_convasm1x1u)
 {
     if(IsTestSupportedForDevice() && !SkipTest())
     {
-        invoke_with_params<conv2d_driver, Conv2dTuningAltHalf>(tuning_check);
+        invoke_with_params<conv2d_driver, GPU_Conv2dTuningAltAsm1x1U_FP16>(tuning_check);
     }
     else
     {
@@ -96,9 +96,5 @@ TEST_P(Conv2dTuningAltHalf, HalftTest_smoke_solver_convasm1x1u)
     }
 };
 
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsm1x1U,
-                         Conv2dTuningAltFloat,
-                         testing::Values(GetTestCases()));
-INSTANTIATE_TEST_SUITE_P(SmokeSolverConvAsm1x1U,
-                         Conv2dTuningAltHalf,
-                         testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningAltAsm1x1U_FP32, testing::Values(GetTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningAltAsm1x1U_FP16, testing::Values(GetTestCases()));

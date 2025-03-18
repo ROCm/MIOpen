@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <miopen/env.hpp>
 #include <miopen/softmax/solvers.hpp>
 
 #include <miopen/softmax/invoke_params.hpp>
@@ -132,6 +133,7 @@ ConvSolution AttnSoftmax::GetSolution(const ExecutionContext& context,
 
             kernel(params.x,
                    params.forward_y,
+                   nullptr, // attention related parameters
                    nullptr, // attention related parameters
                    nullptr, // attention related parameters
                    nullptr, // attention related parameters
