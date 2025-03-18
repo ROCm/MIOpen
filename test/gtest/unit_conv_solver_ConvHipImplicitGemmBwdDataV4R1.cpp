@@ -30,8 +30,9 @@
 #error "HIP_PACKAGE_VERSION_FLAT undefined"
 #endif
 
-// MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1=1 is necessary due to WORKAROUND_SWDEV_229277_227616_229195,
-// which disables ConvHipImplicitGemmBwdDataV4R1, but we still want to check that the solver is not broken.
+// MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1=1 is necessary due to
+// WORKAROUND_SWDEV_229277_227616_229195, which disables ConvHipImplicitGemmBwdDataV4R1, but we
+// still want to check that the solver is not broken.
 #define WORKAROUND_SWDEV_229277_227616_229195 1
 
 // LLVM buffer intrinsics llvm.amdgcn.buffer.* have been removed in HIP 6.4
@@ -95,7 +96,7 @@ const auto& GetTestParams()
     static const auto params = [] {
         Gpu supported_gpus =
             Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx103X;
-        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         return p;
@@ -105,8 +106,7 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1Bwd_FP32 =
-    GPU_UnitTestConvSolverBwd_FP32;
+using GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1Bwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
 using CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1DevApplicabilityBwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityBwd_NONE;
 
@@ -134,8 +134,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
-INSTANTIATE_TEST_SUITE_P(
-    Smoke,
-    CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1DevApplicabilityBwd_NONE,
-    testing::Combine(testing::Values(GetTestParams()),
-                     testing::Values(GetConvTestCases(miopenFloat)[0])));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1DevApplicabilityBwd_NONE,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(GetConvTestCases(miopenFloat)[0])));
