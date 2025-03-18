@@ -24,32 +24,30 @@
  *
  *******************************************************************************/
 
-#include "miopen/miopen.h"
-#include "miopen/pad_reflection/problem_description.hpp"
-#include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
-#include <miopen/float_equal.hpp>
 #include <miopen/kernel_cache.hpp>
+#include <miopen/pad_reflection.hpp>
 #include <miopen/pad_reflection/invoke_params.hpp>
 #include <miopen/pad_reflection/solvers.hpp>
-#include <miopen/pad_reflection.hpp>
+#include <miopen/pad_reflection/problem_description.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
+namespace pad_reflection {
 
 miopenStatus_t PadReflectionFwd(Handle& handle,
                                 const TensorDescriptor& xDesc,
                                 ConstData_t x,
                                 const TensorDescriptor& yDesc,
                                 Data_t y,
-                                const size_t* padding,
+                                const int64_t* padding,
                                 const size_t num_padding)
 {
     const auto problem =
         pad_reflection::PadReflectionFwdProblemDescription{xDesc, yDesc, padding, num_padding};
 
     const auto invoke_params = [&]() {
-        auto tmp        = pad_reflection::InvokeParams{};
+        auto tmp        = pad_reflection::FwdInvokeParams{};
         tmp.type        = InvokeType::Run;
         tmp.xDesc       = &xDesc;
         tmp.yDesc       = &yDesc;
@@ -68,23 +66,23 @@ miopenStatus_t PadReflectionFwd(Handle& handle,
 }
 
 miopenStatus_t PadReflectionBwd(Handle& handle,
-                                const TensorDescriptor& xDesc,
-                                ConstData_t x,
-                                const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const size_t* padding,
+                                const TensorDescriptor& dxDesc,
+                                Data_t dx,
+                                const TensorDescriptor& dyDesc,
+                                ConstData_t dy,
+                                const int64_t* padding,
                                 const size_t num_padding)
 {
     const auto problem =
-        pad_reflection::PadReflectionBwdProblemDescription{xDesc, yDesc, padding, num_padding};
+        pad_reflection::PadReflectionBwdProblemDescription{dxDesc, dyDesc, padding, num_padding};
 
     const auto invoke_params = [&]() {
-        auto tmp        = pad_reflection::InvokeParams{};
+        auto tmp        = pad_reflection::BwdInvokeParams{};
         tmp.type        = InvokeType::Run;
-        tmp.xDesc       = &xDesc;
-        tmp.yDesc       = &yDesc;
-        tmp.x           = x;
-        tmp.y           = y;
+        tmp.dxDesc      = &dxDesc;
+        tmp.dyDesc      = &dyDesc;
+        tmp.dx          = dx;
+        tmp.dy          = dy;
         tmp.padding     = padding;
         tmp.num_padding = num_padding;
         return tmp;
@@ -97,4 +95,5 @@ miopenStatus_t PadReflectionBwd(Handle& handle,
     return miopenStatusSuccess;
 }
 
+} // namespace pad_reflection
 } // namespace miopen

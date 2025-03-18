@@ -23,8 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "registry_driver_maker.hpp"
+
 #include "pad_reflection_driver.hpp"
+#include "registry_driver_maker.hpp"
+
 static Driver* makeDriver(const std::string& base_arg)
 {
     if(base_arg == "padreflection")

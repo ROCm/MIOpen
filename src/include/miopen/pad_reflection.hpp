@@ -23,10 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_PAD_REFLECTION_HPP_
-#define MIOPEN_PAD_REFLECTION_HPP_
 
-#include "miopen/miopen.h"
+#pragma once
+
 #include <miopen/common.hpp>
 
 namespace miopen {
@@ -34,21 +33,23 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
+namespace pad_reflection {
+
 miopenStatus_t PadReflectionFwd(Handle& handle,
                                 const TensorDescriptor& xDesc,
                                 ConstData_t x,
                                 const TensorDescriptor& yDesc,
                                 Data_t y,
-                                const size_t* padding,
-                                const size_t num_padding);
+                                const int64_t* padding,
+                                size_t num_padding);
 
 miopenStatus_t PadReflectionBwd(Handle& handle,
                                 const TensorDescriptor& xDesc,
-                                ConstData_t x,
+                                Data_t x,
                                 const TensorDescriptor& yDesc,
-                                Data_t y,
-                                const size_t* padding,
-                                const size_t num_padding);
+                                ConstData_t y,
+                                const int64_t* padding,
+                                size_t num_padding);
 
+} // namespace pad_reflection
 } // namespace miopen
-#endif // MIOPEN_PAD_REFLECTION_HPP_

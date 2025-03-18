@@ -23,16 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
 #include <miopen/pad_reflection/problem_description.hpp>
 #include <miopen/solver.hpp>
-#include <utility>
 
 namespace miopen {
-
 namespace solver {
-
 namespace pad_reflection {
 
 using PadReflectionFwdSolver =
@@ -70,7 +68,5 @@ struct PadReflectionBwd final : PadReflectionBwdSolver
 };
 
 } // namespace pad_reflection
-
 } // namespace solver
-
 } // namespace miopen

@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2023 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -8233,14 +8233,15 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  *
  *  @{
  */
-/*! @brief Add padding by the reflection of the tensor
+
+/*! @brief Execute a pad reflection forward layer
  *
  * @param handle                   MIOpen handle (input)
  * @param xDesc                    Tensor descriptor for data input tensor x (input)
  * @param x                        Data tensor x (input)
  * @param yDesc                    Tensor descriptor for output data tensor y (input)
  * @param y                        Data tensor y (output)
- * @param padding                  Padding array contain 1 element only (input)
+ * @param padding                  Padding array (input)
  * @param num_padding              Number of elements in padding, equals to 1 (input)
  * @return                         miopenStatus_t
  */
@@ -8249,26 +8250,26 @@ MIOPEN_EXPORT miopenStatus_t miopenPadReflectionFwd(miopenHandle_t handle,
                                                     const void* x,
                                                     const miopenTensorDescriptor_t yDesc,
                                                     void* y,
-                                                    const size_t* padding,
+                                                    const int64_t* padding,
                                                     const size_t num_padding);
 
-/*! @brief Add padding by the reflection of the tensor
+/*! @brief Execute a pad reflection backward layer
  *
  * @param handle                   MIOpen handle (input)
- * @param dxDesc                    Tensor descriptor for data input tensor dx (input)
- * @param dx                        Data tensor dx (output)
- * @param dyDesc                    Tensor descriptor for output data tensor dy (input)
- * @param dy                        Data tensor dy (input)
- * @param padding                  Padding array contain 1 element only (input)
+ * @param dxDesc                   Tensor descriptor for data input tensor dx (input)
+ * @param dx                       Data tensor input grad (output)
+ * @param dyDesc                   Tensor descriptor for output grad data tensor dy (input)
+ * @param dy                       Data tensor output grad (input)
+ * @param padding                  Padding array (input)
  * @param num_padding              Number of elements in padding, equals to 1 (input)
  * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenPadReflectionBwd(miopenHandle_t handle,
                                                     const miopenTensorDescriptor_t dxDesc,
-                                                    const void* dx,
+                                                    void* dx,
                                                     const miopenTensorDescriptor_t dyDesc,
-                                                    void* dy,
-                                                    const size_t* padding,
+                                                    const void* dy,
+                                                    const int64_t* padding,
                                                     const size_t num_padding);
 /** @} */
 

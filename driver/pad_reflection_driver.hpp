@@ -23,192 +23,26 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_MIOPEN_PAD_REFLECTION_DRIVER_HPP
-#define GUARD_MIOPEN_PAD_REFLECTION_DRIVER_HPP
+
+#pragma once
 
 #include "InputFlags.hpp"
 #include "driver.hpp"
+#include "random.hpp"
 #include "tensor_driver.hpp"
 #include "timer.hpp"
-#include "random.hpp"
-#include <algorithm>
-#include <cfloat>
-#include <cstdlib>
-#include <memory>
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <numeric>
-#include <vector>
+
 #include <../test/tensor_holder.hpp>
 #include <../test/verify.hpp>
 
-#ifndef MLO_PADREFLECTIONHOST_H_
-#define MLO_PADREFLECTIONHOST_H_
+#include <miopen/env.hpp>
+#include <miopen/errors.hpp>
+#include <miopen/handle.hpp>
+#include <miopen/miopen.h>
+#include <miopen/tensor.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
-template <typename Tgpu, typename Tcheck>
-void mloPadReflectionRunForwardHost(miopenTensorDescriptor_t inputDesc,
-                                    miopenTensorDescriptor_t outputDesc,
-                                    int contiguous,
-                                    Tgpu* input,
-                                    Tcheck* outputhost,
-                                    std::vector<size_t> padding)
-{
-    auto input_size  = miopen::deref(inputDesc).GetSize();
-    auto input_dims  = miopen::deref(inputDesc).GetLengths();
-    auto output_dims = miopen::deref(outputDesc).GetLengths();
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
-    if(input_size == 3 && contiguous == 1)
-    {
-        long padding_l     = padding[0];
-        auto input_strides = miopen::deref(inputDesc).GetStrides();
-        size_t in_W        = input_dims[2];
-
-        long in_start_x  = max(0L, -padding_l);
-        long out_start_x = max(0L, padding_l);
-
-        for(size_t gid = 0; gid < output_numel; gid++)
-        {
-            long n, c, w;
-            ulong nc = gid / output_dims[2];
-            w        = gid % output_dims[2];
-            n        = nc / output_dims[1];
-            c        = nc % output_dims[1];
-
-            if(w < padding_l)
-            {
-                w = padding_l * 2 - w;
-            }
-            else if(!(padding_l <= w && w < in_W + padding_l))
-            {
-                w = (in_W + padding_l - 1) * 2 - w;
-            }
-            w = w - out_start_x + in_start_x;
-
-            outputhost[gid] = input[(input_strides[2] * (w)) + (input_strides[1] * (c)) +
-                                    (input_strides[0] * (n)) + 0];
-        }
-    }
-    else if(input_size == 3 && contiguous == 0)
-    {
-        long padding_l      = padding[0];
-        auto input_strides  = miopen::deref(inputDesc).GetStrides();
-        auto output_strides = miopen::deref(outputDesc).GetStrides();
-        size_t in_W         = input_dims[2];
-
-        long in_start_x  = max(0L, -padding_l);
-        long out_start_x = max(0L, padding_l);
-
-        for(size_t gid = 0; gid < output_numel; gid++)
-        {
-            long n, c, w;
-            ulong nc = gid / output_dims[2];
-            w        = gid % output_dims[2];
-            n        = nc / output_dims[1];
-            c        = nc % output_dims[1];
-
-            if(w < padding_l)
-            {
-                w = padding_l * 2 - w;
-            }
-            else if(!(padding_l <= w && w < in_W + padding_l))
-            {
-                w = (in_W + padding_l - 1) * 2 - w;
-            }
-            w                 = w - out_start_x + in_start_x;
-            size_t output_idx = output_strides[0] * (gid / output_dims[2] / output_dims[1]) +
-                                output_strides[1] * ((gid / output_dims[2]) % output_dims[1]) +
-                                output_strides[2] * (gid % output_dims[2]) + 0;
-            Tgpu val               = input[(input_strides[2] * (w)) + (input_strides[1] * (c)) +
-                             (input_strides[0] * (n)) + 0];
-            outputhost[output_idx] = val;
-        }
-    }
-}
-
-template <typename Tgpu, typename Tcheck>
-void mloPadReflectionRunBackwardHost(miopenTensorDescriptor_t inputDesc,
-                                     miopenTensorDescriptor_t outputDesc,
-                                     int contiguous,
-                                     Tcheck* input,
-                                     Tgpu* output,
-                                     std::vector<size_t> padding)
-{
-    auto input_size  = miopen::deref(inputDesc).GetSize();
-    auto input_dims  = miopen::deref(inputDesc).GetLengths();
-    auto output_dims = miopen::deref(outputDesc).GetLengths();
-    auto output_numel =
-        std::accumulate(output_dims.begin(), output_dims.end(), 1L, std::multiplies<int64_t>());
-    if(input_size == 3 && contiguous == 1)
-    {
-        long padding_l     = padding[0];
-        auto input_strides = miopen::deref(inputDesc).GetStrides();
-        size_t in_W        = input_dims[2];
-
-        long in_start_x  = max(0L, -padding_l);
-        long out_start_x = max(0L, padding_l);
-
-        for(size_t gid = 0; gid < output_numel; gid++)
-        {
-            long n, c, w;
-            ulong nc = gid / output_dims[2];
-            w        = gid % output_dims[2];
-            n        = nc / output_dims[1];
-            c        = nc % output_dims[1];
-
-            if(w < padding_l)
-            {
-                w = padding_l * 2 - w;
-            }
-            else if(!(padding_l <= w && w < in_W + padding_l))
-            {
-                w = (in_W + padding_l - 1) * 2 - w;
-            }
-            w        = w - out_start_x + in_start_x;
-            input[(input_strides[2] * (w)) + (input_strides[1] * (c)) + (input_strides[0] * (n)) +
-                  0] = input[(input_strides[2] * (w)) + (input_strides[1] * (c)) +
-                             (input_strides[0] * (n)) + 0] +
-                       output[gid];
-        }
-    }
-    else if(input_size == 3 && contiguous == 0)
-    {
-        long padding_l      = padding[0];
-        auto input_strides  = miopen::deref(inputDesc).GetStrides();
-        auto output_strides = miopen::deref(outputDesc).GetStrides();
-        size_t in_W         = input_dims[2];
-
-        long in_start_x  = max(0L, -padding_l);
-        long out_start_x = max(0L, padding_l);
-
-        for(size_t gid = 0; gid < output_numel; gid++)
-        {
-            long n, c, w;
-            ulong nc = gid / output_dims[2];
-            w        = gid % output_dims[2];
-            n        = nc / output_dims[1];
-            c        = nc % output_dims[1];
-
-            if(w < padding_l)
-            {
-                w = padding_l * 2 - w;
-            }
-            else if(!(padding_l <= w && w < in_W + padding_l))
-            {
-                w = (in_W + padding_l - 1) * 2 - w;
-            }
-            w                 = w - out_start_x + in_start_x;
-            size_t output_idx = output_strides[0] * (gid / output_dims[2] / output_dims[1]) +
-                                output_strides[1] * ((gid / output_dims[2]) % output_dims[1]) +
-                                output_strides[2] * (gid % output_dims[2]) + 0;
-            input[(input_strides[2] * (w)) + (input_strides[1] * (c)) + (input_strides[0] * (n)) +
-                  0] = input[(input_strides[2] * (w)) + (input_strides[1] * (c)) +
-                             (input_strides[0] * (n)) + 0] +
-                       output[output_idx];
-        }
-    }
-}
-#endif
+#include "mloPadReflectionHost.hpp"
 
 template <typename Tgpu, typename Tref>
 class PadReflectionDriver : public Driver
@@ -217,10 +51,14 @@ public:
     PadReflectionDriver() : Driver()
     {
         miopenCreateTensorDescriptor(&inputDesc);
+        miopenCreateTensorDescriptor(&inputGradDesc);
         miopenCreateTensorDescriptor(&outputDesc);
+        miopenCreateTensorDescriptor(&outputGradDesc);
 
         data_type = miopen_type<Tgpu>{};
     }
+
+    std::vector<int> ComputeStrides(std::vector<int> inputDim);
 
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
@@ -243,7 +81,9 @@ public:
     ~PadReflectionDriver() override
     {
         miopenDestroyTensorDescriptor(inputDesc);
+        miopenDestroyTensorDescriptor(inputGradDesc);
         miopenDestroyTensorDescriptor(outputDesc);
+        miopenDestroyTensorDescriptor(outputGradDesc);
     }
 
 private:
@@ -252,24 +92,80 @@ private:
     int forw;
 
     int contiguous;
+
     miopenTensorDescriptor_t inputDesc;
+    miopenTensorDescriptor_t inputGradDesc;
     miopenTensorDescriptor_t outputDesc;
+    miopenTensorDescriptor_t outputGradDesc;
 
-    std::unique_ptr<GPUMem> in_dev;
-    std::unique_ptr<GPUMem> out_dev;
+    std::unique_ptr<GPUMem> input_dev;
+    std::unique_ptr<GPUMem> input_grad_dev;
+    std::unique_ptr<GPUMem> output_dev;
+    std::unique_ptr<GPUMem> output_grad_dev;
 
-    std::vector<Tgpu> in;
-    std::vector<Tgpu> out;
-    std::vector<Tref> outhost;
-    std::vector<Tref> inhost;
+    std::vector<Tgpu> input;
+    std::vector<Tgpu> input_grad;
+    std::vector<Tgpu> output;
+    std::vector<Tgpu> output_grad;
 
-    std::vector<size_t> padding;
+    std::vector<Tref> output_host;
+    std::vector<Tref> input_grad_host;
+
+    std::vector<int64_t> padding;
+
+    bool is_contiguous;
 };
+
+// Equivalent tensor.transpose(0, -1).contiguous().transpose(0, -1)
+template <typename Tgpu, typename Tref>
+std::vector<int> PadReflectionDriver<Tgpu, Tref>::ComputeStrides(std::vector<int> inputDim)
+{
+    if(!is_contiguous)
+        std::swap(inputDim.front(), inputDim.back());
+
+    std::vector<int> strides(inputDim.size());
+    strides.back() = 1;
+    for(int i = inputDim.size() - 2; i >= 0; --i)
+        strides[i] = strides[i + 1] * inputDim[i + 1];
+    if(!is_contiguous)
+        std::swap(strides.front(), strides.back());
+    return strides;
+}
+
+template <typename Tgpu, typename Tref>
+int PadReflectionDriver<Tgpu, Tref>::AddCmdLineArgs()
+{
+    inflags.AddInputFlag("forw",
+                         'F',
+                         "1",
+                         "Run only Forward (1), Run only Backward (2) or Run both Forward and "
+                         "Backward (0) (Default=1)",
+                         "int");
+    inflags.AddTensorFlag(
+        "input-dims", 'D', "2x4x4", "The dimensional lengths of the input tensor (Default=2x4x4)");
+    inflags.AddInputFlag("contiguous", 'C', "0", "Tensor is contiguous or not (Default=0)", "int");
+    inflags.AddInputFlag(
+        "padding-size",
+        'p',
+        "2",
+        "Padding size, where padding_size/2 <= input_size and padding_size is even (Default=2)",
+        "int");
+    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
+    inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
+    inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
+    inflags.AddInputFlag(
+        "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
+
+    return miopenStatusSuccess;
+}
 
 template <typename Tgpu, typename Tref>
 int PadReflectionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+
+    forw          = inflags.GetValueInt("forw");
+    is_contiguous = inflags.GetValueInt("contiguous") != 0;
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -278,105 +174,48 @@ int PadReflectionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     return miopenStatusSuccess;
 }
 
-template <typename T>
-inline std::vector<T> GetStrides(std::vector<T> input, bool contiguous)
-{
-    if(!contiguous)
-        std::swap(input.front(), input.back());
-    std::vector<T> strides(input.size());
-    strides.back() = 1;
-    for(int i = input.size() - 2; i >= 0; --i)
-        strides[i] = strides[i + 1] * input[i + 1];
-    if(!contiguous)
-        std::swap(strides.front(), strides.back());
-    return strides;
-}
-
 template <typename Tgpu, typename Tref>
 int PadReflectionDriver<Tgpu, Tref>::GetandSetData()
 {
-    std::string padding_str = inflags.GetValueStr("padding");
-    std::stringstream padding_ss(padding_str);
-    std::string padding_token;
-    while(std::getline(padding_ss, padding_token, ','))
+    auto input_dims = inflags.GetValueTensor("input-dims").lengths;
+
+    if(input_dims.size() != 3 && input_dims.size() != 4)
     {
-        padding.push_back(std::stoul(padding_token));
+        MIOPEN_THROW("Input tensor dimensions must be 3 or 4. But got: " +
+                     std::to_string(input_dims.size()));
     }
 
-    // if(!(padding.size() == 1 || padding.size() == 4))
-    if(!(padding.size() == 1))
-    {
-        std::cerr << "Error Padding Lengths\n" << std::endl;
-    }
-    std::vector<int> in_len = GetInputTensorLengthsFromCmdLine();
+    auto input_strides = ComputeStrides(input_dims);
+    auto padding_size  = inflags.GetValueInt("padding-size");
 
-    auto input_strides = GetStrides(in_len, contiguous == 1);
-    SetTensorNd(inputDesc, in_len, input_strides, data_type);
-
-    std::vector<int> out_len;
-    auto in_len_size = in_len.size();
-    if(in_len_size == 3)
+    if(input_dims.size() == 3 && padding_size != 2)
     {
-        for(int i = 0; i < in_len_size; i++)
-        {
-            // If W
-            if(i == 2)
-            {
-                out_len.push_back(in_len[i] + 2 * padding[0]);
-            }
-            else
-            {
-                out_len.push_back(in_len[i]);
-            }
-        }
-    }
-    else if(in_len_size == 4)
-    {
-        for(int i = 0; i < in_len.size(); i++)
-        {
-            // If H
-            if(i == 2)
-            {
-                out_len.push_back(in_len[i] + 2 * padding[2]);
-            }
-            // If W
-            else if(i == 3)
-            {
-                out_len.push_back(in_len[i] + 2 * padding[0]);
-            }
-            else
-            {
-                out_len.push_back(in_len[i]);
-            }
-        }
+        MIOPEN_THROW("PadReflection: Only support for 3D input tensors and padding_size=2");
     }
 
-    if(out_len.empty())
-        out_len.push_back(1);
-    auto output_strides = GetStrides(out_len, contiguous == 1);
+    padding                      = std::vector<int64_t>(padding_size);
+    std::vector<int> output_dims = input_dims;
 
-    SetTensorNd(outputDesc, out_len, output_strides, data_type);
+    for(int i = 0; i < static_cast<int>(padding_size / 2); i++)
+    {
+        int idx = input_dims.size() - i - 1;
 
-    return 0;
-}
+        padding[i * 2]     = prng::gen_A_to_B<int64_t>(-1, input_dims[idx]);
+        padding[i * 2 + 1] = prng::gen_A_to_B<int64_t>(-1, input_dims[idx]);
 
-template <typename Tgpu, typename Tref>
-int PadReflectionDriver<Tgpu, Tref>::AddCmdLineArgs()
-{
-    inflags.AddInputFlag(
-        "forw", 'F', "1", "Run Forward (1) or Forward and Backward (0) (Default=1)", "int");
-    inflags.AddInputFlag("batchsize", 'n', "256", "Mini-batch size (Default=100)", "int");
-    inflags.AddInputFlag("in_channels", 'c', "4", "Number of Input Channels (Default=3)", "int");
-    inflags.AddInputFlag("in_d", 'D', "0", "Input Depth (Default=0)", "int");
-    inflags.AddInputFlag("in_h", 'H', "0", "Input Height (Default=32)", "int");
-    inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
-    inflags.AddInputFlag("padding", 'P', "1", "Padding array (Default=1 or 1,1,1,1)", "str");
-    inflags.AddInputFlag("contiguous", 'C', "1", "Contiguous (Default=1)", "int");
-    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
-    inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
-    inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
-    inflags.AddInputFlag(
-        "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
+        output_dims[i] += padding[i * 2] + padding[i * 2 + 1];
+    }
+
+    auto output_strides = ComputeStrides(output_dims);
+
+    if(SetTensorNd(inputDesc, input_dims, input_strides, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input-dims") + ".");
+    if(SetTensorNd(inputGradDesc, input_dims, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input grad tensor.");
+    if(SetTensorNd(outputDesc, output_dims, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output tensor.");
+    if(SetTensorNd(outputGradDesc, output_dims, output_strides, data_type) != miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing output grad tensor.");
 
     return miopenStatusSuccess;
 }
@@ -421,32 +260,55 @@ std::vector<int> PadReflectionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLi
 template <typename Tgpu, typename Tref>
 int PadReflectionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
-    size_t in_sz  = GetTensorSize(inputDesc);
-    size_t out_sz = GetTensorSize(outputDesc);
+
+    size_t input_size  = GetTensorSize(inputDesc);
+    size_t output_size = GetTensorSize(outputDesc);
 
     uint32_t ctx = 0;
 
-    in_dev  = std::unique_ptr<GPUMem>(new GPUMem(ctx, in_sz, sizeof(Tgpu)));
-    out_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, out_sz, sizeof(Tgpu)));
+    // GPU allocation
+    input_dev       = std::make_unique<GPUMem>(ctx, input_size, sizeof(Tgpu));
+    input_grad_dev  = std::make_unique<GPUMem>(ctx, input_size, sizeof(Tgpu));
+    output_dev      = std::make_unique<GPUMem>(ctx, output_size, sizeof(Tgpu));
+    output_grad_dev = std::make_unique<GPUMem>(ctx, output_size, sizeof(Tgpu));
 
-    in      = std::vector<Tgpu>(in_sz, static_cast<Tgpu>(0));
-    out     = std::vector<Tgpu>(out_sz, static_cast<Tgpu>(0));
-    outhost = std::vector<Tref>(out_sz, static_cast<Tref>(0));
-    inhost  = std::vector<Tref>(in_sz, static_cast<Tref>(0));
-    fill(out.begin(), out.end(), static_cast<Tgpu>(0));
-    fill(outhost.begin(), outhost.end(), static_cast<Tgpu>(0));
+    // GPU host allocation
+    input       = std::vector<Tgpu>(input_size);
+    input_grad  = std::vector<Tgpu>(input_size);
+    output      = std::vector<Tgpu>(output_size);
+    output_grad = std::vector<Tgpu>(output_size);
 
-    for(int i = 0; i < in_sz; i++)
+    // CPU allocation
+    output_host     = std::vector<Tref>(output_size);
+    input_grad_host = std::vector<Tref>(input_size);
+
+    if(forw == 0 || forw == 1)
     {
-        in[i]     = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
-        inhost[i] = static_cast<Tref>(in[i]);
+        for(size_t i = 0; i < input_size; i++)
+        {
+            input[i] = prng::gen_A_to_B<Tgpu>(static_cast<Tgpu>(0.0), static_cast<Tgpu>(1.0));
+        }
+
+        if(input_dev->ToGPU(GetStream(), input.data()) != 0)
+        {
+            std::cerr << "Error copying (input) to GPU, size: " << input_dev->GetSize()
+                      << std::endl;
+            return miopenStatusInternalError;
+        }
     }
 
-    if(in_dev->ToGPU(GetStream(), in.data()) != 0)
-        std::cerr << "Error copying (in) to GPU, size: " << in_dev->GetSize() << std::endl;
+    if(forw == 0 || forw == 2)
+    {
+        // Fill output_grad tensor with 1 for performance benchmark purposes
+        std::fill(output_grad.begin(), output_grad.end(), static_cast<Tgpu>(1));
 
-    if(out_dev->ToGPU(GetStream(), out.data()) != 0)
-        std::cerr << "Error copying (out) to GPU, size: " << out_dev->GetSize() << std::endl;
+        if(output_grad_dev->ToGPU(GetStream(), output_grad.data()) != 0)
+        {
+            std::cerr << "Error copying (output_grad) to GPU, size: " << output_grad_dev->GetSize()
+                      << std::endl;
+            return miopenStatusInternalError;
+        }
+    }
 
     return miopenStatusSuccess;
 }
@@ -464,9 +326,9 @@ int PadReflectionDriver<Tgpu, Tref>::RunForwardGPU()
     {
         miopenPadReflectionFwd(GetHandle(),
                                inputDesc,
-                               in_dev->GetMem(),
+                               input_dev->GetMem(),
                                outputDesc,
-                               out_dev->GetMem(),
+                               output_dev->GetMem(),
                                padding.data(),
                                padding.size());
         float time = 0.0;
@@ -490,8 +352,9 @@ int PadReflectionDriver<Tgpu, Tref>::RunForwardGPU()
                   << " ms\n";
     }
 
-    if(out_dev->FromGPU(GetStream(), out.data()) != 0)
-        std::cerr << "Error copying (out_dev) from GPU, size: " << out_dev->GetSize() << std::endl;
+    if(output_dev->FromGPU(GetStream(), output.data()) != 0)
+        std::cerr << "Error copying (out_dev) from GPU, size: " << output_dev->GetSize()
+                  << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -500,7 +363,7 @@ template <typename Tgpu, typename Tref>
 int PadReflectionDriver<Tgpu, Tref>::RunForwardCPU()
 {
     mloPadReflectionRunForwardHost<Tgpu, Tref>(
-        inputDesc, outputDesc, contiguous, in.data(), outhost.data(), padding);
+        inputDesc, outputDesc, contiguous, input.data(), output_host.data(), padding);
 
     return miopenStatusSuccess;
 }
@@ -518,9 +381,9 @@ int PadReflectionDriver<Tgpu, Tref>::RunBackwardGPU()
     {
         miopenPadReflectionBwd(GetHandle(),
                                inputDesc,
-                               in_dev->GetMem(),
+                               input_grad_dev->GetMem(),
                                outputDesc,
-                               out_dev->GetMem(),
+                               output_grad_dev->GetMem(),
                                padding.data(),
                                padding.size());
         float time = 0.0;
@@ -544,10 +407,9 @@ int PadReflectionDriver<Tgpu, Tref>::RunBackwardGPU()
                   << " ms\n";
     }
 
-    if(in_dev->FromGPU(GetStream(), in.data()) != 0)
-        std::cerr << "Error copying (in_dev) from GPU, size: " << in_dev->GetSize() << std::endl;
-    if(out_dev->FromGPU(GetStream(), out.data()) != 0)
-        std::cerr << "Error copying (in_dev) from GPU, size: " << out_dev->GetSize() << std::endl;
+    if(input_grad_dev->FromGPU(GetStream(), input_grad.data()) != 0)
+        std::cerr << "Error copying (input_grad_dev) from GPU, size: " << input_grad_dev->GetSize()
+                  << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -555,8 +417,12 @@ int PadReflectionDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int PadReflectionDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    mloPadReflectionRunBackwardHost<Tgpu, Tref>(
-        inputDesc, outputDesc, contiguous, inhost.data(), out.data(), padding);
+    mloPadReflectionRunBackwardHost<Tgpu, Tref>(inputGradDesc,
+                                                outputGradDesc,
+                                                contiguous,
+                                                input_grad_host.data(),
+                                                output_grad.data(),
+                                                padding);
 
     return miopenStatusSuccess;
 }
@@ -564,13 +430,7 @@ int PadReflectionDriver<Tgpu, Tref>::RunBackwardCPU()
 template <typename Tgpu, typename Tref>
 Tref PadReflectionDriver<Tgpu, Tref>::GetTolerance()
 {
-    // Computation error of fp16 is ~2^13 (=8192) bigger than
-    // the one of fp32 because mantissa is shorter by 13 bits.
-    auto tolerance = std::is_same<Tgpu, float>::value ? 1.5e-6 : 8.2e-3;
-
-    // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-    if(std::is_same<Tgpu, bfloat16>::value)
-        tolerance *= 80.0;
+    Tref tolerance = std::numeric_limits<Tgpu>::epsilon() * 10;
     return tolerance;
 }
 
@@ -578,19 +438,19 @@ template <typename Tgpu, typename Tref>
 int PadReflectionDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
-    const Tref tolerance = 0.0;
-    auto error           = miopen::rms_range(outhost, out);
 
-    if(std::abs(static_cast<float>(error)) != 0.0f)
+    const Tref tolerance = 0.0;
+    auto error           = miopen::rms_range(output_host, output);
+
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Pad Reflection Fwd FAILED: " << error << " > " << tolerance << std::endl;
+        std::cout << "Forward Pad Reflection Fwd FAILED: " << error << " > " << tolerance
+                  << std::endl;
         return EC_VerifyFwd;
     }
-    else
-    {
-        std::cout << "Pad Reflection Verifies OK on CPU reference (" << error << " == " << tolerance
-                  << ')' << std::endl;
-    }
+
+    std::cout << "Forward Pad Reflection Verifies OK on CPU reference (" << error << " < "
+              << tolerance << ')' << std::endl;
 
     return miopenStatusSuccess;
 }
@@ -599,20 +459,18 @@ template <typename Tgpu, typename Tref>
 int PadReflectionDriver<Tgpu, Tref>::VerifyBackward()
 {
     RunBackwardCPU();
-    const Tref tolerance = GetTolerance();
-    auto error           = miopen::rms_range(inhost, in);
 
-    if(error > tolerance)
+    const Tref tolerance = GetTolerance();
+    auto error           = miopen::rms_range(input_grad_host, input_grad);
+
+    if(!std::isfinite(error) || (error > tolerance))
     {
-        std::cout << "Pad Reflection Bwd FAILED: " << error << " > " << tolerance << std::endl;
+        std::cout << "Backward Pad Reflection FAILED: " << error << " > " << tolerance << std::endl;
         return EC_VerifyBwd;
     }
-    else
-    {
-        std::cout << "Pad Reflection Verifies OK on CPU reference (" << error << " < " << tolerance
-                  << ')' << std::endl;
-    }
+
+    std::cout << "Backward Pad Reflection Verifies OK on CPU reference (" << error << " < "
+              << tolerance << ')' << std::endl;
+
     return miopenStatusSuccess;
 }
-
-#endif // GUARD_MIOPEN_PAD_REFLECTION_DRIVER_HPP

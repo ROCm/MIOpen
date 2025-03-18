@@ -24,29 +24,40 @@
  *
  *******************************************************************************/
 
-#include "../driver/tensor_driver.hpp"
-#include "cpu_pad_reflection.hpp"
-#include "get_handle.hpp"
-#include "random.hpp"
-#include "tensor_holder.hpp"
-#include "verify.hpp"
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include <miopen/pad_reflection.hpp>
 
-struct PadReflectionCase
+#include "get_handle.hpp"
+#include "random.hpp"
+#include "tensor_holder.hpp"
+#include "verify.hpp"
+
+#include "cpu_pad_reflection.hpp"
+
+#define MAX_POS_PADDING 6
+#define MIN_NEG_PADDING 6
+
+struct PadReflectionTestCase
 {
     size_t N;
     size_t C;
     size_t D;
     size_t H;
     size_t W;
-    size_t padding;
-    int contiguous;
-    friend std::ostream& operator<<(std::ostream& os, const PadReflectionCase& tc)
+
+    bool is_contiguous    = false;
+    uint64_t padding_size = 2;
+
+    // size_t padding;
+    // int contiguous;
+    friend std::ostream& operator<<(std::ostream& os, const PadReflectionTestCase& tc)
     {
-        return os << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
-                  << " W:" << tc.W << " Padding:" << tc.padding << " Contiguous:" << tc.contiguous;
+        os << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H << " W:" << tc.W;
+        os << " is_contiguous:" << tc.is_contiguous;
+        os << " padding_size:" << tc.padding_size;
+
+        return os;
     }
 
     std::vector<size_t> GetInput()
@@ -78,80 +89,96 @@ struct PadReflectionCase
         }
     }
 
-    std::vector<size_t> GetPadding() const
-    {
-        std::vector<size_t> paddingVector;
-        paddingVector.push_back(padding);
-        return paddingVector;
-    }
+    uint64_t GetPaddingSize() const { return padding_size; }
 
-    int GetContiguous() const { return contiguous; }
+    std::vector<size_t> ComputeStrides(std::vector<size_t> input_dims) const
+    {
+        if(!is_contiguous)
+            std::swap(input_dims.front(), input_dims.back());
+        std::vector<size_t> strides(input_dims.size());
+        strides.back() = 1;
+        for(int i = input_dims.size() - 2; i >= 0; --i)
+            strides[i] = strides[i + 1] * input_dims[i + 1];
+        if(!is_contiguous)
+            std::swap(strides.front(), strides.back());
+        return strides;
+    }
 };
 
-std::vector<PadReflectionCase> PadReflectionTestFloatConfigs()
+std::vector<PadReflectionTestCase> PadReflectionTestFwdConfigs()
 { // n c d h w padding
     return {
-        {1, 1, 0, 0, 3, 2, 1},
-        {48, 8, 0, 0, 512, 1, 1},
-        {48, 8, 0, 0, 512, 3, 1},
-        {16, 311, 0, 0, 512, 1, 1},
-        {16, 311, 0, 0, 512, 3, 1},
-        {1, 1, 0, 0, 3, 2, 0},
-        {48, 8, 0, 0, 512, 1, 0},
-        {48, 8, 0, 0, 512, 3, 0},
-        {16, 311, 0, 0, 512, 1, 0},
-        {16, 311, 0, 0, 512, 3, 0},
+        // 3D
+        {8, 512, 0, 0, 384},
+        {8, 511, 0, 0, 1},
+        {48, 8, 0, 0, 512},
+        {48, 8, 0, 0, 512},
+        {16, 311, 0, 0, 512},
+        {16, 311, 0, 0, 512},
+        {48, 8, 0, 0, 512},
+        {48, 8, 0, 0, 512},
+        {16, 311, 0, 0, 512},
+        {16, 311, 0, 0, 512},
     };
 }
 
-template <typename T>
-inline std::vector<T> GetStrides(std::vector<T> input, bool contiguous)
-{
-    if(!contiguous)
-        std::swap(input.front(), input.back());
-    std::vector<T> strides(input.size());
-    strides.back() = 1;
-    for(int i = input.size() - 2; i >= 0; --i)
-        strides[i] = strides[i + 1] * input[i + 1];
-    if(!contiguous)
-        std::swap(strides.front(), strides.back());
-    return strides;
+std::vector<PadReflectionTestCase> PadReflectionTestBwdConfigs()
+{ // n c d h w padding
+    return {
+        {1, 1, 0, 0, 3},
+        {1, 1, 0, 0, 8},
+        {2, 2, 0, 0, 3},
+        {8, 511, 0, 0, 32},
+        {8, 512, 0, 0, 64},
+        {16, 311, 0, 0, 16},
+        {16, 311, 0, 0, 32},
+        {48, 8, 0, 0, 4},
+        {48, 8, 0, 0, 8},
+        {48, 8, 0, 0, 16},
+        {512, 128, 0, 0, 8},
+    };
 }
 
 template <typename T = float>
-struct PadReflectionFwdTest : public ::testing::TestWithParam<PadReflectionCase>
+struct PadReflectionFwdTest : public ::testing::TestWithParam<PadReflectionTestCase>
 {
 protected:
     void SetUp() override
     {
-        auto&& handle         = get_handle();
-        pad_reflection_config = GetParam();
+        auto&& handle  = get_handle();
+        config         = GetParam();
         auto gen_value = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-        auto in_dims       = pad_reflection_config.GetInput();
-        auto padding       = pad_reflection_config.GetPadding();
-        auto contiguous    = pad_reflection_config.GetContiguous();
-        auto input_strides = GetStrides(in_dims, contiguous == 1);
-        input              = tensor<T>{in_dims, input_strides}.generate(gen_value);
-        std::vector<size_t> out_dims;
+        // Generate input
+        auto input_dims                   = config.GetInput();
+        std::vector<size_t> input_strides = config.ComputeStrides(input_dims);
+        input = tensor<T>{input_dims, input_strides}.generate(gen_value);
 
-        for(int i = 0; i < in_dims.size(); i++)
+        // Generate padding
+        uint64_t padding_length = config.GetPaddingSize();
+
+        padding            = std::vector<int64_t>(padding_length, 0);
+        int64_t min_in_dim = *std::min_element(input_dims.begin(), input_dims.end());
+        int64_t min_padding =
+            -std::min((int64_t)MIN_NEG_PADDING, std::max((int64_t)0, (min_in_dim / 2 - 1)));
+
+        std::vector<size_t> output_dims = input_dims;
+        for(uint64_t i = 0; i < padding_length / 2; i++)
         {
-            // i == W dim
-            if(i == 2)
-            {
-                out_dims.push_back(in_dims[i] + 2 * padding[0]);
-            }
-            else
-            {
-                out_dims.push_back(in_dims[i]);
-            }
+            uint64_t idx = input_dims.size() - i - 1;
+
+            // Generate padding
+            padding[i * 2]     = prng::gen_A_to_B<int64_t>(min_padding, input_dims[idx]);
+            padding[i * 2 + 1] = prng::gen_A_to_B<int64_t>(min_padding, input_dims[idx]);
+
+            // Generate output
+            output_dims[idx] += padding[i * 2] + padding[i * 2 + 1];
         }
-        auto output_strides = GetStrides(out_dims, contiguous == 1);
-        output              = tensor<T>{out_dims, output_strides};
+
+        output = tensor<T>{output_dims};
         std::fill(output.begin(), output.end(), std::numeric_limits<T>::quiet_NaN());
 
-        ref_output = tensor<T>{out_dims, output_strides};
+        ref_output = tensor<T>{output_dims};
         std::fill(ref_output.begin(), ref_output.end(), std::numeric_limits<T>::quiet_NaN());
 
         input_dev  = handle.Write(input.data);
@@ -159,32 +186,42 @@ protected:
     }
     void RunTest()
     {
-        auto&& handle   = get_handle();
-        auto padding    = pad_reflection_config.GetPadding();
-        auto contiguous = pad_reflection_config.GetContiguous();
-
-        cpu_pad_reflection_fwd<T>(input, ref_output, contiguous, padding);
+        auto&& handle = get_handle();
         miopenStatus_t status;
-        status = miopen::PadReflectionFwd(handle,
-                                          input.desc,
-                                          input_dev.get(),
-                                          output.desc,
-                                          output_dev.get(),
-                                          padding.data(),
-                                          padding.size());
-        EXPECT_EQ(status, miopenStatusSuccess);
+
+        // Run cpu
+        cpu_pad_reflection_fwd<T>(input, ref_output, padding);
+
+        status = miopen::pad_reflection::PadReflectionFwd(handle,
+                                                          input.desc,
+                                                          input_dev.get(),
+                                                          output.desc,
+                                                          output_dev.get(),
+                                                          padding.data(),
+                                                          padding.size());
+
+        ASSERT_EQ(status, miopenStatusSuccess);
 
         output.data = handle.Read<T>(output_dev, output.data.size());
     }
 
+    double GetTolerance()
+    {
+        double tolerance = std::numeric_limits<T>::epsilon() * 10;
+        return tolerance;
+    }
+
     void Verify()
     {
-        for(int i = 0; i < output.data.size() - 1; ++i)
-        {
-            EXPECT_EQ(output.data[i], ref_output.data[i]);
-        }
+        double threshold = GetTolerance();
+        auto error       = miopen::rms_range(ref_output, output);
+
+        ASSERT_EQ(miopen::range_distance(ref_output), miopen::range_distance(output));
+        EXPECT_LT(error, threshold) << "Error output beyond tolerance Error: " << error
+                                    << ", Threshold: " << threshold << std::endl;
     }
-    PadReflectionCase pad_reflection_config;
+
+    PadReflectionTestCase config;
 
     tensor<T> input;
     tensor<T> output;
@@ -193,80 +230,100 @@ protected:
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr output_dev;
+
+    std::vector<int64_t> padding;
 };
 
 template <typename T = float>
-struct PadReflectionBwdTest : public ::testing::TestWithParam<PadReflectionCase>
+struct PadReflectionBwdTest : public ::testing::TestWithParam<PadReflectionTestCase>
 {
 protected:
     void SetUp() override
     {
-        auto&& handle         = get_handle();
-        pad_reflection_config = GetParam();
-        auto gen_value     = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
-        auto in_dims       = pad_reflection_config.GetInput();
-        auto padding       = pad_reflection_config.GetPadding();
-        auto contiguous    = pad_reflection_config.GetContiguous();
-        auto input_strides = GetStrides(in_dims, contiguous == 1);
-        input              = tensor<T>{in_dims, input_strides};
-        std::fill(input.begin(), input.end(), 0.5);
+        auto&& handle = get_handle();
+        config        = GetParam();
 
-        std::vector<size_t> out_dims;
-        for(int i = 0; i < in_dims.size(); i++)
+        auto input_grad_dims    = config.GetInput();
+        uint64_t padding_length = config.GetPaddingSize();
+
+        padding            = std::vector<int64_t>(padding_length, 0);
+        int64_t min_in_dim = *std::min_element(input_grad_dims.begin(), input_grad_dims.end());
+        int64_t min_padding =
+            -std::min((int64_t)MIN_NEG_PADDING, std::max((int64_t)0, (min_in_dim / 2 - 1)));
+
+        std::vector<size_t> output_grad_dims = input_grad_dims;
+        for(uint64_t i = 0; i < padding_length / 2; i++)
         {
-            if(i == 2)
-            {
-                out_dims.push_back(in_dims[i] + 2 * padding[0]);
-            }
-            else
-            {
-                out_dims.push_back(in_dims[i]);
-            }
+            uint64_t idx = input_grad_dims.size() - i - 1;
+
+            // Generate padding
+            padding[i * 2]     = prng::gen_A_to_B<int64_t>(min_padding, input_grad_dims[idx]);
+            padding[i * 2 + 1] = prng::gen_A_to_B<int64_t>(min_padding, input_grad_dims[idx]);
+
+            // Generate output
+            output_grad_dims[idx] += padding[i * 2] + padding[i * 2 + 1];
         }
-        auto output_strides = GetStrides(out_dims, contiguous == 1);
-        output              = tensor<T>{out_dims, output_strides}.generate(gen_value);
 
-        ref_input = tensor<T>{in_dims, input_strides};
-        std::fill(ref_input.begin(), ref_input.end(), 0.5);
+        std::vector<size_t> output_grad_strides = config.ComputeStrides(output_grad_dims);
 
-        input_dev  = handle.Write(input.data);
-        output_dev = handle.Write(output.data);
+        output_grad = tensor<T>{output_grad_dims, output_grad_strides};
+        std::fill(output_grad.begin(), output_grad.end(), static_cast<T>(1.0f));
+
+        input_grad = tensor<T>{input_grad_dims};
+        std::fill(input_grad.begin(), input_grad.end(), std::numeric_limits<T>::quiet_NaN());
+
+        ref_input_grad = tensor<T>{input_grad_dims};
+        std::fill(
+            ref_input_grad.begin(), ref_input_grad.end(), std::numeric_limits<T>::quiet_NaN());
+
+        input_grad_dev  = handle.Write(input_grad.data);
+        output_grad_dev = handle.Write(output_grad.data);
     }
     void RunTest()
     {
-        auto&& handle   = get_handle();
-        auto padding    = pad_reflection_config.GetPadding();
-        auto contiguous = pad_reflection_config.GetContiguous();
-
-        cpu_pad_reflection_bwd<T>(ref_input, output, contiguous, padding);
+        auto&& handle = get_handle();
         miopenStatus_t status;
-        status = miopen::PadReflectionBwd(handle,
-                                          input.desc,
-                                          input_dev.get(),
-                                          output.desc,
-                                          output_dev.get(),
-                                          padding.data(),
-                                          padding.size());
-        EXPECT_EQ(status, miopenStatusSuccess);
-        input.data = handle.Read<T>(input_dev, input.data.size());
+
+        cpu_pad_reflection_bwd<T>(ref_input_grad, output_grad, padding);
+
+        status = miopen::pad_reflection::PadReflectionBwd(handle,
+                                                          input_grad.desc,
+                                                          input_grad_dev.get(),
+                                                          output_grad.desc,
+                                                          output_grad_dev.get(),
+                                                          padding.data(),
+                                                          padding.size());
+
+        ASSERT_EQ(status, miopenStatusSuccess);
+
+        input_grad.data = handle.Read<T>(input_grad_dev, input_grad.data.size());
+    }
+
+    double GetTolerance()
+    {
+        double tolerance = std::numeric_limits<T>::epsilon() * 10;
+        return tolerance;
     }
 
     void Verify()
     {
-        double tolerance = std::is_same<T, float>::value ? 1.5e-6 : 8.2e-3;
-        if(std::is_same<T, bfloat16>::value)
-            tolerance *= 8.0;
-        auto error = miopen::rms_range(input, ref_input);
-        EXPECT_TRUE(miopen::range_distance(input) == miopen::range_distance(ref_input));
-        EXPECT_TRUE(error < tolerance) << "Outputs do not match each other. Error:" << error;
+
+        double threshold = GetTolerance();
+        auto error       = miopen::rms_range(ref_input_grad, input_grad);
+
+        ASSERT_EQ(miopen::range_distance(ref_input_grad), miopen::range_distance(input_grad));
+        EXPECT_LT(error, threshold) << "Error output beyond tolerance Error: " << error
+                                    << ", Threshold: " << threshold << std::endl;
     }
-    PadReflectionCase pad_reflection_config;
 
-    tensor<T> input;
-    tensor<T> output;
+    PadReflectionTestCase config;
+    tensor<T> input_grad;
+    tensor<T> output_grad;
 
-    tensor<T> ref_input;
+    tensor<T> ref_input_grad;
 
-    miopen::Allocator::ManageDataPtr input_dev;
-    miopen::Allocator::ManageDataPtr output_dev;
+    miopen::Allocator::ManageDataPtr input_grad_dev;
+    miopen::Allocator::ManageDataPtr output_grad_dev;
+
+    std::vector<int64_t> padding;
 };

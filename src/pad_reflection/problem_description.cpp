@@ -25,80 +25,41 @@
  *******************************************************************************/
 
 #include <miopen/pad_reflection/problem_description.hpp>
-#include <miopen/names.hpp>
 
 #include <sstream>
 
 namespace miopen {
-
 namespace pad_reflection {
 
 NetworkConfig PadReflectionFwdProblemDescription::MakeNetworkConfig() const
 {
-    auto xlength    = xDesc.GetLengths();
-    auto ylength    = yDesc.GetLengths();
-    auto xstrides   = xDesc.GetStrides();
-    auto ystrides   = yDesc.GetStrides();
-    auto input_size = std::accumulate(
-        xlength.begin(), xlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
-    auto output_size = std::accumulate(
-        ylength.begin(), ylength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
-
     auto dtype = xDesc.GetType();
 
+    auto output_numel = yDesc.GetElementSize();
+
     std::ostringstream ss;
-    ss << "fwd";
-    if(IsContiguous())
-        ss << "contiguous_";
+    ss << "pad_reflection_fwd";
     ss << "dtype" << dtype;
-    ss << "input_size" << input_size;
-    ss << "output_size" << output_size;
-    ss << "xstrides";
-    for(size_t stride : xstrides)
-    {
-        ss << "_" << stride;
-    }
-    ss << "ystride";
-    for(size_t stride : xstrides)
-    {
-        ss << "_" << stride;
-    }
+    ss << "output_numel" << output_numel;
+    ss << "is_contiguous" << IsContiguous();
+
     return NetworkConfig{ss.str()};
 }
 
 NetworkConfig PadReflectionBwdProblemDescription::MakeNetworkConfig() const
 {
-    auto xlength    = xDesc.GetLengths();
-    auto ylength    = yDesc.GetLengths();
-    auto xstrides   = xDesc.GetStrides();
-    auto ystrides   = yDesc.GetStrides();
-    auto input_size = std::accumulate(
-        xlength.begin(), xlength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
-    auto output_size = std::accumulate(
-        ylength.begin(), ylength.end(), static_cast<size_t>(1), std::multiplies<size_t>());
-
-    auto dtype = xDesc.GetType();
+    auto dtype          = dxDesc.GetType();
+    auto output_numel   = dyDesc.GetElementSize();
+    auto input_last_dim = dxDesc.GetLengths().back();
 
     std::ostringstream ss;
-    ss << "bwd";
-    if(IsContiguous())
-        ss << "contiguous_";
+    ss << "pad_reflection_bwd";
     ss << "dtype" << dtype;
-    ss << "input_size" << input_size;
-    ss << "output_size" << output_size;
-    ss << "xstrides";
-    for(size_t stride : xstrides)
-    {
-        ss << "_" << stride;
-    }
-    ss << "ystride";
-    for(size_t stride : xstrides)
-    {
-        ss << "_" << stride;
-    }
+    ss << "output_numel" << output_numel;
+    ss << "input_last_dim" << input_last_dim;
+
     return NetworkConfig{ss.str()};
 }
 
 } // namespace pad_reflection
-
 } // namespace miopen

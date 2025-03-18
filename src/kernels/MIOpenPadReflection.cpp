@@ -28,275 +28,91 @@
 #include <hip/hip_runtime.h>
 #endif
 
-#include "hip_atomic.hpp"
 #include "float_types.h"
+#include "hip_atomic.hpp"
+#include "tensor_view.hpp"
 
-template <typename TI, typename TO>
-__device__ void padReflection1dFwdContiguous(const TI* __restrict__ input,
-                                             TO* __restrict__ output,
-                                             uint64_t output_size,
-                                             long padding_left,
-                                             const size_t in_W,
-                                             const size_t output_size_1,
-                                             const size_t output_size_2,
-                                             const size_t input_stride_0,
-                                             const size_t input_stride_1,
-                                             const size_t input_stride_2)
+template <typename DTYPE>
+__device__ void pad_reflection_1d_fwd(const DTYPE* __restrict__ input,
+                                      DTYPE* __restrict__ output,
+                                      int64_t padding_l,
+                                      uint64_t output_size,
+                                      tensor_view_t<3> input_tv,
+                                      tensor_view_t<3> output_tv)
 {
-    const size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    const int64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_size)
         return;
 
-    long n, c, w;
-    ulong nc = gid / output_size_2;
-    w        = gid % output_size_2;
-    n        = nc / output_size_1;
-    c        = nc % output_size_1;
+    int64_t in_W = input_tv.size[2];
 
-    long in_start_x  = max(0L, -padding_left);
-    long out_start_x = max(0L, padding_left);
+    auto i_tensor_layout = tensor_layout_t<3>(output_tv, gid);
 
-    if(w < padding_left)
-    {
-        w = padding_left * 2 - w;
-    }
-    else if(!(padding_left <= w && w < in_W + padding_left))
-    {
-        w = (in_W + padding_left - 1) * 2 - w;
-    }
-    w           = w - out_start_x + in_start_x;
-    output[gid] = input[input_stride_2 * w + input_stride_1 * c + input_stride_0 * n + 0];
+    int64_t in_start_x  = max(0L, -padding_l);
+    int64_t out_start_x = max(0L, padding_l);
+
+    int64_t w = i_tensor_layout.layout[2];
+
+    i_tensor_layout.layout[2] = (w < padding_l)          ? (2 * padding_l - w)
+                                : (w < in_W + padding_l) ? w
+                                                         : (2 * (in_W + padding_l - 1) - w);
+
+    i_tensor_layout.layout[2] = i_tensor_layout.layout[2] - out_start_x + in_start_x;
+
+    auto o_tensor_layout = tensor_layout_t<3>(output_tv, gid);
+    output[output_tv.get_tensor_view_idx(o_tensor_layout)] =
+        input[input_tv.get_tensor_view_idx(i_tensor_layout)];
 }
 
-extern "C" __global__ void PadReflection1dFwdContiguous(const INPUT_TYPE* __restrict__ input,
-                                                        OUTPUT_TYPE* __restrict__ output,
-                                                        uint64_t output_size,
-                                                        long padding_left,
-                                                        const size_t in_W,
-                                                        const size_t output_size_1,
-                                                        const size_t output_size_2,
-                                                        const size_t input_stride_0,
-                                                        const size_t input_stride_1,
-                                                        const size_t input_stride_2)
-{
-    padReflection1dFwdContiguous<INPUT_TYPE, OUTPUT_TYPE>(input,
-                                                          output,
-                                                          output_size,
-                                                          padding_left,
-                                                          in_W,
-                                                          output_size_1,
-                                                          output_size_2,
-                                                          input_stride_0,
-                                                          input_stride_1,
-                                                          input_stride_2);
-}
-
-template <typename TI, typename TO>
-__device__ void padReflection1dFwd(const TI* __restrict__ input,
-                                   TO* __restrict__ output,
-                                   uint64_t output_size,
-                                   long padding_left,
-                                   const size_t in_W,
-                                   const size_t output_size_1,
-                                   const size_t output_size_2,
-                                   const size_t output_stride_0,
-                                   const size_t output_stride_1,
-                                   const size_t output_stride_2,
-                                   const size_t input_stride_0,
-                                   const size_t input_stride_1,
-                                   const size_t input_stride_2)
-{
-    const size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-    if(gid >= output_size)
-        return;
-
-    long n, c, w;
-    ulong nc = gid / output_size_2;
-    w        = gid % output_size_2;
-    n        = nc / output_size_1;
-    c        = nc % output_size_1;
-
-    long in_start_x  = max(0L, -padding_left);
-    long out_start_x = max(0L, padding_left);
-
-    if(w < padding_left)
-    {
-        w = padding_left * 2 - w;
-    }
-    else if(!(padding_left <= w && w < in_W + padding_left))
-    {
-        w = (in_W + padding_left - 1) * 2 - w;
-    }
-    w                 = w - out_start_x + in_start_x;
-    size_t output_idx = output_stride_0 * (gid / output_size_2 / output_size_1) +
-                        output_stride_1 * ((gid / output_size_2) % output_size_1) +
-                        output_stride_2 * (gid % output_size_2) + 0;
-    TO val             = input[input_stride_2 * w + input_stride_1 * c + input_stride_0 * n + 0];
-    output[output_idx] = val;
-}
-
-extern "C" __global__ void PadReflection1dFwd(const INPUT_TYPE* __restrict__ input,
-                                              OUTPUT_TYPE* __restrict__ output,
+extern "C" __global__ void PadReflection1dFwd(const IO_TYPE* __restrict__ input,
+                                              IO_TYPE* __restrict__ output,
+                                              int64_t padding_l,
                                               uint64_t output_size,
-                                              long padding_left,
-                                              const size_t in_W,
-                                              const size_t output_size_1,
-                                              const size_t output_size_2,
-                                              const size_t output_stride_0,
-                                              const size_t output_stride_1,
-                                              const size_t output_stride_2,
-                                              const size_t input_stride_0,
-                                              const size_t input_stride_1,
-                                              const size_t input_stride_2)
+                                              tensor_view_t<3> input_tv,
+                                              tensor_view_t<3> output_tv)
 {
-    padReflection1dFwd<INPUT_TYPE, OUTPUT_TYPE>(input,
-                                                output,
-                                                output_size,
-                                                padding_left,
-                                                in_W,
-                                                output_size_1,
-                                                output_size_2,
-                                                output_stride_0,
-                                                output_stride_1,
-                                                output_stride_2,
-                                                input_stride_0,
-                                                input_stride_1,
-                                                input_stride_2);
+    pad_reflection_1d_fwd<IO_TYPE>(input, output, padding_l, output_size, input_tv, output_tv);
 }
 
-template <typename TI, typename TO>
-__device__ void padReflection1dBwdContiguous(TI* __restrict__ input_grad,
-                                             const TO* __restrict__ output_grad,
-                                             uint64_t output_grad_size,
-                                             long padding_left,
-                                             const size_t in_W,
-                                             const size_t output_size_1,
-                                             const size_t output_size_2,
-                                             const size_t input_stride_0,
-                                             const size_t input_stride_1,
-                                             const size_t input_stride_2)
+template <typename DTYPE>
+__device__ void pad_reflection_1d_bwd(DTYPE* __restrict__ input_grad,
+                                      const DTYPE* __restrict__ output_grad,
+                                      long padding_l,
+                                      uint64_t output_grad_size,
+                                      tensor_view_t<3> input_grad_tv,
+                                      tensor_view_t<3> output_grad_tv)
 {
-    const size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    const int64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_grad_size)
         return;
 
-    long n, c, w;
-    ulong nc = gid / output_size_2;
-    w        = gid % output_size_2;
-    n        = nc / output_size_1;
-    c        = nc % output_size_1;
+    int64_t in_W = input_grad_tv.size[2];
 
-    long in_start_x  = max(0L, -padding_left);
-    long out_start_x = max(0L, padding_left);
+    auto o_tensor_layout = tensor_layout_t<3>(output_grad_tv, gid);
+    auto i_tensor_layout = tensor_layout_t<3>(output_grad_tv, gid);
 
-    if(w < padding_left)
-    {
-        w = padding_left * 2 - w;
-    }
-    else if(!(padding_left <= w && w < in_W + padding_left))
-    {
-        w = (in_W + padding_left - 1) * 2 - w;
-    }
-    w = w - out_start_x + in_start_x;
+    int64_t in_start_x  = max(0L, -padding_l);
+    int64_t out_start_x = max(0L, padding_l);
 
-    TO val = output_grad[gid];
-    atomic_add_g(&input_grad[input_stride_2 * w + input_stride_1 * c + input_stride_0 * n + 0],
-                 val);
+    int64_t w = i_tensor_layout.layout[2];
+
+    w = (w < padding_l)          ? (2 * padding_l - w)
+        : (w < in_W + padding_l) ? w
+                                 : (2 * (in_W + padding_l - 1) - w);
+
+    i_tensor_layout.layout[2] = w - out_start_x + in_start_x;
+
+    atomic_add_g(&input_grad[input_grad_tv.get_tensor_view_idx(i_tensor_layout)],
+                 output_grad[output_grad_tv.get_tensor_view_idx(o_tensor_layout)]);
 }
 
-extern "C" __global__ void PadReflection1dBwdContiguous(INPUT_TYPE* __restrict__ input,
-                                                        const OUTPUT_TYPE* __restrict__ output,
-                                                        uint64_t output_size,
-                                                        long padding_left,
-                                                        const size_t in_W,
-                                                        const size_t output_size_1,
-                                                        const size_t output_size_2,
-                                                        const size_t input_stride_0,
-                                                        const size_t input_stride_1,
-                                                        const size_t input_stride_2)
+extern "C" __global__ void PadReflection1dBwd(IO_TYPE* __restrict__ input_grad,
+                                              const IO_TYPE* __restrict__ output_grad,
+                                              long padding_l,
+                                              uint64_t output_grad_size,
+                                              tensor_view_t<3> input_grad_tv,
+                                              tensor_view_t<3> output_grad_tv)
 {
-    padReflection1dBwdContiguous<INPUT_TYPE, OUTPUT_TYPE>(input,
-                                                          output,
-                                                          output_size,
-                                                          padding_left,
-                                                          in_W,
-                                                          output_size_1,
-                                                          output_size_2,
-                                                          input_stride_0,
-                                                          input_stride_1,
-                                                          input_stride_2);
-}
-
-template <typename TI, typename TO>
-__device__ void padReflection1dBwd(TI* __restrict__ input_grad,
-                                   const TO* __restrict__ output_grad,
-                                   uint64_t output_grad_size,
-                                   long padding_left,
-                                   const size_t in_W,
-                                   const size_t output_size_1,
-                                   const size_t output_size_2,
-                                   const size_t output_stride_0,
-                                   const size_t output_stride_1,
-                                   const size_t output_stride_2,
-                                   const size_t input_stride_0,
-                                   const size_t input_stride_1,
-                                   const size_t input_stride_2)
-{
-    const size_t gid = threadIdx.x + blockIdx.x * blockDim.x;
-    if(gid >= output_grad_size)
-        return;
-
-    long n, c, w;
-    ulong nc = gid / output_size_2;
-    w        = gid % output_size_2;
-    n        = nc / output_size_1;
-    c        = nc % output_size_1;
-
-    long in_start_x  = max(0L, -padding_left);
-    long out_start_x = max(0L, padding_left);
-
-    if(w < padding_left)
-    {
-        w = padding_left * 2 - w;
-    }
-    else if(!(padding_left <= w && w < in_W + padding_left))
-    {
-        w = (in_W + padding_left - 1) * 2 - w;
-    }
-    w                 = w - out_start_x + in_start_x;
-    size_t output_idx = output_stride_0 * (gid / output_size_2 / output_size_1) +
-                        output_stride_1 * ((gid / output_size_2) % output_size_1) +
-                        output_stride_2 * (gid % output_size_2) + 0;
-    TO val = output_grad[output_idx];
-    atomic_add_g(&input_grad[input_stride_2 * w + input_stride_1 * c + input_stride_0 * n + 0],
-                 val);
-}
-
-extern "C" __global__ void PadReflection1dBwd(INPUT_TYPE* __restrict__ input_grad,
-                                              const OUTPUT_TYPE* __restrict__ output_grad,
-                                              uint64_t output_size,
-                                              long padding_left,
-                                              const size_t in_W,
-                                              const size_t output_size_1,
-                                              const size_t output_size_2,
-                                              const size_t output_stride_0,
-                                              const size_t output_stride_1,
-                                              const size_t output_stride_2,
-                                              const size_t input_stride_0,
-                                              const size_t input_stride_1,
-                                              const size_t input_stride_2)
-{
-    padReflection1dBwd<INPUT_TYPE, OUTPUT_TYPE>(input_grad,
-                                                output_grad,
-                                                output_size,
-                                                padding_left,
-                                                in_W,
-                                                output_size_1,
-                                                output_size_2,
-                                                output_stride_0,
-                                                output_stride_1,
-                                                output_stride_2,
-                                                input_stride_0,
-                                                input_stride_1,
-                                                input_stride_2);
+    pad_reflection_1d_bwd<IO_TYPE>(
+        input_grad, output_grad, padding_l, output_grad_size, input_grad_tv, output_grad_tv);
 }

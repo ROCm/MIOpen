@@ -25,147 +25,51 @@
  *******************************************************************************/
 
 #include "pad_reflection.hpp"
-#include <miopen/env.hpp>
 
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLOAT_ARG)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_TEST_ALL)
+using float16 = half_float::half;
 
-namespace pad_reflection {
+// FORWARD TEST
+using GPU_ReflectionPad_fwd_FP32  = PadReflectionFwdTest<float>;
+using GPU_ReflectionPad_fwd_FP16  = PadReflectionFwdTest<float16>;
+using GPU_ReflectionPad_fwd_BFP16 = PadReflectionFwdTest<bfloat16>;
 
-std::string GetFloatArg()
+TEST_P(GPU_ReflectionPad_fwd_FP32, Test)
 {
-    const auto& tmp = miopen::GetStringEnv(ENV(MIOPEN_TEST_FLOAT_ARG));
-    if(tmp.empty())
-    {
-        return "";
-    }
-    return tmp;
+    RunTest();
+    Verify();
 }
 
-struct PadReflectionFwdTestFloat : PadReflectionFwdTest<float>
+TEST_P(GPU_ReflectionPad_fwd_FP16, Test)
 {
-};
+    RunTest();
+    Verify();
+}
 
-struct PadReflectionFwdTestHalf : PadReflectionFwdTest<half_float::half>
+TEST_P(GPU_ReflectionPad_fwd_BFP16, Test)
 {
-};
+    RunTest();
+    Verify();
+}
 
-struct PadReflectionFwdTestBF16 : PadReflectionFwdTest<bfloat16>
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ReflectionPad_fwd_FP32,
+                         testing::ValuesIn(PadReflectionTestFwdConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ReflectionPad_fwd_FP16,
+                         testing::ValuesIn(PadReflectionTestFwdConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ReflectionPad_fwd_BFP16,
+                         testing::ValuesIn(PadReflectionTestFwdConfigs()));
+
+// BACKWARD TEST
+using GPU_ReflectionPad_bwd_FP32 = PadReflectionBwdTest<float>;
+
+TEST_P(GPU_ReflectionPad_bwd_FP32, Test)
 {
-};
+    RunTest();
+    Verify();
+}
 
-struct PadReflectionBwdTestFloat : PadReflectionBwdTest<float>
-{
-};
-
-struct PadReflectionBwdTestHalf : PadReflectionBwdTest<half_float::half>
-{
-};
-
-struct PadReflectionBwdTestBF16 : PadReflectionBwdTest<bfloat16>
-{
-};
-
-} // namespace pad_reflection
-using namespace pad_reflection;
-
-TEST_P(PadReflectionFwdTestFloat, PadReflectionFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(PadReflectionFwdTestHalf, PadReflectionFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(PadReflectionFwdTestBF16, PadReflectionFw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(PadReflectionBwdTestFloat, PadReflectionBw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--float"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(PadReflectionBwdTestHalf, PadReflectionBw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--half"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-TEST_P(PadReflectionBwdTestBF16, PadReflectionBw)
-{
-    if(miopen::IsEnabled(ENV(MIOPEN_TEST_ALL)) && (GetFloatArg() == "--bfloat16"))
-    {
-        RunTest();
-        Verify();
-    }
-    else
-    {
-        GTEST_SKIP();
-    }
-};
-
-INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
-                         PadReflectionFwdTestFloat,
-                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
-                         PadReflectionFwdTestHalf,
-                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
-                         PadReflectionFwdTestBF16,
-                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
-INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
-                         PadReflectionBwdTestFloat,
-                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
-                         PadReflectionBwdTestHalf,
-                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(PadReflectionTestSet,
-                         PadReflectionBwdTestBF16,
-                         testing::ValuesIn(PadReflectionTestFloatConfigs()));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_ReflectionPad_bwd_FP32,
+                         testing::ValuesIn(PadReflectionTestBwdConfigs()));

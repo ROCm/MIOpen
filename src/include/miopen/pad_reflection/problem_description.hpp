@@ -23,14 +23,11 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
-#include "miopen/miopen.h"
-#include <miopen/activ.hpp>
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
-#include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -42,168 +39,175 @@ struct PadReflectionFwdProblemDescription : ProblemDescriptionBase
 {
     PadReflectionFwdProblemDescription(const TensorDescriptor& xDesc_,
                                        const TensorDescriptor& yDesc_,
-                                       const size_t* padding_,
+                                       const int64_t* padding_,
                                        const size_t num_padding_)
         : xDesc(xDesc_), yDesc(yDesc_), padding(padding_), num_padding(num_padding_)
     {
-        if(!IsSameType())
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Pad Reflection: Tensor types do not match.");
-        }
-        if(!IsRightNumPadding())
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Pad Reflection: Padding input accepts 1 value only");
-        }
-        if(!IsRightDim())
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Pad Reflection: Only accept 1d tensor with NCW");
-        }
-        if(!IsRightOutputSize())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Pad Reflection: Doesn't allow Output_W < padding * 2 + Input_W");
-        }
+        IsSameType();
+        IsSameShape();
+        IsValidNumDim();
+        IsValidPadding();
     }
 
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
     size_t GetNumPadding() const { return num_padding; }
 
+    bool IsSameShape() const
+    {
+        if(xDesc.GetNumDims() != yDesc.GetNumDims())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadReflectionFwd: Input and output tensors' dimensions don't match");
+        return true;
+    }
+
+    bool IsValidNumDim() const
+    {
+        if(xDesc.GetNumDims() != 3)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadReflectionFwd: Only support for Pad Reflect 1D (input_num_dims = 3)");
+
+        return true;
+    }
+
     bool IsSameType() const
     {
         if(xDesc.GetType() != yDesc.GetType())
-        {
-            return false;
-        }
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadReflectionFwd: Input and output tensors' types don't match");
+
         return true;
     }
 
-    bool IsRightNumPadding() const
+    bool IsValidPadding() const
     {
-        if(!(num_padding == 1))
+        auto input_dims = xDesc.GetLengths();
+        if((input_dims.size() == 3 && num_padding != 2))
         {
-            return false;
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadReflectionFwd: input_grad_dims_size and padding size "
+                         "mismatch/invalid.");
         }
-        return true;
-    }
 
-    bool IsRightDim() const
-    {
-        if(!(xDesc.GetSize() == 3 && yDesc.GetSize() == 3))
+        std::vector<size_t> input_with_padding_dims(input_dims);
+        for(uint64_t i = 0; i < num_padding / 2; i++)
         {
-            return false;
+            int idx = input_dims.size() - i - 1;
+            if(padding[i * 2] >= static_cast<int64_t>(input_dims[idx]) ||
+               padding[i * 2 + 1] >= static_cast<int64_t>(input_dims[idx]))
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "PadReflectionFwd: Padding size should be less than the corresponding "
+                             "input_grad dimension.");
+            }
+
+            input_with_padding_dims[idx] += padding[i * 2] + padding[i * 2 + 1];
         }
+
+        if(input_with_padding_dims != yDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadReflectionFwd: Input + padding tensor and output tensor do not match");
+
         return true;
     }
 
     bool IsContiguous() const { return xDesc.IsContiguous() && yDesc.IsContiguous(); }
-
-    bool IsRightOutputSize() const
-    {
-        auto input_lens      = xDesc.GetLengths();
-        auto output_lens     = yDesc.GetLengths();
-        auto input_last_len  = input_lens.back();
-        auto output_last_len = output_lens.back();
-        auto min_output_size = padding[0] * 2 + input_last_len;
-        if(min_output_size > output_last_len)
-        {
-            return false;
-        }
-        return true;
-    }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
     const TensorDescriptor& xDesc;
     const TensorDescriptor& yDesc;
-    const size_t* padding;
+    const int64_t* padding;
     const size_t num_padding;
 };
 
 struct PadReflectionBwdProblemDescription : ProblemDescriptionBase
 {
-    PadReflectionBwdProblemDescription(const TensorDescriptor& xDesc_,
-                                       const TensorDescriptor& yDesc_,
-                                       const size_t* padding_,
+    PadReflectionBwdProblemDescription(const TensorDescriptor& dxDesc_,
+                                       const TensorDescriptor& dyDesc_,
+                                       const int64_t* padding_,
                                        const size_t num_padding_)
-        : xDesc(xDesc_), yDesc(yDesc_), padding(padding_), num_padding(num_padding_)
+        : dxDesc(dxDesc_), dyDesc(dyDesc_), padding(padding_), num_padding(num_padding_)
     {
-        if(!IsSameType())
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Pad Reflection: Tensor types do not match.");
-        }
-        if(!IsRightNumPadding())
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Pad Reflection: Padding input accepts 1 value only");
-        }
-        if(!IsRightDim())
-        {
-            MIOPEN_THROW(miopenStatusBadParm, "Pad Reflection: Only accept 1d tensor with NCW");
-        }
-        if(!IsRightOutputSize())
-        {
-            MIOPEN_THROW(miopenStatusBadParm,
-                         "Pad Reflection: Doesn't allow Output_W < padding * 2 + Input_W");
-        }
+        IsSameType();
+        IsValidNumDim();
+        IsValidPadding();
     }
 
-    const TensorDescriptor& GetXDesc() const { return xDesc; }
-    const TensorDescriptor& GetYDesc() const { return yDesc; }
+    const TensorDescriptor& GetdXDesc() const { return dxDesc; }
+    const TensorDescriptor& GetdYDesc() const { return dyDesc; }
     size_t GetNumPadding() const { return num_padding; }
 
     bool IsSameType() const
     {
-        if(xDesc.GetType() != yDesc.GetType())
-        {
-            return false;
-        }
+        if(dxDesc.GetType() != dyDesc.GetType())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadReflectionBwd: Input grad and output grad tensors' types don't match");
+
         return true;
     }
 
-    bool IsRightNumPadding() const
+    bool IsSameShape() const
     {
-        if(!(num_padding == 1))
-        {
-            return false;
-        }
+        if(dxDesc.GetNumDims() != dyDesc.GetNumDims())
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "PadReflectionBwd: Input grad and output grad tensors' dimensions don't match");
         return true;
     }
 
-    bool IsRightDim() const
+    bool IsValidNumDim() const
     {
-        if(!(xDesc.GetSize() == 3 && yDesc.GetSize() == 3))
-        {
-            return false;
-        }
+        if(dxDesc.GetNumDims() != 3)
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadReflectionBwd: Only support for Pad Reflect 1D (input_num_dims = 3)");
+
         return true;
     }
 
-    bool IsContiguous() const { return xDesc.IsContiguous() && yDesc.IsContiguous(); }
-
-    bool IsRightOutputSize() const
+    bool IsValidPadding() const
     {
-        auto input_lens      = xDesc.GetLengths();
-        auto output_lens     = yDesc.GetLengths();
-        auto input_last_len  = input_lens.back();
-        auto output_last_len = output_lens.back();
-        auto min_output_size = padding[0] * 2 + input_last_len;
-        if(min_output_size > output_last_len)
+        auto input_grad_dims = dxDesc.GetLengths();
+
+        if(num_padding != 2)
         {
-            return false;
+            MIOPEN_THROW(
+                miopenStatusBadParm,
+                "PadReflectionBwd: Only support for 3D input tensor and num_padding_elements = 2");
         }
+
+        std::vector<size_t> input_with_padding_dims(input_grad_dims);
+        for(uint64_t i = 0; i < num_padding / 2; i++)
+        {
+            int idx = input_grad_dims.size() - i - 1;
+            if(padding[i * 2] >= static_cast<int64_t>(input_grad_dims[idx]) ||
+               padding[i * 2 + 1] >= static_cast<int64_t>(input_grad_dims[idx]))
+            {
+                MIOPEN_THROW(miopenStatusBadParm,
+                             "PadReflectionBwd: Padding size should be less than the corresponding "
+                             "input_grad dimension.");
+            }
+            input_with_padding_dims[idx] += padding[i * 2] + padding[i * 2 + 1];
+        }
+
+        if(input_with_padding_dims != dyDesc.GetLengths())
+            MIOPEN_THROW(miopenStatusBadParm,
+                         "PadReflectionBwd: Input + padding tensor and output tensor do not match");
+
         return true;
     }
+
+    bool IsContiguous() const { return dxDesc.IsContiguous() && dyDesc.IsContiguous(); }
 
     NetworkConfig MakeNetworkConfig() const override;
 
 private:
-    const TensorDescriptor& xDesc;
-    const TensorDescriptor& yDesc;
-    const size_t* padding;
+    const TensorDescriptor& dxDesc;
+    const TensorDescriptor& dyDesc;
+    const int64_t* padding;
     const size_t num_padding;
 };
 
 } // namespace pad_reflection
-
 } // namespace miopen

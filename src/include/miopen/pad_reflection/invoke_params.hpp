@@ -26,29 +26,46 @@
 
 #pragma once
 
-#include "miopen/miopen.h"
+#include <miopen/common.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
 namespace pad_reflection {
 
-struct InvokeParams : public miopen::InvokeParams
+struct FwdInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams()                = default;
+    FwdInvokeParams() = default;
+
     const TensorDescriptor* xDesc = nullptr;
     const TensorDescriptor* yDesc = nullptr;
 
     ConstData_t x = nullptr;
     Data_t y      = nullptr;
 
-    const size_t* padding = nullptr;
-    size_t num_padding    = 0;
+    const int64_t* padding = nullptr;
+    size_t num_padding     = 0;
+
+    std::size_t GetWorkspaceSize() const { return 0; }
+    Data_t GetWorkspace() const { return nullptr; }
+};
+
+struct BwdInvokeParams : public miopen::InvokeParams
+{
+    BwdInvokeParams() = default;
+
+    const TensorDescriptor* dxDesc = nullptr;
+    const TensorDescriptor* dyDesc = nullptr;
+
+    Data_t dx      = nullptr;
+    ConstData_t dy = nullptr;
+
+    const int64_t* padding = nullptr;
+    size_t num_padding     = 0;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
 
 } // namespace pad_reflection
-
 } // namespace miopen
