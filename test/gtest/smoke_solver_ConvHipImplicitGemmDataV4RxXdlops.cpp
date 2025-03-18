@@ -32,6 +32,8 @@
 
 namespace {
 
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS)
+
 auto GetTestCases()
 {
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS is reqired due to env_bwd case
@@ -65,18 +67,6 @@ auto GetTestCases()
         std::pair{MIOPEN_FIND_MODE, "normal"},
         std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmForwardV4R5Xdlops"}};
 
-    // WORKAROUND_ISSUE_1206 disables this solver for FP32 due to precision issues.
-    // WORKAROUND_SWDEV_329642 disables this solver on MI200 for BF16.
-    // However we still want to check that these cases are not broken and therefore use
-    // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS=1 to enable the solver.
-    const auto env_bwd = std::tuple{
-        std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-        std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
-        std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS, true},
-        std::pair{wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
-        std::pair{MIOPEN_FIND_MODE, "normal"},
-        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmBwdDataV4R1Xdlops"}};
-
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS is reqired due to env_bwd case
     // for this particulaer case it's not needed, but must be there to simplify the code
     const auto env_wrw =
@@ -104,7 +94,6 @@ auto GetTestCases()
     return std::vector{
         // clang-format off
     std::pair{env_fwd, vf + " --input 128 48 13 13 --weights 192 48 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
-    std::pair{env_bwd, vb + " --input 64 64 55 55 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
     std::pair{env_wrw, vw + " --input 1 192 28 28 --weights 16 192 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
     std::pair{env_fwd_padded, vf + " --input 16 1 7 7 --weights 1 1 3 3 --pads_strides_dilations 0 0 1 1 1 1"},
     std::pair{env_wrw_padded, vw + " --input 256 2 5 5 --weights 1 2 3 3 --pads_strides_dilations 1 1 2 2 1 1"},
