@@ -36,7 +36,7 @@
 
 #include <algorithm>
 
-#define WORKAROUND_SWDEV_503936 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
+#define WORKAROUND_MIOPEN_1392 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)
@@ -463,12 +463,15 @@ template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
-// Disable this solver due to random GPU memory access faults on gfx11 and gfx12
-#if WORKAROUND_SWDEV_503936
-    const auto device = ctx.GetStream().GetTargetProperties().Name();
-    if(miopen::StartsWith(device, "gfx11") || miopen::StartsWith(device, "gfx12"))
+    // Disable this solver due to random GPU memory access faults on gfx11 and gfx12
+#if WORKAROUND_MIOPEN_1392
     {
-        return false;
+        const auto device = ctx.GetStream().GetTargetProperties().Name();
+        if(miopen::StartsWith(device, "gfx11") || miopen::StartsWith(device, "gfx12"))
+        {
+            if(!env::enabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2))
+                return false;
+        }
     }
 #endif
 

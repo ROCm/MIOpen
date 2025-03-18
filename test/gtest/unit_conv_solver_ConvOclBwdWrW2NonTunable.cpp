@@ -26,6 +26,8 @@
 
 #include "unit_conv_solver.hpp"
 
+#define WORKAROUND_MIOPEN_1392 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
+
 namespace {
 
 auto GetConvTestCases(miopenDataType_t datatype)
@@ -42,7 +44,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-#if WORKAROUND_SWDEV_503936
+#if WORKAROUND_MIOPEN_1392
         Gpu supported_gpus = Gpu::All & ~(Gpu::gfx110X | Gpu::gfx120X);
 #else
         Gpu supported_gpus = Gpu::All;
