@@ -418,7 +418,7 @@ int NormalizeDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int NormalizeDriver<Tgpu, Tref>::RunForwardGPU()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>
@@ -450,7 +450,7 @@ Tref NormalizeDriver<Tgpu, Tref>::GetTolerance()
 template <typename Tgpu, typename Tref>
 int NormalizeDriver<Tgpu, Tref>::VerifyForward()
 {
-    return miopenStatusSuccess;
+    return miopenStatusNotImplemented;
 }
 
 template <typename Tgpu, typename Tref>

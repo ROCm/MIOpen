@@ -100,8 +100,8 @@ __device__ void normalizebackwardopt(const T* __restrict__ input,
 
     // In this case, all elements that used similar 'divisor' and 'reduce' are in the same
     // block. Therefore, we can use shared memory to read it faster
-    static __shared__ T div, red;
-    static __shared__ tensor_layout_t<5> divisor_layout;
+    __shared__ T div, red;
+    __shared__ tensor_layout_t<5> divisor_layout;
     if(threadIdx.x == 0)
     {
         divisor_layout             = tensor_layout_t<5>(input_tv, gid);
