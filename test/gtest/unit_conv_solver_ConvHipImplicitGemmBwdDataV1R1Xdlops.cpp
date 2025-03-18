@@ -95,7 +95,7 @@ const auto& GetTestParams()
 {
     static const auto params = [] {
         Gpu supported_gpus = Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X;
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
@@ -106,9 +106,12 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverHipImplicitGemmBwdDataV1R1XdlopsBwd_FP16 = GPU_UnitTestConvSolverBwd_FP16;
-using GPU_UnitTestConvSolverHipImplicitGemmBwdDataV1R1XdlopsBwd_BFP16 = GPU_UnitTestConvSolverBwd_BFP16;
-using GPU_UnitTestConvSolverHipImplicitGemmBwdDataV1R1XdlopsBwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
+using GPU_UnitTestConvSolverHipImplicitGemmBwdDataV1R1XdlopsBwd_FP16 =
+    GPU_UnitTestConvSolverBwd_FP16;
+using GPU_UnitTestConvSolverHipImplicitGemmBwdDataV1R1XdlopsBwd_BFP16 =
+    GPU_UnitTestConvSolverBwd_BFP16;
+using GPU_UnitTestConvSolverHipImplicitGemmBwdDataV1R1XdlopsBwd_FP32 =
+    GPU_UnitTestConvSolverBwd_FP32;
 using CPU_UnitTestConvSolverHipImplicitGemmBwdDataV1R1XdlopsDevApplicabilityBwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityBwd_NONE;
 
@@ -164,7 +167,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverHipImplicitGemmBwdDataV1R1XdlopsDevApplicabilityBwd_NONE,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(GetConvTestCases(miopenFloat)[0])));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    CPU_UnitTestConvSolverHipImplicitGemmBwdDataV1R1XdlopsDevApplicabilityBwd_NONE,
+    testing::Combine(testing::Values(GetTestParams()),
+                     testing::Values(GetConvTestCases(miopenFloat)[0])));
