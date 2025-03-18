@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
 #include <miopen/common.hpp>
@@ -57,5 +58,4 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t LogCumSumExpBackward(Handle& handle,
                                                             bool reverse);
 
 } // namespace logcumsumexp
-
 } // namespace miopen

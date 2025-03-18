@@ -26,18 +26,16 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/mlo_internal.hpp>
 #include <miopen/logcumsumexp/invoke_params.hpp>
 #include <miopen/logcumsumexp/solvers.hpp>
+#include <miopen/mlo_internal.hpp>
 
 #define warpSizeCTX (context.GetStream().GetWavefrontWidth())
 #define LOCAL_SIZE_MAX 1024
 #define LOCAL_SIZE_MIN warpSizeCTX
 
 namespace miopen {
-
 namespace solver {
-
 namespace logcumsumexp {
 
 bool BackwardContiguousSmallCumDimStride1::IsApplicable(
@@ -63,6 +61,8 @@ ConvSolution BackwardContiguousSmallCumDimStride1::GetSolution(
     const ExecutionContext& context,
     const miopen::logcumsumexp::BackwardProblemDescription& problem) const
 {
+    std::ignore = context;
+
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto dtype = problem.GetInputDesc().GetType();

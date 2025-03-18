@@ -8228,7 +8228,7 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 #endif // MIOPEN_BETA_API
 
 #ifdef MIOPEN_BETA_API
-
+// LogCumSumExp APIs
 /** @addtogroup LogCumSumExp
  *
  *  @{
@@ -8244,15 +8244,16 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
  * @param dim                      The dimension to do the operation over (input)
  * @param exclusive                Exclusive operation (input)
  * @param reverse                  Reverse the operation order (input)
+ * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenLogCumSumExpForward(miopenHandle_t handle,
-                                                       miopenTensorDescriptor_t inputDesc,
+                                                       const miopenTensorDescriptor_t inputDesc,
                                                        const void* input,
-                                                       miopenTensorDescriptor_t outputDesc,
+                                                       const miopenTensorDescriptor_t outputDesc,
                                                        void* output,
-                                                       int dim,
-                                                       bool exclusive,
-                                                       bool reverse);
+                                                       const int dim,
+                                                       const bool exclusive,
+                                                       const bool reverse);
 
 /*! @brief Execute a LogCumSumExp backward layer
  *
@@ -8268,19 +8269,20 @@ MIOPEN_EXPORT miopenStatus_t miopenLogCumSumExpForward(miopenHandle_t handle,
  * @param dim                      The dimension to do the operation over (input)
  * @param exclusive                Exclusive operation (input)
  * @param reverse                  Reverse the operation order (input)
+ * @return                         miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t miopenLogCumSumExpBackward(miopenHandle_t handle,
-                                                        miopenTensorDescriptor_t inputDesc,
+                                                        const miopenTensorDescriptor_t inputDesc,
                                                         const void* input,
-                                                        miopenTensorDescriptor_t outputDesc,
+                                                        const miopenTensorDescriptor_t outputDesc,
                                                         const void* output,
-                                                        miopenTensorDescriptor_t doutputDesc,
+                                                        const miopenTensorDescriptor_t doutputDesc,
                                                         const void* doutput,
-                                                        miopenTensorDescriptor_t dinputDesc,
+                                                        const miopenTensorDescriptor_t dinputDesc,
                                                         void* dinput,
-                                                        int dim,
-                                                        bool exclusive,
-                                                        bool reverse);
+                                                        const int dim,
+                                                        const bool exclusive,
+                                                        const bool reverse);
 
 /** @} */
 // CLOSEOUT LogCumSumExp DOXYGEN GROUP

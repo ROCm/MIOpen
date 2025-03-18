@@ -25,8 +25,8 @@
  *******************************************************************************/
 
 #include <miopen/handle.hpp>
-#include <miopen/tensor_ops.hpp>
 #include <miopen/logcumsumexp.hpp>
+#include <miopen/tensor_ops.hpp>
 
 static void LogCmdLogCumSumExp(const miopenTensorDescriptor_t inputDesc,
                                const miopenTensorDescriptor_t outputDesc,
@@ -96,13 +96,13 @@ extern "C" miopenStatus_t miopenLogCumSumExpForward(miopenHandle_t handle,
 }
 
 extern "C" miopenStatus_t miopenLogCumSumExpBackward(miopenHandle_t handle,
-                                                     miopenTensorDescriptor_t inputDesc,
+                                                     const miopenTensorDescriptor_t inputDesc,
                                                      const void* input,
-                                                     miopenTensorDescriptor_t outputDesc,
+                                                     const miopenTensorDescriptor_t outputDesc,
                                                      const void* output,
-                                                     miopenTensorDescriptor_t doutputDesc,
+                                                     const miopenTensorDescriptor_t doutputDesc,
                                                      const void* doutput,
-                                                     miopenTensorDescriptor_t dinputDesc,
+                                                     const miopenTensorDescriptor_t dinputDesc,
                                                      void* dinput,
                                                      const int dim,
                                                      const bool exclusive,

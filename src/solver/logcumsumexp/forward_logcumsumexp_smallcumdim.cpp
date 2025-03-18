@@ -26,10 +26,10 @@
 
 #include <miopen/datatype.hpp>
 #include <miopen/kernel_build_params.hpp>
-#include <miopen/mlo_internal.hpp>
-#include <miopen/tensor_view_utils.hpp>
 #include <miopen/logcumsumexp/invoke_params.hpp>
 #include <miopen/logcumsumexp/solvers.hpp>
+#include <miopen/mlo_internal.hpp>
+#include <miopen/tensor_view_utils.hpp>
 
 #define warpSizeCTX (context.GetStream().GetWavefrontWidth())
 #define LOCAL_SIZE_MAX 1024
@@ -38,9 +38,7 @@
 #define VIEW_DIMS 5
 
 namespace miopen {
-
 namespace solver {
-
 namespace logcumsumexp {
 
 namespace {

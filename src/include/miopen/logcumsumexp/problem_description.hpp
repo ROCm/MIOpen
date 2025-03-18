@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
 #include <miopen/problem_description_base.hpp>
@@ -84,5 +85,4 @@ private:
 };
 
 } // namespace logcumsumexp
-
 } // namespace miopen

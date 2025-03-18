@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
 #include <miopen/common.hpp>
@@ -30,7 +31,6 @@
 #include <miopen/tensor.hpp>
 
 namespace miopen {
-
 namespace logcumsumexp {
 
 struct InvokeParams : public miopen::InvokeParams
@@ -70,5 +70,4 @@ struct InvokeParamsBackward : public InvokeParams
 };
 
 } // namespace logcumsumexp
-
 } // namespace miopen

@@ -30,7 +30,6 @@
 #include <sstream>
 
 namespace miopen {
-
 namespace logcumsumexp {
 
 ForwardProblemDescription::ForwardProblemDescription(const TensorDescriptor& inputDesc_,
@@ -211,5 +210,4 @@ NetworkConfig BackwardProblemDescription::MakeNetworkConfig() const
 }
 
 } // namespace logcumsumexp
-
 } // namespace miopen

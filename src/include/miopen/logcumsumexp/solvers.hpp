@@ -23,15 +23,14 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #pragma once
 
 #include <miopen/logcumsumexp/problem_description.hpp>
 #include <miopen/solver.hpp>
 
 namespace miopen {
-
 namespace solver {
-
 namespace logcumsumexp {
 
 using ForwardSolverBase =
@@ -95,7 +94,5 @@ struct BackwardSmallCumDim final : BackwardSolverBase
 };
 
 } // namespace logcumsumexp
-
 } // namespace solver
-
 } // namespace miopen

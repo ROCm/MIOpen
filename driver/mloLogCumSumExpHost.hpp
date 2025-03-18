@@ -26,13 +26,13 @@
 
 #pragma once
 
-#include <miopen/miopen.h>
-#include <../test/ford.hpp>
+#include <limits>
 
+#include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
 #include <miopen/tensor_view_utils.hpp>
 
-#include <limits>
+#include <../test/ford.hpp>
 
 template <typename Tgpu, typename Tcheck>
 int mloLogCumSumExpForwardRunHost(const miopenTensorDescriptor_t inputDesc,

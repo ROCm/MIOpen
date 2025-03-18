@@ -74,33 +74,13 @@ TEST_P(GPU_LogCumSumExp_fwd_BFP16, Test)
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_LogCumSumExp_fwd_FP32,
-                         testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
+                         testing::ValuesIn(LogCumSumTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_LogCumSumExp_fwd_FP16,
-                         testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
+                         testing::ValuesIn(LogCumSumTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_LogCumSumExp_fwd_BFP16,
-                         testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_LogCumSumExp_fwd_FP32,
-                         testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_LogCumSumExp_fwd_FP16,
-                         testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_LogCumSumExp_fwd_BFP16,
-                         testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_LogCumSumExp_fwd_FP32,
-                         testing::ValuesIn(LogCumSumExpFullTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_LogCumSumExp_fwd_FP16,
-                         testing::ValuesIn(LogCumSumExpFullTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_LogCumSumExp_fwd_BFP16,
-                         testing::ValuesIn(LogCumSumExpFullTestConfigs()));
+                         testing::ValuesIn(LogCumSumTestConfigs()));
 
 TEST_P(GPU_LogCumSumExp_bwd_FP32, Test)
 {
@@ -122,30 +102,10 @@ TEST_P(GPU_LogCumSumExp_bwd_BFP16, Test)
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_LogCumSumExp_bwd_FP32,
-                         testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
+                         testing::ValuesIn(LogCumSumTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_LogCumSumExp_bwd_FP16,
-                         testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
+                         testing::ValuesIn(LogCumSumTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_LogCumSumExp_bwd_BFP16,
-                         testing::ValuesIn(LogCumSumExpSmokeTestConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_LogCumSumExp_bwd_FP32,
-                         testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_LogCumSumExp_bwd_FP16,
-                         testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Perf,
-                         GPU_LogCumSumExp_bwd_BFP16,
-                         testing::ValuesIn(LogCumSumExpPerfTestConfigs()));
-
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_LogCumSumExp_bwd_FP32,
-                         testing::ValuesIn(LogCumSumExpFullTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_LogCumSumExp_bwd_FP16,
-                         testing::ValuesIn(LogCumSumExpFullTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_LogCumSumExp_bwd_BFP16,
-                         testing::ValuesIn(LogCumSumExpFullTestConfigs()));
+                         testing::ValuesIn(LogCumSumTestConfigs()));
