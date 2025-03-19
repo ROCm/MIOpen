@@ -63,8 +63,9 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx103X;
-        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        Gpu supported_gpus =
+            Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx103X;
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
@@ -75,12 +76,9 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverHipImplicitGemmV4R1Fwd_FP16 =
-    GPU_UnitTestConvSolverFwd_FP16;
-using GPU_UnitTestConvSolverHipImplicitGemmV4R1Fwd_BFP16 =
-    GPU_UnitTestConvSolverFwd_BFP16;
-using GPU_UnitTestConvSolverHipImplicitGemmV4R1Fwd_FP32 =
-    GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverHipImplicitGemmV4R1Fwd_FP16  = GPU_UnitTestConvSolverFwd_FP16;
+using GPU_UnitTestConvSolverHipImplicitGemmV4R1Fwd_BFP16 = GPU_UnitTestConvSolverFwd_BFP16;
+using GPU_UnitTestConvSolverHipImplicitGemmV4R1Fwd_FP32  = GPU_UnitTestConvSolverFwd_FP32;
 using CPU_UnitTestConvSolverHipImplicitGemmV4R1FwdDevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
@@ -124,8 +122,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
-INSTANTIATE_TEST_SUITE_P(
-    Smoke,
-    CPU_UnitTestConvSolverHipImplicitGemmV4R1FwdDevApplicabilityFwd_NONE,
-    testing::Combine(testing::Values(GetTestParams()),
-                     testing::Values(GetConvTestCases(miopenFloat)[0])));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         CPU_UnitTestConvSolverHipImplicitGemmV4R1FwdDevApplicabilityFwd_NONE,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(GetConvTestCases(miopenFloat)[0])));
