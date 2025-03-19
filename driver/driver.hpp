@@ -78,7 +78,7 @@ struct GPUMem
 {
 
 #if MIOPEN_BACKEND_OPENCL
-    GPUMem() {};
+    GPUMem(){};
     GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz) : sz(psz), data_sz(pdata_sz)
     {
         buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, nullptr, nullptr);
@@ -104,7 +104,7 @@ struct GPUMem
 
 #elif MIOPEN_BACKEND_HIP
 
-    GPUMem() {};
+    GPUMem(){};
     GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz)
     {
         auto status = hipMalloc(static_cast<void**>(&buf), GetSize());
