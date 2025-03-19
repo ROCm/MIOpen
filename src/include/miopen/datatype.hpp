@@ -66,11 +66,11 @@ inline std::string GetDataType(miopenDataType_t type)
     }
     break;
     case miopenFloat8_fnuz: {
-        type_str = "float8";
+        type_str = "float8_fnuz";
     }
     break;
     case miopenBFloat8_fnuz: {
-        type_str = "bfloat8";
+        type_str = "bfloat8_fnuz";
     }
     break;
     case miopenInt64: {
