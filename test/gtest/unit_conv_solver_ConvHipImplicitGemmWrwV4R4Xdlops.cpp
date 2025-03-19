@@ -67,12 +67,9 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsWrw_FP16 =
-    GPU_UnitTestConvSolverWrw_FP16;
-using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsWrw_BFP16 =
-    GPU_UnitTestConvSolverWrw_BFP16;
-using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsWrw_FP32 =
-    GPU_UnitTestConvSolverWrw_FP32;
+using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsWrw_FP16  = GPU_UnitTestConvSolverWrw_FP16;
+using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsWrw_BFP16 = GPU_UnitTestConvSolverWrw_BFP16;
+using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsWrw_FP32  = GPU_UnitTestConvSolverWrw_FP32;
 using CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsDevApplicabilityWrw_NONE =
     CPU_UnitTestConvSolverDevApplicabilityWrw_NONE;
 
@@ -116,8 +113,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
-INSTANTIATE_TEST_SUITE_P(
-    Smoke,
-    CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsDevApplicabilityWrw_NONE,
-    testing::Combine(testing::Values(GetTestParams()),
-                     testing::Values(GetConvTestCases(miopenFloat)[0])));
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsDevApplicabilityWrw_NONE,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(GetConvTestCases(miopenFloat)[0])));
