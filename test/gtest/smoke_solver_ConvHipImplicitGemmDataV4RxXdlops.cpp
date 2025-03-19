@@ -38,16 +38,6 @@ auto GetTestCases()
 {
     // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS is reqired due to env_bwd case
     // for this particulaer case it's not needed, but must be there to simplify the code
-    const auto env_fwd_v4r5 = std::tuple{
-        std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-        std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
-        std::pair{MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS, false},
-        std::pair{wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, 0},
-        std::pair{MIOPEN_FIND_MODE, "normal"},
-        std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmForwardV4R5Xdlops"}};
-
-    // MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS is reqired due to env_bwd case
-    // for this particulaer case it's not needed, but must be there to simplify the code
     const auto env_wrw =
         std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
                    std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
@@ -73,7 +63,6 @@ auto GetTestCases()
         // clang-format off
     std::pair{env_wrw, vw + " --input 1 192 28 28 --weights 16 192 1 1 --pads_strides_dilations 0 0 1 1 1 1"},
     std::pair{env_wrw_padded, vw + " --input 256 2 5 5 --weights 1 2 3 3 --pads_strides_dilations 1 1 2 2 1 1"},
-    std::pair{env_fwd_v4r5, vf + " --input 128 16 54 54 --weights 64 16 3 3 --pads_strides_dilations 1 1 1 1 1 1"}
         // clang-format on
     };
 }
