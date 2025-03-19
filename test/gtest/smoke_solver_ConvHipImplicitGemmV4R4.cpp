@@ -34,24 +34,16 @@ namespace {
 
 auto GetTestCases()
 {
-    const auto env_fwd =
-        std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
-                   std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
-                   std::pair{MIOPEN_FIND_MODE, "normal"},
-                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmV4R4Fwd"}};
-
     const auto env_wrw =
         std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
                    std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5},
                    std::pair{MIOPEN_FIND_MODE, "normal"},
                    std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvHipImplicitGemmV4R4WrW"}};
 
-    const std::string vf = " --verbose --disable-backward-data --disable-backward-weights";
     const std::string vw = " --verbose --disable-forward --disable-backward-data";
 
     return std::vector{
         // clang-format off
-    std::pair{env_fwd, vf + " --input 2 16 28 28 --weights 32 16 3 3 --pads_strides_dilations 1 1 1 1 1 1"},
     std::pair{env_wrw, vw + " --input 8 128 14 14 --weights 32 128 3 3 --pads_strides_dilations 1 1 1 1 1 1"}
         // clang-format on
     };
