@@ -67,9 +67,12 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmWrw_FP16  = GPU_UnitTestConvSolverWrw_FP16;
-using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmWrw_BFP16 = GPU_UnitTestConvSolverWrw_BFP16;
-using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmWrw_FP32  = GPU_UnitTestConvSolverWrw_FP32;
+using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmWrw_FP16 =
+    GPU_UnitTestConvSolverWrw_FP16;
+using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmWrw_BFP16 =
+    GPU_UnitTestConvSolverWrw_BFP16;
+using GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmWrw_FP32 =
+    GPU_UnitTestConvSolverWrw_FP32;
 using CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmDevApplicabilityWrw_NONE =
     CPU_UnitTestConvSolverDevApplicabilityWrw_NONE;
 
@@ -88,7 +91,8 @@ TEST_P(GPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmWrw_FP32, SOL
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm{});
 };
 
-TEST_P(CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmDevApplicabilityWrw_NONE, SOLVER_NAME)
+TEST_P(CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmDevApplicabilityWrw_NONE,
+       SOLVER_NAME)
 {
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm{});
 };
@@ -113,7 +117,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmDevApplicabilityWrw_NONE,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(GetConvTestCases(miopenFloat)[0])));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsPaddedGemmDevApplicabilityWrw_NONE,
+    testing::Combine(testing::Values(GetTestParams()),
+                     testing::Values(GetConvTestCases(miopenFloat)[0])));
