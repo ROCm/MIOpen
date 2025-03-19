@@ -24,14 +24,16 @@
  *
  *******************************************************************************/
 
+#pragma once
+
 #include <miopen/common.hpp>
 
-#ifndef MIOPEN_PAD_CONSTANT_HPP_
-#define MIOPEN_PAD_CONSTANT_HPP_
-
 namespace miopen {
+
 struct Handle;
 struct TensorDescriptor;
+
+namespace pad_constant {
 
 miopenStatus_t PadConstantForward(Handle& handle,
                                   const TensorDescriptor& xDesc,
@@ -50,5 +52,5 @@ miopenStatus_t PadConstantBackward(Handle& handle,
                                    const int64_t* padding,
                                    int padding_size);
 
+} // namespace pad_constant
 } // namespace miopen
-#endif

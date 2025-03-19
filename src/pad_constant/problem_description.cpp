@@ -24,12 +24,15 @@
  *
  *******************************************************************************/
 
-#include "miopen/pad_constant/problem_description.hpp"
-#include "miopen/names.hpp"
+#include <miopen/names.hpp>
+#include <miopen/pad_constant/problem_description.hpp>
+
+#include <sstream>
 
 namespace miopen {
-namespace pad_constant_fwd {
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+namespace pad_constant {
+
+NetworkConfig FwdProblemDescription::MakeNetworkConfig() const
 {
     auto dtype = xDesc.GetType();
 
@@ -46,9 +49,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     return NetworkConfig{ss.str()};
 }
-} // namespace pad_constant_fwd
-namespace pad_constant_bwd {
-NetworkConfig ProblemDescription::MakeNetworkConfig() const
+
+NetworkConfig BwdProblemDescription::MakeNetworkConfig() const
 {
     auto dtype = dxDesc.GetType();
 
@@ -65,5 +67,5 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
 
     return NetworkConfig{ss.str()};
 }
-} // namespace pad_constant_bwd
+} // namespace pad_constant
 } // namespace miopen

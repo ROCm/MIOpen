@@ -23,18 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-// // #include <iostream>
-// #include <cstdint>
-// #include <miopen/miopen.h>
-// #include <miopen/pad_constant.hpp>
-
-// #include <gtest/gtest.h>
-
-// #include "cpu_pad_constant.hpp"
-// #include "get_handle.hpp"
-// #include "random.hpp"
-// #include "tensor_holder.hpp"
-// #include "verify.hpp"
 
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
@@ -188,15 +176,15 @@ protected:
         cpu_pad_constant_fwd(input, ref_output, padding, static_cast<T>(config.GetPaddingValue()));
 
         // Run kernel
-        status = miopen::PadConstantForward(handle,
-                                            input.desc,
-                                            output.desc,
-                                            input_dev.get(),
-                                            output_dev.get(),
-                                            padding.data(),
-                                            padding.size(),
-                                            // padding_value
-                                            config.GetPaddingValue());
+        status = miopen::pad_constant::PadConstantForward(handle,
+                                                          input.desc,
+                                                          output.desc,
+                                                          input_dev.get(),
+                                                          output_dev.get(),
+                                                          padding.data(),
+                                                          padding.size(),
+                                                          // padding_value
+                                                          config.GetPaddingValue());
 
         ASSERT_EQ(status, miopenStatusSuccess);
 
@@ -248,7 +236,7 @@ protected:
         auto padding_length = config.GetPaddingSize();
         int64_t min_in_dim  = *std::min_element(input_grad_dims.begin(), input_grad_dims.end());
         int64_t min_padding =
-            -std::min((int64_t)MIN_NEG_PADDING, std::min((int64_t)0, (min_in_dim / 2 - 1)));
+            -std::min((int64_t)MIN_NEG_PADDING, std::max((int64_t)0, (min_in_dim / 2 - 1)));
         for(auto i = 0; i < padding_length; i++)
         {
             padding.push_back(prng::gen_A_to_B<int64_t>(min_padding, MAX_POS_PADDING));
@@ -287,13 +275,13 @@ protected:
         cpu_pad_constant_bwd(output_grad, ref_input_grad, padding);
 
         // Run kernel
-        status = miopen::PadConstantBackward(handle,
-                                             input_grad.desc,
-                                             output_grad.desc,
-                                             input_grad_dev.get(),
-                                             output_grad_dev.get(),
-                                             padding.data(),
-                                             padding.size());
+        status = miopen::pad_constant::PadConstantBackward(handle,
+                                                           input_grad.desc,
+                                                           output_grad.desc,
+                                                           input_grad_dev.get(),
+                                                           output_grad_dev.get(),
+                                                           padding.data(),
+                                                           padding.size());
 
         ASSERT_EQ(status, miopenStatusSuccess);
 

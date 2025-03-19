@@ -311,7 +311,8 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm.cpp
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
-    solver/pad_constant/pad_constant.cpp
+    solver/pad_constant/forward_pad_constant.cpp
+    solver/pad_constant/backward_pad_constant.cpp
     solver/layernorm/forward_t5layernorm.cpp
     solver/mha/mha_ck_fa_v2_solver_forward.cpp
     solver/mha/mha_solver_backward.cpp
@@ -505,7 +506,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/rocm_version.inc
         kernels/stride_array.hpp
         kernels/tensor_view.hpp
-        kernels/tensor_view_5d.hpp
         kernels/utilities.inc
         kernels/warp_reduce.hpp
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1536vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
@@ -647,14 +647,12 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c16_stride1.s
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c32_stride1.s
         kernels/MIOpenPadConstant.cpp
-        
         kernels/xform_data.s
         kernels/xform_filter.s
         kernels/xform_bidirect_winograd_data.s
         kernels/xform_bidirect_winograd_filter.s
         kernels/xform_bidirect_winograd_out.s
-        kernels/UniversalTranspose.cl
-        )
+        kernels/UniversalTranspose.cl)
 
     # Kernels in development lists.
     # Should be ALWAYS empty in develop branch (at the time of PR merge)

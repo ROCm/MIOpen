@@ -26,38 +26,19 @@
 
 #pragma once
 
-// #include "miopen/errors.hpp"
-// #include "miopen/names.hpp"
-// #include "miopen/problem_description_base.hpp"
-// #include "miopen/tensor.hpp"
-// #include <cstddef>
-// #include <miopen/miopen.h>
-// #include "../src/kernels/tensor_view_5d.hpp"
-
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 
 namespace miopen {
-namespace pad_constant_fwd {
-struct ProblemDescription : ProblemDescriptionBase
+namespace pad_constant {
+struct FwdProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& xDesc_,
-                       const TensorDescriptor& yDesc_,
-                       const int64_t* padding_,
-                       const int padding_size_ = 0)
+    FwdProblemDescription(const TensorDescriptor& xDesc_,
+                          const TensorDescriptor& yDesc_,
+                          const int64_t* padding_,
+                          const int padding_size_ = 0)
         : xDesc(xDesc_), yDesc(yDesc_), padding(padding_), padding_size(padding_size_)
     {
-        std::cout << "[ProblemDescription constructor] padding[0], padding[1]: " << padding[0]
-                  << ", " << padding[1] << std::endl;
-        // Consistency checks
-        // if(!IsSameShape())
-        //     MIOPEN_THROW("Tensors do not have the same shapes");
-
-        // if(!IsPaddingValid())
-        //     MIOPEN_THROW("Padding is not valid");
-
-        // if(!IsSameType())
-        //     MIOPEN_THROW("Tensor values do not have the same type");
         IsSameType();
         IsSameShape();
         IsValidPadding();
@@ -67,20 +48,7 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetXDesc() const { return xDesc; }
     const TensorDescriptor& GetYDesc() const { return yDesc; }
     int64_t GetPaddingSize() const { return padding_size; }
-    std::vector<int64_t> GetPadding() const
-    {
-        // print padding[0] and padding[1]
-        //  std::cout << "[GetPadding()] padding[0], padding[1]: " << padding[0] << ", " <<
-        //  padding[1] << std::endl;
-        return {padding, padding + padding_size};
-        // std::vector::int64_t result =
-        // create a new vector from padding
-
-        // Create a new vector from padding
-        // std::vector<int64_t> result = std::vector<int64_t>(padding, padding + padding_size);
-
-        // return result;
-    }
+    std::vector<int64_t> GetPadding() const { return {padding, padding + padding_size}; }
 
     NetworkConfig MakeNetworkConfig() const override;
 
@@ -102,8 +70,6 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     bool IsContiguous() const { return xDesc.IsContiguous() && yDesc.IsContiguous(); }
-
-    bool IsImprovementOverROCm() const { return (!IsContiguous() && !IsPadFirstDim()); }
 
     bool IsValidPadding() const
     {
@@ -150,15 +116,13 @@ private:
     const int64_t* padding;
     const int padding_size;
 };
-} // namespace pad_constant_fwd
 
-namespace pad_constant_bwd {
-struct ProblemDescription : ProblemDescriptionBase
+struct BwdProblemDescription : ProblemDescriptionBase
 {
-    ProblemDescription(const TensorDescriptor& dxDesc_,
-                       const TensorDescriptor& dyDesc_,
-                       const int64_t* padding_,
-                       const int padding_size_ = 0)
+    BwdProblemDescription(const TensorDescriptor& dxDesc_,
+                          const TensorDescriptor& dyDesc_,
+                          const int64_t* padding_,
+                          const int padding_size_ = 0)
         : dxDesc(dxDesc_), dyDesc(dyDesc_), padding(padding_), padding_size(padding_size_)
     {
 
@@ -197,8 +161,6 @@ struct ProblemDescription : ProblemDescriptionBase
     }
 
     bool IsContiguous() const { return dyDesc.IsContiguous() && dxDesc.IsContiguous(); }
-
-    bool IsImprovementOverROCm() const { return (!IsContiguous() && !IsOnlyPadFirstDim()); }
 
     bool IsValidPadding() const
     {
@@ -250,5 +212,6 @@ private:
     const int64_t* padding;
     const int padding_size;
 };
-} // namespace pad_constant_bwd
+
+} // namespace pad_constant
 } // namespace miopen

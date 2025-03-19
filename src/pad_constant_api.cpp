@@ -43,14 +43,14 @@ extern "C" miopenStatus_t miopenPadConstantFwd(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, xDesc, yDesc, x, y, padding, padding_size, value);
 
     return miopen::try_([&] {
-        miopen::PadConstantForward(miopen::deref(handle),
-                                   miopen::deref(xDesc),
-                                   miopen::deref(yDesc),
-                                   DataCast(x),
-                                   DataCast(y),
-                                   padding,
-                                   padding_size,
-                                   value);
+        miopen::pad_constant::PadConstantForward(miopen::deref(handle),
+                                                 miopen::deref(xDesc),
+                                                 miopen::deref(yDesc),
+                                                 DataCast(x),
+                                                 DataCast(y),
+                                                 padding,
+                                                 padding_size,
+                                                 value);
     });
 }
 
@@ -65,12 +65,12 @@ extern "C" miopenStatus_t miopenPadConstantBwd(miopenHandle_t handle,
     MIOPEN_LOG_FUNCTION(handle, dxDesc, dyDesc, dx, dy, padding, padding_size);
 
     return miopen::try_([&] {
-        miopen::PadConstantBackward(miopen::deref(handle),
-                                    miopen::deref(dxDesc),
-                                    miopen::deref(dyDesc),
-                                    DataCast(dx),
-                                    DataCast(dy),
-                                    padding,
-                                    padding_size);
+        miopen::pad_constant::PadConstantBackward(miopen::deref(handle),
+                                                  miopen::deref(dxDesc),
+                                                  miopen::deref(dyDesc),
+                                                  DataCast(dx),
+                                                  DataCast(dy),
+                                                  padding,
+                                                  padding_size);
     });
 }

@@ -115,11 +115,6 @@ inline int AlignUp(int val, unsigned step)
     return static_cast<int>(((static_cast<unsigned>(val) + step - 1) / step) * step);
 }
 
-inline size_t AlignUpUL(size_t val, size_t step)
-{
-    return static_cast<size_t>(((static_cast<size_t>(val) + step - 1) / step) * step);
-}
-
 inline size_t AlignUp(size_t val, size_t step) { return (val + step - 1) / step * step; }
 
 namespace miopen {

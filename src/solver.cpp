@@ -35,6 +35,7 @@
 #include <miopen/getitem/solvers.hpp>
 #include <miopen/kthvalue/solvers.hpp>
 #include <miopen/layernorm/solvers.hpp>
+#include <miopen/pad_constant/solvers.hpp>
 #include <miopen/pooling/solvers.hpp>
 #include <miopen/prelu/solvers.hpp>
 #include <miopen/reduce/solvers.hpp>
@@ -707,6 +708,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
+
+    Register(registry, ++id, Primitive::PadConstant, pad_constant::PadConstantFwd{}.SolverDbId());
+    Register(registry, ++id, Primitive::PadConstant, pad_constant::PadConstantBwd{}.SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }

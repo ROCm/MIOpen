@@ -24,8 +24,7 @@
  *
  *******************************************************************************/
 
-#include "miopen/common.hpp"
-#include <cstddef>
+#include <miopen/common.hpp>
 #include <miopen/datatype.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/float_equal.hpp>
@@ -37,6 +36,7 @@
 #include <miopen/pad_constant/solvers.hpp>
 
 namespace miopen {
+namespace pad_constant {
 
 miopenStatus_t PadConstantForward(Handle& handle,
                                   const TensorDescriptor& xDesc,
@@ -48,10 +48,10 @@ miopenStatus_t PadConstantForward(Handle& handle,
                                   float value)
 {
     auto ctx           = ExecutionContext{&handle};
-    const auto problem = pad_constant_fwd::ProblemDescription{xDesc, yDesc, padding, padding_size};
+    const auto problem = pad_constant::FwdProblemDescription{xDesc, yDesc, padding, padding_size};
 
     const auto invoke_params = [&]() {
-        auto tmp          = pad_constant_fwd::InvokeParams{};
+        auto tmp          = pad_constant::FwdInvokeParams{};
         tmp.xDesc         = &xDesc;
         tmp.yDesc         = &yDesc;
         tmp.x             = x;
@@ -63,7 +63,7 @@ miopenStatus_t PadConstantForward(Handle& handle,
     }();
 
     const auto algo    = AlgorithmName{"PadConstantFwd"};
-    const auto solvers = solver::SolverContainer<solver::pad_constant_fwd::PadConstantFwd>{};
+    const auto solvers = solver::SolverContainer<solver::pad_constant::PadConstantFwd>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
@@ -78,12 +78,11 @@ miopenStatus_t PadConstantBackward(Handle& handle,
                                    const int64_t* padding,
                                    const int padding_size)
 {
-    auto ctx = ExecutionContext{&handle};
-    const auto problem =
-        pad_constant_bwd::ProblemDescription{dxDesc, dyDesc, padding, padding_size};
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = pad_constant::BwdProblemDescription{dxDesc, dyDesc, padding, padding_size};
 
     const auto invoke_params = [&]() {
-        auto tmp         = pad_constant_bwd::InvokeParams{};
+        auto tmp         = pad_constant::BwdInvokeParams{};
         tmp.dxDesc       = &dxDesc;
         tmp.dyDesc       = &dyDesc;
         tmp.dx           = dx;
@@ -94,10 +93,12 @@ miopenStatus_t PadConstantBackward(Handle& handle,
     }();
 
     const auto algo    = AlgorithmName{"PadConstantBwd"};
-    const auto solvers = solver::SolverContainer<solver::pad_constant_bwd::PadConstantBwd>{};
+    const auto solvers = solver::SolverContainer<solver::pad_constant::PadConstantBwd>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
     return miopenStatusSuccess;
 }
+
+} // namespace pad_constant
 } // namespace miopen

@@ -24,12 +24,6 @@
  *
  *******************************************************************************/
 
-// #include "miopen/common.hpp"
-// #include "miopen/invoke_params.hpp"
-// #include "miopen/tensor.hpp"
-// #include <cstddef>
-// #include <miopen/miopen.h>
-
 #pragma once
 
 #include <miopen/common.hpp>
@@ -37,10 +31,11 @@
 #include <miopen/tensor.hpp>
 
 namespace miopen {
-namespace pad_constant_fwd {
-struct InvokeParams : public miopen::InvokeParams
+namespace pad_constant {
+
+struct FwdInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    FwdInvokeParams() = default;
 
     const TensorDescriptor* xDesc = nullptr;
     const TensorDescriptor* yDesc = nullptr;
@@ -55,12 +50,10 @@ struct InvokeParams : public miopen::InvokeParams
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
-} // namespace pad_constant_fwd
 
-namespace pad_constant_bwd {
-struct InvokeParams : public miopen::InvokeParams
+struct BwdInvokeParams : public miopen::InvokeParams
 {
-    InvokeParams() = default;
+    BwdInvokeParams() = default;
 
     const TensorDescriptor* dxDesc = nullptr;
     const TensorDescriptor* dyDesc = nullptr;
@@ -74,5 +67,6 @@ struct InvokeParams : public miopen::InvokeParams
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
-} // namespace pad_constant_bwd
+
+} // namespace pad_constant
 } // namespace miopen

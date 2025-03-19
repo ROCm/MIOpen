@@ -55,7 +55,7 @@ __device__ void padconstant_fwd(const DTYPE* __restrict__ input,
     for(uint64_t i = 0; i < 5; ++i)
     {
         int64_t idx = o_tensor_layout.layout[i] - padding.val[2 * i];
-        if(idx < 0 || idx >= input_tv.size[i])
+        if(idx < 0 || idx >= static_cast<int64_t>(input_tv.size[i]))
         {
             flag = false;
             break;
@@ -64,7 +64,6 @@ __device__ void padconstant_fwd(const DTYPE* __restrict__ input,
         i_tensor_layout.layout[i] = idx;
     }
 
-    // DTYPE val;
     if(flag)
     {
         output[output_tv.get_tensor_view_idx(o_tensor_layout)] =
@@ -74,8 +73,6 @@ __device__ void padconstant_fwd(const DTYPE* __restrict__ input,
     {
         output[output_tv.get_tensor_view_idx(o_tensor_layout)] = CVT_ACCUM2FLOAT(value);
     }
-
-    // output[output_tv.get_tensor_view_idx(o_tensor_layout)] = val;
 }
 
 template <typename DTYPE>
@@ -99,7 +96,7 @@ __device__ void padconstant_bwd(DTYPE* __restrict__ input_grad,
     for(uint64_t i = 0; i < 5; ++i)
     {
         int64_t idx = ig_tensor_layout.layout[i] + padding.val[2 * i];
-        if(idx < 0 || idx >= output_grad_tv.size[i])
+        if(idx < 0 || idx >= static_cast<int64_t>(output_grad_tv.size[i]))
         {
             flag = false;
             break;
@@ -108,9 +105,6 @@ __device__ void padconstant_bwd(DTYPE* __restrict__ input_grad,
         og_tensor_layout.layout[i] = idx;
     }
 
-    // DTYPE val = flag ? output_grad[output_grad_tv.get_tensor_view_idx(og_tensor_layout)]
-    //                  : static_cast<DTYPE>(0);
-    // input_grad[input_grad_tv.get_tensor_view_idx(ig_tensor_layout)] = val;
     input_grad[input_grad_tv.get_tensor_view_idx(ig_tensor_layout)] =
         flag ? output_grad[output_grad_tv.get_tensor_view_idx(og_tensor_layout)]
              : static_cast<DTYPE>(0);
@@ -124,14 +118,11 @@ extern "C" __global__ void PadConstantFwd(const IO_TYPE* __restrict__ input,
                                           tensor_view_t<5> input_tv,
                                           tensor_view_t<5> output_tv)
 {
-    // padconstantfwd<INPUT_TYPE, OUTPUT_TYPE>(x, y, x_tv, y_tv, padding, output_size, value);
     padconstant_fwd<IO_TYPE>(input, output, padding, output_size, value, input_tv, output_tv);
 }
 
 extern "C" __global__ void PadConstantBwd(IO_TYPE* __restrict__ input_grad,
                                           const IO_TYPE* __restrict__ output_grad,
-                                          // const tensor_view_5d_t dx_tv,
-                                          // const tensor_view_5d_t y_grad_tv,
                                           const padding_5d_t padding,
                                           const uint64_t input_grad_size,
                                           tensor_view_t<5> input_grad_tv,

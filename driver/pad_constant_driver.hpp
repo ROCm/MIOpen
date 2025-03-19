@@ -157,11 +157,11 @@ int ConstantPadDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag("padding-value", 'v', "0", "Padding value (Default=0)", "float");
     inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify (Default=1)", "int");
-    inflags.AddInputFlag("time", 't', "1", "Time (Default=1)", "int");
+    inflags.AddInputFlag("time", 't', "0", "Time (Default=0)", "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time, Requires time == 1 (Default=0)", "int");
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
@@ -197,7 +197,7 @@ int32_t ConstantPadDriver<Tgpu, Tref>::GetandSetData()
     padding            = std::vector<int64_t>(padding_size);
     int64_t min_in_dim = *std::min_element(input_dims.begin(), input_dims.end());
     int64_t min_padding =
-        -std::min((int64_t)MIN_NEG_PADDING, std::min((int64_t)0, (min_in_dim / 2 - 1)));
+        -std::min((int64_t)MIN_NEG_PADDING, std::max((int64_t)0, (min_in_dim / 2 - 1)));
     std::vector<int> output_dims = input_dims;
 
     for(auto i = 0; i < padding_size / 2; i++)
@@ -225,7 +225,7 @@ int32_t ConstantPadDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(outputGradDesc, output_dims, output_strides, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error parsing output grad tensor.");
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
@@ -280,7 +280,7 @@ int ConstantPadDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
     }
 
-    return 0;
+    return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
@@ -360,7 +360,8 @@ int ConstantPadDriver<Tgpu, Tref>::VerifyForward()
 
     if(!std::isfinite(output_error) || output_error > tolerance)
     {
-        std::cout << "Forward PadConstant FAILED: output_error=" << output_error << std::endl;
+        std::cout << "Forward PadConstant FAILED: output_error=" << output_error << " >"
+                  << tolerance << std::endl;
         return EC_VerifyFwd;
     }
 
@@ -440,8 +441,8 @@ int ConstantPadDriver<Tgpu, Tref>::VerifyBackward()
 
     if(!std::isfinite(input_grad_error) || input_grad_error > tolerance)
     {
-        std::cout << "Backward PadConstant FAILED: input_grad_error=" << input_grad_error
-                  << std::endl;
+        std::cout << "Backward PadConstant FAILED: input_grad_error=" << input_grad_error << " > "
+                  << tolerance << std::endl;
         return EC_VerifyBwd;
     }
 

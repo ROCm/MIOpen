@@ -24,45 +24,50 @@
  *
  *******************************************************************************/
 
-#include "miopen/solver.hpp"
-#include "problem_description.hpp"
-#include <cstddef>
-#include <string>
+// #include "miopen/solver.hpp"
+// #include "problem_description.hpp"
+// #include <cstddef>
+// #include <string>
+
+#pragma once
+
+#include <miopen/pad_constant/problem_description.hpp>
+#include <miopen/solver.hpp>
 
 namespace miopen {
 namespace solver {
-namespace pad_constant_fwd {
+namespace pad_constant {
+
 using PadConstantFwdSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::pad_constant_fwd::ProblemDescription>;
+    NonTunableSolverBase<ExecutionContext, miopen::pad_constant::FwdProblemDescription>;
 
 struct PadConstantFwd final : PadConstantFwdSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PadConstantFwd>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::pad_constant_fwd::ProblemDescription& problem) const override;
+                      const miopen::pad_constant::FwdProblemDescription& problem) const override;
 
     ConvSolution
     GetSolution(const ExecutionContext& context,
-                const miopen::pad_constant_fwd::ProblemDescription& problem) const override;
+                const miopen::pad_constant::FwdProblemDescription& problem) const override;
 };
-} // namespace pad_constant_fwd
 
-namespace pad_constant_bwd {
 using PadConstantBwdSolver =
-    NonTunableSolverBase<ExecutionContext, miopen::pad_constant_bwd::ProblemDescription>;
+    NonTunableSolverBase<ExecutionContext, miopen::pad_constant::BwdProblemDescription>;
 
 struct PadConstantBwd final : PadConstantBwdSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<PadConstantBwd>(); }
 
     bool IsApplicable(const ExecutionContext& context,
-                      const miopen::pad_constant_bwd::ProblemDescription& problem) const override;
+                      const miopen::pad_constant::BwdProblemDescription& problem) const override;
 
     ConvSolution
     GetSolution(const ExecutionContext& context,
-                const miopen::pad_constant_bwd::ProblemDescription& problem) const override;
+                const miopen::pad_constant::BwdProblemDescription& problem) const override;
 };
-} // namespace pad_constant_bwd
+
+} // namespace pad_constant
 } // namespace solver
 } // namespace miopen
