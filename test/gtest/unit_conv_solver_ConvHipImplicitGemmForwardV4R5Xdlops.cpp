@@ -91,8 +91,7 @@ TEST_P(GPU_UnitTestConvSolverHipImplicitGemmForwardV4R5XdlopsFwd_FP32, SOLVER_NA
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmForwardV4R5Xdlops{});
 };
 
-TEST_P(CPU_UnitTestConvSolverHipImplicitGemmForwardV4R5XdlopsDevApplicabilityFwd_NONE,
-       SOLVER_NAME)
+TEST_P(CPU_UnitTestConvSolverHipImplicitGemmForwardV4R5XdlopsDevApplicabilityFwd_NONE, SOLVER_NAME)
 {
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmForwardV4R5Xdlops{});
 };
