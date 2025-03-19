@@ -72,9 +72,8 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        Gpu supported_gpus =
-            Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X;
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        Gpu supported_gpus = Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X;
+        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
@@ -86,7 +85,7 @@ const auto& GetTestParams()
 const auto& GetTestParamsFull()
 {
     static const auto params = [] {
-        auto p             = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx90A);
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx90A);
         p.EnableDeprecatedSolvers();
         p.Tunable(1000);
         return p;
@@ -96,9 +95,12 @@ const auto& GetTestParamsFull()
 
 } // namespace
 
-using GPU_UnitTestConvSolverHipImplicitGemmForwardV4R4XdlopsFwd_FP16  = GPU_UnitTestConvSolverFwd_FP16;
-using GPU_UnitTestConvSolverHipImplicitGemmForwardV4R4XdlopsFwd_BFP16 = GPU_UnitTestConvSolverFwd_BFP16;
-using GPU_UnitTestConvSolverHipImplicitGemmForwardV4R4XdlopsFwd_FP32  = GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverHipImplicitGemmForwardV4R4XdlopsFwd_FP16 =
+    GPU_UnitTestConvSolverFwd_FP16;
+using GPU_UnitTestConvSolverHipImplicitGemmForwardV4R4XdlopsFwd_BFP16 =
+    GPU_UnitTestConvSolverFwd_BFP16;
+using GPU_UnitTestConvSolverHipImplicitGemmForwardV4R4XdlopsFwd_FP32 =
+    GPU_UnitTestConvSolverFwd_FP32;
 using CPU_UnitTestConvSolverHipImplicitGemmForwardV4R4XdlopsDevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
@@ -142,10 +144,11 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverHipImplicitGemmForwardV4R4XdlopsDevApplicabilityFwd_NONE,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(GetConvTestCases(miopenFloat)[0])));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    CPU_UnitTestConvSolverHipImplicitGemmForwardV4R4XdlopsDevApplicabilityFwd_NONE,
+    testing::Combine(testing::Values(GetTestParams()),
+                     testing::Values(GetConvTestCases(miopenFloat)[0])));
 
 // Full tests
 INSTANTIATE_TEST_SUITE_P(Full,
