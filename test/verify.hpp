@@ -133,6 +133,10 @@ struct square_diff_fn
     template <class T, class U>
     double operator()(T x, U y) const
     {
+        // In case (x, y) = (+/-inf, +/-inf)
+        if(!std::isnan(x) && !std::isnan(y) && std::isnan(x - y))
+            return 0;
+
         double diff = static_cast<double>(x - y);
         return diff * diff;
     }
