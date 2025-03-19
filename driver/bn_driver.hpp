@@ -300,7 +300,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AddCmdLineArgs()
 
     inflags.AddInputFlag("alpha", 'A', "1.0", "Alpha (Default=1.0)", "float");
     inflags.AddInputFlag("beta", 'B', "0.", "Beta (Default=0.)", "float");
-    inflags.AddInputFlag("iter", 'i', "1", "Number of Iterations (Default=1)", "int");
+    inflags.AddInputFlag("iter", 'i', "10", "Number of Iterations (Default=10)", "int");
     inflags.AddInputFlag("verify", 'V', "1", "Verify Each Layer (Default=1)", "int");
     inflags.AddInputFlag("time", 't', "0", "Time Each Layer (Default=0)", "int");
     inflags.AddInputFlag("printconv", 'P', "1", "Print Convolution Dimensions (Default=1)", "int");
