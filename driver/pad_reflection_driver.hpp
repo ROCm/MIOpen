@@ -65,7 +65,6 @@ public:
     InputFlags& GetInputFlags() override { return inflags; }
 
     int GetandSetData() override;
-    std::vector<int> GetInputTensorLengthsFromCmdLine();
 
     int AllocateBuffersAndCopy() override;
 
@@ -221,43 +220,6 @@ int PadReflectionDriver<Tgpu, Tref>::GetandSetData()
 }
 
 template <typename Tgpu, typename Tref>
-std::vector<int> PadReflectionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
-{
-    int in_n   = inflags.GetValueInt("batchsize");
-    int in_c   = inflags.GetValueInt("in_channels");
-    int in_w   = inflags.GetValueInt("in_w");
-    int in_h   = inflags.GetValueInt("in_h");
-    int in_d   = inflags.GetValueInt("in_d");
-    contiguous = inflags.GetValueInt("contiguous");
-
-    if((in_n != 0) && (in_c != 0) && (in_d != 0) && (in_h != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_h != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_h, in_w});
-    }
-    else if((in_n != 0) && (in_c != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_c, in_w});
-    }
-    else if((in_n != 0) && (in_w != 0))
-    {
-        return std::vector<int>({in_n, in_w});
-    }
-    else if(in_n != 0)
-    {
-        return std::vector<int>({in_n});
-    }
-    else
-    {
-        std::cerr << "Error Input Tensor Lengths\n" << std::endl;
-        return std::vector<int>({0});
-    }
-}
-
-template <typename Tgpu, typename Tref>
 int PadReflectionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 {
 
@@ -324,13 +286,16 @@ int PadReflectionDriver<Tgpu, Tref>::RunForwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenPadReflectionFwd(GetHandle(),
-                               inputDesc,
-                               input_dev->GetMem(),
-                               outputDesc,
-                               output_dev->GetMem(),
-                               padding.data(),
-                               padding.size());
+        auto status = miopenPadReflectionFwd(GetHandle(),
+                                             inputDesc,
+                                             input_dev->GetMem(),
+                                             outputDesc,
+                                             output_dev->GetMem(),
+                                             padding.data(),
+                                             padding.size());
+
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenPadReflectionFwd");
+
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
@@ -379,13 +344,16 @@ int PadReflectionDriver<Tgpu, Tref>::RunBackwardGPU()
 
     for(int i = 0; i < inflags.GetValueInt("iter"); i++)
     {
-        miopenPadReflectionBwd(GetHandle(),
-                               inputDesc,
-                               input_grad_dev->GetMem(),
-                               outputDesc,
-                               output_grad_dev->GetMem(),
-                               padding.data(),
-                               padding.size());
+        auto status = miopenPadReflectionBwd(GetHandle(),
+                                             inputDesc,
+                                             input_grad_dev->GetMem(),
+                                             outputDesc,
+                                             output_grad_dev->GetMem(),
+                                             padding.data(),
+                                             padding.size());
+
+        MIOPEN_THROW_IF(status != miopenStatusSuccess, "Error in miopenPadReflectionBwd");
+
         float time = 0.0;
         miopenGetKernelTime(GetHandle(), &time);
         kernel_total_time += time;
@@ -439,7 +407,7 @@ int PadReflectionDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
 
-    const Tref tolerance = 0.0;
+    const Tref tolerance = GetTolerance();
     auto error           = miopen::rms_range(output_host, output);
 
     if(!std::isfinite(error) || error > tolerance)

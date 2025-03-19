@@ -316,7 +316,8 @@ set( MIOpen_Source
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
     solver/multimarginloss/forward_multimarginloss.cpp
-    solver/pad_reflection/pad_reflection.cpp
+    solver/pad_reflection/forward_pad_reflection.cpp
+    solver/pad_reflection/backward_pad_reflection.cpp
     solver/pooling/forward2d.cpp
     solver/pooling/forwardNaive.cpp
     solver/pooling/forwardNd.cpp

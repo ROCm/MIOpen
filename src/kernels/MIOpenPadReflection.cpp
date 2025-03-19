@@ -40,7 +40,7 @@ __device__ void pad_reflection_1d_fwd(const DTYPE* __restrict__ input,
                                       tensor_view_t<3> input_tv,
                                       tensor_view_t<3> output_tv)
 {
-    const int64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_size)
         return;
 
@@ -82,7 +82,7 @@ __device__ void pad_reflection_1d_bwd(DTYPE* __restrict__ input_grad,
                                       tensor_view_t<3> input_grad_tv,
                                       tensor_view_t<3> output_grad_tv)
 {
-    const int64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
+    const uint64_t gid = threadIdx.x + blockIdx.x * blockDim.x;
     if(gid >= output_grad_size)
         return;
 
