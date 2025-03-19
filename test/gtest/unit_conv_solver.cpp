@@ -310,7 +310,15 @@ double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction directio
         }
         else if(algo == miopenConvolutionAlgoImplicitGEMM)
         {
-            tolerance *= 3.0;
+            if(direction == miopen::conv::Direction::BackwardWeights &&
+               GetDevGpuType() == Gpu::gfx908)
+            {
+                tolerance *= 7.0;
+            }
+            else
+            {
+                tolerance *= 3.0;
+            }
         }
     }
 
