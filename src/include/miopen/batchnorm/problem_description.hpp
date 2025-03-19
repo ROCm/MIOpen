@@ -315,10 +315,6 @@ private:
     std::string din_layout  = "NCHW";
     std::size_t spatial_dim = 2;
 
-    NetworkConfig MakeForwardTrainingNetworkConfig() const;
-    NetworkConfig MakeForwardInferenceNetworkConfig() const;
-    NetworkConfig MakeBackwardNetworkConfig() const;
-
     std::string ComputeLayout(const TensorDescriptor& td) const { return td.GetLayout_str(); }
     std::string ComputeInLayout() const { return ComputeLayout(xDesc); }
     std::string ComputeOutLayout() const { return ComputeLayout(yOrDyDesc); }
