@@ -67,7 +67,7 @@ const auto& GetTestParams()
 
 } // namespace
 
-using GPU_UnitTestConvSolverHipImplicitGemmV4R4Fwd_FP32  = GPU_UnitTestConvSolverFwd_FP32;
+using GPU_UnitTestConvSolverHipImplicitGemmV4R4Fwd_FP32 = GPU_UnitTestConvSolverFwd_FP32;
 using CPU_UnitTestConvSolverHipImplicitGemmV4R4FwdDevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
