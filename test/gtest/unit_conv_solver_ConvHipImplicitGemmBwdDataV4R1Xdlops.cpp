@@ -126,10 +126,9 @@ const auto& GetTestParams()
 const auto& GetTestParamsFull()
 {
     static const auto params = [] {
-        Gpu supported_gpus = Gpu::gfx908;
-        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        auto p             = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx908);
         p.EnableDeprecatedSolvers();
-        p.Tunable(5);
+        p.Tunable(1000);
         return p;
     }();
     return params;

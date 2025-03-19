@@ -88,7 +88,7 @@ const auto& GetTestParamsFull()
     static const auto params = [] {
         auto p             = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx90A);
         p.EnableDeprecatedSolvers();
-        p.Tunable(1000); // Find all solutions
+        p.Tunable(1000);
         return p;
     }();
     return params;

@@ -47,7 +47,7 @@ auto GetSmokeTestParams(miopenDataType_t datatype)
         supportedDevices = supportedDevices | Gpu::gfx908;
     }
     auto testParams = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
-    testParams.Tunable(1);
+    testParams.Tunable(5);
     testParams.CheckXnackDisabled();
 
     return testParams;
