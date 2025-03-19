@@ -944,12 +944,6 @@ endif()
 
 if(hipblaslt_FOUND)
     target_link_libraries( MIOpen PRIVATE roc::hipblaslt )
-endif()
-
-if(hipblas_FOUND)
-    target_include_directories( MIOpen PRIVATE ${HIPBLAS_INCLUDE_DIR} )
-    target_include_directories( MIOpen INTERFACE $<BUILD_INTERFACE:${HIPBLAS_INCLUDE_DIR}> )
-    #hipblas.h includes #hipblas-common.h
     target_include_directories( MIOpen INTERFACE $<BUILD_INTERFACE:${HIPBLAS-COMMON_INCLUDE_DIR}> )
 endif()
 
