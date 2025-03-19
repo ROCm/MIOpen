@@ -36,7 +36,7 @@
 // RoIAlign Forward
 template <typename DTYPE>
 __device__ FLOAT_ACCUM bilinear_interpolate(const DTYPE* input,
-                                            const int64_t roi_batch_index,
+                                            const int64_t in_roi_batch_index,
                                             const uint64_t c,
                                             const uint64_t height,
                                             const uint64_t width,
@@ -44,19 +44,20 @@ __device__ FLOAT_ACCUM bilinear_interpolate(const DTYPE* input,
                                             FLOAT_ACCUM x,
                                             tensor_view_t<4> input_tv)
 {
-    int64_t y_low;
-    int64_t x_low;
-    int64_t y_high, x_high;
+    if(in_roi_batch_index < 0 || static_cast<uint64_t>(in_roi_batch_index) >= input_tv.size[0] ||
+       y < -1.0f || y > height || x < -1.0f || x > width)
+    {
+        return 0;
+    }
+
+    uint64_t roi_batch_index = in_roi_batch_index;
+
+    int64_t tmp_y_low, tmp_x_low, tmp_y_high, tmp_x_high;
     FLOAT_ACCUM ly, lx, hy, hx;
 
     FLOAT_ACCUM v1, v2, v3, v4;
     FLOAT_ACCUM w1, w2, w3, w4;
     FLOAT_ACCUM val;
-
-    if(y < -1.0f || y > height || x < -1.0f || x > width)
-    {
-        return 0;
-    }
 
     if(y <= 0)
     {
@@ -67,34 +68,39 @@ __device__ FLOAT_ACCUM bilinear_interpolate(const DTYPE* input,
         x = 0;
     }
 
-    y_low = static_cast<int64_t>(y);
-    x_low = static_cast<int64_t>(x);
+    tmp_y_low = static_cast<int64_t>(y);
+    tmp_x_low = static_cast<int64_t>(x);
 
-    if(y_low >= height - 1)
+    if(static_cast<uint64_t>(tmp_y_low) >= height - 1)
     {
-        y_high = y_low = height - 1;
-        y              = static_cast<FLOAT_ACCUM>(y_low);
+        tmp_y_high = tmp_y_low = height - 1;
+        y                      = static_cast<FLOAT_ACCUM>(tmp_y_low);
     }
     else
     {
-        y_high = y_low + 1;
+        tmp_y_high = tmp_y_low + 1;
     }
 
-    if(x_low >= width - 1)
+    if(static_cast<uint64_t>(tmp_x_low) >= width - 1)
     {
-        x_high = x_low = width - 1;
-        x              = static_cast<FLOAT_ACCUM>(x_low);
+        tmp_x_high = tmp_x_low = width - 1;
+        x                      = static_cast<FLOAT_ACCUM>(tmp_x_low);
     }
     else
     {
-        x_high = x_low + 1;
+        tmp_x_high = tmp_x_low + 1;
     }
 
-    if((y_low < 0) || (y_high > height - 1) || (x_low < 0) || (x_high > width - 1) ||
-       (roi_batch_index < 0) || (roi_batch_index > input_tv.size[0] - 1))
+    if((tmp_y_low < 0) || (static_cast<uint64_t>(tmp_y_high) > height - 1) || (tmp_x_low < 0) ||
+       (static_cast<uint64_t>(tmp_x_high) > width - 1))
     {
         return 0;
     }
+
+    uint64_t y_low  = static_cast<uint64_t>(tmp_y_low);
+    uint64_t x_low  = static_cast<uint64_t>(tmp_x_low);
+    uint64_t y_high = static_cast<uint64_t>(tmp_y_high);
+    uint64_t x_high = static_cast<uint64_t>(tmp_x_high);
 
     ly = y - y_low;
     lx = x - x_low;
@@ -157,13 +163,15 @@ __device__ void roialign_fwd(const DTYPE* input,
     if(k >= K)
         return;
 
-    int64_t roi_batch_index = static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+    int64_t tmp_roi_batch_index = static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
 
-    if(roi_batch_index < 0 || roi_batch_index >= N)
+    if(tmp_roi_batch_index < 0 || static_cast<uint64_t>(tmp_roi_batch_index) >= N)
     {
         output[output_tv.get_tensor_view_idx({k, c, ph, pw})] = static_cast<DTYPE>(0);
         return;
     }
+
+    uint64_t roi_batch_index = tmp_roi_batch_index;
 
     FLOAT_ACCUM roi_offset = aligned ? 0.5f : 0;
 
@@ -182,14 +190,13 @@ __device__ void roialign_fwd(const DTYPE* input,
     FLOAT_ACCUM bin_size_h;
     FLOAT_ACCUM bin_size_w;
 
-    int64_t roi_bin_grid_h;
-    int64_t roi_bin_grid_w;
+    uint64_t roi_bin_grid_h, roi_bin_grid_w;
 
     FLOAT_ACCUM count;
 
     FLOAT_ACCUM output_val = 0.0f;
 
-    int64_t iy, ix;
+    uint64_t iy, ix;
 
     if(!aligned)
     {
@@ -295,10 +302,10 @@ __device__ void roialign_backward(const DTYPE* output_grad,
 
     // ATOMIC FREE!
     FLOAT_ACCUM p_input_grad = 0;
-    for(auto k = 0; k < K; ++k)
+    for(uint64_t k = 0; k < K; ++k)
     {
         // Check k-th roi box belongs to n-th image inside mini-batch
-        if(static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]) != n)
+        if(static_cast<uint64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]) != n)
             continue;
 
         // roi box
@@ -329,15 +336,15 @@ __device__ void roialign_backward(const DTYPE* output_grad,
 
         // grid is sampling_ratio_h * sampling_ratio_w cells inside bin
         // Each center of grid is sampled and avgpooled into bin
-        int64_t sampling_ratio_h = sampling_ratio > 0 ? sampling_ratio : ceil(roi_h / OH);
-        int64_t sampling_ratio_w = sampling_ratio > 0 ? sampling_ratio : ceil(roi_w / OW);
+        uint64_t sampling_ratio_h = sampling_ratio > 0 ? sampling_ratio : ceil(roi_h / OH);
+        uint64_t sampling_ratio_w = sampling_ratio > 0 ? sampling_ratio : ceil(roi_w / OW);
 
-        for(long oh = 0; oh < OH; ++oh)
+        for(uint64_t oh = 0; oh < OH; ++oh)
         {
-            for(long ow = 0; ow < OW; ++ow)
+            for(uint64_t ow = 0; ow < OW; ++ow)
             {
                 FLOAT_ACCUM weight = 0;
-                for(long r = 0; r < sampling_ratio_h; ++r)
+                for(uint64_t r = 0; r < sampling_ratio_h; ++r)
                 {
                     FLOAT_ACCUM sy = y1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5f);
                     if(sy < 0 || sy > H)
@@ -348,7 +355,7 @@ __device__ void roialign_backward(const DTYPE* output_grad,
                         sy = static_cast<FLOAT_ACCUM>(H - 1);
                     }
 
-                    for(long s = 0; s < sampling_ratio_w; ++s)
+                    for(uint64_t s = 0; s < sampling_ratio_w; ++s)
                     {
                         FLOAT_ACCUM sx = x1 + bin_w * ow + bin_w / sampling_ratio_w * (s + 0.5f);
                         if(sx < 0 || sx > W)
@@ -361,7 +368,7 @@ __device__ void roialign_backward(const DTYPE* output_grad,
                         weight += fmax(1 - fabs(sy - h), 0) * fmax(1 - fabs(sx - w), 0);
                     }
                 }
-                if(weight != 0)
+                if(weight > 0)
                 {
                     p_input_grad +=
                         CVT_FLOAT2ACCUM(
@@ -446,11 +453,12 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
         return;
 
     // Check k-th roi box belongs to n-th image inside mini-batch
-    int64_t n = static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
+    int64_t tmp_n = static_cast<int64_t>(rois[rois_tv.get_tensor_view_idx({k, 0})]);
 
-    if(n < 0 || n >= N)
+    if(tmp_n < 0 || static_cast<uint64_t>(tmp_n) >= N)
         return;
 
+    uint64_t n = tmp_n;
     // roi box
     FLOAT_ACCUM offset = aligned ? 0.5f : 0;
 
@@ -488,13 +496,14 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
     FLOAT_ACCUM ograd =
         CVT_FLOAT2ACCUM(output_grad[output_grad_tv.get_tensor_view_idx({k, c, oh, ow})]);
 
-    for(auto r = 0; r < sampling_ratio_h; r++)
+    for(uint64_t r = 0; r < sampling_ratio_h; r++)
     {
         FLOAT_ACCUM y = y1 + bin_h * oh + bin_h / sampling_ratio_h * (r + 0.5f);
         if(y < 0 || y > H)
             continue;
+
         y_low = static_cast<int64_t>(y);
-        if(y_low >= H - 1)
+        if(static_cast<uint64_t>(y_low) >= H - 1)
         {
             y_high = y_low = H - 1;
             y              = static_cast<FLOAT_ACCUM>(y_low);
@@ -503,13 +512,15 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
         {
             y_high = y_low + 1;
         }
-        for(auto s = 0; s < sampling_ratio_w; ++s)
+
+        for(uint64_t s = 0; s < sampling_ratio_w; ++s)
         {
             FLOAT_ACCUM x = x1 + bin_w * ow + bin_w / sampling_ratio_w * (s + 0.5f);
             if(x < 0 || x > W)
                 continue;
+
             x_low = static_cast<int64_t>(x);
-            if(x_low >= W - 1)
+            if(static_cast<uint64_t>(x_low) >= W - 1)
             {
                 x_high = x_low = W - 1;
                 x              = static_cast<FLOAT_ACCUM>(x_low);
@@ -519,31 +530,36 @@ __device__ void roialign_backward_atomic(const DTYPE* output_grad,
                 x_high = x_low + 1;
             }
 
-            FLOAT_ACCUM ly = y - y_low;
-            FLOAT_ACCUM lx = x - x_low;
-            FLOAT_ACCUM hy = 1.0 - ly;
-            FLOAT_ACCUM hx = 1.0 - lx;
-
-            FLOAT_ACCUM w1 = hy * hx;
-            FLOAT_ACCUM w2 = hy * lx;
-            FLOAT_ACCUM w3 = ly * hx;
-            FLOAT_ACCUM w4 = ly * lx;
-
-            FLOAT_ACCUM g1 = ograd * w1 / count;
-            FLOAT_ACCUM g2 = ograd * w2 / count;
-            FLOAT_ACCUM g3 = ograd * w3 / count;
-            FLOAT_ACCUM g4 = ograd * w4 / count;
-
             if(x_low >= 0 && x_high >= 0 && y_low >= 0 && y_high >= 0)
             {
-                atomic_add_g(input_grad + input_grad_tv.get_tensor_view_idx({n, c, y_low, x_low}),
-                             g1);
-                atomic_add_g(input_grad + input_grad_tv.get_tensor_view_idx({n, c, y_low, x_high}),
-                             g2);
-                atomic_add_g(input_grad + input_grad_tv.get_tensor_view_idx({n, c, y_high, x_low}),
-                             g3);
-                atomic_add_g(input_grad + input_grad_tv.get_tensor_view_idx({n, c, y_high, x_high}),
-                             g4);
+                FLOAT_ACCUM ly = y - y_low;
+                FLOAT_ACCUM lx = x - x_low;
+                FLOAT_ACCUM hy = 1.0 - ly;
+                FLOAT_ACCUM hx = 1.0 - lx;
+
+                FLOAT_ACCUM w1 = hy * hx;
+                FLOAT_ACCUM w2 = hy * lx;
+                FLOAT_ACCUM w3 = ly * hx;
+                FLOAT_ACCUM w4 = ly * lx;
+
+                FLOAT_ACCUM g1 = ograd * w1 / count;
+                FLOAT_ACCUM g2 = ograd * w2 / count;
+                FLOAT_ACCUM g3 = ograd * w3 / count;
+                FLOAT_ACCUM g4 = ograd * w4 / count;
+
+                uint64_t p_y_low  = static_cast<uint64_t>(y_low);
+                uint64_t p_x_low  = static_cast<uint64_t>(x_low);
+                uint64_t p_y_high = static_cast<uint64_t>(y_high);
+                uint64_t p_x_high = static_cast<uint64_t>(x_high);
+
+                atomic_add_g(
+                    input_grad + input_grad_tv.get_tensor_view_idx({n, c, p_y_low, p_x_low}), g1);
+                atomic_add_g(
+                    input_grad + input_grad_tv.get_tensor_view_idx({n, c, p_y_low, p_x_high}), g2);
+                atomic_add_g(
+                    input_grad + input_grad_tv.get_tensor_view_idx({n, c, p_y_high, p_x_low}), g3);
+                atomic_add_g(
+                    input_grad + input_grad_tv.get_tensor_view_idx({n, c, p_y_high, p_x_high}), g4);
             }
         }
     }

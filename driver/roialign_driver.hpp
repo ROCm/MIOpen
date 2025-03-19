@@ -491,7 +491,8 @@ int RoIAlignDriver<Tgpu, Tref>::VerifyForward()
 
     if(!std::isfinite(output_error) || output_error > tolerance)
     {
-        std::cout << "Forward RoIAlign FAILED: output_error=" << output_error << std::endl;
+        std::cout << "Forward RoIAlign FAILED: output_error=" << output_error
+                  << " > tolerance=" << tolerance << std::endl;
         return EC_VerifyFwd;
     }
 
@@ -511,7 +512,8 @@ int RoIAlignDriver<Tgpu, Tref>::VerifyBackward()
 
     if(!std::isfinite(input_grad_error) || input_grad_error > tolerance)
     {
-        std::cout << "Backward RoIAlign FAILED: input_grad_error=" << input_grad_error << std::endl;
+        std::cout << "Backward RoIAlign FAILED: input_grad_error=" << input_grad_error
+                  << " > tolerance=" << tolerance << std::endl;
         return EC_VerifyBwd;
     }
 
