@@ -41,15 +41,15 @@
 #endif
 
 #ifndef INPUT_CAST_TYPE
-#define INPUT_CAST_TYPE float8
+#define INPUT_CAST_TYPE float8_fnuz
 #endif
 
 #ifndef WEIGHTS_CAST_TYPE
-#define WEIGHTS_CAST_TYPE float8
+#define WEIGHTS_CAST_TYPE float8_fnuz
 #endif
 
 #ifndef OUTPUT_CAST_TYPE
-#define OUTPUT_CAST_TYPE float8
+#define OUTPUT_CAST_TYPE float8_fnuz
 #endif
 
 #ifndef ACCUMULATOR_TYPE

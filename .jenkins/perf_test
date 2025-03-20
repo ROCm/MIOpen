@@ -32,6 +32,7 @@ pipeline {
     booleanParam(name: 'PERF_TEST_FP32', defaultValue : true, description: 'Run FP32 tests')
     booleanParam(name: 'PERF_TEST_FP16', defaultValue : true, description: 'Run FP16 tests')
     booleanParam(name: 'PERF_TEST_ARCHIVE', defaultValue : true, description: 'Archive results from this run')
+    booleanParam(name: "USE_SCCACHE_DOCKER", defaultValue: true, description: "Use the sccache for building CK in the Docker Image (default: ON)")
     string(name: 'PERF_TEST_OVERRIDE', defaultValue: '',  description: 'Add extra env vars for the MIOpenDriver cmd, comma separated')
     choice(name: 'INSTALL_MIOPEN', choices: ['ON', 'OFF'], description: 'Build/Install MIOpen inside docker')
   }
