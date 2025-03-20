@@ -236,8 +236,8 @@ std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 //************************************************************************************
 uint64_t Tolerances::GetKey(Gpu gpu, miopenDataType_t type)
 {
-    static_assert(sizeof(gpu) <= sizeof(uint64_t)/2);
-    static_assert(sizeof(type) <= sizeof(uint64_t)/2);
+    static_assert(sizeof(gpu) <= sizeof(uint64_t) / 2);
+    static_assert(sizeof(type) <= sizeof(uint64_t) / 2);
 
     return (static_cast<uint64_t>(gpu) << 32) | static_cast<uint64_t>(type);
 }
@@ -310,7 +310,9 @@ miopen::solver::ConvSolution FindSolution(const miopen::solver::conv::ConvSolver
 }
 
 template <typename T>
-double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction direction, const Tolerances& tolerances)
+double GetThreshold(miopenConvAlgorithm_t algo,
+                    miopen::conv::Direction direction,
+                    const Tolerances& tolerances)
 {
 #if 0 /// \todo remove
     double tolerance = 1.0;
@@ -493,7 +495,8 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverInterface& solv,
 
     output.data = handle.Read<Tout>(out_dev, output.data.size());
 
-    VerifyData(output.data, ref_out.data, algo, miopen::conv::Direction::Forward, params.tolerances);
+    VerifyData(
+        output.data, ref_out.data, algo, miopen::conv::Direction::Forward, params.tolerances);
 }
 
 template <typename T, typename Tref>
@@ -605,7 +608,8 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverInterface& solv,
 
     input.data = handle.Read<Tin>(in_dev, input.data.size());
 
-    VerifyData(input.data, ref_in.data, algo, miopen::conv::Direction::BackwardData, params.tolerances);
+    VerifyData(
+        input.data, ref_in.data, algo, miopen::conv::Direction::BackwardData, params.tolerances);
 }
 
 template <typename T, typename Tref>
@@ -717,7 +721,11 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverInterface& solv,
 
     weights.data = handle.Read<Twei>(wei_dev, weights.data.size());
 
-    VerifyData(weights.data, ref_weights.data, algo, miopen::conv::Direction::BackwardWeights, params.tolerances);
+    VerifyData(weights.data,
+               ref_weights.data,
+               algo,
+               miopen::conv::Direction::BackwardWeights,
+               params.tolerances);
 }
 
 template <typename T, typename Tref>
