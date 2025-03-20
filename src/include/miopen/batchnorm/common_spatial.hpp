@@ -52,7 +52,7 @@ inline void GetWGSizeNHWC(size_t c,
     size_t nworkgroups = 0;
     // decrease max_localsize until the number of workgroups is greater than 80%
     // of the available CUs
-    while((float)nworkgroups < min_workgroups && max_localsize >= xlocalsize_limit)
+    while(nworkgroups < min_workgroups && max_localsize >= xlocalsize_limit)
     {
         // xlocalsize must be power of 2 as reductions in the kernels rely on it, here c is rounded
         // up to next power of 2.
@@ -142,7 +142,7 @@ inline bool IsSpatialMultipleApplicable(const miopen::batchnorm::ProblemDescript
     if(problem.IsLayoutNHWC())
     {
         // check if the provided vectorsize can be used
-        if(vectorsize > 1 && c % 4 != 0)
+        if(c % vectorsize != 0)
         {
             return false;
         }
@@ -156,7 +156,7 @@ inline bool IsSpatialMultipleApplicable(const miopen::batchnorm::ProblemDescript
     else
     {
         // check if the provided vectorsize can be used
-        if(vectorsize > 1 && in_cstride % 4 != 0)
+        if(in_cstride % vectorsize != 0)
         {
             return false;
         }
@@ -221,7 +221,7 @@ inline void GetSpatialMultipleConfig(const miopen::batchnorm::ProblemDescription
                                   ylocalsize);
 }
 
-inline void GetVariantFromKernelId(std::string kernel_id, int& variant, size_t& vectorsize)
+inline void GetVariantFromKernelId(const std::string& kernel_id, int& variant, size_t& vectorsize)
 {
     // kernel_id has the following standard:
     // Variant<variant>-<vectorsize>
@@ -231,6 +231,13 @@ inline void GetVariantFromKernelId(std::string kernel_id, int& variant, size_t& 
         variant    = kernel_id[pos + 7] - '0';
         vectorsize = kernel_id[pos + 9] - '0';
     }
+}
+
+inline std::string GetKernelIdFromVariant(int variant, size_t vectorsize)
+{
+    std::stringstream stream;
+    stream << "Variant" << variant << "-" << vectorsize;
+    return stream.str();
 }
 
 inline bool UseMultiple(const miopen::batchnorm::ProblemDescription& problem)
@@ -262,11 +269,6 @@ inline bool UseMultiple(const miopen::batchnorm::ProblemDescription& problem)
     return true;
 }
 
-inline std::string ConfigAdd(int variant, size_t vectorsize)
-{
-    return "Variant" + std::to_string(variant) + "-" + std::to_string(vectorsize);
-}
-
 inline void DefaultConfigSpatialSingle(const miopen::batchnorm::ProblemDescription& problem,
                                        std::vector<std::string>& valid_kernels)
 {
@@ -293,15 +295,15 @@ inline void DefaultConfigSpatialSingle(const miopen::batchnorm::ProblemDescripti
 #if(WORKAROUND_SWDEV_253606 == 0)
         if(n < 3 && problem.GetDirection() == miopen::batchnorm::Direction::ForwardTraining)
         {
-            ConfigAdd(4, 1);
-            ConfigAdd(1, 1);
+            valid_kernels.push_back(GetKernelIdFromVariant(4, 1));
+            valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
             return;
         }
 #endif
 
         if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
         {
-            valid_kernels.push_back(ConfigAdd(1, 1));
+            valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
             return;
         }
 
@@ -310,7 +312,7 @@ inline void DefaultConfigSpatialSingle(const miopen::batchnorm::ProblemDescripti
         // work groups over channels and loop through NHW.
         if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024))
         {
-            valid_kernels.push_back(ConfigAdd(1, 1));
+            valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
             return;
         }
         // N*H*W < 32M and H*W > 512
@@ -320,13 +322,13 @@ inline void DefaultConfigSpatialSingle(const miopen::batchnorm::ProblemDescripti
         {
             if(n >= 32)
             {
-                valid_kernels.push_back(ConfigAdd(1, 1));
+                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
                 return;
             }
             else
             {
-                valid_kernels.push_back(ConfigAdd(3, 1));
-                valid_kernels.push_back(ConfigAdd(1, 1));
+                valid_kernels.push_back(GetKernelIdFromVariant(3, 1));
+                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
                 return;
             }
         }
@@ -336,19 +338,19 @@ inline void DefaultConfigSpatialSingle(const miopen::batchnorm::ProblemDescripti
         {
             if((n > 64) && (in_cstride > 160))
             {
-                valid_kernels.push_back(ConfigAdd(3, 1));
-                valid_kernels.push_back(ConfigAdd(1, 1));
+                valid_kernels.push_back(GetKernelIdFromVariant(3, 1));
+                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
                 return;
             }
             else
             {
-                valid_kernels.push_back(ConfigAdd(0, 1));
-                valid_kernels.push_back(ConfigAdd(1, 1));
+                valid_kernels.push_back(GetKernelIdFromVariant(0, 1));
+                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
                 return;
             }
         }
     }
-    valid_kernels.push_back(ConfigAdd(1, 1));
+    valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
 }
 
 inline void DefaultConfigSpatialMultiple(const miopen::batchnorm::ProblemDescription& problem,
@@ -365,12 +367,12 @@ inline void DefaultConfigSpatialMultiple(const miopen::batchnorm::ProblemDescrip
         problem.IsLayoutNHWC() ? (c % 4 == 0 ? 4 : 1) : (in_cstride % 4 == 0 ? 4 : 1);
     if(IsSpatialMultipleApplicable(problem, vectorsize, stash_values))
     {
-        valid_kernels.push_back(ConfigAdd(2, vectorsize));
+        valid_kernels.push_back(GetKernelIdFromVariant(2, vectorsize));
         // if vectorized version is applicable, then the non vectorized version
         // is also added to the list of configurations
         if(vectorsize > 1)
         {
-            valid_kernels.push_back(ConfigAdd(2, 1));
+            valid_kernels.push_back(GetKernelIdFromVariant(2, 1));
         }
         return;
     }
@@ -378,7 +380,7 @@ inline void DefaultConfigSpatialMultiple(const miopen::batchnorm::ProblemDescrip
     // If spatial multiple with vectorization can not be used, try without vectorization
     if(vectorsize > 1 && IsSpatialMultipleApplicable(problem, 1, stash_values))
     {
-        valid_kernels.push_back(ConfigAdd(2, 1));
+        valid_kernels.push_back(GetKernelIdFromVariant(2, 1));
     }
 }
 
