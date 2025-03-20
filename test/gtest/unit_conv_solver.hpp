@@ -25,6 +25,8 @@
  *******************************************************************************/
 #pragma once
 
+#include <unordered_map>
+
 #include <miopen/conv/solvers.hpp>
 #include <miopen/conv/problem_description.hpp>
 
@@ -87,6 +89,16 @@ private:
 // Unit test for convolution solver
 //************************************************************************************
 
+struct Tolerances
+{
+    void Set(Gpu gpu, miopenDataType_t type, float value);
+    float Get(Gpu gpu, miopenDataType_t type) const;
+
+private:
+    static uint64_t GetKey(Gpu gpu, miopenDataType_t type);
+    std::unordered_map<uint64_t, float> values;
+};
+
 struct UnitTestConvSolverParams
 {
     UnitTestConvSolverParams();
@@ -97,6 +109,7 @@ struct UnitTestConvSolverParams
     void Tunable(std::size_t iterations_max);
     void CheckXnackDisabled();
     void SetConvAttrFp16Alt(uint64_t value);
+    void SetTolerance(Gpu gpu, miopenDataType_t type, float value);
 
     Gpu supported_devs;
     bool use_cpu_ref;
@@ -105,6 +118,7 @@ struct UnitTestConvSolverParams
     bool check_xnack_disabled;
     std::size_t tuning_iterations_max;
     std::optional<uint64_t> conv_attr_fp16_alt;
+    Tolerances tolerances;
 };
 
 class UnitTestConvSolverBase
