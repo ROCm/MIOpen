@@ -63,9 +63,10 @@ enum class Gpu : int
     gfx908  = 1 << 2,
     gfx90A  = 1 << 3,
     gfx94X  = 1 << 4,
-    gfx103X = 1 << 5,
-    gfx110X = 1 << 6,
-    gfx120X = 1 << 7,
+    gfx950  = 1 << 5,
+    gfx103X = 1 << 6,
+    gfx110X = 1 << 7,
+    gfx120X = 1 << 8,
     gfxLast = Gpu::gfx120X, // \note Change the value when adding a new device
     All     = -1
 };
