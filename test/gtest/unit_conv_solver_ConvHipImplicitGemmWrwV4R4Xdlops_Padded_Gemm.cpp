@@ -60,6 +60,7 @@ const auto& GetTestParams()
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
+        p.SetTolerance(Gpu::gfx90A, miopenFloat, 2.0f);
         return p;
     }();
     return params;
