@@ -1309,8 +1309,13 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 // Allocate at least 2MB which should give us a full page of memory for testing with.
                 const size_t memoryPageSize = 2097152;
 
+                // Can change this to have extra offset room from the start of the page.
+                // This can be used to find how far past the end of the buffer is being accessed.
+                // Increasing extraOffset will eventually stop the memory faults, can use this to approximate how far past the end of a buffer is being accessed.
+                const size_t extraOffset = 0;
+
                 auto roundUp = [&](size_t bytes){
-                    return ((bytes + memoryPageSize) / memoryPageSize) * memoryPageSize;
+                    return ((bytes + extraOffset + memoryPageSize) / memoryPageSize) * memoryPageSize;
                 };
 
                 auto wDesc = cast_desc;
@@ -1321,11 +1326,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
                 auto yDesc = tensors.dyDesc;
                 size_t yMemorySize = roundUp(yDesc.GetNumBytes());
-
-                // Can change this to have extra offset room from the end of the page.
-                // This can be used to find how far past the end of the buffer is being accessed.
-                // Increasing extraOffset will eventually stop the memory faults, can use this to approximate how far past the end of a buffer is being accessed.
-                const size_t extraOffset = 0;
 
                 // Calculate an offset that will place the W buffer at the end of our allocated memory.
                 // This will cause a memory access fault if memory is accessed outside the page boundary.
@@ -1489,8 +1489,13 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 // Allocate at least 2MB which should give us a full page of memory for testing with.
                 const size_t memoryPageSize = 2097152;
 
+                // Can change this to have extra offset room from the end of the page.
+                // This can be used to find how far past the end of the buffer is being accessed.
+                // Increasing extraOffset will eventually stop the memory faults, can use this to approximate how far past the end of a buffer is being accessed.
+                const size_t extraOffset = 0;
+
                 auto roundUp = [&](size_t bytes){
-                    return ((bytes + memoryPageSize) / memoryPageSize) * memoryPageSize;
+                    return ((bytes + extraOffset + memoryPageSize) / memoryPageSize) * memoryPageSize;
                 };
 
                 auto wDesc = tensors.dwDesc;
@@ -1501,11 +1506,6 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
 
                 auto yDesc = tensors.dyDesc;
                 size_t yMemorySize = roundUp(yDesc.GetNumBytes());
-
-                // Can change this to have extra offset room from the end of the page.
-                // This can be used to find how far past the end of the buffer is being accessed.
-                // Increasing extraOffset will eventually stop the memory faults, can use this to approximate how far past the end of a buffer is being accessed.
-                const size_t extraOffset = 0;
 
                 // Calculate an offset that will place the W buffer at the end of our allocated memory.
                 // This will cause a memory access fault if memory is accessed outside the page boundary.
