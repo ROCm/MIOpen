@@ -1327,14 +1327,14 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 auto yDesc = tensors.dyDesc;
                 size_t yMemorySize = roundUp(yDesc.GetNumBytes());
 
-                // Calculate an offset that will place the W buffer at the end of our allocated memory.
+                // Calculate an offset that will place the W buffer at the start of our allocated memory.
                 // This will cause a memory access fault if memory is accessed outside the page boundary.
                 // Essentially, doing this to flag memory access faults that typically are hidden due to the large page size.
 
 
-                const size_t wOffsetIntoMemory = wMemorySize - wDesc.GetNumBytes() - extraOffset;
-                const size_t xOffsetIntoMemory = xMemorySize - xDesc.GetNumBytes() - extraOffset;
-                const size_t yOffsetIntoMemory = yMemorySize - yDesc.GetNumBytes() - extraOffset;
+                const size_t wOffsetIntoMemory = extraOffset;
+                const size_t xOffsetIntoMemory = extraOffset;
+                const size_t yOffsetIntoMemory = extraOffset;
                 
                 // Allocate an empty buffer to use that is memoryPageSize big
                 void* wMem = nullptr;
@@ -1512,9 +1512,9 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC::GetSolution(
                 // Essentially, doing this to flag memory access faults that typically are hidden due to the large page size.
 
 
-                const size_t wOffsetIntoMemory = wMemorySize - wDesc.GetNumBytes() - extraOffset;
-                const size_t xOffsetIntoMemory = xMemorySize - xDesc.GetNumBytes() - extraOffset;
-                const size_t yOffsetIntoMemory = yMemorySize - yDesc.GetNumBytes() - extraOffset;
+                const size_t wOffsetIntoMemory = extraOffset;
+                const size_t xOffsetIntoMemory = extraOffset;
+                const size_t yOffsetIntoMemory = extraOffset;
                 
                 // Allocate an empty buffer to use that is memoryPageSize big
                 void* wMem = nullptr;
