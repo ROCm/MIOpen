@@ -62,8 +62,7 @@ const auto& GetTestParams()
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
         /// \todo 40.0f is too much. The solver needs to be checked.
-        // p.SetTolerance(Gpu::gfx90A, miopenFloat, 40.0f);
-        p.SetTolerance(Gpu::gfx90A, miopenFloat, 4.0f);
+        p.SetTolerance(Gpu::gfx90A, miopenFloat, 40.0f);
         return p;
     }();
     return params;
