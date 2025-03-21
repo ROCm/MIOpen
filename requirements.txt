@@ -7,5 +7,5 @@ nlohmann/json@v3.11.2 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
 ROCm/FunctionalPlus@v0.2.18-p0
 ROCm/eigen@3.4.0
 ROCm/frugally-deep@9683d557eb672ee2304f80f6682c51242d748a50
-ROCm/composable_kernel@b819c217e44d2bcc0bdc78838d5cfc6e4c4f641e -DCMAKE_BUILD_TYPE=Release
+ROCm/composable_kernel@6c08c5c46d7a13fd13b428ef6c6b59b05e4e9666 -DCMAKE_BUILD_TYPE=Release
 google/googletest@v1.14.0
