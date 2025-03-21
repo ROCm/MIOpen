@@ -37,7 +37,7 @@ TEST(CPU_kernel_inliner_NONE, InlinerTest)
     const auto addkernels = miopen::make_executable_name(bin_path / "addkernels").string();
 
     auto Child = [&](const miopen::fs::path& source) {
-        return test_srcs.Execute(addkernels, "-source " + source);
+        return test_srcs.Execute(addkernels, "-source " + source, false);
     };
 
     const auto header_filename = "header.h";

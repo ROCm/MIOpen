@@ -95,12 +95,16 @@ struct UnitTestConvSolverParams
     void UseCpuRef();
     void EnableDeprecatedSolvers();
     void Tunable(std::size_t iterations_max);
+    void CheckXnackDisabled();
+    void SetConvAttrFp16Alt(uint64_t value);
 
     Gpu supported_devs;
     bool use_cpu_ref;
     bool enable_deprecated_solvers;
     bool tunable;
+    bool check_xnack_disabled;
     std::size_t tuning_iterations_max;
+    std::optional<uint64_t> conv_attr_fp16_alt;
 };
 
 class UnitTestConvSolverBase

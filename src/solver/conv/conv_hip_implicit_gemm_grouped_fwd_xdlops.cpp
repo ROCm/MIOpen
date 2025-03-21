@@ -28,6 +28,7 @@
 #include <cstdint>
 
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
@@ -291,14 +292,22 @@ GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::st
         features[17] = num_cu;
         return features;
     }
+
+    const bool isFwd = problem.GetDirection() == miopen::conv::Direction::Forward;
+    float precision  = 2.0; // miopenHalf
+    if(problem.GetInDataType() == miopenFloat)
+        precision = 3.0;
+    else if(problem.GetInDataType() == miopenBFloat16)
+        precision = 1.0;
+
     std::size_t n = 17;
     std::vector<float> features(n * n, 0.0f);
-    features[0]           = problem.GetInChannels();
-    features[n + 1]       = problem.GetInHeight();
-    features[2 * n + 2]   = problem.GetInWidth();
-    features[3 * n + 3]   = problem.GetOutChannels();
-    features[4 * n + 4]   = problem.GetOutHeight();
-    features[5 * n + 5]   = problem.GetOutWidth();
+    features[0]           = isFwd ? problem.GetInChannels() : problem.GetOutChannels();
+    features[n + 1]       = isFwd ? problem.GetInHeight() : problem.GetOutHeight();
+    features[2 * n + 2]   = isFwd ? problem.GetInWidth() : problem.GetOutWidth();
+    features[3 * n + 3]   = isFwd ? problem.GetOutChannels() : problem.GetInChannels();
+    features[4 * n + 4]   = isFwd ? problem.GetOutHeight() : problem.GetInHeight();
+    features[5 * n + 5]   = isFwd ? problem.GetOutWidth() : problem.GetInWidth();
     features[6 * n + 6]   = problem.GetWeightsHeight();
     features[7 * n + 7]   = problem.GetWeightsWidth();
     features[8 * n + 8]   = problem.GetPadH();
@@ -308,7 +317,7 @@ GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::st
     features[12 * n + 12] = problem.GetDilationH();
     features[13 * n + 13] = problem.GetDilationW();
     features[14 * n + 14] = problem.GetBatchSize();
-    features[15 * n + 15] = problem.GetInDataType() == miopenFloat ? 2.0 : 1.0;
+    features[15 * n + 15] = precision;
     features[16 * n + 16] = problem.GetGroupCount();
     return features;
 }
@@ -349,7 +358,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsModelApplicable(
 {
     if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942")
         return false;
-    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf)
+    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf &&
+       problem.GetInDataType() != miopenBFloat16)
         return false;
     if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR))
         return false;
@@ -372,6 +382,11 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
             if(RunParameterPredictionModel<float>(ctx, problem))
                 return;
         }
+        else if(problem.GetInDataType() == miopenBFloat16)
+        {
+            if(RunParameterPredictionModel<ck::bhalf_t>(ctx, problem))
+                return;
+        }
         else
         {
             if(RunParameterPredictionModel<ck::half_t>(ctx, problem))
@@ -387,8 +402,8 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -407,8 +422,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemD
         case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
         case miopenInt64:
         case miopenInt32:
-        case miopenFloat8:
-        case miopenBFloat8:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
         case miopenDouble: break;
         }
         assert(!valid_kernels.empty());
@@ -442,8 +457,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -494,13 +509,13 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS))
         return false;
+    if(problem.GetConv().attribute.deterministic)
+        return false;
     if(problem.HasNonPackedTensors())
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())
         return false;
     if(problem.IsTensorsCasted())
-        return false;
-    if(problem.GetConv().attribute.deterministic)
         return false;
     if(problem.HasMixedDataTypes())
         return false;
@@ -523,8 +538,8 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif

@@ -31,8 +31,8 @@ using namespace capi_test_mha_common;
 template <typename T>
 class MhaBackwardTest : public MhaCommonTest
 {
-    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8>);
-    using dO_T = std::conditional_t<std::is_same_v<T, float>, float, bfloat8>;
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, float8_fnuz>);
+    using dO_T = std::conditional_t<std::is_same_v<T, float>, float, bfloat8_fnuz>;
 
 protected:
     void SetUp() override
@@ -45,7 +45,7 @@ protected:
         }
     }
 
-    virtual void MakeRealTensorsAndFillData(miopen::Handle& handle) override
+    virtual void MakeRealTensorsAndFillData(const miopen::Handle& handle) override
     {
         auto q = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
         auto k = test::cpu::GenScaledTensorBackward<T>(m_testN, m_testH, m_testS, m_testD);
@@ -374,10 +374,10 @@ protected:
                       m_realTensorMap[miopenTensorMhaDK]->m_gapiDesc);
     }
 
-    virtual void RunCPUverify(miopen::Handle& handle) override
+    virtual void RunCPUverify(const miopen::Handle& handle) override
     {
         const double errorThreshold    = 5e-5;
-        const double fp8ErrorThreshold = (std::is_same_v<T, float8>) ? 3e-3 : errorThreshold;
+        const double fp8ErrorThreshold = (std::is_same_v<T, float8_fnuz>) ? 3e-3 : errorThreshold;
 
         auto checkAmax = [this, errorThreshold, &handle](
                              miopenTensorArgumentId_t id, std::string_view name, float refAmax) {
@@ -420,7 +420,7 @@ class GPU_MhaBackward_FP32 : public MhaBackwardTest<float>
 {
 };
 
-class GPU_MhaBackward_FP8 : public MhaBackwardTest<float8>
+class GPU_MhaBackward_FP8 : public MhaBackwardTest<float8_fnuz>
 {
     void SetUp() override
     {
@@ -431,7 +431,7 @@ class GPU_MhaBackward_FP8 : public MhaBackwardTest<float8>
             GTEST_SKIP() << "FP8 is unsupported on this HW";
         }
 
-        MhaBackwardTest<float8>::SetUp();
+        MhaBackwardTest<float8_fnuz>::SetUp();
     }
 };
 
