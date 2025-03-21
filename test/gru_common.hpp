@@ -2055,7 +2055,7 @@ struct verify_forward_infer_gru
 
     void fail(int) const
     {
-        std::cout << "./lib/miopen/MIOpenDriver rnn -n ";
+        std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
         {
             if(i < seqLength - 1)
@@ -2351,7 +2351,7 @@ struct verify_forward_train_gru
 
     void fail(int badtensor) const
     {
-        std::cout << "./lib/miopen/MIOpenDriver rnn -n ";
+        std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
         {
             if(i < seqLength - 1)
@@ -2659,7 +2659,7 @@ struct verify_backward_data_gru
 
     void fail(int badtensor) const
     {
-        std::cout << "./lib/miopen/MIOpenDriver rnn -n ";
+        std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
         {
             if(i < seqLength - 1)
@@ -2894,7 +2894,7 @@ struct verify_backward_weights_gru
 
     void fail(int) const
     {
-        std::cout << "./lib/miopen/MIOpenDriver rnn -n ";
+        std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
         {
             if(i < seqLength - 1)

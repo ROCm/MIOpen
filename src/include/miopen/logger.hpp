@@ -417,7 +417,7 @@ constexpr std::string_view LoggingParseFunction(const std::string_view func,
 #ifdef _WIN32
 #define MIOPEN_LOG_DRIVER_CMD(...) MIOPEN_LOG_DRIVER_COMMAND("MIOpenDriver.exe", __VA_ARGS__)
 #else
-#define MIOPEN_LOG_DRIVER_CMD(...) MIOPEN_LOG_DRIVER_COMMAND("./lib/miopen/MIOpenDriver", __VA_ARGS__)
+#define MIOPEN_LOG_DRIVER_CMD(...) MIOPEN_LOG_DRIVER_COMMAND("./bin/MIOpenDriver", __VA_ARGS__)
 #endif
 
 #if MIOPEN_LOG_FUNC_TIME_ENABLE

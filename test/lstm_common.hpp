@@ -203,7 +203,7 @@ struct verify_backward_data_lstm
     void fail(int badtensor) const
     {
 
-        std::cout << "./lib/miopen/MIOpenDriver rnn -n ";
+        std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
         {
             if(i < seqLength - 1)
@@ -322,7 +322,7 @@ struct verify_backward_weights_lstm
 
     void fail(int) const
     {
-        std::cout << "./lib/miopen/MIOpenDriver rnn -n ";
+        std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
         {
             if(i < seqLength - 1)
@@ -622,7 +622,7 @@ struct verify_forward_infer_lstm : verify_forward_lstm<T>
 
     void fail(int) const
     {
-        std::cout << "./lib/miopen/MIOpenDriver rnn -n ";
+        std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
         {
             if(i < seqLength - 1)
@@ -998,7 +998,7 @@ struct verify_forward_train_lstm : verify_forward_lstm<T>
     void fail(int badtensor) const
     {
 
-        std::cout << "./lib/miopen/MIOpenDriver rnn -n ";
+        std::cout << "./bin/MIOpenDriver rnn -n ";
         for(int i = 0; i < seqLength; i++)
         {
             if(i < seqLength - 1)

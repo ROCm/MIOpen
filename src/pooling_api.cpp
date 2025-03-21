@@ -59,7 +59,7 @@ inline void Pooling_logging_cmd(const miopenPoolingDescriptor_t poolDesc,
             MIOPEN_LOG_W(
                 "Pooing cmd args logging is not implemented properly for " +
                 miopen::GetDataType(miopen::deref(tensorDesc).GetType()) +
-                " data type. Check the ./lib/miopen/MIOpenDriver --help for the correct base argument.");
+                " data type. Check the ./bin/MIOpenDriver --help for the correct base argument.");
             ss << "???";
             break;
         }
