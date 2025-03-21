@@ -30,7 +30,7 @@ library "jenkins-shared@${get_branch_name()}"
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Performance Dataset" is a performance test with a specified dataset.
-/// Target := { gfx908 | gfx90a } [ Xnack+ ]
+/// Target := { gfx908 | gfx90a | gfx94x } [ Xnack+ ]
 
 
 pipeline {
@@ -87,12 +87,12 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_NAVI32",
-            defaultValue: env.BRANCH_NAME == "AD/CiTargets" ? true : false,
-            description: "")
+            defaultValue: false,
+            description: "Navi3 currently fails to build with instruction not supported on this GPU error")
         booleanParam(
             name: "TARGET_NAVI4",
-            defaultValue: env.BRANCH_NAME == "AD/CiTargets" ? true : false,
-            description: "")
+            defaultValue: false,
+            description: "Navi4 currently fails to build with instruction not supported on this GPU error")
         booleanParam(
             name: "DATATYPE_NA",
             defaultValue: true,
@@ -314,38 +314,36 @@ pipeline {
                         }
                     }
                 }
-                //Navi 3 fails to build with error about instruction not supported on GPU...
-                // stage('Fp32 Hip Debug gfx1101') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_NAVI32 }
-                //     }
-                //     options {
-                //         retry(2)
-                //     }
-                //     agent{ label rocmnode("navi32") }
-                //     steps{
-                //         script {
-                //             utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
-                //         }
-                //     }
-                // }
-                // Navi 4 fails to build with error about instruction not supported on GPU...
-                // stage('Fp32 Hip Debug gfx1201') {
-                //     when {
-                //         beforeAgent true
-                //         expression { params.TARGET_NAVI4 }
-                //     }
-                //     options {
-                //         retry(2)
-                //     }
-                //     agent{ label rocmnode("gfx1201 && matthew") }
-                //     steps{
-                //         script {
-                //             utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
-                //         }
-                //     }
-                // }
+                stage('Fp32 Hip Debug gfx1101') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI32 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("navi32") }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
+                        }
+                    }
+                }
+                stage('Fp32 Hip Debug gfx1201') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI4 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx1201") }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
+                        }
+                    }
+                }
             }
         }
         stage("Smoke Aux 1") {
