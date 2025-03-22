@@ -50,6 +50,7 @@ inline void GetWGSizeNHWC(size_t c,
     unsigned int max_localsize = 1024 / vectorsize;
 
     size_t nworkgroups = 0;
+    xlocalsize         = 0;
     // decrease max_localsize until the number of workgroups is greater than 80%
     // of the available CUs
     while(nworkgroups < min_workgroups && max_localsize >= xlocalsize_limit)
@@ -104,11 +105,17 @@ inline bool GetLocalConfigNHWC(const miopen::batchnorm::ProblemDescription& prob
             ? false
             : true;
 
-    size_t n, c, h, w;
+    size_t n, c, h, w = 0;
     std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
+    assert((n != 0) && "n cannot be 0");
+    assert((c != 0) && "c cannot be 0");
+    assert((h != 0) && "h cannot be 0");
+    assert((w != 0) && "w cannot be 0");
 
     GetWGSizeNHWC(
         c, h, w, problem.GetMinWorkgroups(), bfp32parm, vectorsize, xlocalsize, ylocalsize);
+    assert((xlocalsize != 0) && "xlocalsize cannot be 0");
+    assert((ylocalsize != 0) && "ylocalsize cannot be 0");
 
     stash_values *= (bfp32parm ? 1 : 2);
     unsigned int last_ylocalsize = (h * w) % ylocalsize == 0 ? ylocalsize : (h * w) % ylocalsize;
@@ -135,8 +142,13 @@ inline bool IsSpatialMultipleApplicable(const miopen::batchnorm::ProblemDescript
                                         size_t vectorsize,
                                         unsigned int stash_values)
 {
-    int n, c, h, w;
-    std::tie(n, c, h, w)    = tien<4>(problem.GetXDesc().GetLengths());
+    int n, c, h, w = 0;
+    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
+    assert((n != 0) && "n cannot be 0");
+    assert((c != 0) && "c cannot be 0");
+    assert((h != 0) && "h cannot be 0");
+    assert((w != 0) && "w cannot be 0");
+
     unsigned int in_cstride = h * w;
 
     if(problem.IsLayoutNHWC())
@@ -147,7 +159,7 @@ inline bool IsSpatialMultipleApplicable(const miopen::batchnorm::ProblemDescript
             return false;
         }
         // Variant 2 is the primary choice for NHWC
-        size_t xlocalsize, ylocalsize;
+        size_t xlocalsize, ylocalsize = 0;
 
         // The configuration is ignored at this point, it was just computed to check
         // if spatial multiple could be applied.

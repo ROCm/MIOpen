@@ -56,7 +56,7 @@ bool PerformanceConfigBnBwdBackward::IsValid(
     // if default config is variant 2, check if it can be applied
     // (based on variant 2 restrictions)
     size_t vectorsize;
-    int variant;
+    int variant = 0;
     GetVariantFromKernelId(this->kernel_id, variant, vectorsize);
     if(variant == 2)
     {
@@ -217,7 +217,7 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
     size_t xlocalsize, xgridsize;
     size_t ylocalsize = 1, ygridsize = 1, zlocalsize = 1, zgridsize = 1;
     unsigned int ldsgcn, ldsnogcn;
-    int stash_method;
+    int stash_method = -1;
     if(variant != 2)
     {
         xlocalsize = 1024;
