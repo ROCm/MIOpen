@@ -116,7 +116,10 @@ inline bool GetLocalConfigNHWC(const miopen::batchnorm::ProblemDescription& prob
         c, h, w, problem.GetMinWorkgroups(), bfp32parm, vectorsize, xlocalsize, ylocalsize);
     assert((xlocalsize != 0) && "xlocalsize cannot be 0");
     assert((ylocalsize != 0) && "ylocalsize cannot be 0");
-
+    if(ylocalsize == 0)
+    {
+        ylocalsize = 1;
+    }
     stash_values *= (bfp32parm ? 1 : 2);
     unsigned int last_ylocalsize = (h * w) % ylocalsize == 0 ? ylocalsize : (h * w) % ylocalsize;
     // FP32:
