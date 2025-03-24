@@ -320,16 +320,15 @@ const auto& GetSolversInfo<BatchNormSolverInfo>()
     /// \ref fin_interface_solver_info_coverage
     static const std::unordered_map<std::string, BatchNormSolverInfo> solver_info = {
         // clang-format off
-        {"BnFwdTrainingSpatialSingle",      {113,   false,  false}},
-        {"BnFwdTrainingSpatialMultiple",    {115,   false,  false}},
-        {"BnFwdTrainingPerActivation",      {116,   false,  false}},
-        {"BnBwdTrainingSpatialSingle",      {117,   false,  false}},
-        {"BnBwdTrainingSpatialMultiple",    {118,   false,  false}},
-        {"BnBwdTrainingPerActivation",      {119,   false,  false}},
-        {"BnFwdInference",                  {120,   true,   false}},
-        {"BnCKFwdInference",                {142,   true,   true}},
-        {"BnCKBwdBackward",                 {143,   true,   true}},
-        {"BnCKFwdTraining",                 {144,   true,   true}},
+        //   solver-name               id,  isDynamic, isTunable
+        {"BnFwdTrainingSpatial",       {113,   false,  true}},
+        {"BnFwdTrainingPerActivation", {116,   false,  false}},
+        {"BnBwdTrainingSpatial",       {117,   false,  true}},
+        {"BnBwdTrainingPerActivation", {119,   false,  false}},
+        {"BnFwdInference",             {120,   true,  false}},
+        {"BnCKFwdInference",           {142,   true,   true}},
+        {"BnCKBwdBackward",            {143,   true,   true}},
+        {"BnCKFwdTraining",            {144,   true,   true}},
         // clang-format on
     };
 
