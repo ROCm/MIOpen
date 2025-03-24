@@ -32,15 +32,15 @@
 
 // addkernels is required by this test and not delivered to end users
 // skipping the test unless it is executed from ctest
-#define WORKAROUND_MIOPEN_ISSUE_3647 1
+#define WORKAROUND_ISSUE_3647 1
 
-#if WORKAROUND_MIOPEN_ISSUE_3647
+#if WORKAROUND_ISSUE_3647
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_INVOKED_FROM_CTEST)
 #endif
 
 TEST(CPU_kernel_inliner_NONE, InlinerTest)
 {
-#if WORKAROUND_MIOPEN_ISSUE_3647
+#if WORKAROUND_ISSUE_3647
     if(!miopen::env::enabled(MIOPEN_INVOKED_FROM_CTEST))
         GTEST_SKIP() << "Depends on addkernels and should be invoked by make";
 #endif
