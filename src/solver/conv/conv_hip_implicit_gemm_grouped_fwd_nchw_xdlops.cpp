@@ -206,155 +206,6 @@ bool ConvHipImplicitGemmGroupFwdCKNCHWXdlops::CheckCKApplicability(
 {
     return IsCKApplicable<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
 }
-
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
-{
-    std::vector<std::string> tokens;
-    std::string token;
-    std::istringstream tokenStream(
-        kernel.substr(kernel.find('<') + 1, kernel.find('>') - kernel.find('<') - 1));
-    while(std::getline(tokenStream, token, ','))
-    {
-        token.erase(remove_if(token.begin(), token.end(), isspace),
-                    token.end()); // strip whitespace
-        tokens.push_back(token);
-    }
-    return tokens;
-}
-
-void PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::InitHeuristicKernelIDs(
-    const std::string& type)
-{
-    for(int i = 0; i < valid_kernels.size(); i++)
-    {
-        if(valid_kernels[i].find(type) != std::string::npos)
-        {
-            heuristic_indexes.push_back(i);
-            heuristic_kernels[i] = GetKernelAsTokens(valid_kernels[i]);
-        }
-    }
-}
-
-bool PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::ModelApplyToken(int idx,
-                                                                           std::string value,
-                                                                           const std::string& arch)
-{
-    if(arch == "gfx90a")
-    {
-        if(idx >= 5)
-        {
-            idx += 2; // skip MPerXDL and NPerXDL as they are constant
-        }
-    }
-    if(idx == 0 && arch == "gfx942")
-    {
-        InitHeuristicKernelIDs(value);
-        if(!heuristic_indexes.empty())
-            return true;
-        return false;
-    }
-    if(idx >= 1 && arch == "gfx942")
-        idx--;
-    auto eraseBegin = std::remove_if(
-        heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
-            return heuristic_kernels[heuristic_index][idx] != value;
-        });
-
-    if(eraseBegin != heuristic_indexes.begin())
-    {
-        heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
-        return true;
-    }
-    return false;
-}
-
-static std::vector<float>
-GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::string& arch)
-{
-    if(arch == "gfx90a")
-    {
-        std::size_t n = 18;
-        std::vector<float> features(n, 0.0f);
-        features[0]  = problem.GetInDataType() == miopenFloat ? 2 : 1;
-        features[1]  = problem.GetInChannels();
-        features[2]  = problem.GetInHeight();
-        features[3]  = problem.GetInWidth();
-        features[4]  = problem.GetOutChannels();
-        features[5]  = problem.GetOutHeight();
-        features[6]  = problem.GetOutWidth();
-        features[7]  = problem.GetWeightsHeight();
-        features[8]  = problem.GetWeightsWidth();
-        features[9]  = problem.GetPadH();
-        features[10] = problem.GetPadW();
-        features[11] = problem.GetKernelStrideH();
-        features[12] = problem.GetKernelStrideW();
-        features[13] = problem.GetDilationH();
-        features[14] = problem.GetDilationW();
-        features[15] = problem.GetBatchSize();
-        features[16] = problem.GetGroupCount();
-        features[17] = num_cu;
-        return features;
-    }
-
-    const bool isFwd = problem.GetDirection() == miopen::conv::Direction::Forward;
-    float precision  = 2.0; // miopenHalf
-    if(problem.GetInDataType() == miopenFloat)
-        precision = 3.0;
-    else if(problem.GetInDataType() == miopenBFloat16)
-        precision = 1.0;
-
-    std::size_t n = 17;
-    std::vector<float> features(n * n, 0.0f);
-    features[0]           = isFwd ? problem.GetInChannels() : problem.GetOutChannels();
-    features[n + 1]       = isFwd ? problem.GetInHeight() : problem.GetOutHeight();
-    features[2 * n + 2]   = isFwd ? problem.GetInWidth() : problem.GetOutWidth();
-    features[3 * n + 3]   = isFwd ? problem.GetOutChannels() : problem.GetInChannels();
-    features[4 * n + 4]   = isFwd ? problem.GetOutHeight() : problem.GetInHeight();
-    features[5 * n + 5]   = isFwd ? problem.GetOutWidth() : problem.GetInWidth();
-    features[6 * n + 6]   = problem.GetWeightsHeight();
-    features[7 * n + 7]   = problem.GetWeightsWidth();
-    features[8 * n + 8]   = problem.GetPadH();
-    features[9 * n + 9]   = problem.GetPadW();
-    features[10 * n + 10] = problem.GetKernelStrideH();
-    features[11 * n + 11] = problem.GetKernelStrideW();
-    features[12 * n + 12] = problem.GetDilationH();
-    features[13 * n + 13] = problem.GetDilationW();
-    features[14 * n + 14] = problem.GetBatchSize();
-    features[15 * n + 15] = precision;
-    features[16 * n + 16] = problem.GetGroupCount();
-    return features;
-}
-
-template <typename DataType>
-bool PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::RunParameterPredictionModel(
-    const ExecutionContext& ctx, const ProblemDescription& problem)
-{
-    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(
-        problem); // filter valid_kernel ID's
-    static const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(arch == "gfx90a")
-        InitHeuristicKernelIDs("DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle");
-    static const std::string solver = "ConvHipIgemmGroupFwdXdlops";
-    std::vector<float> features = GetFeatures(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
-    bool transform              = (arch == "gfx90a") ? false : true;
-    if(ai::tuning::ModelSetParams(arch,
-                                  solver,
-                                  problem.GetDirection(),
-                                  features,
-                                  transform,
-                                  [&](int idx, const std::string& value) {
-                                      return this->ModelApplyToken(idx, value, arch);
-                                  }))
-    {
-        index     = heuristic_indexes[0];
-        kernel_id = valid_kernels[index];
-        MIOPEN_LOG_I("Params set by AI: " << ToString());
-        return true;
-    }
-    return false;
-}
-#endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
 bool PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::IsModelApplicable(
@@ -378,26 +229,6 @@ void PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::HeuristicInit(
     kernel_id = "";
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    if(IsModelApplicable(ctx, problem))
-    {
-        if(problem.GetInDataType() == miopenFloat)
-        {
-            if(RunParameterPredictionModel<float>(ctx, problem))
-                return;
-        }
-        else if(problem.GetInDataType() == miopenBFloat16)
-        {
-            if(RunParameterPredictionModel<ck::bhalf_t>(ctx, problem))
-                return;
-        }
-        else
-        {
-            if(RunParameterPredictionModel<ck::half_t>(ctx, problem))
-                return;
-        }
-    }
-#endif
     switch(problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
@@ -532,7 +363,7 @@ bool ConvHipImplicitGemmGroupFwdCKNCHWXdlops::IsApplicable(
     if(problem.HasMixedDataTypes())
         return false;
     // needed because layout transpose kernel does not support non-packed tensors
-    if(pproblem.HasNonPackedTensors())
+    if(problem.HasNonPackedTensors())
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
