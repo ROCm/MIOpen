@@ -36,24 +36,31 @@ namespace solver {
 
 namespace batchnorm {
 
-inline void GetWGSizeNHWC(size_t c,
-                          size_t h,
-                          size_t w,
-                          size_t min_workgroups,
-                          bool bfp32parm,
-                          size_t vectorsize,
-                          size_t& xlocalsize,
-                          size_t& ylocalsize)
+// Compute workgroup size configuration given a problem (NHWC) and a vectorsize
+// It supports only 2D workgroups
+inline void GetLocalConfigNHWC(const miopen::batchnorm::ProblemDescription& problem,
+                               size_t vectorsize,
+                               size_t& xlocalsize,
+                               size_t& ylocalsize)
 {
+    bool bfp32parm =
+        problem.GetXDesc().GetType() == miopenHalf || problem.GetXDesc().GetType() == miopenBFloat16
+            ? false
+            : true;
+
+    size_t n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
+
+    // Compute workgroup size
     unsigned int xlocalsize_limit = vectorsize > 1 ? (bfp32parm ? 16 : 32) : 64;
     // shared memory size per workgroup is fixed
     unsigned int max_localsize = 1024 / vectorsize;
 
     size_t nworkgroups = 0;
-    xlocalsize         = 0;
     // decrease max_localsize until the number of workgroups is greater than 80%
     // of the available CUs
-    while(nworkgroups < min_workgroups && max_localsize >= xlocalsize_limit)
+    while(nworkgroups < problem.GetMinWorkgroups() && max_localsize >= xlocalsize_limit &&
+          max_localsize > 64)
     {
         // xlocalsize must be power of 2 as reductions in the kernels rely on it, here c is rounded
         // up to next power of 2.
@@ -66,140 +73,13 @@ inline void GetWGSizeNHWC(size_t c,
     }
 }
 
-inline int GetStashMethod(bool IsLayoutNHWC,
-                          miopenDataType_t problem_type,
-                          unsigned int stash_values,
-                          size_t c,
-                          size_t n,
-                          size_t in_cstride,
-                          unsigned int ylocalsize)
-{
-    // See `batchnorm_functions.hpp` for stash implementation of different methods
-    int stash_method = 0;
-    stash_values *= (problem_type == miopenFloat ? 1 : 2);
-    unsigned int last_ylocalsize =
-        (in_cstride) % ylocalsize == 0 ? ylocalsize : (in_cstride) % ylocalsize;
-    if(last_ylocalsize < stash_values && n >= (size_t)stash_values)
-    {
-        stash_method = 1;
-    }
-    if(IsLayoutNHWC && !(problem_type == miopenFloat) && (c % 2 != 0) && (n >= stash_values))
-    {
-        stash_method = 2;
-    }
-    return stash_method;
-}
-
-// Returns true if spatial multiple is applicable and fill NHWC configuration
-// (xlocalsize, ylocalsize).
-// First workgroup size is computed given a problem and vectorsize, then it checks
-// if the computed workgroup is applicable (spatial multiple restrictions)
-inline bool GetLocalConfigNHWC(const miopen::batchnorm::ProblemDescription& problem,
-                               unsigned int stash_values,
-                               size_t vectorsize,
-                               size_t& xlocalsize,
-                               size_t& ylocalsize)
-{
-    bool bfp32parm =
-        problem.GetXDesc().GetType() == miopenHalf || problem.GetXDesc().GetType() == miopenBFloat16
-            ? false
-            : true;
-
-    size_t n, c, h, w = 0;
-    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
-    assert((n != 0) && "n cannot be 0");
-    assert((c != 0) && "c cannot be 0");
-    assert((h != 0) && "h cannot be 0");
-    assert((w != 0) && "w cannot be 0");
-
-    GetWGSizeNHWC(
-        c, h, w, problem.GetMinWorkgroups(), bfp32parm, vectorsize, xlocalsize, ylocalsize);
-    assert((xlocalsize != 0) && "xlocalsize cannot be 0");
-    assert((ylocalsize != 0) && "ylocalsize cannot be 0");
-    if(ylocalsize == 0)
-    {
-        ylocalsize = 1;
-    }
-    stash_values *= (bfp32parm ? 1 : 2);
-    unsigned int last_ylocalsize = (h * w) % ylocalsize == 0 ? ylocalsize : (h * w) % ylocalsize;
-    // FP32:
-    //  - last block must have enough space to stash intermediate results in HW dimension
-    //  - if last block doesn't fit, intermediate results are stored in N dimension which must
-    //    be large enough
-    // Mix precision:
-    //  - last block must have enough space to stash intermediate results in HW dimension
-    //  - if last block doesn't fit, intermediate results are stored in N dimension which must
-    //    be large enough
-    //  - if C is not multiple of 2, intermediate results are stored in N dimension splitting
-    //    float values in group of 2 bytes. N must be large enough
-    if((!bfp32parm && (c % 2 != 0 && n < (size_t)stash_values)) ||
-       ((last_ylocalsize < stash_values) && (n < (size_t)stash_values)))
-    {
-        return false;
-    }
-
-    return true;
-}
-
-inline bool IsSpatialMultipleApplicable(const miopen::batchnorm::ProblemDescription& problem,
-                                        size_t vectorsize,
-                                        unsigned int stash_values)
-{
-    int n, c, h, w = 0;
-    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
-    assert((n != 0) && "n cannot be 0");
-    assert((c != 0) && "c cannot be 0");
-    assert((h != 0) && "h cannot be 0");
-    assert((w != 0) && "w cannot be 0");
-
-    unsigned int in_cstride = h * w;
-
-    if(problem.IsLayoutNHWC())
-    {
-        // check if the provided vectorsize can be used
-        if(c % vectorsize != 0)
-        {
-            return false;
-        }
-        // Variant 2 is the primary choice for NHWC
-        size_t xlocalsize, ylocalsize = 0;
-
-        // The configuration is ignored at this point, it was just computed to check
-        // if spatial multiple could be applied.
-        return GetLocalConfigNHWC(problem, stash_values, vectorsize, xlocalsize, ylocalsize);
-    }
-    else
-    {
-        // check if the provided vectorsize can be used
-        if(in_cstride % vectorsize != 0)
-        {
-            return false;
-        }
-
-        unsigned int ylocalsize = 1024;
-        unsigned int last_ylocalsize =
-            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
-        // Restrictions:
-        //  - last block must have enough space to stash intermediate results in HW dimension
-        //  - if last block doesn't fit, intermediate results are stored in N dimension which must
-        //    be large enough
-        stash_values *= (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2);
-        if(last_ylocalsize < stash_values && n < (size_t)stash_values)
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
+// Provide workgroup sizes for spatial multiple configuration.
+// It returns the preferred spatial multiple configuration, which is used without tuning.
+// If tuning is enabled, this configuration is also added to the group of instances.
 inline void GetSpatialMultipleConfig(const miopen::batchnorm::ProblemDescription& problem,
-                                     unsigned int stash_values,
                                      size_t vectorsize,
                                      size_t& xlocalsize,
-                                     size_t& ylocalsize,
-                                     size_t& xgridsize,
-                                     size_t& ygridsize,
-                                     int& stash_method)
+                                     size_t& ylocalsize)
 {
     int n, c, h, w;
     std::tie(n, c, h, w)    = tien<4>(problem.GetXDesc().GetLengths());
@@ -207,17 +87,11 @@ inline void GetSpatialMultipleConfig(const miopen::batchnorm::ProblemDescription
 
     if(problem.IsLayoutNHWC())
     {
-        // The function returns if the method is valid but we can ignore it
-        // at this point
-        GetLocalConfigNHWC(problem, stash_values, vectorsize, xlocalsize, ylocalsize);
-
-        xgridsize = xlocalsize * ((c / vectorsize + xlocalsize - 1) / xlocalsize);
-        ygridsize = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+        GetLocalConfigNHWC(problem, vectorsize, xlocalsize, ylocalsize);
     }
     else
     {
         xlocalsize = 1;
-        xgridsize  = c;
         ylocalsize = 1024;
         if(ylocalsize > in_cstride / vectorsize)
         {
@@ -225,36 +99,11 @@ inline void GetSpatialMultipleConfig(const miopen::batchnorm::ProblemDescription
             ylocalsize = std::max(size_t{64},
                                   size_t{1 << int(std::ceil(std::log2(in_cstride / vectorsize)))});
         }
-        ygridsize = ylocalsize * ((in_cstride / vectorsize + ylocalsize - 1) / ylocalsize);
-    }
-    stash_method = GetStashMethod(problem.IsLayoutNHWC(),
-                                  problem.GetXDesc().GetType(),
-                                  stash_values,
-                                  c,
-                                  n,
-                                  in_cstride,
-                                  ylocalsize);
-}
-
-inline void GetVariantFromKernelId(const std::string& kernel_id, int& variant, size_t& vectorsize)
-{
-    // kernel_id has the following standard:
-    // Variant<variant>-<vectorsize>
-    size_t pos = kernel_id.find("Variant");
-    if(pos != std::string::npos)
-    {
-        variant    = kernel_id[pos + 7] - '0';
-        vectorsize = kernel_id[pos + 9] - '0';
     }
 }
 
-inline std::string GetKernelIdFromVariant(int variant, size_t vectorsize)
-{
-    std::stringstream stream;
-    stream << "Variant" << variant << "-" << vectorsize;
-    return stream.str();
-}
-
+// Return true if spatial multiple is the preferred method to be used.
+// The function is based on heuristics and it returns always true for NHWC.
 inline bool UseMultiple(const miopen::batchnorm::ProblemDescription& problem)
 {
     size_t n, c, h, w;
@@ -263,8 +112,6 @@ inline bool UseMultiple(const miopen::batchnorm::ProblemDescription& problem)
     unsigned int in_cstride = h * w;
     unsigned int in_nhw     = n * in_cstride;
     // Check heuristics (used to choose between spatial single and multiple for performance)
-    // TODO: review these conditions (variant 2 was optimized and vectorization was added,
-    // so we need a set of benchmarks to check that these conditions are still correct)
     if(!problem.IsLayoutNHWC() &&
        problem.GetDirection() == miopen::batchnorm::Direction::Backward &&
        (!((in_nhw >= static_cast<size_t>(32 * 1024 * 1024) || in_cstride <= 1024) &&
@@ -284,6 +131,91 @@ inline bool UseMultiple(const miopen::batchnorm::ProblemDescription& problem)
     return true;
 }
 
+// Provide the stash method to use for spatial multiple implementation
+inline int GetStashMethod(bool IsLayoutNHWC,
+                          miopenDataType_t problem_type,
+                          unsigned int stash_values,
+                          size_t c,
+                          size_t n,
+                          size_t in_cstride,
+                          size_t ylocalsize,
+                          size_t zlocalsize,
+                          size_t nelements)
+{
+    // See `batchnorm_functions.hpp` for stash implementation of different methods
+    int stash_method = 0;
+    stash_values *= (problem_type == miopenFloat ? 1 : 2);
+    unsigned int last_ylocalsize =
+        (in_cstride) % ylocalsize == 0 ? ylocalsize : (in_cstride) % ylocalsize;
+    unsigned int last_zlocalsize =
+        n % (zlocalsize * nelements) == 0 ? (zlocalsize * nelements) : n % (zlocalsize * nelements);
+    if(last_ylocalsize < stash_values && last_zlocalsize >= (size_t)stash_values)
+    {
+        stash_method = 1;
+    }
+    if(IsLayoutNHWC && !(problem_type == miopenFloat) && (c % 2 != 0) &&
+       (last_zlocalsize >= stash_values))
+    {
+        stash_method = 2;
+    }
+    return stash_method;
+}
+
+// Spatial single
+// Variant<variant>-<vectorsize>
+inline std::string GetKernelIdFromVariant(int variant, size_t vectorsize)
+{
+    std::stringstream stream;
+    stream << "Variant" << variant << "-" << vectorsize;
+    return stream.str();
+}
+
+// Spatial multiple
+// Variant<variant>-<vectorsize>-<xlocalsize>-<ylocalsize>-<zlocalsize>-<nelements>
+inline std::string GetKernelIdFromVariant(int variant,
+                                          size_t vectorsize,
+                                          size_t xlocalsize,
+                                          size_t ylocalsize,
+                                          size_t zlocalsize,
+                                          size_t nelements)
+{
+    std::stringstream stream;
+    stream << "Variant" << variant << "-" << vectorsize << "-" << xlocalsize << "-" << ylocalsize
+           << "-" << zlocalsize << "-" << nelements;
+    return stream.str();
+}
+
+// Return tuning parameters from kernel_id string
+// In case of variant != 2 (spatial single), only variant and vectorsize are meaningful
+inline void GetVariantFromKernelId(const std::string& kernel_id,
+                                   int& variant,
+                                   size_t& vectorsize,
+                                   size_t& xlocalsize,
+                                   size_t& ylocalsize,
+                                   size_t& zlocalsize,
+                                   size_t& nelements)
+{
+    std::stringstream iss(&kernel_id[7]);
+    std::string segment;
+    std::vector<std::string> seglist;
+
+    while(std::getline(iss, segment, '-'))
+    {
+        seglist.push_back(segment);
+    }
+    variant    = std::stoi(seglist[0]);
+    vectorsize = std::stoi(seglist[1]);
+    if(variant != 2)
+    {
+        return;
+    }
+    xlocalsize = std::stoi(seglist[2]);
+    ylocalsize = std::stoi(seglist[3]);
+    zlocalsize = std::stoi(seglist[4]);
+    nelements  = std::stoi(seglist[5]);
+}
+
+// Add spatial single instances for given problem
 inline void DefaultConfigSpatialSingle(const miopen::batchnorm::ProblemDescription& problem,
                                        std::vector<std::string>& valid_kernels)
 {
@@ -368,6 +300,88 @@ inline void DefaultConfigSpatialSingle(const miopen::batchnorm::ProblemDescripti
     valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
 }
 
+// Check if spatial multiple implementation can be used for a given problem
+// and workgroup configuration.
+inline bool IsSpatialMultipleApplicable(const miopen::batchnorm::ProblemDescription& problem,
+                                        size_t vectorsize,
+                                        unsigned int stash_values,
+                                        size_t ylocalsize,
+                                        size_t zlocalsize,
+                                        size_t nelements)
+{
+    int n, c, h, w;
+    std::tie(n, c, h, w)    = tien<4>(problem.GetXDesc().GetLengths());
+    unsigned int in_cstride = h * w;
+
+    if(problem.IsLayoutNHWC())
+    {
+        // check if the provided vectorsize can be used
+        if(c % vectorsize != 0)
+        {
+            return false;
+        }
+
+        bool bfp32parm = problem.GetXDesc().GetType() == miopenHalf ||
+                                 problem.GetXDesc().GetType() == miopenBFloat16
+                             ? false
+                             : true;
+
+        stash_values *= (bfp32parm ? 1 : 2);
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+
+        unsigned int last_zlocalsize = n % (zlocalsize * nelements) == 0
+                                           ? (zlocalsize * nelements)
+                                           : n % (zlocalsize * nelements);
+
+        // FP32:
+        //  - last block must have enough space to stash intermediate results in HW dimension
+        //  - if last block doesn't fit, intermediate results are stored in N dimension which must
+        //    be large enough
+        // Mix precision:
+        //  - last block must have enough space to stash intermediate results in HW dimension
+        //  - if last block doesn't fit, intermediate results are stored in N dimension which must
+        //    be large enough
+        //  - if C is not multiple of 2, intermediate results are stored in N dimension splitting
+        //    float values in group of 2 bytes. N must be large enough
+        if((!bfp32parm && (c % 2 != 0 && last_zlocalsize < (size_t)stash_values)) ||
+           ((last_ylocalsize < stash_values) && (last_zlocalsize < (size_t)stash_values)))
+        {
+            return false;
+        }
+    }
+    else
+    {
+        // check if the provided vectorsize can be used
+        if(in_cstride % vectorsize != 0)
+        {
+            return false;
+        }
+
+        unsigned int last_ylocalsize =
+            in_cstride % ylocalsize == 0 ? ylocalsize : in_cstride % ylocalsize;
+
+        unsigned int last_zlocalsize = n % (zlocalsize * nelements) == 0
+                                           ? (zlocalsize * nelements)
+                                           : n % (zlocalsize * nelements);
+        // Restrictions:
+        //  - last block must have enough space to stash intermediate results in HW dimension
+        //  - if last block doesn't fit, intermediate results are stored in N dimension which must
+        //    be large enough
+        stash_values *= (problem.GetXDesc().GetType() == miopenFloat ? 1 : 2);
+        if(last_ylocalsize < stash_values && last_zlocalsize < (size_t)stash_values)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Add spatial multiple instances for given problem
+// The first instance added is based on heuristics.
+// No more instances are added in case of NCHW with n <= 64 because on average performance
+// uplift is very limited. With large batch sizes the full parameter space is added.
+// For NHWC the full parameter space is always added.
 inline void DefaultConfigSpatialMultiple(const miopen::batchnorm::ProblemDescription& problem,
                                          unsigned int stash_values,
                                          std::vector<std::string>& valid_kernels)
@@ -376,26 +390,146 @@ inline void DefaultConfigSpatialMultiple(const miopen::batchnorm::ProblemDescrip
     std::tie(n, c, h, w)    = tien<4>(problem.GetXDesc().GetLengths());
     unsigned int in_cstride = h * w;
 
-    // Default configuration for spatial multiple tries to use vectorization
-    // for both NCHW or NHWC
-    size_t vectorsize =
-        problem.IsLayoutNHWC() ? (c % 4 == 0 ? 4 : 1) : (in_cstride % 4 == 0 ? 4 : 1);
-    if(IsSpatialMultipleApplicable(problem, vectorsize, stash_values))
+    // Largest supported vector size for this problem
+    size_t vectorsize_limit = problem.IsLayoutNHWC()
+                                  ? (c % 4 == 0 ? 4 : (c % 2 == 0 ? 2 : 1))
+                                  : (in_cstride % 4 == 0 ? 4 : (in_cstride % 2 == 0 ? 2 : 1));
+
+    // First add the default config (heuristics).
+    // Try to create a configuration with the largest vector size (vectorsize_limit).
+    // If that's not applicable, fall back to configuration without vectorization.
     {
-        valid_kernels.push_back(GetKernelIdFromVariant(2, vectorsize));
-        // if vectorized version is applicable, then the non vectorized version
-        // is also added to the list of configurations
-        if(vectorsize > 1)
+        size_t xlocalsize, ylocalsize;
+        size_t vectorsize = vectorsize_limit;
+        size_t zlocalsize = 1;
+        size_t nelements  = n;
+        GetSpatialMultipleConfig(problem, vectorsize, xlocalsize, ylocalsize);
+
+        if(IsSpatialMultipleApplicable(
+               problem, vectorsize, stash_values, ylocalsize, zlocalsize, nelements))
         {
-            valid_kernels.push_back(GetKernelIdFromVariant(2, 1));
+            valid_kernels.push_back(GetKernelIdFromVariant(
+                2, vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements));
         }
-        return;
+        else
+        {
+            if(vectorsize > 1)
+            {
+                GetSpatialMultipleConfig(problem, 1, xlocalsize, ylocalsize);
+
+                if(IsSpatialMultipleApplicable(
+                       problem, 1, stash_values, ylocalsize, zlocalsize, nelements))
+                {
+                    valid_kernels.push_back(GetKernelIdFromVariant(
+                        2, vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements));
+                }
+            }
+        }
     }
 
-    // If spatial multiple with vectorization can not be used, try without vectorization
-    if(vectorsize > 1 && IsSpatialMultipleApplicable(problem, 1, stash_values))
+    // Add the full parameter space
+    if(problem.IsLayoutNHWC())
     {
-        valid_kernels.push_back(GetKernelIdFromVariant(2, 1));
+        // All vector sizes less or equal to the supported vector size limit
+        for(size_t vectorsize = vectorsize_limit; vectorsize > 0; vectorsize >>= 1)
+        {
+            size_t xlocalsize_limit_high = vectorsize > 1 ? 32 : 64;
+            size_t xlocalsize_limit_low  = vectorsize > 1 ? 16 : 32;
+            // this local size seems to always be the best one, so there is no need to check
+            // other ones
+            size_t max_localsize = 1024 / vectorsize;
+            // xlocalsize = 32, 16 with vectorization
+            // xlocalsize = 64, 32 without vectorization
+            for(size_t xlocalsize_limit = xlocalsize_limit_high;
+                xlocalsize_limit >= xlocalsize_limit_low;
+                xlocalsize_limit >>= 1)
+            {
+                size_t xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c / vectorsize)))},
+                                             xlocalsize_limit);
+                // zlocalsize = 1, 2, 4
+                for(size_t zlocalsize = 1; zlocalsize <= 4; zlocalsize <<= 1)
+                {
+                    // 1 zblock: nelements = n / zlocalsize
+                    // 2 zblock: nelements = n / (2 * zlocalsize)
+                    for(size_t i = 1; i <= 2; ++i)
+                    {
+                        size_t nelements = n / (i * zlocalsize);
+                        if(nelements == 0)
+                        {
+                            continue;
+                        }
+                        // Currently only this case is supported
+                        if(n % nelements != 0)
+                        {
+                            continue;
+                        }
+                        size_t ylocalsize = max_localsize / xlocalsize / zlocalsize;
+                        // Check if the computed instance is applicable and add it
+                        if(IsSpatialMultipleApplicable(problem,
+                                                       vectorsize,
+                                                       stash_values,
+                                                       ylocalsize,
+                                                       zlocalsize,
+                                                       nelements))
+                        {
+                            valid_kernels.push_back(GetKernelIdFromVariant(
+                                2, vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements));
+                        }
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        // Do not add full parameter space with small batch sizes
+        if(n < 64)
+        {
+            return;
+        }
+        // All vector sizes less equal than the supported vector size limit
+        for(size_t vectorsize = vectorsize_limit; vectorsize > 0; vectorsize >>= 1)
+        {
+            size_t xlocalsize       = 1;
+            size_t ylocalsize_limit = 1024;
+            if(ylocalsize_limit > in_cstride / vectorsize)
+            {
+                // No need to use workgroups larger than the HW dimension
+                ylocalsize_limit = std::max(
+                    size_t{64}, size_t{1 << int(std::ceil(std::log2(in_cstride / vectorsize)))});
+            }
+            // Workgroup sizes = ylocalsize_limit, ylocalsize_limit / 2 and ylocalsize_limit / 4
+            // It was observed than smaller workgroup size can be beneficial but could not
+            // generalize it, so all cases are considered.
+            for(size_t localsize_limit = ylocalsize_limit; localsize_limit >= ylocalsize_limit / 4;
+                localsize_limit >>= 1)
+            {
+                // zlocalsize = 1, 2, 4
+                for(size_t zlocalsize = 1; zlocalsize <= 4; zlocalsize <<= 1)
+                {
+                    size_t ylocalsize = localsize_limit / zlocalsize;
+                    // Only include case with 1 zblock
+                    size_t nelements = n / zlocalsize;
+                    // Currently only this case is supported
+                    if(n % nelements != 0)
+                    {
+                        continue;
+                    }
+                    // Condition necessary for running / saved mean and variance correctness
+                    if(ylocalsize <= 64)
+                    {
+                        continue;
+                    }
+                    // Check if the computed instance is applicable and add it
+                    if(IsSpatialMultipleApplicable(
+                           problem, vectorsize, stash_values, ylocalsize, zlocalsize, nelements))
+                    {
+                        valid_kernels.push_back(GetKernelIdFromVariant(
+                            2, vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements));
+                    }
+                }
+            }
+        }
     }
 }
 

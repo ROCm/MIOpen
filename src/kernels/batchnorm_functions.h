@@ -95,6 +95,8 @@
 #define _FLOAT8 PPCAT(_FLOAT, EIGHT)
 #define _AS_FLOAT PPCAT(as_, _FLOAT)
 
+#define _FLOAT_PREC2 PPCAT(_FLOAT_PREC, TWO)
+#define _FLOAT_ACCUM2 PPCAT(_FLOAT_ACCUM, TWO)
 #define _FLOAT_PREC4 PPCAT(_FLOAT_PREC, FOUR)
 #define _FLOAT_ACCUM4 PPCAT(_FLOAT_ACCUM, FOUR)
 
@@ -211,6 +213,10 @@
 #define MIO_BN_VECTORIZE 0
 #endif
 
+#ifndef MIO_BN_VEC_SIZE
+#define MIO_BN_VEC_SIZE 1
+#endif
+
 #ifndef MIO_BN_STASH_METHOD
 #define MIO_BN_STASH_METHOD 0
 #endif
@@ -221,11 +227,15 @@
                FLOATPREC2FLOAT(val.z), \
                FLOATPREC2FLOAT(val.w)))
 
+#define FLOATPREC2_2_FLOAT2(val) ((_FLOAT2)(FLOATPREC2FLOAT(val.x), FLOATPREC2FLOAT(val.y)))
+
 #define FLOAT4_2_FLOATPREC4(val)            \
     ((_FLOAT_PREC4)(FLOAT2FLOATPREC(val.x), \
                     FLOAT2FLOATPREC(val.y), \
                     FLOAT2FLOATPREC(val.z), \
                     FLOAT2FLOATPREC(val.w)))
+
+#define FLOAT2_2_FLOATPREC2(val) ((_FLOAT_PREC2)(FLOAT2FLOATPREC(val.x), FLOAT2FLOATPREC(val.y)))
 
 #define _ACCUMULATE1(a, b) a += b;
 
@@ -237,19 +247,28 @@
     a += b.z;              \
     a += b.w;
 
+#define _ACCUMULATE2(a, b) \
+    a += b.x;              \
+    a += b.y;
+
 #define _ACCUMULATE_MAD4(a, b, c, d) \
     a = mad(b.x, c.x, d);            \
     a = mad(b.y, c.y, d);            \
     a = mad(b.z, c.z, d);            \
     a = mad(b.w, c.w, d);
 
-#if MIO_BN_VECTORIZE
-#define VEC_SIZE 4
+#define _ACCUMULATE_MAD2(a, b, c, d) \
+    a = mad(b.x, c.x, d);            \
+    a = mad(b.y, c.y, d);
 
+#if MIO_BN_VECTORIZE
+
+#if MIO_BN_VEC_SIZE == 4
+// Case vectorsize 4
 #if MIO_LAYOUT_NHWC
 // NHWC vectorize in X direction which corresponds
 // to channels
-#define VEC_SIZE_X VEC_SIZE
+#define VEC_SIZE_X MIO_BN_VEC_SIZE
 #define VEC_SIZE_Y 1
 // _C suffix means used for computation
 // _LS suffix means used for loading / storing
@@ -265,7 +284,7 @@
 // NCHW vectorize in Y direction which corresponds
 // to HW
 #define VEC_SIZE_X 1
-#define VEC_SIZE_Y VEC_SIZE
+#define VEC_SIZE_Y MIO_BN_VEC_SIZE
 #define _FLOAT_PREC_C _FLOAT_PREC
 #define _FLOAT_PREC_LS _FLOAT_PREC4
 // _C suffix means used for computation
@@ -281,8 +300,47 @@
 #define FLOAT2FLOATPREC_VEC FLOAT4_2_FLOATPREC4
 #define FLOATPREC2FLOAT_VEC FLOATPREC4_2_FLOAT4
 
+#elif MIO_BN_VEC_SIZE == 2
+// Case vectorsize 2
+#if MIO_LAYOUT_NHWC
+// NHWC vectorize in X direction which corresponds
+// to channels
+#define VEC_SIZE_X MIO_BN_VEC_SIZE
+#define VEC_SIZE_Y 1
+// _C suffix means used for computation
+// _LS suffix means used for loading / storing
+#define _FLOAT_PREC_C _FLOAT_PREC2
+#define _FLOAT_PREC_LS _FLOAT_PREC2
+#define _FLOAT_C _FLOAT2
+#define _FLOAT_LS _FLOAT2
+#define _FLOAT_ACCUM_C _FLOAT_ACCUM2
+#define _FLOAT_ACCUM_LS _FLOAT_ACCUM2
+#define _ACCUMULATE _ACCUMULATE1
+#define _ACCUMULATE_MAD _ACCUMULATE_MAD1
 #else
+// NCHW vectorize in Y direction which corresponds
+// to HW
+#define VEC_SIZE_X 1
+#define VEC_SIZE_Y MIO_BN_VEC_SIZE
+#define _FLOAT_PREC_C _FLOAT_PREC
+#define _FLOAT_PREC_LS _FLOAT_PREC2
+// _C suffix means used for computation
+// _LS suffix means used for loading / storing
+#define _FLOAT_C _FLOAT
+#define _FLOAT_LS _FLOAT2
+#define _FLOAT_ACCUM_C _FLOAT_ACCUM
+#define _FLOAT_ACCUM_LS _FLOAT_ACCUM4
+#define _ACCUMULATE _ACCUMULATE2
+#define _ACCUMULATE_MAD _ACCUMULATE_MAD2
+#endif
 
+#define FLOAT2FLOATPREC_VEC FLOAT2_2_FLOATPREC2
+#define FLOATPREC2FLOAT_VEC FLOATPREC2_2_FLOAT2
+
+#endif
+
+#else
+// Case vectorsize 1 (no vectorization)
 #define VEC_SIZE 1
 #define VEC_SIZE_X 1
 #define VEC_SIZE_Y 1
@@ -312,6 +370,7 @@
 #endif
 
 inline unsigned int getStashIndex(unsigned int vindex,
+                                  unsigned int zgroupoffset,
                                   unsigned int ygroupoffset,
                                   unsigned int ystride,
                                   unsigned int xgrp_sz,
@@ -326,25 +385,29 @@ inline unsigned int getStashIndex(unsigned int vindex,
     // xgrp_sz values are split in two parts: even threads use 2 values at even rows, odd threads -
     // at odd rows.
     // The only restriction for C and xgrp_sz is that they must be even.
-    return (vindex * 2 + xlid % 2) * NSTRIDE + ygroupoffset * ystride +
-           (xgrp_sz * xgrp_id + xlid / 2 * 2) * xstride;
+    return zgroupoffset * (MIO_BN_C / VEC_SIZE_X * MIO_BN_HW) + (vindex * 2 + xlid % 2) * NSTRIDE +
+           ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid / 2 * 2) * xstride;
 #else
     // Values are stored consecutively in y dim.
-    return (vindex * 2) * NSTRIDE + ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+    return zgroupoffset * (MIO_BN_C / VEC_SIZE_X * MIO_BN_HW) + (vindex * 2) * NSTRIDE +
+           ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
 #endif
 #else // !MIO_LAYOUT_NHWC
     // Values are stored consecutively in y dim, indices are aligned up by 2 (_FLOAT_PREC).
-    return ((vindex * 2) * NSTRIDE + ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride +
+    return zgroupoffset * (MIO_BN_C / VEC_SIZE_X * MIO_BN_HW) +
+           ((vindex * 2) * NSTRIDE + ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride +
             1) /
-           2 * 2;
+               2 * 2;
 #endif
 #else
-    return vindex * NSTRIDE + ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
+    return zgroupoffset * (MIO_BN_C / VEC_SIZE_X * MIO_BN_HW) + vindex * NSTRIDE +
+           ygroupoffset * ystride + (xgrp_sz * xgrp_id + xlid) * xstride;
 #endif
 }
 
 inline _FLOAT_PREC_C loadFromStash(const __global _FLOAT_C* stash,
                                    unsigned int vindex,
+                                   unsigned int zgroupoffset,
                                    unsigned int ygroupoffset,
                                    unsigned int ystride,
                                    unsigned int xgrp_sz,
@@ -353,7 +416,7 @@ inline _FLOAT_PREC_C loadFromStash(const __global _FLOAT_C* stash,
                                    unsigned int xstride)
 {
     unsigned int index =
-        getStashIndex(vindex, ygroupoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        getStashIndex(vindex, zgroupoffset, ygroupoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
 
 #if(MIO_BN_STASH_METHOD == 0 || MIO_BN_STASH_METHOD == 1)
     return *((const __global _FLOAT_PREC_C*)(stash + index));
@@ -370,6 +433,7 @@ inline _FLOAT_PREC_C loadFromStash(const __global _FLOAT_C* stash,
 inline void storeToStash(_FLOAT_PREC_C value,
                          __global _FLOAT_C* stash,
                          unsigned int vindex,
+                         unsigned int zgroupoffset,
                          unsigned int ygroupoffset,
                          unsigned int ystride,
                          unsigned int xgrp_sz,
@@ -378,7 +442,7 @@ inline void storeToStash(_FLOAT_PREC_C value,
                          unsigned int xstride)
 {
     unsigned int index =
-        getStashIndex(vindex, ygroupoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
+        getStashIndex(vindex, zgroupoffset, ygroupoffset, ystride, xgrp_sz, xgrp_id, xlid, xstride);
 
 #if(MIO_BN_STASH_METHOD == 0 || MIO_BN_STASH_METHOD == 1)
     *((__global _FLOAT_PREC_C*)(stash + index)) = value;
