@@ -24,8 +24,10 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_TENSOR_VIEW_H
-#define GUARD_TENSOR_VIEW_H
+#ifndef GUARD_TENSOR_VIEW_HPP
+#define GUARD_TENSOR_VIEW_HPP
+
+#include <initializer_list>
 
 template <int N>
 struct tensor_layout_t;
@@ -65,14 +67,23 @@ struct tensor_layout_t
             for(auto i = N - 1; i > 1; --i)
             {
                 layout[i] = temp % tensor_view.size[i];
-                temp      = idx / tensor_view.size[i];
+                temp      = temp / tensor_view.size[i];
             }
             layout[1] = temp % tensor_view.size[1];
             layout[0] = temp / tensor_view.size[1];
         }
     }
 
+    constexpr tensor_layout_t(std::initializer_list<uint64_t> layout_)
+    {
+        static_assert(N > 0);
+        for(auto i = 0; i < N; ++i)
+        {
+            layout[i] = layout_.begin()[i];
+        }
+    }
+
     uint64_t layout[N];
 };
 
-#endif // GUARD_TENSOR_VIEW_H
+#endif // GUARD_TENSOR_VIEW_HPP

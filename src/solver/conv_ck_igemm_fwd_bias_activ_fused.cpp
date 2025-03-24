@@ -29,7 +29,7 @@
 #include <cstdint>
 
 #include <miopen/check_numerics.hpp>
-#include <miopen/solver.hpp>
+#include <miopen/env.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
@@ -293,11 +293,12 @@ void PerformanceConfigConvCKIgemmFwdBiasActivFused::HeuristicInit(
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(conv_problem); break;
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
+    case miopenInt64:
     case miopenBFloat16:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
@@ -347,11 +348,12 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::IsValid(
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(conv_problem);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
+    case miopenInt64:
     case miopenBFloat16:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
@@ -365,6 +367,7 @@ bool PerformanceConfigConvCKIgemmFwdBiasActivFused::operator==(
 {
     return this->kernel_id == other.kernel_id;
 }
+
 PerformanceConfigConvCKIgemmFwdBiasActivFused
 ConvCKIgemmFwdBiasActivFused::GetDefaultPerformanceConfig(
     const FusionContext&, const FusionDescription& fdesc_problem) const
@@ -404,7 +407,7 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     {
         MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
     }
-    if(miopen::IsDisabled(ENV(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV)))
+    if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_BIAS_ACTIV))
         return false;
     // check the sequence of prims
     if(desc.op_map.size() != 3)
@@ -433,8 +436,7 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     if(!conv_problem.Is2d())
         return false;
     const std::string arch = ctx.GetStream().GetDeviceName();
-    if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx940" && arch != "gfx941" &&
-       arch != "gfx942")
+    if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx942")
         return false;
     if(!conv_problem.IsLayoutNHWC())
         return false;
@@ -442,11 +444,12 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     switch(conv_problem.GetInDataType())
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(conv_problem);
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenFloat:
     case miopenInt32:
+    case miopenInt64:
     case miopenBFloat16:
     case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
@@ -475,11 +478,12 @@ ConvSolution ConvCKIgemmFwdBiasActivFused::GetSolution(
             case miopenHalf:
                 RunCKSolution<ck::half_t>(handle, primitive_parameters, conv_problem, config);
                 break;
-            case miopenFloat8:
-            case miopenBFloat8:
+            case miopenFloat8_fnuz:
+            case miopenBFloat8_fnuz:
             case miopenInt8:
             case miopenFloat:
             case miopenInt32:
+            case miopenInt64:
             case miopenBFloat16:
             case miopenDouble:
             default: MIOPEN_THROW("Unsupported datatype");

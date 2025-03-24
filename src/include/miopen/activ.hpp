@@ -39,7 +39,7 @@ namespace miopen {
 struct Handle;
 struct TensorDescriptor;
 
-struct ActivationDescriptor : miopenActivationDescriptor
+struct MIOPEN_INTERNALS_EXPORT ActivationDescriptor : miopenActivationDescriptor
 {
     ActivationDescriptor();
     ActivationDescriptor(miopenActivationMode_t m, const double* pparms);
@@ -50,7 +50,7 @@ struct ActivationDescriptor : miopenActivationDescriptor
     double GetBeta() const;
     double GetGamma() const;
 
-    miopenStatus_t Forward(Handle& handle,
+    miopenStatus_t Forward(const Handle& handle,
                            const void* alpha,
                            const TensorDescriptor& xDesc,
                            ConstData_t x,
@@ -58,9 +58,9 @@ struct ActivationDescriptor : miopenActivationDescriptor
                            const TensorDescriptor& yDesc,
                            Data_t y,
                            size_t xOffset = 0,
-                           size_t yOffset = 0);
+                           size_t yOffset = 0) const;
 
-    miopenStatus_t Backward(Handle& handle,
+    miopenStatus_t Backward(const Handle& handle,
                             const void* alpha,
                             const TensorDescriptor& yDesc,
                             ConstData_t y,
@@ -74,7 +74,7 @@ struct ActivationDescriptor : miopenActivationDescriptor
                             size_t yOffset  = 0,
                             size_t dyOffset = 0,
                             size_t xOffset  = 0,
-                            size_t dxOffset = 0);
+                            size_t dxOffset = 0) const;
 
     friend std::ostream& operator<<(std::ostream& stream, const ActivationDescriptor& x);
 

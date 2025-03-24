@@ -30,17 +30,6 @@
 
 namespace miopen {
 
-namespace fusion {
-
-bool IsWinograd(const std::vector<solver::AnySolver>& ss)
-{
-    assert(ss.size() == 1);
-    auto solverId = ss[0].GetSolverDbId();
-    return (solverId == "ConvBinWinogradRxSFused" || solverId == "ConvBinWinogradRxSf2x3g1Fused");
-}
-
-} // namespace fusion
-
 miopenStatus_t FusionOpDescriptor::GetNetworkConfig(std::ostringstream& /*network_config*/)
 {
     return miopenStatusSuccess;
@@ -83,7 +72,7 @@ BatchNormInferenceFusionOpDescriptor::GetNetworkConfig(std::ostringstream& netwo
 }
 
 std::vector<size_t>
-BatchNormInferenceFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
+BatchNormInferenceFusionOpDescriptor::GetLocalWGSz(const Handle& /*handle*/,
                                                    std::string /*algorithm_name*/)
 {
     std::vector<size_t> vld{256, 1, 1};
@@ -91,7 +80,7 @@ BatchNormInferenceFusionOpDescriptor::GetLocalWGSz(Handle& /*handle*/,
 }
 
 std::vector<size_t>
-BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(Handle& /*handle*/,
+BatchNormInferenceFusionOpDescriptor::GetGlobalWGSz(const Handle& /*handle*/,
                                                     std::string /*algorithm_name*/)
 {
     if(input_desc.GetLengths().empty())

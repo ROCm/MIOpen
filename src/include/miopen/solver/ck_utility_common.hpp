@@ -54,24 +54,24 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx906") ||
            StartsWith(handle.GetDeviceName(), "gfx908") ||
            StartsWith(handle.GetDeviceName(), "gfx90a") ||
-           StartsWith(handle.GetDeviceName(), "gfx940") ||
-           StartsWith(handle.GetDeviceName(), "gfx941") ||
            StartsWith(handle.GetDeviceName(), "gfx942") ||
+           StartsWith(handle.GetDeviceName(), "gfx950") ||
            StartsWith(handle.GetDeviceName(), "gfx1030") ||
            StartsWith(handle.GetDeviceName(), "gfx1031") ||
            StartsWith(handle.GetDeviceName(), "gfx1100") ||
            StartsWith(handle.GetDeviceName(), "gfx1101") ||
-           StartsWith(handle.GetDeviceName(), "gfx1102");
+           StartsWith(handle.GetDeviceName(), "gfx1102") ||
+           StartsWith(handle.GetDeviceName(), "gfx1200") ||
+           StartsWith(handle.GetDeviceName(), "gfx1201");
 }
 
 // MI100 : gfx908
 // MI200 : gfx90a
-// MI300 : gfx940, gfx941, gfx942
+// MI300 : gfx942
 static inline bool is_ck_whitelist(const std::string& device_name)
 {
     return (StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||
-            StartsWith(device_name, "gfx940") || StartsWith(device_name, "gfx941") ||
-            StartsWith(device_name, "gfx942"));
+            StartsWith(device_name, "gfx942") || StartsWith(device_name, "gfx950"));
 }
 
 static inline bool is_ck_whitelist(const Handle& handle)
@@ -105,12 +105,10 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
         compiler_flag << " -DCK_AMD_GPU_GFX908";
     else if(StartsWith(device_name, "gfx90a"))
         compiler_flag << " -DCK_AMD_GPU_GFX90A";
-    else if(StartsWith(device_name, "gfx940"))
-        compiler_flag << " -DCK_AMD_GPU_GFX940";
-    else if(StartsWith(device_name, "gfx941"))
-        compiler_flag << " -DCK_AMD_GPU_GFX941";
     else if(StartsWith(device_name, "gfx942"))
         compiler_flag << " -DCK_AMD_GPU_GFX942";
+    else if(StartsWith(device_name, "gfx950"))
+        compiler_flag << " -DCK_AMD_GPU_GFX950";
     else if(StartsWith(device_name, "gfx1030"))
         compiler_flag << " -DCK_AMD_GPU_GFX1030";
     else if(StartsWith(device_name, "gfx1031"))
@@ -121,6 +119,10 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
         compiler_flag << " -DCK_AMD_GPU_GFX1101";
     else if(StartsWith(device_name, "gfx1102"))
         compiler_flag << " -DCK_AMD_GPU_GFX1102";
+    else if(StartsWith(device_name, "gfx1200"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1200";
+    else if(StartsWith(device_name, "gfx1201"))
+        compiler_flag << " -DCK_AMD_GPU_GFX1201";
     // NOLINTEND(*-braces-around-statements)
 
     // buffer atomic-fadd
@@ -129,14 +131,11 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
 
     // sync LDS
     compiler_flag << " -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM="
-                  << (miopen::IsDisabled(ENV(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM))
-                          ? '0'
-                          : '1');
+                  << (env::disabled(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM) ? '0' : '1');
 
     // buffer addressing
     compiler_flag << " -DCK_USE_AMD_BUFFER_ADDRESSING="
-                  << (miopen::IsDisabled(ENV(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING)) ? '0'
-                                                                                         : '1');
+                  << (env::disabled(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING) ? '0' : '1');
 
     return compiler_flag.str();
 }

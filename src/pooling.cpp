@@ -215,10 +215,10 @@ void PoolingDescriptor::GetForwardOutputDimNd(const TensorDescriptor& xDesc,
 
 TensorDescriptor PoolingDescriptor::GetForwardOutputTensor(const TensorDescriptor& xDesc) const
 {
-    std::vector<int> out_dim(xDesc.GetSize());
-    GetForwardOutputDimNd(xDesc, xDesc.GetSize(), out_dim.data());
+    std::vector<int> out_dim(xDesc.GetNumDims());
+    GetForwardOutputDimNd(xDesc, xDesc.GetNumDims(), out_dim.data());
 
-    const std::string default_layout = tensor_layout_get_default(xDesc.GetSize());
+    const std::string default_layout = tensor_layout_get_default(xDesc.GetNumDims());
     const std::string in_layout      = xDesc.GetLayout(default_layout);
     std::vector<int> out_strides;
     tensor_layout_to_strides(out_dim, default_layout, in_layout, out_strides);
@@ -233,7 +233,7 @@ std::size_t PoolingDescriptor::GetWorkSpaceSize(const TensorDescriptor& yDesc) c
 
     const auto main_ws = GetMode() == miopenPoolingMax ? y_size * index_e_size : 0;
 
-    const auto labels        = tensor_layout_get_default(yDesc.GetSize());
+    const auto labels        = tensor_layout_get_default(yDesc.GetNumDims());
     std::size_t transpose_ws = 0;
 
     if(yDesc.GetLayout(labels) != labels)
