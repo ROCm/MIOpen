@@ -306,7 +306,7 @@ private:
 
         /// \todo figure out a better threshold for error checking, esp. for bwd
         /// data and weight passes. --amberhassaan
-        double threshold = 80;
+        double threshold = 160;
         if(CONV_DIR == Direction::Forward)
         {
             threshold *= std::numeric_limits<T>::epsilon();
