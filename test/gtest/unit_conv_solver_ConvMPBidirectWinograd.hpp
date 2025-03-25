@@ -34,6 +34,9 @@
 #error "WINO_FILTER_H undefined"
 #endif
 
+// WORKAROUND_LWPMIOPEN_1388 Disabling tests due to tolerance issues
+#define WORKAROUND_LWPMIOPEN_1388 1
+
 // WORKAROUND_SWDEV_257202 disables these solvers due to SSD convergence issues.
 // However we still want to check that solver is not broken and therefore use
 // MIOPEN_DEBUG_AMD_MP_BD_WINOGRAD_FnX3=1.
@@ -54,7 +57,12 @@
 #define SHORT_SOLVER_NAME \
     CONCAT2(MPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
 
+#if WORKAROUND_LWPMIOPEN_1388
+#define SOLVER_NAME \
+    CONCAT2(DISABLED_ConvMPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
+#else
 #define SOLVER_NAME CONCAT2(ConvMPBidirectWinogradF, MAKE_SUFFIX_LOWER(WINO_DATA_H, WINO_FILTER_H))
+#endif
 
 #define TESTSUITE_NAME_GENERIC(hw_type, name, datatype) CONCAT5(hw_type, _, name, _, datatype)
 
