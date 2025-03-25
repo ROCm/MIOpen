@@ -53,7 +53,8 @@ auto GetConvTestCases(miopenDataType_t datatype)
 {
     using TestCase = miopen::unit_tests::ConvTestCase;
 
-    return std::vector{
+    return std::vector
+    {
         // clang-format off
 #if 0
         TestCase{{256, 32, 27, 27}, {128, 32, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
