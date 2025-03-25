@@ -47,7 +47,7 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
-        TestCase{{256, 2, 5, 5}, {1, 2, 3, 3}, {1, 1}, {2, 2}, {1, 1}, datatype},
+        TestCase{{256, 8, 5, 5}, {8, 8, 3, 3}, {1, 1}, {2, 2}, {1, 1}, datatype},
         // clang-format on
     };
 }
