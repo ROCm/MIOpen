@@ -52,7 +52,7 @@ template <typename DataType>
 using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
     2,
     ck::tensor_layout::convolution::NGCHW,
-    ck::tensor_layout::convolution::GKYXC,
+    ck::tensor_layout::convolution::GKCYX,
     ck::Tuple<>,
     ck::tensor_layout::convolution::NGKHW,
     DataType,
@@ -92,7 +92,7 @@ struct CKArgs
         // strides from NGCHW to GNCHW layout
         in_strides  = {Hi * Wi * C, Hi * Wi * G * C, Hi * Wi, Wi, 1};
         out_strides = {Ho * Wo * K, Ho * Wo * G * K, Ho * Wo, Wo, 1};
-        wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+        wei_strides = {K * C * Y * X, C * Y * X , Y * X, X, 1};
         strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),

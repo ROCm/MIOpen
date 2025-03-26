@@ -50,7 +50,7 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
 using InLayoutNCHW                         = ck::tensor_layout::convolution::NGCDHW;
-using WeiLayout                            = ck::tensor_layout::convolution::GKZYXC;
+using WeiLayoutNCHW                        = ck::tensor_layout::convolution::GKCZYX;
 using OutLayoutNCHW                        = ck::tensor_layout::convolution::NGKDHW;
 using PassThrough                          = ck::tensor_operation::element_wise::PassThrough;
 using Bilinear                             = ck::tensor_operation::element_wise::Bilinear;
@@ -61,7 +61,7 @@ template <typename DataType>
 using DeviceOpGFwdBilinear =
     ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NumDimSpatial,
                                                                   InLayoutNCHW,
-                                                                  WeiLayout,
+                                                                  WeiLayoutNCHW,
                                                                   ck::Tuple<OutLayoutNCHW>,
                                                                   OutLayoutNCHW,
                                                                   DataType,
@@ -76,7 +76,7 @@ template <typename DataType>
 using DeviceOpGFwdScale =
     ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NumDimSpatial,
                                                                   InLayoutNCHW,
-                                                                  WeiLayout,
+                                                                  WeiLayoutNCHW,
                                                                   ck::Tuple<>,
                                                                   OutLayoutNCHW,
                                                                   DataType,
@@ -91,7 +91,7 @@ template <typename DataType>
 using DeviceOpGFwdDefault =
     ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NumDimSpatial,
                                                                   InLayoutNCHW,
-                                                                  WeiLayout,
+                                                                  WeiLayoutNCHW,
                                                                   ck::Tuple<>,
                                                                   OutLayoutNCHW,
                                                                   DataType,
@@ -147,7 +147,7 @@ struct CKArgs
 
         in_strides  = {Di * Hi * Wi * C, Di * Hi * Wi * G * C, Di * Hi * Wi, Hi * Wi, Wi, 1};
         out_strides = {Do * Ho * Wo * K, Do * Ho * Wo * G * K, Do * Ho * Wo, Ho * Wo, Wo, 1};
-        wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+        wei_strides = {K * C * Z * Y * X, Z * C * Y * X, Z * Y * X, Y * X, X, 1};
 
         filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                           ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
