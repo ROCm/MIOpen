@@ -258,7 +258,7 @@ float Tolerances::Get(Gpu gpu, miopenDataType_t type) const
 std::ostream& operator<<(std::ostream& os, const Tolerances& t)
 {
     os << "(";
-    for(const auto [key, value]: t.values)
+    for(const auto [key, value] : t.values)
         os << std::hex << "0x" << key << std::dec << ":" << value << ",";
     os << ")";
     return os;
@@ -297,7 +297,9 @@ void UnitTestConvSolverParams::SetTolerance(Gpu gpu, miopenDataType_t type, floa
 std::ostream& operator<<(std::ostream& os, const UnitTestConvSolverParams& p)
 {
     os << "(";
-    os << "Devs:" << std::hex << "0x" << static_cast<std::underlying_type_t<decltype(p.supported_devs)>>(p.supported_devs) << std::dec;
+    os << "Devs:" << std::hex << "0x"
+       << static_cast<std::underlying_type_t<decltype(p.supported_devs)>>(p.supported_devs)
+       << std::dec;
     if(p.use_cpu_ref)
         os << ", CpuRef:" << p.use_cpu_ref;
     if(p.enable_deprecated_solvers)
