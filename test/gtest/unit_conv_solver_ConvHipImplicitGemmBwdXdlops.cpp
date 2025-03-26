@@ -108,8 +108,7 @@ TEST_P(GPU_UnitTestConvSolverImplicitGemmBwdXdlops_FP32, ConvHipImplicitGemmBwdX
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmBwdXdlops{});
 };
 
-TEST_P(CPU_UnitTestConvSolverImplicitGemmBwdXdlopsDevApplicability_FP16,
-       SOLVER_NAME_DEV_APP)
+TEST_P(CPU_UnitTestConvSolverImplicitGemmBwdXdlopsDevApplicability_FP16, SOLVER_NAME_DEV_APP)
 {
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmBwdXdlops{});
 };
