@@ -94,6 +94,8 @@ struct Tolerances
     void Set(Gpu gpu, miopenDataType_t type, float value);
     float Get(Gpu gpu, miopenDataType_t type) const;
 
+    friend std::ostream& operator<<(std::ostream& os, const Tolerances& t);
+
 private:
     static uint64_t GetKey(Gpu gpu, miopenDataType_t type);
     std::unordered_map<uint64_t, float> values;
@@ -110,6 +112,8 @@ struct UnitTestConvSolverParams
     void CheckXnackDisabled();
     void SetConvAttrFp16Alt(uint64_t value);
     void SetTolerance(Gpu gpu, miopenDataType_t type, float value);
+
+    friend std::ostream& operator<<(std::ostream& os, const UnitTestConvSolverParams& p);
 
     Gpu supported_devs;
     bool use_cpu_ref;

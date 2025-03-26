@@ -255,6 +255,15 @@ float Tolerances::Get(Gpu gpu, miopenDataType_t type) const
     return v->second;
 }
 
+std::ostream& operator<<(std::ostream& os, const Tolerances& t)
+{
+    os << "(";
+    for(const auto [key, value]: t.values)
+        os << std::hex << "0x" << key << std::dec << ":" << value << ",";
+    os << ")";
+    return os;
+}
+
 UnitTestConvSolverParams::UnitTestConvSolverParams() : UnitTestConvSolverParams(Gpu::None) {}
 
 UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_)
@@ -283,6 +292,25 @@ void UnitTestConvSolverParams::SetConvAttrFp16Alt(uint64_t value) { conv_attr_fp
 void UnitTestConvSolverParams::SetTolerance(Gpu gpu, miopenDataType_t type, float value)
 {
     tolerances.Set(gpu, type, value);
+}
+
+std::ostream& operator<<(std::ostream& os, const UnitTestConvSolverParams& p)
+{
+    os << "(";
+    os << "Devs:" << std::hex << "0x" << static_cast<std::underlying_type_t<decltype(p.supported_devs)>>(p.supported_devs) << std::dec;
+    if(p.use_cpu_ref)
+        os << ", CpuRef:" << p.use_cpu_ref;
+    if(p.enable_deprecated_solvers)
+        os << ", EnDerpSolver:" << p.enable_deprecated_solvers;
+    if(p.tunable)
+        os << ", IterMax:" << p.tuning_iterations_max;
+    if(p.check_xnack_disabled)
+        os << ", CheckXnackOff:" << p.check_xnack_disabled;
+    if(p.conv_attr_fp16_alt)
+        os << ", AttrFp16Alt:" << p.conv_attr_fp16_alt.value();
+    os << ", Tolerances:" << p.tolerances;
+    os << ")";
+    return os;
 }
 
 namespace {
