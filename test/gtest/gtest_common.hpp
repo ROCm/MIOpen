@@ -39,6 +39,34 @@
 #include "../driver.hpp"
 #include "../lib_env_var.hpp"
 
+template <typename T>
+class EnvScopedSetter
+{
+public:
+    explicit EnvScopedSetter(lib_env::LibEnvVar ename, T val) : env_name(ename) { SetValue(val); }
+
+    EnvScopedSetter()                       = delete;
+    EnvScopedSetter(const EnvScopedSetter&) = delete;
+    EnvScopedSetter(EnvScopedSetter&&)      = delete;
+    EnvScopedSetter& operator=(const EnvScopedSetter&) = delete;
+    EnvScopedSetter& operator=(EnvScopedSetter&&) = delete;
+
+    ~EnvScopedSetter() { lib_env::update(env_name, prev_val); }
+
+private:
+    lib_env::LibEnvVar env_name;
+    T prev_val;
+
+    void SetValue(T value)
+    {
+        std::cout << env_name.name << std::endl;
+        prev_val = lib_env::value<T>(env_name);
+        if(value == prev_val)
+            return;
+        lib_env::update(env_name, value);
+    }
+};
+
 inline void default_check(const std::string& err) { std::cout << err; }
 
 inline void tuning_check(const std::string& err)
