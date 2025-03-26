@@ -51,18 +51,32 @@ public:
     EnvScopedSetter& operator=(const EnvScopedSetter&) = delete;
     EnvScopedSetter& operator=(EnvScopedSetter&&) = delete;
 
-    ~EnvScopedSetter() { lib_env::update(env_name, prev_val); }
+    ~EnvScopedSetter()
+    {
+        if(prev_val)
+        {
+            lib_env::update(env_name, prev_val.value());
+        }
+        else
+        {
+            lib_env::clear(env_name);
+        }
+    }
 
 private:
     lib_env::LibEnvVar env_name;
-    T prev_val;
+    std::optional<T> prev_val;
 
     void SetValue(T value)
     {
-        std::cout << env_name.name << std::endl;
-        prev_val = lib_env::value<T>(env_name);
+        if(env_name)
+        {
+            prev_val = lib_env::value<T>(env_name);
+        }
         if(value == prev_val)
+        {
             return;
+        }
         lib_env::update(env_name, value);
     }
 };
