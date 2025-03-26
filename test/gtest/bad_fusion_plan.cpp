@@ -238,7 +238,7 @@ TEST(GPU_FusionPlan_FP16, BadEmptyFusionPlan)
 TEST(GPU_FusionPlan_FP16, UnSupportedFusionPlanDuringSearchMode)
 {
 
-    EnvScopedSetter<std::string> find_enforce_env2(MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE");
+    ScopedEnvironment<std::string> find_enforce_env2(MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE");
     GPU_FusionPlan_FP16<miopen::solver::fusion::ConvCKIgemmFwdBiasActivFused, half_float::half> obj(
         miopenTensorNHWC, miopenActivationRELU);
     if(obj.Skip())

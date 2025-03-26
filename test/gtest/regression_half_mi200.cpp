@@ -72,9 +72,9 @@ void Run2dDriver(void)
         GTEST_SKIP();
     }
 
-    EnvScopedSetter<std::string> find_mode_env3(MIOPEN_FIND_MODE, "normal");
-    EnvScopedSetter<std::string> find_only_solver_env(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                                                      "ConvHipImplicitGemmForwardV4R4Xdlops");
+    ScopedEnvironment<std::string> find_mode_env3(MIOPEN_FIND_MODE, "normal");
+    ScopedEnvironment<std::string> find_only_solver_env(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+                                                        "ConvHipImplicitGemmForwardV4R4Xdlops");
     std::vector<std::string> params = GPU_regression_mi200_FP16::GetParam();
 
     for(const auto& test_value : params)

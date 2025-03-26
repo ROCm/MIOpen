@@ -68,8 +68,8 @@ void Run2dDriver(miopenDataType_t prec)
     default: params = GPU_Conv2d_BFP16::GetParam();
     }
 
-    EnvScopedSetter<std::string> find_mode_env1(MIOPEN_FIND_MODE, "normal");
-    EnvScopedSetter<std::string> find_only_solver_env(
+    ScopedEnvironment<std::string> find_mode_env1(MIOPEN_FIND_MODE, "normal");
+    ScopedEnvironment<std::string> find_only_solver_env(
         MIOPEN_DEBUG_FIND_ONLY_SOLVER,
         "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
         "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");

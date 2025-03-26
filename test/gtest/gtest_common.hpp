@@ -40,18 +40,18 @@
 #include "../lib_env_var.hpp"
 
 template <typename T>
-class EnvScopedSetter
+class ScopedEnvironment
 {
 public:
-    explicit EnvScopedSetter(lib_env::LibEnvVar ename, T val) : env_name(ename) { SetValue(val); }
+    explicit ScopedEnvironment(lib_env::LibEnvVar ename, T val) : env_name(ename) { SetValue(val); }
 
-    EnvScopedSetter()                       = delete;
-    EnvScopedSetter(const EnvScopedSetter&) = delete;
-    EnvScopedSetter(EnvScopedSetter&&)      = delete;
-    EnvScopedSetter& operator=(const EnvScopedSetter&) = delete;
-    EnvScopedSetter& operator=(EnvScopedSetter&&) = delete;
+    ScopedEnvironment()                         = delete;
+    ScopedEnvironment(const ScopedEnvironment&) = delete;
+    ScopedEnvironment(ScopedEnvironment&&)      = delete;
+    ScopedEnvironment& operator=(const ScopedEnvironment&) = delete;
+    ScopedEnvironment& operator=(ScopedEnvironment&&) = delete;
 
-    ~EnvScopedSetter()
+    ~ScopedEnvironment()
     {
         if(prev_val)
         {
@@ -73,7 +73,7 @@ private:
         {
             prev_val = lib_env::value<T>(env_name);
         }
-        if(value == prev_val)
+        if(prev_val.has_value() && prev_val.value() == value)
         {
             return;
         }

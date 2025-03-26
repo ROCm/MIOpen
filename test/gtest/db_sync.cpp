@@ -533,7 +533,7 @@ TEST(CPU_DBSync_NONE, KDBTargetID)
 
     fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
-    EnvScopedSetter<std::string> issue_2492_env(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492, "0");
+    ScopedEnvironment<std::string> issue_2492_env(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492, "0");
 #endif
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
     std::ignore = fdb_file_path;

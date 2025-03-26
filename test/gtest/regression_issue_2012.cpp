@@ -78,7 +78,7 @@ void Run2dDriver()
         GTEST_SKIP();
     }
 
-    EnvScopedSetter<std::string> find_mode_env4(MIOPEN_FIND_MODE, "normal");
+    ScopedEnvironment<std::string> find_mode_env4(MIOPEN_FIND_MODE, "normal");
 
     std::vector<std::string> params = GPU_regression_issue_2012_FP32::GetParam();
 

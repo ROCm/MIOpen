@@ -76,8 +76,8 @@ void Run2dDriver(miopenDataType_t prec)
                   "miopenDouble, miopenFloat8_fnuz, miopenBFloat8_fnuz "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_nchw test";
     }
-    EnvScopedSetter<std::string> find_mode_env2(MIOPEN_FIND_MODE, std::string("normal"));
-    EnvScopedSetter<std::string> find_only_solver_env(
+    ScopedEnvironment<std::string> find_mode_env2(MIOPEN_FIND_MODE, std::string("normal"));
+    ScopedEnvironment<std::string> find_only_solver_env(
         MIOPEN_DEBUG_FIND_ONLY_SOLVER,
         "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
         "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
