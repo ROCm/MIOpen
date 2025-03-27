@@ -433,14 +433,12 @@ public:
         if constexpr(NDIM == 2u)
         {
             DispatchSolver<miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops,
-                           miopen::solver::conv::ConvHipImplicitGemmGroupFwdCKNCHWXdlops,
                            miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops,
                            miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops>();
         }
         else
         {
             DispatchSolver<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops,
-                           miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdCKNCHWXdlops,
                            miopen::solver::conv::ConvHipImplicitGemm3DGroupBwdXdlops,
                            miopen::solver::conv::ConvHipImplicitGemm3DGroupWrwXdlops>();
         }
