@@ -149,8 +149,9 @@ TEST_P(GPU_ConvBiasActivInfer_FP16, ConvCKIgemmFwdBiasActivFused)
 
 TEST_P(GPU_ConvBiasActivInferFusionCompileStep_FP32, ConvBiasActivAsm1x1UFloat_testCompile)
 {
-    lib_env::update(MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE");
-    lib_env::update(wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5);
+    ScopedEnvironment<std::string> find_enforce_env(MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE");
+    ScopedEnvironment<int> find_enforce_tuning_iter_env(wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5);
+
     fusePlanDesc.Compile(get_handle());
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
         params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
