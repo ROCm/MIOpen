@@ -26,6 +26,14 @@
 
 #include "unit_conv_solver.hpp"
 
+#define WORKAROUND_SWDEV_522871 1
+
+#if WORKAROUND_SWDEV_522871
+#define SOLVER_NAME_DEV_APP DISABLED_ConvHipImplicitGemmFwdXdlops
+#else
+#define SOLVER_NAME_DEV_APP ConvHipImplicitGemmFwdXdlops
+#endif
+
 namespace {
 
 auto GetConvSmokeTestCases(miopenDataType_t datatype)
@@ -103,8 +111,7 @@ TEST_P(GPU_UnitTestConvSolverImplicitGemmFwdXdlops_FP32, ConvHipImplicitGemmFwdX
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmFwdXdlops{});
 };
 
-TEST_P(CPU_UnitTestConvSolverImplicitGemmFwdXdlopsDevApplicability_NONE,
-       ConvHipImplicitGemmFwdXdlops)
+TEST_P(CPU_UnitTestConvSolverImplicitGemmFwdXdlopsDevApplicability_NONE, SOLVER_NAME_DEV_APP)
 {
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmFwdXdlops{});
 };
