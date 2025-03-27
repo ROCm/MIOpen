@@ -53,9 +53,9 @@ public:
 
     ~ScopedEnvironment()
     {
-        if(prev_val)
+        if(restore)
         {
-            lib_env::update(env_name, prev_val.value());
+            lib_env::update(env_name, prev_val);
         }
         else
         {
@@ -65,17 +65,20 @@ public:
 
 private:
     lib_env::LibEnvVar env_name;
-    std::optional<T> prev_val;
+    T prev_val;
+    bool restore = false;
 
     void SetValue(T value)
     {
-        if(env_name)
+        const auto val = miopen::debug::env::GetEnvVariable(env_name.name);
+        if(val)
         {
+            restore  = true;
             prev_val = lib_env::value<T>(env_name);
-        }
-        if(prev_val.has_value() && prev_val.value() == value)
-        {
-            return;
+            if(prev_val == value)
+            {
+                return;
+            }
         }
         lib_env::update(env_name, value);
     }
