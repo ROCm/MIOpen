@@ -195,8 +195,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
     SetBNParametersFromCmdLineArgs();
 
     in.AllocOnHost(tensor<TInput>{bn_layout, in_len});
-    // -2.0 to 2.0
-    in.GetTensor().generate(uniform_signed_initializer<TInput>(2e-3 /*scale*/, 1000 /*range*/));
+    // 0.0 to 2.0
+    in.GetTensor().generate(uniform_unsigned_initializer<TInput>(2e-3 /*scale*/, 1000 /*range*/));
 
     auto derivedBnDesc = miopen::TensorDescriptor{};
     miopen::DeriveBNTensorDescriptor(derivedBnDesc, in.GetTensor().desc, bn_mode);
