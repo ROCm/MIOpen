@@ -707,6 +707,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
 
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
+
     RegisterWithSolver(registry,
                        ++id,
                        conv::ConvHipImplicitGemmGroupWrwCKNCHWXdlops{},

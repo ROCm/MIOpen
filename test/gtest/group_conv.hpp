@@ -434,15 +434,13 @@ public:
         {
             DispatchSolver<miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops,
                            miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops,
-                           miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops,
-                           miopen::solver::conv::ConvHipImplicitGemmGroupWrwCKNCHWXdlops>();
+                           miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops>();
         }
         else
         {
             DispatchSolver<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops,
                            miopen::solver::conv::ConvHipImplicitGemm3DGroupBwdXdlops,
-                           miopen::solver::conv::ConvHipImplicitGemm3DGroupWrwXdlops,
-                           miopen::solver::conv::ConvHipImplicitGemm3DGroupWrwCKNCHWXdlops>();
+                           miopen::solver::conv::ConvHipImplicitGemm3DGroupWrwXdlops>();
         }
     }
 
