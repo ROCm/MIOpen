@@ -4932,9 +4932,6 @@ struct PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops
     MIOPEN_INTERNALS_EXPORT bool IsValid(const miopen::conv::ProblemDescription&) const;
     MIOPEN_INTERNALS_EXPORT bool
     operator==(const PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops& other) const;
-    MIOPEN_INTERNALS_EXPORT bool
-    IsModelApplicable(const ExecutionContext& ctx,
-                      const miopen::conv::ProblemDescription& problem) const;
 
 private:
     template <typename DataType>

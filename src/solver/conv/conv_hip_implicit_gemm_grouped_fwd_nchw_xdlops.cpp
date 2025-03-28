@@ -208,19 +208,6 @@ bool ConvHipImplicitGemmGroupFwdCKNCHWXdlops::CheckCKApplicability(
 }
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-bool PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::IsModelApplicable(
-    const ExecutionContext& ctx, const ProblemDescription& problem) const
-{
-    if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942")
-        return false;
-    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf &&
-       problem.GetInDataType() != miopenBFloat16)
-        return false;
-    if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_NCHW_XDLOPS_AI_HEUR))
-        return false;
-    return true;
-}
-
 void PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops::HeuristicInit(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem)

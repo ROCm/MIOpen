@@ -66,7 +66,7 @@ auto GetConvFullTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        Gpu supportedDevices = Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X;
+        Gpu supportedDevices = Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx950;
         auto p               = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
         p.Tunable(5);
         return p;
