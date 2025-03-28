@@ -44,11 +44,11 @@ pipeline {
     parameters {
         booleanParam(
             name: "BUILD_DOCKER",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_STATIC_CHECKS",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "BUILD_SMOKE_FP32",
@@ -68,7 +68,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "BUILD_PACKAGES",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_NOGPU",
@@ -84,11 +84,11 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_GFX908",
-            defaultValue: env.BRANCH_NAME == "develop" ? true : false,
+            defaultValue: true,
             description: "")
         booleanParam(
             name: "TARGET_GFX90A",
-            defaultValue: true,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_GFX94X",
