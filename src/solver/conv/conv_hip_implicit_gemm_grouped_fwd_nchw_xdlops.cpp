@@ -92,7 +92,7 @@ struct CKArgs
         // strides from NGCHW to GNCHW layout
         in_strides  = {Hi * Wi * C, Hi * Wi * G * C, Hi * Wi, Wi, 1};
         out_strides = {Ho * Wo * K, Ho * Wo * G * K, Ho * Wo, Wo, 1};
-        wei_strides = {K * C * Y * X, C * Y * X , Y * X, X, 1};
+        wei_strides = {K * C * Y * X, C * Y * X, Y * X, X, 1};
         strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),

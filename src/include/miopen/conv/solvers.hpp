@@ -4954,10 +4954,10 @@ struct ConvHipImplicitGemmGroupFwdCKNCHWXdlops final
     MIOPEN_INTERNALS_EXPORT PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops
     GetDefaultPerformanceConfig(const ExecutionContext&,
                                 const miopen::conv::ProblemDescription&) const override;
-    MIOPEN_INTERNALS_EXPORT bool
-    IsValidPerformanceConfig(const ExecutionContext&,
-                             const miopen::conv::ProblemDescription&,
-                             const PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops&) const override;
+    MIOPEN_INTERNALS_EXPORT bool IsValidPerformanceConfig(
+        const ExecutionContext&,
+        const miopen::conv::ProblemDescription&,
+        const PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops&) const override;
     MIOPEN_INTERNALS_EXPORT PerformanceConfigHipImplicitGemmGroupFwdCKNCHWXdlops
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
