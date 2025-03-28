@@ -111,6 +111,7 @@ private:
         {
             if(!var)
                 return std::nullopt;
+
             const auto value = miopen::env::value(var);
 
             if constexpr(is_type_bool<value_type>)
