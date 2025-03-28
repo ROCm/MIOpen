@@ -74,7 +74,7 @@ auto GetConvFullTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-// If CK is not installed these tests would fail
+// If MIOpen is built without CK these tests will fail, skip them to avoid failing
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         Gpu supportedDevices = Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X;
 #else
