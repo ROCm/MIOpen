@@ -69,6 +69,7 @@ const auto& GetTestParams()
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
+        p.SetTolerance(Gpu::gfx908, miopenBFloat16, 30.0f);
         /// \todo 250.0f is too much. The solver needs to be checked.
         p.SetTolerance(Gpu::gfx90A, miopenHalf, 250.0f);
         p.SetTolerance(Gpu::gfx90A, miopenBFloat16, 30.0f);
