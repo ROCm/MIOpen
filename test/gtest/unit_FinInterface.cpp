@@ -309,6 +309,7 @@ const auto& GetSolversInfo<ConvSolverInfo>()
         {"ConvHipImplicitGemmGroupBwdXdlops",                   {155,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         {"ConvHipImplicitGemmGroupWrwXdlops",                   {156,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         {"ConvHipImplicitGemmGroupFwdCKNCHWXdlops",             {180,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
+        {"ConvHipImplicitGemm3DGroupFwdCKNCHWXdlops",           {181,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         // clang-format on
     };
 
