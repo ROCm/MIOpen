@@ -335,6 +335,8 @@ AnySolver<miopen::ExecutionContext, miopen::conv::ProblemDescription>::AnySolver
     case 141: SetObject<miopen::solver::conv::ConvHipImplicitGemm3DGroupBwdXdlops>(); break;
     case 155: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops>(); break;
     case 156: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops>(); break;
+    case 180: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupWrwCKNCHWXdlops>(); break;
+    case 181: SetObject<miopen::solver::conv::ConvHipImplicitGemm3DGroupWrwCKNCHWXdlops>(); break;
     // New tunable solver should be added here
     default:
         MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID (" + std::to_string(id) + ")");
