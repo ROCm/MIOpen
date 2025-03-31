@@ -344,45 +344,7 @@ double GetThreshold(miopenConvAlgorithm_t algo,
                     miopen::conv::Direction direction,
                     const Tolerances& tolerances)
 {
-#if 0 /// \todo remove
-    double tolerance = 1.0;
-
-    if constexpr(std::is_same_v<T, half_float::half>)
-    {
-        if(algo == miopenConvolutionAlgoGEMM && direction != miopen::conv::Direction::Forward)
-        {
-            tolerance *= 2.0;
-        }
-        else if(algo == miopenConvolutionAlgoImplicitGEMM)
-        {
-            tolerance *= 2.0;
-        }
-    }
-
-    if constexpr(std::is_same_v<T, float>)
-    {
-        if(algo == miopenConvolutionAlgoDirect &&
-           direction == miopen::conv::Direction::BackwardWeights)
-        {
-            tolerance *= 2.0;
-        }
-        else if(algo == miopenConvolutionAlgoImplicitGEMM)
-        {
-            if(direction == miopen::conv::Direction::BackwardWeights &&
-               GetDevGpuType() == Gpu::gfx908)
-            {
-                tolerance *= 7.0;
-            }
-            else
-            {
-                tolerance *= 3.0;
-            }
-        }
-    }
-#else
     double tolerance = tolerances.Get(GetDevGpuType(), miopen_type<T>{});
-#endif
-
     double threshold = std::numeric_limits<T>::epsilon() * tolerance;
     return threshold;
 }
