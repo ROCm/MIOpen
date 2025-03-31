@@ -40,6 +40,9 @@
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
+// Disable DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3 until it is fixed in CK
+#define WORKAROUND_ISSUE_3661 1
+
 namespace miopen {
 
 namespace conv {
@@ -169,7 +172,13 @@ typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
                                                 const std::string& kernel_id)
 {
     return std::find_if(conv_ptrs.begin(), conv_ptrs.end(), [&kernel_id](const auto& ptr) {
+#if WORKAROUND_ISSUE_3661
+        std::string typeString = ptr->GetTypeString();
+        return typeString.find("DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3") != 0 &&
+               typeString == kernel_id;
+#else
         return ptr->GetTypeString() == kernel_id;
+#endif
     });
 }
 
@@ -186,8 +195,15 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
     valid_kernels.reserve(conv_ptrs.size());
     for(size_t idx = 0; idx < conv_ptrs.size(); ++idx)
     {
+#if WORKAROUND_ISSUE_3661
+        std::string typeString = conv_ptrs[idx]->GetTypeString();
+        if(typeString.find("DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3") != 0 &&
+           args.IsSupportedBy(conv_ptrs[idx]))
+            valid_kernels.emplace_back(std::move(typeString));
+#else
         if(args.IsSupportedBy(conv_ptrs[idx]))
-            valid_kernels.emplace_back(std::move(conv_ptrs[idx]->GetTypeString()));
+            valid_kernels.emplace_back(conv_ptrs[idx]->GetTypeString());
+#endif
     }
     assert(!valid_kernels.empty());
     return valid_kernels;
@@ -226,6 +242,9 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
     if(!kernel_id.empty())
     {
         auto conv_ptrs = DeviceOpType::GetInstances();
+#if WORKAROUND_ISSUE_3661
+        // FindConvPtrByID will filter DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3 out
+#endif
         if constexpr(IsSplitKNeeded<DeviceOpType>() || CheckSplitK)
         {
             auto pos = kernel_id.find_last_of('+');
@@ -269,8 +288,15 @@ bool IsCKApplicable(const ProblemDescriptionType& problem)
     const auto args = CKArgsType{problem};
 
     const auto ptrs = DeviceOpType::GetInstances();
-    return std::any_of(
-        ptrs.begin(), ptrs.end(), [&args](auto& ptr) { return args.IsSupportedBy(ptr); });
+
+    return std::any_of(ptrs.begin(), ptrs.end(), [&args](auto& ptr) {
+#if WORKAROUND_ISSUE_3661
+        return ptr->GetTypeString().find("DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3") != 0 &&
+               args.IsSupportedBy(ptr);
+#else
+            return args.IsSupportedBy(ptr);
+#endif
+    });
 }
 
 #define WORKAROUND_CK_ISSUE_1184 1
@@ -298,7 +324,10 @@ ConvSolution InitAnyInvokerFactory(const ProblemDescriptionType& problem,
                                    const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
-    auto ptr_iter  = FindConvPtrByID(conv_ptrs, kernel_id);
+#if WORKAROUND_ISSUE_3661
+    // FindConvPtrByID will filter DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3 out
+#endif
+    auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id);
 
     if(ptr_iter == conv_ptrs.end())
         return {miopenStatusInvalidValue};
@@ -788,6 +817,9 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     auto ck_args = CKArgsType{problem};
 
     auto conv_ptrs = DeviceOpType::GetInstances();
+#if WORKAROUND_ISSUE_3661
+    // FindConvPtrByID will filter DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3 out
+#endif
 
     std::optional<int> split_k = std::nullopt;
     std::string id_string      = kernel_id;
@@ -948,6 +980,9 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                     const std::string& kernel_id)
 {
     auto conv_ptrs = DeviceOpType::GetInstances();
+#if WORKAROUND_ISSUE_3661
+    // FindConvPtrByID will filter DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3 out
+#endif
 
     std::optional<int> split_k = std::nullopt;
     std::string id_string      = kernel_id;
