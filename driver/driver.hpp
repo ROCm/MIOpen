@@ -168,6 +168,8 @@ class GpumemTensor
     bool is_gpualloc = false;
 
 public:
+    using GpuType = Tgpu;
+
     void SetGpuallocMode(bool v) { is_gpualloc = v; }
     tensor<Tgpu>& GetTensor() { return host; }
 
