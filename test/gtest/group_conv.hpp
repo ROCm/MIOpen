@@ -335,7 +335,7 @@ private:
     void RunSolverImpl(const ConvTensorsType& tensors, const ProblemDescription& problem)
     {
 
-        std::cout << conv_config << std::endl;
+        MIOPEN_LOG_I(conv_config);
         auto&& handle = get_handle();
 
         Solver solv{};

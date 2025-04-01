@@ -41,6 +41,9 @@
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR)
 
+// Disable DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3 until it is fixed in CK
+#define WORKAROUND_ISSUE_3661 1
+
 namespace miopen {
 namespace solver {
 namespace conv {
@@ -185,7 +188,11 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(
     const ProblemDescription& problem) // should be parameterized with execution context
 {
     if(valid_kernels.empty())
+#if WORKAROUND_ISSUE_3661
+        valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs, true>(problem);
+#else
         valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
+#endif
     index     = 0;
     kernel_id = valid_kernels[index];
 }
@@ -201,7 +208,11 @@ template <typename DataType>
 bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
+#if WORKAROUND_ISSUE_3661
+    return IsCKApplicable<DeviceOpGFwdPtrs<DataType>, CKArgs, true>(problem);
+#else
     return IsCKApplicable<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
+#endif
 }
 
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
@@ -326,8 +337,12 @@ template <typename DataType>
 bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel(
     const ExecutionContext& ctx, const ProblemDescription& problem)
 {
+#if WORKAROUND_ISSUE_3661
+    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs, true>(problem);
+#else
     valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(
         problem); // filter valid_kernel ID's
+#endif
     static const std::string& arch = ctx.GetStream().GetDeviceName();
     if(arch == "gfx90a")
         InitHeuristicKernelIDs("DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle");

@@ -41,6 +41,9 @@
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
+// Disable DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3 until it is fixed in CK
+#define WORKAROUND_ISSUE_3661 1
+
 namespace miopen {
 namespace solver {
 namespace conv {
@@ -349,15 +352,27 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescrip
     {
     case BILINEAR:
         valid_kernels =
+#if WORKAROUND_ISSUE_3661
+            FillValidKernelsIDs<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>, true>(problem);
+#else
             FillValidKernelsIDs<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
+#endif
         break;
     case SCALE:
         valid_kernels =
+#if WORKAROUND_ISSUE_3661
+            FillValidKernelsIDs<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>, true>(problem);
+#else
             FillValidKernelsIDs<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem);
+#endif
         break;
     default:
         valid_kernels =
+#if WORKAROUND_ISSUE_3661
+            FillValidKernelsIDs<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>, true>(problem);
+#else
             FillValidKernelsIDs<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
+#endif
         break;
     }
     index     = 0;
@@ -389,9 +404,15 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
     switch(problem.GetAlphaBetaCase())
     {
     case BILINEAR:
+#if WORKAROUND_ISSUE_3661
+        return IsCKApplicable<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>, true>(problem);
+    case SCALE: return IsCKApplicable<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>, true>(problem);
+    default: return IsCKApplicable<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>, true>(problem);
+#else
         return IsCKApplicable<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
     case SCALE: return IsCKApplicable<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem);
     default: return IsCKApplicable<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
+#endif
     }
 }
 #endif
