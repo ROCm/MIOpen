@@ -818,12 +818,14 @@ SubBufferCheck GetSubBufferCheck()
     }
 }
 
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 std::unordered_map<void*, void*> SubBuffersToMemMap;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 std::mutex SubBuffersToMemMapMutex;
 
 void* subBufferPageAlignMalloc(size_t size, bool alignLeft)
 {
-    constexpr size_t memoryPageSize = 2 * 1024 * 1024;
+    constexpr size_t memoryPageSize = 2ULL * 1024 * 1024;
 
     auto roundUp = [&](size_t bytes) {
         return ((bytes + memoryPageSize) / memoryPageSize) * memoryPageSize;
