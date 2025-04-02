@@ -145,13 +145,13 @@ struct GPUMem
         if(check == Check::None)
             return userSize;
 
-        constexpr size_t memoryPageSize = 2ULL * 1024 * 1024;
+        constexpr size_t maxPadding = 2ULL * 1024 * 1024 - 1;
 
-        auto roundUp = [&](size_t bytes) {
-            return ((bytes + memoryPageSize) / memoryPageSize) * memoryPageSize;
+        auto roundUpToPageAlignment = [&](size_t bytes) {
+            return (bytes + maxPadding) & ~maxPadding;
         };
 
-        return roundUp(userSize);
+        return roundUpToPageAlignment(userSize);
     }
 
     size_t GetOffsetToUserBuffer()

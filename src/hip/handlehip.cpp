@@ -825,13 +825,13 @@ std::mutex SubBuffersToMemMapMutex;
 
 void* subBufferPageAlignMalloc(size_t size, bool alignLeft)
 {
-    constexpr size_t memoryPageSize = 2ULL * 1024 * 1024;
+    constexpr size_t maxPadding = 2ULL * 1024 * 1024 - 1;
 
-    auto roundUp = [&](size_t bytes) {
-        return ((bytes + memoryPageSize) / memoryPageSize) * memoryPageSize;
+    auto roundUpToPageAlignment = [&](size_t bytes) {
+        return (bytes + maxPadding) & ~maxPadding;
     };
 
-    const auto totalSize = roundUp(size);
+    const auto totalSize = roundUpToPageAlignment(size);
     void* mem            = nullptr;
     auto status          = hipMalloc(&mem, totalSize);
     if(status != hipSuccess)
