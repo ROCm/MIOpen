@@ -502,36 +502,6 @@ inline void Driver::InitDataType()
     static_assert(std::is_same<Tgpu, float>{}, "unsupported Tgpu");
 }
 
-inline void Driver::AddGpuBufferCheckFlag(InputFlags& inflags)
-{
-    inflags.AddInputFlag("gpubuffer_check",
-                         '~',
-                         "0",
-                         "Controls whether gpu buffers are sanitized during execution.  This is"
-                         "\nonly supported for the HIP backend."
-                         "\n0  No gpu buffer sanitation done (Default)."
-                         "\n1  Check for invalid gpu memory accesses before the start of"
-                         "\n   the gpu buffers."
-                         "\n2  Check for invalid gpu memory accesses after the end of the"
-                         "\n   gpu buffers.",
-                         "int");
-}
-
-inline GPUMem::Check Driver::GetGpuBufferCheck(const InputFlags& inflags) const
-{
-    auto check = inflags.GetValueInt("gpubuffer_check");
-    switch(check)
-    {
-    case 0: return GPUMem::Check::None;
-    case 1: return GPUMem::Check::Front;
-    case 2: return GPUMem::Check::Back;
-    default:
-        std::cerr << "Error: Invalid option " << check
-                  << " used with --gpubuffer_check.  Should be 0 (none), 1 (front), or 2 (back).";
-        exit(EXIT_FAILURE);
-    }
-}
-
 template <typename T>
 inline std::ostream& operator<<(std::ostream& os, const std::vector<T>& vs)
 {
