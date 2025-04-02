@@ -65,7 +65,7 @@
 #define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (HIP_PACKAGE_VERSION_FLAT >= 5007000000ULL)
 
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEVICE_CU)
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_CHECK_SUB_BUFFERS)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_CHECK_SUB_BUFFER_OOB_MEMORY_ACCESS)
 
 namespace miopen {
 
@@ -807,7 +807,7 @@ enum class SubBufferCheck
 
 SubBufferCheck GetSubBufferCheck()
 {
-    const auto check = env::value(MIOPEN_DEBUG_CHECK_SUB_BUFFERS);
+    const auto check = env::value(MIOPEN_DEBUG_CHECK_SUB_BUFFER_OOB_MEMORY_ACCESS);
 
     switch(check)
     {
@@ -835,7 +835,7 @@ void* subBufferPageAlignMalloc(size_t size, bool alignLeft)
     void* mem            = nullptr;
     auto status          = hipMalloc(&mem, totalSize);
     if(status != hipSuccess)
-        MIOPEN_THROW_HIP_STATUS(status, "[MIOpenDriver] hipMalloc failed " + std::to_string(size));
+        MIOPEN_THROW_HIP_STATUS(status, "hipMalloc failed " + std::to_string(size));
 
     if(alignLeft)
     {
