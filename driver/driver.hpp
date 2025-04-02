@@ -142,14 +142,15 @@ struct GPUMem
 
     size_t GetTotalSize(size_t userSize)
     {
+        if(check == Check::None)
+            return userSize;
+
         constexpr size_t memoryPageSize = 2 * 1024 * 1024;
 
         auto roundUp = [&](size_t bytes) {
             return ((bytes + memoryPageSize) / memoryPageSize) * memoryPageSize;
         };
 
-        if(check == Check::None)
-            return userSize;
         return roundUp(userSize);
     }
 
