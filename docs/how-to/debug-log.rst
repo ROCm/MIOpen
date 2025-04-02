@@ -319,6 +319,18 @@ settings to help with debugging:
 
 .. _control-parallel-compilation:
 
+Check for GPU sub-buffer out-of-bounds memory accesses
+==========================================================
+Use the ``MIOPEN_DEBUG_CHECK_SUB_BUFFER_OOB_MEMORY_ACCESS`` to help debug potential out-of-bounds (OOBs)
+memory access errors on GPU sub-buffers.  If the environment variable is undefined or set to zero, then no
+sub-buffer out-of-bounds detection is done.  Otherwise:
+
+* ``MIOPEN_DEBUG_CHECK_SUB_BUFFER_OOB_MEMORY_ACCESS=1``: Check for OOBs before the start of the sub-buffers.
+* ``MIOPEN_DEBUG_CHECK_SUB_BUFFER_OOB_MEMORY_ACCESS=2``: Check for OOBs after the end of the sub-buffers.
+
+Note that this checking is not intended for production use since there is a possible performance hit
+from enabling this functionality.
+
 Controlling parallel compilation
 ==========================================================
 
