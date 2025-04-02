@@ -157,23 +157,31 @@ void CTCLossDescriptor::CTCLoss(const Handle& handle,
 
 #elif MIOPEN_BACKEND_HIP
 
-    hipMemcpy(static_cast<int*>(workSpace), inputLengths, batch_bytes, hipMemcpyHostToDevice);
-    hipMemcpy(static_cast<int*>(workSpace) + batch_size,
-              labelLengths,
-              batch_bytes,
-              hipMemcpyHostToDevice);
-    hipMemcpy(static_cast<int*>(workSpace) + 2 * static_cast<ptrdiff_t>(batch_size),
-              labels_offset.data(),
-              batch_bytes,
-              hipMemcpyHostToDevice);
-    hipMemcpy(static_cast<int*>(workSpace) + 3 * static_cast<ptrdiff_t>(batch_size),
-              repeat.data(),
-              batch_bytes,
-              hipMemcpyHostToDevice);
-    hipMemcpy(static_cast<int*>(workSpace) + 4 * static_cast<ptrdiff_t>(batch_size),
-              labels,
-              total_label_len * sizeof(int),
-              hipMemcpyHostToDevice);
+    hipMemcpyWithStream(static_cast<int*>(workSpace),
+                        inputLengths,
+                        batch_bytes,
+                        hipMemcpyHostToDevice,
+                        handle.GetStream());
+    hipMemcpyWithStream(static_cast<int*>(workSpace) + batch_size,
+                        labelLengths,
+                        batch_bytes,
+                        hipMemcpyHostToDevice,
+                        handle.GetStream());
+    hipMemcpyWithStream(static_cast<int*>(workSpace) + 2 * static_cast<ptrdiff_t>(batch_size),
+                        labels_offset.data(),
+                        batch_bytes,
+                        hipMemcpyHostToDevice,
+                        handle.GetStream());
+    hipMemcpyWithStream(static_cast<int*>(workSpace) + 3 * static_cast<ptrdiff_t>(batch_size),
+                        repeat.data(),
+                        batch_bytes,
+                        hipMemcpyHostToDevice,
+                        handle.GetStream());
+    hipMemcpyWithStream(static_cast<int*>(workSpace) + 4 * static_cast<ptrdiff_t>(batch_size),
+                        labels,
+                        total_label_len * sizeof(int),
+                        hipMemcpyHostToDevice,
+                        handle.GetStream());
 #endif
 
     std::string program_name = "MIOpenCTCLoss.cl";
