@@ -543,7 +543,7 @@ constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
 
 static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ctx)
 {
-    auto compiler_flag = std::string(" --std=c++14");
+    auto compiler_flag = std::string(" --std=c++17");
 
     // atomic-fadd
     compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") +
@@ -568,6 +568,14 @@ static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ct
     compiler_flag +=
         std::string(" -DCK_USE_AMD_V_FMAC_F32=") + (is_use_v_fmac_f32(ctx) ? '1' : '0');
 
+        
+    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_PTR_TYPE=")+
+#if HIP_PACKAGE_VERSION_FLAT >= 6004000000
+                  '1'
+#else
+                  '0'
+#endif
+        ;
     return compiler_flag;
 }
 
