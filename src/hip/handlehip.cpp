@@ -827,9 +827,7 @@ void* subBufferPageAlignMalloc(size_t size, bool alignLeft)
 {
     constexpr size_t maxPadding = 2ULL * 1024 * 1024 - 1;
 
-    auto roundUpToPageAlignment = [&](size_t bytes) {
-        return (bytes + maxPadding) & ~maxPadding;
-    };
+    auto roundUpToPageAlignment = [&](size_t bytes) { return (bytes + maxPadding) & ~maxPadding; };
 
     const auto totalSize = roundUpToPageAlignment(size);
     void* mem            = nullptr;
