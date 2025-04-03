@@ -353,7 +353,8 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescrip
     case BILINEAR:
         valid_kernels =
 #if WORKAROUND_ISSUE_3661
-            FillValidKernelsIDs<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>, true>(problem);
+            FillValidKernelsIDs<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>, true>(
+                problem);
 #else
             FillValidKernelsIDs<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
 #endif
@@ -406,8 +407,10 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
     case BILINEAR:
 #if WORKAROUND_ISSUE_3661
         return IsCKApplicable<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>, true>(problem);
-    case SCALE: return IsCKApplicable<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>, true>(problem);
-    default: return IsCKApplicable<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>, true>(problem);
+    case SCALE:
+        return IsCKApplicable<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>, true>(problem);
+    default:
+        return IsCKApplicable<DeviceOpGFwdDefaultPtrs<DataType>, CKArgs<DataType>, true>(problem);
 #else
         return IsCKApplicable<DeviceOpGFwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
     case SCALE: return IsCKApplicable<DeviceOpGFwdScalePtrs<DataType>, CKArgs<DataType>>(problem);

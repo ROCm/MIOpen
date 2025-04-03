@@ -190,6 +190,7 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
         if constexpr(perform_WORKAROUND_ISSUE_3661)
         {
             std::string typeString = conv_ptrs[idx]->GetTypeString();
+            // cppcheck-suppress stlIfStrFind; No string::starts_with() in c++17
             if(typeString.find("DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3") != 0 &&
                args.IsSupportedBy(conv_ptrs[idx]))
                 valid_kernels.emplace_back(std::move(typeString));
