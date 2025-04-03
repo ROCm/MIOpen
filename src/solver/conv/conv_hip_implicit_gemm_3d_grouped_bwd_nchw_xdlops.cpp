@@ -144,38 +144,10 @@
          in_lengths  = {G, N, C, Di, Hi, Wi};
          out_lengths = {G, N, K, Do, Ho, Wo};
          wei_lengths = {G, K, C, Z, Y, X};
- 
-         // CK strides are in GNCDHW order
-         if(problem.IsLayoutNHWC())
-         {
-             // first entry reserved for G's stride
-             auto copy_strides = [](const auto& src, auto& dst) {
-                 assert(dst.size() == (src.size() + 1));
-                 std::copy(src.begin(), src.end(), dst.begin() + 1);
-             };
-             copy_strides(problem.GetIn().GetStrides(), in_strides);
-             copy_strides(problem.GetOut().GetStrides(), out_strides);
-             copy_strides(problem.GetWeights().GetStrides(), wei_strides);
- 
-             // On a backward pass, problem.GetIn() means y(or out),
-             // and problem.GetOut means x(or in)
-             /// \todo remove this when we stop swapping in and out tensors/descriptors
-             std::swap(in_strides, out_strides);
- 
-             // Now compute G's stride
-             in_strides[0]  = C;
-             out_strides[0] = K;
-             wei_strides[0] = K * wei_strides[1];
-         }
-         else
-         {
-             assert(problem.IsLayoutDefault()); // already checked in IsApplicable
-             // for default layout, we produce packed strides for NHWC layout
-             // because we transpose to NHWC layout before calling CK kernel
-             in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
-             out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
-             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
-         }
+
+         in_strides  = {Di * Hi * Wi * C, Di * Hi * Wi * G * C, Di * Hi * Wi, Hi * Wi, Wi, 1};
+         out_strides = {Do * Ho * Wo * K, Do * Ho * Wo * G * K, Do * Ho * Wo, Ho * Wo, Wo, 1};
+         wei_strides = {K * C * Z * Y * X, Z * C * Y * X, Z * Y * X, Y * X, X, 1};
  
          filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                            ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
