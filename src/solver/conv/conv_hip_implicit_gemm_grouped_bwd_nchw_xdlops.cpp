@@ -37,8 +37,7 @@
  #include <miopen/conv/heuristics/ai_heuristics.hpp>
  #endif
  #include <miopen/solver/implicitgemm_ck_util.hpp>
- MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS)
- MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR)
+ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_NCHW_XDLOPS)
  
  namespace miopen {
  namespace solver {
@@ -88,10 +87,10 @@
          input  = {G, N, C, Hi, Wi};
          output = {G, N, K, Ho, Wo};
          weight = {G, K, C, Y, X};
-  
+
          in_strides  = {Hi * Wi * C, Hi * Wi * G * C, Hi * Wi, Wi, 1};
          out_strides = {Ho * Wo * K, Ho * Wo * G * K, Ho * Wo, Wo, 1};
-         wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+         wei_strides = {K * C * Y * X, C * Y * X, Y * X, X, 1};
  
          strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
@@ -202,165 +201,7 @@
  {
      return IsCKApplicable<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem);
  }
- 
- #if MIOPEN_ENABLE_AI_KERNEL_TUNING
- static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
- {
-     std::vector<std::string> tokens;
-     std::string token;
-     std::istringstream tokenStream(
-         kernel.substr(kernel.find('<') + 1, kernel.find('>') - kernel.find('<') - 1));
-     while(std::getline(tokenStream, token, ','))
-     {
-         token.erase(remove_if(token.begin(), token.end(), isspace),
-                     token.end()); // strip whitespace
-         tokens.push_back(token);
-     }
-     return tokens;
- }
- 
- void PerformanceConfigHipImplicitGemmGroupBwdCKNCHWXdlops::InitHeuristicKernelIDs()
- {
-     for(int i = 0; i < valid_kernels.size(); i++)
-     {
-         if(valid_kernels[i].find("DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1") !=
-            std::string::npos)
-         {
-             heuristic_indexes.push_back(i);
-             heuristic_kernels[i] = GetKernelAsTokens(valid_kernels[i]);
-         }
-     }
- }
- 
- bool PerformanceConfigHipImplicitGemmGroupBwdCKNCHWXdlops::ModelApplyToken(
-     int idx, std::string value, const std::string& arch, const ProblemDescription& /*problem*/)
- {
-     if(arch == "gfx90a")
-     {
-         if(idx == 13)
-             idx += 1; // skip
-     }
-     if(arch == "gfx942")
-     {
-         if(idx < 3)
-             idx += 0;
-         else if(idx <= 4)
-             idx += 2;
-         else if(idx <= 8)
-             idx += 4;
-         else
-             return true;
-     }
- 
-     auto eraseBegin = std::remove_if(
-         heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
-             return heuristic_kernels[heuristic_index][idx] != value;
-         });
- 
-     if(eraseBegin != heuristic_indexes.begin())
-     {
-         heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
-         return true;
-     }
-     return false;
- }
- 
- static std::vector<float>
- GetFeatures(const ProblemDescription& problem, std::size_t /*num_cu*/, const std::string& arch)
- {
-     if(arch == "gfx90a")
-     {
-         std::size_t n = 18;
-         std::vector<float> features(n * n, 0.0f);
-         features[0]           = 0.0;
-         features[n + 1]       = problem.GetOutChannels();
-         features[2 * n + 2]   = problem.GetOutHeight();
-         features[3 * n + 3]   = problem.GetOutWidth();
-         features[4 * n + 4]   = problem.GetInChannels();
-         features[5 * n + 5]   = problem.GetInHeight();
-         features[6 * n + 6]   = problem.GetInWidth();
-         features[7 * n + 7]   = problem.GetWeightsHeight();
-         features[8 * n + 8]   = problem.GetWeightsWidth();
-         features[9 * n + 9]   = problem.GetPadH();
-         features[10 * n + 10] = problem.GetPadW();
-         features[11 * n + 11] = problem.GetKernelStrideH();
-         features[12 * n + 12] = problem.GetKernelStrideW();
-         features[13 * n + 13] = problem.GetDilationH();
-         features[14 * n + 14] = problem.GetDilationW();
-         features[15 * n + 15] = problem.GetBatchSize();
-         features[16 * n + 16] = problem.GetInDataType() == miopenFloat ? 2.0 : 1.0;
-         features[17 * n + 17] = problem.GetGroupCount();
-         return features;
-     }
- 
-     const bool isFwd = problem.GetDirection() == miopen::conv::Direction::Forward;
-     float precision  = 2.0; // miopenHalf
-     if(problem.GetInDataType() == miopenFloat)
-         precision = 3.0;
-     else if(problem.GetInDataType() == miopenBFloat16)
-         precision = 1.0;
- 
-     std::size_t n = 17;
-     std::vector<float> features(n * n, 0.0f);
-     features[0]           = isFwd ? problem.GetInChannels() : problem.GetOutChannels();
-     features[n + 1]       = isFwd ? problem.GetInHeight() : problem.GetOutHeight();
-     features[2 * n + 2]   = isFwd ? problem.GetInWidth() : problem.GetOutWidth();
-     features[3 * n + 3]   = isFwd ? problem.GetOutChannels() : problem.GetInChannels();
-     features[4 * n + 4]   = isFwd ? problem.GetOutHeight() : problem.GetInHeight();
-     features[5 * n + 5]   = isFwd ? problem.GetOutWidth() : problem.GetInWidth();
-     features[6 * n + 6]   = problem.GetWeightsHeight();
-     features[7 * n + 7]   = problem.GetWeightsWidth();
-     features[8 * n + 8]   = problem.GetPadH();
-     features[9 * n + 9]   = problem.GetPadW();
-     features[10 * n + 10] = problem.GetKernelStrideH();
-     features[11 * n + 11] = problem.GetKernelStrideW();
-     features[12 * n + 12] = problem.GetDilationH();
-     features[13 * n + 13] = problem.GetDilationW();
-     features[14 * n + 14] = problem.GetBatchSize();
-     features[15 * n + 15] = precision;
-     features[16 * n + 16] = problem.GetGroupCount();
-     return features;
- }
- 
- template <typename DataType>
- bool PerformanceConfigHipImplicitGemmGroupBwdCKNCHWXdlops::RunParameterPredictionModel(
-     const ExecutionContext& ctx, const ProblemDescription& problem)
- {
-     valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<DataType>, CKArgs>(
-         problem); // filter valid_kernel ID's
-     InitHeuristicKernelIDs();
-     static const std::string& arch = ctx.GetStream().GetDeviceName();
-     static std::string solver      = "ConvHipIgemmGroupBwdXdlops";
-     if(arch == "gfx90a")
-         solver = "ConvHipIgemmGroupXdlops";
-     std::vector<float> features = GetFeatures(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
-     if(ai::tuning::ModelSetParams(
-            arch, solver, problem.GetDirection(), features, true, [&](int idx, std::string value) {
-                return this->ModelApplyToken(idx, value, arch, problem);
-            }))
-     {
-         index     = heuristic_indexes[0];
-         kernel_id = valid_kernels[index];
-         MIOPEN_LOG_I("Params set by AI: " << ToString());
-         return true;
-     }
-     return false;
- }
- #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
  #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
- 
- bool PerformanceConfigHipImplicitGemmGroupBwdCKNCHWXdlops::IsModelApplicable(
-     const ExecutionContext& ctx, const ProblemDescription& problem) const
- {
-     if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942")
-         return false;
-     if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf &&
-        problem.GetInDataType() != miopenBFloat16)
-         return false;
-     if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR))
-         return false;
-     return true;
- }
  
  void PerformanceConfigHipImplicitGemmGroupBwdCKNCHWXdlops::HeuristicInit(
      [[maybe_unused]] const ExecutionContext& ctx,
@@ -370,26 +211,6 @@
      kernel_id = "";
  
  #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
- #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-     if(IsModelApplicable(ctx, problem))
-     {
-         if(problem.GetInDataType() == miopenFloat)
-         {
-             if(RunParameterPredictionModel<float>(ctx, problem))
-                 return;
-         }
-         else if(problem.GetInDataType() == miopenBFloat16)
-         {
-             if(RunParameterPredictionModel<ck::bhalf_t>(ctx, problem))
-                 return;
-         }
-         else
-         {
-             if(RunParameterPredictionModel<ck::half_t>(ctx, problem))
-                 return;
-         }
-     }
- #endif
      switch(problem.GetInDataType())
      {
      case miopenHalf: Init<ck::half_t>(problem); break;
@@ -503,7 +324,7 @@
      [[maybe_unused]] const ProblemDescription& problem) const
  {
  #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-     if(env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS))
+     if(env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_NCHW_XDLOPS))
          return false;
      if(problem.HasMixedDataTypes())
          return false;
@@ -518,7 +339,7 @@
      if(!problem.IsLayoutDefault())
          return false;
      // needed because layout transpose kernel does not support non-packed tensors
-     if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
+     if(problem.HasNonPackedTensors())
          return false;
      if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
          return false;
