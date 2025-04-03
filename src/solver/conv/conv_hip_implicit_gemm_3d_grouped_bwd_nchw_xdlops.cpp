@@ -577,4 +577,3 @@
  } // namespace conv
  } // namespace solver
  } // namespace miopen
- 
