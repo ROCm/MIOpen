@@ -41,8 +41,10 @@
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 // Disable DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3 until it is fixed in CK
 #define WORKAROUND_ISSUE_3661 1
+#endif
 
 namespace miopen {
 namespace solver {
