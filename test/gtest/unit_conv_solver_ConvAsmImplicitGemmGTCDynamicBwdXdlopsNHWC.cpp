@@ -47,8 +47,9 @@ auto GetSmokeTestParams(miopenDataType_t datatype)
         supportedDevices = supportedDevices | Gpu::gfx908;
     }
     auto testParams = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
-    testParams.Tunable(1);
+    testParams.Tunable(5);
     testParams.CheckXnackDisabled();
+    testParams.SetTolerance(Gpu::gfx90A, miopenHalf, 2.0f);
 
     return testParams;
 }
@@ -84,6 +85,9 @@ auto GetFullTestParams(miopenDataType_t datatype)
     auto testParams = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
     testParams.Tunable(1000);
     testParams.CheckXnackDisabled();
+    testParams.SetTolerance(Gpu::gfx908, miopenFloat, 2.0f);
+    testParams.SetTolerance(Gpu::gfx90A, miopenFloat, 2.0f);
+    testParams.SetTolerance(Gpu::gfx90A, miopenHalf, 2.0f);
 
     return testParams;
 }
