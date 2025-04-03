@@ -837,16 +837,12 @@ void* subBufferPageAlignMalloc(size_t size, bool alignLeft)
 
     if(alignLeft)
     {
-        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Trace,
-                          "MIOpenDriver",
-                          "hipMalloc left-align " << size << " at " << std::hex << mem << " Ok");
+        MIOPEN_LOG_T("hipMalloc left-align " << size << " at " << std::hex << mem << " Ok");
         return mem;
     }
 
     void* subBuffer = static_cast<char*>(mem) + totalSize - size;
-    MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Trace,
-                      "MIOpenDriver",
-                      "hipMalloc right-align " << size << " at " << std::hex << subBuffer << " Ok");
+    MIOPEN_LOG_T("hipMalloc right-align " << size << " at " << std::hex << subBuffer << " Ok");
 
     std::lock_guard<std::mutex> lck{SubBuffersToMemMapMutex};
     SubBuffersToMemMap[subBuffer] = mem;
@@ -864,11 +860,8 @@ struct right_aligned_deleter
         auto status = hipFree(mem);
         if(status != hipSuccess)
             MIOPEN_THROW_HIP_STATUS(status,
-                                    "[MIOpenDriver] hipFree on right-aligned memory failed at " +
-                                        to_string(mem));
-        MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Trace,
-                          "MIOpenDriver",
-                          "hipFree (right-aligned) at " << std::hex << mem << " Ok");
+                                    "hipFree on right-aligned memory failed at " + to_string(mem));
+        MIOPEN_LOG_T("hipFree (right-aligned) at " << std::hex << mem << " Ok");
     }
 };
 
