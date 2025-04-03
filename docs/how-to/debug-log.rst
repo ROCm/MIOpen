@@ -323,13 +323,12 @@ Check for GPU sub-buffer out-of-bounds memory accesses
 ==========================================================
 Use the ``MIOPEN_DEBUG_CHECK_SUB_BUFFER_OOB_MEMORY_ACCESS`` to help debug potential out-of-bounds (OOBs)
 memory access errors on GPU sub-buffers.  If the environment variable is undefined or set to zero, then no
-sub-buffer out-of-bounds detection is done.  Otherwise:
+sub-buffer out-of-bounds detection is performed. To verify the memory accesses, use one of these values:
 
 * ``MIOPEN_DEBUG_CHECK_SUB_BUFFER_OOB_MEMORY_ACCESS=1``: Check for OOBs before the start of the sub-buffers.
 * ``MIOPEN_DEBUG_CHECK_SUB_BUFFER_OOB_MEMORY_ACCESS=2``: Check for OOBs after the end of the sub-buffers.
 
-Note that this checking is not intended for production use since there is a possible performance hit
-from enabling this functionality.
+Note that these checks are not intended for production use because they might cause a performance hit.
 
 Controlling parallel compilation
 ==========================================================
