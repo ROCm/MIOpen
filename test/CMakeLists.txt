@@ -26,24 +26,6 @@
 
 cmake_policy(SET CMP0057 NEW)
 
-set( CMAKE_INSTALL_TESTBINDIR "${DATA_INSTALL_DIR}/bin" )
-
-set(test_perf.py ${CMAKE_INSTALL_TESTBINDIR}/test_perf.py)
-
-set(MODEL_FILES)
-file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
-foreach (src ${model_src})
-    list (APPEND MODEL_FILES ${src})
-endforeach()
-
-install(FILES
-    ${MODEL_FILES}
-    DESTINATION ${DATA_INSTALL_DIR}/perf_models)
-foreach(MODEL_FILE ${MODEL_FILES})
-   get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-   configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
-endforeach()
-
 include(CheckCXXCompilerFlag)
 
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
@@ -68,10 +50,28 @@ option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON )
 option( MIOPEN_TEST_DBSYNC "" OFF )
 option( MIOPEN_TEST_PERF "" OFF )
 
-if(MIOPEN_TEST_PERF)
+if(NOT ENABLE_ASAN_PACKAGING AND MIOPEN_TEST_PERF)
+    set( CMAKE_INSTALL_TESTBINDIR "${DATA_INSTALL_DIR}/bin" )
+    set(test_perf.py ${CMAKE_INSTALL_TESTBINDIR}/test_perf.py)
     install(FILES  test_perf.py
         PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
         DESTINATION ${CMAKE_INSTALL_TESTBINDIR})
+endif()
+
+if( NOT ENABLE_ASAN_PACKAGING )
+    set(MODEL_FILES)
+    file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
+    foreach (src ${model_src})
+        list (APPEND MODEL_FILES ${src})
+    endforeach()
+
+    install(FILES
+        ${MODEL_FILES}
+        DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+    foreach(MODEL_FILE ${MODEL_FILES})
+       get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+       configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
+    endforeach()
 endif()
 
 set_var_to_condition(MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT MIOPEN_BUILD_DRIVER)
