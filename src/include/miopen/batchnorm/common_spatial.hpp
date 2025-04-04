@@ -391,9 +391,22 @@ inline void DefaultConfigSpatialMultiple(const miopen::batchnorm::ProblemDescrip
     unsigned int in_cstride = h * w;
 
     // Largest supported vector size for this problem
-    size_t vectorsize_limit = problem.IsLayoutNHWC()
-                                  ? (c % 4 == 0 ? 4 : (c % 2 == 0 ? 2 : 1))
-                                  : (in_cstride % 4 == 0 ? 4 : (in_cstride % 2 == 0 ? 2 : 1));
+    size_t vectorsize_limit;
+    {
+        size_t reference_dimension = problem.IsLayoutNHWC() ? c : in_cstride;
+        if(problem.IsLayoutNHWC())
+        {
+            vectorsize_limit = c >= 256 ? 8 : 4;
+        }
+        else
+        {
+            vectorsize_limit = 4;
+        }
+        while(reference_dimension % vectorsize_limit != 0)
+        {
+            vectorsize_limit >>= 1;
+        }
+    }
 
     // First add the default config (heuristics).
     // Try to create a configuration with the largest vector size (vectorsize_limit).
@@ -430,50 +443,69 @@ inline void DefaultConfigSpatialMultiple(const miopen::batchnorm::ProblemDescrip
     // Add the full parameter space
     if(problem.IsLayoutNHWC())
     {
-        // All vector sizes less or equal to the supported vector size limit
-        for(size_t vectorsize = vectorsize_limit; vectorsize > 0; vectorsize >>= 1)
+        std::vector<size_t> vectorsize_limit_vector = {vectorsize_limit};
+        if(vectorsize_limit > 1)
         {
-            size_t xlocalsize_limit_high = vectorsize > 1 ? 32 : 64;
-            size_t xlocalsize_limit_low  = vectorsize > 1 ? 16 : 32;
-            // this local size seems to always be the best one, so there is no need to check
-            // other ones
-            size_t max_localsize = 1024 / vectorsize;
-            // xlocalsize = 32, 16 with vectorization
-            // xlocalsize = 64, 32 without vectorization
-            for(size_t xlocalsize_limit = xlocalsize_limit_high;
-                xlocalsize_limit >= xlocalsize_limit_low;
-                xlocalsize_limit >>= 1)
+            size_t vectorsize_tmp = vectorsize_limit / 2;
+            while(vectorsize_tmp > 1)
             {
-                size_t xlocalsize = std::min(size_t{1 << int(std::ceil(std::log2(c / vectorsize)))},
-                                             xlocalsize_limit);
-                // zlocalsize = 1, 2, 4
-                for(size_t zlocalsize = 1; zlocalsize <= 4; zlocalsize <<= 1)
+                vectorsize_limit_vector.push_back(vectorsize_tmp);
+                vectorsize_tmp >>= 1;
+            }
+        }
+        // All vector sizes less or equal to the supported vector size limit
+        for(const size_t& vectorsize : vectorsize_limit_vector)
+        {
+            size_t xlocalsize_limit_high = std::min(
+                size_t{1 << int(std::ceil(std::log2(c / vectorsize)))}, std::size_t{64});
+            size_t xlocalsize_limit_low  = std::max(xlocalsize_limit_high / 2, std::size_t{16});
+            // localsize of 1024 and 1024 / vectorsize (for vectorsize 8: 512 and 1024 / vectorsize)
+            std::vector<size_t> max_localsize_vector = {1024 / (1 << (vectorsize / 8))};
+            if(vectorsize > 1)
+            {
+                max_localsize_vector.push_back(1024 / vectorsize);
+            }
+            for(const size_t& max_localsize : max_localsize_vector)
+            {
+                for(size_t xlocalsize_limit = xlocalsize_limit_high;
+                    xlocalsize_limit >= xlocalsize_limit_low;
+                    xlocalsize_limit >>= 1)
                 {
-                    // 1 zblock: nelements = n / zlocalsize
-                    // 2 zblock: nelements = n / (2 * zlocalsize)
-                    for(size_t i = 1; i <= 2; ++i)
+                    size_t xlocalsize = std::min(
+                        size_t{1 << int(std::ceil(std::log2(c / vectorsize)))}, xlocalsize_limit);
+                    // zlocalsize = 1, 2
+                    for(size_t zlocalsize = 1; zlocalsize <= 2; zlocalsize <<= 1)
                     {
-                        size_t nelements = n / (i * zlocalsize);
-                        if(nelements == 0)
+                        // 1 zblock
+                        std::vector<size_t> nelements_vector = {n / zlocalsize};
+                        // multiple zblocks
+                        if(n / zlocalsize > 64)
                         {
-                            continue;
+                            nelements_vector.push_back(32);
                         }
-                        // Currently only this case is supported
-                        if(n % nelements != 0)
+                        for(const size_t& nelements : nelements_vector)
                         {
-                            continue;
-                        }
-                        size_t ylocalsize = max_localsize / xlocalsize / zlocalsize;
-                        // Check if the computed instance is applicable and add it
-                        if(IsSpatialMultipleApplicable(problem,
-                                                       vectorsize,
-                                                       stash_values,
-                                                       ylocalsize,
-                                                       zlocalsize,
-                                                       nelements))
-                        {
-                            valid_kernels.push_back(GetKernelIdFromVariant(
-                                2, vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements));
+                            // Currently only this case is supported
+                            if(n % nelements != 0)
+                            {
+                                continue;
+                            }
+                            size_t ylocalsize = max_localsize / xlocalsize / zlocalsize;
+                            if(ylocalsize == 0)
+                            {
+                                continue;
+                            }
+                            // Check if the computed instance is applicable and add it
+                            if(IsSpatialMultipleApplicable(problem,
+                                                           vectorsize,
+                                                           stash_values,
+                                                           ylocalsize,
+                                                           zlocalsize,
+                                                           nelements))
+                            {
+                                valid_kernels.push_back(GetKernelIdFromVariant(
+                                    2, vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements));
+                            }
                         }
                     }
                 }

@@ -99,6 +99,8 @@
 #define _FLOAT_ACCUM2 PPCAT(_FLOAT_ACCUM, TWO)
 #define _FLOAT_PREC4 PPCAT(_FLOAT_PREC, FOUR)
 #define _FLOAT_ACCUM4 PPCAT(_FLOAT_ACCUM, FOUR)
+#define _FLOAT_PREC8 PPCAT(_FLOAT_PREC, EIGHT)
+#define _FLOAT_ACCUM8 PPCAT(_FLOAT_ACCUM, EIGHT)
 
 #ifndef MIO_BN_LDSGCN_SIZE
 #define MIO_BN_LDSGCN_SIZE 16
@@ -229,11 +231,31 @@
 
 #define FLOATPREC2_2_FLOAT2(val) ((_FLOAT2)(FLOATPREC2FLOAT(val.x), FLOATPREC2FLOAT(val.y)))
 
+#define FLOATPREC8_2_FLOAT8(val)        \
+    ((_FLOAT8)(FLOATPREC2FLOAT(val.s0), \
+               FLOATPREC2FLOAT(val.s1), \
+               FLOATPREC2FLOAT(val.s2), \
+               FLOATPREC2FLOAT(val.s3), \
+               FLOATPREC2FLOAT(val.s4), \
+               FLOATPREC2FLOAT(val.s5), \
+               FLOATPREC2FLOAT(val.s6), \
+               FLOATPREC2FLOAT(val.s7)))
+
 #define FLOAT4_2_FLOATPREC4(val)            \
     ((_FLOAT_PREC4)(FLOAT2FLOATPREC(val.x), \
                     FLOAT2FLOATPREC(val.y), \
                     FLOAT2FLOATPREC(val.z), \
                     FLOAT2FLOATPREC(val.w)))
+
+#define FLOAT8_2_FLOATPREC8(val)             \
+    ((_FLOAT_PREC8)(FLOAT2FLOATPREC(val.s0), \
+                    FLOAT2FLOATPREC(val.s1), \
+                    FLOAT2FLOATPREC(val.s2), \
+                    FLOAT2FLOATPREC(val.s3), \
+                    FLOAT2FLOATPREC(val.s4), \
+                    FLOAT2FLOATPREC(val.s5), \
+                    FLOAT2FLOATPREC(val.s6), \
+                    FLOAT2FLOATPREC(val.s7)))
 
 #define FLOAT2_2_FLOATPREC2(val) ((_FLOAT_PREC2)(FLOAT2FLOATPREC(val.x), FLOAT2FLOATPREC(val.y)))
 
@@ -247,6 +269,16 @@
     a += b.z;              \
     a += b.w;
 
+#define _ACCUMULATE8(a, b) \
+    a += b.s0;             \
+    a += b.s1;             \
+    a += b.s2;             \
+    a += b.s3;             \
+    a += b.s4;             \
+    a += b.s5;             \
+    a += b.s6;             \
+    a += b.s7;
+
 #define _ACCUMULATE2(a, b) \
     a += b.x;              \
     a += b.y;
@@ -256,6 +288,16 @@
     a = mad(b.y, c.y, d);            \
     a = mad(b.z, c.z, d);            \
     a = mad(b.w, c.w, d);
+
+#define _ACCUMULATE_MAD8(a, b, c, d) \
+    a = mad(b.s0, c.s0, d);          \
+    a = mad(b.s1, c.s1, d);          \
+    a = mad(b.s2, c.s2, d);          \
+    a = mad(b.s3, c.s3, d);          \
+    a = mad(b.s4, c.s4, d);          \
+    a = mad(b.s5, c.s5, d);          \
+    a = mad(b.s6, c.s6, d);          \
+    a = mad(b.s7, c.s7, d);
 
 #define _ACCUMULATE_MAD2(a, b, c, d) \
     a = mad(b.x, c.x, d);            \
@@ -299,6 +341,44 @@
 
 #define FLOAT2FLOATPREC_VEC FLOAT4_2_FLOATPREC4
 #define FLOATPREC2FLOAT_VEC FLOATPREC4_2_FLOAT4
+
+#elif MIO_BN_VEC_SIZE == 8
+
+// Case vectorsize 8
+#if MIO_LAYOUT_NHWC
+// NHWC vectorize in X direction which corresponds
+// to channels
+#define VEC_SIZE_X MIO_BN_VEC_SIZE
+#define VEC_SIZE_Y 1
+// _C suffix means used for computation
+// _LS suffix means used for loading / storing
+#define _FLOAT_PREC_C _FLOAT_PREC8
+#define _FLOAT_PREC_LS _FLOAT_PREC8
+#define _FLOAT_C _FLOAT8
+#define _FLOAT_LS _FLOAT8
+#define _FLOAT_ACCUM_C _FLOAT_ACCUM8
+#define _FLOAT_ACCUM_LS _FLOAT_ACCUM8
+#define _ACCUMULATE _ACCUMULATE1
+#define _ACCUMULATE_MAD _ACCUMULATE_MAD1
+#else
+// NCHW vectorize in Y direction which corresponds
+// to HW
+#define VEC_SIZE_X 1
+#define VEC_SIZE_Y MIO_BN_VEC_SIZE
+#define _FLOAT_PREC_C _FLOAT_PREC
+#define _FLOAT_PREC_LS _FLOAT_PREC8
+// _C suffix means used for computation
+// _LS suffix means used for loading / storing
+#define _FLOAT_C _FLOAT
+#define _FLOAT_LS _FLOAT8
+#define _FLOAT_ACCUM_C _FLOAT_ACCUM
+#define _FLOAT_ACCUM_LS _FLOAT_ACCUM8
+#define _ACCUMULATE _ACCUMULATE8
+#define _ACCUMULATE_MAD _ACCUMULATE_MAD8
+#endif
+
+#define FLOAT2FLOATPREC_VEC FLOAT8_2_FLOATPREC8
+#define FLOATPREC2FLOAT_VEC FLOATPREC8_2_FLOAT8
 
 #elif MIO_BN_VEC_SIZE == 2
 // Case vectorsize 2
