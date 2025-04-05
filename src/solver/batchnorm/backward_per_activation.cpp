@@ -46,6 +46,8 @@ bool BnBwdTrainingPerActivation::IsApplicable(
     if(problem.GetDirection() != miopen::batchnorm::Direction::Backward &&
        problem.GetMode() != miopenBNPerActivation)
         return false;
+    if(problem.GetActivationDesc().GetMode() != miopenActivationPASTHRU)
+        return false;
     if(!::miopen::batchnorm::IsOCLBwdTypeValid(problem))
         return false;
     return true;

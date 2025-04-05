@@ -335,6 +335,8 @@ bool BnCKFwdInference::IsApplicable(
         return false;
     if(bn_problem.GetMode() != miopenBNSpatial)
         return false;
+    if(bn_problem.GetActivationDesc().GetMode() != miopenActivationPASTHRU)
+        return false;
     if(!IsCKInferTypeValid(bn_problem))
         return false;
 

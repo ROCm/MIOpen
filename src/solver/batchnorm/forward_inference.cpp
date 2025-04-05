@@ -47,6 +47,9 @@ bool BnFwdInference::IsApplicable(const ExecutionContext&,
         return false;
     if(!bn_problem.Is2D())
         return false;
+    if(!(bn_problem.GetActivationDesc().GetMode() == miopenActivationPASTHRU ||
+	 bn_problem.GetActivationDesc().GetMode() == miopenActivationRELU))
+        return false;
     if(!IsOCLInferTypeValid(bn_problem))
         return false;
 
@@ -127,7 +130,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             kernel.kernel_name += "PerActivationEst";
         }
 
-        const auto build_params = KernelBuildParameters{
+        auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
             {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
@@ -141,6 +144,11 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
             {"MIO_BN_VECTORIZE", static_cast<int>(vectorize)},
         };
+
+	if (problem.GetActivationDesc().GetMode() == miopenActivationRELU)
+	{
+	    build_params.Define("MIO_BN_CLAMP_MIN", 0);
+	}
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 

@@ -75,6 +75,15 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
         inhat = FLOAT2FLOATPREC_VEC(value);
         inhat = (inhat - mean) * invVariance;
         inhat = mad(pscale, inhat, (_FLOAT_PREC_LS)pbias);
+#ifdef MIO_BN_CLAMP_BOTH
+	inhat = clamp(inhat, MIO_BN_CLAMP_MIN, MIO_BN_CLAMP_MAX);
+#endif
+#ifdef MIO_BN_CLAMP_MIN
+	inhat = fmax(inhat, MIO_BN_CLAMP_MIN);
+#endif
+#ifdef MIO_BN_CLAMP_MAX
+	inhat = fmin(inhat, MIO_BN_CLAMP_MAX);
+#endif
         value = FLOATPREC2FLOAT_VEC(inhat);
 
         *((__global _FLOAT_LS*)(out + index)) = value;

@@ -129,6 +129,9 @@ bool BnBwdTrainingSpatial::IsApplicable(
     if(!bn_problem.Is2D())
         return false;
 
+    if(bn_problem.GetActivationDesc().GetMode() != miopenActivationPASTHRU)
+        return false;
+
 #if WORKAROUND_ISSUE_1549_FP16_BUILD_ERROR
     if(bn_problem.GetXDesc().GetType() == miopenHalf &&
        bn_problem.GetBnScale().GetType() == miopenHalf)

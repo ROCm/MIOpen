@@ -129,6 +129,9 @@ bool BnFwdTrainingSpatial::IsApplicable(
     if(!bn_problem.Is2D())
         return false;
 
+    if(bn_problem.GetActivationDesc().GetMode() != miopenActivationPASTHRU)
+        return false;
+
     if(!IsOCLFwdTrainTypeValid(bn_problem))
         return false;
 
