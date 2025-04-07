@@ -40,7 +40,6 @@
 
 #define SOLVER_NAME ConvHipImplicitGemmV4R1Fwd
 
-
 namespace {
 
 auto GetConvTestCases(miopenDataType_t datatype)

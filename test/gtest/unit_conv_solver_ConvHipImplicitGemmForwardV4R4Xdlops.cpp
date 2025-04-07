@@ -30,9 +30,7 @@
 #error "HIP_PACKAGE_VERSION_FLAT undefined"
 #endif
 
-
 #define SOLVER_NAME ConvHipImplicitGemmForwardV4R4Xdlops
-
 
 namespace {
 

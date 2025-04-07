@@ -30,9 +30,7 @@
 #error "HIP_PACKAGE_VERSION_FLAT undefined"
 #endif
 
-
 #define SOLVER_NAME ConvHipImplicitGemmBwdDataV1R1
-
 
 namespace {
 
