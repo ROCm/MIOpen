@@ -212,8 +212,8 @@ ConvTestCase::GetProblemDescription(miopen::conv::Direction direction) const
     switch(direction)
     {
     case miopen::conv::Direction::Forward:
-    case miopen::conv::Direction::BackwardData:
         return miopen::conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, direction);
+    case miopen::conv::Direction::BackwardData:
     case miopen::conv::Direction::BackwardWeights:
         return miopen::conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, direction);
     default: throw std::runtime_error("unknown direction");
@@ -234,6 +234,35 @@ std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 //************************************************************************************
 // Unit test for convolution solver
 //************************************************************************************
+uint64_t Tolerances::GetKey(Gpu gpu, miopenDataType_t type)
+{
+    static_assert(sizeof(gpu) <= sizeof(uint64_t) / 2);
+    static_assert(sizeof(type) <= sizeof(uint64_t) / 2);
+
+    return (static_cast<uint64_t>(gpu) << 32) | static_cast<uint64_t>(type);
+}
+
+void Tolerances::Set(Gpu gpu, miopenDataType_t type, float value)
+{
+    values[GetKey(gpu, type)] = value;
+}
+
+float Tolerances::Get(Gpu gpu, miopenDataType_t type) const
+{
+    const auto& v = values.find(GetKey(gpu, type));
+    if(v == values.cend())
+        return 1.0f; // default value
+    return v->second;
+}
+
+std::ostream& operator<<(std::ostream& os, const Tolerances& t)
+{
+    os << "(";
+    for(const auto [key, value] : t.values)
+        os << std::hex << "0x" << key << std::dec << ":" << value << ",";
+    os << ")";
+    return os;
+}
 
 UnitTestConvSolverParams::UnitTestConvSolverParams() : UnitTestConvSolverParams(Gpu::None) {}
 
@@ -260,6 +289,32 @@ void UnitTestConvSolverParams::CheckXnackDisabled() { check_xnack_disabled = tru
 
 void UnitTestConvSolverParams::SetConvAttrFp16Alt(uint64_t value) { conv_attr_fp16_alt = value; }
 
+void UnitTestConvSolverParams::SetTolerance(Gpu gpu, miopenDataType_t type, float value)
+{
+    tolerances.Set(gpu, type, value);
+}
+
+std::ostream& operator<<(std::ostream& os, const UnitTestConvSolverParams& p)
+{
+    os << "(";
+    os << "Devs:" << std::hex << "0x"
+       << static_cast<std::underlying_type_t<decltype(p.supported_devs)>>(p.supported_devs)
+       << std::dec;
+    if(p.use_cpu_ref)
+        os << ", CpuRef:" << p.use_cpu_ref;
+    if(p.enable_deprecated_solvers)
+        os << ", EnDerpSolver:" << p.enable_deprecated_solvers;
+    if(p.tunable)
+        os << ", IterMax:" << p.tuning_iterations_max;
+    if(p.check_xnack_disabled)
+        os << ", CheckXnackOff:" << p.check_xnack_disabled;
+    if(p.conv_attr_fp16_alt)
+        os << ", AttrFp16Alt:" << p.conv_attr_fp16_alt.value();
+    os << ", Tolerances:" << p.tolerances;
+    os << ")";
+    return os;
+}
+
 namespace {
 
 miopen::solver::ConvSolution FindSolution(const miopen::solver::conv::ConvSolverInterface& solv,
@@ -285,43 +340,11 @@ miopen::solver::ConvSolution FindSolution(const miopen::solver::conv::ConvSolver
 }
 
 template <typename T>
-double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction direction)
+double GetThreshold(miopenConvAlgorithm_t algo,
+                    miopen::conv::Direction direction,
+                    const Tolerances& tolerances)
 {
-    double tolerance = 1.0;
-
-    if constexpr(std::is_same_v<T, half_float::half>)
-    {
-        if(algo == miopenConvolutionAlgoGEMM && direction != miopen::conv::Direction::Forward)
-        {
-            tolerance *= 2.0;
-        }
-        else if(algo == miopenConvolutionAlgoImplicitGEMM)
-        {
-            tolerance *= 2.0;
-        }
-    }
-
-    if constexpr(std::is_same_v<T, float>)
-    {
-        if(algo == miopenConvolutionAlgoDirect &&
-           direction == miopen::conv::Direction::BackwardWeights)
-        {
-            tolerance *= 2.0;
-        }
-        else if(algo == miopenConvolutionAlgoImplicitGEMM)
-        {
-            if(direction == miopen::conv::Direction::BackwardWeights &&
-               GetDevGpuType() == Gpu::gfx908)
-            {
-                tolerance *= 7.0;
-            }
-            else
-            {
-                tolerance *= 3.0;
-            }
-        }
-    }
-
+    double tolerance = tolerances.Get(GetDevGpuType(), miopen_type<T>{});
     double threshold = std::numeric_limits<T>::epsilon() * tolerance;
     return threshold;
 }
@@ -330,7 +353,8 @@ template <typename T, typename Tref>
 void VerifyData(const std::vector<T>& data,
                 const std::vector<Tref>& ref_data,
                 miopenConvAlgorithm_t algo,
-                miopen::conv::Direction direction)
+                miopen::conv::Direction direction,
+                const Tolerances& tolerances)
 {
     ASSERT_FALSE(miopen::range_zero(ref_data)) << "Reference data is all zeros";
     if constexpr(!std::is_integral_v<T>)
@@ -357,7 +381,7 @@ void VerifyData(const std::vector<T>& data,
     else
     {
         const auto error       = miopen::rms_range(ref_data, data);
-        const double threshold = GetThreshold<T>(algo, direction);
+        const double threshold = GetThreshold<T>(algo, direction, tolerances);
         ASSERT_LT(error, threshold) << "Error beyond tolerance";
         // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
     }
@@ -463,7 +487,8 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverInterface& solv,
 
     output.data = handle.Read<Tout>(out_dev, output.data.size());
 
-    VerifyData(output.data, ref_out.data, algo, miopen::conv::Direction::Forward);
+    VerifyData(
+        output.data, ref_out.data, algo, miopen::conv::Direction::Forward, params.tolerances);
 }
 
 template <typename T, typename Tref>
@@ -575,7 +600,8 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverInterface& solv,
 
     input.data = handle.Read<Tin>(in_dev, input.data.size());
 
-    VerifyData(input.data, ref_in.data, algo, miopen::conv::Direction::BackwardData);
+    VerifyData(
+        input.data, ref_in.data, algo, miopen::conv::Direction::BackwardData, params.tolerances);
 }
 
 template <typename T, typename Tref>
@@ -687,7 +713,11 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverInterface& solv,
 
     weights.data = handle.Read<Twei>(wei_dev, weights.data.size());
 
-    VerifyData(weights.data, ref_weights.data, algo, miopen::conv::Direction::BackwardWeights);
+    VerifyData(weights.data,
+               ref_weights.data,
+               algo,
+               miopen::conv::Direction::BackwardWeights,
+               params.tolerances);
 }
 
 template <typename T, typename Tref>
