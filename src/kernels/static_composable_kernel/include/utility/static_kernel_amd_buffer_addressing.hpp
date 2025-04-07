@@ -145,7 +145,7 @@ __device__ void amd_buffer_store(const T* p_src,
                                  T* p_dst_block,
                                  const index_t dst_thread_data_offset,
                                  const index_t dst_const_data_offset)
-{ 
+{
     auto dst_buffer_resource = [&]() {
         // NFMT float = 7000 - ignored
         // DFMT 32 = 20000 - ignored but should not be 0
@@ -172,8 +172,8 @@ __device__ void amd_buffer_store(const T* p_src,
 template <typename T, index_t N>
 __device__ typename vector_type<T, N>::MemoryType
 amd_buffer_load_impl(buffer_resourse_t src_wave_buffer_resource,
-                index_t src_thread_addr_offset,
-                index_t src_wave_addr_offset)
+                     index_t src_thread_addr_offset,
+                     index_t src_wave_addr_offset)
 {
     if constexpr(is_same<T, float>::value)
     {
