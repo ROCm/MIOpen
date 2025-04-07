@@ -61,8 +61,9 @@ bool PerformanceConfigBnBwdBackward::IsValid(
         this->kernel_id, variant, vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements);
     if(variant == 2)
     {
+        unsigned int stash_values = !problem.UseSaved() ? stash_values_bwd : stash_values_bwd / 2;
         return IsSpatialMultipleApplicable(
-            problem, vectorsize, stash_values_bwd, ylocalsize, zlocalsize, nelements);
+            problem, vectorsize, stash_values, ylocalsize, zlocalsize, nelements);
     }
     return true;
 }
@@ -70,11 +71,12 @@ bool PerformanceConfigBnBwdBackward::IsValid(
 void PerformanceConfigBnBwdBackward::HeuristicInit(
     const miopen::batchnorm::ProblemDescription& problem)
 {
+    unsigned int stash_values = !problem.UseSaved() ? stash_values_bwd : stash_values_bwd / 2;
     // Define default configuration based on heuristics and
     // add all other valid configurations for the given problem
     if(UseMultiple(problem))
     {
-        DefaultConfigSpatialMultiple(problem, stash_values_bwd, this->valid_kernels);
+        DefaultConfigSpatialMultiple(problem, stash_values, this->valid_kernels);
         DefaultConfigSpatialSingle(problem, this->valid_kernels);
     }
     else
@@ -85,7 +87,7 @@ void PerformanceConfigBnBwdBackward::HeuristicInit(
         // very unlikely that they will be faster than those variants
         if(this->valid_kernels.size() < 2)
         {
-            DefaultConfigSpatialMultiple(problem, stash_values_bwd, this->valid_kernels);
+            DefaultConfigSpatialMultiple(problem, stash_values, this->valid_kernels);
         }
     }
 
@@ -254,10 +256,11 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
         }
         zgridsize = zlocalsize * ((n / nelements + zlocalsize - 1) / zlocalsize);
 
+        unsigned int stash_values = !problem.UseSaved() ? stash_values_bwd : stash_values_bwd / 2;
         // Get the stash method based on problem size and WG size
         stash_method = GetStashMethod(problem.IsLayoutNHWC(),
                                       problem.GetXDesc().GetType(),
-                                      stash_values_bwd,
+                                      stash_values,
                                       c,
                                       n,
                                       in_cstride,

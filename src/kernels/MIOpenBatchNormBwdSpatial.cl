@@ -926,9 +926,10 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
 
     if(ylid == 0 && zlid == 0)
     {
+        const unsigned int stash_index = MIO_BN_USESAVED == 1 ? 0 : 2;
         storeToStash(dscale,
                      (__global _FLOAT_C*)buff,
-                     2,
+                     stash_index,
                      zgrp_sz * zgrp_id * MIO_BN_N_ELEMENTS,
                      ygrp_sz * ygrp_id * VEC_SIZE_Y,
                      ystride / VEC_SIZE_X,
@@ -938,7 +939,7 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
                      xstride);
         storeToStash(dbias,
                      (__global _FLOAT_C*)buff,
-                     3,
+                     stash_index + 1,
                      zgrp_sz * zgrp_id * MIO_BN_N_ELEMENTS,
                      ygrp_sz * ygrp_id * VEC_SIZE_Y,
                      ystride / VEC_SIZE_X,
@@ -965,8 +966,9 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(const __global _FLOAT* __restrict buff
     unsigned int ygrp_sz = get_local_size(1);
     unsigned int zgrp_sz = get_local_size(2);
 
-    unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
-    unsigned int ystride = MIO_LAYOUT_NHWC ? MIO_BN_C : 1;
+    unsigned int xstride           = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
+    unsigned int ystride           = MIO_LAYOUT_NHWC ? MIO_BN_C : 1;
+    const unsigned int stash_index = MIO_BN_USESAVED == 1 ? 0 : 2;
 
     if(xgid * VEC_SIZE_X >= MIO_BN_C)
         return;
@@ -979,7 +981,7 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(const __global _FLOAT* __restrict buff
         for(unsigned int yoffset = ylid; yoffset < MIO_BN_NGRPS; yoffset += ygrp_sz)
         {
             dscale += loadFromStash((__global _FLOAT_C*)buff,
-                                    2,
+                                    stash_index,
                                     MIO_BN_GRP2 * zoffset * MIO_BN_N_ELEMENTS,
                                     MIO_BN_GRP1 * yoffset * VEC_SIZE_Y,
                                     ystride / VEC_SIZE_X,
@@ -988,7 +990,7 @@ MIOpenBatchNormBwdSpatialFinalDScaleDBias(const __global _FLOAT* __restrict buff
                                     xlid,
                                     xstride);
             dbias += loadFromStash((__global _FLOAT_C*)buff,
-                                   3,
+                                   stash_index + 1,
                                    MIO_BN_GRP2 * zoffset * MIO_BN_N_ELEMENTS,
                                    MIO_BN_GRP1 * yoffset * VEC_SIZE_Y,
                                    ystride / VEC_SIZE_X,

@@ -456,9 +456,9 @@ inline void DefaultConfigSpatialMultiple(const miopen::batchnorm::ProblemDescrip
         // All vector sizes less or equal to the supported vector size limit
         for(const size_t& vectorsize : vectorsize_limit_vector)
         {
-            size_t xlocalsize_limit_high = std::min(
-                size_t{1 << int(std::ceil(std::log2(c / vectorsize)))}, std::size_t{64});
-            size_t xlocalsize_limit_low  = std::max(xlocalsize_limit_high / 2, std::size_t{16});
+            size_t xlocalsize_limit_high =
+                std::min(size_t{1 << int(std::ceil(std::log2(c / vectorsize)))}, std::size_t{64});
+            size_t xlocalsize_limit_low = std::max(xlocalsize_limit_high / 2, std::size_t{16});
             // localsize of 1024 and 1024 / vectorsize (for vectorsize 8: 512 and 1024 / vectorsize)
             std::vector<size_t> max_localsize_vector = {1024 / (1 << (vectorsize / 8))};
             if(vectorsize > 1)
