@@ -30,7 +30,6 @@ union RawBufferAddressConfig
 
 #endif // if CK_USE_AMD_BUFFER_PTR_TYPE
 
-
 // load
 __device__ int8_t
 llvm_amdgcn_raw_buffer_load_i8(buffer_resourse_t srsrc,
@@ -110,6 +109,24 @@ llvm_amdgcn_raw_buffer_load_fp32x4(buffer_resourse_t srsrc,
                                    index_t soffset,
                                    index_t glc_slc) __asm(amd_buffer_intrinsic_name(load.v4f32));
 
+// bf16
+__device__ ushort
+llvm_amdgcn_raw_buffer_load_bf16(buffer_resourse_t srsrc,
+                                 index_t voffset,
+                                 index_t soffset,
+                                 index_t glc_slc) __asm(amd_buffer_intrinsic_name(load.bf16));
+
+__device__ ushort2_t
+llvm_amdgcn_raw_buffer_load_bf16x2(buffer_resourse_t srsrc,
+                                   index_t voffset,
+                                   index_t soffset,
+                                   index_t glc_slc) __asm(amd_buffer_intrinsic_name(load.v2bf16));
+
+__device__ ushort4_t
+llvm_amdgcn_raw_buffer_load_bf16x4(buffer_resourse_t srsrc,
+                                   index_t voffset,
+                                   index_t soffset,
+                                   index_t glc_slc) __asm(amd_buffer_intrinsic_name(load.v4bf16));
 
 // store
 __device__ void
@@ -204,5 +221,27 @@ llvm_amdgcn_raw_buffer_store_fp32x4(float4_t vdata,
                                     index_t soffset,
                                     index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.v4f32));
 
+// float
+__device__ void
+llvm_amdgcn_raw_buffer_store_bf16(ushort vdata,
+                                  buffer_resourse_t srsrc,
+                                  index_t voffset,
+                                  index_t soffset,
+                                  index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.bf16));
+
+__device__ void
+llvm_amdgcn_raw_buffer_store_bf16x2(ushort2_t vdata,
+                                    buffer_resourse_t srsrc,
+                                    index_t voffset,
+                                    index_t soffset,
+                                    index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.v2bf16));
+
+__device__ void
+llvm_amdgcn_raw_buffer_store_bf16x4(ushort4_t vdata,
+                                    buffer_resourse_t srsrc,
+                                    index_t voffset,
+                                    index_t soffset,
+                                    index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.v4bf16));
+
 } // namespace ck
-#endif //CK_AMD_BUFFER_INTRINSIC_HPP
+#endif // CK_AMD_BUFFER_INTRINSIC_HPP
