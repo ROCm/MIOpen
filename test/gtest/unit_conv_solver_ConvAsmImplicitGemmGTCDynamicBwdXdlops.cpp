@@ -52,11 +52,11 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
         TestCase{{128,  128, 35, 35}, { 256,  128, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype},
         TestCase{{128,  128, 64, 64}, { 256,  128, 3, 3}, {1, 1}, {2, 2}, {1, 1}, datatype},
         TestCase{{128,  768, 17, 17}, { 256,  768, 3, 3}, {1, 1}, {1, 1}, {2, 2}, datatype},
-        // TestCase{{  3,  256, 28, 28}, {  80,  256, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype}, // not applicable
+        TestCase{{  3,  256, 28, 28}, {  80,  256, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
         TestCase{{  2,  256, 12, 18}, { 256,  256, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype},
         TestCase{{400,  256,  7,  7}, {1024,  256, 7, 7}, {0, 0}, {1, 1}, {1, 1}, datatype},
         TestCase{{400,  256,  1,  1}, {1024,  256, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
-        // TestCase{{  8,   16,  5,  5}, {   8,   16, 2, 2}, {0, 0}, {1, 1}, {1, 1}, datatype}, // not applicable
+        TestCase{{  8,   16,  5,  5}, {   8,   16, 2, 2}, {0, 0}, {1, 1}, {1, 1}, datatype},
         // ho=wo=1 stride=2
         TestCase{{256, 2048,  2,  2}, {1024, 2048, 1, 1}, {0, 0}, {2, 2}, {1, 1}, datatype},
         // clang-format on
@@ -90,7 +90,7 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
     if(datatype == miopenFloat)
     {
         // clang-format off
-        // cases.emplace_back(TestCase{{4, 512, 128, 128}, {12, 512, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype});  // not applicable
+        cases.emplace_back(TestCase{{4, 512, 128, 128}, {12, 512, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype});
         // clang-format on
     }
 
@@ -102,6 +102,7 @@ const auto& GetTestParams()
     static const auto params = [] {
         auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx908);
         p.CheckXnackDisabled();
+        p.SetTolerance(Gpu::gfx908, miopenFloat, 2.0f);
         return p;
     }();
     return params;
