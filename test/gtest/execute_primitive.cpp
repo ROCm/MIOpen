@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#include <miopen/filesystem.hpp>
 #include <miopen/execution_context.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -33,7 +33,6 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/solver.hpp>
 #include <miopen/temp_file.hpp>
-#include <miopen/env_debug.hpp>
 
 namespace fs = miopen::fs;
 
@@ -229,15 +228,9 @@ auto CallExecutePrimitive(const miopen::ExecutionContext& ctx) -> TestResults
     constexpr auto solvers =
         miopen::solver::SolverContainer<TunableTestSolver, RegularTestSolver>{};
 
-    const auto find_enforce_before = miopen::debug::env::GetEnvVariable("MIOPEN_FIND_ENFORCE");
-
-    if(find_enforce_before.has_value())
-        miopen::debug::env::ClearEnvVariable("MIOPEN_FIND_ENFORCE");
+    ScopedEnvironment<std::string> clear_find_enforce_env{MIOPEN_FIND_ENFORCE};
 
     solvers.ExecutePrimitive(ctx, problem, miopen::AlgorithmName{"test::algo"}, {});
-
-    if(find_enforce_before.has_value())
-        miopen::debug::env::UpdateEnvVariable("MIOPEN_FIND_ENFORCE", *find_enforce_before);
 
     return test_results;
 }
