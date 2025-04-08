@@ -134,9 +134,36 @@ __device__ void amd_buffer_store_impl(const typename vector_type<T, N>::MemoryTy
                                                0);
         }
     }
+    else if constexpr(is_same<T, ushort>::value)
+    {
+        if constexpr(N == 1)
+        {
+            llvm_amdgcn_raw_buffer_store_bf16(src_thread_data,
+                                              dst_wave_buffer_resource,
+                                              dst_thread_addr_offset,
+                                              dst_wave_addr_offset,
+                                              0);
+        }
+        else if constexpr(N == 2)
+        {
+            llvm_amdgcn_raw_buffer_store_bf16x2(src_thread_data,
+                                                dst_wave_buffer_resource,
+                                                dst_thread_addr_offset,
+                                                dst_wave_addr_offset,
+                                                0);
+        }
+        else if constexpr(N == 4)
+        {
+            llvm_amdgcn_raw_buffer_store_bf16x4(src_thread_data,
+                                                dst_wave_buffer_resource,
+                                                dst_thread_addr_offset,
+                                                dst_wave_addr_offset,
+                                                0);
+        }
+    }
     else
     {
-        static_assert(true, "wrong! not implemented");
+        static_assert(false, "wrong! not implemented");
     }
 }
 
@@ -157,8 +184,7 @@ __device__ void amd_buffer_store(const T* p_src,
         return make_raw_buffer_resourse(p_dst_block, stride, num, flag);
     }();
 
-    index_t dst_thread_addr_offset =
-        (dst_thread_data_offset + dst_const_data_offset) * sizeof(float);
+    index_t dst_thread_addr_offset = (dst_thread_data_offset + dst_const_data_offset) * sizeof(T);
 
     auto typed_p_src = reinterpret_cast<const typename vector_type<T, N>::MemoryType*>(p_src);
 
@@ -248,7 +274,7 @@ amd_buffer_load(const T* p_src_block, index_t src_thread_data_offset, index_t sr
     int32_t num           = 0xFFFFFFFF; // max val
     auto src_block_config = make_raw_buffer_resourse(p_src_block, stride, num, flag);
 
-    index_t thread_addr_offset = (src_thread_data_offset + src_const_data_offset) * sizeof(float);
+    index_t thread_addr_offset = (src_thread_data_offset + src_const_data_offset) * sizeof(T);
 
     return amd_buffer_load_impl<T, VectorSize>(src_block_config, thread_addr_offset, 0);
 }
