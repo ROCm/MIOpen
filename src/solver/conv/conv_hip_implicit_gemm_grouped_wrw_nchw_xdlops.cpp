@@ -38,7 +38,6 @@
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_NCHW_XDLOPS)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_NCHW_XDLOPS_AI_HEUR)
 
 namespace miopen {
 namespace solver {
@@ -74,7 +73,7 @@ struct CKArgs
 
         in_strides  = {Hi * Wi * C, Hi * Wi * G * C, Hi * Wi, Wi, 1};
         out_strides = {Ho * Wo * K, Ho * Wo * G * K, Ho * Wo, Wo, 1};
-        wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+        wei_strides = {K * C * Y * X, C * Y * X, Y * X, X, 1};
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};

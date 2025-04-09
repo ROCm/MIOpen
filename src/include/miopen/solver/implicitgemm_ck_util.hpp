@@ -69,7 +69,7 @@ template <typename DataType>
 using DeviceOpGWrwNCHW = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
     2,
     ck::tensor_layout::convolution::NGCHW,
-    ck::tensor_layout::convolution::GKYXC,
+    ck::tensor_layout::convolution::GKCYX,
     ck::tensor_layout::convolution::NGKHW,
     DataType,
     DataType,
