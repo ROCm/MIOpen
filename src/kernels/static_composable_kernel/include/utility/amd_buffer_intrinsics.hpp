@@ -6,7 +6,7 @@
 namespace ck {
 
 #ifndef CK_USE_AMD_BUFFER_PTR_TYPE
-#define CK_USE_AMD_BUFFER_PTR_TYPE 1
+#define CK_USE_AMD_BUFFER_PTR_TYPE 0
 #endif // def CK_USE_AMD_BUFFER_PTR_TYPE
 
 #if CK_USE_AMD_BUFFER_PTR_TYPE
