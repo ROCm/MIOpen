@@ -76,10 +76,17 @@ typedef enum
 
 struct GPUMem
 {
+    enum class Check
+    {
+        None,
+        Front,
+        Back,
+    };
 
 #if MIOPEN_BACKEND_OPENCL
     GPUMem(){};
-    GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz) : sz(psz), data_sz(pdata_sz)
+    GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz, Check ch = Check::None)
+        : sz(psz), data_sz(pdata_sz)
     {
         buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, nullptr, nullptr);
     }
@@ -105,12 +112,14 @@ struct GPUMem
 #elif MIOPEN_BACKEND_HIP
 
     GPUMem(){};
-    GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz)
+    GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz, Check ch = Check::None)
+        : _ctx(ctx), sz(psz), data_sz(pdata_sz), check(ch)
     {
-        auto status = hipMalloc(static_cast<void**>(&buf), GetSize());
+        auto status = hipMalloc(static_cast<void**>(&buf), GetTotalSize(GetSize()));
         if(status != hipSuccess)
             MIOPEN_THROW_HIP_STATUS(status,
                                     "[MIOpenDriver] hipMalloc " + std::to_string(GetSize()));
+        buf = static_cast<char*>(buf) + GetOffsetToUserBuffer();
         MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Info2,
                           "MIOpenDriver",
                           "hipMalloc " << GetSize() << " at " << buf << " Ok");
@@ -131,8 +140,34 @@ struct GPUMem
     void* GetMem() { return buf; }
     size_t GetSize() { return sz * data_sz; }
 
+    size_t GetTotalSize(size_t userSize)
+    {
+        if(check == Check::None)
+            return userSize;
+
+        constexpr size_t maxPadding = 2ULL * 1024 * 1024 - 1;
+
+        auto roundUpToPageAlignment = [&](size_t bytes) {
+            return (bytes + maxPadding) & ~maxPadding;
+        };
+
+        return roundUpToPageAlignment(userSize);
+    }
+
+    size_t GetOffsetToUserBuffer()
+    {
+        if(check == Check::Back)
+        {
+            auto userSize = GetSize();
+            return GetTotalSize(userSize) - userSize;
+        }
+        return 0;
+    }
+
     ~GPUMem()
     {
+        buf = static_cast<char*>(buf) - GetOffsetToUserBuffer();
+
         size_t size = 0;
         auto status = hipMemPtrGetInfo(buf, &size);
         if(status != hipSuccess)
@@ -157,6 +192,7 @@ struct GPUMem
     void* buf;
     size_t sz;
     size_t data_sz;
+    Check check;
 #endif
 };
 
@@ -226,15 +262,19 @@ public:
         }
     }
 
-    status_t AllocOnDevice(stream, context_t ctx, const size_t sz)
+    status_t
+    AllocOnDevice(stream, context_t ctx, const size_t sz, GPUMem::Check check = GPUMem::Check::None)
     {
-        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu));
+        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu), check);
         return STATUS_SUCCESS;
     }
 
-    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    status_t AllocOnDeviceAndInit(stream q,
+                                  context_t ctx,
+                                  const size_t sz,
+                                  GPUMem::Check check = GPUMem::Check::None)
     {
-        AllocOnDevice(q, ctx, sz);
+        AllocOnDevice(q, ctx, sz, check);
         if(is_gpualloc)
         {
             /// \anchor gpualloc_random_init
@@ -253,19 +293,27 @@ public:
     }
 
     template <typename T>
-    status_t AllocOnDevice(stream, context_t ctx, const size_t sz, std::vector<T>&)
+    status_t AllocOnDevice(stream,
+                           context_t ctx,
+                           const size_t sz,
+                           std::vector<T>&,
+                           GPUMem::Check check = GPUMem::Check::None)
     {
         static_assert(std::is_same<T, float>::value           //
                           || std::is_same<T, int32_t>::value, //
                       "Before enabling more types, check thoroughly.");
-        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(T));
+        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(T), check);
         return STATUS_SUCCESS;
     }
 
     template <typename T>
-    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz, std::vector<T>& init)
+    status_t AllocOnDeviceAndInit(stream q,
+                                  context_t ctx,
+                                  const size_t sz,
+                                  std::vector<T>& init,
+                                  GPUMem::Check check = GPUMem::Check::None)
     {
-        AllocOnDevice(q, ctx, sz, init);
+        AllocOnDevice(q, ctx, sz, init, check);
         if(is_gpualloc)
         {
             /// \ref gpualloc_random_init
@@ -404,6 +452,8 @@ public:
 protected:
     template <typename Tgpu>
     void InitDataType();
+    void AddGpuBufferCheckFlag(InputFlags& inflags);
+    GPUMem::Check GetGpuBufferCheck(const InputFlags& inflags) const;
     miopenHandle_t handle;
     miopenDataType_t data_type;
 
