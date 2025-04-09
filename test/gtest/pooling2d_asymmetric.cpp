@@ -63,15 +63,15 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenHalf: params = GPU_AsymPooling2d_FP16::GetParam(); break;
     case miopenBFloat16:
     case miopenInt8:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-        FAIL()
-            << "miopenBFloat16, miopenInt8, miopenInt32, miopenDouble, miopenFloat8, miopenBFloat8 "
-               "data type not supported by "
-               "pooling2d_asymmetric test";
+        FAIL() << "miopenBFloat16, miopenInt8, miopenInt32, miopenDouble, miopenFloat8_fnuz, "
+                  "miopenBFloat8_fnuz "
+                  "data type not supported by "
+                  "pooling2d_asymmetric test";
 
     default: params = GPU_AsymPooling2d_FP32::GetParam();
     }
@@ -115,7 +115,7 @@ using namespace pooling2d_asymmetric;
 TEST_P(GPU_AsymPooling2d_FP32, FloatTest_pooling2d_asymmetric)
 {
     const auto& handle = get_handle();
-    if(IsTestSupportedForDevice(handle) && !SkipTest() && IsTestRunWith("--float"))
+    if(IsTestSupportedForDevice(handle))
     {
         Run2dDriver(miopenFloat);
     }

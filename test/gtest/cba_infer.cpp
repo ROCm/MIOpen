@@ -31,13 +31,11 @@
 #include <miopen/fusion.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
-#include <miopen/env.hpp>
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
+#include "gtest_common.hpp"
 #include "cba.hpp"
-
-namespace env = miopen::env;
 
 namespace cba_infer {
 
@@ -151,8 +149,9 @@ TEST_P(GPU_ConvBiasActivInfer_FP16, ConvCKIgemmFwdBiasActivFused)
 
 TEST_P(GPU_ConvBiasActivInferFusionCompileStep_FP32, ConvBiasActivAsm1x1UFloat_testCompile)
 {
-    env::setEnvironmentVariable("MIOPEN_FIND_ENFORCE", "SEARCH_DB_UPDATE");
-    env::update(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5);
+    ScopedEnvironment<std::string> find_enforce_env(MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE");
+    ScopedEnvironment<int> find_enforce_tuning_iter_env(wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5);
+
     fusePlanDesc.Compile(get_handle());
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
         params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);

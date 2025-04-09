@@ -26,22 +26,12 @@
 #include <tuple>
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
+#include <gtest/gtest_common.hpp>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
+#include "lib_env_var.hpp"
 
 namespace conv_igemm_dynamic_xdlops_nhwc_bf16 {
-
-void SetupEnvVar()
-{
-    env::update(MIOPEN_FIND_MODE, "normal");
-    env::update(
-        MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-        "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-        "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
-}
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -69,16 +59,20 @@ void Run2dDriver(miopenDataType_t prec)
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
         FAIL() << "miopenFloat, miopenHalf, miopenInt8, miopenInt32, "
-                  "miopenDouble, miopenFloat8, miopenBFloat8 "
+                  "miopenDouble, miopenFloat8_fnuz, miopenBFloat8_fnuz "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_bf16 test";
 
     default: params = GPU_Conv2d_BFP16::GetParam();
     }
 
-    SetupEnvVar();
+    ScopedEnvironment<std::string> find_mode_env1(MIOPEN_FIND_MODE, "normal");
+    ScopedEnvironment<std::string> find_only_solver_env(
+        MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+        "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+        "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
 
     for(const auto& test_value : params)
     {
@@ -105,7 +99,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
     if(target.Xnack() && *target.Xnack())
         return false;
 
-    if(devName == "gfx90a" || miopen::StartsWith(devName, "gfx94"))
+    if(devName == "gfx90a" || devName == "gfx942")
         return true;
     else
         return false;

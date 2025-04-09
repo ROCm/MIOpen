@@ -386,8 +386,8 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdCKNCHWXdlops::HeuristicInit(
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -429,8 +429,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdCKNCHWXdlops::IsValid(
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -507,8 +507,8 @@ bool ConvHipImplicitGemm3DGroupBwdCKNCHWXdlops::IsApplicable(
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
-    case miopenFloat8:
-    case miopenBFloat8:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
     case miopenDouble: break;
     }
 #endif
@@ -521,32 +521,8 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdCKNCHWXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupBwdCKNCHWXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeSolutionGroupConvImplicitGemmXdlops(
+    return MakeSolutionGroupConvImplicitGemmNCHWXdlops(
         problem,
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            switch(problem.GetAlphaBetaCase())
-            {
-            case BILINEAR:
-                return InitInvokerFactoryBwdNCHW<3,
-                                                DeviceOpGBwdBilinearPtrs<T>,
-                                                CKArgs<T>,
-                                                miopen::conv::DataInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            case SCALE:
-                return InitInvokerFactoryBwdNCHW<3,
-                                                DeviceOpGBwdScalePtrs<T>,
-                                                CKArgs<T>,
-                                                miopen::conv::DataInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            default:
-                return InitInvokerFactoryBwdNCHW<3,
-                                                DeviceOpGBwdDefaultPtrs<T>,
-                                                CKArgs<T>,
-                                                miopen::conv::DataInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            }
-        },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             switch(problem.GetAlphaBetaCase())

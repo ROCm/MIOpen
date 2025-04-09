@@ -562,19 +562,18 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Activation, activ::ActivBwdSolver0{}.SolverDbId());
     Register(registry, ++id, Primitive::Activation, activ::ActivBwdSolver1{}.SolverDbId());
 
-    RegisterWithSolver<batchnorm::BnFwdTrainingSpatialSingle>(registry, ++id, Primitive::Batchnorm);
+    // combine BnFwdTrainingSpatialMultiple and BnFwdTrainingSpatialSingle
+    RegisterWithSolver<batchnorm::BnFwdTrainingSpatial>(registry, ++id, Primitive::Batchnorm);
 
     RegisterWithSolver(
         registry, ++id, conv::ConvCkIgemmFwdV6r1DlopsNchw{}, miopenConvolutionAlgoImplicitGEMM);
 
-    RegisterWithSolver<batchnorm::BnFwdTrainingSpatialMultiple>(
-        registry, ++id, Primitive::Batchnorm);
-
+    ++id; // removed solver BnFwdTrainingSpatialMultiple (it is now part of BnFwdTrainingSpatial)
     RegisterWithSolver<batchnorm::BnFwdTrainingPerActivation>(registry, ++id, Primitive::Batchnorm);
 
-    RegisterWithSolver<batchnorm::BnBwdTrainingSpatialSingle>(registry, ++id, Primitive::Batchnorm);
-    RegisterWithSolver<batchnorm::BnBwdTrainingSpatialMultiple>(
-        registry, ++id, Primitive::Batchnorm);
+    // combine BnBwdTrainingSpatialMultiple and BnBwdTrainingSpatialSingle
+    RegisterWithSolver<batchnorm::BnBwdTrainingSpatial>(registry, ++id, Primitive::Batchnorm);
+    ++id; // removed solver BnBwdTrainingSpatialMultiple (it is now part of BnBwdTrainingSpatial)
     RegisterWithSolver<batchnorm::BnBwdTrainingPerActivation>(registry, ++id, Primitive::Batchnorm);
 
     RegisterWithSolver<batchnorm::BnFwdInference>(registry, ++id, Primitive::Batchnorm);
@@ -722,7 +721,7 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
-    static const bool device_is_allowed = [&]() {
+    const bool device_is_allowed = [&]() {
         if(env::enabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS))
             return true;
         const auto device = ctx.GetStream().GetTargetProperties().Name();
