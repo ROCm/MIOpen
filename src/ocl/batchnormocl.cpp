@@ -129,7 +129,8 @@ void BatchNormForwardTraining(const Handle& handle,
                                                        expAvgFactor,
                                                        epsilon,
                                                        resultsave,
-                                                       resultrunning};
+                                                       resultrunning,
+                                                       size_t(0.6f * handle.GetMaxComputeUnits())};
 
     const auto algo = bn_mode == miopenBNSpatial
                           ? AlgorithmName{"miopenBatchNormForwardTrainingSpatial"}
@@ -151,8 +152,7 @@ void BatchNormForwardTraining(const Handle& handle,
         return tmp;
     }();
 
-    const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatialSingle,
-                                                 solver::batchnorm::BnFwdTrainingSpatialMultiple,
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatial,
                                                  solver::batchnorm::BnFwdTrainingPerActivation>{};
     //  solver::batchnorm::BnCKFwdTraining>{};
 
@@ -372,7 +372,8 @@ void BatchNormBackward(const Handle& handle,
                                                        savedMeanDesc,
                                                        savedVarianceDesc,
                                                        epsilon,
-                                                       useSaved};
+                                                       useSaved,
+                                                       size_t(0.6f * handle.GetMaxComputeUnits())};
 
     const auto algo = bn_mode == miopenBNSpatial
                           ? AlgorithmName{"miopenBatchNormBackwardPropSpatial"}
@@ -393,8 +394,7 @@ void BatchNormBackward(const Handle& handle,
         return tmp;
     }();
 
-    const auto solvers = solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatialSingle,
-                                                 solver::batchnorm::BnBwdTrainingSpatialMultiple,
+    const auto solvers = solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatial,
                                                  solver::batchnorm::BnBwdTrainingPerActivation>{};
     //  solver::batchnorm::BnCKBwdBackward>{};
 

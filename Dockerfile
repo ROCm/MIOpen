@@ -1,4 +1,5 @@
 FROM ubuntu:22.04 as miopen
+
 ARG DEBIAN_FRONTEND=noninteractive
 # install to /opt/rocm will cause permission issue
 ARG PREFIX=/usr/local
@@ -7,12 +8,12 @@ ARG USE_FIN="OFF"
 ARG CCACHE_SECONDARY_STORAGE=""
 ARG CCACHE_DIR="/tmp"
 ARG CCACHE_COMMIT=7f1572ae9ca958fa923a66235f6a64a360b03523
+ARG MIOPEN_SCCACHE=""
+ARG MIOPEN_SCCACHE_CUSTOM_CACHE_BUSTER="MiOpen-Docker-CK"
 
 # GPU_ARCHS should be defined as a build arg rather than hardcoded here. 
 ARG GPU_ARCHS=none
 
-ARG INSTALL_MIOPEN=OFF
-ARG FRECKLE=0
 ARG COMPILER_LAUNCHER=""
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
 
@@ -40,27 +41,40 @@ RUN export ROCM_APT_VER=6.3.2; \
 RUN sh -c "echo deb http://mirrors.kernel.org/ubuntu jammy main universe | tee -a /etc/apt/sources.list" && \
     amdgpu-install -y --usecase=rocm --no-dkms
 
+## Sccache binary built from source for ROCm, only install if CK_SCCACHE is defined
+ARG SCCACHE_REPO_URL=http://compute-artifactory.amd.com/artifactory/rocm-generic-experimental/rocm-sccache
+ENV SCCACHE_INSTALL_LOCATION=/usr/local/.cargo/bin
+ENV PATH=$PATH:${SCCACHE_INSTALL_LOCATION}
+ENV MIOPEN_SCCACHE=$MIOPEN_SCCACHE
+RUN if [ "$MIOPEN_SCCACHE" != "" ]; then \
+    mkdir -p ${SCCACHE_INSTALL_LOCATION} && \
+    curl ${SCCACHE_REPO_URL}/portable/0.2.16/sccache-0.2.16-alpha.1-rocm --output ${SCCACHE_INSTALL_LOCATION}/sccache && \
+    chmod +x ${SCCACHE_INSTALL_LOCATION}/sccache; \
+    fi
+
 # Install dependencies
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-        build-essential \
-        cmake \
-        clang-format-12 \
-        doxygen \
-        gdb \
-        git \
-        git-lfs \
-        lbzip2 \
-        lcov \
-        libncurses5-dev \
-        pkg-config \
-        python3-dev \
-        python3-pip \
-        python3-venv \
-        rocm-developer-tools \
-        rocm-llvm-dev \
-        rpm \
-        software-properties-common && \
+    build-essential \
+    cmake \
+    clang-format-12 \
+    doxygen \
+    gdb \
+    git \
+    git-lfs \
+    lbzip2 \
+    lcov \
+    libncurses5-dev \
+    stunnel \
+    pkg-config \
+    python3-dev \
+    python3-pip \
+    python3-venv \
+    redis \
+    rocm-developer-tools \
+    rocm-llvm-dev \
+    rpm \
+    software-properties-common && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* &&\
     rm -rf amdgpu-install* && \
@@ -105,56 +119,62 @@ RUN wget https://github.com/Yelp/dumb-init/releases/download/v1.2.0/dumb-init_1.
     groupadd -f video && \
     usermod -a -G render,video root
 
-# Make sure /opt/rcom is in the paths
+# Make sure /opt/rocm is in the paths
 ENV PATH="/opt/rocm:${PATH}"
 
+ADD script/redis-cli.conf /redis-cli.conf
+ADD script/sccache_wrapper.sh /sccache_wrapper.sh
+
 RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
+    if [ "$MIOPEN_SCCACHE" != "" ]; then \
+    mkdir -p ${SCCACHE_INSTALL_LOCATION} && \
+    curl ${SCCACHE_REPO_URL}/portable/0.2.16/sccache-0.2.16-alpha.1-rocm --output ${SCCACHE_INSTALL_LOCATION}/sccache && \
+    chmod +x ${SCCACHE_INSTALL_LOCATION}/sccache; \
+    export ROCM_PATH=/opt/rocm && \
+    export SCCACHE_ENABLED=true && \
+    export SCCACHE_LOG_LEVEL=debug && \
+    export SCCACHE_IDLE_TIMEOUT=14400 && \
+    export COMPILERS_HASH_DIR=/tmp/.sccache && \
+    export SCCACHE_BIN=/usr/local/.cargo/bin/sccache && \
+    export SCCACHE_EXTRAFILES=/tmp/.sccache/rocm_compilers_hash_file && \
+    export SCCACHE_REDIS="redis://$MIOPEN_SCCACHE" && \
+    echo "connect = $MIOPEN_SCCACHE" >> redis-cli.conf && \
+    export SCCACHE_C_CUSTOM_CACHE_BUSTER="${MIOPEN_SCCACHE_CUSTOM_CACHE_BUSTER}" && \
+    echo $SCCACHE_C_CUSTOM_CACHE_BUSTER && \
+    stunnel redis-cli.conf && \
+    export PATH=$PATH:${SCCACHE_INSTALL_LOCATION} && \
+    ./sccache_wrapper.sh --enforce_redis; \
+    fi &&\
     CK_COMMIT=$(grep 'ROCm/composable_kernel' requirements.txt | sed -n 's/.*@\([a-zA-Z0-9]*\).*/\1/p') && \
     wget -O ck.tar.gz https://www.github.com/ROCm/composable_kernel/archive/${CK_COMMIT}.tar.gz && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
-    num_threads=$(nproc) && \
-    if [ "$num_threads" -lt 32 ]; then \
-        num_threads=$(( num_threads / 2 )); \
-    else \
+    num_threads=$(( $(nproc) / 2 )) && \
+    if [ "$num_threads" -gt 32 ]; then \
         num_threads=32; \
     fi && \
     echo Building CK with ${num_threads} threads && \
     CXX=/opt/rocm/bin/amdclang++ cmake \
     -D CMAKE_PREFIX_PATH=/opt/rocm \
     -D CMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
+    -D CMAKE_C_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
     -D CMAKE_BUILD_TYPE=Release \
-    -D GPU_ARCHS="${GPU_ARCHS}" \
+    -D GPU_ARCHS=${GPU_ARCHS} \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j ${num_threads} install
+    make -j ${num_threads} install && \ 
+    sccache -s
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 RUN sed -i '/composable_kernel/d' /requirements.txt
 
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
 RUN if [ "$USE_FIN" = "ON" ]; then \
-        rbuild prepare -s fin -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+    rbuild prepare -s fin -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}"; \
     else \
-        rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}" -DCMAKE_CXX_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}"; \
+    rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}"; \
     fi && \
     ccache -s 
-
-#install miopen for perf test builds, remove it if not needed.
-# todo: split this out from this dockerfile and move it elsewhere.
-ADD . / miopen/
-RUN set -e; \
-    if [ "$INSTALL_MIOPEN" = "ON" ]; then \
-        cd miopen; \
-        mkdir build; \
-        rm -f src/kernels/*.ufdb.txt; \
-        rm -f src/kernels/miopen*.udb; \
-        cd build ; \
-        CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=release -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=/opt/rocm -DCMAKE_PREFIX_PATH=/opt/rocm ..; \
-        LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \
-    else \
-        rm -rf miopen; \
-    fi
 
 # Utilize multi-stage build in order to squash the container.
 FROM ubuntu:22.04

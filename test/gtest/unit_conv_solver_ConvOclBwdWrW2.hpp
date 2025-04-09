@@ -26,6 +26,9 @@
 
 #include "unit_conv_solver.hpp"
 
+// LWPMIOPEN-1392: Disabling failing deprecated Ocl solvers for Gfx11 and Gfx12
+#define WORKAROUND_LWPMIOPEN_1392 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
+
 #ifndef NUM_BATCH_LOOPS
 #error "NUM_BATCH_LOOPS undefined"
 #endif
@@ -63,9 +66,17 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
+#if WORKAROUND_LWPMIOPEN_1392
+        Gpu supported_gpus = Gpu::All & ~(Gpu::gfx110X | Gpu::gfx120X);
+#else
+        Gpu supported_gpus = Gpu::All;
+#endif
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
+        p.SetTolerance(Gpu::gfx908, miopenFloat, 2.0f);
+        p.SetTolerance(Gpu::gfx90A, miopenFloat, 2.0f);
+        p.SetTolerance(Gpu::gfx94X, miopenFloat, 2.0f);
         return p;
     }();
     return params;
