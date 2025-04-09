@@ -19,6 +19,20 @@ def show_node_info() {
     """
 }
 
+def check_host() {
+    if ("${env.MIOPEN_SCCACHE}" != "null"){
+        def SCCACHE_SERVER="${env.MIOPEN_SCCACHE.split(':')[0]}"
+        echo "sccache server: ${SCCACHE_SERVER}"
+        sh '''ping -c 1 -p 6379 "${SCCACHE_SERVER}" | echo $? > tmp.txt'''
+        def output = readFile(file: "tmp.txt")
+        echo "tmp.txt contents: \$output"
+        return (output != "0")
+    }
+    else{
+        return 1
+    }
+}
+
 //default
 // CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror' cmake -DMIOPEN_GPU_SYNC=Off -DCMAKE_PREFIX_PATH=/usr/local -DBUILD_DEV=On -DCMAKE_BUILD_TYPE=release ..
 //
@@ -188,7 +202,6 @@ def getDockerImageName(dockerArgs)
         image = "${params.DOCKER_IMAGE_OVERRIDE}"
     }
     return image
-
 }
 
 def getDockerImage(Map conf=[:])
@@ -198,15 +211,7 @@ def getDockerImage(Map conf=[:])
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
     def gpu_arch = "gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
 
-    def install_miopen = 'OFF'
-    def freckle = 0
-    if(params.INSTALL_MIOPEN == 'ON')
-    {
-        install_miopen = 'ON'
-        freckle = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-    }
-
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg FRECKLE=${freckle}"
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS=\"${gpu_arch}\""
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
@@ -221,6 +226,10 @@ def getDockerImage(Map conf=[:])
         dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
         env.CCACHE_DIR = """/tmp/ccache_store"""
         env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
+    }
+    else if (params.USE_SCCACHE_DOCKER && check_host() && "${env.MIOPEN_SCCACHE}" != "null")
+    {
+        dockerArgs = dockerArgs + " --build-arg MIOPEN_SCCACHE=${env.MIOPEN_SCCACHE} --build-arg COMPILER_LAUNCHER=sccache"
     }
     echo "Docker Args: ${dockerArgs}"
 
@@ -243,6 +252,35 @@ def getDockerImage(Map conf=[:])
             dockerImage.push()
         }
     }
+
+
+    if(params.INSTALL_MIOPEN == 'ON')
+    {
+        def freckle = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        dockerArgs = " --build-arg BASE_DOCKER=${image} --build-arg FRECKLE=${freckle} -f Dockerfile.perftests"
+
+        // Get updated image name for perf tests.
+        image = getDockerImageName(dockerArgs)
+        image = image + "_perfTest"
+
+        try{
+            echo "Pulling down perf test image: ${image}"
+            dockerImage = docker.image("${image}")
+            dockerImage.pull()
+        }
+        catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
+            echo "The job was cancelled or aborted"
+            throw e
+        }
+        catch(Exception ex)
+        {
+            dockerImage = docker.build("${image}", "${dockerArgs} .")
+            withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
+                dockerImage.push()
+            }
+        }
+    }
+
     return [dockerImage, image]
 }
 

@@ -27,6 +27,7 @@
 #include <miopen/env.hpp>
 #include <miopen/rnn/solvers.hpp>
 #include <miopen/rnn/multi_stream_utils.hpp>
+#include <miopen/stringutils.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNN_MS_STREAM_CNT)
 
@@ -274,7 +275,17 @@ void RNNModularMultiStreamBWD::ComputeBWD(const Handle& handle,
 
     const runtimeArgsBwd args{&handle, dy, dhy, dhx, cx, dcy, dcx, dx, w, workSpace, reserveSpace};
 
-    MultiStreamController ms_controller{handle, env::value_or(MIOPEN_RNN_MS_STREAM_CNT, 2)};
+    // For MI300 and above, it is necessary to use the maximum number of stream.
+    // For MI250 and lower compute power, limiting to 2 streams is sufficient,
+    //    as these tasks are enough to fully utilize all the available compute.
+    //  TODO: add job size calculation.
+
+    const auto device_name = handle.GetDeviceName();
+
+    const auto stream_cnt = StartsWith(device_name, "gfx90") ? 2 : 4;
+
+    MultiStreamController ms_controller{handle,
+                                        env::value_or(MIOPEN_RNN_MS_STREAM_CNT, stream_cnt)};
 
     constexpr size_t try_chunks_cnt = 16;
     const auto time_chunk_sz        = ((max_seq_len + try_chunks_cnt - 1) / try_chunks_cnt);

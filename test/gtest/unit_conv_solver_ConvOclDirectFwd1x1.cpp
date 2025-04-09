@@ -97,6 +97,17 @@ const auto& GetTestParams()
     return params;
 }
 
+const auto& GetTestParamsFull()
+{
+    static const auto params = [] {
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
+        p.EnableDeprecatedSolvers();
+        p.Tunable(1000);
+        return p;
+    }();
+    return params;
+}
+
 } // namespace
 
 using GPU_UnitTestConvSolverOclDirectFwd1x1Fwd_FP16 = GPU_UnitTestConvSolverFwd_FP16;
@@ -200,7 +211,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
 // clang-format off
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_UnitTestConvSolverOclDirectFwd1x1Fwd_FP16,
-                         testing::Combine(testing::Values(GetTestParams()),
+                         testing::Combine(testing::Values(GetTestParamsFull()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCasesFull(miopenHalf, miopen::conv::Direction::Forward))));
 // clang-format on

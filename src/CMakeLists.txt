@@ -212,15 +212,13 @@ set( MIOpen_Source
     solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
-    solver/batchnorm/backward_spatial_multiple.cpp
-    solver/batchnorm/backward_spatial_single.cpp
+    solver/batchnorm/backward_spatial.cpp
     solver/batchnorm/forward_inference.cpp
     solver/batchnorm/forward_inference_ck.cpp
     solver/batchnorm/forward_inference_fused.cpp
     solver/batchnorm/forward_per_activation.cpp
     solver/batchnorm/forward_per_activation_fused.cpp
-    solver/batchnorm/forward_spatial_multiple.cpp
-    solver/batchnorm/forward_spatial_single.cpp
+    solver/batchnorm/forward_spatial.cpp
     solver/batchnorm/forward_training_ck.cpp
     solver/cat/forward_cat.cpp
     solver/conv/conv_asm_1x1u.cpp
