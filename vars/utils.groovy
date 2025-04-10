@@ -385,7 +385,7 @@ def RunPerfTest(Map conf=[:]){
                 ld_lib="${miopen_install_path}/lib"
                 def filename = conf.get("filename")
                 assert(filename.trim())
-                def cmd = "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
+                def cmd = "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/share/miopen/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
                 if(params.PERF_TEST_OVERRIDE != '')
                 {
                     echo "Appending MIOpenDriver cmd env vars: ${params.PERF_TEST_OVERRIDE}"
@@ -405,7 +405,7 @@ def RunPerfTest(Map conf=[:]){
                   }
 
                   try{
-                     sh "${miopen_install_path}/bin/test_perf.py --compare_results --old_results_path ${results_dir}/old_results --results_path ${results_dir}/perf_results --filename ${filename}"
+                     sh "${miopen_install_path}/share/miopen/bin/test_perf.py --compare_results --old_results_path ${results_dir}/old_results --results_path ${results_dir}/perf_results --filename ${filename}"
                   }
                   catch (Exception err){
                       currentBuild.result = 'SUCCESS'
