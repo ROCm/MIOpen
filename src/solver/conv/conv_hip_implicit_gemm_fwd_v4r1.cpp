@@ -379,8 +379,11 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ExecutionContext& ctx,
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, problem, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
+#if HIP_PACKAGE_VERSION_FLAT >= 6004000000
+        " -DCK_USE_AMD_BUFFER_PTR_TYPE=1" +
+#endif
         get_static_ck_common_compiler_flag(ctx) +
-        ctx.general_compile_options;
+        ctx.general_compile_options  + " --std=c++17";
     // clang-format on
 
     if(problem.IsFp32())
