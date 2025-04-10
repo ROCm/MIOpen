@@ -708,13 +708,13 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
 
     RegisterWithSolver(registry,
-      ++id,
-      conv::ConvHipImplicitGemmGroupBwdCKNCHWXdlops{},
-      miopenConvolutionAlgoImplicitGEMM);
+                       ++id,
+                       conv::ConvHipImplicitGemmGroupBwdCKNCHWXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
     RegisterWithSolver(registry,
-        ++id,
-        conv::ConvHipImplicitGemm3DGroupBwdCKNCHWXdlops{},
-        miopenConvolutionAlgoImplicitGEMM);
+                       ++id,
+                       conv::ConvHipImplicitGemm3DGroupBwdCKNCHWXdlops{},
+                       miopenConvolutionAlgoImplicitGEMM);
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }

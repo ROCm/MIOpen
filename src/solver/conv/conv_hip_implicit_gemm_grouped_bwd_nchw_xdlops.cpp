@@ -93,7 +93,7 @@ struct CKArgs
         wei_strides = {K * C * Y * X, C * Y * X, Y * X, X, 1};
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                  ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
         lPadding = {ProblemInterpreter::GetInputLeftPadH(problem),
@@ -117,24 +117,24 @@ struct CKArgs
         (void)alpha;
         (void)beta;
         return conv_ptr->MakeArgumentPointer(out,
-                                            w,
-                                            {},
-                                            in,
-                                            output,
-                                            out_strides,
-                                            weight,
-                                            wei_strides,
-                                            {},
-                                            {},
-                                            input,
-                                            in_strides,
-                                            strides,
-                                            dilation,
-                                            lPadding,
-                                            rPadding,
-                                            {},
-                                            {},
-                                            {});
+                                             w,
+                                             {},
+                                             in,
+                                             output,
+                                             out_strides,
+                                             weight,
+                                             wei_strides,
+                                             {},
+                                             {},
+                                             input,
+                                             in_strides,
+                                             strides,
+                                             dilation,
+                                             lPadding,
+                                             rPadding,
+                                             {},
+                                             {},
+                                             {});
     }
 
     template <typename ConvPtr>
@@ -149,7 +149,7 @@ struct CKArgs
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+        auto arg_ptr  = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
         int dummy_var = 1;
         conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
@@ -226,7 +226,8 @@ void PerformanceConfigHipImplicitGemmGroupBwdCKNCHWXdlops::HeuristicInit(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmGroupBwdCKNCHWXdlops::SetNextValue(const ProblemDescription& problem)
+bool PerformanceConfigHipImplicitGemmGroupBwdCKNCHWXdlops::SetNextValue(
+    const ProblemDescription& problem)
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
@@ -305,7 +306,8 @@ bool ConvHipImplicitGemmGroupBwdCKNCHWXdlops::IsValidPerformanceConfig(
     return config.IsValid(problem);
 }
 
-size_t ConvHipImplicitGemmGroupBwdCKNCHWXdlops::GetWorkspaceSize(const ExecutionContext&,
+size_t
+ConvHipImplicitGemmGroupBwdCKNCHWXdlops::GetWorkspaceSize(const ExecutionContext&,
                                                           const ProblemDescription& problem) const
 {
     return GetWorkspaceSizeLayoutTransformConv(problem);
@@ -313,8 +315,8 @@ size_t ConvHipImplicitGemmGroupBwdCKNCHWXdlops::GetWorkspaceSize(const Execution
 
 PerformanceConfigHipImplicitGemmGroupBwdCKNCHWXdlops
 ConvHipImplicitGemmGroupBwdCKNCHWXdlops::Search(const ExecutionContext& ctx,
-                                          const ProblemDescription& problem,
-                                          const AnyInvokeParams& invoke_ctx) const
+                                                const ProblemDescription& problem,
+                                                const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
@@ -365,15 +367,11 @@ ConvSolution ConvHipImplicitGemmGroupBwdCKNCHWXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupBwdCKNCHWXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeSolutionGroupConvImplicitGemmNCHWXdlops(
-        problem,
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<T>,
-                                          CKArgs,
-                                          miopen::conv::DataInvokeParams>(
-                ctx, problem, config.kernel_id);
-        });
+    return MakeSolutionGroupConvImplicitGemmNCHWXdlops(problem, [&](auto data_type_val) {
+        using T = decltype(data_type_val);
+        return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<T>, CKArgs, miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
+    });
 
 #else
     return {};

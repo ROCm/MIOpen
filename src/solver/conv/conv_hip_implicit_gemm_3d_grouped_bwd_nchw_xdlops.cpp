@@ -204,24 +204,24 @@ struct CKArgs
                             float beta) const
     {
         return conv_ptr->MakeArgumentPointer(out,
-                                            w,
-                                            {in},
-                                            in,
-                                            out_lengths,
-                                            out_strides,
-                                            wei_lengths,
-                                            wei_strides,
-                                            {in_lengths},
-                                            {in_strides},
-                                            in_lengths,
-                                            in_strides,
-                                            filter_strides,
-                                            filter_dilations,
-                                            lPadding,
-                                            rPadding,
-                                            PassThrough{},
-                                            PassThrough{},
-                                            Bilinear{alpha, beta});
+                                             w,
+                                             {in},
+                                             in,
+                                             out_lengths,
+                                             out_strides,
+                                             wei_lengths,
+                                             wei_strides,
+                                             {in_lengths},
+                                             {in_strides},
+                                             in_lengths,
+                                             in_strides,
+                                             filter_strides,
+                                             filter_dilations,
+                                             lPadding,
+                                             rPadding,
+                                             PassThrough{},
+                                             PassThrough{},
+                                             Bilinear{alpha, beta});
     }
 
     template <typename ConvPtr>
@@ -229,48 +229,48 @@ struct CKArgs
         const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out, float alpha) const
     {
         return conv_ptr->MakeArgumentPointer(out,
-                                            w,
-                                            {},
-                                            in,
-                                            out_lengths,
-                                            out_strides,
-                                            wei_lengths,
-                                            wei_strides,
-                                            {},
-                                            {},
-                                            in_lengths,
-                                            in_strides,
-                                            filter_strides,
-                                            filter_dilations,
-                                            lPadding,
-                                            rPadding,
-                                            PassThrough{},
-                                            PassThrough{},
-                                            Scale{alpha});
+                                             w,
+                                             {},
+                                             in,
+                                             out_lengths,
+                                             out_strides,
+                                             wei_lengths,
+                                             wei_strides,
+                                             {},
+                                             {},
+                                             in_lengths,
+                                             in_strides,
+                                             filter_strides,
+                                             filter_dilations,
+                                             lPadding,
+                                             rPadding,
+                                             PassThrough{},
+                                             PassThrough{},
+                                             Scale{alpha});
     }
 
     template <typename ConvPtr>
     auto MakeDefaultArgPtr(const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out) const
     {
         return conv_ptr->MakeArgumentPointer(out,
-                                            w,
-                                            {},
-                                            in,
-                                            out_lengths,
-                                            out_strides,
-                                            wei_lengths,
-                                            wei_strides,
-                                            {},
-                                            {},
-                                            in_lengths,
-                                            in_strides,
-                                            filter_strides,
-                                            filter_dilations,
-                                            lPadding,
-                                            rPadding,
-                                            PassThrough{},
-                                            PassThrough{},
-                                            PassThrough{});
+                                             w,
+                                             {},
+                                             in,
+                                             out_lengths,
+                                             out_strides,
+                                             wei_lengths,
+                                             wei_strides,
+                                             {},
+                                             {},
+                                             in_lengths,
+                                             in_strides,
+                                             filter_strides,
+                                             filter_dilations,
+                                             lPadding,
+                                             rPadding,
+                                             PassThrough{},
+                                             PassThrough{},
+                                             PassThrough{});
     }
 
     template <typename ConvPtr>
@@ -347,7 +347,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdCKNCHWXdlops::CheckIsSupportCKArg
     {
     case BILINEAR:
         return IsCKArgsSupported<DeviceOpGBwdBilinearPtrs<DataType>, CKArgs<DataType>>(problem,
-                                                                                      kernel_id);
+                                                                                       kernel_id);
     case SCALE:
         return IsCKArgsSupported<DeviceOpGBwdScalePtrs<DataType>, CKArgs<DataType>>(problem,
                                                                                     kernel_id);
@@ -462,15 +462,15 @@ bool ConvHipImplicitGemm3DGroupBwdCKNCHWXdlops::IsValidPerformanceConfig(
 
 size_t
 ConvHipImplicitGemm3DGroupBwdCKNCHWXdlops::GetWorkspaceSize(const ExecutionContext&,
-                                                      const ProblemDescription& problem) const
+                                                            const ProblemDescription& problem) const
 {
     return GetWorkspaceSizeLayoutTransformConv(problem);
 }
 
 PerformanceConfigHipImplicitGemm3DGroupBwdCKNCHWXdlops
 ConvHipImplicitGemm3DGroupBwdCKNCHWXdlops::Search(const ExecutionContext& ctx,
-                                            const ProblemDescription& problem,
-                                            const AnyInvokeParams& invoke_ctx) const
+                                                  const ProblemDescription& problem,
+                                                  const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
@@ -521,29 +521,27 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdCKNCHWXdlops::GetSolution(
     [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupBwdCKNCHWXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeSolutionGroupConvImplicitGemmNCHWXdlops(
-        problem,
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            switch(problem.GetAlphaBetaCase())
-            {
-            case BILINEAR:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdBilinearPtrs<T>,
-                                              CKArgs<T>,
-                                              miopen::conv::DataInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            case SCALE:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdScalePtrs<T>,
-                                              CKArgs<T>,
-                                              miopen::conv::DataInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            default:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdDefaultPtrs<T>,
-                                              CKArgs<T>,
-                                              miopen::conv::DataInvokeParams>(
-                    ctx, problem, config.kernel_id);
-            }
-        });
+    return MakeSolutionGroupConvImplicitGemmNCHWXdlops(problem, [&](auto data_type_val) {
+        using T = decltype(data_type_val);
+        switch(problem.GetAlphaBetaCase())
+        {
+        case BILINEAR:
+            return InitInvokerFactoryNHWC<DeviceOpGBwdBilinearPtrs<T>,
+                                          CKArgs<T>,
+                                          miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        case SCALE:
+            return InitInvokerFactoryNHWC<DeviceOpGBwdScalePtrs<T>,
+                                          CKArgs<T>,
+                                          miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        default:
+            return InitInvokerFactoryNHWC<DeviceOpGBwdDefaultPtrs<T>,
+                                          CKArgs<T>,
+                                          miopen::conv::DataInvokeParams>(
+                ctx, problem, config.kernel_id);
+        }
+    });
 
 #else
     return {};

@@ -1061,7 +1061,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 {
                     sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
                 }
-                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+                auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
 
                 // Zero out the buffer for output data since it won't always write all output
                 // values.
@@ -1201,7 +1201,7 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
 template <typename InvokerFactoryMakerNHWC>
 ConvSolution
 MakeSolutionGroupConvImplicitGemmNCHWXdlops(const miopen::conv::ProblemDescription& problem,
-                                        InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
+                                            InvokerFactoryMakerNHWC&& invoker_factory_maker_ndhwc)
 {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -1226,8 +1226,7 @@ MakeSolutionGroupConvImplicitGemmNCHWXdlops(const miopen::conv::ProblemDescripti
     }
     else
     {
-      MIOPEN_THROW(miopenStatusInternalError,
-        "NHWC layout is not supported by this solver");
+        MIOPEN_THROW(miopenStatusInternalError, "NHWC layout is not supported by this solver");
     }
 #else
     return {};
