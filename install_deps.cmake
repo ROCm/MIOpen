@@ -25,11 +25,11 @@ if(PARSE_help)
 message("Usage: install_deps.cmake [options] [cmake-args]")
 message("")
 message("Options:")
-message("  --prefix               Set the prefix to install the dependencies.")
-message("  --generator <generator>               Specify the CMake generator (e.g., Ninja, Unix Makefiles).")
+message("  --prefix                   Set the prefix to install the dependencies.")
+message("  --generator <generator>    Specify the CMake generator (e.g., Ninja, Unix Makefiles).")
 message("")
 message("Commands:")
-message("  help                   Show this message and exit.")
+message("  help                       Show this message and exit.")
 message("")
 message("  --minimum                  Install minimum dependencies.")
 message("")
@@ -43,13 +43,14 @@ endif()
 
 get_filename_component(PREFIX ${_PREFIX} ABSOLUTE)
 
+# Optionally map --generator to CGET_EXTRA_OPTIONS
 if(DEFINED PARSE_--generator)
     set(VALID_GENERATORS "Ninja" "Unix Makefiles")
     list(FIND VALID_GENERATORS "${PARSE_--generator}" _GENERATOR_INDEX)
     if(_GENERATOR_INDEX EQUAL -1)
         message(WARNING "Invalid generator '${PARSE_--generator}'. Valid options are: ${VALID_GENERATORS}. Ignoring this generator.")
     else()
-        set(GENERATOR "${PARSE_--generator}")
+        list(APPEND CGET_EXTRA_OPTIONS -G "${PARSE_--generator}")
     endif()
 endif()
 
@@ -91,7 +92,6 @@ if(NOT DEFINED ENV{CXX} AND NOT DEFINED CMAKE_CXX_COMPILER AND NOT DEFINED CMAKE
     endif()
 endif()
 
-
 if(NOT DEFINED ENV{CC} AND NOT DEFINED CMAKE_C_COMPILER AND NOT DEFINED CMAKE_TOOLCHAIN_FILE) 
     find_program(CLANGC clang
         PATHS
@@ -124,10 +124,5 @@ cget(init ${TOOLCHAIN_FLAG} -DCMAKE_INSTALL_RPATH=${PREFIX}/lib ${PARSE_UNPARSED
 cget(ignore pcre)
 
 # Install dependencies
-if(DEFINED GENERATOR)
-    cget(install -G ${GENERATOR} -U ROCm/rocm-recipes@92c6695449c85887962f45509b376f2eb0d284f7)
-    cget(install -G ${GENERATOR} -U -f requirements.txt)
-else()
-    cget(install -U ROCm/rocm-recipes@92c6695449c85887962f45509b376f2eb0d284f7)
-    cget(install -U -f requirements.txt)
-endif()
+cget(install ${CGET_EXTRA_OPTIONS} -U ROCm/rocm-recipes@92c6695449c85887962f45509b376f2eb0d284f7)
+cget(install ${CGET_EXTRA_OPTIONS} -U -f requirements.txt)
