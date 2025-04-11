@@ -25,12 +25,26 @@
  *******************************************************************************/
 
 #include <fstream>
+#include <miopen/env.hpp>
 #include <miopen/tmp_dir.hpp>
 
 #include <gtest/gtest.h>
 
+// addkernels is required by this test and not delivered to end users
+// skipping the test unless it is executed from ctest
+#define WORKAROUND_ISSUE_3647 1
+
+#if WORKAROUND_ISSUE_3647
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_INVOKED_FROM_CTEST)
+#endif
+
 TEST(CPU_kernel_inliner_NONE, InlinerTest)
 {
+#if WORKAROUND_ISSUE_3647
+    if(!miopen::env::enabled(MIOPEN_INVOKED_FROM_CTEST))
+        GTEST_SKIP() << "Depends on addkernels and should be invoked by make";
+#endif
+
     const miopen::TmpDir test_srcs{"test_include_inliner"};
 
     const auto bin_path   = miopen::fs::path(::testing::internal::GetArgvs().front()).parent_path();
