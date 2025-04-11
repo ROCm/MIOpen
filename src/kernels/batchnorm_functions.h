@@ -81,6 +81,7 @@
 #define FLOATPREC2FLOAT(x) (float_to_bfloat16(x))
 #define FLOAT2ACCUM(x) (FLOAT2FLOATPREC(x))
 #define ACCUM2FLOAT(x) (FLOATPREC2FLOAT(x))
+#define ACCUM2FLOATPREC(x) (x)
 
 #else
 
@@ -88,6 +89,7 @@
 #define FLOATPREC2FLOAT(x) ((_FLOAT)(x))
 #define FLOAT2ACCUM(x) ((_FLOAT_ACCUM)(x))
 #define ACCUM2FLOAT(x) ((_FLOAT)(x))
+#define ACCUM2FLOATPREC(x) ((_FLOAT_PREC)(x))
 #endif
 
 #define _FLOAT2 PPCAT(_FLOAT, TWO)

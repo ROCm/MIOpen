@@ -74,7 +74,11 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
                        double epsilon_,
                        bool resultsave_,
                        bool resultrunning_,
-                       size_t min_workgroups_)
+                       size_t min_workgroups_,
+                       miopenActivationMode_t activ_mode_,
+                       double _activAlpha,
+                       double _activBeta,
+                       double _activGamma)
         : direction(Direction::ForwardTraining),
           bn_mode(bn_mode_),
           xDesc(xDesc_),
@@ -87,7 +91,11 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
           epsilon(epsilon_),
           resultsave(resultsave_),
           resultrunning(resultrunning_),
-          min_workgroups(min_workgroups_)
+          min_workgroups(min_workgroups_),
+          activ_mode(activ_mode_),
+          activAlpha(_activAlpha),
+          activBeta(_activBeta),
+          activGamma(_activGamma)
     {
         SetSpatialDims();
         in_layout  = ComputeInLayout();
@@ -199,6 +207,13 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
         assert(direction == Direction::ForwardTraining);
         return resultrunning;
     }
+
+    int GetActivMode() const { return static_cast<int>(activ_mode); }
+
+    std::vector<double> GetActivParams() const
+    {
+        return std::vector<double>{activAlpha, activBeta, activGamma};
+    };
 
     std::size_t GetMinWorkgroups() const
     {
@@ -317,14 +332,18 @@ private:
 #pragma clang diagnostic pop
 #endif
 
-    bool resultsave            = false;
-    bool resultrunning         = false;
-    bool useSaved              = false;
-    std::string in_layout      = "NCHW";
-    std::string out_layout     = "NCHW";
-    std::string din_layout     = "NCHW";
-    std::size_t spatial_dim    = 2;
-    std::size_t min_workgroups = 1;
+    bool resultsave                   = false;
+    bool resultrunning                = false;
+    bool useSaved                     = false;
+    std::string in_layout             = "NCHW";
+    std::string out_layout            = "NCHW";
+    std::string din_layout            = "NCHW";
+    std::size_t spatial_dim           = 2;
+    std::size_t min_workgroups        = 1;
+    miopenActivationMode_t activ_mode = miopenActivationPASTHRU;
+    double activAlpha                 = 0.5;
+    double activBeta                  = 0.5;
+    double activGamma                 = 0.5;
 
     std::string ComputeLayout(const TensorDescriptor& td) const { return td.GetLayout_str(); }
     std::string ComputeInLayout() const { return ComputeLayout(xDesc); }

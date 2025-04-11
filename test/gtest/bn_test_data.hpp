@@ -453,8 +453,8 @@ struct BNFwdTrainTestData : public BNTestData<XDataType, YDataType, AccDataType,
     double averageFactor    = 0.1;
     float alpha             = static_cast<float>(1.0f);
     float beta              = static_cast<float>(0);
-    const float activ_alpha = static_cast<double>(0.5f);
-    const float activ_beta  = static_cast<double>(0.5f);
+    const float activ_alpha = static_cast<double>(0.1f);
+    const float activ_beta  = static_cast<double>(0.3f);
     const float activ_gamma = static_cast<double>(0.5f);
 
 private:

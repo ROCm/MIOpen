@@ -200,7 +200,11 @@ MIOPEN_INTERNALS_EXPORT void BatchNormForwardTraining(const Handle& handle,
                                                       Data_t resultRunningVariance,
                                                       double epsilon,
                                                       Data_t resultSaveMean,
-                                                      Data_t resultSaveInvVariance);
+                                                      Data_t resultSaveInvVariance,
+                                                      miopenActivationMode_t activ_mode,
+                                                      double activ_alpha,
+                                                      double activ_beta,
+                                                      double activ_gamma);
 
 MIOPEN_INTERNALS_EXPORT void BatchNormBackward(const Handle& handle,
                                                miopenBatchNormMode_t bn_mode,

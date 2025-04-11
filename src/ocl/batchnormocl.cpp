@@ -76,7 +76,11 @@ void BatchNormForwardTraining(const Handle& handle,
                               Data_t resultRunningVariance,
                               double epsilon,
                               Data_t resultSaveMean,
-                              Data_t resultSaveInvVariance)
+                              Data_t resultSaveInvVariance,
+                              miopenActivationMode_t activ_mode,
+                              double activ_alpha,
+                              double activ_beta,
+                              double activ_gamma)
 {
     if(x == nullptr || y == nullptr || bnScale == nullptr || bnBias == nullptr)
     {
@@ -130,7 +134,11 @@ void BatchNormForwardTraining(const Handle& handle,
                                                        epsilon,
                                                        resultsave,
                                                        resultrunning,
-                                                       size_t(0.6f * handle.GetMaxComputeUnits())};
+                                                       size_t(0.6f * handle.GetMaxComputeUnits()),
+                                                       activ_mode,
+                                                       activ_alpha,
+                                                       activ_beta,
+                                                       activ_gamma};
 
     const auto algo = bn_mode == miopenBNSpatial
                           ? AlgorithmName{"miopenBatchNormForwardTrainingSpatial"}
@@ -277,7 +285,11 @@ void BatchNormForwardInference(const Handle& handle,
                                  nullptr,
                                  epsilon,
                                  nullptr,
-                                 nullptr);
+                                 nullptr,
+                                 miopenActivationPASTHRU,
+                                 0.5,
+                                 0.5,
+                                 0.5);
     }
     if(miopen::CheckNumericsEnabled())
     {

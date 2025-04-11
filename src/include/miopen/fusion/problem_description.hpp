@@ -154,7 +154,11 @@ struct FusionDescription : ProblemDescriptionBase
                     not_used,
                     true /* resultSave*/,
                     bn_op.runningMeanVar,
-                    1}; /* min number of workgroups */
+                    1, /* min number of workgroups */
+                    miopenActivationPASTHRU,
+                    0.5,
+                    0.5,
+                    0.5};
         }
         else if(dir == miopen::batchnorm::Direction::Backward)
         {

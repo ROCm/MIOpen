@@ -2765,6 +2765,10 @@ MIOPEN_EXPORT miopenStatus_t miopenDeriveBNTensorDescriptor(miopenTensorDescript
  * @param epsilon                   Value to stablize inverse variance calculation (input)
  * @param resultSaveMean            Saved mini-batch mean for backwards pass (output)
  * @param resultSaveInvVariance     Saved mini-batch inverse variance for backwards pass (output)
+ * @param activ_mode                Activation mode (Default is pass through)
+ * @param activ_alpha               Activation parameter alpha (Default is 0.5)
+ * @param activ_beta                Activation parameter beta  (Default is 0.5)
+ * @param activ_gamma               Activation parameter gamma (Default is 0.5)
  * @return                          miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -2784,7 +2788,11 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                                         void* resultRunningVariance,
                                         double epsilon,
                                         void* resultSaveMean,
-                                        void* resultSaveInvVariance);
+                                        void* resultSaveInvVariance,
+                                        miopenActivationMode_t activ_mode = miopenActivationPASTHRU,
+                                        double activ_alpha                = 0.5,
+                                        double activ_beta                 = 0.5,
+                                        double activ_gamma                = 0.5);
 /*! @brief Execute forward training layer for batch normalization
  *
  * Batch normalization pass for forward training pass.
@@ -2823,29 +2831,37 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
  * @param epsilon                   Value to stablize inverse variance calculation (input)
  * @param resultSaveMean            Saved mini-batch mean for backwards pass (output)
  * @param resultSaveInvVariance     Saved mini-batch inverse variance for backwards pass (output)
+ * @param activ_mode                Activation mode (Default is pass through)
+ * @param activ_alpha               Activation parameter alpha (Default is 0.5)
+ * @param activ_beta                Activation parameter beta  (Default is 0.5)
+ * @param activ_gamma               Activation parameter gamma (Default is 0.5)
  * @return                          miopenStatus_t
  */
-MIOPEN_EXPORT miopenStatus_t
-miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
-                                           miopenBatchNormMode_t bn_mode,
-                                           void* alpha,
-                                           void* beta,
-                                           const miopenTensorDescriptor_t xDesc,
-                                           const void* x,
-                                           const miopenTensorDescriptor_t yDesc,
-                                           void* y,
-                                           const miopenTensorDescriptor_t scaleDesc,
-                                           const miopenTensorDescriptor_t biasVarDesc,
-                                           const miopenTensorDescriptor_t savedMeanDesc,
-                                           const miopenTensorDescriptor_t savedVarDesc,
-                                           void* bnScale,
-                                           void* bnBias,
-                                           double expAvgFactor,
-                                           void* resultRunningMean,
-                                           void* resultRunningVariance,
-                                           double epsilon,
-                                           void* resultSaveMean,
-                                           void* resultSaveInvVariance);
+MIOPEN_EXPORT miopenStatus_t miopenBatchNormalizationForwardTraining_V2(
+    miopenHandle_t handle,
+    miopenBatchNormMode_t bn_mode,
+    void* alpha,
+    void* beta,
+    const miopenTensorDescriptor_t xDesc,
+    const void* x,
+    const miopenTensorDescriptor_t yDesc,
+    void* y,
+    const miopenTensorDescriptor_t scaleDesc,
+    const miopenTensorDescriptor_t biasVarDesc,
+    const miopenTensorDescriptor_t savedMeanDesc,
+    const miopenTensorDescriptor_t savedVarDesc,
+    void* bnScale,
+    void* bnBias,
+    double expAvgFactor,
+    void* resultRunningMean,
+    void* resultRunningVariance,
+    double epsilon,
+    void* resultSaveMean,
+    void* resultSaveInvVariance,
+    miopenActivationMode_t activ_mode = miopenActivationPASTHRU,
+    double activ_alpha                = 0.5,
+    double activ_beta                 = 0.5,
+    double activ_gamma                = 0.5);
 
 /*! @brief Execute forward inference layer for batch normalization
  *

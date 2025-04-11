@@ -133,7 +133,11 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                                         void* resultRunningVariance,
                                         double epsilon,
                                         void* resultSaveMean,
-                                        void* resultSaveInvVariance)
+                                        void* resultSaveInvVariance,
+                                        miopenActivationMode_t activ_mode,
+                                        double activ_alpha,
+                                        double activ_beta,
+                                        double activ_gamma)
 {
     return miopenBatchNormalizationForwardTraining_V2(handle,
                                                       bn_mode,
@@ -154,7 +158,11 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                                                       resultRunningVariance,
                                                       epsilon,
                                                       resultSaveMean,
-                                                      resultSaveInvVariance);
+                                                      resultSaveInvVariance,
+                                                      activ_mode,
+                                                      activ_alpha,
+                                                      activ_beta,
+                                                      activ_gamma);
 }
 
 extern "C" miopenStatus_t
@@ -296,7 +304,11 @@ miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
                                            void* resultRunningVariance,
                                            double epsilon,
                                            void* resultSaveMean,
-                                           void* resultSaveInvVariance)
+                                           void* resultSaveInvVariance,
+                                           miopenActivationMode_t activ_mode,
+                                           double activ_alpha,
+                                           double activ_beta,
+                                           double activ_gamma)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         bn_mode,
@@ -356,7 +368,11 @@ miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
                                          DataCast(resultRunningVariance),
                                          epsilon,
                                          DataCast(resultSaveMean),
-                                         DataCast(resultSaveInvVariance));
+                                         DataCast(resultSaveInvVariance),
+                                         activ_mode,
+                                         activ_alpha,
+                                         activ_beta,
+                                         activ_gamma);
     });
 }
 

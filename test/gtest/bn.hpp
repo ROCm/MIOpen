@@ -77,9 +77,11 @@ template <typename TestCase>
 struct TestNameGenerator
 {
     std::string
-    operator()(const testing::TestParamInfo<
-               std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>& info)
-        const
+    operator()(const testing::TestParamInfo<std::tuple<TestCase,
+                                                       miopenTensorLayout_t,
+                                                       miopenBatchNormMode_t,
+                                                       BNApiType,
+                                                       miopenActivationMode_t>>& info) const
     {
         constexpr int dimension = std::is_same<TestCase, BN2DTestCase>::value   ? 2
                                   : std::is_same<TestCase, BN3DTestCase>::value ? 3
@@ -337,14 +339,16 @@ template <typename XDataType,
           typename RunSaveDataType,
           typename AccDataType,
           typename TestCase>
-struct BNFwdTrainTest
-    : public ::testing::TestWithParam<
-          std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>
+struct BNFwdTrainTest : public ::testing::TestWithParam<std::tuple<TestCase,
+                                                                   miopenTensorLayout_t,
+                                                                   miopenBatchNormMode_t,
+                                                                   BNApiType,
+                                                                   miopenActivationMode_t>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, bn_mode, api_type) = this->GetParam();
+        std::tie(bn_config, tensor_layout, bn_mode, api_type, activ_mode) = this->GetParam();
         bn_fwd_train_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
 
         auto&& handle = get_handle();
@@ -373,7 +377,11 @@ protected:
                 bn_fwd_train_test_data.runVariance_dev.get(),
                 bn_fwd_train_test_data.epsilon,
                 bn_fwd_train_test_data.saveMean_dev.get(),
-                bn_fwd_train_test_data.saveVariance_dev.get());
+                bn_fwd_train_test_data.saveVariance_dev.get(),
+                activ_mode,
+                bn_fwd_train_test_data.activ_alpha,
+                bn_fwd_train_test_data.activ_beta,
+                bn_fwd_train_test_data.activ_gamma);
         }
         else if(api_type == BNApiType::testBNAPIV2)
         {
@@ -397,7 +405,11 @@ protected:
                 bn_fwd_train_test_data.runVariance_dev.get(),
                 bn_fwd_train_test_data.epsilon,
                 bn_fwd_train_test_data.saveMean_dev.get(),
-                bn_fwd_train_test_data.saveVariance_dev.get());
+                bn_fwd_train_test_data.saveVariance_dev.get(),
+                activ_mode,
+                bn_fwd_train_test_data.activ_alpha,
+                bn_fwd_train_test_data.activ_beta,
+                bn_fwd_train_test_data.activ_gamma);
         }
         else
             GTEST_FAIL() << "ERROR: unknown bn api type!!";
@@ -439,6 +451,12 @@ protected:
             handle.Read<RunSaveDataType>(bn_fwd_train_test_data.runVariance_dev,
                                          bn_fwd_train_test_data.runVariance_ref.data.size());
         test::ComputeCPUBNFwdTrain(bn_fwd_train_test_data);
+        activationHostInfer(activ_mode,
+                            bn_fwd_train_test_data.activ_gamma,
+                            bn_fwd_train_test_data.activ_beta,
+                            bn_fwd_train_test_data.activ_alpha,
+                            bn_fwd_train_test_data.out_ref.data,
+                            bn_fwd_train_test_data.out_ref.data);
 
         // 4e-3 is tolerance used by CK kernel.
         test::CompareTensor<YDataType>(
@@ -466,4 +484,5 @@ protected:
     miopenTensorLayout_t tensor_layout;
     miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
+    miopenActivationMode_t activ_mode;
 };
