@@ -35,14 +35,7 @@
 // still want to check that the solver is not broken.
 #define WORKAROUND_SWDEV_229277_227616_229195 1
 
-// LLVM buffer intrinsics llvm.amdgcn.buffer.* have been removed in HIP 6.4
-#define WORKAROUND_SWDEV_498660 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
-
-#if WORKAROUND_SWDEV_498660
-#define SOLVER_NAME DISABLED_ConvHipImplicitGemmBwdDataV4R1
-#else
 #define SOLVER_NAME ConvHipImplicitGemmBwdDataV4R1
-#endif
 
 #if WORKAROUND_SWDEV_229277_227616_229195
 MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)

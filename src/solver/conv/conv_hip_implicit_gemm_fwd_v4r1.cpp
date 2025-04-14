@@ -45,10 +45,6 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
-#if WORKAROUND_SWDEV_498660
-    if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1))
-        return false;
-#endif
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
@@ -106,10 +102,6 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
 bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
-#if WORKAROUND_SWDEV_498660
-    if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1))
-        return false;
-#endif
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
@@ -399,8 +391,11 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ExecutionContext& ctx,
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, problem, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (static_ck::use_amd_inline_asm(ctx, problem) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (static_ck::use_amd_inline_asm(ctx, problem) ? '1' : '0') +
+#if HIP_PACKAGE_VERSION_FLAT >= 6004000000
+        std::string(" -DCK_USE_AMD_BUFFER_PTR_TYPE=1") +
+#endif
         static_ck::get_static_ck_common_compiler_flag(ctx) +
-        ctx.general_compile_options;
+        ctx.general_compile_options  + " --std=c++17";
     // clang-format on
 
     if(problem.IsFp32())
@@ -605,8 +600,11 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ExecutionContext& ctx,
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, problem, false)) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (static_ck::use_amd_inline_asm(ctx, problem)? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (static_ck::use_amd_inline_asm(ctx, problem) ? '1' : '0') +
+#if HIP_PACKAGE_VERSION_FLAT >= 6004000000
+        std::string(" -DCK_USE_AMD_BUFFER_PTR_TYPE=1") +
+#endif
         static_ck::get_static_ck_common_compiler_flag(ctx) +
-        ctx.general_compile_options;
+        ctx.general_compile_options  + " --std=c++17";
     // clang-format on
 
     if(problem.IsFp32())
