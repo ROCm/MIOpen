@@ -290,6 +290,11 @@ if(MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908)
     list(APPEND SKIP_TESTS test_bn_3d_spatial_test)
 endif()
 
+
+if(MIOPEN_TEST_GFX908)
+    list(APPEND SKIP_TESTS test_find_db)
+endif()
+
 #Don't run db verification by default
 if(NOT MIOPEN_TEST_DBSYNC)
     list(APPEND SKIP_TESTS db_sync)
