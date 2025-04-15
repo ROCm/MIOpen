@@ -26,6 +26,7 @@
 
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/errors.hpp>
 #include <miopen/generic_search.hpp>
 
 #include "unit_conv_solver.hpp"
@@ -244,11 +245,32 @@ uint64_t Tolerances::GetKey(Gpu gpu, miopenDataType_t type)
 
 void Tolerances::Set(Gpu gpu, miopenDataType_t type, float value)
 {
-    values[GetKey(gpu, type)] = value;
+    if(gpu == Gpu::None)
+        return;
+
+    int igpu = static_cast<int>(gpu);
+    if((igpu & (igpu - 1)) == 0)
+    {
+        values[GetKey(gpu, type)] = value;
+    }
+    else
+    {
+        for(int g = 1; g <= static_cast<int>(Gpu::gfxLast); g <<= 1)
+        {
+            if((g & igpu) != 0)
+            {
+                values[GetKey(static_cast<Gpu>(g), type)] = value;
+            }
+        }
+    }
 }
 
 float Tolerances::Get(Gpu gpu, miopenDataType_t type) const
 {
+    MIOPEN_THROW_IF((static_cast<int>(gpu) & (static_cast<int>(gpu) - 1)) != 0,
+                    "cannot call Tolerance::Get with multiple gpus");
+    MIOPEN_THROW_IF(gpu > Gpu::gfxLast, "Tolerance::Get called with invalid gpu");
+
     const auto& v = values.find(GetKey(gpu, type));
     if(v == values.cend())
         return 1.0f; // default value
