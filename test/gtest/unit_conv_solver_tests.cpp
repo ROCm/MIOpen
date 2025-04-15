@@ -28,7 +28,6 @@ std::vector<miopenDataType_t> types{miopenHalf,
                                     miopenFloat8_fnuz,
                                     miopenBFloat8_fnuz,
                                     miopenInt64};
-} // namespace
 
 float GetValue(Gpu gpu, miopenDataType_t type)
 {
@@ -37,6 +36,7 @@ float GetValue(Gpu gpu, miopenDataType_t type)
     EXPECT_NE(val, def.Get(Gpu::gfx900, miopenFloat));
     return val;
 }
+} // namespace
 
 TEST(CPU_UnitConvSolverToleranceTests_NONE, testThrows)
 {
@@ -115,4 +115,21 @@ TEST(CPU_UnitConvSolverToleranceTests_NONE, testSetMulti)
     EXPECT_EQ(gfxX4_miopenHalf, tol.Get(Gpu::gfx120X, miopenHalf));
     EXPECT_EQ(gfx103X_gfx120X_miopenFloat, tol.Get(Gpu::gfx103X, miopenFloat));
     EXPECT_EQ(gfx103X_gfx120X_miopenFloat, tol.Get(Gpu::gfx120X, miopenFloat));
+
+    const float all = (test_val += 1.0);
+    tol.Set(Gpu::All, miopenFloat, all);
+    EXPECT_EQ(gfxX4_miopenHalf, tol.Get(Gpu::gfx900, miopenHalf));
+    EXPECT_EQ(gfxX4_miopenHalf, tol.Get(Gpu::gfx908, miopenHalf));
+    EXPECT_EQ(gfxX4_miopenHalf, tol.Get(Gpu::gfx94X, miopenHalf));
+    EXPECT_EQ(gfx103X_gfx120X_miopenHalf, tol.Get(Gpu::gfx103X, miopenHalf));
+    EXPECT_EQ(gfxX4_miopenHalf, tol.Get(Gpu::gfx120X, miopenHalf));
+    EXPECT_EQ(all, tol.Get(Gpu::gfx900, miopenFloat));
+    EXPECT_EQ(all, tol.Get(Gpu::gfx906, miopenFloat));
+    EXPECT_EQ(all, tol.Get(Gpu::gfx908, miopenFloat));
+    EXPECT_EQ(all, tol.Get(Gpu::gfx90A, miopenFloat));
+    EXPECT_EQ(all, tol.Get(Gpu::gfx94X, miopenFloat));
+    EXPECT_EQ(all, tol.Get(Gpu::gfx950, miopenFloat));
+    EXPECT_EQ(all, tol.Get(Gpu::gfx103X, miopenFloat));
+    EXPECT_EQ(all, tol.Get(Gpu::gfx110X, miopenFloat));
+    EXPECT_EQ(all, tol.Get(Gpu::gfx120X, miopenFloat));
 }
