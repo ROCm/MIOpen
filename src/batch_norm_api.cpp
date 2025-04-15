@@ -184,7 +184,11 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                                  void* resultBnBiasDiff,
                                  double epsilon,
                                  const void* savedMean,
-                                 const void* savedInvVariance)
+                                 const void* savedInvVariance,
+                                 miopenActivationMode_t activ_mode,
+                                 double activ_alpha,
+                                 double activ_beta,
+                                 double activ_gamma)
 {
     return miopenBatchNormalizationBackward_V2(handle,
                                                bn_mode,
@@ -207,7 +211,11 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                                                resultBnBiasDiff,
                                                epsilon,
                                                savedMean,
-                                               savedInvVariance);
+                                               savedInvVariance,
+                                               activ_mode,
+                                               activ_alpha,
+                                               activ_beta,
+                                               activ_gamma);
 }
 
 extern "C" miopenStatus_t
@@ -398,7 +406,11 @@ miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
                                     void* resultBnBiasDiff,
                                     double epsilon,
                                     const void* savedMean,
-                                    const void* savedInvVariance)
+                                    const void* savedInvVariance,
+                                    miopenActivationMode_t activ_mode,
+                                    double activ_alpha,
+                                    double activ_beta,
+                                    double activ_gamma)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         bn_mode,
@@ -417,7 +429,11 @@ miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
                         resultBnBiasDiff,
                         epsilon,
                         savedMean,
-                        savedInvVariance);
+                        savedInvVariance,
+                        activ_mode,
+                        activ_alpha,
+                        activ_beta,
+                        activ_gamma);
     miopen::debug::LogCmdBNorm(xDesc,
                                dyDesc,
                                scaleDesc,
@@ -458,6 +474,10 @@ miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
                                   DataCast(resultBnBiasDiff),
                                   epsilon,
                                   DataCast(savedMean),
-                                  DataCast(savedInvVariance));
+                                  DataCast(savedInvVariance),
+                                  activ_mode,
+                                  activ_alpha,
+                                  activ_beta,
+                                  activ_gamma);
     });
 }

@@ -216,12 +216,13 @@ template <typename XDataType,
           typename AccDataType,
           typename TestCase>
 struct BNBwdTest : public ::testing::TestWithParam<
-                       std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>
+                       std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType,
+                       miopenActivationMode_t>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, bn_mode, api_type) = this->GetParam();
+        std::tie(bn_config, tensor_layout, bn_mode, api_type, activ_mode) = this->GetParam();
         bn_bwd_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
 
         auto&& handle = get_handle();
@@ -251,7 +252,11 @@ protected:
                                                    bn_bwd_test_data.dBias_dev.get(),
                                                    bn_bwd_test_data.epsilon,
                                                    bn_bwd_test_data.savedMean_dev.get(),
-                                                   bn_bwd_test_data.savedInvVar_dev.get());
+                                                   bn_bwd_test_data.savedInvVar_dev.get(),
+                                                   activ_mode,
+                                                   bn_bwd_test_data.activ_alpha,
+                                                   bn_bwd_test_data.activ_beta,
+                                                   bn_bwd_test_data.activ_gamma);
         }
         else if(api_type == BNApiType::testBNAPIV2)
         {
@@ -276,7 +281,11 @@ protected:
                                                       bn_bwd_test_data.dBias_dev.get(),
                                                       bn_bwd_test_data.epsilon,
                                                       bn_bwd_test_data.savedMean_dev.get(),
-                                                      bn_bwd_test_data.savedInvVar_dev.get());
+                                                      bn_bwd_test_data.savedInvVar_dev.get(),
+                                                      activ_mode,
+                                                      bn_bwd_test_data.activ_alpha,
+                                                      bn_bwd_test_data.activ_beta,
+                                                      bn_bwd_test_data.activ_gamma);
         }
         else
             GTEST_FAIL() << "ERROR: unknown bn api type!!";
@@ -306,6 +315,12 @@ protected:
             bn_bwd_test_data.dBias_dev, bn_bwd_test_data.dBias.data.size());
 
         test::ComputeCPUBNBwd(bn_bwd_test_data);
+        activationHostInfer(activ_mode,
+            bn_bwd_test_data.activ_gamma,
+            bn_bwd_test_data.activ_beta,
+            bn_bwd_test_data.activ_alpha,
+            bn_bwd_test_data.out_ref.data,
+            bn_bwd_test_data.out_ref.data);
 
         test::CompareTensor<DxDataType, AccDataType>(
             bn_bwd_test_data.output, bn_bwd_test_data.out_ref, bwd_tol);
@@ -329,6 +344,7 @@ protected:
     miopenTensorLayout_t tensor_layout;
     miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
+    miopenActivationMode_t activ_mode;
     double bwd_tol = 4e-3;
 };
 

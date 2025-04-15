@@ -39,6 +39,7 @@
 #endif
 
 #include "batchnorm_functions.h"
+#include "activation_functions.h"
 #include "reduction_functions.h"
 
 #ifndef MIO_LAYOUT_NHWC
@@ -208,7 +209,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     {
         //==== CALC NORM =======================
         pscale = lbns;
-
+        _FLOAT_PREC value;
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
         { // apply normalization
             nid           = n * MIO_BN_SEGIHW + lidihw;
@@ -216,7 +217,9 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp1          = mad(NHW, dyvalues[n], -db);
             tmp2          = -batchvalues[n] * ds;
             tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
+            value         = tmp3 * (tmp2 + tmp1);
+            ACTIVATION_OP(value, value)
+            dx_out[index] = FLOATPREC2FLOAT(value);
         } // end for
         nid   = MIO_BN_SNHW + lidihw;
         index = nid * MIO_BN_CHW + chwid;
@@ -225,7 +228,9 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp1          = mad(NHW, dyvalues[MIO_BN_NLOOPM], -db);
             tmp2          = -batchvalues[MIO_BN_NLOOPM] * ds;
             tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
+            value         = tmp3 * (tmp2 + tmp1);
+            ACTIVATION_OP(value, value)
+            dx_out[index] = FLOATPREC2FLOAT(value);
         }
     }
     if(lid == 0)
@@ -580,6 +585,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #else
             index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
+            ACTIVATION_OP(vals[j], vals[j])
             *(dx_out + index) = FLOATPREC2FLOAT(vals[j]);
         }
     }
@@ -626,6 +632,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
         if(index < MIO_BN_NCHW)
         {
+            ACTIVATION_OP(vals[j], vals[j])
             *(dx_out + index) = FLOATPREC2FLOAT(vals[j]);
         }
     }
@@ -1082,6 +1089,7 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
             tmp2    = -xhat * dscale;
             tmp3    = scale * invVar * INHW;
             tmp4    = tmp3 * (tmp2 + tmp1);
+            ACTIVATION_OP(tmp4, tmp4)
             *((__global _FLOAT_LS*)(dx_out + index)) = FLOATPREC2FLOAT_VEC(tmp4);
         }
     }
@@ -1254,7 +1262,9 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp2 = -(FLOAT2FLOATPREC(*(x_in + index)) - mean) * invVariance * ds;
 #endif
             tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
+            tmp3          = tmp3 * (tmp2 + tmp1);
+            ACTIVATION_OP(tmp3, tmp3)
+            dx_out[index] = FLOATPREC2FLOAT(tmp3);
         }
     }
     if(lid == 0)

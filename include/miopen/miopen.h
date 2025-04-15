@@ -2990,6 +2990,10 @@ miopenBatchNormalizationForwardInference_V2(miopenHandle_t handle,
  * @param epsilon                   Value to stabilize inverse variance calculation (input)
  * @param savedMean                 Saved mini-batch mean for backwards pass (input)
  * @param savedInvVariance          Saved mini-bathc inverse variance for backwards pass (input)
+ * @param activ_mode                Activation mode (Default is pass through)
+ * @param activ_alpha               Activation parameter alpha (Default is 0.5)
+ * @param activ_beta                Activation parameter beta  (Default is 0.5)
+ * @param activ_gamma               Activation parameter gamma (Default is 0.5)
  * @return                          miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -3011,7 +3015,11 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
                                  void* resultBnBiasDiff,
                                  double epsilon,
                                  const void* savedMean,
-                                 const void* savedInvVariance);
+                                 const void* savedInvVariance,
+                                 miopenActivationMode_t activ_mode = miopenActivationPASTHRU,
+                                 double activ_alpha                = 0.5,
+                                 double activ_beta                 = 0.5,
+                                 double activ_gamma                = 0.5);
 
 /*! @brief Execute backwards propagation layer for batch normalization
  *
@@ -3049,6 +3057,10 @@ miopenBatchNormalizationBackward(miopenHandle_t handle,
  * @param epsilon                   Value to stabilize inverse variance calculation (input)
  * @param savedMean                 Saved mini-batch mean for backwards pass (input)
  * @param savedInvVariance          Saved mini-bathc inverse variance for backwards pass (input)
+ * @param activ_mode                Activation mode (Default is pass through)
+ * @param activ_alpha               Activation parameter alpha (Default is 0.5)
+ * @param activ_beta                Activation parameter beta  (Default is 0.5)
+ * @param activ_gamma               Activation parameter gamma (Default is 0.5)
  * @return                          miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -3073,7 +3085,11 @@ miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
                                     void* resultBnBiasDiff,
                                     double epsilon,
                                     const void* savedMean,
-                                    const void* savedInvVariance);
+                                    const void* savedInvVariance,
+                                    miopenActivationMode_t activ_mode = miopenActivationPASTHRU,
+                                    double activ_alpha                = 0.5,
+                                    double activ_beta                 = 0.5,
+                                    double activ_gamma                = 0.5);
 
 /** @} */
 // CLOSEOUT BATCHNORM DOXYGEN GROUP

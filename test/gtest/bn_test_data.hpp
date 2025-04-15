@@ -347,6 +347,9 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, AccDataType, TCo
 
     float alphaDataDiff = static_cast<float>(1), betaDataDiff = static_cast<float>(0);
     float alphaParamDiff = static_cast<float>(1), betaParamDiff = static_cast<float>(0);
+    const float activ_alpha = static_cast<double>(0.1f);
+    const float activ_beta  = static_cast<double>(0.3f);
+    const float activ_gamma = static_cast<double>(0.1f);
 
 private:
     void CreateTensors()

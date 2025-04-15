@@ -322,7 +322,11 @@ void BatchNormBackward(const Handle& handle,
                        Data_t resultBnBiasDiff,
                        double epsilon,
                        ConstData_t savedMean,
-                       ConstData_t savedInvVariance)
+                       ConstData_t savedInvVariance,
+                       miopenActivationMode_t activ_mode,
+                       double activ_alpha,
+                       double activ_beta,
+                       double activ_gamma)
 {
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -385,7 +389,11 @@ void BatchNormBackward(const Handle& handle,
                                                        savedVarianceDesc,
                                                        epsilon,
                                                        useSaved,
-                                                       size_t(0.6f * handle.GetMaxComputeUnits())};
+                                                       size_t(0.6f * handle.GetMaxComputeUnits()),
+                                                       activ_mode,
+                                                       activ_alpha,
+                                                       activ_beta,
+                                                       activ_gamma};
 
     const auto algo = bn_mode == miopenBNSpatial
                           ? AlgorithmName{"miopenBatchNormBackwardPropSpatial"}

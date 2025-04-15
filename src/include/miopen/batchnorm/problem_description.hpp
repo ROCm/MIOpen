@@ -137,7 +137,11 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
                        const TensorDescriptor& sVarianceDesc_,
                        double epsilon_,
                        bool useSaved_,
-                       size_t min_workgroups_)
+                       size_t min_workgroups_,
+                       miopenActivationMode_t activ_mode_,
+                       double activAlpha_,
+                       double activBeta_,
+                       double activGamma_)
         : direction(Direction::Backward),
           bn_mode(bn_mode_),
           xDesc(xDesc_),
@@ -149,7 +153,11 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
           sVarianceDesc(sVarianceDesc_),
           epsilon(epsilon_),
           useSaved(useSaved_),
-          min_workgroups(min_workgroups_)
+          min_workgroups(min_workgroups_),
+          activ_mode(activ_mode_),
+          activAlpha(activAlpha_),
+          activBeta(activBeta_),
+          activGamma(activGamma_)
     {
         SetSpatialDims();
         in_layout  = ComputeInLayout();

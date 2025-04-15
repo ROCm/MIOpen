@@ -176,7 +176,11 @@ struct FusionDescription : ProblemDescriptionBase
                     {} /*bn_op.base_desc*/,
                     not_used,
                     bn_op.useBatchStats /*useSaved*/,
-                    1}; /*min number of workgroups */
+                    1,
+                    miopenActivationPASTHRU,
+                    0.5,
+                    0.5,
+                    0.5}; /*min number of workgroups */
         }
         else
             MIOPEN_THROW(miopenStatusNotImplemented);

@@ -227,7 +227,11 @@ MIOPEN_INTERNALS_EXPORT void BatchNormBackward(const Handle& handle,
                                                Data_t resultBnBiasDiff,
                                                double epsilon,
                                                ConstData_t savedMean,
-                                               ConstData_t savedInvVariance);
+                                               ConstData_t savedInvVariance,
+                                               miopenActivationMode_t activ_mode,
+                                               double activ_alpha,
+                                               double activ_beta,
+                                               double activ_gamma);
 
 } // namespace miopen
 
