@@ -1,3 +1,28 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 def miopenCheckout()
 {
     checkout([
@@ -385,7 +410,7 @@ def RunPerfTest(Map conf=[:]){
                 ld_lib="${miopen_install_path}/lib"
                 def filename = conf.get("filename")
                 assert(filename.trim())
-                def cmd = "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
+                def cmd = "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/share/miopen/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
                 if(params.PERF_TEST_OVERRIDE != '')
                 {
                     echo "Appending MIOpenDriver cmd env vars: ${params.PERF_TEST_OVERRIDE}"
@@ -405,7 +430,7 @@ def RunPerfTest(Map conf=[:]){
                   }
 
                   try{
-                     sh "${miopen_install_path}/bin/test_perf.py --compare_results --old_results_path ${results_dir}/old_results --results_path ${results_dir}/perf_results --filename ${filename}"
+                     sh "${miopen_install_path}/share/miopen/bin/test_perf.py --compare_results --old_results_path ${results_dir}/old_results --results_path ${results_dir}/perf_results --filename ${filename}"
                   }
                   catch (Exception err){
                       currentBuild.result = 'SUCCESS'

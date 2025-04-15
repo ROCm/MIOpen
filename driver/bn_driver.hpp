@@ -172,6 +172,8 @@ private:
     Tref maxval;
 
     miopenTensorLayout_t bn_layout;
+
+    GPUMem::Check buffer_check = GPUMem::Check::None;
 };
 
 template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
@@ -184,6 +186,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::ParseCmdLineArgs(int 
         miopenEnableProfiling(GetHandle(), true);
     }
 
+    buffer_check = GetGpuBufferCheck(inflags);
+
     return miopenStatusSuccess;
 }
 
@@ -195,8 +199,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
     SetBNParametersFromCmdLineArgs();
 
     in.AllocOnHost(tensor<TInput>{bn_layout, in_len});
-    // -2.0 to 2.0
-    in.GetTensor().generate(uniform_signed_initializer<TInput>(2e-3 /*scale*/, 1000 /*range*/));
+    // 0.0 to 2.0
+    in.GetTensor().generate(uniform_unsigned_initializer<TInput>(2e-3 /*scale*/, 1000 /*range*/));
 
     auto derivedBnDesc = miopen::TensorDescriptor{};
     miopen::DeriveBNTensorDescriptor(derivedBnDesc, in.GetTensor().desc, bn_mode);
@@ -323,6 +327,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AddCmdLineArgs()
         "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
+    AddGpuBufferCheckFlag(inflags);
 
     return miopenStatusSuccess;
 }
@@ -526,31 +531,36 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AllocateBuffersAndCop
 #if MIOPEN_BACKEND_OPENCL
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #endif
-    status |= in.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&in.GetTensor().desc));
+    status |= in.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&in.GetTensor().desc), buffer_check);
 
     if(isFwdInfer || isFwdTrain)
     {
-        status |= out.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&out.GetTensor().desc));
+        status |=
+            out.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&out.GetTensor().desc), buffer_check);
         out_ref =
             tensor<Tref>{out.GetTensor().desc.GetLayout_t(), out.GetTensor().desc.GetLengths()};
-        status |= scale.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&scale.GetTensor().desc));
-        status |= bias.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&bias.GetTensor().desc));
+        status |= scale.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&scale.GetTensor().desc), buffer_check);
+        status |=
+            bias.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&bias.GetTensor().desc), buffer_check);
     }
     if(isFwdInfer)
     {
-        status |= estMean.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&estMean.GetTensor().desc));
-        status |=
-            estVariance.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&estVariance.GetTensor().desc));
+        status |= estMean.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&estMean.GetTensor().desc), buffer_check);
+        status |= estVariance.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&estVariance.GetTensor().desc), buffer_check);
     }
     if(isFwdTrain)
     {
-        status |=
-            savedMean.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&savedMean.GetTensor().desc));
+        status |= savedMean.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&savedMean.GetTensor().desc), buffer_check);
         status |= savedVariance.AllocOnDeviceAndInit(
-            q, ctx, GetTensorSize(&savedVariance.GetTensor().desc));
-        status |= runMean.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&runMean.GetTensor().desc));
-        status |=
-            runVariance.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&runVariance.GetTensor().desc));
+            q, ctx, GetTensorSize(&savedVariance.GetTensor().desc), buffer_check);
+        status |= runMean.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&runMean.GetTensor().desc), buffer_check);
+        status |= runVariance.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&runVariance.GetTensor().desc), buffer_check);
 
         savedMean_ref = tensor<Tref>{savedMean.GetTensor().desc.GetLayout_t(),
                                      savedMean.GetTensor().desc.GetLengths()};
@@ -566,20 +576,25 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AllocateBuffersAndCop
     }
     if(isBwd)
     {
-        status |= out_bwd.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&out_bwd.GetTensor().desc));
+        status |= out_bwd.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&out_bwd.GetTensor().desc), buffer_check);
 
         out_ref = tensor<Tref>{out_bwd.GetTensor().desc.GetLayout_t(),
                                out_bwd.GetTensor().desc.GetLengths()};
 
-        status |= bnScale.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&bnScale.GetTensor().desc));
-        status |= dy.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&dy.GetTensor().desc));
+        status |= bnScale.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&bnScale.GetTensor().desc), buffer_check);
+        status |=
+            dy.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&dy.GetTensor().desc), buffer_check);
 
-        status |= dScale.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&dScale.GetTensor().desc));
-        status |= dBias.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&dBias.GetTensor().desc));
-        status |=
-            savedMean.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&savedMean.GetTensor().desc));
-        status |=
-            savedInvVar.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&savedInvVar.GetTensor().desc));
+        status |= dScale.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&dScale.GetTensor().desc), buffer_check);
+        status |= dBias.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&dBias.GetTensor().desc), buffer_check);
+        status |= savedMean.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&savedMean.GetTensor().desc), buffer_check);
+        status |= savedInvVar.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&savedInvVar.GetTensor().desc), buffer_check);
 
         dScale_ref = tensor<Tref>{dScale.GetTensor().desc.GetLayout_t(),
                                   dScale.GetTensor().desc.GetLengths()};
