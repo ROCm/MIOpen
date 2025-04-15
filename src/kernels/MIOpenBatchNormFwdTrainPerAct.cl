@@ -33,6 +33,7 @@
 #endif
 
 #include "batchnorm_functions.h"
+#include "batchnorm_activations.h"
 
 //==================== PER ACTIVATION =======================
 
@@ -49,15 +50,15 @@ __kernel void MIOpenBatchNormFwdTrainPerActivation(
         _FLOAT_PREC* __restrict resultRunningMean, /*input and output, same descriptor as bias*/
     __global _FLOAT_PREC* __restrict resultRunningVariance, /*input and output*/
 #endif
-    double epsilon /* input fuzz param > 0 */
+    double epsilon, /* input fuzz param > 0 */
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-    ,
     __global _FLOAT_PREC* __restrict resultSaveMean,       /*output only*/
-    __global _FLOAT_PREC* __restrict resultSaveInvVariance /*output only*/
+    __global _FLOAT_PREC* __restrict resultSaveInvVariance, /*output only*/
 #endif
-)
+    _FLOAT_PREC alpha,
+    _FLOAT_PREC beta,
+    _FLOAT_PREC gamma)
 {
-
     // PER ACTIVATION
     _FLOAT_PREC mean        = 0.;
     _FLOAT_PREC variance    = 0.;
@@ -111,7 +112,9 @@ __kernel void MIOpenBatchNormFwdTrainPerActivation(
         { // per (x-dims) channel load a block of data unsigned into LDS
             index      = in_nstride * n + adjIndex;
             inhat      = (FLOAT2FLOATPREC(in[index]) - mean) * invVariance;
-            out[index] = FLOATPREC2FLOAT(mad(pvt_scale, inhat, pvt_bias));
+            inhat      = mad(pvt_scale, inhat, pvt_bias);
+            FORWARD_ACTIVATION(inhat, inhat, alpha, beta, gamma);
+            out[index] = FLOATPREC2FLOAT(inhat);
         } // end for(n)
     }     // end for(img_offset) //image mini_batch is processed
 }

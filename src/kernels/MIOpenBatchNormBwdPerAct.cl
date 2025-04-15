@@ -33,6 +33,7 @@
 #endif
 
 #include "batchnorm_functions.h"
+#include "batchnorm_activations.h"
 
 __kernel void MIOpenBatchNormBwdPerActivationSaved(const __global _FLOAT* in,
                                                    const __global _FLOAT* dy_in,

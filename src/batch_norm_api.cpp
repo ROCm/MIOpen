@@ -137,9 +137,6 @@ miopenBatchNormalizationForwardInference_V2(miopenHandle_t handle,
                                             void* estimatedVariance,
                                             double epsilon)
 {
-    miopenActivationDescriptor_t activDesc;
-    miopenCreateActivationDescriptor(&activDesc);
-
     return miopenBatchNormForwardInferenceActivation(handle,
                                                      bn_mode,
                                                      alpha,
@@ -157,7 +154,7 @@ miopenBatchNormalizationForwardInference_V2(miopenHandle_t handle,
                                                      estimatedMean,
                                                      estimatedVariance,
                                                      epsilon,
-                                                     activDesc);
+                                                     nullptr);
 }
 
 extern "C" miopenStatus_t
@@ -216,6 +213,12 @@ miopenBatchNormForwardInferenceActivation(miopenHandle_t handle,
                            : miopen::deref(desc);
     };
 
+    miopen::ActivationDescriptor actDesc;
+    if (activDesc != nullptr)
+    {
+        actDesc = miopen::deref(activDesc);
+    }
+
     return miopen::try_([&] {
         miopen::BatchNormForwardInference(miopen::deref(handle),
                                           bn_mode,
@@ -234,7 +237,7 @@ miopenBatchNormForwardInferenceActivation(miopenHandle_t handle,
                                           DataCast(estimatedMean),
                                           DataCast(estimatedVariance),
                                           epsilon,
-                                          miopen::deref(activDesc));
+                                          actDesc);
     });
 }
 
@@ -301,9 +304,6 @@ miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
                                            void* resultSaveMean,
                                            void* resultSaveInvVariance)
 {
-    miopenActivationDescriptor_t activDesc;
-    miopenCreateActivationDescriptor(&activDesc);
-
     return miopenBatchNormForwardTrainingActivation(handle,
                                                     bn_mode,
                                                     alpha,
@@ -324,7 +324,7 @@ miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
                                                     epsilon,
                                                     resultSaveMean,
                                                     resultSaveInvVariance,
-                                                    activDesc);
+                                                    nullptr);
 }
 
 extern "C" miopenStatus_t
@@ -388,6 +388,13 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
         return (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(desc))
                            : miopen::deref(desc);
     };
+
+    miopen::ActivationDescriptor actDesc;
+    if (activDesc != nullptr)
+    {
+        actDesc = miopen::deref(activDesc);
+    }
+
     return miopen::try_([&] {
         miopen::BatchNormForwardTraining(miopen::deref(handle),
                                          bn_mode,
@@ -409,7 +416,7 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
                                          epsilon,
                                          DataCast(resultSaveMean),
                                          DataCast(resultSaveInvVariance),
-                                         miopen::deref(activDesc));
+                                         actDesc);
     });
 }
 
@@ -482,9 +489,6 @@ miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
                                     const void* savedMean,
                                     const void* savedInvVariance)
 {
-    miopenActivationDescriptor_t activDesc;
-    miopenCreateActivationDescriptor(&activDesc);
-
     return miopenBatchNormBackwardActivation(handle,
                                              bn_mode,
                                              alphaDataDiff,
@@ -507,7 +511,7 @@ miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
                                              epsilon,
                                              savedMean,
                                              savedInvVariance,
-                                             activDesc);
+                                             nullptr);
 }
 
 extern "C" miopenStatus_t
@@ -571,6 +575,13 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
         return (size == 5) ? miopen::BuildReshaped4DTensorDescriptor(miopen::deref(desc))
                            : miopen::deref(desc);
     };
+
+    miopen::ActivationDescriptor actDesc;
+    if (activDesc != nullptr)
+    {
+        actDesc = miopen::deref(activDesc);
+    }
+
     return miopen::try_([&] {
         miopen::BatchNormBackward(miopen::deref(handle),
                                   bn_mode,
@@ -594,6 +605,6 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                                   epsilon,
                                   DataCast(savedMean),
                                   DataCast(savedInvVariance),
-                                  miopen::deref(activDesc));
+                                  actDesc);
     });
 }

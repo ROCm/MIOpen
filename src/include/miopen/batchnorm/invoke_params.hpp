@@ -28,6 +28,7 @@
 
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
+#include <miopen/activ.hpp>
 
 namespace miopen {
 namespace batchnorm {
@@ -47,6 +48,8 @@ struct FwdTrainInvokeParams : public miopen::InvokeParams
     Data_t resultSaveMean        = nullptr;
     Data_t resultSaveInvVariance = nullptr;
 
+    const ActivationDescriptor* activDesc = nullptr;
+
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
@@ -65,6 +68,8 @@ struct BwdInvokeParams : public miopen::InvokeParams
     ConstData_t savedMean        = nullptr;
     ConstData_t savedInvVariance = nullptr;
 
+    const ActivationDescriptor* activDesc = nullptr;
+
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }
 };
@@ -82,6 +87,8 @@ struct InfInvokeParams : public miopen::InvokeParams
     ConstData_t estimatedMean     = nullptr;
     ConstData_t estimatedVariance = nullptr;
     double epsilon                = 0;
+
+    const ActivationDescriptor* activDesc = nullptr;
 
     std::size_t GetWorkspaceSize() const { return 0; }
     Data_t GetWorkspace() const { return nullptr; }

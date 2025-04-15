@@ -33,6 +33,7 @@
 #endif
 
 #include "batchnorm_functions.h"
+#include "batchnorm_activations.h"
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
@@ -47,7 +48,10 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
                                   unsigned int batchSize,
                                   unsigned int cStride,
                                   unsigned int hwStride,
-                                  unsigned int batchStride)
+                                  unsigned int batchStride,
+                                  const _FLOAT_PREC alpha,
+                                  const _FLOAT_PREC beta,
+                                  const _FLOAT_PREC gamma)
 {
     unsigned int xgid = get_global_id(0);
     unsigned int ygid = get_global_id(1);
@@ -75,15 +79,9 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
         inhat = FLOAT2FLOATPREC_VEC(value);
         inhat = (inhat - mean) * invVariance;
         inhat = mad(pscale, inhat, (_FLOAT_PREC_LS)pbias);
-#ifdef MIO_BN_CLAMP_BOTH
-	inhat = clamp(inhat, MIO_BN_CLAMP_MIN, MIO_BN_CLAMP_MAX);
-#endif
-#ifdef MIO_BN_CLAMP_MIN
-	inhat = fmax(inhat, MIO_BN_CLAMP_MIN);
-#endif
-#ifdef MIO_BN_CLAMP_MAX
-	inhat = fmin(inhat, MIO_BN_CLAMP_MAX);
-#endif
+
+        FORWARD_ACTIVATION(inhat, inhat, alpha, beta, gamma);
+
         value = FLOATPREC2FLOAT_VEC(inhat);
 
         *((__global _FLOAT_LS*)(out + index)) = value;

@@ -33,6 +33,7 @@
 #endif
 
 #include "batchnorm_functions.h"
+#include "batchnorm_activations.h"
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* __restrict in, /* x input */
@@ -47,7 +48,10 @@ MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* __restrict in, /*
                                         unsigned int batchSize,
                                         unsigned int cStride,
                                         unsigned int hwStride,
-                                        unsigned int batchStride)
+                                        unsigned int batchStride,
+                                        const _FLOAT_PREC alpha,
+                                        const _FLOAT_PREC beta,
+                                        const _FLOAT_PREC gamma)
 {
     int xgid = get_global_id(0);
     int ygid = get_global_id(1);
@@ -78,6 +82,9 @@ MIOpenBatchNormFwdInferPerActivationEst(const __global _FLOAT* __restrict in, /*
         inhat = FLOAT2FLOATPREC_VEC(value);
         inhat = (inhat - mean) * invVariance;
         inhat = mad(pscale, inhat, pbias);
+
+        FORWARD_ACTIVATION(inhat, inhat, alpha, beta, gamma);
+
         value = FLOATPREC2FLOAT_VEC(inhat);
 
         *((__global _FLOAT_LS*)(out + index)) = value;

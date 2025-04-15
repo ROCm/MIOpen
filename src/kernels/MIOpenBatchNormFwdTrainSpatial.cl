@@ -40,6 +40,7 @@
 
 #include "batchnorm_functions.h"
 #include "reduction_functions.h"
+#include "batchnorm_activations.h"
 
 #ifndef MIO_LAYOUT_NHWC
 #define MIO_LAYOUT_NHWC 0
@@ -71,15 +72,15 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultRunningMean,
                                __global _FLOAT_PREC* __restrict resultRunningVariance,
 #endif
-                               double epsilon
+                               double epsilon,
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                               ,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
-                               __global _FLOAT_PREC* __restrict resultSaveInvVariance
+                               __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
-)
+                               _FLOAT_PREC alpha,
+                               _FLOAT_PREC beta,
+                               _FLOAT_PREC gamma)
 {
-
     // SPATIAL
     _FLOAT_ACCUM mean        = (_FLOAT_ACCUM)0.;
     _FLOAT_ACCUM variance    = (_FLOAT_ACCUM)0.;
@@ -159,17 +160,21 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
         { // apply normalization
             inhat      = (FLOAT2ACCUM(batchvalues[n]) - mean) * invVariance;
+            inhat      = mad(pvscale, inhat, pvbias);
+            FORWARD_ACTIVATION(inhat, inhat, alpha, beta, gamma);
             nid        = n * MIO_BN_SEGIHW + lidihw;
             index      = nid * MIO_BN_CHW + chwid;
-            out[index] = ACCUM2FLOAT(mad(pvscale, inhat, pvbias));
+            out[index] = ACCUM2FLOAT(inhat);
         } // end for
 
         // Tail of loop
         inhat = (FLOAT2ACCUM(batchvalues[MIO_BN_NLOOPM]) - mean) * invVariance;
+        inhat = mad(pvscale, inhat, pvbias);
+        FORWARD_ACTIVATION(inhat, inhat, alpha, beta, gamma);
         nid   = MIO_BN_SNHW + lidihw;
         index = nid * MIO_BN_CHW + chwid;
         if(index < MIO_BN_NCHW)
-            out[index] = ACCUM2FLOAT(mad(pvscale, inhat, pvbias));
+            out[index] = ACCUM2FLOAT(inhat);
     }
 
     if(lid == 0)
@@ -225,15 +230,15 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultRunningMean,
                                __global _FLOAT_PREC* __restrict resultRunningVariance,
 #endif
-                               double epsilon
+                               double epsilon,
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                               ,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
-                               __global _FLOAT_PREC* __restrict resultSaveInvVariance
+                               __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
-)
+                               _FLOAT_PREC alpha,
+                               _FLOAT_PREC beta,
+                               _FLOAT_PREC gamma)
 {
-
     // SPATIAL
 
     _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
@@ -370,8 +375,10 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #else
         index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
-        out[index] = FLOATPREC2FLOAT(
-            mad(pvscale, (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance, pvbias));
+        inhat = (FLOAT2FLOATPREC(*(in + index)) - mean) * inVariance;
+        inhat = mad(pvscale, inhat, pvbias);
+        FORWARD_ACTIVATION(inhat, inhat, alpha, beta, gamma);
+        out[index] = FLOATPREC2FLOAT(inhat);
     } // end for
 #else
     _FLOAT_PREC xhat[MIO_MAX_READ];
@@ -390,11 +397,13 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         barrier(CLK_GLOBAL_MEM_FENCE);
         for(unsigned int j = 0; j < MIO_MAX_READ; j++)
         {
-            unsigned int l = k + j;
-            nidx           = l / MIO_BN_HW;
-            hwidx          = l - (nidx * MIO_BN_HW);
-            index          = nidx * MIO_BN_CHW + chwid + hwidx;
-            *(out + index) = FLOATPREC2FLOAT(mad(pvscale, xhat[j], pvbias));
+            unsigned int l  = k + j;
+            nidx            = l / MIO_BN_HW;
+            hwidx           = l - (nidx * MIO_BN_HW);
+            index           = nidx * MIO_BN_CHW + chwid + hwidx;
+            _FLOAT_PREC xin = mad(pvscale, xhat[j], pvbias);
+            FORWARD_ACTIVATION(xin, xin, alpha, beta, gamma);
+            *(out + index) = FLOATPREC2FLOAT(xin);
         }
     } // end for
 
@@ -418,7 +427,9 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
         index          = nidx * MIO_BN_CHW + chwid + hwidx;
         if(index < MIO_BN_NCHW)
         {
-            *(out + index) = FLOATPREC2FLOAT(mad(pvscale, xhat[j], pvbias));
+            _FLOAT_PREC xin = mad(pvscale, xhat[j], pvbias);
+            FORWARD_ACTIVATION(xin, xin, alpha, beta, gamma);
+            *(out + index) = FLOATPREC2FLOAT(xin);
         }
     }
 #endif
@@ -443,9 +454,11 @@ __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __k
 MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
                                    __global _FLOAT* __restrict out,
                                    const __global _FLOAT_PREC* __restrict scale,
-                                   const __global _FLOAT_PREC* __restrict bias)
+                                   const __global _FLOAT_PREC* __restrict bias,
+                                   const _FLOAT_PREC alpha,
+                                   const _FLOAT_PREC beta,
+                                   const _FLOAT_PREC gamma)
 {
-
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
     unsigned int ystride = MIO_LAYOUT_NHWC ? MIO_BN_C : 1;
 
@@ -514,6 +527,7 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
             inhat = FLOAT2FLOATPREC_VEC(value);
             inhat = (inhat - mean) * invVariance;
             inhat = mad(pvt_scale, inhat, pvt_bias);
+            FORWARD_ACTIVATION(inhat, inhat, alpha, beta, gamma);
             value = FLOATPREC2FLOAT_VEC(inhat);
             // #5 Gamma and Beta adjust :: y_i = gamma*x_hat + beta
             *((__global _FLOAT_LS*)(out + index)) = value;
@@ -736,15 +750,15 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultRunningMean,
                                __global _FLOAT_PREC* __restrict resultRunningVariance,
 #endif
-                               double epsilon
+                               double epsilon,
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                               ,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
-                               __global _FLOAT_PREC* __restrict resultSaveInvVariance
+                               __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
-)
+                               _FLOAT_PREC alpha,
+                               _FLOAT_PREC beta,
+                               _FLOAT_PREC gamma)
 {
-
     // SPATIAL
     _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
     _FLOAT_PREC variance    = (_FLOAT_PREC)0.;
@@ -819,7 +833,9 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
 #else
             inhat = (FLOAT2FLOATPREC(*(in + index)) - mean) * invVariance;
 #endif
-            out[index] = FLOATPREC2FLOAT(mad(pvscale, inhat, pvbias));
+            inhat = mad(pvscale, inhat, pvbias);
+            FORWARD_ACTIVATION(inhat, inhat, alpha, beta, gamma);
+            out[index] = FLOATPREC2FLOAT(inhat);
         } // end for
     }     // end if
 
@@ -856,17 +872,17 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
                                              __global _FLOAT_PREC* __restrict resultRunningMean,
                                              __global _FLOAT_PREC* __restrict resultRunningVariance,
 #endif
-                                             double epsilon
+                                             double epsilon,
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                                             ,
                                              __global _FLOAT_PREC* __restrict resultSaveMean,
-                                             __global _FLOAT_PREC* __restrict resultSaveInvVariance
+                                             __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
-                                             ,
                                              unsigned int imageDims,
-                                             unsigned int batchStride)
+                                             unsigned int batchStride,
+                                             _FLOAT_PREC alpha,
+                                             _FLOAT_PREC beta,
+                                             _FLOAT_PREC gamma)
 {
-
     unsigned int grpid = get_group_id(0);
     unsigned int lid   = get_local_id(0);
     unsigned int lsz   = get_local_size(0);
@@ -931,12 +947,16 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
         index1             = batchStride + index0;
 #endif
         _FLOAT_PREC inhat0 = (FLOAT2FLOATPREC(*(in + index0)) - mean) * invVariance;
+        inhat0 = mad(pvscale, inhat0, pvbias);
+        FORWARD_ACTIVATION(inhat0, inhat0, alpha, beta, gamma);
 #if(MIO_BN_N == 2)
         _FLOAT_PREC inhat1 = (FLOAT2FLOATPREC(*(in + index1)) - mean) * invVariance;
+        inhat1 = mad(pvscale, inhat1, pvbias);
+        FORWARD_ACTIVATION(inhat1, inhat1, alpha, beta, gamma);
 #endif
-        out[index0]        = FLOATPREC2FLOAT(mad(pvscale, inhat0, pvbias));
+        out[index0]        = FLOATPREC2FLOAT(inhat0);
 #if(MIO_BN_N == 2)
-        out[index1]        = FLOATPREC2FLOAT(mad(pvscale, inhat1, pvbias));
+        out[index1]        = FLOATPREC2FLOAT(inhat1);
 #endif
     }
 

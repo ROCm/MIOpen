@@ -48,7 +48,8 @@ bool BnFwdInference::IsApplicable(const ExecutionContext&,
     if(!bn_problem.Is2D())
         return false;
     if(!(bn_problem.GetActivationDesc().GetMode() == miopenActivationPASTHRU ||
-	 bn_problem.GetActivationDesc().GetMode() == miopenActivationRELU))
+	 bn_problem.GetActivationDesc().GetMode() == miopenActivationRELU ||
+	 bn_problem.GetActivationDesc().GetMode() == miopenActivationCLIPPEDRELU))
         return false;
     if(!IsOCLInferTypeValid(bn_problem))
         return false;
@@ -147,7 +148,12 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
 
 	if (problem.GetActivationDesc().GetMode() == miopenActivationRELU)
 	{
-	    build_params.Define("MIO_BN_CLAMP_MIN", 0);
+	    build_params.Define("MIO_BN_ACT_RELU", 1);
+	}
+	if (problem.GetActivationDesc().GetMode() == miopenActivationCLIPPEDRELU)
+	{
+	    build_params.Define("MIO_BN_ACT_CLIPPEDRELU", 1);
+	    build_params.Define("MIO_BN_ACT_CLIP_MAX", problem.GetActivationDesc().GetAlpha());
 	}
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
@@ -168,43 +174,38 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InfInvokeParams>();
 
-            int n_, c_, h_, w_;
-            std::tie(n_, c_, h_, w_) = tien<4>(params.xDesc->GetLengths());
+            int n, c, h, w;
+            std::tie(n, c, h, w) = tien<4>(params.xDesc->GetLengths());
 
-            unsigned int in_nstride_ = c_ * h_ * w_;
-
+            unsigned int nstride = c * h * w;
+            unsigned int cstride, hwstride;
             if(params.xDesc->GetLayout_t() == miopenTensorNHWC)
             {
-                kernel(params.x,
-                       params.y,
-                       params.estimatedMean,
-                       params.estimatedVariance,
-                       params.bnScale,
-                       params.bnBias,
-                       params.epsilon,
-                       c_,
-                       h_ * w_,
-                       n_,
-                       1,            // cStride
-                       c_,           // hwStride
-                       in_nstride_); // batchStride
+                cstride = 1;
+                hwstride = c;
             }
             else
             {
-                kernel(params.x,
-                       params.y,
-                       params.estimatedMean,
-                       params.estimatedVariance,
-                       params.bnScale,
-                       params.bnBias,
-                       params.epsilon,
-                       c_,
-                       h_ * w_,
-                       n_,
-                       h_ * w_,      // cStride
-                       1,            // hwStride
-                       in_nstride_); // batchStride
+                cstride = h * w;
+                hwstride = 1;
             }
+	    
+            kernel(params.x,
+                   params.y,
+                   params.estimatedMean,
+                   params.estimatedVariance,
+                   params.bnScale,
+                   params.bnBias,
+                   params.epsilon,
+                   c,
+                   h * w,
+                   n,
+                   cstride,
+                   hwstride,
+                   nstride,
+		   params.activDesc->GetAlpha(),
+		   params.activDesc->GetBeta(),
+		   params.activDesc->GetGamma());
         };
     };
 

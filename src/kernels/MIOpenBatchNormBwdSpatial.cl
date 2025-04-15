@@ -39,6 +39,7 @@
 #endif
 
 #include "batchnorm_functions.h"
+#include "batchnorm_activations.h"
 #include "reduction_functions.h"
 
 #ifndef MIO_LAYOUT_NHWC
@@ -75,7 +76,6 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
                           _FLOAT_PREC INHW)
 {
-
     // SPATIAL
     _FLOAT_PREC mean = (_FLOAT_PREC)0.;
 #if(MIO_BN_USESAVED == 0)
