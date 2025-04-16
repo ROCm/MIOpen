@@ -645,6 +645,9 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ctx.use_hip_kernels)
         return false;
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(name == "gfx942" || name == "gfx950")
+        return false;
     if(problem.HasNonPackedTensors())
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())
