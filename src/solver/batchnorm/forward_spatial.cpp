@@ -75,7 +75,11 @@ void PerformanceConfigBnFwdTraining::HeuristicInit(
     if(UseMultiple(problem))
     {
         DefaultConfigSpatialMultiple(problem, stash_values_fwd, this->valid_kernels);
-        DefaultConfigSpatialSingle(problem, this->valid_kernels);
+        // if more than 2 instances are present, it means that variant 1 will be slower
+        if((this->valid_kernels.size() < 2 && problem.IsLayoutNHWC()) || !problem.IsLayoutNHWC())
+        {
+            DefaultConfigSpatialSingle(problem, this->valid_kernels);
+        }
     }
     else
     {
@@ -275,13 +279,11 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
             // increase number of blocks (xgridsize does not change for final kernels)
             // 2 is the lower bound because of stashing
             xlocalsize_final = 2;
-            // in case of 1 zblock but zlocalsize > 1, we need only zlocalsize_final == 1 in the
-            // final kernels
-            zlocalsize_final = std::min(zgridsize / zlocalsize, zlocalsize);
-            // increase the number of threads in the y direction to decrease the number of
+            // increase the number of threads in the y and z direction to decrease the number of
             // loads/stores for each thread
+            zlocalsize_final = zgridsize / zlocalsize * zlocalsize;
             ylocalsize_final =
-                xlocalsize / xlocalsize_final * zlocalsize / zlocalsize_final * ylocalsize;
+                (xlocalsize * ylocalsize * zlocalsize) / xlocalsize_final / zlocalsize_final;
         }
         ldsnogcn = xlocalsize * ylocalsize * zlocalsize;
         ldsgcn   = xlocalsize * ylocalsize * zlocalsize / 64;
