@@ -42,9 +42,9 @@ TEST(CPU_UnitConvSolverToleranceTests_NONE, testThrows)
 {
     Tol tol;
 
-    EXPECT_NO_THROW(tol.Get(Gpu::gfx90A, miopenHalf););
-    EXPECT_ANY_THROW(tol.Get(Gpu::gfx908 | Gpu::gfx90A, miopenHalf););
-    EXPECT_ANY_THROW(tol.Get(static_cast<Gpu>(static_cast<int>(Gpu::gfxLast) << 1), miopenHalf););
+    EXPECT_NO_THROW(tol.Get(Gpu::gfx90A, miopenHalf));
+    EXPECT_ANY_THROW(tol.Get(Gpu::gfx908 | Gpu::gfx90A, miopenHalf));
+    EXPECT_ANY_THROW(tol.Get(static_cast<Gpu>(static_cast<int>(Gpu::gfxLast) << 1), miopenHalf));
 }
 
 TEST(CPU_UnitConvSolverToleranceTests_NONE, testSetAllUnique)
