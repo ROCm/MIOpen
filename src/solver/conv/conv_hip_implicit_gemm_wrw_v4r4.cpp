@@ -583,6 +583,8 @@ ConvHipImplicitGemmV4R4WrW::CalculateGemmSize(const ProblemDescription& problem)
 bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
+    if(ctx.GetStream().GetDeviceName() == "gfx908")
+        return false;
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))

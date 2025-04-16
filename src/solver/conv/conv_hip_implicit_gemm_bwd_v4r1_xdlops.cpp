@@ -829,6 +829,8 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
             return false;
     }
 #endif
+    if(ctx.GetStream().GetDeviceName() == "gfx908")
+        return false;
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))

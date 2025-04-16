@@ -637,6 +637,9 @@ size_t ConvHipImplicitGemmBwdDataV1R1::GetWorkspaceSize(const ExecutionContext&,
 bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
                                                   const ProblemDescription& problem) const
 {
+    if(ctx.GetStream().GetDeviceName() == "gfx908")
+        return false;
+
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))

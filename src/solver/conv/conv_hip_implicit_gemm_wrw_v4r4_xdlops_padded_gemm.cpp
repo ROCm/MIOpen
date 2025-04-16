@@ -1110,6 +1110,9 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::GetSolution(
 bool ConvHipImplicitGemmWrwV4R4Xdlops_Padded_Gemm::IsApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
+    if(ctx.GetStream().GetDeviceName() == "gfx908")
+        return false;
+
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_PADDED_GEMM_XDLOPS))
         return false;
 
