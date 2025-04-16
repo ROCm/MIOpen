@@ -85,6 +85,7 @@ auto GetFullTestParams(miopenDataType_t datatype)
     testParams.CheckXnackDisabled();
     testParams.SetTolerance(Gpu::gfx908 | Gpu::gfx94X | Gpu::gfx950, miopenFloat, 3.0f);
     testParams.SetTolerance(Gpu::gfx90A, miopenFloat, 4.0f);
+    testParams.SetTolerance(Gpu::gfx94X, miopenFloat, 3.0f);
     testParams.SetTolerance(Gpu::gfx90A, miopenHalf, 2.0f);
 
     return testParams;
