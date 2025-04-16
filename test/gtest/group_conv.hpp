@@ -71,7 +71,7 @@ struct GroupConvTestConfig<2u>
         return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " K:" << tc.K
                   << " H:" << tc.img.y << " W:" << tc.img.x << " y:" << tc.filter.y
                   << " x:" << tc.filter.x << " pad.y:" << tc.pad.y << " pad.x:" << tc.pad.x
-                  << " stride.y:" << tc.stride.y << "stride.x" << tc.stride.x
+                  << " stride.y:" << tc.stride.y << " stride.x" << tc.stride.x
                   << " dilation.y:" << tc.dilation.y << " dilation.x" << tc.dilation.x;
     }
 

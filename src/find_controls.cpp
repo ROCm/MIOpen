@@ -107,12 +107,6 @@ FindEnforceAction GetFindEnforceActionImpl()
     return FindEnforceAction::Default_;
 }
 
-FindEnforceAction GetFindEnforceAction()
-{
-    static const FindEnforceAction val = GetFindEnforceActionImpl();
-    return val;
-}
-
 boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
 {
     static_assert(miopen::solver::Id::invalid_value == 0, "miopen::solver::Id::invalid_value == 0");
@@ -162,7 +156,7 @@ boost::optional<std::vector<solver::Id>> GetEnvFindOnlySolverImpl()
 
 } // namespace
 
-FindEnforce::FindEnforce() { action = GetFindEnforceAction(); }
+FindEnforce::FindEnforce() { action = GetFindEnforceActionImpl(); }
 
 std::ostream& operator<<(std::ostream& os, const FindEnforce& val)
 {

@@ -12,10 +12,10 @@ subtrees:
     title: Install MIOpen
   - file: install/build-source.rst
     title: Build MIOpen from source
-  - file: install/docker-build.rst
-    title: Build MIOpen using Docker
   - file: install/embed.rst
     title: Build MIOpen for embedded systems
+  - file: install/docker-build.rst
+    title: Build MIOpen using Docker
 
 - caption: Conceptual
   entries:
@@ -25,6 +25,8 @@ subtrees:
     title: Kernel cache
   - file: conceptual/perfdb.rst
     title: Performance database
+  - file: conceptual/tuningdb.rst
+    title: Manual tuning
   - file: conceptual/MI200-alt-implementation.rst
     title: MI200 alternate implementation
   - file: conceptual/porting-guide.rst
@@ -33,7 +35,7 @@ subtrees:
 - caption: How to
   entries:
   - file: how-to/use-fusion-api.rst
-    title: Use the Fusion API
+    title: Use the fusion API
   - file: how-to/debug-log.rst
     title: Log and debug
   - file: how-to/find-and-immediate.rst
