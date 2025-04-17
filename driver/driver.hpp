@@ -406,7 +406,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
         Usage(1);
     }
     else if(arg == "-h" || arg == "--help" || arg == "-?")
-        Usage(0);
+        Usage(EXIT_SUCCESS);
     else
         return arg;
 }
