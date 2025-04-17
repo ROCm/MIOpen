@@ -106,7 +106,7 @@ bool IsShaderConstraintsMet(const WinoShaderArgsV2& args, uint32_t n_groups)
 
 bool GpuHasReducedVGPRMem(const std::string& dev_name)
 {
-    if(dev_name == "gfx1100" || dev_name == "gfx1101" || dev_name == "gfx1151")
+    if(dev_name == "gfx1100" || dev_name == "gfx1101")
         return false;
     return true;
 }

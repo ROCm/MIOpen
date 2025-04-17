@@ -130,11 +130,11 @@ amdhsa.kernels:
 kernel_end \kernel_name
 
 .if (.amdgcn.gfx_generation_number == 11)
-    .if ((.amdgcn.gfx_generation_minor == 0 && (.amdgcn.gfx_generation_stepping == 0 || .amdgcn.gfx_generation_stepping == 1)) || (.amdgcn.gfx_generation_minor == 5 && .amdgcn.gfx_generation_stepping == 1))
-        // gfx1100, gfx1101, gfx1151
+    .if (.amdgcn.gfx_generation_minor == 0 && (.amdgcn.gfx_generation_stepping == 0 || .amdgcn.gfx_generation_stepping == 1))
+        // gfx1100 and gfx1101
         vgpr_cnt = 252
     .else
-        // gfx1102, gfx1103, gfx1150
+        // Other gfx11
         vgpr_cnt = 168
     .endif
     sgpr_cnt = 0 // 128 SGPRs always allocated for gfx10-gfx11
