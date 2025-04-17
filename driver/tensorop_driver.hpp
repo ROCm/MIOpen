@@ -184,7 +184,7 @@ int TensorOpDriver<Tgpu, Tref>::SetTensorOpFromCmdLineArgs()
             op = static_cast<miopenTensorOp_t>(raw_op - 2);
         else
         {
-            Usage(1);
+            Usage(EXIT_FAILURE);
         }
     }
     return miopenStatusSuccess;
