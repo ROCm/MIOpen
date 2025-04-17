@@ -26,46 +26,25 @@
 
 #include "bn.hpp"
 
-// XDataType
-// YDataYype
-// ScaleDataType
-// BiasDataType
-// RunSaveDataType
-// AccDataType
-
-struct GPU_BNOCLBWDLargeFusedActivation2D_FP16 : BNBwdTest<half_float::half,
-                                                           half_float::half,
-                                                           half_float::half,
-                                                           float,
-                                                           float,
-                                                           float,
-                                                           double,
-                                                           BN2DTestCase>
+struct GPU_BNOCLInferLargeFusedActivation2D_FP16
+    : BNInferTest<half_float::half, half_float::half, float, float, float, double, BN2DTestCase>
 {
 };
 
-struct GPU_BNOCLBWDLargeFusedActivation2D_BFP16
-    : BNBwdTest<bfloat16, bfloat16, bfloat16, float, float, float, double, BN2DTestCase>
-{
-};
-
-struct GPU_BNOCLBWDLargeFusedActivation2D_FP32
-    : BNBwdTest<float, float, float, float, float, float, double, BN2DTestCase>
+struct GPU_BNOCLInferLargeFusedActivation2D_BFP16
+    : BNInferTest<bfloat16, bfloat16, float, float, float, double, BN2DTestCase>
 {
 };
 
 // fp16
-TEST_P(GPU_BNOCLBWDLargeFusedActivation2D_FP16, BnV2LargeBWDOCL2D_fp16Activation) {}
+TEST_P(GPU_BNOCLInferLargeFusedActivation2D_FP16, BnV2LargeInferOCLfp16_2D) {}
 
 // bfp16
-TEST_P(GPU_BNOCLBWDLargeFusedActivation2D_BFP16, BnV2LargeBWDOCL2D_fp16Activation) {}
-
-// fp32 (float)
-TEST_P(GPU_BNOCLBWDLargeFusedActivation2D_FP32, BnV2LargeBWDOCL2D_fp32Activation) {}
+TEST_P(GPU_BNOCLInferLargeFusedActivation2D_BFP16, BnV2LargeInferOCLbfp16_2D) {}
 
 // fp16
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_BNOCLBWDLargeFusedActivation2D_FP16,
+                         GPU_BNOCLInferLargeFusedActivation2D_FP16,
                          testing::Combine(testing::ValuesIn(Network2DLarge<BN2DTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial}),
@@ -75,19 +54,9 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
 
 // bfp16
 INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_BNOCLBWDLargeFusedActivation2D_BFP16,
+                         GPU_BNOCLInferLargeFusedActivation2D_BFP16,
                          testing::Combine(testing::ValuesIn(Network2DLarge<BN2DTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
-                                          testing::ValuesIn({miopenBNSpatial}),
-                                          testing::ValuesIn({testBNAPIActiv}),
-                                          testing::ValuesIn({miopenActivationPOWER})),
-                         TestNameGenerator<BN2DTestCase>());
-
-// fp32
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_BNOCLBWDLargeFusedActivation2D_FP32,
-                         testing::Combine(testing::ValuesIn(Network2DLarge<BN2DTestCase>()),
-                                          testing::ValuesIn({miopenTensorNCHW}),
                                           testing::ValuesIn({miopenBNSpatial}),
                                           testing::ValuesIn({testBNAPIActiv}),
                                           testing::ValuesIn({miopenActivationPOWER})),

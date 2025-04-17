@@ -140,7 +140,10 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
             {"MIO_BN_VECTORIZE", static_cast<int>(vectorize)},
-        };
+            {"MIO_BN_ACTIVATION_ALPHA", problem.GetActivationDesc().GetAlpha()},
+            {"MIO_BN_ACTIVATION_BETA", problem.GetActivationDesc().GetBeta()},
+            {"MIO_BN_ACTIVATION_GAMMA", problem.GetActivationDesc().GetGamma()},
+            {"MIOPEN_NRN_OP_ID", problem.GetActivationDesc().GetMode()}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 

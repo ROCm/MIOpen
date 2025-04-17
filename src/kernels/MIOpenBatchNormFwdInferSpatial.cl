@@ -33,6 +33,7 @@
 #endif
 
 #include "batchnorm_functions.h"
+#include "activation_functions.h"
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
@@ -75,6 +76,7 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
         inhat = FLOAT2FLOATPREC_VEC(value);
         inhat = (inhat - mean) * invVariance;
         inhat = mad(pscale, inhat, (_FLOAT_PREC_LS)pbias);
+        ACTIVATION_OP(inhat, inhat)
         value = FLOATPREC2FLOAT_VEC(inhat);
 
         *((__global _FLOAT_LS*)(out + index)) = value;

@@ -143,22 +143,20 @@ struct FusionDescription : ProblemDescriptionBase
                 dynamic_cast<BatchNormFwdTrainFusionOpDescriptor&>(*fusion_plan_desc->op_map[idx]);
             miopen::TensorDescriptor out_desc;
             bn_op.GetOutputDesc(out_desc);
-            return {bn_op.mode,
-                    bn_op.input_desc,
-                    out_desc,
-                    bn_op.base_desc,
-                    bn_op.base_desc,
-                    bn_op.base_desc,
-                    bn_op.base_desc,
-                    not_used, // expAvgFactor filler
-                    not_used,
-                    true /* resultSave*/,
-                    bn_op.runningMeanVar,
-                    1, /* min number of workgroups */
-                    miopenActivationPASTHRU,
-                    0.5,
-                    0.5,
-                    0.5};
+            return {
+                bn_op.mode,
+                bn_op.input_desc,
+                out_desc,
+                bn_op.base_desc,
+                bn_op.base_desc,
+                bn_op.base_desc,
+                bn_op.base_desc,
+                not_used, // expAvgFactor filler
+                not_used,
+                true /* resultSave*/,
+                bn_op.runningMeanVar,
+                1 /* min number of workgroups */
+            };
         }
         else if(dir == miopen::batchnorm::Direction::Backward)
         {
@@ -176,11 +174,7 @@ struct FusionDescription : ProblemDescriptionBase
                     {} /*bn_op.base_desc*/,
                     not_used,
                     bn_op.useBatchStats /*useSaved*/,
-                    1,
-                    miopenActivationPASTHRU,
-                    0.5,
-                    0.5,
-                    0.5}; /*min number of workgroups */
+                    1}; /*min number of workgroups */
         }
         else
             MIOPEN_THROW(miopenStatusNotImplemented);

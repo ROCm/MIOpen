@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -63,7 +63,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::Combine(testing::ValuesIn(Network2DLarge<BN2DTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial}),
-                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2}),
+                                          testing::ValuesIn({testBNAPIActiv}),
                                           testing::ValuesIn({miopenActivationPOWER})),
                          TestNameGenerator<BN2DTestCase>());
 
@@ -73,7 +73,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::Combine(testing::ValuesIn(Network2DLarge<BN2DTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial}),
-                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2}),
+                                          testing::ValuesIn({testBNAPIActiv}),
                                           testing::ValuesIn({miopenActivationPOWER})),
                          TestNameGenerator<BN2DTestCase>());
 
@@ -83,6 +83,6 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::Combine(testing::ValuesIn(Network2DLarge<BN2DTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW}),
                                           testing::ValuesIn({miopenBNSpatial}),
-                                          testing::ValuesIn({testBNAPIV2}),
+                                          testing::ValuesIn({testBNAPIActiv}),
                                           testing::ValuesIn({miopenActivationPOWER})),
                          TestNameGenerator<BN2DTestCase>());

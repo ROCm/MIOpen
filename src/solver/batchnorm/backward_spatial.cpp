@@ -142,7 +142,7 @@ bool BnBwdTrainingSpatial::IsApplicable(
     if(!IsOCLBwdTypeValid(bn_problem))
         return false;
 
-    int activ_mode = bn_problem.GetActivMode();
+    int activ_mode = bn_problem.GetActivationDesc().GetMode();
     if(activ_mode < miopenActivationPASTHRU || activ_mode > miopenActivationELU)
         return false;
 
@@ -206,9 +206,6 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
 
     int n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
-
-    double alpha, beta, gamma;
-    std::tie(alpha, beta, gamma) = tien<3>(problem.GetActivParams());
 
     unsigned int in_cstride = h * w;
     unsigned int in_nstride = c * in_cstride;
@@ -274,11 +271,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
             {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
             {"MIO_BN_STASH_METHOD", stash_method},
-            {"MIO_BN_ACTIVATION_ALPHA", alpha},
-            {"MIO_BN_ACTIVATION_BETA", beta},
-            {"MIO_BN_ACTIVATION_GAMMA", gamma},
-            {"MIOPEN_NRN_OP_ID", problem.GetActivMode()}
-        };
+            {"MIO_BN_ACTIVATION_ALPHA", problem.GetActivationDesc().GetAlpha()},
+            {"MIO_BN_ACTIVATION_BETA", problem.GetActivationDesc().GetBeta()},
+            {"MIO_BN_ACTIVATION_GAMMA", problem.GetActivationDesc().GetGamma()},
+            {"MIOPEN_NRN_OP_ID", problem.GetActivationDesc().GetMode()}};
 
         {
             // OpenCL kernels for variant 0-4
