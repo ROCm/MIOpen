@@ -403,7 +403,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
-        Usage(1);
+        Usage(EXIT_FAILURE);
     }
     else if(arg == "-h" || arg == "--help" || arg == "-?")
         Usage(EXIT_SUCCESS);
