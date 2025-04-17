@@ -371,7 +371,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
     if(argc < 2)
     {
         printf("FAILED: Invalid Number of Input Arguments\n");
-        Usage(1);
+        Usage(EXIT_FAILURE);
     }
 
     std::string arg = argv[1];
