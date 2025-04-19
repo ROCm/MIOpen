@@ -300,8 +300,6 @@ __device__ void amd_buffer_atomic_add(const T* p_src,
 
     index_t dst_thread_addr_offset = (dst_thread_data_offset + dst_const_data_offset) * sizeof(T);
 
-    auto typed_p_src = reinterpret_cast<const typename vector_type<T, N>::MemoryType*>(p_src);
-
     constexpr index_t no_slc_glc = 0;
 
     if constexpr(is_same<T, float>::value)
