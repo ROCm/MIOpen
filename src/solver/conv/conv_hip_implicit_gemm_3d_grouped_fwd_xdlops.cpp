@@ -522,7 +522,9 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::IsApplicable(
     // needed because layout transpose kernel does not support non-packed tensors
     if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
         return false;
-    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
+    const auto device_name = ctx.GetStream().GetDeviceName();
+    if(!((StartsWith(device_name, "gfx1100") && ck_utility::is_ck_navi31_supported(problem)) ||
+         ck_utility::is_ck_whitelist(device_name)))
         return false;
     switch(problem.GetInDataType())
     {

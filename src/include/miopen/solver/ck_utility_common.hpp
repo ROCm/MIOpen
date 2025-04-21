@@ -74,6 +74,18 @@ static inline bool is_ck_whitelist(const std::string& device_name)
             StartsWith(device_name, "gfx942") || StartsWith(device_name, "gfx950"));
 }
 
+static inline bool is_ck_navi31_supported(const miopen::conv::ProblemDescription& problem)
+{
+    bool is_datatype_supported = problem.IsFp16() || problem.IsInt8();
+    bool is_fwd_supported =
+        (problem.Is2d() || problem.Is3d()) && problem.IsDirectionForward() && is_datatype_supported;
+    bool is_bwd_supported = (problem.Is2d() || problem.Is3d()) &&
+                            problem.IsDirectionBackwardData() && is_datatype_supported;
+    bool is_wrw_supported =
+        problem.Is3d() && problem.IsDirectionBackwardWrW() && is_datatype_supported;
+    return is_fwd_supported || is_bwd_supported || is_wrw_supported;
+}
+
 static inline bool is_ck_whitelist(const Handle& handle)
 {
     return is_ck_whitelist(handle.GetDeviceName());
