@@ -95,10 +95,11 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
     static const std::string device_name = handle.GetDeviceName();
 
     // device_name: "gfx942" -> macro: "CK_AMD_GFX942"
-    std::string prefix_to_find = "gfx";
+    std::string prefix_to_find              = "gfx";
     constexpr std::string_view macro_prefix = "CK_AMD_GPU_GFX";
-    std::string macro = "";
-    if(StartsWith(device_name, prefix_to_find)) {
+    std::string macro                       = "";
+    if(StartsWith(device_name, prefix_to_find))
+    {
         macro.append(macro_prefix);
         macro.append(device_name.substr(prefix_to_find.length()));
         compiler_flag << " -D" + macro;
