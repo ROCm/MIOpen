@@ -255,10 +255,12 @@ bool ConvWinoFuryRxSCommon<Winodata, Winofilter>::IsApplicable(const ExecutionCo
     if(!StartsWith(dev_name, "gfx11"))
         return false;
 
-    if(StartsWith(dev_name, "gfx115")) {
+    if(StartsWith(dev_name, "gfx115"))
+    {
         // Triggers this error on gfx1151
         // kernel: [drm:gfx_v11_0_bad_op_irq [amdgpu]] *ERROR* Illegal opcode in command stream
-        // stderr: HSA_STATUS_ERROR_INVALID_ISA: The instruction set architecture is invalid. code: 0x100f
+        // stderr: HSA_STATUS_ERROR_INVALID_ISA: The instruction set architecture is invalid. code:
+        // 0x100f
         return false;
     }
 
