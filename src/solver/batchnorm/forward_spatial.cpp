@@ -274,9 +274,6 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
             {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
             {"MIO_BN_STASH_METHOD", stash_method},
-            {"MIO_BN_ACTIVATION_ALPHA", problem.GetActivationDesc().GetAlpha()},
-            {"MIO_BN_ACTIVATION_BETA", problem.GetActivationDesc().GetBeta()},
-            {"MIO_BN_ACTIVATION_GAMMA", problem.GetActivationDesc().GetGamma()},
             {"MIOPEN_NRN_OP_ID", problem.GetActivationDesc().GetMode()}};
 
         if(variant != 4)
@@ -332,121 +329,267 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
             const auto resultrunning =
                 params.resultRunningMean != nullptr && params.resultRunningVariance != nullptr;
 
+            float alpha_activ = problem.GetActivationDesc().GetAlpha();
+            float beta_activ  = problem.GetActivationDesc().GetBeta();
+            float gamma_activ = problem.GetActivationDesc().GetGamma();
+
             float ctime = 0.;
             visit_float(dtype, [&](auto as_float) {
                 if(variant != 2)
                 {
                     decltype(auto) kernel = handle_.Run(kernels.front());
-                    if(resultsave && resultrunning)
+                    if(problem.GetActivationDesc().GetMode() == 0)
                     {
-                        if(vn4)
+                        if(resultsave && resultrunning)
                         {
-                            kernel(params.x,
-                                   params.y,
-                                   params.bnScale,
-                                   params.bnBias,
-                                   as_float(inhw),
-                                   params.expAvgFactor,
-                                   params.resultRunningMean,
-                                   params.resultRunningVariance,
-                                   params.epsilon,
-                                   params.resultSaveMean,
-                                   params.resultSaveInvVariance);
+                            if(vn4)
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.expAvgFactor,
+                                       params.resultRunningMean,
+                                       params.resultRunningVariance,
+                                       params.epsilon,
+                                       params.resultSaveMean,
+                                       params.resultSaveInvVariance);
+                            }
+                            else
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.expAvgFactor,
+                                       params.resultRunningMean,
+                                       params.resultRunningVariance,
+                                       params.epsilon,
+                                       params.resultSaveMean,
+                                       params.resultSaveInvVariance,
+                                       in_cstride,
+                                       in_nstride);
+                            }
+                        }
+                        else if(resultsave)
+                        {
+                            if(vn4)
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.epsilon,
+                                       params.resultSaveMean,
+                                       params.resultSaveInvVariance);
+                            }
+                            else
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.epsilon,
+                                       params.resultSaveMean,
+                                       params.resultSaveInvVariance,
+                                       in_cstride,
+                                       in_nstride);
+                            }
+                        }
+                        else if(resultrunning)
+                        {
+                            if(vn4)
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.expAvgFactor,
+                                       params.resultRunningMean,
+                                       params.resultRunningVariance,
+                                       params.epsilon);
+                            }
+                            else
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.expAvgFactor,
+                                       params.resultRunningMean,
+                                       params.resultRunningVariance,
+                                       params.epsilon,
+                                       in_cstride,
+                                       in_nstride);
+                            }
                         }
                         else
                         {
-                            kernel(params.x,
-                                   params.y,
-                                   params.bnScale,
-                                   params.bnBias,
-                                   as_float(inhw),
-                                   params.expAvgFactor,
-                                   params.resultRunningMean,
-                                   params.resultRunningVariance,
-                                   params.epsilon,
-                                   params.resultSaveMean,
-                                   params.resultSaveInvVariance,
-                                   in_cstride,
-                                   in_nstride);
-                        }
-                    }
-                    else if(resultsave)
-                    {
-                        if(vn4)
-                        {
-                            kernel(params.x,
-                                   params.y,
-                                   params.bnScale,
-                                   params.bnBias,
-                                   as_float(inhw),
-                                   params.epsilon,
-                                   params.resultSaveMean,
-                                   params.resultSaveInvVariance);
-                        }
-                        else
-                        {
-                            kernel(params.x,
-                                   params.y,
-                                   params.bnScale,
-                                   params.bnBias,
-                                   as_float(inhw),
-                                   params.epsilon,
-                                   params.resultSaveMean,
-                                   params.resultSaveInvVariance,
-                                   in_cstride,
-                                   in_nstride);
-                        }
-                    }
-                    else if(resultrunning)
-                    {
-                        if(vn4)
-                        {
-                            kernel(params.x,
-                                   params.y,
-                                   params.bnScale,
-                                   params.bnBias,
-                                   as_float(inhw),
-                                   params.expAvgFactor,
-                                   params.resultRunningMean,
-                                   params.resultRunningVariance,
-                                   params.epsilon);
-                        }
-                        else
-                        {
-                            kernel(params.x,
-                                   params.y,
-                                   params.bnScale,
-                                   params.bnBias,
-                                   as_float(inhw),
-                                   params.expAvgFactor,
-                                   params.resultRunningMean,
-                                   params.resultRunningVariance,
-                                   params.epsilon,
-                                   in_cstride,
-                                   in_nstride);
+                            if(vn4)
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.epsilon);
+                            }
+                            else
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.epsilon,
+                                       in_cstride,
+                                       in_nstride);
+                            }
                         }
                     }
                     else
                     {
-                        if(vn4)
+                        if(resultsave && resultrunning)
                         {
-                            kernel(params.x,
-                                   params.y,
-                                   params.bnScale,
-                                   params.bnBias,
-                                   as_float(inhw),
-                                   params.epsilon);
+                            if(vn4)
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.expAvgFactor,
+                                       params.resultRunningMean,
+                                       params.resultRunningVariance,
+                                       params.epsilon,
+                                       params.resultSaveMean,
+                                       params.resultSaveInvVariance,
+                                       alpha_activ,
+                                       beta_activ,
+                                       gamma_activ);
+                            }
+                            else
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.expAvgFactor,
+                                       params.resultRunningMean,
+                                       params.resultRunningVariance,
+                                       params.epsilon,
+                                       params.resultSaveMean,
+                                       params.resultSaveInvVariance,
+                                       in_cstride,
+                                       in_nstride,
+                                       alpha_activ,
+                                       beta_activ,
+                                       gamma_activ);
+                            }
+                        }
+                        else if(resultsave)
+                        {
+                            if(vn4)
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.epsilon,
+                                       params.resultSaveMean,
+                                       params.resultSaveInvVariance,
+                                       alpha_activ,
+                                       beta_activ,
+                                       gamma_activ);
+                            }
+                            else
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.epsilon,
+                                       params.resultSaveMean,
+                                       params.resultSaveInvVariance,
+                                       in_cstride,
+                                       in_nstride,
+                                       alpha_activ,
+                                       beta_activ,
+                                       gamma_activ);
+                            }
+                        }
+                        else if(resultrunning)
+                        {
+                            if(vn4)
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.expAvgFactor,
+                                       params.resultRunningMean,
+                                       params.resultRunningVariance,
+                                       params.epsilon,
+                                       alpha_activ,
+                                       beta_activ,
+                                       gamma_activ);
+                            }
+                            else
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.expAvgFactor,
+                                       params.resultRunningMean,
+                                       params.resultRunningVariance,
+                                       params.epsilon,
+                                       in_cstride,
+                                       in_nstride,
+                                       alpha_activ,
+                                       beta_activ,
+                                       gamma_activ);
+                            }
                         }
                         else
                         {
-                            kernel(params.x,
-                                   params.y,
-                                   params.bnScale,
-                                   params.bnBias,
-                                   as_float(inhw),
-                                   params.epsilon,
-                                   in_cstride,
-                                   in_nstride);
+                            if(vn4)
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.epsilon,
+                                       alpha_activ,
+                                       beta_activ,
+                                       gamma_activ);
+                            }
+                            else
+                            {
+                                kernel(params.x,
+                                       params.y,
+                                       params.bnScale,
+                                       params.bnBias,
+                                       as_float(inhw),
+                                       params.epsilon,
+                                       in_cstride,
+                                       in_nstride,
+                                       alpha_activ,
+                                       beta_activ,
+                                       gamma_activ);
+                            }
                         }
                     }
                 }
@@ -490,7 +633,20 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
 
                     profileSequence(handle_, 1, &ctime);
 
-                    handle_.Run(kernels[2])(params.x, params.y, params.bnScale, params.bnBias);
+                    if(problem.GetActivationDesc().GetMode() == 0)
+                    {
+                        handle_.Run(kernels[2])(params.x, params.y, params.bnScale, params.bnBias);
+                    }
+                    else
+                    {
+                        handle_.Run(kernels[2])(params.x,
+                                                params.y,
+                                                params.bnScale,
+                                                params.bnBias,
+                                                alpha_activ,
+                                                beta_activ,
+                                                gamma_activ);
+                    }
                     profileSequence(handle_, 2, &ctime);
                 }
             });

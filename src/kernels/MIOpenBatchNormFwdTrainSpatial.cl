@@ -78,9 +78,16 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
+#if(MIOPEN_NRN_OP_ID > 0)
+                               ,
+                               _FLOAT_PREC _alpha,
+                               _FLOAT_PREC _beta,
+                               _FLOAT_PREC _gamma
+#endif
 )
 {
 
+    ACTIVATION_SET()
     // SPATIAL
     _FLOAT_ACCUM mean        = (_FLOAT_ACCUM)0.;
     _FLOAT_ACCUM variance    = (_FLOAT_ACCUM)0.;
@@ -239,11 +246,17 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
+#if(MIOPEN_NRN_OP_ID > 0)
+                               ,
+                               _FLOAT_PREC _alpha,
+                               _FLOAT_PREC _beta,
+                               _FLOAT_PREC _gamma
+#endif
 )
 {
 
+    ACTIVATION_SET()
     // SPATIAL
-
     _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
     _FLOAT_PREC variance    = (_FLOAT_PREC)0.;
     _FLOAT_PREC invVariance = (_FLOAT_PREC)0.;
@@ -458,8 +471,17 @@ __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __k
 MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
                                    __global _FLOAT* __restrict out,
                                    const __global _FLOAT_PREC* __restrict scale,
-                                   const __global _FLOAT_PREC* __restrict bias)
+                                   const __global _FLOAT_PREC* __restrict bias
+#if(MIOPEN_NRN_OP_ID > 0)
+                                   ,
+                                   _FLOAT_PREC _alpha,
+                                   _FLOAT_PREC _beta,
+                                   _FLOAT_PREC _gamma
+#endif
+)
 {
+
+    ACTIVATION_SET()
 
     unsigned int xstride = MIO_LAYOUT_NHWC ? 1 : MIO_BN_HW;
     unsigned int ystride = MIO_LAYOUT_NHWC ? MIO_BN_C : 1;
@@ -758,9 +780,16 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance
 #endif
+#if(MIOPEN_NRN_OP_ID > 0)
+                               ,
+                               _FLOAT_PREC _alpha,
+                               _FLOAT_PREC _beta,
+                               _FLOAT_PREC _gamma
+#endif
 )
 {
 
+    ACTIVATION_SET()
     // SPATIAL
     _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
     _FLOAT_PREC variance    = (_FLOAT_PREC)0.;
@@ -881,9 +910,17 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
 #endif
                                              ,
                                              unsigned int imageDims,
-                                             unsigned int batchStride)
+                                             unsigned int batchStride
+#if(MIOPEN_NRN_OP_ID > 0)
+                                             ,
+                                             _FLOAT_PREC _alpha,
+                                             _FLOAT_PREC _beta,
+                                             _FLOAT_PREC _gamma
+#endif
+)
 {
 
+    ACTIVATION_SET()
     unsigned int grpid = get_group_id(0);
     unsigned int lid   = get_local_id(0);
     unsigned int lsz   = get_local_size(0);

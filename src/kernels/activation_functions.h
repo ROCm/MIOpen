@@ -494,12 +494,9 @@ void ActivationFunction_Diff(const uint n,
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LOGISTIC
 #define ACTIVATION_OP(out, tmp) out = (_FLOAT_PREC_LS)1.f / ((_FLOAT_PREC_LS)1.f + exp(-tmp));
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_TANH
-#define ACTIVATION_OP(out, tmp)                    \
-    out = (_FLOAT_PREC_LS)MIO_BN_ACTIVATION_BETA * \
-          tanh((_FLOAT_PREC_LS)MIO_BN_ACTIVATION_ALPHA * tmp);
+#define ACTIVATION_OP(out, tmp) out = (_FLOAT_PREC_LS)_beta * tanh((_FLOAT_PREC_LS)_alpha * tmp);
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
-#define ACTIVATION_OP(out, tmp) \
-    out = max(tmp, (_FLOAT_PREC_LS)0.); // (tmp > (_FLOAT_PREC_LS)0.) ? tmp : (_FLOAT_PREC_LS)0.;
+#define ACTIVATION_OP(out, tmp) out = max(tmp, (_FLOAT_PREC_LS)0.);
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_SOFTRELU
 #define ACTIVATION_OP(out, tmp)                                    \
     out = (tmp > 0) ? (tmp + log((_FLOAT_PREC_LS)1.f + exp(-tmp))) \
@@ -507,19 +504,61 @@ void ActivationFunction_Diff(const uint n,
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ABS
 #define ACTIVATION_OP(out, tmp) out = fabs(tmp);
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_POWER
-#define ACTIVATION_OP(out, tmp)                                                                   \
-    tmp = (_FLOAT_PREC_LS)MIO_BN_ACTIVATION_ALPHA + tmp * (_FLOAT_PREC_LS)MIO_BN_ACTIVATION_BETA; \
-    out = (tmp <= (_FLOAT_PREC_LS)EPSILON) ? (_FLOAT_PREC_LS)0.                                   \
-                                           : pow(tmp, (_FLOAT_PREC_LS)MIO_BN_ACTIVATION_GAMMA);
+#define ACTIVATION_OP(out, tmp)                                                \
+    _FLOAT_PREC_LS arg = (_FLOAT_PREC_LS)_alpha + tmp * (_FLOAT_PREC_LS)_beta; \
+    out = (arg <= (_FLOAT_PREC_LS)EPSILON) ? (_FLOAT_PREC_LS)0. : pow(arg, (_FLOAT_PREC_LS)_gamma);
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLIPPED_RELU
-#define ACTIVATION_OP(out, tmp) \
-    out = min((_FLOAT_PREC_LS)MIO_BN_ACTIVATION_ALPHA, max(tmp, (_FLOAT_PREC_LS)0.));
+#define ACTIVATION_OP(out, tmp) out = min((_FLOAT_PREC_LS)_alpha, max(tmp, (_FLOAT_PREC_LS)0.));
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LEAKY_RELU
 #define ACTIVATION_OP(out, tmp) \
-    out = tmp * ((tmp > 0) ? (_FLOAT_PREC_LS)1.f : (_FLOAT_PREC_LS)MIO_BN_ACTIVATION_ALPHA);
+    out = tmp * ((tmp > 0) ? (_FLOAT_PREC_LS)1.f : (_FLOAT_PREC_LS)_alpha);
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ELU
 #define ACTIVATION_OP(out, tmp) \
-    out = (tmp > 0)             \
-              ? tmp             \
-              : ((_FLOAT_PREC_LS)MIO_BN_ACTIVATION_ALPHA * (exp(tmp) - (_FLOAT_PREC_LS)1.f));
+    out = (tmp > 0) ? tmp : ((_FLOAT_PREC_LS)_alpha * (exp(tmp) - (_FLOAT_PREC_LS)1.f));
+#endif
+
+#if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
+#define ACTIVATION_SET() \
+    do                   \
+    {                    \
+    } while(0);
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LOGISTIC
+#define ACTIVATION_SET() \
+    (void)_alpha;        \
+    (void)_beta;         \
+    (void)_gamma;
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_TANH
+#define ACTIVATION_SET() (void)_gamma;
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
+#define ACTIVATION_SET() \
+    (void)_alpha;        \
+    (void)_beta;         \
+    (void)_gamma;
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_SOFTRELU
+#define ACTIVATION_SET() \
+    (void)_alpha;        \
+    (void)_beta;         \
+    (void)_gamma;
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ABS
+#define ACTIVATION_SET() \
+    (void)_alpha;        \
+    (void)_beta;         \
+    (void)_gamma;
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_POWER
+#define ACTIVATION_SET() \
+    do                   \
+    {                    \
+    } while(0);
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLIPPED_RELU
+#define ACTIVATION_SET() \
+    (void)_beta;         \
+    (void)_gamma;
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LEAKY_RELU
+#define ACTIVATION_SET() \
+    (void)_beta;         \
+    (void)_gamma;
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ELU
+#define ACTIVATION_SET() \
+    (void)_beta;         \
+    (void)_gamma;
 #endif

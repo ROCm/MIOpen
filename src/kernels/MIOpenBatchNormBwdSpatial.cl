@@ -74,9 +74,17 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                           const __global _FLOAT_PREC* savedMean,
                           const __global _FLOAT_PREC* savedInvVariance,
 #endif
-                          _FLOAT_PREC INHW)
+                          _FLOAT_PREC INHW
+#if(MIOPEN_NRN_OP_ID > 0)
+                          ,
+                          _FLOAT_PREC _alpha,
+                          _FLOAT_PREC _beta,
+                          _FLOAT_PREC _gamma
+#endif
+)
 {
 
+    ACTIVATION_SET()
     // SPATIAL
     _FLOAT_PREC mean = (_FLOAT_PREC)0.;
 #if(MIO_BN_USESAVED == 0)
@@ -275,9 +283,17 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                           const __global _FLOAT_PREC* savedMean,
                           const __global _FLOAT_PREC* savedInvVariance,
 #endif
-                          _FLOAT_PREC INHW)
+                          _FLOAT_PREC INHW
+#if(MIOPEN_NRN_OP_ID > 0)
+                          ,
+                          _FLOAT_PREC _alpha,
+                          _FLOAT_PREC _beta,
+                          _FLOAT_PREC _gamma
+#endif
+)
 {
 
+    ACTIVATION_SET()
     // SPATIAL
     _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
     _FLOAT_PREC invVariance = (_FLOAT_PREC)0.;
@@ -1008,9 +1024,17 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
                             const __global _FLOAT_PREC* __restrict savedMean,
                             const __global _FLOAT_PREC* __restrict savedInvVariance,
 #endif
-                            _FLOAT_PREC INHW)
+                            _FLOAT_PREC INHW
+#if(MIOPEN_NRN_OP_ID > 0)
+                            ,
+                            _FLOAT_PREC _alpha,
+                            _FLOAT_PREC _beta,
+                            _FLOAT_PREC _gamma
+#endif
+)
 {
 
+    ACTIVATION_SET()
     unsigned int xlid = get_local_id(0);
     unsigned int ylid = get_local_id(1);
     unsigned int xgid = get_global_id(0);
@@ -1114,9 +1138,17 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                           const __global _FLOAT_PREC* savedMean,
                           const __global _FLOAT_PREC* savedInvVariance,
 #endif
-                          _FLOAT_PREC INHW)
+                          _FLOAT_PREC INHW
+#if(MIOPEN_NRN_OP_ID > 0)
+                          ,
+                          _FLOAT_PREC _alpha,
+                          _FLOAT_PREC _beta,
+                          _FLOAT_PREC _gamma
+#endif
+)
 {
 
+    ACTIVATION_SET()
     // SPATIAL
     _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
 #if(MIO_BN_USESAVED == 0)

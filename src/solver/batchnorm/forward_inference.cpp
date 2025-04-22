@@ -140,9 +140,6 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
             {"MIO_BN_VECTORIZE", static_cast<int>(vectorize)},
-            {"MIO_BN_ACTIVATION_ALPHA", problem.GetActivationDesc().GetAlpha()},
-            {"MIO_BN_ACTIVATION_BETA", problem.GetActivationDesc().GetBeta()},
-            {"MIO_BN_ACTIVATION_GAMMA", problem.GetActivationDesc().GetGamma()},
             {"MIOPEN_NRN_OP_ID", problem.GetActivationDesc().GetMode()}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
@@ -158,7 +155,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
         result.construction_params.push_back(kernel);
     }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InfInvokeParams>();
@@ -168,37 +165,85 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
 
             unsigned int in_nstride_ = c_ * h_ * w_;
 
+            float alpha_activ = problem.GetActivationDesc().GetAlpha();
+            float beta_activ  = problem.GetActivationDesc().GetBeta();
+            float gamma_activ = problem.GetActivationDesc().GetGamma();
+
             if(params.xDesc->GetLayout_t() == miopenTensorNHWC)
             {
-                kernel(params.x,
-                       params.y,
-                       params.estimatedMean,
-                       params.estimatedVariance,
-                       params.bnScale,
-                       params.bnBias,
-                       params.epsilon,
-                       c_,
-                       h_ * w_,
-                       n_,
-                       1,            // cStride
-                       c_,           // hwStride
-                       in_nstride_); // batchStride
+                if(problem.GetActivationDesc().GetMode() == 0)
+                {
+                    kernel(params.x,
+                           params.y,
+                           params.estimatedMean,
+                           params.estimatedVariance,
+                           params.bnScale,
+                           params.bnBias,
+                           params.epsilon,
+                           c_,
+                           h_ * w_,
+                           n_,
+                           1,            // cStride
+                           c_,           // hwStride
+                           in_nstride_); // batchStride
+                }
+                else
+                {
+                    kernel(params.x,
+                           params.y,
+                           params.estimatedMean,
+                           params.estimatedVariance,
+                           params.bnScale,
+                           params.bnBias,
+                           params.epsilon,
+                           c_,
+                           h_ * w_,
+                           n_,
+                           1,           // cStride
+                           c_,          // hwStride
+                           in_nstride_, // batchStride
+                           alpha_activ,
+                           beta_activ,
+                           gamma_activ);
+                }
             }
             else
             {
-                kernel(params.x,
-                       params.y,
-                       params.estimatedMean,
-                       params.estimatedVariance,
-                       params.bnScale,
-                       params.bnBias,
-                       params.epsilon,
-                       c_,
-                       h_ * w_,
-                       n_,
-                       h_ * w_,      // cStride
-                       1,            // hwStride
-                       in_nstride_); // batchStride
+                if(problem.GetActivationDesc().GetMode() == 0)
+                {
+                    kernel(params.x,
+                           params.y,
+                           params.estimatedMean,
+                           params.estimatedVariance,
+                           params.bnScale,
+                           params.bnBias,
+                           params.epsilon,
+                           c_,
+                           h_ * w_,
+                           n_,
+                           h_ * w_,      // cStride
+                           1,            // hwStride
+                           in_nstride_); // batchStride
+                }
+                else
+                {
+                    kernel(params.x,
+                           params.y,
+                           params.estimatedMean,
+                           params.estimatedVariance,
+                           params.bnScale,
+                           params.bnBias,
+                           params.epsilon,
+                           c_,
+                           h_ * w_,
+                           n_,
+                           h_ * w_,     // cStride
+                           1,           // hwStride
+                           in_nstride_, // batchStride
+                           alpha_activ,
+                           beta_activ,
+                           gamma_activ);
+                }
             }
         };
     };
