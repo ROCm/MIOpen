@@ -19,9 +19,9 @@ static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
 
 #if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
 #define ACTIVATION_SET() \
-    do                   \
-    {                    \
-    } while(0);
+    (void)_alpha;        \
+    (void)_beta;         \
+    (void)_gamma;
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LOGISTIC
 #define ACTIVATION_SET() \
     (void)_alpha;        \
@@ -98,16 +98,9 @@ static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
 void ActivationFunction(const uint n,
                         _FLOAT_PREC* res,
                         const _FLOAT_PREC* data,
-#if(MIOPEN_NRN_OP_ID > 0)
                         const _FLOAT_PREC _gamma,
                         const _FLOAT_PREC _beta,
-                        const _FLOAT_PREC _alpha
-#else
-                        UNUSED _FLOAT_PREC _gamma,
-                        UNUSED _FLOAT_PREC _beta,
-                        UNUSED const _FLOAT_PREC _alpha
-#endif
-)
+                        const _FLOAT_PREC _alpha)
 {
     ACTIVATION_SET()
     for(uint i = 0; i < n; ++i)

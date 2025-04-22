@@ -74,14 +74,10 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                           const __global _FLOAT_PREC* savedMean,
                           const __global _FLOAT_PREC* savedInvVariance,
 #endif
-                          _FLOAT_PREC INHW
-#if(MIOPEN_NRN_OP_ID > 0)
-                          ,
+                          _FLOAT_PREC INHW,
                           _FLOAT_PREC _alpha,
                           _FLOAT_PREC _beta,
-                          _FLOAT_PREC _gamma
-#endif
-)
+                          _FLOAT_PREC _gamma)
 {
 
     ACTIVATION_SET()
@@ -283,14 +279,10 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                           const __global _FLOAT_PREC* savedMean,
                           const __global _FLOAT_PREC* savedInvVariance,
 #endif
-                          _FLOAT_PREC INHW
-#if(MIOPEN_NRN_OP_ID > 0)
-                          ,
+                          _FLOAT_PREC INHW,
                           _FLOAT_PREC _alpha,
                           _FLOAT_PREC _beta,
-                          _FLOAT_PREC _gamma
-#endif
-)
+                          _FLOAT_PREC _gamma)
 {
 
     ACTIVATION_SET()
@@ -1024,14 +1016,10 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
                             const __global _FLOAT_PREC* __restrict savedMean,
                             const __global _FLOAT_PREC* __restrict savedInvVariance,
 #endif
-                            _FLOAT_PREC INHW
-#if(MIOPEN_NRN_OP_ID > 0)
-                            ,
+                            _FLOAT_PREC INHW,
                             _FLOAT_PREC _alpha,
                             _FLOAT_PREC _beta,
-                            _FLOAT_PREC _gamma
-#endif
-)
+                            _FLOAT_PREC _gamma)
 {
 
     ACTIVATION_SET()
@@ -1138,14 +1126,10 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                           const __global _FLOAT_PREC* savedMean,
                           const __global _FLOAT_PREC* savedInvVariance,
 #endif
-                          _FLOAT_PREC INHW
-#if(MIOPEN_NRN_OP_ID > 0)
-                          ,
+                          _FLOAT_PREC INHW,
                           _FLOAT_PREC _alpha,
                           _FLOAT_PREC _beta,
-                          _FLOAT_PREC _gamma
-#endif
-)
+                          _FLOAT_PREC _gamma)
 {
 
     ACTIVATION_SET()

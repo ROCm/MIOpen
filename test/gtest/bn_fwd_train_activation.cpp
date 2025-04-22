@@ -63,7 +63,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::Combine(testing::ValuesIn(Network2DLarge<BN2DTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial}),
-                                          testing::ValuesIn({testBNAPIActiv}),
+                                          testing::ValuesIn({testBNAPIV1}),
                                           testing::ValuesIn({miopenActivationPOWER})),
                          TestNameGenerator<BN2DTestCase>());
 
@@ -73,7 +73,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::Combine(testing::ValuesIn(Network2DLarge<BN2DTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial}),
-                                          testing::ValuesIn({testBNAPIActiv}),
+                                          testing::ValuesIn({testBNAPIV1}),
                                           testing::ValuesIn({miopenActivationPOWER})),
                          TestNameGenerator<BN2DTestCase>());
 
@@ -83,6 +83,6 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::Combine(testing::ValuesIn(Network2DLarge<BN2DTestCase>()),
                                           testing::ValuesIn({miopenTensorNCHW}),
                                           testing::ValuesIn({miopenBNSpatial}),
-                                          testing::ValuesIn({testBNAPIActiv}),
+                                          testing::ValuesIn({testBNAPIV1}),
                                           testing::ValuesIn({miopenActivationPOWER})),
                          TestNameGenerator<BN2DTestCase>());

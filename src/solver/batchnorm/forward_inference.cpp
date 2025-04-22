@@ -50,6 +50,10 @@ bool BnFwdInference::IsApplicable(const ExecutionContext&,
     if(!IsOCLInferTypeValid(bn_problem))
         return false;
 
+    int activ_mode = bn_problem.GetActivationDesc().GetMode();
+    if(activ_mode < miopenActivationPASTHRU || activ_mode > miopenActivationELU)
+        return false;
+
     return true;
 }
 
@@ -171,79 +175,41 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
 
             if(params.xDesc->GetLayout_t() == miopenTensorNHWC)
             {
-                if(problem.GetActivationDesc().GetMode() == 0)
-                {
-                    kernel(params.x,
-                           params.y,
-                           params.estimatedMean,
-                           params.estimatedVariance,
-                           params.bnScale,
-                           params.bnBias,
-                           params.epsilon,
-                           c_,
-                           h_ * w_,
-                           n_,
-                           1,            // cStride
-                           c_,           // hwStride
-                           in_nstride_); // batchStride
-                }
-                else
-                {
-                    kernel(params.x,
-                           params.y,
-                           params.estimatedMean,
-                           params.estimatedVariance,
-                           params.bnScale,
-                           params.bnBias,
-                           params.epsilon,
-                           c_,
-                           h_ * w_,
-                           n_,
-                           1,           // cStride
-                           c_,          // hwStride
-                           in_nstride_, // batchStride
-                           alpha_activ,
-                           beta_activ,
-                           gamma_activ);
-                }
+                kernel(params.x,
+                       params.y,
+                       params.estimatedMean,
+                       params.estimatedVariance,
+                       params.bnScale,
+                       params.bnBias,
+                       params.epsilon,
+                       c_,
+                       h_ * w_,
+                       n_,
+                       1,           // cStride
+                       c_,          // hwStride
+                       in_nstride_, // batchStride
+                       alpha_activ,
+                       beta_activ,
+                       gamma_activ);
             }
             else
             {
-                if(problem.GetActivationDesc().GetMode() == 0)
-                {
-                    kernel(params.x,
-                           params.y,
-                           params.estimatedMean,
-                           params.estimatedVariance,
-                           params.bnScale,
-                           params.bnBias,
-                           params.epsilon,
-                           c_,
-                           h_ * w_,
-                           n_,
-                           h_ * w_,      // cStride
-                           1,            // hwStride
-                           in_nstride_); // batchStride
-                }
-                else
-                {
-                    kernel(params.x,
-                           params.y,
-                           params.estimatedMean,
-                           params.estimatedVariance,
-                           params.bnScale,
-                           params.bnBias,
-                           params.epsilon,
-                           c_,
-                           h_ * w_,
-                           n_,
-                           h_ * w_,     // cStride
-                           1,           // hwStride
-                           in_nstride_, // batchStride
-                           alpha_activ,
-                           beta_activ,
-                           gamma_activ);
-                }
+                kernel(params.x,
+                       params.y,
+                       params.estimatedMean,
+                       params.estimatedVariance,
+                       params.bnScale,
+                       params.bnBias,
+                       params.epsilon,
+                       c_,
+                       h_ * w_,
+                       n_,
+                       h_ * w_,     // cStride
+                       1,           // hwStride
+                       in_nstride_, // batchStride
+                       alpha_activ,
+                       beta_activ,
+                       gamma_activ);
             }
         };
     };

@@ -72,19 +72,14 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultRunningMean,
                                __global _FLOAT_PREC* __restrict resultRunningVariance,
 #endif
-                               double epsilon
+                               double epsilon,
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                               ,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
-                               __global _FLOAT_PREC* __restrict resultSaveInvVariance
+                               __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
-#if(MIOPEN_NRN_OP_ID > 0)
-                               ,
                                _FLOAT_PREC _alpha,
                                _FLOAT_PREC _beta,
-                               _FLOAT_PREC _gamma
-#endif
-)
+                               _FLOAT_PREC _gamma)
 {
 
     ACTIVATION_SET()
@@ -240,19 +235,14 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultRunningMean,
                                __global _FLOAT_PREC* __restrict resultRunningVariance,
 #endif
-                               double epsilon
+                               double epsilon,
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                               ,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
-                               __global _FLOAT_PREC* __restrict resultSaveInvVariance
+                               __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
-#if(MIOPEN_NRN_OP_ID > 0)
-                               ,
                                _FLOAT_PREC _alpha,
                                _FLOAT_PREC _beta,
-                               _FLOAT_PREC _gamma
-#endif
-)
+                               _FLOAT_PREC _gamma)
 {
 
     ACTIVATION_SET()
@@ -471,14 +461,10 @@ __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __k
 MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
                                    __global _FLOAT* __restrict out,
                                    const __global _FLOAT_PREC* __restrict scale,
-                                   const __global _FLOAT_PREC* __restrict bias
-#if(MIOPEN_NRN_OP_ID > 0)
-                                   ,
+                                   const __global _FLOAT_PREC* __restrict bias,
                                    _FLOAT_PREC _alpha,
                                    _FLOAT_PREC _beta,
-                                   _FLOAT_PREC _gamma
-#endif
-)
+                                   _FLOAT_PREC _gamma)
 {
 
     ACTIVATION_SET()
@@ -774,19 +760,14 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultRunningMean,
                                __global _FLOAT_PREC* __restrict resultRunningVariance,
 #endif
-                               double epsilon
+                               double epsilon,
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                               ,
                                __global _FLOAT_PREC* __restrict resultSaveMean,
-                               __global _FLOAT_PREC* __restrict resultSaveInvVariance
+                               __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
-#if(MIOPEN_NRN_OP_ID > 0)
-                               ,
                                _FLOAT_PREC _alpha,
                                _FLOAT_PREC _beta,
-                               _FLOAT_PREC _gamma
-#endif
-)
+                               _FLOAT_PREC _gamma)
 {
 
     ACTIVATION_SET()
@@ -902,22 +883,16 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
                                              __global _FLOAT_PREC* __restrict resultRunningMean,
                                              __global _FLOAT_PREC* __restrict resultRunningVariance,
 #endif
-                                             double epsilon
+                                             double epsilon,
 #if(MIO_SAVE_MEAN_VARIANCE == 1)
-                                             ,
                                              __global _FLOAT_PREC* __restrict resultSaveMean,
-                                             __global _FLOAT_PREC* __restrict resultSaveInvVariance
+                                             __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
-                                             ,
                                              unsigned int imageDims,
-                                             unsigned int batchStride
-#if(MIOPEN_NRN_OP_ID > 0)
-                                             ,
+                                             unsigned int batchStride,
                                              _FLOAT_PREC _alpha,
                                              _FLOAT_PREC _beta,
-                                             _FLOAT_PREC _gamma
-#endif
-)
+                                             _FLOAT_PREC _gamma)
 {
 
     ACTIVATION_SET()
