@@ -44,7 +44,9 @@
 #include <rocblas/rocblas.h>
 /// rocblas_gemm_ex3 supports F8 datatypes.
 /// strided_batched_ex3 introduced in rocblas 4.0
-#define USE_ROCBLAS_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 4000000) && ROCBLAS_BETA_FEATURES_API)
+#define USE_ROCBLAS_EX3                                                                   \
+    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 4000000 && MIOPEN_ROCBLAS_VERSION_FLAT < 5000000) && \
+     ROCBLAS_BETA_FEATURES_API)
 #endif
 #endif
 
