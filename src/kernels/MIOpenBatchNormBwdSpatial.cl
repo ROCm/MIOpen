@@ -226,7 +226,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp2  = -batchvalues[n] * ds;
             tmp3  = (pscale * invVariance) * INHW;
             value = tmp3 * (tmp2 + tmp1);
-            ACTIVATION_OP(value, value)
+            ACTIVATION_OP(value, value, _FLOAT_PREC)
             dx_out[index] = FLOATPREC2FLOAT(value);
         } // end for
         nid   = MIO_BN_SNHW + lidihw;
@@ -237,7 +237,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             tmp2  = -batchvalues[MIO_BN_NLOOPM] * ds;
             tmp3  = (pscale * invVariance) * INHW;
             value = tmp3 * (tmp2 + tmp1);
-            ACTIVATION_OP(value, value)
+            ACTIVATION_OP(value, value, _FLOAT_PREC)
             dx_out[index] = FLOATPREC2FLOAT(value);
         }
     }
@@ -601,7 +601,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #else
             index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
-            ACTIVATION_OP(vals[j], vals[j])
+            ACTIVATION_OP(vals[j], vals[j], _FLOAT_PREC)
             *(dx_out + index) = FLOATPREC2FLOAT(vals[j]);
         }
     }
@@ -648,7 +648,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
         if(index < MIO_BN_NCHW)
         {
-            ACTIVATION_OP(vals[j], vals[j])
+            ACTIVATION_OP(vals[j], vals[j], _FLOAT_PREC)
             *(dx_out + index) = FLOATPREC2FLOAT(vals[j]);
         }
     }
@@ -1113,7 +1113,7 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
             tmp2    = -xhat * dscale;
             tmp3    = scale * invVar * INHW;
             tmp4    = tmp3 * (tmp2 + tmp1);
-            ACTIVATION_OP(tmp4, tmp4)
+            ACTIVATION_OP(tmp4, tmp4, _FLOAT_PREC_LS)
             *((__global _FLOAT_LS*)(dx_out + index)) = FLOATPREC2FLOAT_VEC(tmp4);
         }
     }
@@ -1295,7 +1295,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
             tmp3  = (pscale * invVariance) * INHW;
             tmp3  = tmp3 * (tmp2 + tmp1);
-            ACTIVATION_OP(tmp3, tmp3)
+            ACTIVATION_OP(tmp3, tmp3, _FLOAT_PREC)
             dx_out[index] = FLOATPREC2FLOAT(tmp3);
         }
     }
