@@ -52,9 +52,13 @@
 #include <rocblas/rocblas.h>
 /// rocblas_gemm_ex3 supports F8 datatypes.
 #ifdef _WIN32
-#define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 3000000) && ROCBLAS_BETA_FEATURES_API)
+#define USE_ROCBLAS_GEMM_EX3                                                              \
+    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 3000000 && MIOPEN_ROCBLAS_VERSION_FLAT < 5000000) && \
+     ROCBLAS_BETA_FEATURES_API)
 #else
-#define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
+#define USE_ROCBLAS_GEMM_EX3                                                              \
+    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000 && MIOPEN_ROCBLAS_VERSION_FLAT < 5000000) && \
+     ROCBLAS_BETA_FEATURES_API)
 #endif
 #endif
 #include <miopen/perf_field.hpp>
@@ -89,6 +93,15 @@ FlagsForRocblasFp32Fp16Call(const miopen::GemmDescriptor& desc) // bool gfx90aFp
     return 0;
 #endif
 #if USE_GEMM_FLAGS_FP16_ALT_IMPL_242 // -warning: macro is not used
+#endif
+}
+
+bool IsFP8Supported(const std::string& device_name)
+{
+#if USE_ROCBLAS_GEMM_EX3
+    return device_name == "gfx942" || miopen::StartsWith(device_name, "gfx95");
+#else
+    return false;
 #endif
 }
 
