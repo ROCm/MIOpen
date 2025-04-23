@@ -752,7 +752,7 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
 
     if(!ctx.use_hip_kernels)
         return false;
-    
+
     if(!problem.Is2d() && !problem.Is3d())
         return false;
 
