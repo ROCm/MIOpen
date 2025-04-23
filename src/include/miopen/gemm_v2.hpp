@@ -231,9 +231,6 @@ GemmDescriptor CreateGemmDescriptorGroupConvCNHWBwdData(const TensorDescriptor& 
                                                         const TensorDescriptor& dyDesc,
                                                         const TensorDescriptor& dxDesc,
                                                         int groupCount = 1);
-
-bool IsFP8Supported(const std::string& device_name);
-
 } // namespace miopen
 
 #endif // GUARD_MIOPEN_GEMM_V2_HPP_

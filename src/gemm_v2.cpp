@@ -96,15 +96,6 @@ FlagsForRocblasFp32Fp16Call(const miopen::GemmDescriptor& desc) // bool gfx90aFp
 #endif
 }
 
-bool IsFP8Supported(const std::string& device_name)
-{
-#if USE_ROCBLAS_GEMM_EX3
-    return device_name == "gfx942" || miopen::StartsWith(device_name, "gfx95");
-#else
-    return false;
-#endif
-}
-
 #if USE_ROCBLAS_GEMM_EX3
 static inline rocblas_computetype rocBlasComputeType_ex3(const miopen::GemmDescriptor& desc)
 {
