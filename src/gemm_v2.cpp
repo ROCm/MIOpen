@@ -268,6 +268,15 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_GEMM_ENFORCE_BACKEND)
 
 namespace miopen {
 
+bool IsFP8Supported(const std::string& device_name)
+{
+#if USE_ROCBLAS_GEMM_EX3
+    return device_name == "gfx942" || miopen::StartsWith(device_name, "gfx95");
+#else
+    return false;
+#endif
+}
+
 std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
 {
     return stream << "{"

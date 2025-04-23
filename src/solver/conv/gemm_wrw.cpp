@@ -47,12 +47,10 @@ bool GemmWrwBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
     if(!problem.AllTensorsDimsFitIntoInt())
         return false;
 
-    const auto& dyDesc      = problem.GetIn();
-    const auto& dwDesc      = problem.GetWeights();
-    const auto& xDesc       = problem.GetOut();
-    const auto& device_name = ctx.GetStream().GetDeviceName();
-    const auto rblas_fp8_supported =
-        device_name == "gfx942" || miopen::StartsWith(device_name, "gfx95");
+    const auto& dyDesc             = problem.GetIn();
+    const auto& dwDesc             = problem.GetWeights();
+    const auto& xDesc              = problem.GetOut();
+    const auto rblas_fp8_supported = IsFP8Supported(ctx.GetStream().GetDeviceName());
     if(problem.IsTensorsCasted())
     {
         if(!rblas_fp8_supported)

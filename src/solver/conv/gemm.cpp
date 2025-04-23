@@ -61,9 +61,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
            && yDesc.GetType() != miopenInt32))
         return false;
 
-    const auto& device_name = ctx.GetStream().GetDeviceName();
-    const auto rblas_fp8_supported =
-        device_name == "gfx942" || miopen::StartsWith(device_name, "gfx95");
+    const auto rblas_fp8_supported = IsFP8Supported(ctx.GetStream().GetDeviceName());
     if(problem.IsTensorsCasted())
     {
         if(!rblas_fp8_supported)
