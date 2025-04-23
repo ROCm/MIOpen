@@ -180,7 +180,7 @@ inline void gemm(const Handle& handle,
     {
         assert(handle.GetDeviceName() == "gfx942");
 #if USE_ROCBLAS_EX3
-        MIOPEN_THROW("rocblas GEMM is not supported");
+        MIOPEN_THROW("rocblas GEMM operations is not supported!");
 #endif
     }
     else
