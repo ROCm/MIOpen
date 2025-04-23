@@ -444,7 +444,7 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverInterface& solv,
     {
         // Do not put GTEST_SKIP here.
         // The usage of non-applicable config should be considered as a bug in the test.
-        GTEST_FAIL();
+        GTEST_FAIL() << "Unable to test Solver that is not Applicable.";
     }
 
     Workspace wspace;
@@ -557,7 +557,7 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverInterface& solv,
     {
         // Do not put GTEST_SKIP here.
         // The usage of non-applicable config should be considered as a bug in the test.
-        GTEST_FAIL();
+        GTEST_FAIL() << "Unable to test Solver that is not Applicable.";
     }
 
     Workspace wspace;
@@ -670,7 +670,7 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverInterface& solv,
     {
         // Do not put GTEST_SKIP here.
         // The usage of non-applicable config should be considered as a bug in the test.
-        GTEST_FAIL();
+        GTEST_FAIL() << "Unable to test Solver that is not Applicable.";
     }
 
     Workspace wspace;
