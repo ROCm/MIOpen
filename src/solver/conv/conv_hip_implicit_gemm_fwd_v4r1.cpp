@@ -117,7 +117,7 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
     if(!problem.IsFp32() && !problem.IsFp16() && !problem.IsBfp16())
         return false;
     const std::string name = ctx.GetStream().GetDeviceName();
-    if(problem.IsFp32() && (name == "gfx942" || name == "gfx950"))
+    if(name == "gfx942" || name == "gfx950")
         return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;
