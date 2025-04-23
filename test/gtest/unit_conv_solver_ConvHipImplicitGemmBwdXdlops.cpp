@@ -26,6 +26,14 @@
 
 #include "unit_conv_solver.hpp"
 
+#define WORKAROUND_SWDEV_522871 1
+
+#if WORKAROUND_SWDEV_522871
+#define SOLVER_NAME_DEV_APP DISABLED_ConvHipImplicitGemmBwdXdlops
+#else
+#define SOLVER_NAME_DEV_APP ConvHipImplicitGemmBwdXdlops
+#endif
+
 namespace {
 
 auto GetConvSmokeTestCases(miopenDataType_t datatype)
@@ -65,8 +73,13 @@ auto GetConvFullTestCases(miopenDataType_t datatype)
 
 auto GetTestParams(miopenDataType_t datatype)
 {
+// If MIOpen is built without CK these tests will fail, skip them to avoid failing
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     Gpu supportedDevices = Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X;
-    auto params          = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
+#else
+    Gpu supportedDevices = Gpu::None;
+#endif
+    auto params = miopen::unit_tests::UnitTestConvSolverParams(supportedDevices);
     params.Tunable(5);
     if(datatype == miopenHalf)
     {
@@ -100,8 +113,7 @@ TEST_P(GPU_UnitTestConvSolverImplicitGemmBwdXdlops_FP32, ConvHipImplicitGemmBwdX
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmBwdXdlops{});
 };
 
-TEST_P(CPU_UnitTestConvSolverImplicitGemmBwdXdlopsDevApplicability_FP16,
-       ConvHipImplicitGemmBwdXdlops)
+TEST_P(CPU_UnitTestConvSolverImplicitGemmBwdXdlopsDevApplicability_FP16, SOLVER_NAME_DEV_APP)
 {
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmBwdXdlops{});
 };
