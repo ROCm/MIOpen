@@ -243,5 +243,21 @@ llvm_amdgcn_raw_buffer_store_bf16x4(ushort4_t vdata,
                                     index_t soffset,
                                     index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.v4bf16));
 
+#if CK_USE_AMD_BUFFER_ATOMIC_FADD
+
+#if CK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT
+__device__ float
+#else
+__device__ void
+#endif
+__llvm_amdgcn_buffer_atomic_add_f32(
+    float vdata,
+    buffer_resourse_t rsrc,
+    index_t voffset,
+    index_t soffset,
+    index_t glc_slc) __asm(amd_buffer_intrinsic_name(atomic.fadd.f32));
+
+#endif // CK_USE_AMD_BUFFER_ATOMIC_FADD
+
 } // namespace ck
 #endif // CK_AMD_BUFFER_INTRINSIC_HPP
