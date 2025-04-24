@@ -759,6 +759,10 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
     if(!problem.IsFp32())
         return false;
 
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(name == "gfx942" || name == "gfx950")
+        return false;
+
     if(problem.HasNonPackedTensors())
         return false;
 
