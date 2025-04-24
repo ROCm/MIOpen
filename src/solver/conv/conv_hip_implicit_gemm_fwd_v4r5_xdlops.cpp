@@ -1027,6 +1027,10 @@ bool ConvHipImplicitGemmForwardV4R5Xdlops::IsApplicable(const ExecutionContext& 
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(name == "gfx942" || name == "gfx950")
+        return false;
+
     if(problem.HasNonPackedTensors())
         return false;
 

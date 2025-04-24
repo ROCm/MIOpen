@@ -260,6 +260,12 @@ inline bool UseMultiple(const miopen::batchnorm::ProblemDescription& problem)
     size_t n, c, h, w;
     std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
 
+    bool bfpmixparm = (problem.GetXDesc().GetType() == miopenHalf ||
+                       problem.GetXDesc().GetType() == miopenBFloat16) &&
+                              problem.GetBnScale().GetType() == miopenFloat
+                          ? true
+                          : false;
+
     unsigned int in_cstride = h * w;
     unsigned int in_nhw     = n * in_cstride;
     // Check heuristics (used to choose between spatial single and multiple for performance)
@@ -268,6 +274,7 @@ inline bool UseMultiple(const miopen::batchnorm::ProblemDescription& problem)
     if(!problem.IsLayoutNHWC() &&
        problem.GetDirection() == miopen::batchnorm::Direction::Backward &&
        (!((in_nhw >= static_cast<size_t>(32 * 1024 * 1024) || in_cstride <= 1024) &&
+          (in_nhw >= static_cast<size_t>(32 * 1024 * 1024) || in_cstride <= 512) &&
           in_cstride > 512)))
     {
         return false;
@@ -275,8 +282,10 @@ inline bool UseMultiple(const miopen::batchnorm::ProblemDescription& problem)
 
     if(!problem.IsLayoutNHWC() &&
        problem.GetDirection() == miopen::batchnorm::Direction::ForwardTraining &&
-       (!(n >= 3 && ((in_nhw >= static_cast<size_t>(32 * 1024 * 1024) || in_cstride <= 1024) &&
-                     in_cstride > 512))))
+       (!((n >= 3 && in_cstride > 512 && (in_nhw >= 33554432 || in_cstride <= 1024) &&
+           ((n < 256) || (in_cstride <= 60) || !bfpmixparm) &&
+           (!bfpmixparm || in_cstride <= 512)) ||
+          ((n > 768) && (in_cstride > 150)))))
     {
         return false;
     }
@@ -298,6 +307,11 @@ inline void DefaultConfigSpatialSingle(const miopen::batchnorm::ProblemDescripti
             ? true
             : false;
 
+    bool bbfpmixparam = problem.GetXDesc().GetType() == miopenBFloat16 &&
+                                problem.GetBnScale().GetType() == miopenFloat
+                            ? true
+                            : false;
+
     // NCHW supports also variants 0 and 3 which can be much faster than
     // variant 1 but have more restrictions. Here we decide if we use variant
     // 0, 1, 3
@@ -306,66 +320,99 @@ inline void DefaultConfigSpatialSingle(const miopen::batchnorm::ProblemDescripti
     // we add the latter for tuning to be sure and because it is cheap
     if(!problem.IsLayoutNHWC())
     {
+        if(problem.GetDirection() == miopen::batchnorm::Direction::Backward)
+        {
+            if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
+            {
+                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+                return;
+            }
 
+            // N*H*W < 32M and H*W > 1024
+            // use batchnorm variant#1 implementation which parallelize
+            // work groups over channels and loop through NHW.
+            if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024))
+            {
+                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+                return;
+            }
+            // N*H*W < 32M and H*W > 512
+            // use batchnorm variant#1 or variant#3 implementation which
+            // parallelize work groups over channels and loop through N.
+            else if(in_nhw < (32 * 1024 * 1024) && in_cstride > 512)
+            {
+                if(n >= 32)
+                {
+                    valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+                    return;
+                }
+                else
+                {
+                    valid_kernels.push_back(GetKernelIdFromVariant(3, 1));
+                    valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+                    return;
+                }
+            }
+            // H*W < 512  use batchnorm variant#0 or variant#3 implementation
+            // based on batch size and H*W
+            else if(in_cstride <= 512)
+            {
+                if((n > 64) && (in_cstride > 160))
+                {
+                    valid_kernels.push_back(GetKernelIdFromVariant(3, 1));
+                    valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+                    return;
+                }
+                else
+                {
+                    valid_kernels.push_back(GetKernelIdFromVariant(0, 1));
+                    valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+                    return;
+                }
+            }
+        }
+        else
+        {
 #if(WORKAROUND_SWDEV_253606 == 0)
-        if(n < 3 && problem.GetDirection() == miopen::batchnorm::Direction::ForwardTraining)
-        {
-            valid_kernels.push_back(GetKernelIdFromVariant(4, 1));
-            valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
-            return;
-        }
+            if(n < 3)
+            {
+                valid_kernels.push_back(GetKernelIdFromVariant(4, 1));
+                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+                return;
+            }
+            else
 #endif
+            {
+                // clang-format off
+                if(in_cstride > 512 && in_cstride <= 1024 && n < 32)
+                {
+                    valid_kernels.push_back(GetKernelIdFromVariant(3, 1));
+                    valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+                    return;
+                }
 
-        if((in_cstride < 200) && (in_cstride > 60) && bfpmixparm)
-        {
-            valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
-            return;
-        }
-
-        // N*H*W < 32M and H*W > 1024
-        // use batchnorm variant#1 implementation which parallelize
-        // work groups over channels and loop through NHW.
-        if((in_nhw < (32 * 1024 * 1024) && in_cstride > 1024))
-        {
-            valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
-            return;
-        }
-        // N*H*W < 32M and H*W > 512
-        // use batchnorm variant#1 or variant#3 implementation which
-        // parallelize work groups over channels and loop through N.
-        else if(in_nhw < (32 * 1024 * 1024) && in_cstride > 512)
-        {
-            if(n >= 32)
-            {
-                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
-                return;
-            }
-            else
-            {
-                valid_kernels.push_back(GetKernelIdFromVariant(3, 1));
-                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
-                return;
+                if( (in_nhw < 33554432 && in_cstride > 1024) ||
+                ((n >= 256) && (in_cstride > 60) && (bfpmixparm || bbfpmixparam)) ||
+                ((in_cstride > 512) && (bfpmixparm || bbfpmixparam)))
+                {
+                    valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+                    if(in_cstride <= 512)
+                    {
+                        valid_kernels.push_back(GetKernelIdFromVariant(0, 1));
+                    }
+                    return;
+                }
+                else if(in_cstride <= 512)
+                {
+                    valid_kernels.push_back(GetKernelIdFromVariant(0, 1));
+                    valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+                    return;
+                }
+                // clang-format on
             }
         }
-        // H*W < 512  use batchnorm variant#0 or variant#3 implementation
-        // based on batch size and H*W
-        else if(in_cstride <= 512)
-        {
-            if((n > 64) && (in_cstride > 160))
-            {
-                valid_kernels.push_back(GetKernelIdFromVariant(3, 1));
-                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
-                return;
-            }
-            else
-            {
-                valid_kernels.push_back(GetKernelIdFromVariant(0, 1));
-                valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
-                return;
-            }
-        }
+        valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
     }
-    valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
 }
 
 inline void DefaultConfigSpatialMultiple(const miopen::batchnorm::ProblemDescription& problem,

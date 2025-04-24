@@ -52,9 +52,13 @@
 #include <rocblas/rocblas.h>
 /// rocblas_gemm_ex3 supports F8 datatypes.
 #ifdef _WIN32
-#define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 3000000) && ROCBLAS_BETA_FEATURES_API)
+#define USE_ROCBLAS_GEMM_EX3                                                              \
+    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 3000000 && MIOPEN_ROCBLAS_VERSION_FLAT < 5000000) && \
+     ROCBLAS_BETA_FEATURES_API)
 #else
-#define USE_ROCBLAS_GEMM_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000) && ROCBLAS_BETA_FEATURES_API)
+#define USE_ROCBLAS_GEMM_EX3                                                              \
+    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 2047000 && MIOPEN_ROCBLAS_VERSION_FLAT < 5000000) && \
+     ROCBLAS_BETA_FEATURES_API)
 #endif
 #endif
 #include <miopen/perf_field.hpp>
@@ -263,6 +267,15 @@ rocblas_status miopen_rocblas_gemm_strided_batched_ex3(const miopen::Handle& han
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_GEMM_ENFORCE_BACKEND)
 
 namespace miopen {
+
+bool IsFP8Supported(const std::string& device_name)
+{
+#if USE_ROCBLAS_GEMM_EX3
+    return device_name == "gfx942" || miopen::StartsWith(device_name, "gfx95");
+#else
+    return false;
+#endif
+}
 
 std::ostream& operator<<(std::ostream& stream, const GemmDescriptor& gemm_desc)
 {
