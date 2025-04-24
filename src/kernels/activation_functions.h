@@ -17,96 +17,235 @@
 
 static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
 
-#if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
-#define ACTIVATION_SET() \
-    (void)_alpha;        \
-    (void)_beta;         \
-    (void)_gamma;
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LOGISTIC
-#define ACTIVATION_SET() \
-    (void)_alpha;        \
-    (void)_beta;         \
-    (void)_gamma;
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_TANH
-#define ACTIVATION_SET() (void)_gamma;
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
-#define ACTIVATION_SET() \
-    (void)_alpha;        \
-    (void)_beta;         \
-    (void)_gamma;
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_SOFTRELU
-#define ACTIVATION_SET() \
-    (void)_alpha;        \
-    (void)_beta;         \
-    (void)_gamma;
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ABS
-#define ACTIVATION_SET() \
-    (void)_alpha;        \
-    (void)_beta;         \
-    (void)_gamma;
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_POWER
-#define ACTIVATION_SET() \
-    do                   \
-    {                    \
-    } while(0);
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLIPPED_RELU
-#define ACTIVATION_SET() \
-    (void)_beta;         \
-    (void)_gamma;
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LEAKY_RELU
-#define ACTIVATION_SET() \
-    (void)_beta;         \
-    (void)_gamma;
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ELU
-#define ACTIVATION_SET() \
-    (void)_beta;         \
-    (void)_gamma;
-#endif
+void ActivationFunction_PassThru(const uint n,
+                                 _FLOAT_PREC* res,
+                                 const _FLOAT_PREC* data,
+                                 UNUSED const _FLOAT_PREC gamma,
+                                 UNUSED const _FLOAT_PREC beta,
+                                 UNUSED const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        res[i] = data[i];
+    }
+}
 
-#if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) out = tmp;
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LOGISTIC
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
-    out = (_FLOAT_PREC_TYPE)1.f / ((_FLOAT_PREC_TYPE)1.f + exp(-tmp));
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_TANH
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
-    out = (_FLOAT_PREC_TYPE)_beta * tanh((_FLOAT_PREC_TYPE)_alpha * tmp);
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) out = max(tmp, (_FLOAT_PREC_TYPE)0.);
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_SOFTRELU
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE)                    \
-    out = (tmp > 0) ? (tmp + log((_FLOAT_PREC_TYPE)1.f + exp(-tmp))) \
-                    : log((_FLOAT_PREC_TYPE)1.f + exp(tmp));
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ABS
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) out = fabs(tmp);
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_POWER
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE)                                    \
-    _FLOAT_PREC_TYPE arg = (_FLOAT_PREC_TYPE)_alpha + tmp * (_FLOAT_PREC_TYPE)_beta; \
-    out                  = (arg <= (_FLOAT_PREC_TYPE)EPSILON) ? (_FLOAT_PREC_TYPE)0. \
-                                                              : pow(arg, (_FLOAT_PREC_TYPE)_gamma);
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLIPPED_RELU
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
-    out = min((_FLOAT_PREC_TYPE)_alpha, max(tmp, (_FLOAT_PREC_TYPE)0.));
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LEAKY_RELU
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
-    out = tmp * ((tmp > 0) ? (_FLOAT_PREC_TYPE)1.f : (_FLOAT_PREC_TYPE)_alpha);
-#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ELU
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
-    out = (tmp > 0) ? tmp : ((_FLOAT_PREC_TYPE)_alpha * (exp(tmp) - (_FLOAT_PREC_TYPE)1.f));
-#endif
+void ActivationFunction_ReLU(const uint n,
+                             _FLOAT_PREC* res,
+                             const _FLOAT_PREC* data,
+                             UNUSED const _FLOAT_PREC gamma,
+                             UNUSED const _FLOAT_PREC beta,
+                             UNUSED const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        res[i] = data[i] * (data[i] > 0);
+    }
+}
+
+void ActivationFunction_Sigmoid(const uint n,
+                                _FLOAT_PREC* res,
+                                const _FLOAT_PREC* data,
+                                UNUSED const _FLOAT_PREC gamma,
+                                UNUSED const _FLOAT_PREC beta,
+                                UNUSED const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        // y = 1/(1 + exp(-x))
+        res[i] = (_FLOAT_PREC)1.f / ((_FLOAT_PREC)1.f + exp(-data[i]));
+    }
+}
+
+void ActivationFunction_TanH(const uint n,
+                             _FLOAT_PREC* res,
+                             const _FLOAT_PREC* data,
+                             UNUSED const _FLOAT_PREC gamma,
+                             const _FLOAT_PREC beta,
+                             const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        // y = beta * tanh(alpha * x)
+        res[i] = beta * tanh(alpha * data[i]);
+    }
+}
+
+void ActivationFunction_Abs(const uint n,
+                            _FLOAT_PREC* res,
+                            const _FLOAT_PREC* data,
+                            UNUSED const _FLOAT_PREC gamma,
+                            UNUSED const _FLOAT_PREC beta,
+                            UNUSED const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        res[i] = fabs(data[i]);
+    }
+}
+
+void ActivationFunction_Square(const uint n,
+                               _FLOAT_PREC* res,
+                               const _FLOAT_PREC* data,
+                               UNUSED const _FLOAT_PREC gamma,
+                               UNUSED const _FLOAT_PREC beta,
+                               UNUSED const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+
+        res[i] = data[i] * data[i];
+    }
+}
+
+void ActivationFunction_Sqrt(const uint n,
+                             _FLOAT_PREC* res,
+                             const _FLOAT_PREC* data,
+                             UNUSED const _FLOAT_PREC gamma,
+                             UNUSED const _FLOAT_PREC beta,
+                             UNUSED const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+
+        res[i] = sqrt(data[i]);
+    }
+}
+
+void ActivationFunction_Linear(const uint n,
+                               _FLOAT_PREC* res,
+                               const _FLOAT_PREC* data,
+                               UNUSED const _FLOAT_PREC gamma,
+                               const _FLOAT_PREC beta,
+                               const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        res[i] = alpha + beta * data[i];
+    }
+}
+
+void ActivationFunction_Power(const uint n,
+                              _FLOAT_PREC* res,
+                              const _FLOAT_PREC* data,
+                              const _FLOAT_PREC gamma,
+                              const _FLOAT_PREC beta,
+                              const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        // y = (alpha + beta * x ) ^ gamma
+        _FLOAT_PREC arg = alpha + data[i] * beta;
+        res[i]          = arg <= EPSILON ? (_FLOAT_PREC)0 : pow(arg, gamma);
+    }
+}
+
+void ActivationFunction_BNLL(const uint n,
+                             _FLOAT_PREC* res,
+                             const _FLOAT_PREC* data,
+                             UNUSED const _FLOAT_PREC gamma,
+                             UNUSED const _FLOAT_PREC beta,
+                             UNUSED const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        //	y = log(1 + exp(x))
+        res[i] = (data[i] > 0) ? (data[i] + log((_FLOAT_PREC)1.f + exp(-data[i])))
+                               : log((_FLOAT_PREC)(1.f) + exp(data[i]));
+    }
+}
+
+void ActivationFunction_Leaky_ReLU(const uint n,
+                                   _FLOAT_PREC* res,
+                                   const _FLOAT_PREC* data,
+                                   UNUSED const _FLOAT_PREC gamma,
+                                   UNUSED const _FLOAT_PREC beta,
+                                   const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        res[i] = data[i] * ((data[i] > 0) ? (_FLOAT_PREC)1.f : alpha);
+    }
+}
+
+void ActivationFunction_Clipped_ReLU(const uint n,
+                                     _FLOAT_PREC* res,
+                                     const _FLOAT_PREC* data,
+                                     UNUSED const _FLOAT_PREC gamma,
+                                     UNUSED const _FLOAT_PREC beta,
+                                     const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        res[i] = fmin((_FLOAT_PREC)alpha, fmax((_FLOAT_PREC)data[i], 0));
+    }
+}
+
+void ActivationFunction_ELU(const uint n,
+                            _FLOAT_PREC* res,
+                            const _FLOAT_PREC* data,
+                            UNUSED const _FLOAT_PREC gamma,
+                            UNUSED const _FLOAT_PREC beta,
+                            const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        res[i] = (data[i] > 0) ? data[i] : (alpha * (exp(data[i]) - (_FLOAT_PREC)1.f));
+    }
+}
 
 void ActivationFunction(const uint n,
                         _FLOAT_PREC* res,
                         const _FLOAT_PREC* data,
-                        const _FLOAT_PREC _gamma,
-                        const _FLOAT_PREC _beta,
-                        const _FLOAT_PREC _alpha)
+                        const _FLOAT_PREC gamma,
+                        const _FLOAT_PREC beta,
+                        const _FLOAT_PREC alpha)
 {
-    ACTIVATION_SET()
-    for(uint i = 0; i < n; ++i)
+#if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
     {
-        ACTIVATION_OP(res[i], data[i], _FLOAT_PREC)
+        ActivationFunction_PassThru(n, res, data, gamma, beta, alpha);
     }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LOGISTIC
+    {
+        // y = 1/(1 + exp(-x))
+        ActivationFunction_Sigmoid(n, res, data, gamma, beta, alpha);
+    }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_TANH
+    {
+        // y = beta * tanh(alpha * x)
+        ActivationFunction_TanH(n, res, data, gamma, beta, alpha);
+    }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
+    {
+        ActivationFunction_ReLU(n, res, data, gamma, beta, alpha);
+    }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_SOFTRELU
+    {
+        // y = log(1 + exp(x))
+        ActivationFunction_BNLL(n, res, data, gamma, beta, alpha);
+    }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ABS
+    {
+        ActivationFunction_Abs(n, res, data, gamma, beta, alpha);
+    }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_POWER
+    {
+        // y = (alpha + beta * x ) ^ gamma
+        ActivationFunction_Power(n, res, data, gamma, beta, alpha);
+    }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLIPPED_RELU
+    {
+        ActivationFunction_Clipped_ReLU(n, res, data, gamma, beta, alpha);
+    }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LEAKY_RELU
+    {
+        ActivationFunction_Leaky_ReLU(n, res, data, gamma, beta, alpha);
+    }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ELU
+    {
+        ActivationFunction_ELU(n, res, data, gamma, beta, alpha);
+    }
+#endif
 }
 
 void ActivationFunction_PassThru_Diff(const uint n,

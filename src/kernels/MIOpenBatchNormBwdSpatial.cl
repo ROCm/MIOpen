@@ -39,7 +39,7 @@
 #endif
 
 #include "batchnorm_functions.h"
-#include "activation_functions.h"
+#include "bnorm_spatial_activation_functions.h"
 #include "reduction_functions.h"
 
 #ifndef MIO_LAYOUT_NHWC

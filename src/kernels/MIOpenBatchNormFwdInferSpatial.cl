@@ -33,7 +33,7 @@
 #endif
 
 #include "batchnorm_functions.h"
-#include "activation_functions.h"
+#include "bnorm_spatial_activation_functions.h"
 
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x input */
