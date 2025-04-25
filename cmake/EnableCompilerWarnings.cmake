@@ -112,6 +112,11 @@ if(WIN32)
         -fdelayed-template-parsing
         -fms-extensions
         -fms-compatibility)
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "19")
+        list(APPEND __clang_cxx_compile_options
+            -Wno-switch-default
+            -Wno-nontrivial-memcall)
+    endif()
 endif()
 
 set(__gnu_cxx_compile_options
