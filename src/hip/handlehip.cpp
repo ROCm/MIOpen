@@ -65,6 +65,7 @@
 #define WORKAROUND_FAULTY_HIPMEMGETINFO_VEGA_NAVI2X (HIP_PACKAGE_VERSION_FLAT >= 5007000000ULL)
 
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEVICE_CU)
+MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_CHECK_SUB_BUFFER_OOB_MEMORY_ACCESS)
 
 namespace miopen {
 
@@ -795,16 +796,116 @@ std::ostream& Handle::Print(std::ostream& os) const
     return os;
 }
 
-shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t) const
+namespace {
+
+enum class SubBufferCheck
 {
-    auto cdata = reinterpret_cast<char*>(data);
-    return {cdata + offset, null_deleter{}};
+    None,
+    Front,
+    Back,
+};
+
+SubBufferCheck GetSubBufferCheck()
+{
+    const auto check = env::value(MIOPEN_DEBUG_CHECK_SUB_BUFFER_OOB_MEMORY_ACCESS);
+
+    switch(check)
+    {
+    case 1: return SubBufferCheck::Front;
+    case 2: return SubBufferCheck::Back;
+    case 0:
+    default: return SubBufferCheck::None;
+    }
 }
 
-shared<ConstData_t> Handle::CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t) const
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+std::unordered_map<void*, void*> SubBuffersToMemMap;
+// NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
+std::mutex SubBuffersToMemMapMutex;
+
+void* subBufferPageAlignMalloc(size_t size, bool alignLeft)
 {
-    auto cdata = reinterpret_cast<const char*>(data);
-    return {cdata + offset, null_deleter{}};
+    constexpr size_t maxPadding = 2ULL * 1024 * 1024 - 1;
+
+    auto roundUpToPageAlignment = [&](size_t bytes) { return (bytes + maxPadding) & ~maxPadding; };
+
+    const auto totalSize = roundUpToPageAlignment(size);
+    void* mem            = nullptr;
+    auto status          = hipMalloc(&mem, totalSize);
+    if(status != hipSuccess)
+        MIOPEN_THROW_HIP_STATUS(status, "hipMalloc failed " + std::to_string(size));
+
+    if(alignLeft)
+    {
+        MIOPEN_LOG_T("hipMalloc left-align " << size << " at " << std::hex << mem << " Ok");
+        return mem;
+    }
+
+    void* subBuffer = static_cast<char*>(mem) + totalSize - size;
+    MIOPEN_LOG_T("hipMalloc right-align " << size << " at " << std::hex << subBuffer << " Ok");
+
+    std::lock_guard<std::mutex> lck{SubBuffersToMemMapMutex};
+    SubBuffersToMemMap[subBuffer] = mem;
+
+    return subBuffer;
+}
+
+struct right_aligned_deleter
+{
+    template <class T>
+    void operator()(T* x) const
+    {
+        std::lock_guard<std::mutex> lck{SubBuffersToMemMapMutex};
+        void* mem   = SubBuffersToMemMap[x];
+        auto status = hipFree(mem);
+        if(status != hipSuccess)
+            MIOPEN_THROW_HIP_STATUS(status,
+                                    "hipFree on right-aligned memory failed at " + to_string(mem));
+        MIOPEN_LOG_T("hipFree (right-aligned) at " << std::hex << mem << " Ok");
+    }
+};
+
+} // namespace
+
+shared<Data_t> Handle::CreateSubBuffer(Data_t data, std::size_t offset, std::size_t size) const
+{
+    const auto check = GetSubBufferCheck();
+    switch(check)
+    {
+    case SubBufferCheck::None: {
+        auto cdata = reinterpret_cast<char*>(data);
+        return {cdata + offset, null_deleter{}};
+    }
+    case SubBufferCheck::Front: {
+        void* mem = subBufferPageAlignMalloc(size, true /* left-align */);
+        return {mem, hipFree};
+    }
+    case SubBufferCheck::Back: {
+        void* mem = subBufferPageAlignMalloc(size, false /* right-align */);
+        return {mem, right_aligned_deleter{}};
+    }
+    }
+}
+
+shared<ConstData_t>
+Handle::CreateSubBuffer(ConstData_t data, std::size_t offset, std::size_t size) const
+{
+    const auto check = GetSubBufferCheck();
+    switch(check)
+    {
+    case SubBufferCheck::None: {
+        auto cdata = reinterpret_cast<const char*>(data);
+        return {cdata + offset, null_deleter{}};
+    }
+    case SubBufferCheck::Front: {
+        void* mem = subBufferPageAlignMalloc(size, true /* left-align */);
+        return {mem, hipFree};
+    }
+    case SubBufferCheck::Back: {
+        void* mem = subBufferPageAlignMalloc(size, false /* right-align */);
+        return {mem, right_aligned_deleter{}};
+    }
+    }
 }
 
 #if MIOPEN_USE_ROCBLAS

@@ -942,7 +942,10 @@ endif()
 
 if(hipblaslt_FOUND)
     target_link_libraries( MIOpen PRIVATE roc::hipblaslt )
+    target_include_directories( MIOpen INTERFACE $<BUILD_INTERFACE:${HIPBLAS-COMMON_INCLUDE_DIR}> )
 endif()
+
+target_include_directories( MIOpen PRIVATE ${ROCRAND_INCLUDE_DIR} )
 
 # For backward compatibility with ROCm 5.3
 # Build with library libMLIRMIOpen
@@ -956,6 +959,7 @@ if(rocMLIR_FOUND)
 endif()
 
 target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
 
 target_internal_library(MIOpen
     Boost::filesystem
@@ -986,6 +990,7 @@ endif()
 if(MIOPEN_ENABLE_SQLITE)
     # MIOpen depends on SQLite
     target_link_libraries(MIOpen PRIVATE SQLite::SQLite3)
+    target_link_libraries(MIOpen INTERFACE  $<BUILD_INTERFACE:SQLite::SQLite3>)
 endif()
 ############################################################
 # MIOpen depends on librt for Boost.Interprocess
@@ -998,7 +1003,9 @@ if(NOT WIN32 AND NOT APPLE)
 endif()
 
 if(MIOPEN_USE_ROCTRACER)
-    target_link_libraries(MIOpen PRIVATE roctx64)
+    target_include_directories(MIOpen PRIVATE ${ROCTRACER_INCLUDE_DIR})
+    target_include_directories(MIOpen INTERFACE $<BUILD_INTERFACE:${ROCTRACER_INCLUDE_DIR}>)
+    target_link_libraries(MIOpen PRIVATE ${rocTracer})
 endif()
 
 ############################################################

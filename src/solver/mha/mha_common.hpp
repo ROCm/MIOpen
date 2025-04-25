@@ -44,7 +44,9 @@
 #include <rocblas/rocblas.h>
 /// rocblas_gemm_ex3 supports F8 datatypes.
 /// strided_batched_ex3 introduced in rocblas 4.0
-#define USE_ROCBLAS_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 4000000) && ROCBLAS_BETA_FEATURES_API)
+#define USE_ROCBLAS_EX3                                                                   \
+    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 4000000 && MIOPEN_ROCBLAS_VERSION_FLAT < 5000000) && \
+     ROCBLAS_BETA_FEATURES_API)
 #endif
 #endif
 
@@ -178,38 +180,7 @@ inline void gemm(const Handle& handle,
     {
         assert(handle.GetDeviceName() == "gfx942");
 #if USE_ROCBLAS_EX3
-        rocblas_gemm_strided_batched_ex3(
-            handle.rhandle().get(),
-            transB ? rocblas_operation_transpose : rocblas_operation_none,
-            transA ? rocblas_operation_transpose : rocblas_operation_none,
-            n,
-            m,
-            k,
-            &alpha,
-            B,
-            cvtMiopen2Rocblas(BType),
-            ldb,
-            strideB,
-            A,
-            cvtMiopen2Rocblas(AType),
-            lda,
-            strideA,
-            &beta,
-            C,
-            rocblas_datatype::rocblas_datatype_f32_r,
-            ldc,
-            strideC,
-            C,
-            rocblas_datatype::rocblas_datatype_f32_r,
-            ldc,
-            strideC,
-            batch_count,
-            AType == miopenFloat   ? rocblas_computetype::rocblas_compute_type_bf8_f8_f32
-            : BType == miopenFloat ? rocblas_computetype::rocblas_compute_type_f8_bf8_f32
-                                   : rocblas_computetype::rocblas_compute_type_f32,
-            rocblas_gemm_algo::rocblas_gemm_algo_standard,
-            0,
-            0);
+        MIOPEN_THROW("rocblas GEMM operations is not supported!");
 #endif
     }
     else
