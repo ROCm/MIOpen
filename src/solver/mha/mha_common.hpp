@@ -132,8 +132,10 @@ inline void gemm(const Handle& handle,
         switch(miopen)
         {
         case miopenFloat: return rocblas_datatype::rocblas_datatype_f32_r;
+#if USE_ROCBLAS_EX3
         case miopenFloat8_fnuz: return rocblas_datatype::rocblas_datatype_f8_r;
         case miopenBFloat8_fnuz: return rocblas_datatype::rocblas_datatype_bf8_r;
+#endif
         default: return rocblas_datatype::rocblas_datatype_invalid;
         }
     };
@@ -180,6 +182,39 @@ inline void gemm(const Handle& handle,
     {
         assert(handle.GetDeviceName() == "gfx942");
 #if USE_ROCBLAS_EX3
+        rocblas_gemm_strided_batched_ex3(
+            handle.rhandle().get(),
+            transB ? rocblas_operation_transpose : rocblas_operation_none,
+            transA ? rocblas_operation_transpose : rocblas_operation_none,
+            n,
+            m,
+            k,
+            &alpha,
+            B,
+            cvtMiopen2Rocblas(BType),
+            ldb,
+            strideB,
+            A,
+            cvtMiopen2Rocblas(AType),
+            lda,
+            strideA,
+            &beta,
+            C,
+            rocblas_datatype::rocblas_datatype_f32_r,
+            ldc,
+            strideC,
+            C,
+            rocblas_datatype::rocblas_datatype_f32_r,
+            ldc,
+            strideC,
+            batch_count,
+            AType == miopenFloat   ? rocblas_computetype::rocblas_compute_type_bf8_f8_f32
+            : BType == miopenFloat ? rocblas_computetype::rocblas_compute_type_f8_bf8_f32
+                                   : rocblas_computetype::rocblas_compute_type_f32,
+            rocblas_gemm_algo::rocblas_gemm_algo_standard,
+            0,
+            0);
+#else
         MIOPEN_THROW("rocblas GEMM operations is not supported!");
 #endif
     }
