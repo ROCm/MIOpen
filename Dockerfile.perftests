@@ -1,0 +1,14 @@
+ARG BASE_DOCKER=""  
+FROM $BASE_DOCKER
+
+ARG FRECKLE=0
+
+ADD . / miopen/
+RUN set -e; \
+    cd miopen; \
+    mkdir build; \
+    rm -f src/kernels/*.ufdb.txt; \
+    rm -f src/kernels/miopen*.udb; \
+    cd build ; \
+    CXX=/opt/rocm/llvm/bin/clang++ CXXFLAGS='-Werror'  cmake -DMIOPEN_TEST_FLAGS=' --disable-verification-cache ' -DCMAKE_BUILD_TYPE=release -DBUILD_DEV=Off -DCMAKE_INSTALL_PREFIX=/opt/rocm -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_TEST_PERF=ON ..; \
+    LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4  dumb-init make -j $(nproc) install; \

@@ -28,6 +28,7 @@ find_package(Threads REQUIRED)
 
 add_executable(MIOpenDriver 
     InputFlags.cpp
+    driver.cpp
     conv_common.cpp
     dm_activ.cpp
     dm_adam.cpp

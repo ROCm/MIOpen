@@ -178,7 +178,10 @@ miopenStatus_t miopenSetProblemTensorDescriptor(miopenProblem_t problem,
     return miopen::try_([&] {
         const auto impl = boost::hof::match(
             [&](miopen::Problem& problem) {
-                problem.RegisterTensorDescriptor(id, miopen::deref(descriptor));
+                if(!problem.RegisterTensorDescriptor(id, miopen::deref(descriptor)))
+                    MIOPEN_THROW(miopenStatusBadParm,
+                                 "Attempt to set tensor descriptor with the same name twice in the "
+                                 "same problem");
             },
             [&](const miopen::FusedProblem&) {
                 MIOPEN_THROW(miopenStatusBadParm,
