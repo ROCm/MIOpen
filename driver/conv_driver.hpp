@@ -205,15 +205,15 @@ public:
     Tgpu* GetVectorData() { return is_gpualloc ? nullptr : host.data(); }
     std::size_t GetVectorSize() const { return is_gpualloc ? 0 : host.size(); }
 
-    status_t AllocOnDevice(stream, context_t ctx, const size_t sz)
+    status_t AllocOnDevice(stream, context_t ctx, const size_t sz, GPUMem::Check check)
     {
-        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu));
+        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu), check);
         return STATUS_SUCCESS;
     }
 
-    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz, GPUMem::Check check)
     {
-        AllocOnDevice(q, ctx, sz);
+        AllocOnDevice(q, ctx, sz, check);
         if(is_gpualloc)
         {
             /// \ref gpumem_random_init
@@ -391,15 +391,17 @@ private:
     miopenConvolutionMode_t mode;
 
     bool is_wrw = true, is_bwd = true, is_fwd = true;
-    bool is_wrw_winograd = false;
-    bool is_wrw_igemm    = false;
-    bool is_fwd_igemm    = false;
-    bool is_bwd_igemm    = false;
-    bool time_enabled    = false;
-    bool wall_enabled    = false;
-    bool warmup_enabled  = false;
-    bool is_gpualloc     = false;
-    int num_iterations   = 1;
+    bool is_wrw_winograd       = false;
+    bool is_wrw_igemm          = false;
+    bool is_fwd_igemm          = false;
+    bool is_bwd_igemm          = false;
+    bool time_enabled          = false;
+    bool wall_enabled          = false;
+    bool warmup_enabled        = false;
+    bool is_gpualloc           = false;
+    GPUMem::Check buffer_check = GPUMem::Check::None;
+
+    int num_iterations = 1;
 
     // Used to avoid wasting time for verification after failure of Run*GPU().
     // We can't properly control this from the main() level.
@@ -479,7 +481,7 @@ private:
     {
         workspace_dev.reset();
         if(size > 0)
-            workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, size, 1));
+            workspace_dev = std::unique_ptr<GPUMem>(new GPUMem(ctx, size, 1, buffer_check));
         DebugPrintWorkspaceDev();
     }
 
@@ -695,6 +697,8 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     warmup_in.SetGpuallocMode(is_gpualloc);
     warmup_wei.SetGpuallocMode(is_gpualloc);
     warmup_out.SetGpuallocMode(is_gpualloc);
+
+    buffer_check = GetGpuBufferCheck(inflags);
 
     return 0;
 }
@@ -989,6 +993,7 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "\n1 No copying. Use hipMalloc to allocate and rocrand to init buffers"
                          "\n  directly on GPU. Verification (-V 1) won't succeed in this mode.",
                          "int");
+    AddGpuBufferCheckFlag(inflags);
     inflags.AddInputFlag(
         "in_cast_type", 'U', "-1", "Cast type for input tensor, default to not set", "string");
     inflags.AddInputFlag(
@@ -1330,9 +1335,9 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             warmup_out.AllocOnHost(warmupOutputTensor);
 
             status_t status = STATUS_SUCCESS;
-            status |= warmup_in.AllocOnDeviceAndInit(q, ctx, warmup_in_sz);
-            status |= warmup_wei.AllocOnDeviceAndInit(q, ctx, warmup_wei_sz);
-            status |= warmup_out.AllocOnDeviceAndInit(q, ctx, warmup_out_sz);
+            status |= warmup_in.AllocOnDeviceAndInit(q, ctx, warmup_in_sz, buffer_check);
+            status |= warmup_wei.AllocOnDeviceAndInit(q, ctx, warmup_wei_sz, buffer_check);
+            status |= warmup_out.AllocOnDeviceAndInit(q, ctx, warmup_out_sz, buffer_check);
 
             if(status != STATUS_SUCCESS)
             {
@@ -1424,9 +1429,9 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
     if(is_transform)
     {
         in_vect4_dev = std::unique_ptr<GPUMem>(
-            new GPUMem(ctx, GetTensorSize(inputTensor_vect4), sizeof(Tgpu)));
+            new GPUMem(ctx, GetTensorSize(inputTensor_vect4), sizeof(Tgpu), buffer_check));
         wei_vect4_dev = std::unique_ptr<GPUMem>(
-            new GPUMem(ctx, GetTensorSize(weightTensor_vect4), sizeof(Tgpu)));
+            new GPUMem(ctx, GetTensorSize(weightTensor_vect4), sizeof(Tgpu), buffer_check));
     }
 
     outhost   = tensor<Tref>(miopen::deref(outputTensor).GetLayout_t(),
@@ -1474,7 +1479,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                     for(size_t i = 0; i < b_sz; ++i)
                         b_int8[i] = static_cast<float>(i % 8) + prng::gen_canonical<float>();
             }
-            std::ignore = b.AllocOnDeviceAndInit(q, ctx, b_sz, b_int8);
+            std::ignore = b.AllocOnDeviceAndInit(q, ctx, b_sz, b_int8, buffer_check);
         }
     }
     else
@@ -1533,8 +1538,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
                 }
             }
 
-            b.AllocOnDeviceAndInit(q, ctx, b_sz);
-            db.AllocOnDeviceAndInit(q, ctx, b_sz);
+            b.AllocOnDeviceAndInit(q, ctx, b_sz, buffer_check);
+            db.AllocOnDeviceAndInit(q, ctx, b_sz, buffer_check);
         }
     }
 
@@ -1572,23 +1577,23 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     if(is_fwd || is_wrw)
     {
-        status |= in.AllocOnDeviceAndInit(q, ctx, in_sz);
+        status |= in.AllocOnDeviceAndInit(q, ctx, in_sz, buffer_check);
     }
     if(is_bwd)
     {
-        status |= din.AllocOnDevice(q, ctx, in_sz);
+        status |= din.AllocOnDevice(q, ctx, in_sz, buffer_check);
     }
     if(is_fwd || is_bwd)
     {
-        status |= wei.AllocOnDeviceAndInit(q, ctx, wei_sz);
+        status |= wei.AllocOnDeviceAndInit(q, ctx, wei_sz, buffer_check);
     }
     if(is_wrw)
     {
-        status |= dwei.AllocOnDevice(q, ctx, wei_sz);
+        status |= dwei.AllocOnDevice(q, ctx, wei_sz, buffer_check);
     }
     if(is_bwd || is_wrw)
     {
-        status |= dout.AllocOnDeviceAndInit(q, ctx, out_sz);
+        status |= dout.AllocOnDeviceAndInit(q, ctx, out_sz, buffer_check);
     }
     if(is_fwd)
     {
@@ -1600,8 +1605,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         /// \note The above todo is necessary only when tensor casting is used. --atamazov Feb 2024
         std::ignore = is_fp8;
 
-        status |= is_int8 ? out.AllocOnDevice(q, ctx, out_sz, out_int8) //
-                          : out.AllocOnDevice(q, ctx, out_sz);
+        status |= is_int8 ? out.AllocOnDevice(q, ctx, out_sz, out_int8, buffer_check)
+                          : out.AllocOnDevice(q, ctx, out_sz, buffer_check);
     }
 
     if(status != STATUS_SUCCESS)
@@ -2183,7 +2188,8 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #endif
 
-    auto ws = std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, 1} : nullptr};
+    auto ws =
+        std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, 1, buffer_check} : nullptr};
 
     fwd_auxiliary.resume(wall_enabled);
     rc = miopenConvolutionForwardCompileSolution(handle,
@@ -2951,7 +2957,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #endif
 
-    auto ws = std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, 1} : nullptr};
+    auto ws =
+        std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, 1, buffer_check} : nullptr};
 
     bwd_auxiliary.resume(wall_enabled);
     rc = miopenConvolutionBackwardDataCompileSolution(
@@ -3080,7 +3087,8 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
     clGetCommandQueueInfo(q, CL_QUEUE_CONTEXT, sizeof(cl_context), &ctx, nullptr);
 #endif
 
-    auto ws = std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, 1} : nullptr};
+    auto ws =
+        std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, 1, buffer_check} : nullptr};
 
     wrw_auxiliary.resume(wall_enabled);
     rc = miopenConvolutionBackwardWeightsCompileSolution(

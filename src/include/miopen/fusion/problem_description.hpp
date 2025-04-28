@@ -153,7 +153,8 @@ struct FusionDescription : ProblemDescriptionBase
                     not_used, // expAvgFactor filler
                     not_used,
                     true /* resultSave*/,
-                    bn_op.runningMeanVar};
+                    bn_op.runningMeanVar,
+                    1}; /* min number of workgroups */
         }
         else if(dir == miopen::batchnorm::Direction::Backward)
         {
@@ -170,7 +171,8 @@ struct FusionDescription : ProblemDescriptionBase
                     {} /*bn_op.base_desc*/,
                     {} /*bn_op.base_desc*/,
                     not_used,
-                    bn_op.useBatchStats /*useSaved*/};
+                    bn_op.useBatchStats /*useSaved*/,
+                    1}; /*min number of workgroups */
         }
         else
             MIOPEN_THROW(miopenStatusNotImplemented);

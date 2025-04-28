@@ -149,6 +149,10 @@ private:
         test_set_tensor_descriptor(miopenTensorConvolutionW, w.desc);
         test_set_tensor_descriptor(miopenTensorConvolutionY, y.desc);
 
+        // adding x descriptor again to validate that error is produced
+        EXPECT_EQUAL(miopenSetProblemTensorDescriptor(problem, miopenTensorConvolutionX, &x.desc),
+                     miopenStatusBadParm);
+
         std::cerr << "Created conv tensor descriptos." << std::endl;
     }
 

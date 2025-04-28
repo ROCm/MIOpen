@@ -1,6 +1,8 @@
 find_package(GTest REQUIRED)
 find_package(rocblas)
 
+include(GoogleTest)
+
 if(MIOPEN_USE_HIPBLASLT)
   find_package(hipblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
   find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
@@ -59,7 +61,8 @@ function(add_gtest TEST_NAME TEST_CPP)
   endif()
   if(MIOPEN_TEST_DISCRETE)
     string(CONCAT TEST_ENVIRONMENT_VARIABLES
-    "ENVIRONMENT;MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};")
+    "ENVIRONMENT;MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};"
+    "ENVIRONMENT;MIOPEN_INVOKED_FROM_CTEST=1;")
 
     set(MIOPEN_GTEST_PREFIX)
     set(MIOPEN_GTEST_FILTER_NEGATIVE)
