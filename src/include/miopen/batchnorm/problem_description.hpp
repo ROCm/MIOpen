@@ -73,7 +73,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
                        double expAvgFactor_,
                        double epsilon_,
                        bool resultsave_,
-                       bool resultrunning_)
+                       bool resultrunning_,
+                       size_t min_workgroups_)
         : direction(Direction::ForwardTraining),
           bn_mode(bn_mode_),
           xDesc(xDesc_),
@@ -85,7 +86,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
           expAvgFactor(expAvgFactor_),
           epsilon(epsilon_),
           resultsave(resultsave_),
-          resultrunning(resultrunning_)
+          resultrunning(resultrunning_),
+          min_workgroups(min_workgroups_)
     {
         SetSpatialDims();
         in_layout  = ComputeInLayout();
@@ -126,7 +128,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
                        const TensorDescriptor& sMeanDesc_,
                        const TensorDescriptor& sVarianceDesc_,
                        double epsilon_,
-                       bool useSaved_)
+                       bool useSaved_,
+                       size_t min_workgroups_)
         : direction(Direction::Backward),
           bn_mode(bn_mode_),
           xDesc(xDesc_),
@@ -137,7 +140,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
           sMeanDesc(sMeanDesc_),
           sVarianceDesc(sVarianceDesc_),
           epsilon(epsilon_),
-          useSaved(useSaved_)
+          useSaved(useSaved_),
+          min_workgroups(min_workgroups_)
     {
         SetSpatialDims();
         in_layout  = ComputeInLayout();
@@ -194,6 +198,12 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
     {
         assert(direction == Direction::ForwardTraining);
         return resultrunning;
+    }
+
+    std::size_t GetMinWorkgroups() const
+    {
+        assert(direction == Direction::ForwardTraining || direction == Direction::Backward);
+        return min_workgroups;
     }
 
     bool UseSaved() const
@@ -307,17 +317,14 @@ private:
 #pragma clang diagnostic pop
 #endif
 
-    bool resultsave         = false;
-    bool resultrunning      = false;
-    bool useSaved           = false;
-    std::string in_layout   = "NCHW";
-    std::string out_layout  = "NCHW";
-    std::string din_layout  = "NCHW";
-    std::size_t spatial_dim = 2;
-
-    NetworkConfig MakeForwardTrainingNetworkConfig() const;
-    NetworkConfig MakeForwardInferenceNetworkConfig() const;
-    NetworkConfig MakeBackwardNetworkConfig() const;
+    bool resultsave            = false;
+    bool resultrunning         = false;
+    bool useSaved              = false;
+    std::string in_layout      = "NCHW";
+    std::string out_layout     = "NCHW";
+    std::string din_layout     = "NCHW";
+    std::size_t spatial_dim    = 2;
+    std::size_t min_workgroups = 1;
 
     std::string ComputeLayout(const TensorDescriptor& td) const { return td.GetLayout_str(); }
     std::string ComputeInLayout() const { return ComputeLayout(xDesc); }

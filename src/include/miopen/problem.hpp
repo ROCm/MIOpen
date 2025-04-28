@@ -102,7 +102,7 @@ struct Problem
 
     bool RegisterTensorDescriptor(miopenTensorArgumentId_t name, TensorDescriptor descriptor)
     {
-        return tensor_descriptors.emplace(std::make_pair(name, std::move(descriptor))).second;
+        return tensor_descriptors.try_emplace(name, std::move(descriptor)).second;
     }
 
     void SetDirection(miopenProblemDirection_t value) { direction = value; }
