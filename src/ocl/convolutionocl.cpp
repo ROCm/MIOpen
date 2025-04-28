@@ -263,11 +263,19 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
     auto sol             = boost::optional<miopenConvSolution_t>{};
     const auto& conv     = problem.GetConv();
     const auto& findMode = conv.findMode;
+    std::vector<miopenConvSolution_t> ufdb_sols;
 
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         auto fallback = bool{};
-        auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
+        if(findMode.IsTrustVerify(ctx))
+            ufdb_sols = miopen::GetSolutions<UserFindDb>(ctx, problem, 1, &invoke_ctx);
+
+        std::vector<miopenConvSolution_t> sols;
+        if(!ufdb_sols.empty())
+            sols = ufdb_sols;
+        else
+            sols = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
         // override the normal find with immed mode with env var
         if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
                              env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)))
@@ -280,7 +288,6 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
         if(findMode.IsTrustVerify(ctx))
         {
             // is user find db record?
-            auto ufdb_sols = miopen::GetSolutions<UserFindDb>(ctx, problem, 1, &invoke_ctx);
             if(ufdb_sols.empty())
             {
                 MIOPEN_LOG_I2("TrustVerify: No user db entry");
