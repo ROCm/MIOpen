@@ -657,10 +657,11 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d() && !(problem.Is3d() && problem.IsFp32()))
         return false;
-
     if(!(problem.IsFp32() || problem.IsBfp16()))
         return false;
-
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(name == "gfx942" || name == "gfx950")
+        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(problem.GetGroupCount() != 1)
@@ -839,8 +840,12 @@ ConvHipImplicitGemmBwdDataV1R1::GetSolution(const ExecutionContext& ctx,
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
+
+#if HIP_PACKAGE_VERSION_FLAT >= 6004000000
+        " -DCK_USE_AMD_BUFFER_PTR_TYPE=1" +
+#endif
         get_static_ck_common_compiler_flag(ctx) +
-        ctx.general_compile_options;
+        ctx.general_compile_options + " --std=c++17";
     // clang-format on
     if(problem.Is3d())
     {

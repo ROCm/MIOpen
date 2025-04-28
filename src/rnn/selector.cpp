@@ -47,22 +47,54 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_RNN_DYNAMIC_FORCE)
 
 namespace miopen {
 
-bool RNNBwdMSIsFast(const int seqLen)
+bool RNNBwdMSIsFast(const SeqTensorDescriptor& xDesc,
+                    const TensorDescriptor& hDesc,
+                    const int seqLen)
 {
     if(env::enabled(MIOPEN_RNNBWDMS_EXP))
         return true;
+
+    // WA perf regression. Not tuned rocblas.
+    bool is_wa_config = [&]() {
+        const std::vector<std::size_t> x_conf{224, 32, 224};
+        const std::vector<std::size_t> h_conf{8, 224, 1000};
+
+        // Some customers sending hDesc with 5 dims {x,x,x,1,1}
+        return xDesc.GetType() == miopenDataType_t::miopenFloat &&
+               std::equal(x_conf.begin(), x_conf.end(), std::begin(xDesc.GetLengths())) &&
+               std::equal(h_conf.begin(), h_conf.end(), std::begin(hDesc.GetLengths()));
+    }();
+
+    if(is_wa_config)
+        return false;
 
     if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWDMS_EXP))
         return true;
     return false;
 }
 
-bool RNNBwWeightMSIsFast(const int seqLen)
+bool RNNBwWeightMSIsFast(const SeqTensorDescriptor& xDesc,
+                         const TensorDescriptor& hDesc,
+                         const int seqLen)
 {
-    if(env::enabled(MIOPEN_RNNBWDMS_EXP))
+    if(env::enabled(MIOPEN_RNNBWMS_EXP))
         return true;
 
-    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWDMS_EXP))
+    // WA perf regression. Not tuned rocblas.
+    bool is_wa_config = [&]() {
+        const std::vector<std::size_t> x_conf{224, 32, 224};
+        const std::vector<std::size_t> h_conf{8, 224, 1000};
+
+        // Some customers sending hDesc with 5 dims {x,x,x,1,1}
+        return xDesc.GetType() == miopenDataType_t::miopenFloat &&
+               std::equal(x_conf.begin(), x_conf.end(), std::begin(xDesc.GetLengths())) &&
+               std::equal(h_conf.begin(), h_conf.end(), std::begin(hDesc.GetLengths()));
+    }();
+
+    if(is_wa_config)
+        return false;
+
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNBWMS_EXP))
         return true;
     return false;
 }
@@ -158,7 +190,7 @@ void RNNDescriptor::ModularBackward(const Handle& handle,
     }
     else
     {
-        if(RNNBwdMSIsFast(xDesc.GetMaxSequenceLength()))
+        if(RNNBwdMSIsFast(xDesc, hDesc, xDesc.GetMaxSequenceLength()))
         {
             rnn_base::RNNModularMultiStreamBWD multi_stream{
                 *this, xDesc, yDesc, hDesc, miopenRNNFWDMode_t::miopenRNNTraining};
@@ -196,7 +228,7 @@ void RNNDescriptor::ModularBackwardWeights(const Handle& handle,
     }
     else
     {
-        if(RNNBwWeightMSIsFast(xDesc.GetMaxSequenceLength()))
+        if(RNNBwWeightMSIsFast(xDesc, hDesc, xDesc.GetMaxSequenceLength()))
         {
             rnn_base::RNNModularMultiStreamBWWeights multi_stream{*this, xDesc, yDesc, hDesc};
             multi_stream.Compute(

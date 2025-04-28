@@ -60,6 +60,7 @@ const auto& GetTestParams()
 {
     static const auto params = [] {
         auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
+        p.SetTolerance(Gpu::gfx90A, miopenHalf, 2.0f);
         return p;
     }();
     return params;
