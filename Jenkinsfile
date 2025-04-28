@@ -83,7 +83,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_GFX94X",
-            defaultValue: env.BRANCH_NAME == "AD/CiTargets" ? true : false,
+            defaultValue: env.BRANCH_NAME == "develop" ? true : false,
             description: "")
         booleanParam(
             name: "TARGET_NAVI32",
