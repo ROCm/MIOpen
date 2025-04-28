@@ -29,6 +29,7 @@
 #include <miopen/miopen.h>
 #include "get_handle.hpp"
 #include "../lib_env_var.hpp"
+#include "gtest_common.hpp"
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/env.hpp>
 #include <miopen/execution_context.hpp>
@@ -532,7 +533,7 @@ TEST(CPU_DBSync_NONE, KDBTargetID)
 
     fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
-    lib_env::update(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492, "0");
+    ScopedEnvironment<std::string> issue_2492_env(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492, "0");
 #endif
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
     std::ignore = fdb_file_path;
