@@ -1,0 +1,27 @@
+{
+  "name": "${localEnv:USER}-miopen-dev",
+  "build": {
+       "dockerfile": "Dockerfile",
+       "context": "."
+   },
+  "runArgs": ["--device=/dev/kfd", "--device=/dev/dri", "--security-opt=seccomp=unconfined", "--ipc=host", "--group-add=video", "--cap-add=SYS_PTRACE", "--name=${localEnv:USER}-miopen-dev"],
+  "customizations": {
+      "vscode": {
+          "extensions": [
+           "ms-vscode.cpptools-extension-pack",
+           "eamodio.gitlens",
+           "ms-python.python",
+           "benjamin-simmonds.pythoncpp-debug",
+           "ms-azuretools.vscode-docker",
+           "mechatroner.rainbow-csv"
+        ]
+      }
+  },
+  "appPort": ["8004:8004"],
+  "containerEnv": {
+    "LANG": "C.UTF-8"
+   },
+  "mounts": [
+     "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached"
+  ]
+}

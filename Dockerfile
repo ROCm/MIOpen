@@ -12,7 +12,7 @@ ARG MIOPEN_SCCACHE=""
 ARG MIOPEN_SCCACHE_CUSTOM_CACHE_BUSTER="MiOpen-Docker-CK"
 
 # GPU_ARCHS should be defined as a build arg rather than hardcoded here. 
-ARG GPU_ARCHS=none
+ARG GPU_ARCHS=gfx90a
 
 ARG COMPILER_LAUNCHER=""
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
@@ -151,8 +151,8 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
     num_threads=$(( $(nproc) / 2 )) && \
-    if [ "$num_threads" -gt 32 ]; then \
-        num_threads=32; \
+    if [ "$num_threads" -gt 128 ]; then \
+        num_threads=128; \
     fi && \
     echo Building CK with ${num_threads} threads && \
     CXX=/opt/rocm/bin/amdclang++ cmake \
@@ -161,9 +161,11 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     -D CMAKE_C_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
     -D CMAKE_BUILD_TYPE=Release \
     -D GPU_ARCHS=${GPU_ARCHS} \
-    -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j ${num_threads} install && \ 
-    sccache -s
+    -D CMAKE_CXX_FLAGS=" -O3 " .. 
+
+RUN CK_COMMIT=$(grep 'ROCm/composable_kernel' requirements.txt | sed -n 's/.*@\([a-zA-Z0-9]*\).*/\1/p') && \
+    cd composable_kernel-${CK_COMMIT}/build && \
+    make -j 128 install
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
 RUN sed -i '/composable_kernel/d' /requirements.txt
