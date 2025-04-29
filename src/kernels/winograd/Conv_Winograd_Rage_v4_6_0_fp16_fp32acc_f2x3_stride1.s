@@ -27,9 +27,7 @@
 
 .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4 && .amdgcn.gfx_generation_stepping == 2)
     KERNEL_PROLOG _fp16_fp32acc_f2x3_stride1
-    .noaltmacro
     .include "Conv_Winograd_Rage_v4_6_0_gfx94x_fp16_fp32acc_f2x3_stride1.inc"
-    .altmacro
     KERNEL_EPILOG _fp16_fp32acc_f2x3_stride1
 .else
     .error "Unsupported gfx version"

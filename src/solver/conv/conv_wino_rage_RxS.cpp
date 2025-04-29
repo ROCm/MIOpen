@@ -44,38 +44,8 @@ namespace {
 
 // Divide two non-negative integers and return ceil of the quotient
 constexpr uint64_t DivCeil(uint64_t numer, uint64_t denom) { return (numer + denom - 1) / denom; }
-/*
-constexpr uint64_t RoundUpToMultiple(uint64_t val, uint64_t mul) { return DivCeil(val, mul) * mul; }
-*/
-// Template is used to catch -Wshift-count-overflow
-template <uint32_t exp, typename T = uint32_t>
-constexpr T PowOf2()
-{
-    return static_cast<T>(1) << exp;
-}
 
-constexpr uint64_t maxNGroups = PowOf2<16>() - 1;
-
-bool isShaderConstraintsMetV4_6(const WinoShaderArgs& args)
-{
-    // clang-format off
-    return args.N < PowOf2<16>()
-        && args.C < PowOf2<16>()
-        && args.H < PowOf2<16>()
-        && args.W < PowOf2<16>()
-        && args.R < PowOf2<16>()
-        && args.S < PowOf2<16>()
-        && args.out_h < PowOf2<16>()
-        && args.out_w < PowOf2<16>() - 3
-        && (static_cast<uint64_t>(args.N - 1) * args.C + 1) * args.H * args.W < PowOf2<31>()
-        && (static_cast<uint64_t>(args.N - 1) * args.K + 1) * args.out_h * args.out_w < PowOf2<31>()
-        && static_cast<int64_t>(args.pad_h) + args.H <= PowOf2<16, int64_t>()
-        && static_cast<int64_t>(args.pad_w) + args.W <= PowOf2<16, int64_t>()
-        && std::abs(static_cast<int64_t>(args.pad_h)) + args.out_h + args.R <= PowOf2<16, int64_t>()
-        && std::abs(static_cast<int64_t>(args.pad_w)) + args.out_w + args.S <= PowOf2<16, int64_t>()
-        && DivCeil(args.K, 32) <= args.n_groups;
-    // clang-format on
-}
+constexpr uint64_t maxNGroups = WinoShaderArgs::PowOf2<16>() - 1;
 
 template <uint32_t Winodata, uint32_t Winofilter>
 struct ConvWinoRageRxSCommon
@@ -109,7 +79,11 @@ bool ConvWinoRageRxSCommon<Winodata, Winofilter>::IsApplicable(const ExecutionCo
         return false;
 
     const auto devName = ctx.GetStream().GetDeviceName();
-    if(!StartsWith(devName, "gfx942"))
+    if(!(devName == "gfx942"))
+        return false;
+
+    const auto& targetProperties = ctx.GetStream().GetTargetProperties();
+    if(targetProperties.Xnack() && *targetProperties.Xnack())
         return false;
 
     if(!(problem.GetKernelStrideH() == 1 && problem.GetKernelStrideW() == 1))
@@ -123,7 +97,13 @@ bool ConvWinoRageRxSCommon<Winodata, Winofilter>::IsApplicable(const ExecutionCo
 
     args.n_groups = getNGroups(ctx);
 
-    return isShaderConstraintsMetV4_6(args);
+    // clang-format off
+    return args.N_C_H_W_OH_OW_fit16bit()
+        && args.R_S_fit16bit()
+        && args.batchTensorSizesFit31bits()
+        && args.paddedSizesFit16bits()
+        && DivCeil(args.K, 32) <= args.n_groups;
+    // clang-format on
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
@@ -154,7 +134,8 @@ ConvWinoRageRxSCommon<Winodata, Winofilter>::GetSolution(const ExecutionContext&
     args.SetActivParams(activ_mode);
 
     auto flags = WinoShaderFlagsV2::F_NKCHR_STRIDES | WinoShaderFlagsV2::F_TENSOR_OFFSETS |
-                 WinoShaderFlagsV2::F_USE_ACTIVATION_MODE | WinoShaderFlagsV2::F_DENORMS_RND_ENABLE |
+                 WinoShaderFlagsV2::F_USE_ACTIVATION_MODE |
+                 WinoShaderFlagsV2::F_DENORMS_RND_ENABLE |
                  WinoShaderFlagsV2::F_USE_EXTENDED_FLAGS_64;
     if(args.G != 1)
         flags |= WinoShaderFlagsV2::F_GROUPED_CONVOLUTION;
@@ -169,7 +150,7 @@ ConvWinoRageRxSCommon<Winodata, Winofilter>::GetSolution(const ExecutionContext&
     // Kernel name and file
 
     std::string kernelVersion;
-    if(args.R <= 3 && args.S <= 3)
+    if(args.R_S_fit3x3())
     {
         kernelVersion = "_v4_6_0";
     }
