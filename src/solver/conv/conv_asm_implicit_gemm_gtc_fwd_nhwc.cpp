@@ -700,63 +700,118 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     const int y           = problem.GetWeightsHeight();
     const int x           = problem.GetWeightsWidth();
 
-    const int n    = problem.GetBatchSize();
-    const int ho   = problem.GetOutHeight();
-    const int wo   = problem.GetOutWidth();
-    const int hi   = problem.GetInHeight();
-    const int wi   = problem.GetInWidth();
+    const int n  = problem.GetBatchSize();
+    const int ho = problem.GetOutHeight();
+    const int wo = problem.GetOutWidth();
+    const int hi = problem.GetInHeight();
+    const int wi = problem.GetInWidth();
+
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
-    if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
-        return false;
-
-    size_t current_block_size, current_grid_size, current_splits_4G;
-    std::tie(current_block_size, current_grid_size, current_splits_4G) =
-        GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(problem, *this);
-
-    if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
-        return false;
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
-    if(merge_e != 0)
+    if(problem.IsLayoutDefault())
     {
-        uint32_t s_move_slice_k_y = (gemm_k_per_block / (x * (c / group))) % y;
-        uint32_t s_move_slice_k_x = (gemm_k_per_block / (c / group)) % x;
-        uint32_t s_move_slice_k_c = gemm_k_per_block % (c / group);
-        if((c / group) >= 0xffffff || y >= 0xffffff || x >= 0xffffff) // 24 bit
-            return false;
-        if(s_move_slice_k_y >= 256 || s_move_slice_k_x >= 256 || s_move_slice_k_c >= 256) // 8 bit
-            return false;
-    }
+        int b      = ho * wo;
+        int gemm_m = ((k / group + gemm_m_per_block - 1) / gemm_m_per_block) * gemm_m_per_block;
+        int gemm_n = n * b;
+        int gemm_k = (c / group) * y * x;
 
-    if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
-    {
-        // if both 1, indicate padded c support
-        if((c >> gemm_k_global_split == 0) ||
-           (((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0))
+        // support pad to modulo, hence only check when nxe is 0
+        if((gemm_n % gemm_n_per_block != 0) || (gemm_m % gemm_m_per_block != 0))
+        {
             return false;
-        // also, add this restriction to k, for vector write out
-        if(problem.IsFp16())
-        {
-            if(gemm_k_global_split != 0)
-            {
-                if((k / group) % 2 != 0)
-                    return false;
-            }
-            else
-            {
-                if((k / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
-                    return false;
-            }
         }
-        else if(problem.IsBfp16())
+
+        if(gemm_n_per_block % nxb != 0)
         {
-            if(gemm_k_global_split == 0)
+            return false;
+        }
+
+        if(n % (gemm_n_per_block / nxb) != 0)
+        {
+            return false;
+        }
+
+        if((nxe == 0) && ((b % nxb != 0) || (gemm_k % gemm_k_per_block != 0)))
+        {
+            return false;
+        }
+
+        // input vector load limitation, n1b
+        if(tensor_b_thread_lengths[3] > 1 &&
+           (!unit_conv || (hi * wi) % tensor_b_thread_lengths[3] != 0))
+        {
+            return false;
+        }
+
+        // weight vector load limitation, c1e
+        if(tensor_a_thread_lengths[1] > 1 && gemm_k % tensor_a_thread_lengths[1] != 0)
+        {
+            return false;
+        }
+
+        // if tb_c1e > 1, only 1x1 case is runable, it can not check gemm_k_padding either.
+        if(tensor_b_thread_lengths[1] > 1 &&
+           ((x != 1 || y != 1) || (gemm_k % gemm_k_per_block != 0)))
+        {
+            return false;
+        }
+
+        // if t_c0 > 1, need to check gemmk per block
+        if(tensor_b_thread_lengths[0] > 1 && (gemm_k % gemm_k_per_block != 0))
+        {
+            return false;
+        }
+    }
+    else if(problem.IsLayoutNHWC())
+    {
+
+        // use_workspace = 1; ATOMIC_ADD_FP16
+        if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
+            return false;
+
+        size_t current_block_size, current_grid_size, current_splits_4G;
+        std::tie(current_block_size, current_grid_size, current_splits_4G) =
+            GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(problem, *this);
+
+        if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
+            return false;
+
+        if(merge_e != 0)
+        {
+            uint32_t s_move_slice_k_y = (gemm_k_per_block / (x * (c / group))) % y;
+            uint32_t s_move_slice_k_x = (gemm_k_per_block / (c / group)) % x;
+            uint32_t s_move_slice_k_c = gemm_k_per_block % (c / group);
+            if((c / group) >= 0xffffff || y >= 0xffffff || x >= 0xffffff) // 24 bit
+                return false;
+            if(s_move_slice_k_y >= 256 || s_move_slice_k_x >= 256 ||
+               s_move_slice_k_c >= 256) // 8 bit
+                return false;
+        }
+
+        if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
+        {
+            // if both 1, indicate padded c support
+            if((c >> gemm_k_global_split == 0) ||
+               (((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0))
+                return false;
+            // also, add this restriction to k, for vector write out
+            if(problem.IsFp16() || problem.IsBfp16())
             {
-                if((k / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
-                    return false;
+                if(gemm_k_global_split != 0)
+                {
+                    if((k / group) % 2 != 0)
+                        return false;
+                }
+                else
+                {
+                    if((k / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) !=
+                       0)
+                        return false;
+                }
             }
         }
     }
@@ -767,6 +822,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     }
 
     // add more restriction for spare
+    // extra limitation
     if(use_spare_set)
     {
         // non 1x1 kernel(except padding gemm_k) can't run 1x1 case
@@ -886,6 +942,9 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx942") &&
        (!StartsWith(device_name, "gfx95")))
+        return false;
+
+    if(!(problem.IsLayoutDefault() || problem.IsLayoutNHWC()))
         return false;
 
     if(!ctx.use_asm_kernels)
