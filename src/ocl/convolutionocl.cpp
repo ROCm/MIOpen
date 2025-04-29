@@ -253,6 +253,121 @@ static void ShrinkToFind10Results(std::vector<Solution>& found)
     found = std::move(out);
 }
 
+std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
+                                          const conv::ProblemDescription& problem,
+                                          const AnyInvokeParams& invoke_ctx,
+                                          bool force_attach_binary,
+                                          std::vector<miopenConvSolution_t> solutions,
+                                          bool model_result)
+{
+    const auto& conv     = problem.GetConv();
+    const auto& findMode = conv.findMode;
+    auto results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
+        auto ctx_copy                       = ctx;
+        ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
+        const auto params                   = conv::ConvFindParameters{
+            conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
+
+        // test timing of solver reported by system db
+        const auto& handle = ctx_copy.GetStream();
+        AutoEnableProfiling enableProfiling{handle};
+        bool is_optimal = true;
+
+        std::vector<Solution> eval_sols;
+        auto db = MakeConvDbGetter(ctx);
+        for(const auto& sol : solutions)
+        {
+            const auto id      = solver::Id{sol.solution_id};
+            const auto& solver = id.GetSolver();
+            CompileSolution(id, ctx, problem);
+
+            solver::ConvSolution conv_sol =
+                solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
+
+            MIOPEN_LOG_I2("TrustVerify: from solution "<< solver::Id{conv_sol.solver_id}.ToString());
+
+            std::vector<solver::ConvSolution> conv_sols;
+            conv_sols.emplace_back(std::move(conv_sol));
+
+            AlgorithmName algo{
+                ConvolutionAlgoToDirectionalString(id.GetAlgo(), problem.GetDirection())};
+            std::vector<Solution> eval_sol =
+                EvaluateInvokers(handle,
+                                 conv_sols,
+                                 algo,
+                                 problem.MakeNetworkConfig(),
+                                 invoke_ctx,
+                                 is_optimal,
+                                 false);
+
+            eval_sols.emplace_back(eval_sol.front());
+            MIOPEN_LOG_I2("TrustVerify: from model "<< id.ToString());
+            for(auto& evasol : eval_sol)
+                MIOPEN_LOG_I2("TrustVerify: from model "<< evasol.GetSolver().ToString() <<"(" << evasol.GetTime() << ")");
+
+            if(!model_result)
+                break;
+        }
+
+        bool good_entry = false;
+        const float eval_time_1          = eval_sols[0].GetTime();
+
+        if(model_result)
+        {
+            //heuristic model was used (no timing data), check vs 2nd place
+            const float eval_time_2           = eval_sols[1].GetTime();
+            MIOPEN_LOG_I2("TrustVerify: from model "<< eval_sols[0].GetSolver().ToString() <<"(" << eval_time_1 << ") < "<< eval_sols[1].GetSolver().ToString() <<"("<< eval_time_2 << ")  ?");
+            good_entry = eval_time_1 < eval_time_2;
+        }
+        else
+        {
+            //
+            constexpr float VERIFY_TOLERANCE = 1.10f;
+            const float rel_perf             = eval_time_1 / solutions[0].time;
+            MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time_1 << ") / recorded("
+                                                    << solutions[0].time << ") < "
+                                                    << VERIFY_TOLERANCE << " ?");
+            good_entry = rel_perf < VERIFY_TOLERANCE;
+        }
+
+
+        if(good_entry)
+        {
+            // system db result is good
+            // add to user fdb so this check is skipped next time
+            MIOPEN_LOG_I2("TrustVerify: Add system db entry to user db");
+            auto fallback  = bool{};
+            auto ret       = FindCoreResult();
+            ret.is_optimal = true;
+            auto copy_sols = conv.GetSolutions(ctx, problem, 4, &fallback, &invoke_ctx);
+            for(const auto& s : copy_sols)
+            {
+                auto solution =
+                    Solution{solver::Id{s.solution_id}, s.time, s.workspace_size};
+                ret.solutions.emplace_back(std::move(solution));
+            }
+            return ret;
+        }
+        else
+        {
+            // entry considered bad, trigger tuning
+            MIOPEN_LOG_I2("TrustVerify: Regenerate entry for user db");
+            ctx_copy.do_search = true;
+            ctx_copy.db_update = true;
+
+            return FindCore(invoke_ctx,
+                            ctx_copy,
+                            problem,
+                            params,
+                            conv::GetConvSolverFinders(),
+                            std::nullopt,
+                            force_attach_binary);
+        }
+    });
+
+    return results;
+}
+
 std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                       const conv::ProblemDescription& problem,
                                       const AnyInvokeParams& invoke_ctx,
@@ -263,21 +378,22 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
     auto sol             = boost::optional<miopenConvSolution_t>{};
     const auto& conv     = problem.GetConv();
     const auto& findMode = conv.findMode;
+    auto fallback = false;
+    std::vector<miopenConvSolution_t> sols;
     std::vector<miopenConvSolution_t> ufdb_sols;
 
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
-        auto fallback = bool{};
         if(findMode.IsTrustVerify(ctx))
             ufdb_sols = miopen::GetSolutions<UserFindDb>(ctx, problem, 1, &invoke_ctx);
 
-        std::vector<miopenConvSolution_t> sols;
         if(!ufdb_sols.empty())
             sols = ufdb_sols;
         else
-            sols = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
+            sols = conv.GetSolutions(ctx, problem, 2, &fallback, &invoke_ctx);
         // override the normal find with immed mode with env var
         if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
+                             findMode.IsTrustVerify(ctx) ||
                              env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
@@ -287,88 +403,11 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
     {
         if(findMode.IsTrustVerify(ctx))
         {
-            // is user find db record?
             if(ufdb_sols.empty())
             {
+                // solution is from system db, verify on current machine
                 MIOPEN_LOG_I2("TrustVerify: No user db entry");
-                // solution is from system db, verify for current machine
-                results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
-                    auto ctx_copy                       = ctx;
-                    ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
-                    const auto params                   = conv::ConvFindParameters{
-                        conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
-
-                    const auto id      = solver::Id{sol->solution_id};
-                    const auto& solver = id.GetSolver();
-                    CompileSolution(id, ctx, problem);
-
-                    auto db = MakeConvDbGetter(ctx);
-                    solver::ConvSolution conv_sol =
-                        solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
-
-                    std::vector<solver::ConvSolution> conv_sols;
-                    conv_sols.emplace_back(std::move(conv_sol));
-
-                    // test timing of solver reported by system db
-                    const auto& handle = ctx_copy.GetStream();
-                    AutoEnableProfiling enableProfiling{handle};
-                    bool is_optimal = true;
-                    AlgorithmName algo{
-                        ConvolutionAlgoToDirectionalString(id.GetAlgo(), problem.GetDirection())};
-                    static std::vector<Solution> eval_sols =
-                        EvaluateInvokers(handle,
-                                         conv_sols,
-                                         algo,
-                                         problem.MakeNetworkConfig(),
-                                         invoke_ctx,
-                                         is_optimal,
-                                         false);
-
-                    const float eval_time            = eval_sols.front().GetTime();
-                    constexpr float VERIFY_TOLERANCE = 1.10f;
-                    const float rel_perf             = eval_time / sol->time;
-                    MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time << ") / recorded("
-                                                            << sol->time << ") < "
-                                                            << VERIFY_TOLERANCE << " ?");
-                    if(rel_perf < VERIFY_TOLERANCE)
-                    {
-                        // system db result is good
-                        // add to user fdb so this check is skipped next time
-                        MIOPEN_LOG_I2("TrustVerify: Add system db entry to user db");
-                        auto fallback  = bool{};
-                        auto ret       = FindCoreResult();
-                        ret.is_optimal = true;
-                        auto sols      = conv.GetSolutions(ctx, problem, 6, &fallback, &invoke_ctx);
-                        for(const auto& s : sols)
-                        {
-                            auto solution =
-                                Solution{solver::Id{s.solution_id}, s.time, s.workspace_size};
-                            ret.solutions.emplace_back(std::move(solution));
-                        }
-                        return ret;
-                    }
-                    else
-                    {
-                        // time is slower than VERIFY_TOLERANCE, trigger tuning
-                        MIOPEN_LOG_I2("TrustVerify: Regenerate entry for user db");
-                        ctx_copy.do_search = true;
-                        ctx_copy.db_update = true;
-
-                        return FindCore(invoke_ctx,
-                                        ctx_copy,
-                                        problem,
-                                        params,
-                                        conv::GetConvSolverFinders(),
-                                        std::nullopt,
-                                        force_attach_binary);
-                    }
-                });
-            }
-            else if(ufdb_sols.front().solution_id != sol->solution_id)
-            {
-                // solution is from system db, use user db instead
-                MIOPEN_LOG_I2("TrustVerify: Using user db entry");
-                sol = ufdb_sols.front();
+                results = VerifiedFDBSolution(ctx, problem, invoke_ctx, force_attach_binary, sols, fallback);
             }
             else
             {

@@ -306,6 +306,7 @@ GetAllSolutions(const Solver s, const Context& context_, const Problem& problem)
 std::size_t GetTuningIterationsMax();
 std::chrono::milliseconds GetTuningTimeMax(); // returns the max allowed time in milliseconds
 std::size_t GetTuningThreadsMax();
+std::size_t GetTuningPatience();
 
 template <typename PerformanceConfig, typename Solver, typename Context, typename Problem>
 void CompileAgent(size_t thread_index,
@@ -382,7 +383,7 @@ auto GenericSearch(const Solver s,
     std::shuffle(all_configs.begin(), all_configs.end(), rng);
     std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
     all_configs.resize(n_runs_total);
-    std::size_t patience = env::value(MIOPEN_TUNING_PATIENCE);
+    std::size_t patience = GetTuningPatience();
 
     if(all_configs.empty())
     {
