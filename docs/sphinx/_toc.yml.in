@@ -1,0 +1,59 @@
+defaults:
+  numbered: False
+  maxdepth: 6
+root: index
+subtrees:
+
+- caption: Install
+  entries:
+  - file: install/prerequisites.rst
+    title: MIOpen prerequisites
+  - file: install/install.rst
+    title: Install MIOpen
+  - file: install/build-source.rst
+    title: Build MIOpen from source
+  - file: install/embed.rst
+    title: Build MIOpen for embedded systems
+  - file: install/docker-build.rst
+    title: Build MIOpen using Docker
+
+- caption: Conceptual
+  entries:
+  - file: conceptual/finddb.rst
+    title: Find database
+  - file: conceptual/cache.rst
+    title: Kernel cache
+  - file: conceptual/perfdb.rst
+    title: Performance database
+  - file: conceptual/tuningdb.rst
+    title: Manual tuning
+  - file: conceptual/MI200-alt-implementation.rst
+    title: MI200 alternate implementation
+  - file: conceptual/porting-guide.rst
+    title: Porting to MIOpen
+
+- caption: How to
+  entries:
+  - file: how-to/use-fusion-api.rst
+    title: Use the fusion API
+  - file: how-to/debug-log.rst
+    title: Log and debug
+  - file: how-to/find-and-immediate.rst
+    title: Use the find APIs and immediate mode
+
+
+- caption: Reference
+  entries:
+  - file: reference/index
+    title: API library
+    subtrees:
+    - entries:
+      - file: doxygen/html/modules
+        title: Modules
+      - file: reference/datatypes.rst
+        title: Datatypes
+
+- caption: About
+  entries:
+  - file: license.md
+    title: License

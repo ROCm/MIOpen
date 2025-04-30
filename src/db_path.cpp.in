@@ -1,0 +1,121 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+
+#include <miopen/db_path.hpp>
+#include <miopen/env.hpp>
+#include <miopen/stringutils.hpp>
+#include <miopen/expanduser.hpp>
+#include <miopen/logger.hpp>
+#include <miopen/filesystem.hpp>
+
+#include <cstdlib>
+#ifdef __linux__
+#include <dlfcn.h>
+#endif
+
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_SYSTEM_DB_PATH)
+MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_USER_DB_PATH)
+
+namespace miopen {
+
+#ifdef __linux__
+fs::path GetLibPath()
+{
+    fs::path path;
+    Dl_info info;
+
+    if(dladdr(reinterpret_cast<void*>(miopenCreate), &info) != 0)
+    {
+        path = fs::canonical(fs::path{info.dli_fname});
+        MIOPEN_LOG_I2("Lib Path: " << path);
+        if(!path.has_parent_path())
+            return path;
+
+        path = path.parent_path();
+    }
+    return path;
+}
+#endif
+
+fs::path GetSystemDbPath()
+{
+    auto p = env::value(MIOPEN_SYSTEM_DB_PATH);
+    if(p.empty())
+#if MIOPEN_BUILD_DEV || defined(_WIN32)
+    {
+        // Here, by default, MIOPEN_SYSTEM_DB_PATH is an empty path on Windows.
+        // MIOpen.dll will be searching for System DB files in local directory.
+        return "${MIOPEN_SYSTEM_DB_PATH}";
+    }
+#else
+    {
+        // Get the module path and construct the db path
+        static const auto lib_path = GetLibPath().parent_path() / "share/miopen/db";
+        return lib_path;
+    }
+#endif
+    else
+    {
+        return p;
+    }
+}
+
+namespace {
+fs::path PrepareUserDbPath()
+{
+    /// If MIOPEN_USER_DB_PATH is set in the environment, then assume that the user wants
+    /// the library to use exactly that path.
+    const auto p = env::value(MIOPEN_USER_DB_PATH);
+    if(!p.empty())
+        return ExpandUser(p);
+    /// \anchor nfs-detection
+    /// Otherwise, check if the user-db-path denotes a network filesystem. If this is the case, then
+    /// let's assume that the library is running on a cluster system, where home directory is shared
+    /// between all the nodes. In order to prevent the slowdown due to concurrent file access, let's
+    /// use the local temporary directory.
+    /// WARNING: This makes all the library's user databases non-persistent. However, for now, we
+    /// assume that the performance hit associated with the usage of shared home dir is worse than
+    /// the deletion of user databases.
+    const auto udb_path = ExpandUser("${MIOPEN_USER_DB_PATH}");
+#if !MIOPEN_BUILD_DEV
+    if(IsNetworkedFilesystem(udb_path))
+        return fs::temp_directory_path();
+#endif
+    return udb_path;
+}
+} // namespace
+
+std::string GetUserDbSuffix() { return "${MIOPEN_USER_DB_SUFFIX}"; }
+
+std::string GetSystemFindDbSuffix() { return "${MIOPEN_SYSTEM_FIND_DB_SUFFIX}"; }
+
+const fs::path& GetUserDbPath()
+{
+    static const auto instance = PrepareUserDbPath();
+    return instance;
+}
+
+} // namespace miopen

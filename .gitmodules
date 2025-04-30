@@ -1,0 +1,4 @@
+[submodule "fin"]
+    path = fin
+    url = https://github.com/ROCm/MIFin.git
+    branch = develop

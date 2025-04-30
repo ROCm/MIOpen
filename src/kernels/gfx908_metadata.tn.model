@@ -1,0 +1,319 @@
+{
+    "arch": [
+        "gfx908"
+    ],
+    "num_cu": [
+        120
+    ],
+    "miopen_v": [
+        "622dd7181"
+    ],
+    "rocm_v": [
+        "osdb-9174"
+    ],
+    "num_algos": 8,
+    "num_solvers": 9,
+    "problem_distance_from_mean_avg": 3.3452934424511804,
+    "problem_distance_from_mean_std": 3.5789650414385910,
+    "conv_params_all": [
+        "InChannels",
+        "InDepth",
+        "InHeight",
+        "InWidth",
+        "FilterDim0",
+        "FilterDim1",
+        "FilterDim2",
+        "OutChannels",
+        "OutDepth",
+        "OutHeight",
+        "OutWidth",
+        "BatchSize",
+        "Padding0",
+        "Padding1",
+        "Padding2",
+        "Stride0",
+        "Stride1",
+        "Stride2",
+        "Dilation1",
+        "Dilation2",
+        "Layout",
+        "Precision",
+        "Direction",
+        "GroupSize",
+        "algorithm",
+        "solver",
+        "solverTime"
+    ],
+    "conv_params_used_as_features": [
+        "InChannels",
+        "InDepth",
+        "InHeight",
+        "InWidth",
+        "FilterDim0",
+        "FilterDim1",
+        "FilterDim2",
+        "OutChannels",
+        "OutDepth",
+        "OutHeight",
+        "OutWidth",
+        "BatchSize",
+        "Padding0",
+        "Padding1",
+        "Padding2",
+        "Stride0",
+        "Stride1",
+        "Stride2",
+        "Dilation1",
+        "Dilation2",
+        "Layout",
+        "Precision",
+        "Direction",
+        "GroupSize"
+    ],
+    "encodings": {
+        "Direction": {
+            "B": 0,
+            "W": 1,
+            "F": 2
+        },
+        "Precision": {
+            "FP32": 0,
+            "FP16": 1,
+            "BF16": 2
+        },
+        "Layout": {
+            "NCHW": 0,
+            "NCDHW": 1
+        },
+        "algorithm": {
+            "miopenConvolutionBwdDataAlgoWinograd": 0,
+            "miopenConvolutionBwdWeightsAlgoImplicitGEMM": 1,
+            "miopenConvolutionBwdWeightsAlgoWinograd": 2,
+            "miopenConvolutionBwdDataAlgoImplicitGEMM": 3,
+            "miopenConvolutionFwdAlgoWinograd": 4,
+            "miopenConvolutionFwdAlgoImplicitGEMM": 5,
+            "miopenConvolutionFwdAlgoGEMM": 6,
+            "miopenConvolutionBwdDataAlgoGEMM": 7
+        },
+        "solver": {
+            "ConvBinWinogradRxSf2x3g1": 0,
+            "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC": 1,
+            "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC": 2,
+            "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC": 3,
+            "GemmFwd1x1_0_1": 4,
+            "GemmBwdRest": 5,
+            "GemmBwd1x1_stride1": 6,
+            "GemmFwd1x1_0_2": 7,
+            "GemmBwd1x1_stride2": 8
+        }
+    },
+    "stats": {
+        "train": {
+            "features": {
+                "mean": {
+                    "InChannels": 312.4276428222656,
+                    "InDepth": 1.0005981922149658,
+                    "InHeight": 171.07711791992188,
+                    "InWidth": 181.86497497558594,
+                    "FilterDim0": 1.0000165700912476,
+                    "FilterDim1": 2.1870713233947754,
+                    "FilterDim2": 2.1921186447143555,
+                    "OutChannels": 314.7137145996094,
+                    "OutDepth": 1.0007222890853882,
+                    "OutHeight": 191.65956115722656,
+                    "OutWidth": 203.83169555664062,
+                    "BatchSize": 19.23350715637207,
+                    "Padding0": 0.9998732209205627,
+                    "Padding1": 0.586043119430542,
+                    "Padding2": 0.5855414271354675,
+                    "Stride0": 1.000030279159546,
+                    "Stride1": 1.3546146154403687,
+                    "Stride2": 1.3546146154403687,
+                    "Dilation1": 1.0095131397247314,
+                    "Dilation2": 1.0095131397247314,
+                    "Layout": 0.0001350755337625742,
+                    "Precision": 0.08211489766836166,
+                    "Direction": 0.9984865784645081,
+                    "GroupSize": 1.398756742477417
+                },
+                "std": {
+                    "InChannels": 391.0234680175781,
+                    "InDepth": 0.07898065447807312,
+                    "InHeight": 181.7276611328125,
+                    "InWidth": 191.4449462890625,
+                    "FilterDim0": 0.005751481745392084,
+                    "FilterDim1": 1.854912519454956,
+                    "FilterDim2": 1.883195400238037,
+                    "OutChannels": 387.80987548828125,
+                    "OutDepth": 0.0969802662730217,
+                    "OutHeight": 218.03855895996094,
+                    "OutWidth": 230.53770446777344,
+                    "BatchSize": 94.96096801757812,
+                    "Padding0": 0.011260101571679115,
+                    "Padding1": 1.0509926080703735,
+                    "Padding2": 1.0506007671356201,
+                    "Stride0": 0.00550656346604228,
+                    "Stride1": 0.4815501272678375,
+                    "Stride2": 0.4815501272678375,
+                    "Dilation1": 0.5022236108779907,
+                    "Dilation2": 0.5022236108779907,
+                    "Layout": 0.011621431447565556,
+                    "Precision": 0.33471736311912537,
+                    "Direction": 0.8198033571243286,
+                    "GroupSize": 8.964171409606934
+                }
+            },
+            "gt": {
+                "mean": {
+                    "algorithm": 3.816459894180298,
+                    "solver": 2.887429714202881,
+                    "solverTime": 1.3866323232650757
+                },
+                "std": {
+                    "algorithm": 2.558821201324463,
+                    "solver": 2.3014018535614014,
+                    "solverTime": 87.76739501953125
+                }
+            }
+        },
+        "test": {
+            "features": {
+                "mean": {
+                    "InChannels": 312.57049560546875,
+                    "InDepth": 1.000752568244934,
+                    "InHeight": 170.96368408203125,
+                    "InWidth": 181.89694213867188,
+                    "FilterDim0": 1.0000643730163574,
+                    "FilterDim1": 2.1860692501068115,
+                    "FilterDim2": 2.19167160987854,
+                    "OutChannels": 316.5564880371094,
+                    "OutDepth": 1.0010355710983276,
+                    "OutHeight": 191.92608642578125,
+                    "OutWidth": 204.10911560058594,
+                    "BatchSize": 19.46449089050293,
+                    "Padding0": 0.9998842477798462,
+                    "Padding1": 0.5840778350830078,
+                    "Padding2": 0.5834668278694153,
+                    "Stride0": 1.0000386238098145,
+                    "Stride1": 1.3542957305908203,
+                    "Stride2": 1.3542957305908203,
+                    "Dilation1": 1.0078986883163452,
+                    "Dilation2": 1.0078986883163452,
+                    "Layout": 0.00014793945592828095,
+                    "Precision": 0.08202921599149704,
+                    "Direction": 0.9939087629318237,
+                    "GroupSize": 1.3800500631332397
+                },
+                "std": {
+                    "InChannels": 391.1274108886719,
+                    "InDepth": 0.08796226978302002,
+                    "InHeight": 179.44996643066406,
+                    "InWidth": 191.45603942871094,
+                    "FilterDim0": 0.011341944336891174,
+                    "FilterDim1": 1.8584541082382202,
+                    "FilterDim2": 1.8874937295913696,
+                    "OutChannels": 389.0069580078125,
+                    "OutDepth": 0.12488792091608047,
+                    "OutHeight": 218.6868438720703,
+                    "OutWidth": 231.2021484375,
+                    "BatchSize": 95.86822509765625,
+                    "Padding0": 0.010759463533759117,
+                    "Padding1": 1.0166311264038086,
+                    "Padding2": 1.016111969947815,
+                    "Stride0": 0.006212218664586544,
+                    "Stride1": 0.4819181561470032,
+                    "Stride2": 0.4819181561470032,
+                    "Dilation1": 0.424264520406723,
+                    "Dilation2": 0.424264520406723,
+                    "Layout": 0.012162175960838795,
+                    "Precision": 0.3341298997402191,
+                    "Direction": 0.8209742307662964,
+                    "GroupSize": 8.548747062683105
+                }
+            },
+            "gt": {
+                "mean": {
+                    "algorithm": 3.828415870666504,
+                    "solver": 2.899664878845215,
+                    "solverTime": 1.7902750968933105
+                },
+                "std": {
+                    "algorithm": 2.5613133907318115,
+                    "solver": 2.3076584339141846,
+                    "solverTime": 147.97122192382812
+                }
+            }
+        },
+        "overall": {
+            "features": {
+                "mean": {
+                    "InChannels": 312.35211181640625,
+                    "InDepth": 1.0006444454193115,
+                    "InHeight": 171.07810974121094,
+                    "InWidth": 181.9158477783203,
+                    "FilterDim0": 1.0000308752059937,
+                    "FilterDim1": 2.1867706775665283,
+                    "FilterDim2": 2.1919846534729004,
+                    "OutChannels": 315.09002685546875,
+                    "OutDepth": 1.0008162260055542,
+                    "OutHeight": 191.78111267089844,
+                    "OutWidth": 203.95440673828125,
+                    "BatchSize": 19.30280303955078,
+                    "Padding0": 0.9998764991760254,
+                    "Padding1": 0.5854535102844238,
+                    "Padding2": 0.5849190354347229,
+                    "Stride0": 1.0000327825546265,
+                    "Stride1": 1.3545188903808594,
+                    "Stride2": 1.3545188903808594,
+                    "Dilation1": 1.0090287923812866,
+                    "Dilation2": 1.0090287923812866,
+                    "Layout": 0.0001389347162330523,
+                    "Precision": 0.08208919316530228,
+                    "Direction": 0.9971132278442383,
+                    "GroupSize": 1.3931447267532349
+                },
+                "std": {
+                    "InChannels": 391.0542907714844,
+                    "InDepth": 0.08177872747182846,
+                    "InHeight": 181.0471954345703,
+                    "InWidth": 191.44808959960938,
+                    "FilterDim0": 0.007857984863221645,
+                    "FilterDim1": 1.8559739589691162,
+                    "FilterDim2": 1.8844841718673706,
+                    "OutChannels": 388.1698303222656,
+                    "OutDepth": 0.10612594336271286,
+                    "OutHeight": 218.2330780029297,
+                    "OutWidth": 230.737060546875,
+                    "BatchSize": 95.23401641845703,
+                    "Padding0": 0.011112269014120102,
+                    "Padding1": 1.0408027172088623,
+                    "Padding2": 1.0403735637664795,
+                    "Stride0": 0.00572739215567708,
+                    "Stride1": 0.4816601276397705,
+                    "Stride2": 0.4816601276397705,
+                    "Dilation1": 0.48016685247421265,
+                    "Dilation2": 0.48016685247421265,
+                    "Layout": 0.011786249466240406,
+                    "Precision": 0.3345409035682678,
+                    "Direction": 0.8201566934585571,
+                    "GroupSize": 8.84158992767334
+                }
+            },
+            "gt": {
+                "mean": {
+                    "algorithm": 3.8200466632843018,
+                    "solver": 2.8911001682281494,
+                    "solverTime": 1.5078306198120117
+                },
+                "std": {
+                    "algorithm": 2.559572696685791,
+                    "solver": 2.3032851219177246,
+                    "solverTime": 109.3656005859375
+                }
+            }
+        }
+    },
+    "model_name": "TunaNetv1",
+    "num_inputs": 24,
+    "num_outputs": 18
+}

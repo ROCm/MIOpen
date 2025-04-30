@@ -1,0 +1,6 @@
+* @BrianHarrisonAMD @BradPepersAMD @adickin-amd @JonathanLichtnerAMD
+# Documentation files
+docs/ @ROCm/rocm-documentation
+*.md @ROCm/rocm-documentation
+*.rst @ROCm/rocm-documentation
+.readthedocs.yaml @ROCm/rocm-documentation

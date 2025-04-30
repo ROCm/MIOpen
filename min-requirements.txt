@@ -1,0 +1,2 @@
+# This file should be removed in the future
+-f requirements.txt

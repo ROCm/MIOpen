@@ -1,0 +1,208 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+#ifndef GUARD_CONFIG_H_IN
+#define GUARD_CONFIG_H_IN
+
+#cmakedefine01 MIOPEN_BACKEND_OPENCL
+#cmakedefine01 MIOPEN_BACKEND_HIP
+#cmakedefine01 MIOPEN_MODE_NOGPU
+#cmakedefine01 MIOPEN_USE_ROCBLAS
+#cmakedefine01 MIOPEN_USE_HIPBLASLT
+#cmakedefine01 MIOPEN_USE_ROCTRACER
+#cmakedefine01 MIOPEN_BUILD_DEV
+#cmakedefine01 MIOPEN_GPU_SYNC
+
+#cmakedefine01 MIOPEN_ENABLE_SQLITE
+#cmakedefine01 MIOPEN_ENABLE_SQLITE_KERN_CACHE
+#cmakedefine01 MIOPEN_DEBUG_FIND_DB_CACHING
+#cmakedefine01 MIOPEN_USE_COMGR
+#cmakedefine01 MIOPEN_USE_HIPRTC
+#cmakedefine01 MIOPEN_USE_HIP_KERNELS
+#cmakedefine01 MIOPEN_DISABLE_USERDB
+#cmakedefine01 MIOPEN_EMBED_DB
+#cmakedefine01 BUILD_SHARED_LIBS
+#cmakedefine01 MIOPEN_DISABLE_SYSDB
+#cmakedefine01 MIOPEN_LOG_FUNC_TIME_ENABLE
+#cmakedefine01 MIOPEN_ENABLE_SQLITE_BACKOFF
+#cmakedefine01 MIOPEN_USE_MLIR
+#cmakedefine01 MIOPEN_USE_COMPOSABLEKERNEL
+#cmakedefine01 MIOPEN_BUILD_DRIVER
+#cmakedefine01 MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
+#cmakedefine01 MIOPEN_ENABLE_AI_KERNEL_TUNING
+#cmakedefine01 MIOPEN_HIP_COMPILER_HAS_OPTION_OFFLOAD_UNIFORM_BLOCK
+#cmakedefine01 MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM
+#cmakedefine01 MIOPEN_ENABLE_FIN_INTERFACE
+
+// "_PACKAGE_" to avoid name contentions: the macros like
+// HIP_VERSION_MAJOR are defined in hip_version.h.
+// clang-format off
+#define HIP_PACKAGE_VERSION_MAJOR @MIOPEN_hip_VERSION_MAJOR@
+#define HIP_PACKAGE_VERSION_MINOR @MIOPEN_hip_VERSION_MINOR@
+#define HIP_PACKAGE_VERSION_PATCH @MIOPEN_hip_VERSION_PATCH@
+// clang-format on
+
+// clang-format off
+#define MIOPEN_AMD_COMGR_VERSION_MAJOR @amd_comgr_VERSION_MAJOR@
+#define MIOPEN_AMD_COMGR_VERSION_MINOR @amd_comgr_VERSION_MINOR@
+#define MIOPEN_AMD_COMGR_VERSION_PATCH @amd_comgr_VERSION_PATCH@
+// clang-format on
+
+// Truncation rounding or (default) rounding to nearest even (RNE) is enabled.
+// This switch controls two related but different aspects of MIOpen behavior:
+// 1.  How host code performs conversions of float to bfloat16, important only
+//     for testing.
+// 2.  How BF16 kernels (which are kind of mixed-precision now and expected to
+//     remain in the future)  perform final conversion (and rounding) of FP32
+//     to BF16 results. This affects the main functionality of the library.
+#cmakedefine01 MIOPEN_USE_RNE_BFLOAT16
+#cmakedefine01 MIOPEN_FP8_IEEE_EXPONENT_BIAS
+#cmakedefine01 MIOPEN_FP8_CLIPPING
+
+// clang-format on
+#cmakedefine01 MIOPEN_OFFLINE_COMPILER_PATHS_V2
+#if MIOPEN_OFFLINE_COMPILER_PATHS_V2
+
+// APIs to get MIOPEN Compiler Paths generated using ROCM Base install Path
+// This will read the ROCM Base Install Path if it is already generated
+// or (if required), will generate the MIOPEN Compiler Flag Path Values
+// and return the value.
+const char* getAMDGCNAssemblerPath();
+const char* getOpenCLCompilerPath();
+const char* getHIPCompilerPath();
+const char* getOffloadBundlerBinPath();
+
+#cmakedefine MIOPEN_AMDGCN_ASSEMBLER getAMDGCNAssemblerPath()
+#cmakedefine HIP_OC_COMPILER getOpenCLCompilerPath()
+#cmakedefine MIOPEN_HIP_COMPILER getHIPCompilerPath()
+#cmakedefine MIOPEN_OFFLOADBUNDLER_BIN getOffloadBundlerBinPath()
+#else
+#cmakedefine MIOPEN_AMDGCN_ASSEMBLER "@MIOPEN_AMDGCN_ASSEMBLER@"
+#cmakedefine HIP_OC_COMPILER "@HIP_OC_COMPILER@"
+#cmakedefine MIOPEN_HIP_COMPILER "@MIOPEN_HIP_COMPILER@"
+#cmakedefine MIOPEN_OFFLOADBUNDLER_BIN "@MIOPEN_OFFLOADBUNDLER_BIN@"
+#endif // MIOPEN_OFFLINE_COMPILER_PATHS_V2
+
+#cmakedefine MIOPEN_CACHE_DIR "@MIOPEN_CACHE_DIR@"
+
+#cmakedefine01 MIOPEN_USE_SQLITE_PERFDB
+
+#define MIOPEN_USE_GEMM (MIOPEN_USE_ROCBLAS || MIOPEN_USE_HIPBLASLT)
+
+// Usage of "defined" operator within macro expansion is undefined behavior,
+// so "defined(NDEBUG)" cannot be used there... unlike the following macro:
+#ifdef NDEBUG
+#define MIOPEN_NDEBUG 1
+#else
+#define MIOPEN_NDEBUG 0
+#endif
+
+// Installable builds are those which aren't intended for debugging.
+// We damp down some diagnostic messages (Error -> Warning) etc.
+#define MIOPEN_INSTALLABLE (MIOPEN_NDEBUG && !MIOPEN_BUILD_DEV)
+
+#define MIOPEN_ALLOC_BUFFERS 0
+
+#ifndef HIP_PACKAGE_VERSION_MAJOR
+#define HIP_PACKAGE_VERSION_MAJOR 0
+#endif
+#ifndef HIP_PACKAGE_VERSION_MINOR
+#define HIP_PACKAGE_VERSION_MINOR 0
+#endif
+#ifndef HIP_PACKAGE_VERSION_PATCH
+#define HIP_PACKAGE_VERSION_PATCH 0
+#endif
+// 3 decimal digits for major and minor, 6 digits for patch number.
+// Max number is 999,999,999999 == 0xE8,D4A5,0FFF that fits into 64-bit math.
+#if HIP_PACKAGE_VERSION_MAJOR > 999 || HIP_PACKAGE_VERSION_MAJOR > 999 || \
+    HIP_PACKAGE_VERSION_PATCH > 999999
+#error "Too big HIP version number(s)"
+#endif
+#define HIP_PACKAGE_VERSION_FLAT                                                   \
+    ((HIP_PACKAGE_VERSION_MAJOR * 1000ULL + HIP_PACKAGE_VERSION_MINOR) * 1000000 + \
+     HIP_PACKAGE_VERSION_PATCH)
+
+#if MIOPEN_USE_ROCBLAS
+// clang-format off
+#define MIOPEN_ROCBLAS_VERSION_MAJOR @rocblas_VERSION_MAJOR@
+#define MIOPEN_ROCBLAS_VERSION_MINOR @rocblas_VERSION_MINOR@
+#define MIOPEN_ROCBLAS_VERSION_PATCH @rocblas_VERSION_PATCH@
+// clang-format on
+#ifndef MIOPEN_ROCBLAS_VERSION_MAJOR
+#define MIOPEN_ROCBLAS_VERSION_MAJOR 0
+#endif
+#ifndef MIOPEN_ROCBLAS_VERSION_MINOR
+#define MIOPEN_ROCBLAS_VERSION_MINOR 0
+#endif
+#ifndef MIOPEN_ROCBLAS_VERSION_PATCH
+#define MIOPEN_ROCBLAS_VERSION_PATCH 0
+#endif
+// 3 decimal digits for each number; max fits into 32 bits.
+#if MIOPEN_ROCBLAS_VERSION_MAJOR > 999 || MIOPEN_ROCBLAS_VERSION_MAJOR > 999 || \
+    MIOPEN_ROCBLAS_VERSION_PATCH > 999
+#error "Too big ROCBLAS version number(s)"
+#endif
+#define MIOPEN_ROCBLAS_VERSION_FLAT                                                \
+    ((MIOPEN_ROCBLAS_VERSION_MAJOR * 1000 + MIOPEN_ROCBLAS_VERSION_MINOR) * 1000 + \
+     MIOPEN_ROCBLAS_VERSION_PATCH)
+#endif // MIOPEN_USE_ROCBLAS
+
+#if MIOPEN_USE_HIPBLASLT
+// clang-format off
+#define MIOPEN_HIPBLASLT_VERSION_MAJOR @hipblaslt_VERSION_MAJOR@
+#define MIOPEN_HIPBLASLT_VERSION_MINOR @hipblaslt_VERSION_MINOR@
+#define MIOPEN_HIPBLASLT_VERSION_PATCH @hipblaslt_VERSION_PATCH@
+// clang-format on
+#ifndef MIOPEN_HIPBLASLT_VERSION_MAJOR
+#define MIOPEN_HIPBLASLT_VERSION_MAJOR 0
+#endif
+#ifndef MIOPEN_HIPBLASLT_VERSION_MINOR
+#define MIOPEN_HIPBLASLT_VERSION_MINOR 0
+#endif
+#ifndef MIOPEN_HIPBLASLT_VERSION_PATCH
+#define MIOPEN_HIPBLASLT_VERSION_PATCH 0
+#endif
+// 3 decimal digits for each number; max fits into 32 bits.
+#if MIOPEN_HIPBLASLT_VERSION_MAJOR > 999 || MIOPEN_HIPBLASLT_VERSION_MAJOR > 999 || \
+    MIOPEN_HIPBLASLT_VERSION_PATCH > 999
+#error "Too big HIPBLASLT version number(s)"
+#endif
+#define MIOPEN_HIPBLASLT_VERSION_FLAT                                                  \
+    ((MIOPEN_HIPBLASLT_VERSION_MAJOR * 1000 + MIOPEN_HIPBLASLT_VERSION_MINOR) * 1000 + \
+     MIOPEN_HIPBLASLT_VERSION_PATCH)
+#endif // MIOPEN_USE_HIPBLASLT
+
+/// WORKAROUND_BOOST_ISSUE_392
+/// Workaround for https://github.com/boostorg/config/issues/392#issuecomment-1109889533
+/// See also https://github.com/ROCm/MIOpen/pull/1490#issuecomment-1109928102,
+/// https://github.com/ROCm/MIOpen/pull/1543
+/// TODO: Remove the W/A as soon we switch to the properly fixed boost.
+#if MIOPEN_BACKEND_HIP
+#include <hip/hip_version.h>
+#endif
+
+#define MIOPEN_GOLDEN_DB_VERSION 21
+
+#endif // GUARD_CONFIG_H_IN

@@ -1,0 +1,78 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
+#ifndef GUARD_MIOPEN_HIPOC_PROGRAM_HPP
+#define GUARD_MIOPEN_HIPOC_PROGRAM_HPP
+
+#include <miopen/target_properties.hpp>
+#include <miopen/manage_ptr.hpp>
+#include <miopen/hipoc_program_impl.hpp>
+#include <miopen/filesystem.hpp>
+#include <hip/hip_runtime_api.h>
+#include <string>
+
+namespace miopen {
+
+struct HIPOCProgramImpl;
+struct HIPOCProgram
+{
+    HIPOCProgram();
+    /// This ctor builds the program from source, initializes module.
+    /// Also either CO pathname (typically if offline tools were used)
+    /// or binary blob (if comgr was used to build the program)
+    /// is initialized. GetModule(), GetCodeObjectPathname(),
+    /// GetCodeObjectBlob() return appropriate data after this ctor.
+    /// Other ctors only guarantee to initialize module.
+    HIPOCProgram(const fs::path& program_name,
+                 std::string params,
+                 const TargetProperties& target,
+                 const std::string& kernel_src);
+    HIPOCProgram(const fs::path& program_name, const fs::path& hsaco);
+    HIPOCProgram(const fs::path& program_name, const std::vector<char>& hsaco);
+    HIPOCProgram(const fs::path& program_name, const std::vector<uint8_t>& hsaco);
+    std::shared_ptr<HIPOCProgramImpl> impl;
+    hipModule_t GetModule() const;
+    /// \return Pathname of CO file, if it resides on the filesystem.
+    /// This function should not be called after FreeCodeObjectFileStorage().
+    fs::path GetCodeObjectPathname() const;
+    /// \return In-memory CO blob.
+    const std::vector<char>& GetCodeObjectBlob() const;
+    /// \return True if CO blob resides in-memory.
+    /// False if CO resides on filesystem.
+    bool IsCodeObjectInMemory() const;
+    bool IsCodeObjectInFile() const;
+    bool IsCodeObjectInTempFile() const;
+    void FreeCodeObjectFileStorage();
+    void AttachBinary(std::vector<char> binary);
+    void AttachBinary(fs::path binary);
+
+    friend bool operator==(const HIPOCProgram& l, const HIPOCProgram& r)
+    {
+        return l.impl == r.impl;
+    }
+};
+} // namespace miopen
+
+#endif
