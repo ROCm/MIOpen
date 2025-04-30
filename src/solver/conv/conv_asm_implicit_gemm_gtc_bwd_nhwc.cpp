@@ -932,9 +932,10 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
             if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
                 return false;
 
+            auto splited_k = (k / group) >> gemm_k_global_split;
+
             // gemm_k need be multiply of gemm_k_per_block
-            if((k >> gemm_k_global_split) == 0 ||
-               ((k >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
+            if(splited_k == 0 || splited_k % gemm_k_per_block != 0)
                 return false;
         }
 

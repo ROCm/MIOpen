@@ -794,9 +794,9 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
         if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
         {
+            auto splited_c = (c / group) >> gemm_k_global_split;
             // if both 1, indicate padded c support
-            if((c >> gemm_k_global_split == 0) ||
-               (((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0))
+            if(splited_c == 0 || (splited_c % gemm_k_per_block != 0))
                 return false;
             // also, add this restriction to k, for vector write out
             if(problem.IsFp16() || problem.IsBfp16())
