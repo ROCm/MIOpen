@@ -331,7 +331,7 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
             // system db result is good
             // add to user fdb so this check is skipped next time
             MIOPEN_LOG_I2("TrustVerify: Add system db entry to user db");
-            auto fallback  = bool{};
+            auto fallback  = FallbackPath();
             auto ret       = FindCoreResult();
             ret.is_optimal = true;
             auto copy_sols = conv.GetSolutions(ctx, problem, 4, &fallback, &invoke_ctx);
@@ -372,7 +372,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
     auto sol             = boost::optional<miopenConvSolution_t>{};
     const auto& conv     = problem.GetConv();
     const auto& findMode = conv.findMode;
-    auto fallback        = false;
+    auto fallback        = FallbackPath();
     std::vector<miopenConvSolution_t> sols;
     std::vector<miopenConvSolution_t> ufdb_sols;
 
@@ -386,12 +386,14 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
         else
             sols = conv.GetSolutions(ctx, problem, 2, &fallback, &invoke_ctx);
         // override the normal find with immed mode with env var
-        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) || findMode.IsTrustVerify(ctx) ||
+        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback != FallbackPath::None) ||
+                             (findMode.IsTrustVerify(ctx) && fallback == FallbackPath::AI) ||
                              env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
 
+    MIOPEN_LOG_I2("TrustVerify: " << static_cast<std::underlying_type_t<FallbackPath>>(fallback));
     if(sol.has_value())
     {
         if(findMode.IsTrustVerify(ctx))
@@ -400,8 +402,12 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
             {
                 // solution is from system db, verify on current machine
                 MIOPEN_LOG_I2("TrustVerify: No user db entry");
-                results = VerifiedFDBSolution(
-                    ctx, problem, invoke_ctx, force_attach_binary, sols, fallback);
+                results = VerifiedFDBSolution(ctx,
+                                              problem,
+                                              invoke_ctx,
+                                              force_attach_binary,
+                                              sols,
+                                              fallback == FallbackPath::AI);
             }
             else
             {
@@ -429,6 +435,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
 
             if(findMode.IsTrustVerify(ctx))
             {
+                MIOPEN_LOG_I2("TrustVerify: Generate entry for user db");
                 ctx_copy.do_search = true;
                 ctx_copy.db_update = true;
             }
@@ -816,6 +823,7 @@ std::vector<miopenConvSolution_t>
 ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem,
                                             const size_t maxSolutionCount,
+                                            FallbackPath* fallbackPathTaken,
                                             const AnyInvokeParams* const invokeParams) const
 {
     if(env::disabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK))
@@ -838,6 +846,8 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     if(!env::disabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK))
     {
+        if(fallbackPathTaken != nullptr)
+            *fallbackPathTaken = FallbackPath::AI;
         const static std::string arch = ctx.GetStream().GetDeviceName();
         std::vector<uint64_t> solvers;
         try
@@ -883,6 +893,9 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     // if TunaNet is not enabled or produces no applicable solvers then fallback to WTI
     if(interim.empty())
     {
+        if(fallbackPathTaken != nullptr)
+            *fallbackPathTaken = FallbackPath::WTI;
+
         MIOPEN_LOG_I2("Using WTI Fallback");
         const auto wti2time = [](const float& wti) {
             assert(wti != 0.0f);
@@ -931,19 +944,20 @@ std::vector<miopenConvSolution_t>
 ConvolutionDescriptor::GetSolutions(const ExecutionContext& ctx,
                                     const conv::ProblemDescription& problem,
                                     size_t maxSolutionCount,
-                                    bool* fallbackPathTaken,
+                                    FallbackPath* fallbackPathTaken,
                                     const AnyInvokeParams* const invokeParams) const
 {
     MIOPEN_LOG_I("");
     auto solutions = miopen::GetSolutions(ctx, problem, maxSolutionCount, invokeParams);
 
-    if(fallbackPathTaken != nullptr)
-        *fallbackPathTaken = solutions.empty();
-
     if(!solutions.empty())
+    {
+        if(fallbackPathTaken != nullptr)
+            *fallbackPathTaken = FallbackPath::None;
         return solutions;
+    }
 
-    return GetSolutionsFallback(ctx, problem, maxSolutionCount, invokeParams);
+    return GetSolutionsFallback(ctx, problem, maxSolutionCount, fallbackPathTaken, invokeParams);
 }
 
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(const Handle& handle,

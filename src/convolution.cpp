@@ -421,9 +421,9 @@ std::size_t ConvolutionDescriptor::GetWorkSpaceSize(ExecutionContext ctx,
         /// (using size returned by *this* call) and then re-use
         /// the same workspace for Run phase. That is why we shall return
         /// actually required workspace here.
-        auto fallback        = bool{};
+        auto fallback        = FallbackPath();
         const auto solutions = GetSolutions(ctx, problem, 1, &fallback);
-        if(solutions.empty() || ((findMode.IsHybrid(ctx) && fallback) &&
+        if(solutions.empty() || ((findMode.IsHybrid(ctx) && fallback != FallbackPath::None) &&
                                  !env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)))
         {
             ctx.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
