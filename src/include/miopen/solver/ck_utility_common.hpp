@@ -94,36 +94,16 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
     // GPU target
     static const std::string device_name = handle.GetDeviceName();
 
-    // NOLINTBEGIN(*-braces-around-statements)
-    if(StartsWith(device_name, "gfx803"))
-        compiler_flag << " -DCK_AMD_GPU_GFX803";
-    else if(StartsWith(device_name, "gfx900"))
-        compiler_flag << " -DCK_AMD_GPU_GFX900";
-    else if(StartsWith(device_name, "gfx906"))
-        compiler_flag << " -DCK_AMD_GPU_GFX906";
-    else if(StartsWith(device_name, "gfx908"))
-        compiler_flag << " -DCK_AMD_GPU_GFX908";
-    else if(StartsWith(device_name, "gfx90a"))
-        compiler_flag << " -DCK_AMD_GPU_GFX90A";
-    else if(StartsWith(device_name, "gfx942"))
-        compiler_flag << " -DCK_AMD_GPU_GFX942";
-    else if(StartsWith(device_name, "gfx950"))
-        compiler_flag << " -DCK_AMD_GPU_GFX950";
-    else if(StartsWith(device_name, "gfx1030"))
-        compiler_flag << " -DCK_AMD_GPU_GFX1030";
-    else if(StartsWith(device_name, "gfx1031"))
-        compiler_flag << " -DCK_AMD_GPU_GFX1031";
-    else if(StartsWith(device_name, "gfx1100"))
-        compiler_flag << " -DCK_AMD_GPU_GFX1100";
-    else if(StartsWith(device_name, "gfx1101"))
-        compiler_flag << " -DCK_AMD_GPU_GFX1101";
-    else if(StartsWith(device_name, "gfx1102"))
-        compiler_flag << " -DCK_AMD_GPU_GFX1102";
-    else if(StartsWith(device_name, "gfx1200"))
-        compiler_flag << " -DCK_AMD_GPU_GFX1200";
-    else if(StartsWith(device_name, "gfx1201"))
-        compiler_flag << " -DCK_AMD_GPU_GFX1201";
-    // NOLINTEND(*-braces-around-statements)
+    // device_name: "gfx942" -> macro: "CK_AMD_GFX942"
+    std::string prefix_to_find              = "gfx";
+    constexpr std::string_view macro_prefix = "CK_AMD_GPU_GFX";
+    std::string macro                       = "";
+    if(StartsWith(device_name, prefix_to_find))
+    {
+        macro.append(macro_prefix);
+        macro.append(device_name.substr(prefix_to_find.length()));
+        compiler_flag << " -D" + macro;
+    }
 
     // buffer atomic-fadd
     compiler_flag << " -DCK_USE_AMD_BUFFER_ATOMIC_FADD="
