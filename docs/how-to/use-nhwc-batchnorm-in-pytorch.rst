@@ -98,7 +98,7 @@ environment variable enabled.
    "``bfloat16``","NHWC","2D not mixed","native","native"
    "any","any","3D","native","native"
 
-(*) MIOpen is used with ROCm 6.5 and later. Otherwise, the native backend is used.
+(*) MIOpen is used with ROCm 6.4 and later. Otherwise, the native backend is used.
 
 Verifying NHWC Batchnorm use with MIOpen
 =================================================
