@@ -834,6 +834,24 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     const int ho = problem.GetInHeight();
     const int wo = problem.GetInWidth();
 
+    const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
+    const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
+    const auto y_tilda               = stride_h / gcd_stride_dilation_h;
+    const auto x_tilda               = stride_w / gcd_stride_dilation_w;
+
+    const auto h_tilda = ho + integer_divide_ceil(dilation_h * (y - 1), stride_h);
+    const auto w_tilda = wo + integer_divide_ceil(dilation_w * (x - 1), stride_w);
+
+    const auto h_tilda_left = std::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
+    const auto w_tilda_left = std::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
+
+    const auto h_tilda_right = std::min(h_tilda, integer_divide_ceil(pad_h + hi - 1, stride_h) + 1);
+    const auto w_tilda_right = std::min(w_tilda, integer_divide_ceil(pad_w + wi - 1, stride_w) + 1);
+
+    const auto h_tilda_slice = h_tilda_right - h_tilda_left;
+    const auto w_tilda_slice = w_tilda_right - w_tilda_left;
+    int num_of_gemm          = y_tilda * x_tilda;
+
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
@@ -848,39 +866,92 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
-
-    if(!(tensor_a_thread_lengths[1] == 1 && merge_e == 1))
+    if(problem.IsLayoutDefault())
     {
-        // in case k split too large
-        if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
-            return false;
-        // gemm_k need be multiply of gemm_k_per_block
-        if(((k >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
-            return false;
-    }
-
-    if(problem.IsFp16() && !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 &&
-                             merge_e == 1 && gemm_k_global_split == 0))
-    {
-        if(gemm_k_global_split != 0)
+        int b = h_tilda_slice * w_tilda_slice;
+        b     = (nxe == 0) ? (b) : ((b + nxb - 1) / nxb) * nxb; // pad to nxb modulo when nxe != 0
+        int gemm_n = n * b;
+        if(gemm_n % gemm_n_per_block != 0)
         {
-            if((c / group) % 2 != 0)
+            return false;
+        }
+        if((tensor_a_thread_lengths[0] != 1 || tensor_a_thread_lengths[1] != 1 ||
+            tensor_b_thread_lengths[0] != 1 || tensor_b_thread_lengths[1] != 1) &&
+           (k / group) % gemm_k_per_block != 0)
+            return false;
+
+        if(gemm_n_per_block % nxb != 0)
+        {
+            return false;
+        }
+        // # ho * wo is 4x, gemm_n is 256, hence need batch size 256/4=64x
+        if(n % (gemm_n_per_block / nxb) != 0)
+        {
+            return false;
+        }
+        if((nxe == 0) && ((h_tilda_slice * w_tilda_slice) % nxb != 0))
+        {
+            return false;
+        }
+        bool gemm_k_valid = true;
+
+        for(int gemm_id = 0; gemm_id < num_of_gemm; gemm_id++)
+        {
+            int i_y_tilda = gemm_id / x_tilda;
+            int i_x_tilda = gemm_id % x_tilda;
+
+            int y_dot_slice = integer_divide_ceil(y - i_y_tilda, y_tilda);
+            int x_dot_slice = integer_divide_ceil(x - i_x_tilda, x_tilda);
+
+            int gemm_k             = (k / group) * y_dot_slice * x_dot_slice;
+            bool is_gemm_not_empty = gemm_k > 0 && y_dot_slice > 0 && x_dot_slice > 0;
+            if(is_gemm_not_empty)
+            {
+                if(gemm_k % gemm_k_per_block != 0)
+                    gemm_k_valid = false;
+            }
+        }
+
+        if(!gemm_k_valid)
+            return false;
+
+        // output vector load limitation, n1b
+        if(tensor_b_thread_lengths[3] > 1 &&
+           (!unit_conv || unit_conv && (ho * wo) % tensor_b_thread_lengths[3] != 0))
+        {
+            return false;
+        }
+    }
+    else if(problem.IsLayoutNHWC())
+    {
+
+        if(!(tensor_a_thread_lengths[1] == 1 && merge_e == 1))
+        {
+            // TODO check ??
+            // in case k split too large
+            if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
+                return false;
+
+            // gemm_k need be multiply of gemm_k_per_block
+            if((k >> gemm_k_global_split) == 0 ||
+               ((k >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
                 return false;
         }
-        else
-        {
-            if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
-                return false;
-        }
-    }
 
-    if(problem.IsBfp16() && !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 &&
-                              merge_e == 1 && gemm_k_global_split == 0))
-    {
-        if(gemm_k_global_split == 0)
+        if((problem.IsBfp16() || problem.IsFp16()) &&
+           !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 && merge_e == 1 &&
+             gemm_k_global_split == 0))
         {
-            if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
-                return false;
+            if(gemm_k_global_split != 0)
+            {
+                if((c / group) % 2 != 0)
+                    return false;
+            }
+            else
+            {
+                if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
+                    return false;
+            }
         }
     }
 
