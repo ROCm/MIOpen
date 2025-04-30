@@ -262,11 +262,11 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
 {
     const auto& conv     = problem.GetConv();
     const auto& findMode = conv.findMode;
-    auto results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
+    auto results         = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
         auto ctx_copy                       = ctx;
         ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
-        const auto params                   = conv::ConvFindParameters{
-            conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
+        const auto params =
+            conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
 
         // test timing of solver reported by system db
         const auto& handle = ctx_copy.GetStream();
@@ -284,44 +284,40 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
             solver::ConvSolution conv_sol =
                 solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
 
-            MIOPEN_LOG_I2("TrustVerify: from solution "<< solver::Id{conv_sol.solver_id}.ToString());
-
             std::vector<solver::ConvSolution> conv_sols;
             conv_sols.emplace_back(std::move(conv_sol));
 
             AlgorithmName algo{
                 ConvolutionAlgoToDirectionalString(id.GetAlgo(), problem.GetDirection())};
-            std::vector<Solution> eval_sol =
-                EvaluateInvokers(handle,
-                                 conv_sols,
-                                 algo,
-                                 problem.MakeNetworkConfig(),
-                                 invoke_ctx,
-                                 is_optimal,
-                                 false);
+            std::vector<Solution> eval_sol = EvaluateInvokers(handle,
+                                                              conv_sols,
+                                                              algo,
+                                                              problem.MakeNetworkConfig(),
+                                                              invoke_ctx,
+                                                              is_optimal,
+                                                              false);
 
             eval_sols.emplace_back(eval_sol.front());
-            MIOPEN_LOG_I2("TrustVerify: from model "<< id.ToString());
-            for(auto& evasol : eval_sol)
-                MIOPEN_LOG_I2("TrustVerify: from model "<< evasol.GetSolver().ToString() <<"(" << evasol.GetTime() << ")");
 
             if(!model_result)
                 break;
         }
 
-        bool good_entry = false;
-        const float eval_time_1          = eval_sols[0].GetTime();
+        bool good_entry         = false;
+        const float eval_time_1 = eval_sols[0].GetTime();
 
         if(model_result)
         {
-            //heuristic model was used (no timing data), check vs 2nd place
-            const float eval_time_2           = eval_sols[1].GetTime();
-            MIOPEN_LOG_I2("TrustVerify: from model "<< eval_sols[0].GetSolver().ToString() <<"(" << eval_time_1 << ") < "<< eval_sols[1].GetSolver().ToString() <<"("<< eval_time_2 << ")  ?");
+            // heuristic model was used (no timing data), check vs 2nd place
+            const float eval_time_2 = eval_sols[1].GetTime();
+            MIOPEN_LOG_I2("TrustVerify: from model "
+                          << eval_sols[0].GetSolver().ToString() << "(" << eval_time_1 << ") < "
+                          << eval_sols[1].GetSolver().ToString() << "(" << eval_time_2 << ")  ?");
             good_entry = eval_time_1 < eval_time_2;
         }
         else
         {
-            //
+            // test evaluated vs recorded time
             constexpr float VERIFY_TOLERANCE = 1.10f;
             const float rel_perf             = eval_time_1 / solutions[0].time;
             MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time_1 << ") / recorded("
@@ -329,7 +325,6 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
                                                     << VERIFY_TOLERANCE << " ?");
             good_entry = rel_perf < VERIFY_TOLERANCE;
         }
-
 
         if(good_entry)
         {
@@ -342,8 +337,7 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
             auto copy_sols = conv.GetSolutions(ctx, problem, 4, &fallback, &invoke_ctx);
             for(const auto& s : copy_sols)
             {
-                auto solution =
-                    Solution{solver::Id{s.solution_id}, s.time, s.workspace_size};
+                auto solution = Solution{solver::Id{s.solution_id}, s.time, s.workspace_size};
                 ret.solutions.emplace_back(std::move(solution));
             }
             return ret;
@@ -378,7 +372,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
     auto sol             = boost::optional<miopenConvSolution_t>{};
     const auto& conv     = problem.GetConv();
     const auto& findMode = conv.findMode;
-    auto fallback = false;
+    auto fallback        = false;
     std::vector<miopenConvSolution_t> sols;
     std::vector<miopenConvSolution_t> ufdb_sols;
 
@@ -392,8 +386,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
         else
             sols = conv.GetSolutions(ctx, problem, 2, &fallback, &invoke_ctx);
         // override the normal find with immed mode with env var
-        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
-                             findMode.IsTrustVerify(ctx) ||
+        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) || findMode.IsTrustVerify(ctx) ||
                              env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
@@ -407,7 +400,8 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
             {
                 // solution is from system db, verify on current machine
                 MIOPEN_LOG_I2("TrustVerify: No user db entry");
-                results = VerifiedFDBSolution(ctx, problem, invoke_ctx, force_attach_binary, sols, fallback);
+                results = VerifiedFDBSolution(
+                    ctx, problem, invoke_ctx, force_attach_binary, sols, fallback);
             }
             else
             {
