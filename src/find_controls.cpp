@@ -183,6 +183,7 @@ const char* ToCString(const FindMode::Values mode)
     case FindMode::Values::DeprecatedFastHybrid: break;
     case FindMode::Values::DynamicHybrid: return "DYNAMIC_HYBRID";
     case FindMode::Values::TrustVerify: return "TRUST_VERIFY";
+    case FindMode::Values::TrustVerifyFull: return "TRUST_VERIFY_FULL";
     case FindMode::Values::End_: break;
     }
     return "<Unknown>";
@@ -220,6 +221,10 @@ std::optional<FindMode::Values> GetFindModeValueImpl2(Variable variable)
     else if(str == "TRUST_VERIFY")
     {
         return FindMode::Values::TrustVerify;
+    }
+    else if(str == "TRUST_VERIFY_FULL")
+    {
+        return FindMode::Values::TrustVerifyFull;
     }
     else
     { // Nop. Fall down & try numerics.
@@ -271,6 +276,9 @@ static_assert(miopenConvolutionFindModeDynamicHybrid ==
               "API is not in sync with the implementation.");
 static_assert(miopenConvolutionFindModeTrustVerify ==
                   static_cast<miopenConvolutionFindMode_t>(FindMode::Values::TrustVerify),
+              "API is not in sync with the implementation.");
+static_assert(miopenConvolutionFindModeTrustVerifyFull ==
+                  static_cast<miopenConvolutionFindMode_t>(FindMode::Values::TrustVerifyFull),
               "API is not in sync with the implementation.");
 
 } // namespace miopen
