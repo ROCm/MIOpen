@@ -27,7 +27,7 @@ easier to work with for common operations.
 
 For more information about these memory formats, see the
 `PyTorch memory format documentation <https://pytorch.org/tutorials/intermediate/memory_format_tutorial.html>`_
-and the `Intel® Extension for PyTorch GitHub <https://intel.github.io/intel-extension-for-pytorch/cpu/latest/index.html>`_.
+and the `Intel® Extension for PyTorch GitHub <https://intel.github.io/intel-extension-for-pytorch/cpu/latest/tutorials/features/nhwc.html>`_.
 
 Batchnorm
 =================================================
