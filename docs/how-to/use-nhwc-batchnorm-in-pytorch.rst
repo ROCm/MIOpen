@@ -69,9 +69,9 @@ The ``upstream`` images do not support this feature. The following PyTorch branc
 NHWC Batchnorm feature:
 
 *  `release/2.6 <https://github.com/ROCm/pytorch/tree/release/2.6>`_
-*  `release/2.7 <https://github.com/ROCm/pytorch/tree/release/2.7>`_: Not yet available
+*  `release/2.7 <https://github.com/ROCm/pytorch/tree/release/2.7>`_
 *  `rocm6.4_internal_testing <https://github.com/ROCm/pytorch/tree/rocm6.4_internal_testing>`_
-*  `rocm6.5_internal_testing <https://github.com/ROCm/pytorch/tree/rocm6.5_internal_testing>`_: Not yet available
+*  `rocm6.5_internal_testing <https://github.com/ROCm/pytorch/tree/rocm6.5_internal_testing>`_
 
 For information on installing and using PyTorch on ROCm, see :doc:`PyTorch on ROCm <rocm-install-on-linux:install/3rd-party/pytorch-install>`.
 
@@ -81,6 +81,14 @@ Supported configurations
 The following table shows the Batchnorm support for NHWC and NCHW with various data types and modes.
 It also indicates which backend is used with and without the ``PYTORCH_MIOPEN_SUGGEST_NHWC_BATCHNORM``
 environment variable enabled.
+
+.. note::
+
+   Mixed mode means that the Batchnorm module has a different type than the inputs, for example,
+   an input or gradient data type of ``FP16`` or ``BF16`` and a Batchnorm type of ``FP32``.
+   If the Batchnorm module has the same data type as the inputs, for instance, an
+   input or gradient data type of ``FP32`` and a Batchnorm module that is also ``FP32``, the mode is
+   "not mixed".
 
 .. csv-table::
    :header: "Input data type","Memory format","Mode","Default backend","Backend with variable enabled"
@@ -134,3 +142,19 @@ Each line corresponds to a different command or operation.
 The ``./bin/MIOpenDriver`` string indicates that MIOpen was used for the operation.
 The ``--layout`` parameter shows whether NHWC or NCHW was used, for example, ``--layout NHWC`` means the
 NHWC memory format was used.
+
+Running Batchnorm tests
+=======================
+
+Several test suites are available for Batchnorm. To test Batchnorm training using both NHWC and NCHW,
+run the following command:
+
+.. code:: shell
+
+   python test_nn.py -v -k test_batchnorm_train
+
+To test Batchnorm inference using both memory formats, use this command:
+
+.. code:: shell
+
+   python test_nn.py -v -k test_batchnorm_inference
