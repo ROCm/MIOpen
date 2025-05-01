@@ -32,6 +32,7 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #include <algorithm>
+#include <ctype.h>
 #include <sstream>
 
 #include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
