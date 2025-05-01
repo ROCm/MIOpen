@@ -393,7 +393,6 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
     }
 
-    MIOPEN_LOG_I2("TrustVerify: " << static_cast<std::underlying_type_t<FallbackPath>>(fallback));
     if(sol.has_value())
     {
         if(findMode.IsTrustVerify(ctx))

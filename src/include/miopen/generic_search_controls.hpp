@@ -34,11 +34,10 @@
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX,
                               std::numeric_limits<std::size_t>::max())
 
-static size_t DEFAULT_MIOPEN_TUNING_TIME_MS_MAX =
-    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2}).count();
+const size_t DEFAULT_MIOPEN_TUNING_TIME_MS_MAX = 7200000; // 2 hours
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_TUNING_TIME_MS_MAX, DEFAULT_MIOPEN_TUNING_TIME_MS_MAX)
 
-static size_t DEFAULT_MIOPEN_TUNING_PATIENCE = std::numeric_limits<std::size_t>::max();
+const size_t DEFAULT_MIOPEN_TUNING_PATIENCE = std::numeric_limits<std::size_t>::max();
 MIOPEN_DECLARE_ENV_VAR_UINT64(
     MIOPEN_TUNING_PATIENCE,
     DEFAULT_MIOPEN_TUNING_PATIENCE) // End tuning if no improvement in X iterations

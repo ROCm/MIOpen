@@ -325,7 +325,7 @@ std::chrono::milliseconds GetTuningTimeMax(const Context& ctx,
 }
 
 template <typename Context, typename Problem>
-std::chrono::milliseconds GetTuningTimeMax(const Context& ctx, const Problem& problem)
+std::chrono::milliseconds GetTuningTimeMax(const Context&, const Problem&)
 {
     return GetTuningTimeMax();
 }
@@ -345,7 +345,7 @@ std::size_t GetTuningPatience(const Context& ctx, const miopen::conv::ProblemDes
 }
 
 template <typename Context, typename Problem>
-std::size_t GetTuningPatience(const Context& ctx, const Problem& problem)
+std::size_t GetTuningPatience(const Context&, const Problem&)
 {
     return GetTuningPatience();
 }
