@@ -26,26 +26,6 @@
 
 cmake_policy(SET CMP0057 NEW)
 
-set(test_perf.py ${CMAKE_INSTALL_BINDIR}/test_perf.py)
-
-install(FILES  test_perf.py
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-    DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-set(MODEL_FILES)
-file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
-foreach (src ${model_src})
-    list (APPEND MODEL_FILES ${src})
-endforeach()
-
-install(FILES
-    ${MODEL_FILES}
-    DESTINATION ${DATA_INSTALL_DIR}/perf_models)
-foreach(MODEL_FILE ${MODEL_FILES})
-   get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-   configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
-endforeach()
-
 include(CheckCXXCompilerFlag)
 
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
@@ -62,12 +42,35 @@ option( MIOPEN_TEST_GFX103X "Test on Navi21/22 (gfx1030/31)" OFF )
 option( MIOPEN_TEST_GFX110X "Test on Navi31/32 (gfx1100/02)" OFF )
 option( MIOPEN_TEST_GFX120X "Test on gfx1200/01" OFF )
 option( MIOPEN_TEST_GPU_XNACK_ENABLED "Test as if XNACK mode is enabled" OFF )
-option( MIOPEN_TEST_CONV "" OFF)
-option( MIOPEN_TEST_DEEPBENCH "" OFF)
-option( MIOPEN_TEST_DRIVER_ITER_MODE "" OFF)
+option( MIOPEN_TEST_CONV "" OFF )
+option( MIOPEN_TEST_DEEPBENCH "" OFF )
+option( MIOPEN_TEST_DRIVER_ITER_MODE "" OFF )
 option( MIOPEN_TEST_COMPOSABLEKERNEL "Test with composable_kernel library" ${MIOPEN_USE_COMPOSABLEKERNEL} )
-option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON)
-option( MIOPEN_TEST_DBSYNC "" OFF)
+option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON )
+option( MIOPEN_TEST_DBSYNC "" OFF )
+option( MIOPEN_TEST_PERF "" OFF )
+
+if(NOT ENABLE_ASAN_PACKAGING AND MIOPEN_TEST_PERF)
+    set( CMAKE_INSTALL_TESTBINDIR "${DATA_INSTALL_DIR}/bin" )
+    set(test_perf.py ${CMAKE_INSTALL_TESTBINDIR}/test_perf.py)
+    install(FILES  test_perf.py
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+        DESTINATION ${CMAKE_INSTALL_TESTBINDIR})
+
+    set(MODEL_FILES)
+    file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
+    foreach (src ${model_src})
+        list (APPEND MODEL_FILES ${src})
+    endforeach()
+
+    install(FILES
+        ${MODEL_FILES}
+        DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+    foreach(MODEL_FILE ${MODEL_FILES})
+       get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+       configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
+    endforeach()
+endif()
 
 set_var_to_condition(MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT MIOPEN_BUILD_DRIVER)
 option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT})
@@ -117,19 +120,13 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
         elseif (NOT ROCMINFO_EXIT_STATUS EQUAL 0)
             message(WARNING "ROCMINFO FAILED, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
             set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1030")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx103.")
             set(MIOPEN_TEST_GFX103X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1031")
-            set(MIOPEN_TEST_GFX103X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1100")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx110.")
             set(MIOPEN_TEST_GFX110X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1101")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx115.")
             set(MIOPEN_TEST_GFX110X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1102")
-            set(MIOPEN_TEST_GFX110X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1200")
-            set(MIOPEN_TEST_GFX120X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1201")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx120.")
             set(MIOPEN_TEST_GFX120X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx900")
             set(MIOPEN_TEST_GFX900 ON)
@@ -190,6 +187,7 @@ message(STATUS "MIOPEN_TEST_DRIVER_ITER_MODE ${MIOPEN_TEST_DRIVER_ITER_MODE}")
 message(STATUS "MIOPEN_TEST_COMPOSABLEKERNEL ${MIOPEN_TEST_COMPOSABLEKERNEL}")
 message(STATUS "MIOPEN_TEST_DISCRETE ${MIOPEN_TEST_DISCRETE}")
 message(STATUS "MIOPEN_TEST_DBSYNC ${MIOPEN_TEST_DBSYNC}")
+message(STATUS "MIOPEN_TEST_PERF ${MIOPEN_TEST_PERF}")
 
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)

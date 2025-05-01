@@ -53,9 +53,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHO
 #define WORKAROUND_MIOPEN_ISSUE_557 1
 #define WORKAROUND_SWDEV_413051 1
 
-// LLVM buffer intrinsics llvm.amdgcn.buffer.* have been removed in HIP 6.4
-#define WORKAROUND_SWDEV_498660 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
-
 namespace miopen {
 
 namespace solver {

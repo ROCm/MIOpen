@@ -23,19 +23,34 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/temp_file.hpp>
-#include <miopen/errors.hpp>
-#include <miopen/filesystem.hpp>
-#include <fstream>
+#include "driver.hpp"
 
-namespace miopen {
-TempFile::TempFile(const std::string& path_infix_) : path_infix(path_infix_), dir(path_infix)
+void Driver::AddGpuBufferCheckFlag(InputFlags& inflags)
 {
-    if(!std::ofstream{this->Path(), std::ios_base::out | std::ios_base::in | std::ios_base::trunc}
-            .good())
-    {
-        MIOPEN_THROW("Failed to create temp file: " + this->Path());
-    }
+    inflags.AddInputFlag("gpubuffer_check",
+                         '~',
+                         "0",
+                         "Controls whether gpu buffers are sanitized during execution.  This is"
+                         "\nonly supported for the HIP backend."
+                         "\n0  No gpu buffer sanitation done (Default)."
+                         "\n1  Check for invalid gpu memory accesses before the start of"
+                         "\n   the gpu buffers."
+                         "\n2  Check for invalid gpu memory accesses after the end of the"
+                         "\n   gpu buffers.",
+                         "int");
 }
 
-} // namespace miopen
+GPUMem::Check Driver::GetGpuBufferCheck(const InputFlags& inflags) const
+{
+    auto check = inflags.GetValueInt("gpubuffer_check");
+    switch(check)
+    {
+    case 0: return GPUMem::Check::None;
+    case 1: return GPUMem::Check::Front;
+    case 2: return GPUMem::Check::Back;
+    default:
+        std::cerr << "Error: Invalid option " << check
+                  << " used with --gpubuffer_check.  Should be 0 (none), 1 (front), or 2 (back).";
+        exit(EXIT_FAILURE);
+    }
+}

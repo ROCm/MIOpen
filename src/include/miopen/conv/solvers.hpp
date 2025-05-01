@@ -2259,6 +2259,25 @@ extern template struct ConvWinoFuryRxS<2, 3>;
 // extern template struct ConvWinoFuryRxS<3, 2>;
 #endif
 
+template <uint32_t Winodata, uint32_t Winofilter>
+struct ConvWinoRageRxS final : ConvSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvWinoRageRxS<Winodata, Winofilter>>();
+    }
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
+};
+
+#ifndef CONV_WINO_RAGE_RXS_CPP
+extern template struct ConvWinoRageRxS<2, 3>;
+#endif
+
 struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvAsmBwdWrW1x1>
 {
 

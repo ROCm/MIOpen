@@ -36,6 +36,8 @@
 #define FQUALIFIERS inline
 #include <miopen_rocrand.hpp>
 
+#define WORKAROUND_SWDEV_528878 1
+
 namespace test {
 namespace cpu {
 

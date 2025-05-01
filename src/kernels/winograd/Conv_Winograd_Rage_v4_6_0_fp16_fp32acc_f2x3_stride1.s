@@ -23,19 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/temp_file.hpp>
-#include <miopen/errors.hpp>
-#include <miopen/filesystem.hpp>
-#include <fstream>
+.include "Conv_Winograd_Rage_v4_6_0_metadata.inc"
 
-namespace miopen {
-TempFile::TempFile(const std::string& path_infix_) : path_infix(path_infix_), dir(path_infix)
-{
-    if(!std::ofstream{this->Path(), std::ios_base::out | std::ios_base::in | std::ios_base::trunc}
-            .good())
-    {
-        MIOPEN_THROW("Failed to create temp file: " + this->Path());
-    }
-}
-
-} // namespace miopen
+.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4 && .amdgcn.gfx_generation_stepping == 2)
+    KERNEL_PROLOG _fp16_fp32acc_f2x3_stride1
+    .include "Conv_Winograd_Rage_v4_6_0_gfx94x_fp16_fp32acc_f2x3_stride1.inc"
+    KERNEL_EPILOG _fp16_fp32acc_f2x3_stride1
+.else
+    .error "Unsupported gfx version"
+.endif
