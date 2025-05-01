@@ -10,6 +10,10 @@ This topic explains how to use NHWC Batchnorm for MIOpen operations in PyTorch. 
 a deep learning memory format that has certain performance advantages over traditional
 memory formats.
 
+For information on installing and using PyTorch with ROCm, see :doc:`PyTorch on ROCm <rocm-install-on-linux:install/3rd-party/pytorch-install>`.
+For more background on using PyTorch and ROCm for AI tasks, see
+:doc:`Training a model with PyTorch for ROCm <rocm:how-to/rocm-for-ai/training/benchmark-docker/pytorch-training>`.
+
 NHWC versus NCHW
 =================================================
 
@@ -105,6 +109,24 @@ environment variable enabled.
    "any","any","3D","native","native"
 
 (*) MIOpen is used with ROCm 6.4 and later. Otherwise, the native backend is used.
+
+
+Disabling MIOpen for Batchnorm in PyTorch
+=================================================
+
+In some situations, you might not want to use MIOpen as the backend for Batchnorm operations.
+To disable the use of MIOpen with Batchnorm, add this code to your application.
+
+.. code:: python
+
+   inp = torch.randn(size, requires_grad=True)
+   grad = torch.randn(size, requires_grad=False)
+   mod = nn.BatchNorm2d(inp.size(1), device="cuda")
+
+   with torch.backends.cudnn.flags(enabled=False): # this line disables MIOpen for the two lines below, native batchnorm will be used
+
+      out = mod(inp)
+      out.backward(grad)
 
 Verifying NHWC Batchnorm use with MIOpen
 =================================================
