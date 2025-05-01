@@ -70,8 +70,6 @@ NHWC Batchnorm feature:
 
 *  `release/2.6 <https://github.com/ROCm/pytorch/tree/release/2.6>`_
 *  `release/2.7 <https://github.com/ROCm/pytorch/tree/release/2.7>`_
-*  `rocm6.4_internal_testing <https://github.com/ROCm/pytorch/tree/rocm6.4_internal_testing>`_
-*  `rocm6.5_internal_testing <https://github.com/ROCm/pytorch/tree/rocm6.5_internal_testing>`_
 
 For information on installing and using PyTorch on ROCm, see :doc:`PyTorch on ROCm <rocm-install-on-linux:install/3rd-party/pytorch-install>`.
 
