@@ -556,7 +556,8 @@ inline void DefaultConfigSpatialMultiple(const miopen::batchnorm::ProblemDescrip
     std::tie(n, c, h, w)    = tien<4>(problem.GetXDesc().GetLengths());
     unsigned int in_cstride = h * w;
 
-    size_t xlocalsize_default, ylocalsize_default;
+    size_t xlocalsize_default = 0;
+    size_t ylocalsize_default = 0;
     size_t vectorsize_default = 4;
     size_t zlocalsize_default = 1;
     size_t nelements_default  = n;
