@@ -32,6 +32,7 @@
 #include <miopen/mlo_internal.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #include <algorithm>
+#include <ctype.h>
 #include <sstream>
 
 #include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
@@ -94,15 +95,12 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
     // GPU target
     static const std::string device_name = handle.GetDeviceName();
 
-    // device_name: "gfx942" -> macro: "CK_AMD_GFX942"
-    std::string prefix_to_find              = "gfx";
-    constexpr std::string_view macro_prefix = "CK_AMD_GPU_GFX";
-    std::string macro                       = "";
-    if(StartsWith(device_name, prefix_to_find))
+    // device_name: "gfx90a" -> macro: "CK_AMD_GPU_GFX90A"
+    if(StartsWith(device_name, "gfx"))
     {
-        macro.append(macro_prefix);
-        macro.append(device_name.substr(prefix_to_find.length()));
-        compiler_flag << " -D" + macro;
+        std::string gfxid = device_name.substr(3);
+        std::transform(gfxid.begin(), gfxid.end(), gfxid.begin(), ::toupper);
+        compiler_flag << " -DCK_AMD_GPU_GFX" << gfxid;
     }
 
     // buffer atomic-fadd
