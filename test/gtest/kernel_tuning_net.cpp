@@ -260,7 +260,16 @@ TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16,
 {
     TestParameterPredictionModel();
 }
-#ifdef MIOPEN_ISSUE_3708_RESOLVED // remove guard after test fixes have been accepted
+#ifndef MIOPEN_ISSUE_3708_RESOLVED // remove guard after test fixes have been accepted
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvAsm1x1U_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvAsm1x1U_FP16);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP16);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP16);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16);
+#else
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_KernelTuningNetTestConvAsm1x1U_FP32,
                          testing::ValuesIn(GetConvAsm1x1UTestCases_FP32()));
