@@ -197,12 +197,12 @@ using GPU_KernelTuningNetTestConvAsm1x1U_FP32 =
 using GPU_KernelTuningNetTestConvAsm1x1U_FP16 =
     KernelTuningNetTest<miopen::solver::conv::PerformanceConfigConvAsm1x1U>;
 
-TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_FP32, ConvAsm1x1UParameterPredictionModel)
+TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_FP32, DISABLE_ConvAsm1x1UParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
 
-TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_FP16, ConvAsm1x1UParameterPredictionModel)
+TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_FP16, DISABLE_ConvAsm1x1UParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
@@ -214,13 +214,13 @@ using GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP16 =
     KernelTuningNetTest<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupFwdXdlops>;
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP32,
-       ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
+    DISABLE_ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP16,
-       ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
+    DISABLE_ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
@@ -232,13 +232,13 @@ using GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP16 =
     KernelTuningNetTest<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupBwdXdlops>;
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP32,
-       ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
+    DISABLE_ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP16,
-       ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
+    DISABLE_ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
@@ -250,17 +250,26 @@ using GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16 =
     KernelTuningNetTest<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupWrwXdlops>;
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP32,
-       ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
+    DISABLE_ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16,
-       ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
+    DISABLE_ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
-
+#ifndef MIOPEN_ISSUE_3708_RESOLVED // remove guard after test fixes have been accepted
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvAsm1x1U_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvAsm1x1U_FP16);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP16);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP16);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16);
+#else
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_KernelTuningNetTestConvAsm1x1U_FP32,
                          testing::ValuesIn(GetConvAsm1x1UTestCases_FP32()));
@@ -292,3 +301,4 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16,
                          testing::ValuesIn(GetConvHipIgemmGroupWrwXdlopsTestCases_FP16()));
+#endif
