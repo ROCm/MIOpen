@@ -11,6 +11,7 @@ a deep learning memory format that has certain performance advantages over tradi
 memory formats.
 
 For information on installing and using PyTorch with ROCm, see :doc:`PyTorch on ROCm <rocm-install-on-linux:install/3rd-party/pytorch-install>`.
+For a list of the ROCm components and features that PyTorch supports, see :doc:`PyTorch compatibility <rocm:compatibility/ml-compatibility/pytorch-compatibility>`.
 For more background on using PyTorch and ROCm for AI tasks, see
 :doc:`Training a model with PyTorch for ROCm <rocm:how-to/rocm-for-ai/training/benchmark-docker/pytorch-training>`.
 
