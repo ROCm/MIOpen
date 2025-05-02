@@ -494,7 +494,13 @@ INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Fwd_Mha_FP16, testing::ValuesIn(GetFp16Smoke
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Fwd_Mha_FP16, testing::ValuesIn(GetFp16FullTestCases()));
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Fwd_Mha_FP16);
 
-TEST_P(GPU_Fwd_Mha_FP8, Test_float) { return Test_Fwd_Mha<float8_fnuz>::TestBody(); };
+#if WORKAROUND_SWDEV_528878
+#define MHA_FP8_TEST_NAME DISABLED_Test_float8
+#else
+#define MHA_FP8_TEST_NAME Test_float8
+#endif
+
+TEST_P(GPU_Fwd_Mha_FP8, MHA_FP8_TEST_NAME) { return Test_Fwd_Mha<float8_fnuz>::TestBody(); };
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Fwd_Mha_FP8, testing::ValuesIn(GetSmokeCases()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Fwd_Mha_FP8, testing::ValuesIn(GetFullTestCases()));

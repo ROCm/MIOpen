@@ -26,23 +26,12 @@
 #include <tuple>
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
+#include <gtest/gtest_common.hpp>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
 #include "lib_env_var.hpp"
 
-MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_MODE)
-MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-
 namespace conv_igemm_dynamic_xdlops_nhwc_bf16 {
-
-void SetupEnvVar()
-{
-    lib_env::update(MIOPEN_FIND_MODE, "normal");
-    lib_env::update(
-        MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-        "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-        "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
-}
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -79,7 +68,11 @@ void Run2dDriver(miopenDataType_t prec)
     default: params = GPU_Conv2d_BFP16::GetParam();
     }
 
-    SetupEnvVar();
+    ScopedEnvironment<std::string> find_mode_env1(MIOPEN_FIND_MODE, "normal");
+    ScopedEnvironment<std::string> find_only_solver_env(
+        MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+        "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+        "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
 
     for(const auto& test_value : params)
     {
