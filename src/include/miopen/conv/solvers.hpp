@@ -2095,18 +2095,18 @@ struct ConvWinograd3x3MultipassWrW final : ConvSolver
             ConvWinograd3x3MultipassWrW<WinoDataH, WinoFilterH, WinoDataW, WinoFilterW>>();
     }
 
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
 
     bool IsDynamic() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
-        const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
 
     bool MayNeedWorkspace() const override { return true; }
 
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
 
     // kernel_file_name for solver identification
     static fs::path GetSolverFileNames(int id)
@@ -2149,12 +2149,7 @@ private:
                                          std::size_t ws_sz) const;
 };
 
-// To suppress misleading clang warnings
-#if defined(__clang__) && defined(CONV_MULTIPASS_WINO3X3WRW_CPP)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wweak-template-vtables"
-#endif
-
+#ifndef CONV_MULTIPASS_WINO3X3WRW_CPP
 extern template struct ConvWinograd3x3MultipassWrW<3, 2>;
 extern template struct ConvWinograd3x3MultipassWrW<3, 3>;
 extern template struct ConvWinograd3x3MultipassWrW<3, 4>;
@@ -2168,9 +2163,6 @@ extern template struct ConvWinograd3x3MultipassWrW<7, 2, 1, 1>;
 extern template struct ConvWinograd3x3MultipassWrW<7, 3, 1, 1>;
 extern template struct ConvWinograd3x3MultipassWrW<5, 3>;
 extern template struct ConvWinograd3x3MultipassWrW<5, 4>;
-
-#if defined(__clang__) && defined(CONV_MULTIPASS_WINO3X3WRW_CPP)
-#pragma clang diagnostic pop
 #endif
 
 struct PerformanceConfigAsmDirect3x3WrW : PerfConfigBase<PerformanceConfigAsmDirect3x3WrW>
@@ -2265,6 +2257,25 @@ struct ConvWinoFuryRxS final : ConvSolver
 #ifndef CONV_WINO_FURY_RXS_CPP
 extern template struct ConvWinoFuryRxS<2, 3>;
 // extern template struct ConvWinoFuryRxS<3, 2>;
+#endif
+
+template <uint32_t Winodata, uint32_t Winofilter>
+struct ConvWinoRageRxS final : ConvSolver
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvWinoRageRxS<Winodata, Winofilter>>();
+    }
+    bool IsApplicable(const ExecutionContext&,
+                      const miopen::conv::ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    ConvSolution GetSolution(const ExecutionContext&,
+                             const miopen::conv::ProblemDescription&) const override;
+};
+
+#ifndef CONV_WINO_RAGE_RXS_CPP
+extern template struct ConvWinoRageRxS<2, 3>;
 #endif
 
 struct PerformanceConfigConvAsmBwdWrW1x1 : PerfConfigBase<PerformanceConfigConvAsmBwdWrW1x1>

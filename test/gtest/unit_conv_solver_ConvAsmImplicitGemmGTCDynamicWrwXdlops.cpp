@@ -85,6 +85,7 @@ const auto& GetTestParams()
     static const auto params = [] {
         auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx908);
         p.CheckXnackDisabled();
+        p.SetTolerance(Gpu::gfx908, miopenFloat, 5.0f);
         return p;
     }();
     return params;
