@@ -214,13 +214,13 @@ using GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP16 =
     KernelTuningNetTest<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupFwdXdlops>;
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP32,
-    DISABLE_ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
+       DISABLE_ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP16,
-    DISABLE_ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
+       DISABLE_ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
@@ -232,13 +232,13 @@ using GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP16 =
     KernelTuningNetTest<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupBwdXdlops>;
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP32,
-    DISABLE_ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
+       DISABLE_ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP16,
-    DISABLE_ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
+       DISABLE_ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
@@ -250,25 +250,31 @@ using GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16 =
     KernelTuningNetTest<miopen::solver::conv::PerformanceConfigHipImplicitGemmGroupWrwXdlops>;
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP32,
-    DISABLE_ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
+       DISABLE_ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16,
-    DISABLE_ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
+       DISABLE_ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
 {
     TestParameterPredictionModel();
 }
 #ifndef MIOPEN_ISSUE_3708_RESOLVED // remove guard after test fixes have been accepted
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvAsm1x1U_FP32);
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvAsm1x1U_FP16);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP32);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP16);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP32);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP16);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP32);
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
+    GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
+    GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP16);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
+    GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
+    GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP16);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
+    GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP32);
+GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(
+    GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16);
 #else
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_KernelTuningNetTestConvAsm1x1U_FP32,
