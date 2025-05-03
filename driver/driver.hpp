@@ -351,7 +351,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
     }
 }
 
-[[noreturn]] inline void Usage()
+[[noreturn]] inline void Usage(int e)
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
     printf("Supported Base Arguments: conv[fp16|int8|bfp16], pool[fp16], lrn[fp16], "
@@ -363,7 +363,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], rope[bfp16|fp16], "
            "prelu[bfp16|fp16], kthvalue[bfp16|fp16], glu[bfp16|fp16], softmarginloss[bfp16|fp16], "
            "multimarginloss[bfp16|fp16]\n");
-    exit(0); // NOLINT (concurrency-mt-unsafe)
+    exit(e); // NOLINT (concurrency-mt-unsafe)
 }
 
 inline std::string ParseBaseArg(int argc, char* argv[])
@@ -371,7 +371,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
     if(argc < 2)
     {
         printf("FAILED: Invalid Number of Input Arguments\n");
-        Usage();
+        Usage(EXIT_FAILURE);
     }
 
     std::string arg = argv[1];
@@ -403,10 +403,10 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
-        Usage();
+        Usage(EXIT_FAILURE);
     }
     else if(arg == "-h" || arg == "--help" || arg == "-?")
-        Usage();
+        Usage(EXIT_SUCCESS);
     else
         return arg;
 }

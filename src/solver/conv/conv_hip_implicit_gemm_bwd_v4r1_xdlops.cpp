@@ -849,6 +849,9 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(name == "gfx942" || name == "gfx950")
+        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(!IsApplicableXdlops(ctx, problem))
@@ -857,7 +860,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     bool is_applicable = true;

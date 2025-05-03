@@ -30,8 +30,7 @@ library "jenkins-shared@${get_branch_name()}"
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Performance Dataset" is a performance test with a specified dataset.
-/// Target := { gfx908 | gfx90a | Vega20 | Vega10 | Vega* | gfx1030 } [ Xnack+ ]
-///   * "Vega" (gfx906 or gfx900) is the default and usually not specified.
+/// Target := { gfx908 | gfx90a | gfx94x } [ Xnack+ ]
 
 
 pipeline {
@@ -75,14 +74,6 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "TARGET_VEGA10",
-            defaultValue: false,
-            description: "")
-        booleanParam(
-            name: "TARGET_VEGA20",
-            defaultValue: false,
-            description: "")
-        booleanParam(
             name: "TARGET_GFX908",
             defaultValue: env.BRANCH_NAME == "develop" ? true : false,
             description: "")
@@ -92,16 +83,16 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_GFX94X",
-            defaultValue: false,
-            description: "")
-        booleanParam(
-            name: "TARGET_NAVI21",
-            defaultValue: false,
+            defaultValue: env.BRANCH_NAME == "develop" ? true : false,
             description: "")
         booleanParam(
             name: "TARGET_NAVI32",
             defaultValue: false,
-            description: "")
+            description: "Navi3 currently fails to build with instruction not supported on this GPU error")
+        booleanParam(
+            name: "TARGET_NAVI4",
+            defaultValue: false,
+            description: "Navi4 currently fails to build with instruction not supported on this GPU error")
         booleanParam(
             name: "DATATYPE_NA",
             defaultValue: true,
@@ -323,6 +314,36 @@ pipeline {
                         }
                     }
                 }
+                stage('Fp32 Hip Debug gfx1101') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI32 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("navi32") }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
+                        }
+                    }
+                }
+                stage('Fp32 Hip Debug gfx1201') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI4 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx1201") }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
+                        }
+                    }
+                }
             }
         }
         stage("Smoke Aux 1") {
@@ -380,24 +401,6 @@ pipeline {
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", make_targets: "", build_install: true)
-                        }
-                    }
-                }
-                stage('Fp32 Hip Debug Embedded Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    environment{
-                        Embedded_flags = "-DMIOPEN_EMBED_DB='gfx906_60'"
-                    }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: Embedded_flags, build_env: extra_log_env, test_flags: ' --verbose ', build_install: true)
                         }
                     }
                 }
@@ -508,36 +511,6 @@ pipeline {
                 expression { params.BUILD_SMOKE_FP16_BF16_INT8 }
             }
             parallel{
-                stage('Fp16 Hip Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot( setup_flags: Fp16_flags, make_targets: Smoke_targets, build_install: true)
-                        }
-                    }
-                }
-                stage('Bf16 Hip Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_BF16 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags, make_targets: Smoke_targets, build_install: true)
-                        }
-                    }
-                }
                 stage('Fp16 Hip gfx908') {
                     when {
                         beforeAgent true
@@ -634,11 +607,6 @@ pipeline {
             when {
                 expression { params.BUILD_FULL_TESTS}
             }
-            environment{
-                // WORKAROUND_ISSUE_1148: "CTEST_PARALLEL_LEVEL=2"
-                // WORKAROUND_SWDEV_290754: "LLVM_PATH=/opt/rocm/llvm"
-                Navi21_build_cmd = "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=2 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
-            }
             parallel{
                 stage('Dbsync gfx908') {
                     when {
@@ -703,21 +671,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Int8 HIP All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_INT8 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot( setup_flags: Int8_flags + Full_test)
-                        }
-                    }
-                }
                 stage('Bf16 Hip Install All gfx908') {
                     when {
                         beforeAgent true
@@ -760,21 +713,6 @@ pipeline {
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: true, needs_reboot:false)
-                        }
-                    }
-                }
-                stage('Fp16 Hip All gfx1030') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP16 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("navi21") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_cmd: Navi21_build_cmd)
                         }
                     }
                 }
@@ -847,51 +785,6 @@ pipeline {
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Full_test, needs_reboot:false)
-                        }
-                    }
-                }
-                stage('Fp16 Hip Install All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP16 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot( setup_flags: Full_test + Fp16_flags, build_install: true)
-                        }
-                    }
-                }
-                stage('Fp32 Hip All Vega20') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_VEGA20 && params.DATATYPE_FP32 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("vega20") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot( setup_flags: Full_test)
-                        }
-                    }
-                }
-                stage('Fp32 Hip All Install gfx1030') {
-                    when {
-                        beforeAgent true
-                        expression { params.TARGET_NAVI21 && params.DATATYPE_FP32 }
-                    }
-                    options {
-                        retry(2)
-                    }
-                    agent{ label rocmnode("navi21") }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot(setup_flags: Full_test, build_cmd: Navi21_build_cmd, build_install: true)
                         }
                     }
                 }
