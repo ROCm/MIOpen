@@ -46,6 +46,9 @@
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 
+// Temporarily disable warnings as errors for kernel builds to see real breaks with compiler changes
+#define MIOPEN_WORKAROUND_COMPILER_CHANGE 1
+
 namespace miopen {
 
 static cl_program CreateProgram(cl_context ctx, const char* char_source, size_t size)
@@ -165,7 +168,7 @@ ClProgramPtr LoadProgram(cl_context ctx,
     if(program_name.extension() == ".cpp")
     {
         boost::optional<miopen::TmpDir> dir(program_name);
-#if MIOPEN_BUILD_DEV
+#if MIOPEN_BUILD_DEV && !MIOPEN_WORKAROUND_COMPILER_CHANGE
         params += " -Werror";
         params += HipKernelWarningsString();
 #endif
