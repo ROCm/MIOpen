@@ -657,11 +657,10 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.Is2d() && !(problem.Is3d() && problem.IsFp32()))
         return false;
+
     if(!(problem.IsFp32() || problem.IsBfp16()))
         return false;
-    const std::string name = ctx.GetStream().GetDeviceName();
-    if(name == "gfx942" || name == "gfx950")
-        return false;
+
     if(problem.IsTensorsCasted())
         return false;
     if(problem.GetGroupCount() != 1)
