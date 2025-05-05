@@ -114,19 +114,19 @@ __device__ ushort
 llvm_amdgcn_raw_buffer_load_bf16(buffer_resourse_t srsrc,
                                  index_t voffset,
                                  index_t soffset,
-                                 index_t glc_slc) __asm(amd_buffer_intrinsic_name(load.bf16));
+                                 index_t glc_slc) __asm(amd_buffer_intrinsic_name(load.i16));
 
 __device__ ushort2_t
 llvm_amdgcn_raw_buffer_load_bf16x2(buffer_resourse_t srsrc,
                                    index_t voffset,
                                    index_t soffset,
-                                   index_t glc_slc) __asm(amd_buffer_intrinsic_name(load.v2bf16));
+                                   index_t glc_slc) __asm(amd_buffer_intrinsic_name(load.v2i16));
 
 __device__ ushort4_t
 llvm_amdgcn_raw_buffer_load_bf16x4(buffer_resourse_t srsrc,
                                    index_t voffset,
                                    index_t soffset,
-                                   index_t glc_slc) __asm(amd_buffer_intrinsic_name(load.v4bf16));
+                                   index_t glc_slc) __asm(amd_buffer_intrinsic_name(load.v4i16));
 
 // store
 __device__ void
@@ -227,21 +227,21 @@ llvm_amdgcn_raw_buffer_store_bf16(ushort vdata,
                                   buffer_resourse_t srsrc,
                                   index_t voffset,
                                   index_t soffset,
-                                  index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.bf16));
+                                  index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.i16));
 
 __device__ void
 llvm_amdgcn_raw_buffer_store_bf16x2(ushort2_t vdata,
                                     buffer_resourse_t srsrc,
                                     index_t voffset,
                                     index_t soffset,
-                                    index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.v2bf16));
+                                    index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.v2i16));
 
 __device__ void
 llvm_amdgcn_raw_buffer_store_bf16x4(ushort4_t vdata,
                                     buffer_resourse_t srsrc,
                                     index_t voffset,
                                     index_t soffset,
-                                    index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.v4bf16));
+                                    index_t glc_slc) __asm(amd_buffer_intrinsic_name(store.v4i16));
 
 #if CK_USE_AMD_BUFFER_ATOMIC_FADD
 
