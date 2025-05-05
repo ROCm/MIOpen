@@ -40,6 +40,7 @@
 #include <half/half.hpp>
 #if MIOPEN_ROCBLAS_VERSION_FLAT < 2045000
 #include <rocblas.h>
+#define USE_ROCBLAS_EX3 0
 #else
 #include <rocblas/rocblas.h>
 /// rocblas_gemm_ex3 supports F8 datatypes.
