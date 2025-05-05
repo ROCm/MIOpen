@@ -605,9 +605,6 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsFp32())
         return false;
-    const std::string name = ctx.GetStream().GetDeviceName();
-    if(name == "gfx942" || name == "gfx950")
-        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(problem.GetGroupCount() != 1)

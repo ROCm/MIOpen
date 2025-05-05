@@ -59,9 +59,6 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    const std::string name = ctx.GetStream().GetDeviceName();
-    if(name == "gfx942" || name == "gfx950")
-        return false;
     if(!problem.Is2d())
         return false;
     if(problem.HasNonPackedTensors())
@@ -116,14 +113,11 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsFp32() && !problem.IsFp16() && !problem.IsBfp16())
         return false;
-    const std::string name = ctx.GetStream().GetDeviceName();
-    if(name == "gfx942" || name == "gfx950")
-        return false;
     if(!IsIndexRangeLargeEnough(problem))
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
     if(problem.IsTensorsCasted())
         return false;
