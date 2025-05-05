@@ -708,6 +708,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
 
+    RegisterWithSolver(
+        registry, ++id, conv::ConvWinoRageRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
+  
     Register(
         registry, ++id, Primitive::LossFunction, mseloss::forward::MSELossForward{}.SolverDbId());
     Register(
