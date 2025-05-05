@@ -145,6 +145,62 @@ struct WinoShaderArgsV2
                          WinoShaderFlagsV2 flags,
                          uint8_t sync_limit,
                          uint8_t sync_period) noexcept;
+
+    // Template is used to catch -Wshift-count-overflow
+    /// \todo Move to a utility header
+    template <uint32_t exp, typename T = uint32_t>
+    static constexpr T PowOf2() noexcept
+    {
+        return static_cast<T>(1) << exp;
+    }
+
+    bool N_C_H_W_OH_OW_fit16bit() const noexcept
+    {
+        // clang-format off
+        return N < PowOf2<16>()
+            && C < PowOf2<16>()
+            && H < PowOf2<16>()
+            && W < PowOf2<16>()
+            && R < PowOf2<16>()
+            && S < PowOf2<16>()
+        && out_h < PowOf2<16>()
+        && out_w < PowOf2<16>() - 3;
+        // clang-format on
+    }
+
+    bool R_S_fit16bit() const noexcept
+    {
+        // clang-format off
+        return R < PowOf2<16>()
+            && S < PowOf2<16>();
+        // clang-format on
+    }
+
+    bool R_S_fit3x3() const noexcept
+    {
+        // clang-format off
+        return R <= 3U
+            && S <= 3U;
+        // clang-format on
+    }
+
+    bool batchTensorSizesFit31bits() const noexcept
+    {
+        // clang-format off
+        return (static_cast<uint64_t>(N - 1) * C + 1) * H     * W     < PowOf2<31>()
+            && (static_cast<uint64_t>(N - 1) * K + 1) * out_h * out_w < PowOf2<31>();
+        // clang-format on
+    }
+
+    bool paddedSizesFit16bits() const noexcept
+    {
+        // clang-format off
+        return static_cast<int64_t>(pad_h) + H <= PowOf2<16, int64_t>()
+            && static_cast<int64_t>(pad_w) + W <= PowOf2<16, int64_t>()
+            && std::abs(static_cast<int64_t>(pad_h)) + out_h + R <= PowOf2<16, int64_t>()
+            && std::abs(static_cast<int64_t>(pad_w)) + out_w + S <= PowOf2<16, int64_t>();
+        // clang-format on
+    }
 };
 
 } // namespace miopen
