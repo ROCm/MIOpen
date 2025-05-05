@@ -191,7 +191,8 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
     }
     else
     {
-        MIOPEN_LOG_W("Skip FindCore possible cause: user specified workspace is smaller than required");
+        MIOPEN_LOG_W(
+            "Skip FindCore possible cause: user specified workspace is smaller than required");
     }
 
     if(env::enabled(MIOPEN_DEBUG_COMPILE_ONLY))
