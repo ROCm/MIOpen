@@ -176,12 +176,10 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverAsm1x1UDevApplicabilityFwd_FP32,
-                         testing::Combine(testing::Values(GetTestParamsFp16AltDisabled(),
-                                                          GetTestParamsFp16AltEnabled()),
+                         testing::Combine(testing::Values(GetTestParamsFp32()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverAsm1x1UDevApplicabilityBwd_FP32,
-                         testing::Combine(testing::Values(GetTestParamsFp16AltDisabled(),
-                                                          GetTestParamsFp16AltEnabled()),
+                         testing::Combine(testing::Values(GetTestParamsFp32()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));
