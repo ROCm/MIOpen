@@ -30,7 +30,14 @@
 #error "HIP_PACKAGE_VERSION_FLAT undefined"
 #endif
 
+// LLVM buffer intrinsics llvm.amdgcn.buffer.* have been removed in HIP 6.4
+#define WORKAROUND_SWDEV_498660 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
+
+#if WORKAROUND_SWDEV_498660
+#define SOLVER_NAME DISABLED_ConvHipImplicitGemmForwardV4R4XdlopsPaddedGemm
+#else
 #define SOLVER_NAME ConvHipImplicitGemmForwardV4R4XdlopsPaddedGemm
+#endif
 
 namespace {
 
