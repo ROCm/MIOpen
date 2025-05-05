@@ -1074,10 +1074,6 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ExecutionContext& ctx,
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
 
-    const std::string name = ctx.GetStream().GetDeviceName();
-    if(name == "gfx942" || name == "gfx950")
-        return false;
-
     if(!problem.IsDirectionBackwardWrW())
         return false;
 
