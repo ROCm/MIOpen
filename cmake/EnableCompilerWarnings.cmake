@@ -107,6 +107,12 @@ set(__clang_cxx_compile_options
     -Wno-missing-noreturn
     -Wno-tautological-constant-out-of-range-compare
     -Wno-c++20-extensions)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "19")
+    list(APPEND __clang_cxx_compile_options
+        -Wno-unique-object-duplication
+        -Wno-switch-default
+        -Wno-nontrivial-memcall)
+endif()
 if(WIN32)
     list(APPEND __clang_cxx_compile_options
         -fdelayed-template-parsing
