@@ -179,6 +179,15 @@ RUN if [ "$USE_FIN" = "ON" ]; then \
     fi && \
     ccache -s 
 
+# Install rocprof-compute
+RUN apt-get update && \
+    apt install -y rocprofiler-compute locales && \
+    update-alternatives --install /usr/bin/rocprof-compute rocprof-compute /opt/rocm/bin/rocprof-compute 0 && \
+    python3 -m pip install -r /opt/rocm/libexec/rocprofiler-compute/requirements.txt
+
+# rocprof-compute needs this locale to be set.
+RUN echo "en_US.UTF8 UTF-8" >> /etc/locale.gen && locale-gen
+
 # Utilize multi-stage build in order to squash the container.
 FROM ubuntu:22.04
 COPY --from=miopen / /

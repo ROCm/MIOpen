@@ -65,3 +65,6 @@ build*/
 
 # Python cache
 __pycache__/
+
+# rocprof traces
+workloads/*
