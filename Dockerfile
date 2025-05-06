@@ -12,7 +12,8 @@ ARG MIOPEN_SCCACHE=""
 ARG MIOPEN_SCCACHE_CUSTOM_CACHE_BUSTER="MiOpen-Docker-CK"
 
 # GPU_ARCHS should be defined as a build arg rather than hardcoded here. 
-ARG GPU_ARCHS=gfx90a
+# Note: If more than one is specified, the list must semicolon (;) separated.
+ARG GPU_ARCHS=gfx90a;gfx942
 
 ARG COMPILER_LAUNCHER=""
 ENV APT_KEY_DONT_WARN_ON_DANGEROUS_USAGE=DontWarn
