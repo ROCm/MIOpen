@@ -579,6 +579,10 @@ ConvHipImplicitGemmV4R4Fwd::CalculateGemmSize(const ProblemDescription& problem)
 bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
+#if WORKAROUND_SWDEV_498660
+    if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4))
+        return false;
+#endif
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
@@ -600,9 +604,6 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
     if(!problem.Is2d() && !problem.Is3d())
         return false;
     if(!problem.IsFp32())
-        return false;
-    const std::string name = ctx.GetStream().GetDeviceName();
-    if(name == "gfx942" || name == "gfx950")
         return false;
     if(problem.GetGroupCount() != 1)
         return false;
@@ -763,11 +764,8 @@ ConvHipImplicitGemmV4R4Fwd::GetSolution(const ExecutionContext& ctx,
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
         std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
-#if HIP_PACKAGE_VERSION_FLAT >= 6004000000
-        " -DCK_USE_AMD_BUFFER_PTR_TYPE=1" +
-#endif
         get_static_ck_common_compiler_flag(ctx) +
-        ctx.general_compile_options + " --std=c++17";
+        ctx.general_compile_options;
 
         if (problem.Is3d()){
             construction_parameters.comp_options +=
