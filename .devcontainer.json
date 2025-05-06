@@ -17,7 +17,6 @@
         ]
       }
   },
-  "appPort": ["8004:8004"],
   "containerEnv": {
     "LANG": "C.UTF-8"
    },
