@@ -257,7 +257,7 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
                                           const conv::ProblemDescription& problem,
                                           const AnyInvokeParams& invoke_ctx,
                                           bool force_attach_binary,
-                                          std::vector<miopenConvSolution_t> solutions,
+                                          const std::vector<miopenConvSolution_t> solutions,
                                           bool model_result)
 {
     const auto& conv     = problem.GetConv();
@@ -275,9 +275,10 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
 
         std::vector<Solution> eval_sols;
         auto db = MakeConvDbGetter(ctx);
-        for(const auto& sol : solutions)
+        //reverse solutions so that EvaluateInvokers registers the fastest solution last
+        for(auto sol = solutions.rbegin(); sol != solutions.rend(); ++sol)
         {
-            const auto id      = solver::Id{sol.solution_id};
+            const auto id      = solver::Id{sol->solution_id};
             const auto& solver = id.GetSolver();
             CompileSolution(id, ctx, problem);
 
@@ -302,6 +303,7 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
             if(!model_result)
                 break;
         }
+        std::reverse(eval_sols.begin(), eval_sols.end());
 
         bool good_entry         = false;
         const float eval_time_1 = eval_sols[0].GetTime();
