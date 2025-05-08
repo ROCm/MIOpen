@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <boost/algorithm/string.hpp>
 #include <iostream>
 #include <numeric>
 #include <ostream>
@@ -182,7 +183,11 @@ void DbRecord::WriteIdsAndValues(std::ostream& stream) const
 
     const auto pairsJoiner = [](const std::string& sum,
                                 const std::pair<std::string, std::string>& pair) {
-        const auto pair_str = pair.first + ':' + pair.second;
+        std::string first(pair.first);
+        std::string second(pair.second);
+        boost::trim(first);
+        boost::trim(second);
+        const auto pair_str = first + ':' + second;
         return sum.empty() ? pair_str : sum + ';' + pair_str;
     };
 
