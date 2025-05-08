@@ -1,11 +1,13 @@
 find_package(GTest REQUIRED)
-find_package(rocblas)
 
 include(GoogleTest)
 
 if(MIOPEN_USE_HIPBLASLT)
-  find_package(hipblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
   find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
+
+if(MIOPEN_USE_ROCBLAS)
+  find_package(rocblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
 endif()
 
 set(SOURCES
@@ -50,12 +52,19 @@ function(add_gtest TEST_NAME TEST_CPP)
   if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
     target_link_libraries(${TEST_NAME} frugally-deep::fdeep Eigen3::Eigen)
   endif()
+
+  # Need to add hipblaslt since tests directly use gemm_v2.cpp
   if(hipblaslt_FOUND)
     target_link_libraries( ${TEST_NAME} roc::hipblaslt )
   endif()
+  # Need to add rocBLAS since static builds of MIOpen require rocBLAS linkage
+  if(rocblas_FOUND)
+    target_link_libraries( ${TEST_NAME} $<BUILD_INTERFACE:roc::rocblas> )
+  endif()
+
   # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS}
   #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
-  target_link_libraries(${TEST_NAME} ${CMAKE_DL_LIBS} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas> )
+  target_link_libraries(${TEST_NAME} ${CMAKE_DL_LIBS} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host )
   if(NOT MIOPEN_EMBED_DB STREQUAL "")
       target_link_libraries(${TEST_NAME} $<BUILD_INTERFACE:miopen_data>)
   endif()
