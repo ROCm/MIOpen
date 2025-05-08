@@ -144,7 +144,8 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                       const conv::ProblemDescription& problem,
                                       const AnyInvokeParams& invoke_ctx,
                                       int requestAlgoCount,
-                                      bool force_attach_binary)
+                                      bool force_attach_binary,
+                                      bool skip_find_core)
 {
     auto results         = std::vector<Solution>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};
@@ -171,7 +172,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
         CompileSolution(id, ctx, problem);
         results.push_back({id, sol->time, s.GetWorkspaceSize(ctx, problem)});
     }
-    else
+    else if(!skip_find_core)
     {
         results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
             auto ctx_copy                       = ctx;
@@ -187,6 +188,11 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                             std::nullopt,
                             force_attach_binary);
         });
+    }
+    else
+    {
+        MIOPEN_LOG_W(
+            "Skip FindCore possible cause: user specified workspace is smaller than required");
     }
 
     if(env::enabled(MIOPEN_DEBUG_COMPILE_ONLY))
@@ -265,7 +271,9 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(const Handle& handle,
     const auto invoke_ctx = conv::DataInvokeParams{
         {xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize, attribute.gfx90aFp16alt.GetFwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount, false);
+    const size_t req_workSpaceSize = this->GetWorkSpaceSize(ctx, problem);
+    const auto results             = FindConvolution(
+        ctx, problem, invoke_ctx, requestAlgoCount, false, workSpaceSize < req_workSpaceSize);
 
     if(results.empty())
     {
@@ -903,7 +911,9 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(const Handle& handle,
                                                    workSpaceSize,
                                                    this->attribute.gfx90aFp16alt.GetBwd()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount, false);
+    const size_t req_workSpaceSize = this->GetWorkSpaceSize(ctx, problem);
+    const auto results             = FindConvolution(
+        ctx, problem, invoke_ctx, requestAlgoCount, false, workSpaceSize < req_workSpaceSize);
 
     if(results.empty())
     {
@@ -1110,7 +1120,9 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(const Handle& handle,
                                                   workSpaceSize,
                                                   attribute.gfx90aFp16alt.GetWrW()};
 
-    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount, false);
+    const size_t req_workSpaceSize = this->GetWorkSpaceSize(ctx, problem);
+    const auto results             = FindConvolution(
+        ctx, problem, invoke_ctx, requestAlgoCount, false, workSpaceSize < req_workSpaceSize);
 
     if(results.empty())
     {
