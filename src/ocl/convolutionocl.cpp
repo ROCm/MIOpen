@@ -275,7 +275,7 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
 
         std::vector<Solution> eval_sols;
         auto db = MakeConvDbGetter(ctx);
-        //reverse solutions so that EvaluateInvokers registers the fastest solution last
+        // reverse solutions so that EvaluateInvokers registers the fastest solution last
         for(auto sol = solutions.rbegin(); sol != solutions.rend(); ++sol)
         {
             const auto id      = solver::Id{sol->solution_id};
