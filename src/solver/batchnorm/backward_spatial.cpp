@@ -230,7 +230,7 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
     size_t ylocalsize = 1, ygridsize = 1;
     size_t zlocalsize = 1, zgridsize = 1;
     unsigned int ldsgcn, ldsnogcn;
-    int stash_method;
+    int stash_method = 0;
     size_t nelements;
 
     GetVariantFromKernelId(
