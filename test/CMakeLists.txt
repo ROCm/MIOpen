@@ -28,6 +28,14 @@ cmake_policy(SET CMP0057 NEW)
 
 include(CheckCXXCompilerFlag)
 
+if(MIOPEN_USE_HIPBLASLT)
+  find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
+
+if(MIOPEN_USE_ROCBLAS)
+  find_package(rocblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
+
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
 option( MIOPEN_TEST_HALF "Test in half mode" OFF )
 option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
@@ -385,6 +393,14 @@ function(add_test_executable TEST_NAME)
     endif()
     if(HAS_LIB_STD_FILESYSTEM)
         target_link_libraries(${TEST_NAME} stdc++fs)
+    endif()
+    # Need to add hipblaslt since static builds of MIOpen require hipBLASLt linkage
+    if(hipblaslt_FOUND)
+        target_link_libraries( ${TEST_NAME} roc::hipblaslt )
+    endif()
+    # Need to add rocBLAS since static builds of MIOpen require rocBLAS linkage
+    if(rocblas_FOUND)
+        target_link_libraries( ${TEST_NAME} $<BUILD_INTERFACE:roc::rocblas> )
     endif()
 endfunction()
 
