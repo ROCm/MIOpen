@@ -9,20 +9,20 @@ fi
 # If script is excuted with --help or without any arguments, print usage and exit.
 if [[ "$*" == *"--help"* || "$*" == "" ]]; then
     echo "Usage: $0 [--local-build] [--log-level <level>] [--gpu-id <id>] [--num-batches <num>] [--algorithms <algorithms>]"
-    echo "  --log-level: Set log level (default: 5)"
-    echo "  --gpu-id: Set GPU ID (default: 0)"
-    echo "  --algorithms: Set algorithms to use (default: ALL), options are FFT, DIRECT, WINOGRAD, GEMM, IMPLICIT_GEMM, or ALL"
-    echo "  --tuning-db-dir: Set tuning DB directory path (required for --incremental-tuning and --exhaustive-tuning)"
-    echo "  --incremental-tuning: Use incremental tuning"
-    echo "  --exhaustive-tuning: Use exhaustive tuning"
-    echo "  --config <name>: Specify the configuration name to use from the JSON config file"
-    echo "  --config-file <file>: Specify the configuration file (default: configs.json)"
+    echo "  --log-level <level>: Set log level (optional, default: 5)"
+    echo "  --gpu-id <device id>: Set GPU ID (optional, default: 0)"
+    echo "  --algorithms <alg1>, <alg2>, ...: Set which algorithms to use (optional, default: ALL), options are FFT, DIRECT, WINOGRAD, GEMM, IMPLICIT_GEMM, or ALL."
+    echo "  --tuning-db-dir <dir path>: Set tuning DB directory path (required for --incremental-tuning and --exhaustive-tuning flags)"
+    echo "  --incremental-tuning: Use incremental tuning (optional)"
+    echo "  --exhaustive-tuning: Use exhaustive tuning (optional)"
+    echo "  --config <name>: Specify the configuration name to use from the JSON config file (optional, default: 'default')"
+    echo "  --config-file <file>: Specify the configuration file (optional, default: configs.json)"
     echo "  --help: Show this help message"
     exit 0
 fi
 
-# Check that we didn't get any flags that we don't recognize
-valid_flags="--local-build --log-level --gpu-id --num-batches --algorithms --tuning-db-dir --incremental-tuning --exhaustive-tuning --config --config-file --help"
+# Check that we didn't receive any flags that we don't recognize.
+valid_flags="--log-level --gpu-id --algorithms --tuning-db-dir --incremental-tuning --exhaustive-tuning --config --config-file --help"
 for arg in "$@"; do
     # Only check arguments that start with --
     if [[ "$arg" == --* ]]; then
@@ -41,7 +41,6 @@ for arg in "$@"; do
     fi
 done
 
-# New flag for JSON config file and configuration name
 config_name="default"
 config_file=""
 
