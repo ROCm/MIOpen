@@ -173,8 +173,6 @@ private:
 
     Tref maxval;
 
-    float activ_alpha, activ_beta, activ_gamma;
-
     miopenTensorLayout_t bn_layout;
 
     GPUMem::Check buffer_check = GPUMem::Check::None;
