@@ -351,7 +351,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
     }
 }
 
-[[noreturn]] inline void Usage()
+[[noreturn]] inline void Usage(int e)
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
     printf("Supported Base Arguments: conv[fp16|int8|bfp16], pool[fp16], lrn[fp16], "
@@ -372,7 +372,7 @@ inline std::string ParseBaseArg(int argc, char* argv[])
     if(argc < 2)
     {
         printf("FAILED: Invalid Number of Input Arguments\n");
-        Usage();
+        Usage(EXIT_FAILURE);
     }
 
     std::string arg = argv[1];
@@ -405,10 +405,10 @@ inline std::string ParseBaseArg(int argc, char* argv[])
        arg != "foldfp16" && arg != "foldbfp16" && arg != "--version")
     {
         printf("FAILED: Invalid Base Input Argument\n");
-        Usage();
+        Usage(EXIT_FAILURE);
     }
     else if(arg == "-h" || arg == "--help" || arg == "-?")
-        Usage();
+        Usage(EXIT_SUCCESS);
     else
         return arg;
 }

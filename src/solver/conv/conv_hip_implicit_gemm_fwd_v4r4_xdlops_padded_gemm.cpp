@@ -1020,11 +1020,8 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (env::enabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE) ? '1' : '0') +
-#if HIP_PACKAGE_VERSION_FLAT >= 6004000000
-        " -DCK_USE_AMD_BUFFER_PTR_TYPE=1" +
-#endif
         get_static_ck_common_compiler_flag(ctx) +
-        ctx.general_compile_options  + " --std=c++17";
+        ctx.general_compile_options;
     // clang-format on
 
     result.invoker_factory = miopen::conv::MakeImplGemmDataInvokerFactory(problem);
@@ -1035,6 +1032,10 @@ ConvSolution ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::GetSolution(
 bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
+#if WORKAROUND_SWDEV_498660
+    if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS))
+        return false;
+#endif
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4_PADDED_GEMM_XDLOPS))
         return false;
 
@@ -1057,10 +1058,6 @@ bool ConvHipImplicitGemmForwardV4R4Xdlops_Padded_Gemm::IsApplicable(
         return false;
 
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
-        return false;
-
-    const std::string name = ctx.GetStream().GetDeviceName();
-    if(name == "gfx942" || name == "gfx950")
         return false;
 
     if(!problem.IsDirectionForward())
