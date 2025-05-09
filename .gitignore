@@ -68,3 +68,6 @@ __pycache__/
 
 # rocprof traces
 workloads/*
+
+# Log files
+logs/*
