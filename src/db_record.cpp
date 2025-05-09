@@ -139,6 +139,7 @@ bool DbRecord::ParseContents(std::istream& contents)
 
         auto id     = id_and_values.substr(0, id_size);
         auto values = id_and_values.substr(id_size + 1);
+        boost::trim(values);
 
 #if WORKAROUND_ISSUE_1987
         // Detect legacy find-db item (v.1.0 ID:VALUES) and transform it to the current format.
@@ -183,11 +184,7 @@ void DbRecord::WriteIdsAndValues(std::ostream& stream) const
 
     const auto pairsJoiner = [](const std::string& sum,
                                 const std::pair<std::string, std::string>& pair) {
-        std::string first(pair.first);
-        std::string second(pair.second);
-        boost::trim(first);
-        boost::trim(second);
-        const auto pair_str = first + ':' + second;
+        const auto pair_str = pair.first + ':' + pair.second;
         return sum.empty() ? pair_str : sum + ';' + pair_str;
     };
 
