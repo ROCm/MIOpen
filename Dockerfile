@@ -188,6 +188,8 @@ RUN apt-get update && \
 # rocprof-compute needs this locale to be set.
 RUN echo "en_US.UTF8 UTF-8" >> /etc/locale.gen && locale-gen
 
+ENV CXX=/opt/rocm/llvm/bin/clang++
+
 # Utilize multi-stage build in order to squash the container.
 FROM ubuntu:22.04
 COPY --from=miopen / /
