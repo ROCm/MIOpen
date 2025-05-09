@@ -71,21 +71,6 @@ bool RNNForwardMSIsFast(const int seqLen)
     return false;
 }
 
-void checkGemmStatusAndLog(miopenStatus_t gemm_status)
-{
-    if(gemm_status != miopenStatusSuccess)
-    {
-        if(gemm_status == miopenStatusNotImplemented)
-        {
-            MIOPEN_LOG_E("GEMM not implemented");
-        }
-        else
-        {
-            MIOPEN_LOG_E("GEMM failed");
-        }
-    }
-}
-
 miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                             Data_t dw,
                             const Data_t workSpace,
@@ -248,7 +233,43 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
     return miopenStatusSuccess;
 }
 
+#else
+bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
+                             [[maybe_unused]] bool use_dropout)
+{
+    return false;
+}
+
+bool RNNForwardMSIsFast(const int seqLen) { return false; }
+
+miopenStatus_t ReducAddBias(const miopen::Handle& handle,
+                            Data_t dw,
+                            const Data_t workSpace,
+                            const miopen::TensorDescriptor& dw_desc,
+                            const miopen::TensorDescriptor& ws_desc,
+                            size_t dw_bias_offset,
+                            size_t ws_bias_offset,
+                            Data_t red_workSpace,
+                            size_t red_workSpace_size)
+{
+    MIOPEN_THROW(miopenStatusUnsupportedOp, "Error: MIOpen is built with MIOPEN_USE_ROCBLAS=OFF");
+}
 #endif // MIOPEN_USE_ROCBLAS
+
+void checkGemmStatusAndLog(miopenStatus_t gemm_status)
+{
+    if(gemm_status != miopenStatusSuccess)
+    {
+        if(gemm_status == miopenStatusNotImplemented)
+        {
+            MIOPEN_LOG_E("GEMM not implemented");
+        }
+        else
+        {
+            MIOPEN_LOG_E("GEMM failed");
+        }
+    }
+}
 
 } // namespace
 
