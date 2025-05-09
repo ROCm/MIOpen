@@ -252,7 +252,7 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                             Data_t red_workSpace,
                             size_t red_workSpace_size)
 {
-    MIOPEN_THROW(miopenStatusUnsupportedOp, "Error: MIOpen is built with MIOPEN_USE_ROCBLAS=OFF");
+    MIOPEN_THROW(miopenStatusInternalError, "MIOpen is built with MIOPEN_USE_ROCBLAS=OFF");
 }
 #endif // MIOPEN_USE_ROCBLAS
 
