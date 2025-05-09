@@ -188,6 +188,9 @@ RUN apt-get update && \
 # rocprof-compute needs this locale to be set.
 RUN echo "en_US.UTF8 UTF-8" >> /etc/locale.gen && locale-gen
 
+# Install JSON parser
+RUN apt-get install -y jq
+
 ENV CXX=/opt/rocm/llvm/bin/clang++
 
 # Utilize multi-stage build in order to squash the container.
