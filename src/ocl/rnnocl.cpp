@@ -45,17 +45,19 @@ namespace miopen {
 
 namespace {
 
-miopenStatus_t ReducAddBias(const miopen::Handle& handle,
-                            Data_t dw,
-                            const Data_t workSpace,
-                            const miopen::TensorDescriptor& dw_desc,
-                            const miopen::TensorDescriptor& ws_desc,
-                            size_t dw_bias_offset,
-                            size_t ws_bias_offset,
-                            Data_t red_workSpace,
-                            size_t red_workSpace_size)
+void checkGemmStatusAndLog(miopenStatus_t gemm_status)
 {
-    MIOPEN_THROW(miopenStatusInternalError, "MIOpen is built with MIOPEN_USE_ROCBLAS=OFF");
+    if(gemm_status != miopenStatusSuccess)
+    {
+        if(gemm_status == miopenStatusNotImplemented)
+        {
+            MIOPEN_LOG_E("GEMM not implemented");
+        }
+        else
+        {
+            MIOPEN_LOG_E("GEMM failed");
+        }
+    }
 }
 
 #if MIOPEN_USE_ROCBLAS
@@ -255,22 +257,19 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
 
 bool RNNForwardMSIsFast(const int seqLen) { return false; }
 
-#endif // MIOPEN_USE_ROCBLAS
-
-void checkGemmStatusAndLog(miopenStatus_t gemm_status)
+miopenStatus_t ReducAddBias(const miopen::Handle& handle,
+                            Data_t dw,
+                            const Data_t workSpace,
+                            const miopen::TensorDescriptor& dw_desc,
+                            const miopen::TensorDescriptor& ws_desc,
+                            size_t dw_bias_offset,
+                            size_t ws_bias_offset,
+                            Data_t red_workSpace,
+                            size_t red_workSpace_size)
 {
-    if(gemm_status != miopenStatusSuccess)
-    {
-        if(gemm_status == miopenStatusNotImplemented)
-        {
-            MIOPEN_LOG_E("GEMM not implemented");
-        }
-        else
-        {
-            MIOPEN_LOG_E("GEMM failed");
-        }
-    }
+    MIOPEN_THROW(miopenStatusInternalError, "MIOpen is built with MIOPEN_USE_ROCBLAS=OFF");
 }
+#endif // MIOPEN_USE_ROCBLAS
 
 } // namespace
 
