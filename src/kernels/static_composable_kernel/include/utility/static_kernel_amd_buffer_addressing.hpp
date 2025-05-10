@@ -1,326 +1,801 @@
 #ifndef CK_AMD_BUFFER_ADDRESSING_HPP
 #define CK_AMD_BUFFER_ADDRESSING_HPP
-#include "amd_buffer_intrinsics.hpp"
+
+#include "static_kernel_float_type.hpp"
 
 namespace ck {
 
-// buffer resourse flags
-/*#if defined(CK_AMD_GPU_GFX803) || defined(CK_AMD_GPU_GFX900) || defined(CK_AMD_GPU_GFX906) || \
-    defined(CK_AMD_GPU_GFX942) || defined(CK_AMD_GPU_GFX908) || defined(CK_AMD_GPU_GFX90A) || \
-    defined(CK_AMD_GPU_GFX950)*/
-#define CK_BUFFER_RESOURCE_3RD_DWORD 0x00020000
-/*#elif defined(CK_AMD_GPU_GFX1030) || defined(CK_AMD_GPU_GFX1031) || defined(CK_AMD_GPU_GFX1100) ||
-\
-    defined(CK_AMD_GPU_GFX1101) || defined(CK_AMD_GPU_GFX1102) || defined(CK_AMD_GPU_GFX1200) ||   \
-    defined(CK_AMD_GPU_GFX1201)
-#define CK_BUFFER_RESOURCE_3RD_DWORD 0x31014000
-#endif*/
-
+// For 128bit SGPRs in buffer_load and buffer_store instructions
+// https://rocm-documentation.readthedocs.io/en/latest/GCN_ISA_Manuals/testdocbook.html#vector-memory-buffer-instructions
 template <typename T>
-__device__ buffer_resourse_t
-make_raw_buffer_resourse(const T* p_src_block, short stride, int num, int flags)
+union BufferAddressConfig
 {
-#if CK_USE_AMD_BUFFER_PTR_TYPE
-    // void *p, short stride, int num, int flags
-    //  ret __amdgpu_buffer_rsrc_t
-    buffer_resourse_t src_block_config = __builtin_amdgcn_make_buffer_rsrc(
-        const_cast<void*>(static_cast<const void*>(p_src_block)), stride, num, flags);
-#else
-    RawBufferAddressConfig<T> src_block_config_wrap;
-    // 0-48 address
-    // 48-64 stride and swizzle;
-    src_block_config_wrap.address[0] = const_cast<T*>(p_src_block);
-    src_block_config_wrap.range[1] &= (1 << 16) - 1;
-    src_block_config_wrap.range[1] |= (stride << 16);
-    // 64-96 records num
-    src_block_config_wrap.range[2] = num;
-    // 96-128
-    src_block_config_wrap.range[3]     = flags;
-    buffer_resourse_t src_block_config = src_block_config_wrap.data;
+    int32x4_t data;
+    T* address[2];
+    int32_t range[4];
+};
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-identifier"
+
+__device__ float __llvm_amdgcn_buffer_load_f32(int32x4_t rsrc,
+                                               index_t vindex,
+                                               index_t offset,
+                                               bool glc,
+                                               bool slc) __asm("llvm.amdgcn.buffer.load.f32");
+
+__device__ float2_t
+__llvm_amdgcn_buffer_load_f32x2(int32x4_t rsrc,
+                                index_t vindex,
+                                index_t offset,
+                                bool glc,
+                                bool slc) __asm("llvm.amdgcn.buffer.load.v2f32");
+
+__device__ float4_t
+__llvm_amdgcn_buffer_load_f32x4(int32x4_t rsrc,
+                                index_t vindex,
+                                index_t offset,
+                                bool glc,
+                                bool slc) __asm("llvm.amdgcn.buffer.load.v4f32");
+
+__device__ half_t __llvm_amdgcn_buffer_load_f16(int32x4_t rsrc,
+                                                index_t vindex,
+                                                index_t offset,
+                                                bool glc,
+                                                bool slc) __asm("llvm.amdgcn.buffer.load.f16");
+
+__device__ half2_t __llvm_amdgcn_buffer_load_f16x2(int32x4_t rsrc,
+                                                   index_t vindex,
+                                                   index_t offset,
+                                                   bool glc,
+                                                   bool slc) __asm("llvm.amdgcn.buffer.load.v2f16");
+
+__device__ half4_t __llvm_amdgcn_buffer_load_f16x4(int32x4_t rsrc,
+                                                   index_t vindex,
+                                                   index_t offset,
+                                                   bool glc,
+                                                   bool slc) __asm("llvm.amdgcn.buffer.load.v4f16");
+
+__device__ ushort __llvm_amdgcn_buffer_load_bf16(int32x4_t rsrc,
+                                                 index_t vindex,
+                                                 index_t offset,
+                                                 bool glc,
+                                                 bool slc) __asm("llvm.amdgcn.buffer.load.bf16");
+
+__device__ ushort2_t
+__llvm_amdgcn_buffer_load_bf16x2(int32x4_t rsrc,
+                                 index_t vindex,
+                                 index_t offset,
+                                 bool glc,
+                                 bool slc) __asm("llvm.amdgcn.buffer.load.v2bf16");
+
+__device__ ushort4_t
+__llvm_amdgcn_buffer_load_bf16x4(int32x4_t rsrc,
+                                 index_t vindex,
+                                 index_t offset,
+                                 bool glc,
+                                 bool slc) __asm("llvm.amdgcn.buffer.load.v4bf16");
+
+__device__ void __llvm_amdgcn_buffer_store_f32(float vdata,
+                                               int32x4_t rsrc,
+                                               index_t vindex,
+                                               index_t offset,
+                                               bool glc,
+                                               bool slc) __asm("llvm.amdgcn.buffer.store.f32");
+
+__device__ void __llvm_amdgcn_buffer_store_f32x2(float2_t vdata,
+                                                 int32x4_t rsrc,
+                                                 index_t vindex,
+                                                 index_t offset,
+                                                 bool glc,
+                                                 bool slc) __asm("llvm.amdgcn.buffer.store.v2f32");
+
+__device__ void __llvm_amdgcn_buffer_store_f32x4(float4_t vdata,
+                                                 int32x4_t rsrc,
+                                                 index_t vindex,
+                                                 index_t offset,
+                                                 bool glc,
+                                                 bool slc) __asm("llvm.amdgcn.buffer.store.v4f32");
+
+__device__ void __llvm_amdgcn_buffer_store_f16(half_t vdata,
+                                               int32x4_t rsrc,
+                                               index_t vindex,
+                                               index_t offset,
+                                               bool glc,
+                                               bool slc) __asm("llvm.amdgcn.buffer.store.f16");
+
+__device__ void __llvm_amdgcn_buffer_store_f16x2(half2_t vdata,
+                                                 int32x4_t rsrc,
+                                                 index_t vindex,
+                                                 index_t offset,
+                                                 bool glc,
+                                                 bool slc) __asm("llvm.amdgcn.buffer.store.v2f16");
+
+__device__ void __llvm_amdgcn_buffer_store_f16x4(half4_t vdata,
+                                                 int32x4_t rsrc,
+                                                 index_t vindex,
+                                                 index_t offset,
+                                                 bool glc,
+                                                 bool slc) __asm("llvm.amdgcn.buffer.store.v4f16");
+
+__device__ void __llvm_amdgcn_buffer_store_bf16(ushort vdata,
+                                                int32x4_t rsrc,
+                                                index_t vindex,
+                                                index_t offset,
+                                                bool glc,
+                                                bool slc) __asm("llvm.amdgcn.buffer.store.bf16");
+
+__device__ void
+__llvm_amdgcn_buffer_store_bf16x2(ushort2_t vdata,
+                                  int32x4_t rsrc,
+                                  index_t vindex,
+                                  index_t offset,
+                                  bool glc,
+                                  bool slc) __asm("llvm.amdgcn.buffer.store.v2bf16");
+
+__device__ void
+__llvm_amdgcn_buffer_store_bf16x4(ushort4_t vdata,
+                                  int32x4_t rsrc,
+                                  index_t vindex,
+                                  index_t offset,
+                                  bool glc,
+                                  bool slc) __asm("llvm.amdgcn.buffer.store.v4bf16");
+
+#if CK_USE_AMD_BUFFER_ATOMIC_FADD
+#if CK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT
+__device__ float
+#else
+__device__ void
+#endif
+__llvm_amdgcn_buffer_atomic_add_f32(float vdata,
+                                    int32x4_t rsrc,
+                                    index_t vindex,
+                                    index_t offset,
+                                    bool slc) __asm("llvm.amdgcn.buffer.atomic.fadd.f32");
 #endif
 
-    return src_block_config;
-}
+// buffer_load requires:
+//   1) p_src must be in global memory space, d_dst must be vgpr
+//   2) p_src to be a block-invariant pointer.
+// It is user's responsibility to make sure that is true.
+template <typename T, index_t VectorSize>
+__device__ typename vector_type<T, VectorSize>::MemoryType amd_buffer_load(
+    const T* p_src_block, index_t src_thread_data_offset, index_t src_const_data_offset);
 
 // buffer_store requires:
 //   1) p_src must be in vgpr space, d_dst must be global memory
 //   2) p_dst to be a block-invariant pointer.
 // It is user's responsibility to make sure that is true.
-template <typename T, index_t N>
-__device__ void amd_buffer_store_impl(const typename vector_type<T, N>::MemoryType src_thread_data,
-                                      buffer_resourse_t dst_wave_buffer_resource,
-                                      index_t dst_thread_addr_offset,
-                                      index_t dst_wave_addr_offset)
-{
-    if constexpr(is_same<T, float>::value)
-    {
-        if constexpr(N == 1)
-        {
-            llvm_amdgcn_raw_buffer_store_fp32(src_thread_data,
-                                              dst_wave_buffer_resource,
-                                              dst_thread_addr_offset,
-                                              dst_wave_addr_offset,
-                                              0);
-        }
-        else if constexpr(N == 2)
-        {
-            llvm_amdgcn_raw_buffer_store_fp32x2(src_thread_data,
-                                                dst_wave_buffer_resource,
-                                                dst_thread_addr_offset,
-                                                dst_wave_addr_offset,
-                                                0);
-        }
-        else if constexpr(N == 4)
-        {
-            llvm_amdgcn_raw_buffer_store_fp32x4(src_thread_data,
-                                                dst_wave_buffer_resource,
-                                                dst_thread_addr_offset,
-                                                dst_wave_addr_offset,
-                                                0);
-        }
-    }
-    else if constexpr(is_same<T, half_t>::value)
-    {
-        if constexpr(N == 1)
-        {
-            llvm_amdgcn_raw_buffer_store_fp16(src_thread_data,
-                                              dst_wave_buffer_resource,
-                                              dst_thread_addr_offset,
-                                              dst_wave_addr_offset,
-                                              0);
-        }
-        else if constexpr(N == 2)
-        {
-            llvm_amdgcn_raw_buffer_store_fp16x2(src_thread_data,
-                                                dst_wave_buffer_resource,
-                                                dst_thread_addr_offset,
-                                                dst_wave_addr_offset,
-                                                0);
-        }
-        else if constexpr(N == 4)
-        {
-            llvm_amdgcn_raw_buffer_store_fp16x4(src_thread_data,
-                                                dst_wave_buffer_resource,
-                                                dst_thread_addr_offset,
-                                                dst_wave_addr_offset,
-                                                0);
-        }
-    }
-    else if constexpr(is_same<T, int32_t>::value)
-    {
-        if constexpr(N == 1)
-        {
-            llvm_amdgcn_raw_buffer_store_i32(src_thread_data,
-                                             dst_wave_buffer_resource,
-                                             dst_thread_addr_offset,
-                                             dst_wave_addr_offset,
-                                             0);
-        }
-        else if constexpr(N == 2)
-        {
-            llvm_amdgcn_raw_buffer_store_i32x2(src_thread_data,
-                                               dst_wave_buffer_resource,
-                                               dst_thread_addr_offset,
-                                               dst_wave_addr_offset,
-                                               0);
-        }
-        else if constexpr(N == 4)
-        {
-            llvm_amdgcn_raw_buffer_store_i32x4(src_thread_data,
-                                               dst_wave_buffer_resource,
-                                               dst_thread_addr_offset,
-                                               dst_wave_addr_offset,
-                                               0);
-        }
-    }
-    else if constexpr(is_same<T, ushort>::value)
-    {
-        if constexpr(N == 1)
-        {
-            llvm_amdgcn_raw_buffer_store_bf16(src_thread_data,
-                                              dst_wave_buffer_resource,
-                                              dst_thread_addr_offset,
-                                              dst_wave_addr_offset,
-                                              0);
-        }
-        else if constexpr(N == 2)
-        {
-            llvm_amdgcn_raw_buffer_store_bf16x2(src_thread_data,
-                                                dst_wave_buffer_resource,
-                                                dst_thread_addr_offset,
-                                                dst_wave_addr_offset,
-                                                0);
-        }
-        else if constexpr(N == 4)
-        {
-            llvm_amdgcn_raw_buffer_store_bf16x4(src_thread_data,
-                                                dst_wave_buffer_resource,
-                                                dst_thread_addr_offset,
-                                                dst_wave_addr_offset,
-                                                0);
-        }
-    }
-    else
-    {
-        static_assert(false, "wrong! not implemented");
-    }
-}
-
-template <typename T, index_t N>
+template <typename T, index_t VectorSize>
 __device__ void amd_buffer_store(const T* p_src,
                                  T* p_dst_block,
-                                 const index_t dst_thread_data_offset,
-                                 const index_t dst_const_data_offset)
-{
-    auto dst_buffer_resource = [&]() {
-        // NFMT float = 7000 - ignored
-        // DFMT 32 = 20000 - ignored but should not be 0
-        // int32_t flag          0x00027000;
-        int32_t flag = CK_BUFFER_RESOURCE_3RD_DWORD;
-        // stride = stride[0:13] + bit( Cache swizzle)[14] + bit(Swizzle enable)[15]
-        short stride = 0;
-        int32_t num  = 0xFFFFFFFF; // max val
-        return make_raw_buffer_resourse(p_dst_block, stride, num, flag);
-    }();
-
-    index_t dst_thread_addr_offset = (dst_thread_data_offset + dst_const_data_offset) * sizeof(T);
-
-    auto typed_p_src = reinterpret_cast<const typename vector_type<T, N>::MemoryType*>(p_src);
-
-    amd_buffer_store_impl<T, N>(*typed_p_src, dst_buffer_resource, dst_thread_addr_offset, 0);
-}
-
-// buffer_load requires:
-//   1) src_wave_buffer_resource must be in global memory space, d_dst must be vgpr
-//   2) src_wave_buffer_resource to be a block-invariant pointer.
-// It is user's responsibility to make sure that is true.
-template <typename T, index_t N>
-__device__ typename vector_type<T, N>::MemoryType
-amd_buffer_load_impl(buffer_resourse_t src_wave_buffer_resource,
-                     index_t src_thread_addr_offset,
-                     index_t src_wave_addr_offset)
-{
-    if constexpr(is_same<T, float>::value)
-    {
-        if constexpr(N == 1)
-        {
-            return llvm_amdgcn_raw_buffer_load_fp32(
-                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
-        }
-        else if constexpr(N == 2)
-        {
-            return llvm_amdgcn_raw_buffer_load_fp32x2(
-                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
-        }
-        else if constexpr(N == 4)
-        {
-            return llvm_amdgcn_raw_buffer_load_fp32x4(
-                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
-        }
-    }
-    else if constexpr(is_same<T, half_t>::value)
-    {
-        if constexpr(N == 1)
-        {
-            return llvm_amdgcn_raw_buffer_load_fp16(
-                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
-        }
-        else if constexpr(N == 2)
-        {
-            return llvm_amdgcn_raw_buffer_load_fp16x2(
-                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
-        }
-        else if constexpr(N == 4)
-        {
-            return llvm_amdgcn_raw_buffer_load_fp16x4(
-                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
-        }
-    }
-    else if constexpr(is_same<T, ushort>::value)
-    {
-        if constexpr(N == 1)
-        {
-            return llvm_amdgcn_raw_buffer_load_bf16(
-                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
-        }
-        else if constexpr(N == 2)
-        {
-            return llvm_amdgcn_raw_buffer_load_bf16x2(
-                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
-        }
-        else if constexpr(N == 4)
-        {
-            return llvm_amdgcn_raw_buffer_load_bf16x4(
-                src_wave_buffer_resource, src_thread_addr_offset, src_wave_addr_offset, 0);
-        }
-    }
-    else
-    {
-        static_assert(false, "wrong! not implemented");
-    }
-}
-
-template <typename T, index_t VectorSize>
-__device__ typename vector_type<T, VectorSize>::MemoryType
-amd_buffer_load(const T* p_src_block, index_t src_thread_data_offset, index_t src_const_data_offset)
-{
-    // NFMT float = 7000 - ignored
-    // DFMT 32 = 20000 - ignored but should not be 0
-    // int32_t flag          0x00027000;
-    int32_t flag = CK_BUFFER_RESOURCE_3RD_DWORD;
-    // stride = stride[0:13] + bit( Cache swizzle)[14] + bit(Swizzle enable)[15]
-    short stride          = 0;
-    int32_t num           = 0xFFFFFFFF; // max val
-    auto src_block_config = make_raw_buffer_resourse(p_src_block, stride, num, flag);
-
-    index_t thread_addr_offset = (src_thread_data_offset + src_const_data_offset) * sizeof(T);
-
-    return amd_buffer_load_impl<T, VectorSize>(src_block_config, thread_addr_offset, 0);
-}
+                                 index_t dst_thread_data_offset,
+                                 index_t dst_const_data_offset);
 
 #if CK_USE_AMD_BUFFER_ATOMIC_FADD
-
-template <typename T, index_t N>
+template <typename T, index_t VectorSize>
 __device__ void amd_buffer_atomic_add(const T* p_src,
                                       T* p_dst_block,
                                       index_t dst_thread_data_offset,
-                                      index_t dst_const_data_offset)
+                                      index_t dst_const_data_offset);
+#endif
+
+template <>
+__device__ float amd_buffer_load<float, 1>(const float* p_src_block,
+                                           index_t src_thread_data_offset,
+                                           index_t src_const_data_offset)
 {
-    auto dst_buffer_resource = [&]() {
-        // NFMT float = 7000 - ignored
-        // DFMT 32 = 20000 - ignored but should not be 0
-        // int32_t flag          0x00027000;
-        int32_t flag = CK_BUFFER_RESOURCE_3RD_DWORD;
-        // stride = stride[0:13] + bit( Cache swizzle)[14] + bit(Swizzle enable)[15]
-        short stride = 0;
-        int32_t num  = 0xFFFFFFFF; // max val
-        return make_raw_buffer_resourse(p_dst_block, stride, num, flag);
-    }();
+    BufferAddressConfig<float> src_block_config;
 
-    index_t dst_thread_addr_offset = (dst_thread_data_offset + dst_const_data_offset) * sizeof(T);
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<float*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
 
-    constexpr index_t no_slc_glc = 0;
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(float);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(float);
 
-    if constexpr(is_same<T, float>::value)
+    return __llvm_amdgcn_buffer_load_f32(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+}
+
+template <>
+__device__ float2_t amd_buffer_load<float, 2>(const float* p_src_block,
+                                              index_t src_thread_data_offset,
+                                              index_t src_const_data_offset)
+{
+    BufferAddressConfig<float> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<float*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(float);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(float);
+
+    return __llvm_amdgcn_buffer_load_f32x2(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+}
+
+template <>
+__device__ float4_t amd_buffer_load<float, 4>(const float* p_src_block,
+                                              index_t src_thread_data_offset,
+                                              index_t src_const_data_offset)
+{
+    BufferAddressConfig<float> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<float*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(float);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(float);
+
+    return __llvm_amdgcn_buffer_load_f32x4(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+}
+
+template <>
+__device__ half_t amd_buffer_load<half_t, 1>(const half_t* p_src_block,
+                                             index_t src_thread_data_offset,
+                                             index_t src_const_data_offset)
+{
+    BufferAddressConfig<half_t> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<half_t*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+#if !CK_WORKAROUND_SWDEV_231101
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(half_t);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(half_t);
+
+    return __llvm_amdgcn_buffer_load_f16(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+#else
+    return p_src_block[src_thread_data_offset + src_const_data_offset];
+#endif
+}
+
+template <>
+__device__ half2_t amd_buffer_load<half_t, 2>(const half_t* p_src_block,
+                                              index_t src_thread_data_offset,
+                                              index_t src_const_data_offset)
+{
+    BufferAddressConfig<half_t> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<half_t*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(half_t);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(half_t);
+
+#if !CK_WORKAROUND_SWDEV_231101
+    return __llvm_amdgcn_buffer_load_f16x2(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+#else
+    float dst_out_tmp = __llvm_amdgcn_buffer_load_f32(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+
+    return *reinterpret_cast<half2_t*>(&dst_out_tmp);
+#endif
+}
+
+template <>
+__device__ half4_t amd_buffer_load<half_t, 4>(const half_t* p_src_block,
+                                              index_t src_thread_data_offset,
+                                              index_t src_const_data_offset)
+{
+    BufferAddressConfig<half_t> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<half_t*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(half_t);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(half_t);
+
+#if !CK_WORKAROUND_SWDEV_231101
+    return __llvm_amdgcn_buffer_load_f16x4(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+#else
+    float2_t dst_out_tmp = __llvm_amdgcn_buffer_load_f32x2(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+
+    return *reinterpret_cast<half4_t*>(&dst_out_tmp);
+#endif
+}
+
+template <>
+__device__ half8_t amd_buffer_load<half_t, 8>(const half_t* p_src_block,
+                                              index_t src_thread_data_offset,
+                                              index_t src_const_data_offset)
+{
+    BufferAddressConfig<half_t> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<half_t*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(half_t);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(half_t);
+
+#if !CK_WORKAROUND_SWDEV_231101
+    static_assert(false, "wrong! not supported");
+#else
+    float4_t dst_out_tmp = __llvm_amdgcn_buffer_load_f32x4(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+
+    return *reinterpret_cast<half8_t*>(&dst_out_tmp);
+#endif
+}
+
+template <>
+__device__ ushort amd_buffer_load<ushort, 1>(const ushort* p_src_block,
+                                             index_t src_thread_data_offset,
+                                             index_t src_const_data_offset)
+{
+    BufferAddressConfig<ushort> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<ushort*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+#if !CK_WORKAROUND_SWDEV_231101
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(ushort);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(ushort);
+
+    return __llvm_amdgcn_buffer_load_bf16(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+#else
+    return p_src_block[src_thread_data_offset + src_const_data_offset];
+#endif
+}
+
+template <>
+__device__ ushort2_t amd_buffer_load<ushort, 2>(const ushort* p_src_block,
+                                                index_t src_thread_data_offset,
+                                                index_t src_const_data_offset)
+{
+    BufferAddressConfig<ushort> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<ushort*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(ushort);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(ushort);
+
+#if !CK_WORKAROUND_SWDEV_231101
+    return __llvm_amdgcn_buffer_load_bf16x2(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+#else
+    float dst_out_tmp = __llvm_amdgcn_buffer_load_f32(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+
+    return *reinterpret_cast<ushort2_t*>(&dst_out_tmp);
+#endif
+}
+
+template <>
+__device__ ushort4_t amd_buffer_load<ushort, 4>(const ushort* p_src_block,
+                                                index_t src_thread_data_offset,
+                                                index_t src_const_data_offset)
+{
+    BufferAddressConfig<ushort> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<ushort*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(ushort);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(ushort);
+
+#if !CK_WORKAROUND_SWDEV_231101
+    return __llvm_amdgcn_buffer_load_bf16x4(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+#else
+    float2_t dst_out_tmp = __llvm_amdgcn_buffer_load_f32x2(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+
+    return *reinterpret_cast<ushort4_t*>(&dst_out_tmp);
+#endif
+}
+
+template <>
+__device__ ushort8_t amd_buffer_load<ushort, 8>(const ushort* p_src_block,
+                                                index_t src_thread_data_offset,
+                                                index_t src_const_data_offset)
+{
+    BufferAddressConfig<ushort> src_block_config;
+
+    // fill in byte 0 - 1
+    src_block_config.address[0] = const_cast<ushort*>(p_src_block);
+    // fill in byte 2
+    src_block_config.range[2] = -1;
+    // fill in byte 3
+    src_block_config.range[3] = 0x00027000;
+
+    index_t src_thread_addr_offset = src_thread_data_offset * sizeof(ushort);
+    index_t src_const_addr_offset  = src_const_data_offset * sizeof(ushort);
+
+#if !CK_WORKAROUND_SWDEV_231101
+    static_assert(false, "wrong! not implemented");
+#else
+    float4_t dst_out_tmp = __llvm_amdgcn_buffer_load_f32x4(
+        src_block_config.data, 0, src_thread_addr_offset + src_const_addr_offset, false, false);
+
+    return *reinterpret_cast<ushort8_t*>(&dst_out_tmp);
+#endif
+}
+
+template <>
+__device__ void amd_buffer_store<float, 1>(const float* p_src,
+                                           float* p_dst_block,
+                                           index_t dst_thread_data_offset,
+                                           index_t dst_const_data_offset)
+{
+    BufferAddressConfig<float> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(float);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(float);
+
+    __llvm_amdgcn_buffer_store_f32(*p_src,
+                                   dst_block_config.data,
+                                   0,
+                                   dst_thread_addr_offset + dst_const_addr_offset,
+                                   false,
+                                   false);
+}
+
+template <>
+__device__ void amd_buffer_store<float, 2>(const float* p_src,
+                                           float* p_dst_block,
+                                           index_t dst_thread_data_offset,
+                                           index_t dst_const_data_offset)
+{
+    BufferAddressConfig<float> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(float);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(float);
+
+    __llvm_amdgcn_buffer_store_f32x2(*reinterpret_cast<const float2_t*>(p_src),
+                                     dst_block_config.data,
+                                     0,
+                                     dst_thread_addr_offset + dst_const_addr_offset,
+                                     false,
+                                     false);
+}
+
+template <>
+__device__ void amd_buffer_store<float, 4>(const float* p_src,
+                                           float* p_dst_block,
+                                           index_t dst_thread_data_offset,
+                                           index_t dst_const_data_offset)
+{
+    BufferAddressConfig<float> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(float);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(float);
+
+    __llvm_amdgcn_buffer_store_f32x4(*reinterpret_cast<const float4_t*>(p_src),
+                                     dst_block_config.data,
+                                     0,
+                                     dst_thread_addr_offset + dst_const_addr_offset,
+                                     false,
+                                     false);
+}
+
+template <>
+__device__ void amd_buffer_store<half_t, 1>(const half_t* p_src,
+                                            half_t* p_dst_block,
+                                            index_t dst_thread_data_offset,
+                                            index_t dst_const_data_offset)
+{
+    BufferAddressConfig<half_t> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+#if !CK_WORKAROUND_SWDEV_231101
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(half_t);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(half_t);
+
+    __llvm_amdgcn_buffer_store_f16(*p_src,
+                                   dst_block_config.data,
+                                   0,
+                                   dst_thread_addr_offset + dst_const_addr_offset,
+                                   false,
+                                   false);
+#else
+    p_dst_block[dst_thread_data_offset + dst_const_data_offset] = *p_src;
+#endif
+}
+
+template <>
+__device__ void amd_buffer_store<half_t, 2>(const half_t* p_src,
+                                            half_t* p_dst_block,
+                                            index_t dst_thread_data_offset,
+                                            index_t dst_const_data_offset)
+{
+    BufferAddressConfig<half_t> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(half_t);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(half_t);
+
+#if !CK_WORKAROUND_SWDEV_231101
+    __llvm_amdgcn_buffer_store_f16x2(*reinterpret_cast<const half2_t*>(p_src),
+                                     dst_block_config.data,
+                                     0,
+                                     dst_thread_addr_offset + dst_const_addr_offset,
+                                     false,
+                                     false);
+#else
+    const float* p_src_tmp = reinterpret_cast<const float*>(p_src);
+
+    __llvm_amdgcn_buffer_store_f32(*p_src_tmp,
+                                   dst_block_config.data,
+                                   0,
+                                   dst_thread_addr_offset + dst_const_addr_offset,
+                                   false,
+                                   false);
+#endif
+}
+
+template <>
+__device__ void amd_buffer_store<half_t, 4>(const half_t* p_src,
+                                            half_t* p_dst_block,
+                                            index_t dst_thread_data_offset,
+                                            index_t dst_const_data_offset)
+{
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(half_t);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(half_t);
+
+    BufferAddressConfig<half_t> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+#if !CK_WORKAROUND_SWDEV_231101
+    __llvm_amdgcn_buffer_store_f16x4(*reinterpret_cast<const half4_t*>(p_src),
+                                     dst_block_config.data,
+                                     0,
+                                     dst_thread_addr_offset + dst_const_addr_offset,
+                                     false,
+                                     false);
+#else
+    const float2_t* p_src_tmp = reinterpret_cast<const float2_t*>(p_src);
+
+    __llvm_amdgcn_buffer_store_f32x2(*p_src_tmp,
+                                     dst_block_config.data,
+                                     0,
+                                     dst_thread_addr_offset + dst_const_addr_offset,
+                                     false,
+                                     false);
+#endif
+}
+
+template <>
+__device__ void amd_buffer_store<ushort, 1>(const ushort* p_src,
+                                            ushort* p_dst_block,
+                                            index_t dst_thread_data_offset,
+                                            index_t dst_const_data_offset)
+{
+    BufferAddressConfig<ushort> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+#if !CK_WORKAROUND_SWDEV_231101
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(ushort);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(ushort);
+
+    __llvm_amdgcn_buffer_store_bf16(*p_src,
+                                    dst_block_config.data,
+                                    0,
+                                    dst_thread_addr_offset + dst_const_addr_offset,
+                                    false,
+                                    false);
+#else
+    p_dst_block[dst_thread_data_offset + dst_const_data_offset] = *p_src;
+#endif
+}
+
+template <>
+__device__ void amd_buffer_store<ushort, 2>(const ushort* p_src,
+                                            ushort* p_dst_block,
+                                            index_t dst_thread_data_offset,
+                                            index_t dst_const_data_offset)
+{
+    BufferAddressConfig<ushort> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(ushort);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(ushort);
+
+#if !CK_WORKAROUND_SWDEV_231101
+    __llvm_amdgcn_buffer_store_bf16x2(*p_src,
+                                      dst_block_config.data,
+                                      0,
+                                      dst_thread_addr_offset + dst_const_addr_offset,
+                                      false,
+                                      false);
+#else
+    const float* p_src_tmp = reinterpret_cast<const float*>(p_src);
+
+    __llvm_amdgcn_buffer_store_f32(*p_src_tmp,
+                                   dst_block_config.data,
+                                   0,
+                                   dst_thread_addr_offset + dst_const_addr_offset,
+                                   false,
+                                   false);
+#endif
+}
+
+template <>
+__device__ void amd_buffer_store<ushort, 4>(const ushort* p_src,
+                                            ushort* p_dst_block,
+                                            index_t dst_thread_data_offset,
+                                            index_t dst_const_data_offset)
+{
+    BufferAddressConfig<ushort> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(ushort);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(ushort);
+
+#if !CK_WORKAROUND_SWDEV_231101
+    __llvm_amdgcn_buffer_store_bf16x4(*p_src,
+                                      dst_block_config.data,
+                                      0,
+                                      dst_thread_addr_offset + dst_const_addr_offset,
+                                      false,
+                                      false);
+#else
+    const float2_t* p_src_tmp = reinterpret_cast<const float2_t*>(p_src);
+
+    __llvm_amdgcn_buffer_store_f32x2(*p_src_tmp,
+                                     dst_block_config.data,
+                                     0,
+                                     dst_thread_addr_offset + dst_const_addr_offset,
+                                     false,
+                                     false);
+#endif
+}
+
+#if CK_USE_AMD_BUFFER_ATOMIC_FADD
+template <>
+__device__ void amd_buffer_atomic_add<float, 1>(const float* p_src,
+                                                float* p_dst_block,
+                                                index_t dst_thread_data_offset,
+                                                index_t dst_const_data_offset)
+{
+    BufferAddressConfig<float> dst_block_config;
+
+    // fill in byte 0 - 1
+    dst_block_config.address[0] = p_dst_block;
+    // fill in byte 2
+    dst_block_config.range[2] = -1;
+    // fill in byte 3
+    dst_block_config.range[3] = 0x00027000;
+
+    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(float);
+    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(float);
+
+    __llvm_amdgcn_buffer_atomic_add_f32(
+        *p_src, dst_block_config.data, 0, dst_thread_addr_offset + dst_const_addr_offset, false);
+}
+
+template <>
+__device__ void amd_buffer_atomic_add<float, 2>(const float* p_src,
+                                                float* p_dst_block,
+                                                index_t dst_thread_data_offset,
+                                                index_t dst_const_data_offset)
+{
+    for(index_t i = 0; i < 2; ++i)
     {
-        for(index_t i = 0; i < N; ++i)
-        {
-            __llvm_amdgcn_buffer_atomic_add_f32(p_src[i],
-                                                dst_buffer_resource,
-                                                dst_thread_addr_offset + i * sizeof(T),
-                                                0,
-                                                no_slc_glc);
-        }
-    }
-    else
-    {
-        static_assert(false, "wrong! not implemented");
+        amd_buffer_atomic_add<float, 1>(
+            &p_src[i], p_dst_block, dst_thread_data_offset, dst_const_data_offset + i);
     }
 }
 
+template <>
+__device__ void amd_buffer_atomic_add<float, 4>(const float* p_src,
+                                                float* p_dst_block,
+                                                index_t dst_thread_data_offset,
+                                                index_t dst_const_data_offset)
+{
+    for(index_t i = 0; i < 4; ++i)
+    {
+        amd_buffer_atomic_add<float, 1>(
+            &p_src[i], p_dst_block, dst_thread_data_offset, dst_const_data_offset + i);
+    }
+}
 #endif // CK_USE_AMD_BUFFER_ATOMIC_FADD
 
-} // namespace ck
+#pragma clang diagnostic pop // "-Wreserved-identifier"
 
+} // namespace ck
 #endif
