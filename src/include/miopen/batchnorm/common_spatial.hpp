@@ -87,10 +87,18 @@ inline void GetSpatialMultipleConfig(const miopen::batchnorm::ProblemDescription
 
     if(problem.IsLayoutNHWC())
     {
+        if(c % vectorsize != 0)
+        {
+            return;
+        }
         GetLocalConfigNHWC(problem, vectorsize, xlocalsize, ylocalsize);
     }
     else
     {
+        if(in_cstride % vectorsize != 0)
+        {
+            return;
+        }
         xlocalsize = 1;
         ylocalsize = 1024;
         if(ylocalsize > in_cstride / vectorsize)
