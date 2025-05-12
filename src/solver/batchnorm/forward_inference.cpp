@@ -90,24 +90,23 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
     {
         size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize;
         size_t max_localsize = 256;
-        bool vectorize;
+        size_t vectorsize    = problem.IsLayoutNHWC()
+                                   ? (c % 4 == 0 ? 4 : (c % 2 == 0 ? 2 : 1))
+                                   : (in_cstride % 4 == 0 ? 4 : (in_cstride % 2 == 0 ? 2 : 1));
+        ;
         if(problem.GetXDesc().GetLayout_t() == miopenTensorNHWC)
         {
-            vectorize       = c % 4 == 0;
-            int vector_size = vectorize ? 4 : 1;
-            xlocalsize      = std::min(size_t{c / vector_size}, max_localsize);
-            xgridsize       = xlocalsize * ((c / vector_size + xlocalsize - 1) / xlocalsize);
-            ylocalsize      = max_localsize / xlocalsize;
-            ygridsize       = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+            xlocalsize = std::min(size_t{c / vectorsize}, max_localsize);
+            xgridsize  = xlocalsize * ((c / vectorsize + xlocalsize - 1) / xlocalsize);
+            ylocalsize = max_localsize / xlocalsize;
+            ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
         }
         else
         {
-            vectorize       = in_cstride % 4 == 0;
-            int vector_size = vectorize ? 4 : 1;
-            xlocalsize      = 1;
-            xgridsize       = c;
-            ylocalsize      = max_localsize;
-            ygridsize = ylocalsize * ((in_cstride / vector_size + ylocalsize - 1) / ylocalsize);
+            xlocalsize = 1;
+            xgridsize  = c;
+            ylocalsize = max_localsize;
+            ygridsize  = ylocalsize * ((in_cstride / vectorsize + ylocalsize - 1) / ylocalsize);
         }
         zlocalsize = 1;
         zgridsize  = 1;
@@ -139,7 +138,8 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
-            {"MIO_BN_VECTORIZE", static_cast<int>(vectorize)},
+            {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
+            {"MIO_BN_VEC_SIZE", vectorsize},
         };
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
