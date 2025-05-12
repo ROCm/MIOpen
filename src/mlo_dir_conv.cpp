@@ -139,7 +139,8 @@ static auto GetWindogradSolvers()
         miopen::solver::conv::ConvMPBidirectWinograd_xdlops<4, 3>,
         miopen::solver::conv::ConvMPBidirectWinograd_xdlops<5, 3>,
         miopen::solver::conv::ConvMPBidirectWinograd_xdlops<6, 3>,
-        miopen::solver::conv::ConvWinoFuryRxS<2, 3>>{};
+        miopen::solver::conv::ConvWinoFuryRxS<2, 3>,
+        miopen::solver::conv::ConvWinoRageRxS<2, 3>>{};
 }
 
 static auto GetImplicitGemmWrWSolvers()
@@ -180,7 +181,8 @@ static auto GetWindogradWrWSolvers()
         miopen::solver::conv::ConvWinograd3x3MultipassWrW<1, 1, 7, 3>,
         miopen::solver::conv::ConvWinograd3x3MultipassWrW<5, 3>,
         miopen::solver::conv::ConvWinograd3x3MultipassWrW<5, 4>,
-        miopen::solver::conv::ConvWinoFuryRxS<2, 3>>{};
+        miopen::solver::conv::ConvWinoFuryRxS<2, 3>,
+        miopen::solver::conv::ConvWinoRageRxS<2, 3>>{};
 }
 
 static auto GetBwdWrW2DSolvers()
