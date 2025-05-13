@@ -210,9 +210,12 @@ export MIOPEN_ENABLE_LOGGING=1
 export MIOPEN_LOG_LEVEL=$log_level
 export MIOPEN_ENABLE_LOGGING_ELAPSED_TIME=1
 
-# Log file path,append the the log file name with selected algorithms and process ID
-# to avoid overwriting.
 pid=$$
+miopen_dirver_path="$PWD/../build/bin/MIOpenDriver"
+
+# Create a CSV file with headers to record the kernel times.
+kernel_times_path="../logs/kernel_times_${algs}${tuning}${pid}.csv"
+echo "Configuration, Algo_num, Solution_ID, Solver_name, Elapsed_GPU_time_average_ms, KTN_inference_time_ms" > "$kernel_times_path"
 
 # Load configuration parameters
 config_name="default"
@@ -282,7 +285,6 @@ set_env_vars_from_json() {
 set_env_vars_from_json
 
 log_path="../logs/${mode}_${algs}_${config_name}${tuning}${pid}.log"
-miopen_dirver_path="$PWD/../build/bin/MIOpenDriver"
 
 # Time the MIOpen driver call and log the output to the log file.
 echo "Log file: $log_path"
@@ -316,7 +318,39 @@ echo "" >> "$log_path"
 # Record the environment variables and parameters used in the execution
 echo "=== Environment Variables ===" >> "$log_path"
 env >> "$log_path"
-
-
 echo "=== Execution completed at $(date) ===" >> "$log_path"
+
+# We want to extract from the log the following lines
+# "GPU Kernel XXX Elapsed: Y ms (average)" where XXX is an uninteresting string or strings, and we want to
+# extract the Y value.
+
+extract_kernel_times() {
+    local log_file="$1"
+    local times_file="$2"
+    local config="$3"
+    
+    local algo_num=""
+    local sol_id=""
+    local kernel_name=""
+    local time_value=""
+    local ktn_inference_time=""
+
+    while IFS= read -r line; do
+        if [[ $line =~ MIOpen\ (.*)\ Algorithm:\ ([0-9]+),\ Solution:\ ([0-9]+)/([A-Za-z0-9_]+) ]]; then
+            algo_num="${BASH_REMATCH[2]}"
+            sol_id="${BASH_REMATCH[3]}"
+            kernel_name="${BASH_REMATCH[4]}"     
+        elif [[ $line =~ GPU\ Kernel\ Time\ (.*)\ Elapsed:\ ([0-9.]+)\ ms ]]; then
+            time_value="${BASH_REMATCH[2]}"
+        elif [[ $line =~ \[ModelSetParams\]\ KTN\ ran\ for\ ([0-9]+)\ micro-seconds ]]; then
+            ktn_micro="${BASH_REMATCH[1]}"
+            ktn_inference_time=$(awk "BEGIN {printf \"%.3f\", $ktn_micro / 1000}")
+        fi
+    done < "$log_file"
+
+    echo "$config, $algo_num, $sol_id, $kernel_name, $time_value, $ktn_inference_time" >> "$times_file"
+}
+
+extract_kernel_times "$log_path" "$kernel_times_path" "$config_name"
+echo "Kernel times extracted to: $kernel_times_path"
 echo "Execution completed."
