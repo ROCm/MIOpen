@@ -212,7 +212,7 @@ protected:
         std::vector<uint64_t> solvers;
         solvers = miopen::ai::immed_mode::PredictSolver(problem, ctx, test_case.arch);
 
-        auto interim = std::vector<miopenConvSolution_t>{};
+        auto conv_sols = std::vector<miopenConvSolution_t>{};
         const auto ai_time = [](const int& idx) {
             return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
         };
@@ -222,6 +222,7 @@ protected:
             const auto solver_id = miopen::solver::Id{kinder};
             const auto sol       = solver_id.GetSolver();
             const auto algo      = solver_id.GetAlgo();
+            //MIOPEN_LOG_I2("Testing solver: " << solver_id.ToString());
             if(miopen::conv::IsAlgorithmDisabled(algo))
                 continue;
             if(!sol.IsDynamic())
@@ -231,22 +232,32 @@ protected:
             const auto ws = sol.GetWorkspaceSize(ctx, problem);
             if(!miopen::conv::IsEnoughWorkspace("GetSolutionsFallback AI", solver_id, ws, &invoke_ctx))
                 continue;
-            interim.emplace_back(
+            conv_sols.emplace_back(
                 miopenConvSolution_t{ai_time(idx), ws, solver_id.Value(), algo});
             ++idx;
         }
 
-        for(const auto& entry : interim)
+        ASSERT_FALSE(conv_sols.empty());
+
+        miopen::PerformanceDb db = {miopen::DbKinds::PerfDb, fs::path{"/tmp"}, fs::path{"/tmp"}}; //empty db
+        for(const auto& entry : conv_sols)
         {
             const auto id = miopen::solver::Id{entry.solution_id};
             const auto& s = id.GetSolver();
             //CompileSolution(id, ctx, problem);
             //results.push_back({id, sol->time, s.GetWorkspaceSize(ctx, problem)});
-            MIOPEN_LOG_I(id.GetAlgo(problem.GetDirection())
+            MIOPEN_LOG_I(id.ToString()
                          << "\t" << entry.time << "\t" << s.GetWorkspaceSize(ctx, problem));
+
+            miopen::solver::ConvSolution sol =
+                s.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
+            const auto invoker = handle.PrepareInvoker(*sol.invoker_factory,
+                                                   sol.construction_params);
+            invoker(handle, invoke_ctx);
+            MIOPEN_LOG_I(id.ToString() << " convolution completed");
+
         }
 
-        //ASSERT_EQ(perf_config.ToString(), test_case.expected_config);
 #else
         GTEST_SKIP();
 #endif
