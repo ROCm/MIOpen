@@ -71,3 +71,6 @@ workloads/*
 
 # Log files
 logs/*
+
+# Generated models
+ktn_models/*

@@ -642,16 +642,44 @@ public:
 private:
     const fdeep::model encoder;
     const fdeep::model decoder;
+    static std::optional<fs::path> GetKtnModelsPath()
+    {
+        const char* env_path = std::getenv("MIOPEN_KTN_MODELS_PATH");
+        std::optional<fs::path> models_path = std::nullopt;
+        if(env_path != nullptr)
+        {
+            fs::path path(env_path);
+            if(fs::exists(path))
+            {
+                models_path = path; 
+            }
+        }
+        return models_path;
+    }
     static std::string EncoderPath(const std::string& arch, const std::string& solver)
     {
-        const auto path = GetSystemDbPath() / (arch + "_" + solver + "_encoder.ktn.model");
+        auto base_path = GetSystemDbPath();
+        auto override_path = GetKtnModelsPath();
+        if(override_path.has_value())
+        {
+            base_path = override_path.value();
+        }
+        const auto path = base_path / (arch + "_" + solver + "_encoder.ktn.model");
+        MIOPEN_LOG_I2("KTN Encoder model path" << path);
         if(!fs::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
         return path.string();
     }
     static std::string DecoderPath(const std::string& arch, const std::string& solver)
     {
-        const auto path = GetSystemDbPath() / (arch + "_" + solver + "_decoder.ktn.model");
+        auto base_path = GetSystemDbPath();
+        auto override_path = GetKtnModelsPath();
+        if(override_path.has_value())
+        {
+            base_path = override_path.value();
+        }
+        const auto path = base_path / (arch + "_" + solver + "_decoder.ktn.model");
+        MIOPEN_LOG_I2("KTN Decoder model path" << path);
         if(!fs::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
         return path.string();
