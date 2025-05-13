@@ -8,21 +8,23 @@ fi
 
 # If script is excuted with --help or without any arguments, print usage and exit.
 if [[ "$*" == *"--help"* || "$*" == "" ]]; then
-    echo "Usage: $0 [--local-build] [--log-level <level>] [--gpu-id <id>] [--num-batches <num>] [--algorithms <algorithms>]"
+    echo "Usage: $0 --config <name> [OPTIONS]"
+    echo "Options:"
     echo "  --log-level <level>: Set log level (optional, default: 5)"
     echo "  --gpu-id <device id>: Set GPU ID (optional, default: 0)"
     echo "  --algorithms <alg1>, <alg2>, ...: Set which algorithms to use (optional, default: ALL), options are FFT, DIRECT, WINOGRAD, GEMM, IMPLICIT_GEMM, or ALL."
     echo "  --tuning-db-dir <dir path>: Set tuning DB directory path (required for --incremental-tuning and --exhaustive-tuning flags)"
     echo "  --incremental-tuning: Use incremental tuning (optional)"
     echo "  --exhaustive-tuning: Use exhaustive tuning (optional)"
-    echo "  --config <name>: Specify the configuration name to use from the JSON config file (optional, default: 'default')"
     echo "  --config-file <file>: Specify the configuration file (optional, default: configs.json)"
+    echo "  --config <name>: Specify the configuration name to use from the config file (required)"
+    echo "  --disable-kernel-cache: Disable kernel cache (optional)"
     echo "  --help: Show this help message"
     exit 0
 fi
 
 # Check that we didn't receive any flags that we don't recognize.
-valid_flags="--log-level --gpu-id --algorithms --tuning-db-dir --incremental-tuning --exhaustive-tuning --config --config-file --help"
+valid_flags="--log-level --gpu-id --algorithms --tuning-db-dir --incremental-tuning --exhaustive-tuning --config --config-file --help --disable-kernel-cache"
 for arg in "$@"; do
     # Only check arguments that start with --
     if [[ "$arg" == --* ]]; then
@@ -41,15 +43,7 @@ for arg in "$@"; do
     fi
 done
 
-config_name="default"
 config_file=""
-
-# Process command line arguments for config
-if [[ "$*" == *"--config"* ]]; then
-    config_name=$(echo "$*" | grep -oP '(?<=--config )\S+')
-fi
-echo "Using configuration: $config_name"
-
 if [[ "$*" == *"--config-file"* ]]; then
     config_file=$(echo "$*" | grep -oP '(?<=--config-file )\S+')
     echo "Using configuration file: $config_file"
@@ -64,49 +58,6 @@ if [ ! -f "$config_file" ]; then
     exit 1
 fi
 
-# Load configuration parameters
-if ! jq -e ".$config_name" "$config_file" > /dev/null; then
-    echo "Error: Configuration '$config_name' not found in $config_file"
-    exit 1
-fi
-
-# Extract parameters from JSON
-get_param() {
-    local param=$1
-    local default=$2
-    value=$(jq -r ".$config_name.$param // .$default.$param // \"$default\"" "$config_file")
-    echo "$value"
-}
-
-# Get parameters with fallback to default config
-verb=$(get_param "verb" "default")
-batch_size=$(get_param "batch_size" "default")
-in_channels=$(get_param "in_channels" "default")
-in_depth=$(get_param "in_depth" "default")
-in_height=$(get_param "in_height" "default")
-in_width=$(get_param "in_width" "default")
-filters=$(get_param "filters" "default")
-filter_depth=$(get_param "filter_depth" "default") 
-filter_height=$(get_param "filter_height" "default")
-filter_width=$(get_param "filter_width" "default")
-pad_depth=$(get_param "pad_depth" "default")
-pad_height=$(get_param "pad_height" "default")
-pad_width=$(get_param "pad_width" "default")
-stride_depth=$(get_param "stride_depth" "default")
-stride_height=$(get_param "stride_height" "default")
-stride_width=$(get_param "stride_width" "default")
-dilation_depth=$(get_param "dilation_depth" "default")
-dilation_height=$(get_param "dilation_height" "default")
-dilation_width=$(get_param "dilation_width" "default")
-spatial_dim=$(get_param "spatial_dim" "default")
-in_layout=$(get_param "in_layout" "default")
-fil_layout=$(get_param "fil_layout" "default")
-out_layout=$(get_param "out_layout" "default")
-mode=$(get_param "mode" "default")
-group_count=$(get_param "group_count" "default")
-forw=$(get_param "forw" "default")
-verify=$(get_param "verify" "default")
-
 # Tuning DB path flag --tuning-db
 if [[ "$*" == *"--tuning-db-dir"* ]]; then
     tuning_db=$(echo "$*" | grep -oP '(?<=--tuning-db-dir )\S+')
@@ -117,6 +68,14 @@ if [[ "$*" == *"--tuning-db-dir"* ]]; then
         mkdir -p "$tuning_db"
     fi
     export MIOPEN_USER_DB_PATH="$tuning_db"
+fi
+
+# Check flag --disable-kernel-cache
+if [[ "$*" == *"--disable-kernel-cache"* ]]; then
+    echo "Disabling kernel cache"
+    export MIOPEN_DISABLE_CACHE=1
+else
+    echo "Kernel cache is enabled by default"
 fi
 
 tuning="_"
@@ -131,6 +90,13 @@ if [[ "$*" == *"--incremental-tuning"* ]]; then
         echo "Error: Tuning DB path must be provided with --tuning-db when using --incremental-tuning" >&2
         exit 1
     fi
+
+    # Check that kernel cache is not disabled
+    if [[ "$*" == *"--disable-kernel-cache"* ]]; then
+        echo "Error: Kernel cache must be enabled when using --incremental-tuning" >&2
+        exit 1
+    fi
+
     tuning="_incremental-tuning_"
 fi
 
@@ -143,6 +109,12 @@ if [[ "$*" == *"--exhaustive-tuning"* ]]; then
     # Check if the tuning DB path is provided
     if [[ -z "$tuning_db" ]]; then
         echo "Error: Tuning DB path must be provided with --tuning-db when using --exhaustive-tuning" >&2
+        exit 1
+    fi
+
+    # Check that kernel cache is not disabled
+    if [[ "$*" == *"--disable-kernel-cache"* ]]; then
+        echo "Error: Kernel cache must be enabled when using --exhaustive-tuning" >&2
         exit 1
     fi
 
@@ -242,6 +214,73 @@ export MIOPEN_ENABLE_LOGGING_ELAPSED_TIME=1
 # to avoid overwriting.
 pid=$$
 
+# Load configuration parameters
+config_name="default"
+if [[ "$*" == *"--config"* ]]; then
+    config_name=$(echo "$*" | grep -oP '(?<=--config )\S+')
+fi
+echo "Using configuration: $config_name"
+if ! jq -e ".$config_name" "$config_file" > /dev/null; then
+    echo "Error: Configuration '$config_name' not found in $config_file"
+    exit 1
+fi
+
+# Extract parameters from JSON
+get_param() {
+    local param=$1
+    local default=$2
+    value=$(jq -r ".$config_name.$param // .$default.$param // \"$default\"" "$config_file")
+    echo "$value"
+}
+
+# Get parameters with fallback to default config
+verb=$(get_param "verb" "default")
+batch_size=$(get_param "batch_size" "default")
+in_channels=$(get_param "in_channels" "default")
+in_depth=$(get_param "in_depth" "default")
+in_height=$(get_param "in_height" "default")
+in_width=$(get_param "in_width" "default")
+filters=$(get_param "filters" "default")
+filter_depth=$(get_param "filter_depth" "default") 
+filter_height=$(get_param "filter_height" "default")
+filter_width=$(get_param "filter_width" "default")
+pad_depth=$(get_param "pad_depth" "default")
+pad_height=$(get_param "pad_height" "default")
+pad_width=$(get_param "pad_width" "default")
+stride_depth=$(get_param "stride_depth" "default")
+stride_height=$(get_param "stride_height" "default")
+stride_width=$(get_param "stride_width" "default")
+dilation_depth=$(get_param "dilation_depth" "default")
+dilation_height=$(get_param "dilation_height" "default")
+dilation_width=$(get_param "dilation_width" "default")
+spatial_dim=$(get_param "spatial_dim" "default")
+in_layout=$(get_param "in_layout" "default")
+fil_layout=$(get_param "fil_layout" "default")
+out_layout=$(get_param "out_layout" "default")
+mode=$(get_param "mode" "default")
+group_count=$(get_param "group_count" "default")
+forw=$(get_param "forw" "default")
+verify=$(get_param "verify" "default")
+wall=$(get_param "wall" "default")
+time=$(get_param "time" "default")
+
+# Check whether the JSON config has any environemtn variables to set. 
+# They will override any environment variables set in the shell.
+set_env_vars_from_json() {
+    # Get environment variables from config
+    env_vars_json=$(jq -r ".$config_name.env_vars // .default.env_vars // {}" "$config_file")
+    
+    if [ "$env_vars_json" != "null" ] && [ "$env_vars_json" != "{}" ]; then
+        while IFS="=" read -r key value; do
+            # Skip empty lines
+            [ -z "$key" ] && continue
+            # Export the environment variable
+            export "$key"="$value"
+        done < <(jq -r ".$config_name.env_vars // .default.env_vars // {} | to_entries[] | \"\(.key)=\(.value)\"" "$config_file")
+    fi
+}
+set_env_vars_from_json
+
 log_path="../logs/${mode}_${algs}_${config_name}${tuning}${pid}.log"
 miopen_dirver_path="$PWD/../build/bin/MIOpenDriver"
 
@@ -261,12 +300,23 @@ echo "" >> "$log_path"
             --dilation_d ${dilation_depth} -l ${dilation_height} -j ${dilation_width} \
             --spatial_dim ${spatial_dim} --in_layout ${in_layout} \
             --fil_layout ${fil_layout} --out_layout ${out_layout} \
-            -m ${mode} -g ${group_count} -F ${forw} -t ${verify} \
+            -m ${mode} -g ${group_count} -F ${forw} -V ${verify} \
+            --wall ${wall} --time ${time} \
             >> "$log_path" 2>&1
+        # Check if the MIOpenDriver command was successful
+        if [ $? -ne 0 ]; then
+            echo "ERROR: MIOpenDriver command failed." >> "$log_path"
+        fi
         echo ""
         echo "=== MIOpenDriver execution time ===" >> "$log_path"
     ) 
 } >> "$log_path" 2>&1
 echo "" >> "$log_path"
+
+# Record the environment variables and parameters used in the execution
+echo "=== Environment Variables ===" >> "$log_path"
+env >> "$log_path"
+
+
 echo "=== Execution completed at $(date) ===" >> "$log_path"
 echo "Execution completed."
