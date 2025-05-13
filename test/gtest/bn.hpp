@@ -77,9 +77,11 @@ template <typename TestCase>
 struct TestNameGenerator
 {
     std::string
-    operator()(const testing::TestParamInfo<
-               std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>& info)
-        const
+    operator()(const testing::TestParamInfo<std::tuple<TestCase,
+                                                       miopenTensorLayout_t,
+                                                       miopenBatchNormMode_t,
+                                                       BNApiType,
+                                                       miopenActivationMode_t>>& info) const
     {
         constexpr int dimension = std::is_same<TestCase, BN2DTestCase>::value   ? 2
                                   : std::is_same<TestCase, BN3DTestCase>::value ? 3
@@ -108,14 +110,16 @@ template <typename XDataType,
           typename MeanVarDataType,
           typename AccDataType,
           typename TestCase>
-struct BNInferTest
-    : public ::testing::TestWithParam<
-          std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>
+struct BNInferTest : public ::testing::TestWithParam<std::tuple<TestCase,
+                                                                miopenTensorLayout_t,
+                                                                miopenBatchNormMode_t,
+                                                                BNApiType,
+                                                                miopenActivationMode_t>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, bn_mode, api_type) = this->GetParam();
+        std::tie(bn_config, tensor_layout, bn_mode, api_type, activ_mode) = this->GetParam();
         bn_infer_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
 
         auto&& handle = get_handle();
@@ -125,46 +129,76 @@ protected:
             GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
         miopenStatus_t res = miopenStatusUnknownError;
-        if(api_type == BNApiType::testBNAPIV1)
+        if(activ_mode > 0)
         {
-            res = miopenBatchNormalizationForwardInference(&handle,
-                                                           bn_mode,
-                                                           &bn_infer_test_data.alpha,
-                                                           &bn_infer_test_data.beta,
-                                                           &bn_infer_test_data.input.desc,
-                                                           bn_infer_test_data.in_dev.get(),
-                                                           &bn_infer_test_data.output.desc,
-                                                           bn_infer_test_data.out_dev.get(),
-                                                           &bn_infer_test_data.scale.desc,
-                                                           bn_infer_test_data.scale_dev.get(),
-                                                           bn_infer_test_data.shift_dev.get(),
-                                                           bn_infer_test_data.estMean_dev.get(),
-                                                           bn_infer_test_data.estVariance_dev.get(),
-                                                           bn_infer_test_data.epsilon);
-        }
-        else if(api_type == BNApiType::testBNAPIV2)
-        {
-            res = miopenBatchNormalizationForwardInference_V2(
-                &handle,
-                bn_mode,
-                &bn_infer_test_data.alpha,
-                &bn_infer_test_data.beta,
-                &bn_infer_test_data.input.desc,
-                bn_infer_test_data.in_dev.get(),
-                &bn_infer_test_data.output.desc,
-                bn_infer_test_data.out_dev.get(),
-                &bn_infer_test_data.scale.desc,
-                &bn_infer_test_data.shift.desc,
-                &bn_infer_test_data.estMean.desc,
-                &bn_infer_test_data.estVariance.desc,
-                bn_infer_test_data.scale_dev.get(),
-                bn_infer_test_data.shift_dev.get(),
-                bn_infer_test_data.estMean_dev.get(),
-                bn_infer_test_data.estVariance_dev.get(),
-                bn_infer_test_data.epsilon);
+            miopenCreateActivationDescriptor(&activ_desc);
+            miopenSetActivationDescriptor(
+                activ_desc, activ_mode, activ_alpha, activ_beta, activ_gamma);
+            res =
+                miopenBatchNormForwardInferenceActivation(&handle,
+                                                          bn_mode,
+                                                          &bn_infer_test_data.alpha,
+                                                          &bn_infer_test_data.beta,
+                                                          &bn_infer_test_data.input.desc,
+                                                          bn_infer_test_data.in_dev.get(),
+                                                          &bn_infer_test_data.output.desc,
+                                                          bn_infer_test_data.out_dev.get(),
+                                                          &bn_infer_test_data.scale.desc,
+                                                          &bn_infer_test_data.shift.desc,
+                                                          &bn_infer_test_data.estMean.desc,
+                                                          &bn_infer_test_data.estVariance.desc,
+                                                          bn_infer_test_data.scale_dev.get(),
+                                                          bn_infer_test_data.shift_dev.get(),
+                                                          bn_infer_test_data.estMean_dev.get(),
+                                                          bn_infer_test_data.estVariance_dev.get(),
+                                                          bn_infer_test_data.epsilon,
+                                                          activ_desc);
+            miopenDestroyActivationDescriptor(activ_desc);
         }
         else
-            GTEST_FAIL() << "ERROR: unknown bn api type!!";
+        {
+            if(api_type == BNApiType::testBNAPIV1)
+            {
+                res = miopenBatchNormalizationForwardInference(
+                    &handle,
+                    bn_mode,
+                    &bn_infer_test_data.alpha,
+                    &bn_infer_test_data.beta,
+                    &bn_infer_test_data.input.desc,
+                    bn_infer_test_data.in_dev.get(),
+                    &bn_infer_test_data.output.desc,
+                    bn_infer_test_data.out_dev.get(),
+                    &bn_infer_test_data.scale.desc,
+                    bn_infer_test_data.scale_dev.get(),
+                    bn_infer_test_data.shift_dev.get(),
+                    bn_infer_test_data.estMean_dev.get(),
+                    bn_infer_test_data.estVariance_dev.get(),
+                    bn_infer_test_data.epsilon);
+            }
+            else if(api_type == BNApiType::testBNAPIV2)
+            {
+                res = miopenBatchNormalizationForwardInference_V2(
+                    &handle,
+                    bn_mode,
+                    &bn_infer_test_data.alpha,
+                    &bn_infer_test_data.beta,
+                    &bn_infer_test_data.input.desc,
+                    bn_infer_test_data.in_dev.get(),
+                    &bn_infer_test_data.output.desc,
+                    bn_infer_test_data.out_dev.get(),
+                    &bn_infer_test_data.scale.desc,
+                    &bn_infer_test_data.shift.desc,
+                    &bn_infer_test_data.estMean.desc,
+                    &bn_infer_test_data.estVariance.desc,
+                    bn_infer_test_data.scale_dev.get(),
+                    bn_infer_test_data.shift_dev.get(),
+                    bn_infer_test_data.estMean_dev.get(),
+                    bn_infer_test_data.estVariance_dev.get(),
+                    bn_infer_test_data.epsilon);
+            }
+            else
+                GTEST_FAIL() << "ERROR: unknown bn api type!!";
+        }
         if(res != miopenStatusSuccess)
         {
             GTEST_FAIL() << "miopenBatchNormalizationForwardInference failed";
@@ -186,6 +220,12 @@ protected:
         bn_infer_test_data.output.data = handle.Read<YDataType>(
             bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
         test::ComputeCPUBNInference(bn_infer_test_data);
+        activationHostInfer(activ_mode,
+                            activ_gamma,
+                            activ_beta,
+                            activ_alpha,
+                            bn_infer_test_data.out_ref.data,
+                            bn_infer_test_data.out_ref.data);
         // 4e-3 is tolerance used by CK kernel.
         test::CompareTensor<YDataType>(bn_infer_test_data.output, bn_infer_test_data.out_ref, 4e-3);
     }
@@ -203,6 +243,11 @@ protected:
     miopenTensorLayout_t tensor_layout;
     miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
+    miopenActivationMode_t activ_mode;
+    miopenActivationDescriptor_t activ_desc;
+    const double activ_alpha = static_cast<double>(0.1f);
+    const double activ_beta  = static_cast<double>(0.3f);
+    const double activ_gamma = static_cast<double>(1.0f);
 };
 
 template <typename XDataType,
@@ -213,13 +258,16 @@ template <typename XDataType,
           typename MeanVarDataType,
           typename AccDataType,
           typename TestCase>
-struct BNBwdTest : public ::testing::TestWithParam<
-                       std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>
+struct BNBwdTest : public ::testing::TestWithParam<std::tuple<TestCase,
+                                                              miopenTensorLayout_t,
+                                                              miopenBatchNormMode_t,
+                                                              BNApiType,
+                                                              miopenActivationMode_t>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, bn_mode, api_type) = this->GetParam();
+        std::tie(bn_config, tensor_layout, bn_mode, api_type, activ_mode) = this->GetParam();
         bn_bwd_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
 
         auto&& handle = get_handle();
@@ -229,55 +277,88 @@ protected:
             GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
         miopenStatus_t res = miopenStatusUnknownError;
-        if(api_type == BNApiType::testBNAPIV1)
+        if(activ_mode > 0)
         {
-            res = miopenBatchNormalizationBackward(&handle,
-                                                   bn_mode,
-                                                   &bn_bwd_test_data.alphaDataDiff,
-                                                   &bn_bwd_test_data.betaDataDiff,
-                                                   &bn_bwd_test_data.alphaParamDiff,
-                                                   &bn_bwd_test_data.betaParamDiff,
-                                                   &bn_bwd_test_data.input.desc,
-                                                   bn_bwd_test_data.in_dev.get(),
-                                                   &bn_bwd_test_data.dy.desc,
-                                                   bn_bwd_test_data.dy_dev.get(),
-                                                   &bn_bwd_test_data.output.desc,
-                                                   bn_bwd_test_data.out_dev.get(),
-                                                   &bn_bwd_test_data.bnScale.desc,
-                                                   bn_bwd_test_data.bnScale_dev.get(),
-                                                   bn_bwd_test_data.dScale_dev.get(),
-                                                   bn_bwd_test_data.dBias_dev.get(),
-                                                   bn_bwd_test_data.epsilon,
-                                                   bn_bwd_test_data.savedMean_dev.get(),
-                                                   bn_bwd_test_data.savedInvVar_dev.get());
-        }
-        else if(api_type == BNApiType::testBNAPIV2)
-        {
-            res = miopenBatchNormalizationBackward_V2(&handle,
-                                                      bn_mode,
-                                                      &bn_bwd_test_data.alphaDataDiff,
-                                                      &bn_bwd_test_data.betaDataDiff,
-                                                      &bn_bwd_test_data.alphaParamDiff,
-                                                      &bn_bwd_test_data.betaParamDiff,
-                                                      &bn_bwd_test_data.input.desc,
-                                                      bn_bwd_test_data.in_dev.get(),
-                                                      &bn_bwd_test_data.dy.desc,
-                                                      bn_bwd_test_data.dy_dev.get(),
-                                                      &bn_bwd_test_data.output.desc,
-                                                      bn_bwd_test_data.out_dev.get(),
-                                                      &bn_bwd_test_data.bnScale.desc,
-                                                      &bn_bwd_test_data.dBias.desc,
-                                                      &bn_bwd_test_data.savedMean.desc,
-                                                      &bn_bwd_test_data.savedInvVar.desc,
-                                                      bn_bwd_test_data.bnScale_dev.get(),
-                                                      bn_bwd_test_data.dScale_dev.get(),
-                                                      bn_bwd_test_data.dBias_dev.get(),
-                                                      bn_bwd_test_data.epsilon,
-                                                      bn_bwd_test_data.savedMean_dev.get(),
-                                                      bn_bwd_test_data.savedInvVar_dev.get());
+            miopenCreateActivationDescriptor(&activ_desc);
+            miopenSetActivationDescriptor(
+                activ_desc, activ_mode, activ_alpha, activ_beta, activ_gamma);
+            res = miopenBatchNormBackwardActivation(&handle,
+                                                    bn_mode,
+                                                    &bn_bwd_test_data.alphaDataDiff,
+                                                    &bn_bwd_test_data.betaDataDiff,
+                                                    &bn_bwd_test_data.alphaParamDiff,
+                                                    &bn_bwd_test_data.betaParamDiff,
+                                                    &bn_bwd_test_data.input.desc,
+                                                    bn_bwd_test_data.in_dev.get(),
+                                                    &bn_bwd_test_data.dy.desc,
+                                                    bn_bwd_test_data.dy_dev.get(),
+                                                    &bn_bwd_test_data.output.desc,
+                                                    bn_bwd_test_data.out_dev.get(),
+                                                    &bn_bwd_test_data.bnScale.desc,
+                                                    &bn_bwd_test_data.dBias.desc,
+                                                    &bn_bwd_test_data.savedMean.desc,
+                                                    &bn_bwd_test_data.savedInvVar.desc,
+                                                    bn_bwd_test_data.bnScale_dev.get(),
+                                                    bn_bwd_test_data.dScale_dev.get(),
+                                                    bn_bwd_test_data.dBias_dev.get(),
+                                                    bn_bwd_test_data.epsilon,
+                                                    bn_bwd_test_data.savedMean_dev.get(),
+                                                    bn_bwd_test_data.savedInvVar_dev.get(),
+                                                    activ_desc);
+            miopenDestroyActivationDescriptor(activ_desc);
         }
         else
-            GTEST_FAIL() << "ERROR: unknown bn api type!!";
+        {
+            if(api_type == BNApiType::testBNAPIV1)
+            {
+                res = miopenBatchNormalizationBackward(&handle,
+                                                       bn_mode,
+                                                       &bn_bwd_test_data.alphaDataDiff,
+                                                       &bn_bwd_test_data.betaDataDiff,
+                                                       &bn_bwd_test_data.alphaParamDiff,
+                                                       &bn_bwd_test_data.betaParamDiff,
+                                                       &bn_bwd_test_data.input.desc,
+                                                       bn_bwd_test_data.in_dev.get(),
+                                                       &bn_bwd_test_data.dy.desc,
+                                                       bn_bwd_test_data.dy_dev.get(),
+                                                       &bn_bwd_test_data.output.desc,
+                                                       bn_bwd_test_data.out_dev.get(),
+                                                       &bn_bwd_test_data.bnScale.desc,
+                                                       bn_bwd_test_data.bnScale_dev.get(),
+                                                       bn_bwd_test_data.dScale_dev.get(),
+                                                       bn_bwd_test_data.dBias_dev.get(),
+                                                       bn_bwd_test_data.epsilon,
+                                                       bn_bwd_test_data.savedMean_dev.get(),
+                                                       bn_bwd_test_data.savedInvVar_dev.get());
+            }
+            else if(api_type == BNApiType::testBNAPIV2)
+            {
+                res = miopenBatchNormalizationBackward_V2(&handle,
+                                                          bn_mode,
+                                                          &bn_bwd_test_data.alphaDataDiff,
+                                                          &bn_bwd_test_data.betaDataDiff,
+                                                          &bn_bwd_test_data.alphaParamDiff,
+                                                          &bn_bwd_test_data.betaParamDiff,
+                                                          &bn_bwd_test_data.input.desc,
+                                                          bn_bwd_test_data.in_dev.get(),
+                                                          &bn_bwd_test_data.dy.desc,
+                                                          bn_bwd_test_data.dy_dev.get(),
+                                                          &bn_bwd_test_data.output.desc,
+                                                          bn_bwd_test_data.out_dev.get(),
+                                                          &bn_bwd_test_data.bnScale.desc,
+                                                          &bn_bwd_test_data.dBias.desc,
+                                                          &bn_bwd_test_data.savedMean.desc,
+                                                          &bn_bwd_test_data.savedInvVar.desc,
+                                                          bn_bwd_test_data.bnScale_dev.get(),
+                                                          bn_bwd_test_data.dScale_dev.get(),
+                                                          bn_bwd_test_data.dBias_dev.get(),
+                                                          bn_bwd_test_data.epsilon,
+                                                          bn_bwd_test_data.savedMean_dev.get(),
+                                                          bn_bwd_test_data.savedInvVar_dev.get());
+            }
+            else
+                GTEST_FAIL() << "ERROR: unknown bn api type!!";
+        }
         if(res != miopenStatusSuccess)
         {
             GTEST_FAIL() << "miopenBatchNormalizationBackward failed";
@@ -304,6 +385,12 @@ protected:
             bn_bwd_test_data.dBias_dev, bn_bwd_test_data.dBias.data.size());
 
         test::ComputeCPUBNBwd(bn_bwd_test_data);
+        activationHostInfer(activ_mode,
+                            activ_gamma,
+                            activ_beta,
+                            activ_alpha,
+                            bn_bwd_test_data.out_ref.data,
+                            bn_bwd_test_data.out_ref.data);
 
         test::CompareTensor<DxDataType, AccDataType>(
             bn_bwd_test_data.output, bn_bwd_test_data.out_ref, bwd_tol);
@@ -327,7 +414,12 @@ protected:
     miopenTensorLayout_t tensor_layout;
     miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
-    double bwd_tol = 4e-3;
+    miopenActivationMode_t activ_mode;
+    miopenActivationDescriptor_t activ_desc;
+    const double activ_alpha = static_cast<double>(0.1f);
+    const double activ_beta  = static_cast<double>(0.3f);
+    const double activ_gamma = static_cast<double>(2.0f);
+    double bwd_tol           = 4e-3;
 };
 
 template <typename XDataType,
@@ -337,14 +429,16 @@ template <typename XDataType,
           typename RunSaveDataType,
           typename AccDataType,
           typename TestCase>
-struct BNFwdTrainTest
-    : public ::testing::TestWithParam<
-          std::tuple<TestCase, miopenTensorLayout_t, miopenBatchNormMode_t, BNApiType>>
+struct BNFwdTrainTest : public ::testing::TestWithParam<std::tuple<TestCase,
+                                                                   miopenTensorLayout_t,
+                                                                   miopenBatchNormMode_t,
+                                                                   BNApiType,
+                                                                   miopenActivationMode_t>>
 {
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, bn_mode, api_type) = this->GetParam();
+        std::tie(bn_config, tensor_layout, bn_mode, api_type, activ_mode) = this->GetParam();
         bn_fwd_train_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
 
         auto&& handle = get_handle();
@@ -354,30 +448,12 @@ protected:
             GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
         miopenStatus_t res = miopenStatusUnknownError;
-        if(api_type == BNApiType::testBNAPIV1)
+        if(activ_mode > 0)
         {
-            res = miopenBatchNormalizationForwardTraining(
-                &handle,
-                bn_mode,
-                &bn_fwd_train_test_data.alpha,
-                &bn_fwd_train_test_data.beta,
-                &bn_fwd_train_test_data.input.desc,
-                bn_fwd_train_test_data.in_dev.get(),
-                &bn_fwd_train_test_data.output.desc,
-                bn_fwd_train_test_data.out_dev.get(),
-                &bn_fwd_train_test_data.scale.desc,
-                bn_fwd_train_test_data.scale_dev.get(),
-                bn_fwd_train_test_data.shift_dev.get(),
-                bn_fwd_train_test_data.averageFactor,
-                bn_fwd_train_test_data.runMean_dev.get(),
-                bn_fwd_train_test_data.runVariance_dev.get(),
-                bn_fwd_train_test_data.epsilon,
-                bn_fwd_train_test_data.saveMean_dev.get(),
-                bn_fwd_train_test_data.saveVariance_dev.get());
-        }
-        else if(api_type == BNApiType::testBNAPIV2)
-        {
-            res = miopenBatchNormalizationForwardTraining_V2(
+            miopenCreateActivationDescriptor(&activ_desc);
+            miopenSetActivationDescriptor(
+                activ_desc, activ_mode, activ_alpha, activ_beta, activ_gamma);
+            res = miopenBatchNormForwardTrainingActivation(
                 &handle,
                 bn_mode,
                 &bn_fwd_train_test_data.alpha,
@@ -397,10 +473,60 @@ protected:
                 bn_fwd_train_test_data.runVariance_dev.get(),
                 bn_fwd_train_test_data.epsilon,
                 bn_fwd_train_test_data.saveMean_dev.get(),
-                bn_fwd_train_test_data.saveVariance_dev.get());
+                bn_fwd_train_test_data.saveVariance_dev.get(),
+                activ_desc);
+            miopenDestroyActivationDescriptor(activ_desc);
         }
         else
-            GTEST_FAIL() << "ERROR: unknown bn api type!!";
+        {
+            if(api_type == BNApiType::testBNAPIV1)
+            {
+                res = miopenBatchNormalizationForwardTraining(
+                    &handle,
+                    bn_mode,
+                    &bn_fwd_train_test_data.alpha,
+                    &bn_fwd_train_test_data.beta,
+                    &bn_fwd_train_test_data.input.desc,
+                    bn_fwd_train_test_data.in_dev.get(),
+                    &bn_fwd_train_test_data.output.desc,
+                    bn_fwd_train_test_data.out_dev.get(),
+                    &bn_fwd_train_test_data.scale.desc,
+                    bn_fwd_train_test_data.scale_dev.get(),
+                    bn_fwd_train_test_data.shift_dev.get(),
+                    bn_fwd_train_test_data.averageFactor,
+                    bn_fwd_train_test_data.runMean_dev.get(),
+                    bn_fwd_train_test_data.runVariance_dev.get(),
+                    bn_fwd_train_test_data.epsilon,
+                    bn_fwd_train_test_data.saveMean_dev.get(),
+                    bn_fwd_train_test_data.saveVariance_dev.get());
+            }
+            else if(api_type == BNApiType::testBNAPIV2)
+            {
+                res = miopenBatchNormalizationForwardTraining_V2(
+                    &handle,
+                    bn_mode,
+                    &bn_fwd_train_test_data.alpha,
+                    &bn_fwd_train_test_data.beta,
+                    &bn_fwd_train_test_data.input.desc,
+                    bn_fwd_train_test_data.in_dev.get(),
+                    &bn_fwd_train_test_data.output.desc,
+                    bn_fwd_train_test_data.out_dev.get(),
+                    &bn_fwd_train_test_data.scale.desc,
+                    &bn_fwd_train_test_data.shift.desc,
+                    &bn_fwd_train_test_data.saveMean.desc,
+                    &bn_fwd_train_test_data.saveVariance.desc,
+                    bn_fwd_train_test_data.scale_dev.get(),
+                    bn_fwd_train_test_data.shift_dev.get(),
+                    bn_fwd_train_test_data.averageFactor,
+                    bn_fwd_train_test_data.runMean_dev.get(),
+                    bn_fwd_train_test_data.runVariance_dev.get(),
+                    bn_fwd_train_test_data.epsilon,
+                    bn_fwd_train_test_data.saveMean_dev.get(),
+                    bn_fwd_train_test_data.saveVariance_dev.get());
+            }
+            else
+                GTEST_FAIL() << "ERROR: unknown bn api type!!";
+        }
         if(res != miopenStatusSuccess)
         {
             GTEST_FAIL() << "miopenBatchNormalizationForwardTraining failed";
@@ -439,6 +565,12 @@ protected:
             handle.Read<RunSaveDataType>(bn_fwd_train_test_data.runVariance_dev,
                                          bn_fwd_train_test_data.runVariance_ref.data.size());
         test::ComputeCPUBNFwdTrain(bn_fwd_train_test_data);
+        activationHostInfer(activ_mode,
+                            activ_gamma,
+                            activ_beta,
+                            activ_alpha,
+                            bn_fwd_train_test_data.out_ref.data,
+                            bn_fwd_train_test_data.out_ref.data);
 
         // 4e-3 is tolerance used by CK kernel.
         test::CompareTensor<YDataType>(
@@ -466,4 +598,9 @@ protected:
     miopenTensorLayout_t tensor_layout;
     miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
+    miopenActivationMode_t activ_mode;
+    miopenActivationDescriptor_t activ_desc;
+    const double activ_alpha = static_cast<double>(0.1f);
+    const double activ_beta  = static_cast<double>(0.3f);
+    const double activ_gamma = static_cast<double>(2.0f);
 };
