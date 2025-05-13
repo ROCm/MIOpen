@@ -122,6 +122,9 @@
     "verify": 1,
     "wall": 2,
     "time": 1,
-    "env_vars": {}
+    "env_vars": {
+      "MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS": "1",
+      "MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR": "0"
+    }
   }
 }

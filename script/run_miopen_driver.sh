@@ -217,12 +217,17 @@ miopen_dirver_path="$PWD/../build/bin/MIOpenDriver"
 kernel_times_path="../logs/kernel_times_${algs}${tuning}${pid}.csv"
 echo "Configuration, Algo_num, Solution_ID, Solver_name, Elapsed_GPU_time_average_ms, KTN_inference_time_ms" > "$kernel_times_path"
 
-# Load configuration parameters
-config_name="default"
+# Track the configuration specific environemnt variables.
+declare -a set_env_vars
 
-if [[ "$*" == *"--config"* ]]; then
-    config_name=$(echo "$*" | grep -oP '(?<=--config )\S+')
-fi
+unset_config_specific_env_vars() {
+    if [ ${#set_env_vars[@]} -gt 0 ]; then
+        for var in "${set_env_vars[@]}"; do
+            unset "$var"
+        done
+        set_env_vars=()
+    fi
+}
 
 # Extract kernel times function
 extract_kernel_times() {
@@ -234,7 +239,7 @@ extract_kernel_times() {
     local sol_id=""
     local kernel_name=""
     local time_value=""
-    local ktn_inference_time=""
+    local ktn_inference_time="-1" # The AI heuristics may not be enabled, set negative value to indicate this.
 
     while IFS= read -r line; do
         if [[ $line =~ MIOpen\ (.*)\ Algorithm:\ ([0-9]+),\ Solution:\ ([0-9]+)/([A-Za-z0-9_]+) ]]; then
@@ -305,6 +310,9 @@ process_single_config() {
     # Check whether the JSON config has any environemtn variables to set. 
     # They will override any environment variables set in the shell.
     set_env_vars_from_json() {
+        # Clear previous tracking
+        set_env_vars=()
+
         # Get environment variables from config
         env_vars_json=$(jq -r ".$config_name.env_vars // .default.env_vars // {}" "$config_file")
         
@@ -312,6 +320,10 @@ process_single_config() {
             while IFS="=" read -r key value; do
                 # Skip empty lines
                 [ -z "$key" ] && continue
+
+                # Track this variable
+                set_env_vars+=("$key")
+
                 # Export the environment variable
                 export "$key"="$value"
             done < <(jq -r ".$config_name.env_vars // .default.env_vars // {} | to_entries[] | \"\(.key)=\(.value)\"" "$config_file")
@@ -379,6 +391,9 @@ if [[ "$*" == *"--config"* ]]; then
             continue  # Skip this config but process others
         fi
         
+        # Unset previous environment variables.
+        unset_config_specific_env_vars
+
         process_single_config "$config_name" "$kernel_times_path"
     done
 else
