@@ -156,6 +156,10 @@ bool BnBwdTrainingSpatial::IsApplicable(
     if(!IsOCLBwdTypeValid(bn_problem))
         return false;
 
+    int activ_mode = bn_problem.GetActivationDesc().GetMode();
+    if(activ_mode < miopenActivationPASTHRU || activ_mode > miopenActivationELU)
+        return false;
+
     return true;
 }
 
@@ -293,36 +297,36 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
     {
         auto kernel = KernelInfo{};
 
-        auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
-            {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
-            {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
-            {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
-            {"MIO_BN_USESAVED", static_cast<int>(problem.UseSaved())},
-            {"MIO_BN_N", static_cast<int>(n)},
-            {"MIO_BN_C", static_cast<int>(c)},
-            {"MIO_BN_HW", static_cast<int>(in_cstride)},
-            {"MIO_BN_NHW", static_cast<int>(in_nhw)},
-            {"MIO_BN_CHW", in_nstride},
-            {"MIO_BN_NCHW", in_nchw},
-            {"MIO_BN_NGRPS", ygridsize / ylocalsize},
-            {"MIO_BN_NGRPS2", zgridsize / zlocalsize},
-            {"MIO_BN_N_ELEMENTS", nelements},
-            {"MIO_BN_LDS_SIZE", ldsnogcn},
-            {"MIO_BN_LDSGCN_SIZE", ldsgcn},
-            {"MIO_BN_VARIANT", variant},
-            {"MIO_WAVESIZE", wavesize},
-            {"MIO_BN_GRP0", xlocalsize},
-            {"MIO_BN_GRP1", ylocalsize},
-            {"MIO_BN_GRP2", zlocalsize},
-            {"MIO_BN_GRP0_FINAL", xlocalsize_final},
-            {"MIO_BN_GRP1_FINAL", ylocalsize_final},
-            {"MIO_BN_GRP2_FINAL", zlocalsize_final},
-            {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
-            {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
-            {"MIO_BN_VEC_SIZE", vectorsize},
-            {"MIO_BN_STASH_METHOD", stash_method},
-        };
+        auto build_params =
+            KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
+                                  {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
+                                  {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+                                  {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
+                                  {"MIO_BN_USESAVED", static_cast<int>(problem.UseSaved())},
+                                  {"MIO_BN_N", static_cast<int>(n)},
+                                  {"MIO_BN_C", static_cast<int>(c)},
+                                  {"MIO_BN_HW", static_cast<int>(in_cstride)},
+                                  {"MIO_BN_NHW", static_cast<int>(in_nhw)},
+                                  {"MIO_BN_CHW", in_nstride},
+                                  {"MIO_BN_NCHW", in_nchw},
+                                  {"MIO_BN_NGRPS", ygridsize / ylocalsize},
+                                  {"MIO_BN_NGRPS2", zgridsize / zlocalsize},
+                                  {"MIO_BN_N_ELEMENTS", nelements},
+                                  {"MIO_BN_LDS_SIZE", ldsnogcn},
+                                  {"MIO_BN_LDSGCN_SIZE", ldsgcn},
+                                  {"MIO_BN_VARIANT", variant},
+                                  {"MIO_WAVESIZE", wavesize},
+                                  {"MIO_BN_GRP0", xlocalsize},
+                                  {"MIO_BN_GRP1", ylocalsize},
+                                  {"MIO_BN_GRP2", zlocalsize},
+                                  {"MIO_BN_GRP0_FINAL", xlocalsize_final},
+                                  {"MIO_BN_GRP1_FINAL", ylocalsize_final},
+                                  {"MIO_BN_GRP2_FINAL", zlocalsize_final},
+                                  {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
+                                  {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
+                                  {"MIO_BN_VEC_SIZE", vectorsize},
+                                  {"MIO_BN_STASH_METHOD", stash_method},
+                                  {"MIOPEN_NRN_OP_ID", problem.GetActivationDesc().GetMode()}};
 
         {
             // OpenCL kernels for variant 0-4
@@ -388,7 +392,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::BwdInvokeParams>();
 
-            float ctime = 0.;
+            float alpha_activ = problem.GetActivationDesc().GetAlpha();
+            float beta_activ  = problem.GetActivationDesc().GetBeta();
+            float gamma_activ = problem.GetActivationDesc().GetGamma();
+            float ctime       = 0.;
             visit_float(dtype, [&](auto as_float) {
                 if(variant != 2)
                 {
@@ -403,7 +410,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                params.resultBnBiasDiff,
                                params.savedMean,
                                params.savedInvVariance,
-                               as_float(inhw));
+                               as_float(inhw),
+                               alpha_activ,
+                               beta_activ,
+                               gamma_activ);
                     }
                     else
                     {
@@ -414,7 +424,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                params.resultBnScaleDiff,
                                params.resultBnBiasDiff,
                                params.epsilon,
-                               inhw);
+                               inhw,
+                               alpha_activ,
+                               beta_activ,
+                               gamma_activ);
                     }
                 }
                 else
@@ -440,7 +453,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                                 params.resultBnBiasDiff,
                                                 params.savedMean,
                                                 params.savedInvVariance,
-                                                as_float(inhw));
+                                                as_float(inhw),
+                                                alpha_activ,
+                                                beta_activ,
+                                                gamma_activ);
                         profileSequence(handle_, 2, &ctime);
                     }
                     else
@@ -466,7 +482,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                                 params.bnScale,
                                                 params.resultBnScaleDiff,
                                                 params.resultBnBiasDiff,
-                                                as_float(inhw)); // dx
+                                                as_float(inhw),
+                                                alpha_activ,
+                                                beta_activ,
+                                                gamma_activ);
                         profileSequence(handle_, 2, &ctime);
                     }
                 }
