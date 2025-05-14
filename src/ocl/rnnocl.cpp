@@ -59,6 +59,16 @@ bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
     return false;
 }
 
+bool RNNForwardMSIsFast(const int seqLen)
+{
+    if(env::enabled(MIOPEN_RNNFWD_EXP))
+        return true;
+
+    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_EXP))
+        return true;
+    return false;
+}
+
 void checkGemmStatusAndLog(miopenStatus_t gemm_status)
 {
     if(gemm_status != miopenStatusSuccess)
@@ -72,16 +82,6 @@ void checkGemmStatusAndLog(miopenStatus_t gemm_status)
             MIOPEN_LOG_E("GEMM failed");
         }
     }
-}
-
-bool RNNForwardMSIsFast(const int seqLen)
-{
-    if(env::enabled(MIOPEN_RNNFWD_EXP))
-        return true;
-
-    if(seqLen >= 32 && !env::disabled(MIOPEN_RNNFWD_EXP))
-        return true;
-    return false;
 }
 
 miopenStatus_t ReducAddBias(const miopen::Handle& handle,
