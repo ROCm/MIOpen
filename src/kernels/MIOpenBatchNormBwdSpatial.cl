@@ -39,6 +39,7 @@
 #endif
 
 #include "batchnorm_functions.h"
+#include "bnorm_spatial_activation_functions.h"
 #include "reduction_functions.h"
 
 #ifndef MIO_LAYOUT_NHWC
@@ -73,9 +74,13 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                           const __global _FLOAT_PREC* savedMean,
                           const __global _FLOAT_PREC* savedInvVariance,
 #endif
-                          _FLOAT_PREC INHW)
+                          _FLOAT_PREC INHW,
+                          _FLOAT_PREC _alpha,
+                          _FLOAT_PREC _beta,
+                          _FLOAT_PREC _gamma)
 {
 
+    ACTIVATION_SET()
     // SPATIAL
     _FLOAT_PREC mean = (_FLOAT_PREC)0.;
 #if(MIO_BN_USESAVED == 0)
@@ -208,24 +213,28 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     {
         //==== CALC NORM =======================
         pscale = lbns;
-
+        _FLOAT_PREC value;
         for(unsigned int n = 0; n < MIO_BN_NLOOPM; n++)
         { // apply normalization
-            nid           = n * MIO_BN_SEGIHW + lidihw;
-            index         = nid * MIO_BN_CHW + chwid;
-            tmp1          = mad(NHW, dyvalues[n], -db);
-            tmp2          = -batchvalues[n] * ds;
-            tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
+            nid   = n * MIO_BN_SEGIHW + lidihw;
+            index = nid * MIO_BN_CHW + chwid;
+            tmp1  = mad(NHW, dyvalues[n], -db);
+            tmp2  = -batchvalues[n] * ds;
+            tmp3  = (pscale * invVariance) * INHW;
+            value = tmp3 * (tmp2 + tmp1);
+            ACTIVATION_OP(value, value, _FLOAT_PREC)
+            dx_out[index] = FLOATPREC2FLOAT(value);
         } // end for
         nid   = MIO_BN_SNHW + lidihw;
         index = nid * MIO_BN_CHW + chwid;
         if(index < MIO_BN_NCHW)
         {
-            tmp1          = mad(NHW, dyvalues[MIO_BN_NLOOPM], -db);
-            tmp2          = -batchvalues[MIO_BN_NLOOPM] * ds;
-            tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
+            tmp1  = mad(NHW, dyvalues[MIO_BN_NLOOPM], -db);
+            tmp2  = -batchvalues[MIO_BN_NLOOPM] * ds;
+            tmp3  = (pscale * invVariance) * INHW;
+            value = tmp3 * (tmp2 + tmp1);
+            ACTIVATION_OP(value, value, _FLOAT_PREC)
+            dx_out[index] = FLOATPREC2FLOAT(value);
         }
     }
     if(lid == 0)
@@ -270,9 +279,13 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                           const __global _FLOAT_PREC* savedMean,
                           const __global _FLOAT_PREC* savedInvVariance,
 #endif
-                          _FLOAT_PREC INHW)
+                          _FLOAT_PREC INHW,
+                          _FLOAT_PREC _alpha,
+                          _FLOAT_PREC _beta,
+                          _FLOAT_PREC _gamma)
 {
 
+    ACTIVATION_SET()
     // SPATIAL
     _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
     _FLOAT_PREC invVariance = (_FLOAT_PREC)0.;
@@ -572,14 +585,15 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         for(unsigned int j = 0; j < MIO_MAX_READ; j++)
 #endif
         {
-            unsigned int l    = k + j;
-            nidx              = l / MIO_BN_HW;
-            hwidx             = l - (nidx * MIO_BN_HW);
+            unsigned int l = k + j;
+            nidx           = l / MIO_BN_HW;
+            hwidx          = l - (nidx * MIO_BN_HW);
 #if MIO_LAYOUT_NHWC
-            index             = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+            index          = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
 #else
             index = nidx * MIO_BN_CHW + chwid + hwidx;
 #endif
+            ACTIVATION_OP(vals[j], vals[j], _FLOAT_PREC)
             *(dx_out + index) = FLOATPREC2FLOAT(vals[j]);
         }
     }
@@ -626,6 +640,7 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
         if(index < MIO_BN_NCHW)
         {
+            ACTIVATION_OP(vals[j], vals[j], _FLOAT_PREC)
             *(dx_out + index) = FLOATPREC2FLOAT(vals[j]);
         }
     }
@@ -1035,9 +1050,13 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
                             const __global _FLOAT_PREC* __restrict savedMean,
                             const __global _FLOAT_PREC* __restrict savedInvVariance,
 #endif
-                            _FLOAT_PREC INHW)
+                            _FLOAT_PREC INHW,
+                            _FLOAT_PREC _alpha,
+                            _FLOAT_PREC _beta,
+                            _FLOAT_PREC _gamma)
 {
 
+    ACTIVATION_SET()
     unsigned int xlid = get_local_id(0);
     unsigned int ylid = get_local_id(1);
     unsigned int zlid = get_local_id(2);
@@ -1124,6 +1143,7 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
             tmp2    = -xhat * dscale;
             tmp3    = scale * invVar * INHW;
             tmp4    = tmp3 * (tmp2 + tmp1);
+            ACTIVATION_OP(tmp4, tmp4, _FLOAT_PREC_LS)
             *((__global _FLOAT_LS*)(dx_out + index)) = FLOATPREC2FLOAT_VEC(tmp4);
         }
     }
@@ -1148,9 +1168,13 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                           const __global _FLOAT_PREC* savedMean,
                           const __global _FLOAT_PREC* savedInvVariance,
 #endif
-                          _FLOAT_PREC INHW)
+                          _FLOAT_PREC INHW,
+                          _FLOAT_PREC _alpha,
+                          _FLOAT_PREC _beta,
+                          _FLOAT_PREC _gamma)
 {
 
+    ACTIVATION_SET()
     // SPATIAL
     _FLOAT_PREC mean        = (_FLOAT_PREC)0.;
 #if(MIO_BN_USESAVED == 0)
@@ -1287,16 +1311,18 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         pscale = lcl_scale;
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index         = n * MIO_BN_CHW + cidx + lid;
+            index = n * MIO_BN_CHW + cidx + lid;
 #if(MIO_BN_N < MIO_BN_MAXN)
-            tmp1          = mad(NHW, dyvalues[n], -db);
-            tmp2          = -(batchvalues[n]) * ds;
+            tmp1  = mad(NHW, dyvalues[n], -db);
+            tmp2  = -(batchvalues[n]) * ds;
 #else
             tmp1 = mad(NHW, FLOAT2FLOATPREC(*(dy_in + index)), -db);
             tmp2 = -(FLOAT2FLOATPREC(*(x_in + index)) - mean) * invVariance * ds;
 #endif
-            tmp3          = (pscale * invVariance) * INHW;
-            dx_out[index] = FLOATPREC2FLOAT(tmp3 * (tmp2 + tmp1));
+            tmp3  = (pscale * invVariance) * INHW;
+            tmp3  = tmp3 * (tmp2 + tmp1);
+            ACTIVATION_OP(tmp3, tmp3, _FLOAT_PREC)
+            dx_out[index] = FLOATPREC2FLOAT(tmp3);
         }
     }
     if(lid == 0)
