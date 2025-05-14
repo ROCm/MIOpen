@@ -35,6 +35,7 @@
 #include <miopen/batch_norm.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/activ.hpp>
 #include <utility>
 
 #include "driver.hpp"
@@ -272,6 +273,7 @@ struct verify_forward_train_3d_bn_per_activation
         float alpha = 1.;
         float beta  = 0.;
 
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
         miopen::BatchNormForwardTraining(handle,
                                          miopenBNPerActivation,
                                          &alpha,
@@ -291,7 +293,8 @@ struct verify_forward_train_3d_bn_per_activation
                                          runVar_dev.get(),
                                          epsilon,
                                          saveMean_dev.get(),
-                                         saveInvVar_dev.get());
+                                         saveInvVar_dev.get(),
+                                         actDesc);
 
         saveMean.data   = handle.Read<U>(saveMean_dev, saveMean.data.size());
         saveInvVar.data = handle.Read<U>(saveInvVar_dev, saveInvVar.data.size());
@@ -444,6 +447,7 @@ struct verify_forward_infer_3d_bn_per_activation_recalc
         float alpha = 1.;
         float beta  = 0.;
 
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
         miopen::BatchNormForwardInference(handle,
                                           miopenBNPerActivation,
                                           &alpha,
@@ -460,7 +464,8 @@ struct verify_forward_infer_3d_bn_per_activation_recalc
                                           shift_dev.get(),
                                           nullptr,
                                           nullptr,
-                                          epsilon);
+                                          epsilon,
+                                          actDesc);
         out.data = handle.Read<T>(out_dev, out.data.size());
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -570,6 +575,7 @@ struct verify_forward_infer_3d_bn_per_activation_use_est
         float alpha = 1.;
         float beta  = 0.;
 
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
         miopen::BatchNormForwardInference(handle,
                                           miopenBNPerActivation,
                                           &alpha,
@@ -586,7 +592,8 @@ struct verify_forward_infer_3d_bn_per_activation_use_est
                                           shift_dev.get(),
                                           estMean_dev.get(),
                                           estVar_dev.get(),
-                                          epsilon); // TODO: add multi-in
+                                          epsilon,
+                                          actDesc); // TODO: add multi-in
         out.data = handle.Read<T>(out_dev, out.data.size());
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -743,6 +750,7 @@ struct verify_backward_3d_bn_per_activation_use_saved
         float alpha = 1.;
         float beta  = 0.;
 
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
         miopen::BatchNormBackward(handle,
                                   miopenBNPerActivation,
                                   &alpha,
@@ -764,7 +772,8 @@ struct verify_backward_3d_bn_per_activation_use_saved
                                   dshift_dev.get(),
                                   epsilon,
                                   savedMean_dev.get(),
-                                  savedInvVar_dev.get());
+                                  savedInvVar_dev.get(),
+                                  actDesc);
         dx_out.data = handle.Read<T>(dx_out_dev, dx_out.data.size());
         dscale.data = handle.Read<U>(dscale_dev, dscale.data.size());
         dshift.data = handle.Read<U>(dshift_dev, dshift.data.size());
@@ -947,6 +956,7 @@ struct verify_backward_3d_bn_per_activation_recalc
         float alpha = 1.;
         float beta  = 0.;
 
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
         miopen::BatchNormBackward(handle,
                                   miopenBNPerActivation,
                                   &alpha,
@@ -968,7 +978,8 @@ struct verify_backward_3d_bn_per_activation_recalc
                                   dshift_dev.get(),
                                   epsilon,
                                   nullptr,
-                                  nullptr);
+                                  nullptr,
+                                  actDesc);
         dx_out.data = handle.Read<T>(dx_out_dev, dx_out.data.size());
         dscale.data = handle.Read<U>(dscale_dev, dscale.data.size());
         dshift.data = handle.Read<U>(dshift_dev, dshift.data.size());
