@@ -33,7 +33,6 @@
 
 struct KernelTuningNetTestCase : AIModelTestCase
 {
-    std::string expected_config;
     std::string arch;
 };
 
@@ -43,7 +42,6 @@ std::vector<KernelTuningNetTestCase> GetConvAsm1x1UTestCases_FP32()
               miopen::conv::Direction::BackwardData,
               miopenFloat,
               miopenTensorNCHW},
-             "1,16,1,64,2,2,1,4",
              "gfx908"}};
 }
 std::vector<KernelTuningNetTestCase> GetConvAsm1x1UTestCases_FP16()
@@ -52,7 +50,6 @@ std::vector<KernelTuningNetTestCase> GetConvAsm1x1UTestCases_FP16()
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNCHW},
-             "2,8,4,16,1,4,1,4",
              "gfx908"}};
 }
 
@@ -62,8 +59,6 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases_FP32
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNHWC},
-             "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<256, 128, 128, 16, Default, 32, 32, 2, "
-             "2, 4, 4, 4, 1, 1, 1>",
              "gfx90a"}};
 }
 
@@ -73,8 +68,6 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases_FP16
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNHWC},
-             "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle<64, 64, 64, 32, Filter1x1Pad0, "
-             "32, 32, 2, 2, 1, 1, 1, 1, 1, 1>",
              "gfx942"}};
 }
 
@@ -84,8 +77,6 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupBwdXdlopsTestCases_FP32
               miopen::conv::Direction::BackwardData,
               miopenFloat,
               miopenTensorNHWC},
-             "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1<64, 64, 64, 32, 8, 8, Default, 32, "
-             "32, 2, 2, 1, 1, 1, 1>",
              "gfx942"}};
 }
 
@@ -95,8 +86,6 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupBwdXdlopsTestCases_FP16
               miopen::conv::Direction::BackwardData,
               miopenHalf,
               miopenTensorNHWC},
-             "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1<128, 128, 32, 32, 8, 8, Default, "
-             "32, 32, 2, 1, 8, 8, 1, 1>",
              "gfx90a"}};
 }
 
@@ -106,15 +95,11 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases_FP32
               miopen::conv::Direction::BackwardWeights,
               miopenFloat,
               miopenTensorNHWC},
-             "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128, 128, 32, 4, Default, 4, 2, 1, 4, 4, 1, "
-             "1, 1, 1, 1>+128",
              "gfx942"},
-            {{{1, 2, 2, 1, {9, 1}, {1, 1}, {1, 0}, {3, 1}, {2, 1}},
+            {{{1, 2, 2, 1, {9, 1}, {1, 1}, {1, 0}, {3, 1}, {2, 1}}, // uneven stride
               miopen::conv::Direction::BackwardWeights,
               miopenFloat,
               miopenTensorNHWC},
-             "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64, 64, 64, 4, Default, 4, 2, 2, 1, 4, 1, 4, "
-             "1, 1, 1>+1",
              "gfx942"}};
 }
 
@@ -125,30 +110,24 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases_FP16
           miopen::conv::Direction::BackwardWeights,
           miopenHalf,
           miopenTensorNHWC},
-         "DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle<64, 16, 16, 32, Default, 8, 1, 1, 1, 4, "
-         "1, 4, 1, 1, 1, BlkGemmPipelineScheduler: Intrawave, BlkGemmPipelineVersion: v1, 1>+1",
          "gfx942"},
-        {{{1, 2, 2, 1, {9, 1}, {1, 1}, {1, 0}, {3, 1}, {2, 1}},
+        {{{1, 2, 2, 1, {9, 1}, {1, 1}, {1, 0}, {3, 1}, {2, 1}}, //uneven stride
           miopen::conv::Direction::BackwardWeights,
           miopenHalf,
           miopenTensorNHWC},
-         "DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle<64, 16, 16, 32, Default, 8, 1, 1, 1, 4, "
-         "1, 4, 1, 1, 1, BlkGemmPipelineScheduler: Intrawave, BlkGemmPipelineVersion: v1, 1>+1",
          "gfx942"},
-        {{{1, 16, 128, 256, {27, 27}, {3, 3}, {0, 0}, {1, 2}, {1, 1}},
+        {{{1, 16, 128, 256, {27, 27}, {3, 3}, {0, 0}, {1, 2}, {1, 1}}, //uneven stride
           miopen::conv::Direction::BackwardWeights,
           miopenHalf,
           miopenTensorNHWC},
-         "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64, 64, 32, 4, Default, 8, 2, 1, 8, 4, 8, 2, 1, "
-         "1, 8>+1",
          "gfx90a"}};
 }
 
-template <typename Solver>
+template <typename PerfConfig>
 class KernelTuningNetTest : public ::testing::TestWithParam<KernelTuningNetTestCase>
 {
 protected:
-    void TestParameterPredictionModel()
+    void TestParameterPredictionModel(std::string solver_nm)
     {
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
         auto test_case = GetParam();
@@ -204,59 +183,31 @@ protected:
                                                   workSpaceSize,
                                                   conv_desc.attribute.gfx90aFp16alt.GetWrW()};
 
-        Solver perf_config;
+        const auto solver_id = miopen::solver::Id{solver_nm};
+        const auto solv      = solver_id.GetSolver();
+        const auto algo      = solver_id.GetAlgo();
+        MIOPEN_LOG_I2("Testing solver: " << solver_id.ToString());
+
+        PerfConfig perf_config;
         ASSERT_TRUE(perf_config.IsModelApplicable(ctx, problem));
-
         perf_config.HeuristicInit(ctx, problem);
+        MIOPEN_LOG_I2("perf_config: " << perf_config.ToString());
+        ASSERT_NE(perf_config.ToString(), "");
 
-        std::vector<uint64_t> solvers;
-        solvers = miopen::ai::immed_mode::PredictSolver(problem, ctx, test_case.arch);
-
-        auto conv_sols = std::vector<miopenConvSolution_t>{};
-        const auto ai_time = [](const int& idx) {
-            return 10.0f * static_cast<float>(idx); // Assume idx == 1 (best solver) is 10 ms.
-        };
-        int idx = 1;
-        for(const auto kinder : solvers)
-        {
-            const auto solver_id = miopen::solver::Id{kinder};
-            const auto sol       = solver_id.GetSolver();
-            const auto algo      = solver_id.GetAlgo();
-            //MIOPEN_LOG_I2("Testing solver: " << solver_id.ToString());
-            if(miopen::conv::IsAlgorithmDisabled(algo))
-                continue;
-            if(!sol.IsDynamic())
-                continue; // branch should never be taken
-            if(!sol.IsApplicable(ctx, problem))
-                continue;
-            const auto ws = sol.GetWorkspaceSize(ctx, problem);
-            if(!miopen::conv::IsEnoughWorkspace("GetSolutionsFallback AI", solver_id, ws, &invoke_ctx))
-                continue;
-            conv_sols.emplace_back(
-                miopenConvSolution_t{ai_time(idx), ws, solver_id.Value(), algo});
-            ++idx;
-        }
-
-        ASSERT_FALSE(conv_sols.empty());
+        ASSERT_FALSE(miopen::conv::IsAlgorithmDisabled(algo));
+        ASSERT_TRUE(solv.IsDynamic());
+        ASSERT_TRUE(solv.IsApplicable(ctx, problem));
+        const auto ws = solv.GetWorkspaceSize(ctx, problem);
+        ASSERT_TRUE(miopen::conv::IsEnoughWorkspace("GetSolutionsFallback AI", solver_id, ws, &invoke_ctx));
 
         miopen::PerformanceDb db = {miopen::DbKinds::PerfDb, fs::path{"/tmp"}, fs::path{"/tmp"}}; //empty db
-        for(const auto& entry : conv_sols)
-        {
-            const auto id = miopen::solver::Id{entry.solution_id};
-            const auto& s = id.GetSolver();
-            //CompileSolution(id, ctx, problem);
-            //results.push_back({id, sol->time, s.GetWorkspaceSize(ctx, problem)});
-            MIOPEN_LOG_I(id.ToString()
-                         << "\t" << entry.time << "\t" << s.GetWorkspaceSize(ctx, problem));
-
-            miopen::solver::ConvSolution sol =
-                s.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
-            const auto invoker = handle.PrepareInvoker(*sol.invoker_factory,
-                                                   sol.construction_params);
-            invoker(handle, invoke_ctx);
-            MIOPEN_LOG_I(id.ToString() << " convolution completed");
-
-        }
+        miopen::solver::ConvSolution sol =
+            solv.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
+                                                     //
+        const auto invoker = handle.PrepareInvoker(*sol.invoker_factory,
+                                               sol.construction_params);
+        invoker(handle, invoke_ctx);
+        MIOPEN_LOG_I("Invoke success: " << solver_id.ToString());
 
 #else
         GTEST_SKIP();
@@ -271,12 +222,12 @@ using GPU_KernelTuningNetTestConvAsm1x1U_FP16 =
 
 TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_FP32, ConvAsm1x1UParameterPredictionModel)
 {
-    TestParameterPredictionModel();
+    TestParameterPredictionModel("ConvAsm1x1U");
 }
 
 TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_FP16, ConvAsm1x1UParameterPredictionModel)
 {
-    TestParameterPredictionModel();
+    TestParameterPredictionModel("ConvAsm1x1U");
 }
 
 using GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP32 =
@@ -288,13 +239,13 @@ using GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP16 =
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP32,
        ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel();
+    TestParameterPredictionModel("ConvHipImplicitGemmGroupFwdXdlops");
 }
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupFwdXdlops_FP16,
        ConvHipIgemmGroupFwdXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel();
+    TestParameterPredictionModel("ConvHipImplicitGemmGroupFwdXdlops");
 }
 
 using GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP32 =
@@ -306,13 +257,13 @@ using GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP16 =
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP32,
        ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel();
+    TestParameterPredictionModel("ConvHipImplicitGemmGroupBwdXdlops");
 }
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupBwdXdlops_FP16,
        ConvHipIgemmGroupBwdXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel();
+    TestParameterPredictionModel("ConvHipImplicitGemmGroupBwdXdlops");
 }
 
 using GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP32 =
@@ -324,13 +275,13 @@ using GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16 =
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP32,
        ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel();
+    TestParameterPredictionModel("ConvHipImplicitGemmGroupWrwXdlops");
 }
 
 TEST_P(GPU_KernelTuningNetTestConvHipIgemmGroupWrwXdlops_FP16,
        ConvHipIgemmGroupWrwXdlopsParameterPredictionModel)
 {
-    TestParameterPredictionModel();
+    TestParameterPredictionModel("ConvHipImplicitGemmGroupWrwXdlops");
 }
 
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_KernelTuningNetTestConvAsm1x1U_FP32);
