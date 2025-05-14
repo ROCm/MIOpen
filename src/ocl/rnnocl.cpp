@@ -45,6 +45,20 @@ namespace miopen {
 
 namespace {
 
+bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
+                             [[maybe_unused]] bool use_dropout)
+{
+#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+    if(desctiptor.rnnMode == miopenLSTM && desctiptor.algoMode == miopenRNNdefault &&
+       !use_dropout && desctiptor.nLayers > 1 && desctiptor.dirMode == miopenRNNunidirection &&
+       desctiptor.inputMode != miopenRNNskip)
+    {
+        return true;
+    }
+#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+    return false;
+}
+
 void checkGemmStatusAndLog(miopenStatus_t gemm_status)
 {
     if(gemm_status != miopenStatusSuccess)
@@ -58,20 +72,6 @@ void checkGemmStatusAndLog(miopenStatus_t gemm_status)
             MIOPEN_LOG_E("GEMM failed");
         }
     }
-}
-
-bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
-                             [[maybe_unused]] bool use_dropout)
-{
-#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
-    if(desctiptor.rnnMode == miopenLSTM && desctiptor.algoMode == miopenRNNdefault &&
-       !use_dropout && desctiptor.nLayers > 1 && desctiptor.dirMode == miopenRNNunidirection &&
-       desctiptor.inputMode != miopenRNNskip)
-    {
-        return true;
-    }
-#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
-    return false;
 }
 
 bool RNNForwardMSIsFast(const int seqLen)
@@ -232,7 +232,8 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                               static_cast<float*>(dstY_with_offset),
                               1);
 #else
-    MIOPEN_THROW(miopenStatusUnsupportedOp, "MIOpen is built with MIOPEN_USE_ROCBLAS=OFF");                              
+                MIOPEN_THROW(miopenStatusUnsupportedOp,
+                             "MIOpen is built with MIOPEN_USE_ROCBLAS=OFF");
 #endif // MIOPEN_USE_ROCBLAS
             }
         }
