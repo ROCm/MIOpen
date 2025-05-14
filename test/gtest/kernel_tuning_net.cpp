@@ -105,22 +105,21 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases_FP32
 
 std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases_FP16()
 {
-    return {
-        {{{32, 1024, 480, 64, {14, 14}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
-          miopen::conv::Direction::BackwardWeights,
-          miopenHalf,
-          miopenTensorNHWC},
-         "gfx942"},
-        {{{1, 2, 2, 1, {9, 1}, {1, 1}, {1, 0}, {3, 1}, {2, 1}}, //uneven stride
-          miopen::conv::Direction::BackwardWeights,
-          miopenHalf,
-          miopenTensorNHWC},
-         "gfx942"},
-        {{{1, 16, 128, 256, {27, 27}, {3, 3}, {0, 0}, {1, 2}, {1, 1}}, //uneven stride
-          miopen::conv::Direction::BackwardWeights,
-          miopenHalf,
-          miopenTensorNHWC},
-         "gfx90a"}};
+    return {{{{32, 1024, 480, 64, {14, 14}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
+              miopen::conv::Direction::BackwardWeights,
+              miopenHalf,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 2, 2, 1, {9, 1}, {1, 1}, {1, 0}, {3, 1}, {2, 1}}, // uneven stride
+              miopen::conv::Direction::BackwardWeights,
+              miopenHalf,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 16, 128, 256, {27, 27}, {3, 3}, {0, 0}, {1, 2}, {1, 1}}, // uneven stride
+              miopen::conv::Direction::BackwardWeights,
+              miopenHalf,
+              miopenTensorNHWC},
+             "gfx90a"}};
 }
 
 template <typename PerfConfig>
@@ -162,26 +161,46 @@ protected:
                                                               test_case.direction);
 
         auto data_type = test_case.data_type;
-        auto in_tensor = GPUMem{0, input_tensor_desc.GetNumBytes() / sizeof(data_type), sizeof(data_type)};
-        auto wt_tensor = GPUMem{0, weights_tensor_desc.GetNumBytes() / sizeof(data_type), sizeof(data_type)};
-        auto out_tensor = GPUMem{0, output_desc.GetNumBytes() / sizeof(data_type), sizeof(data_type)};
+        auto in_tensor =
+            GPUMem{0, input_tensor_desc.GetNumBytes() / sizeof(data_type), sizeof(data_type)};
+        auto wt_tensor =
+            GPUMem{0, weights_tensor_desc.GetNumBytes() / sizeof(data_type), sizeof(data_type)};
+        auto out_tensor =
+            GPUMem{0, output_desc.GetNumBytes() / sizeof(data_type), sizeof(data_type)};
         auto workSpaceSize = conv_desc.GetWorkSpaceSize(ctx, problem);
-        auto workSpace = GPUMem{0, workSpaceSize / sizeof(data_type), sizeof(data_type)};
+        auto workSpace     = GPUMem{0, workSpaceSize / sizeof(data_type), sizeof(data_type)};
 
         miopen::AnyInvokeParams invoke_ctx;
         if(test_case.direction == miopen::conv::Direction::Forward)
-            invoke_ctx = miopen::conv::DataInvokeParams{{input_tensor_desc, in_tensor.GetMem(), weights_tensor_desc, wt_tensor.GetMem(), output_desc, out_tensor.GetMem()}, 
-                                                workSpace.GetMem(), workSpaceSize, conv_desc.attribute.gfx90aFp16alt.GetFwd()};
+            invoke_ctx = miopen::conv::DataInvokeParams{{input_tensor_desc,
+                                                         in_tensor.GetMem(),
+                                                         weights_tensor_desc,
+                                                         wt_tensor.GetMem(),
+                                                         output_desc,
+                                                         out_tensor.GetMem()},
+                                                        workSpace.GetMem(),
+                                                        workSpaceSize,
+                                                        conv_desc.attribute.gfx90aFp16alt.GetFwd()};
         else if(test_case.direction == miopen::conv::Direction::BackwardData)
-            invoke_ctx = miopen::conv::DataInvokeParams{{output_desc, out_tensor.GetMem(), weights_tensor_desc, wt_tensor.GetMem(), input_tensor_desc, in_tensor.GetMem()},
-                                               workSpace.GetMem(),
-                                               workSpaceSize,
-                                               conv_desc.attribute.gfx90aFp16alt.GetBwd()};
+            invoke_ctx = miopen::conv::DataInvokeParams{{output_desc,
+                                                         out_tensor.GetMem(),
+                                                         weights_tensor_desc,
+                                                         wt_tensor.GetMem(),
+                                                         input_tensor_desc,
+                                                         in_tensor.GetMem()},
+                                                        workSpace.GetMem(),
+                                                        workSpaceSize,
+                                                        conv_desc.attribute.gfx90aFp16alt.GetBwd()};
         else
-            invoke_ctx = miopen::conv::WrWInvokeParams{{output_desc, out_tensor.GetMem(), input_tensor_desc, in_tensor.GetMem(), weights_tensor_desc, wt_tensor.GetMem()},
-                                                  workSpace.GetMem(),
-                                                  workSpaceSize,
-                                                  conv_desc.attribute.gfx90aFp16alt.GetWrW()};
+            invoke_ctx = miopen::conv::WrWInvokeParams{{output_desc,
+                                                        out_tensor.GetMem(),
+                                                        input_tensor_desc,
+                                                        in_tensor.GetMem(),
+                                                        weights_tensor_desc,
+                                                        wt_tensor.GetMem()},
+                                                       workSpace.GetMem(),
+                                                       workSpaceSize,
+                                                       conv_desc.attribute.gfx90aFp16alt.GetWrW()};
 
         const auto solver_id = miopen::solver::Id{solver_nm};
         const auto solv      = solver_id.GetSolver();
@@ -198,14 +217,16 @@ protected:
         ASSERT_TRUE(solv.IsDynamic());
         ASSERT_TRUE(solv.IsApplicable(ctx, problem));
         const auto ws = solv.GetWorkspaceSize(ctx, problem);
-        ASSERT_TRUE(miopen::conv::IsEnoughWorkspace("GetSolutionsFallback AI", solver_id, ws, &invoke_ctx));
+        ASSERT_TRUE(
+            miopen::conv::IsEnoughWorkspace("GetSolutionsFallback AI", solver_id, ws, &invoke_ctx));
 
-        miopen::PerformanceDb db = {miopen::DbKinds::PerfDb, fs::path{"/tmp"}, fs::path{"/tmp"}}; //empty db
+        miopen::PerformanceDb db = {miopen::DbKinds::PerfDb, fs::path{"/tmp"}, fs::path {
+                                        "/tmp"
+                                    }}; // empty db, force heuristic
         miopen::solver::ConvSolution sol =
             solv.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
-                                                     //
-        const auto invoker = handle.PrepareInvoker(*sol.invoker_factory,
-                                               sol.construction_params);
+
+        const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
         invoker(handle, invoke_ctx);
         MIOPEN_LOG_I("Invoke success: " << solver_id.ToString());
 
