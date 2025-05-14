@@ -50,6 +50,10 @@ bool BnFwdInference::IsApplicable(const ExecutionContext&,
     if(!IsOCLInferTypeValid(bn_problem))
         return false;
 
+    int activ_mode = bn_problem.GetActivationDesc().GetMode();
+    if(activ_mode < miopenActivationPASTHRU || activ_mode > miopenActivationELU)
+        return false;
+
     return true;
 }
 
@@ -140,7 +144,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
             {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
             {"MIO_BN_VEC_SIZE", vectorsize},
-        };
+            {"MIOPEN_NRN_OP_ID", problem.GetActivationDesc().GetMode()}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
@@ -155,7 +159,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
         result.construction_params.push_back(kernel);
     }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InfInvokeParams>();
@@ -164,6 +168,10 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             std::tie(n_, c_, h_, w_) = tien<4>(params.xDesc->GetLengths());
 
             unsigned int in_nstride_ = c_ * h_ * w_;
+
+            float alpha_activ = problem.GetActivationDesc().GetAlpha();
+            float beta_activ  = problem.GetActivationDesc().GetBeta();
+            float gamma_activ = problem.GetActivationDesc().GetGamma();
 
             if(params.xDesc->GetLayout_t() == miopenTensorNHWC)
             {
@@ -177,9 +185,12 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
                        c_,
                        h_ * w_,
                        n_,
-                       1,            // cStride
-                       c_,           // hwStride
-                       in_nstride_); // batchStride
+                       1,           // cStride
+                       c_,          // hwStride
+                       in_nstride_, // batchStride
+                       alpha_activ,
+                       beta_activ,
+                       gamma_activ);
             }
             else
             {
@@ -193,9 +204,12 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
                        c_,
                        h_ * w_,
                        n_,
-                       h_ * w_,      // cStride
-                       1,            // hwStride
-                       in_nstride_); // batchStride
+                       h_ * w_,     // cStride
+                       1,           // hwStride
+                       in_nstride_, // batchStride
+                       alpha_activ,
+                       beta_activ,
+                       gamma_activ);
             }
         };
     };
