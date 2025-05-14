@@ -145,7 +145,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                       const AnyInvokeParams& invoke_ctx,
                                       int requestAlgoCount,
                                       bool force_attach_binary,
-                                      bool skip_find_core)
+                                      bool less_workSpaceSize)
 {
     auto results         = std::vector<Solution>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};
@@ -157,10 +157,12 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
         auto fallback = bool{};
         auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
         // override the normal find with immed mode with env var
-        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
-                             env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)))
+        if(!sols.empty() &&
+           (!(findMode.IsHybrid(ctx) && fallback) ||
+            env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK) || less_workSpaceSize))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
+        // Use immediate fallback kernels when provided workspace is smaller than required workspace
     }
 
     if(sol.has_value())
@@ -172,7 +174,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
         CompileSolution(id, ctx, problem);
         results.push_back({id, sol->time, s.GetWorkspaceSize(ctx, problem)});
     }
-    else if(!skip_find_core)
+    else
     {
         results = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
             auto ctx_copy                       = ctx;
@@ -188,11 +190,6 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                             std::nullopt,
                             force_attach_binary);
         });
-    }
-    else
-    {
-        MIOPEN_LOG_W(
-            "Skip FindCore possible cause: user specified workspace is smaller than required");
     }
 
     if(env::enabled(MIOPEN_DEBUG_COMPILE_ONLY))

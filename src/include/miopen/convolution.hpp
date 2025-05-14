@@ -150,7 +150,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                       const AnyInvokeParams& invoke_ctx,
                                       int requestAlgoCount,
                                       bool force_attach_binary,
-                                      bool skip_find_core = false);
+                                      bool less_workSpaceSize = false);
 
 struct MIOPEN_INTERNALS_EXPORT ConvolutionDescriptor : miopenConvolutionDescriptor
 {
