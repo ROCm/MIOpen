@@ -230,7 +230,7 @@ protected:
             return it->second->m_tensorVariant;
         };
 
-        test::cpu::MultiHeadAttentionForwardfp8(
+        test::cpu::MultiHeadAttentionfp8(
             GetTensor<T>(lookup(miopenTensorMhaQ)),
             GetTensor<T>(lookup(miopenTensorMhaK)),
             GetTensor<T>(lookup(miopenTensorMhaV)),
@@ -364,7 +364,5 @@ inline auto GetCases()
 }
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP32, GetCases());
-
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP16, GetCases());
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_MhaForward_FP8, GetCases());

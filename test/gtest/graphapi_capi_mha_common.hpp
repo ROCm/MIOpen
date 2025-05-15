@@ -213,7 +213,7 @@ miopenDataType_t GetMainType()
     }
     else if(std::is_same_v<T, bfloat8_fnuz>)
     {
-        return miopenBFloat8_fnuz;
+        return miopenBFloat8;
     }
     else if(std::is_same_v<T, half_float::half>)
     {
@@ -666,7 +666,7 @@ protected:
         }
         else if(dtype == miopenBFloat8_fnuz)
         {
-            tensorDataPtr->m_tensorVariant = tensor<bfloat8_fnuz>{n, h, s, d};
+            tensorDataPtr->m_tensorVariant = tensor<bfloat8>{n, h, s, d};
         }
         else if(dtype == miopenHalf)
         {
