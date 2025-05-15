@@ -55,12 +55,15 @@ bool PerformanceConfigBnBwdBackward::IsValid(
 
     // if default config is variant 2, check if it can be applied
     // (based on variant 2 restrictions)
-    size_t vectorsize;
-    int variant = 0;
-    GetVariantFromKernelId(this->kernel_id, variant, vectorsize);
+    size_t vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements;
+    int variant;
+    GetVariantFromKernelId(
+        this->kernel_id, variant, vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements);
     if(variant == 2)
     {
-        return IsSpatialMultipleApplicable(problem, vectorsize, stash_values_bwd);
+        unsigned int stash_values = !problem.UseSaved() ? stash_values_bwd : stash_values_bwd / 2;
+        return IsSpatialMultipleApplicable(
+            problem, vectorsize, stash_values, ylocalsize, zlocalsize, nelements);
     }
     return true;
 }
@@ -68,17 +71,28 @@ bool PerformanceConfigBnBwdBackward::IsValid(
 void PerformanceConfigBnBwdBackward::HeuristicInit(
     const miopen::batchnorm::ProblemDescription& problem)
 {
+    unsigned int stash_values = !problem.UseSaved() ? stash_values_bwd : stash_values_bwd / 2;
     // Define default configuration based on heuristics and
     // add all other valid configurations for the given problem
     if(UseMultiple(problem))
     {
-        DefaultConfigSpatialMultiple(problem, stash_values_bwd, this->valid_kernels);
-        DefaultConfigSpatialSingle(problem, this->valid_kernels);
+        DefaultConfigSpatialMultiple(problem, stash_values, this->valid_kernels);
+        // if more than 2 instances are present, it means that variant 1 will be slower
+        if((this->valid_kernels.size() < 2 && problem.IsLayoutNHWC()) || !problem.IsLayoutNHWC())
+        {
+            DefaultConfigSpatialSingle(problem, this->valid_kernels);
+        }
     }
     else
     {
         DefaultConfigSpatialSingle(problem, this->valid_kernels);
-        DefaultConfigSpatialMultiple(problem, stash_values_bwd, this->valid_kernels);
+        // if valid_kernels is 2, it means that variant 0 or variant 3 were added and in
+        // this case it doesn't make sense to add instances for variant 2 because it is
+        // very unlikely that they will be faster than those variants
+        if(this->valid_kernels.size() < 2)
+        {
+            DefaultConfigSpatialMultiple(problem, stash_values, this->valid_kernels);
+        }
     }
 
     // Set index and kernel_id to default value
@@ -140,6 +154,10 @@ bool BnBwdTrainingSpatial::IsApplicable(
     }
 #endif
     if(!IsOCLBwdTypeValid(bn_problem))
+        return false;
+
+    int activ_mode = bn_problem.GetActivationDesc().GetMode();
+    if(activ_mode < miopenActivationPASTHRU || activ_mode > miopenActivationELU)
         return false;
 
     return true;
@@ -212,12 +230,18 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
 
     int variant       = -1;
     size_t vectorsize = 1;
-    GetVariantFromKernelId(config.kernel_id, variant, vectorsize);
-
     size_t xlocalsize, xgridsize;
-    size_t ylocalsize = 1, ygridsize = 1, zlocalsize = 1, zgridsize = 1;
+    size_t ylocalsize = 1, ygridsize = 1;
+    size_t zlocalsize = 1, zgridsize = 1;
     unsigned int ldsgcn, ldsnogcn;
-    int stash_method = -1;
+    int stash_method = 0;
+    size_t nelements;
+
+    GetVariantFromKernelId(
+        config.kernel_id, variant, vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements);
+
+    size_t xlocalsize_final = xlocalsize, ylocalsize_final = ylocalsize,
+           zlocalsize_final = zlocalsize;
     if(variant != 2)
     {
         xlocalsize = 1024;
@@ -227,16 +251,45 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
     }
     else
     {
-        GetSpatialMultipleConfig(problem,
-                                 stash_values_bwd,
-                                 vectorsize,
-                                 xlocalsize,
-                                 ylocalsize,
-                                 xgridsize,
-                                 ygridsize,
-                                 stash_method);
-        ldsnogcn = xlocalsize * ylocalsize;
-        ldsgcn   = xlocalsize * ylocalsize / wavesize;
+        // Compute grid size
+        if(problem.IsLayoutNHWC())
+        {
+            xgridsize = xlocalsize * ((c / vectorsize + xlocalsize - 1) / xlocalsize);
+            ygridsize = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+        }
+        else
+        {
+            xgridsize = xlocalsize * ((c + xlocalsize - 1) / xlocalsize);
+            ygridsize = ylocalsize * ((in_cstride / vectorsize + ylocalsize - 1) / ylocalsize);
+        }
+        zgridsize = zlocalsize * ((n / nelements + zlocalsize - 1) / zlocalsize);
+
+        unsigned int stash_values = !problem.UseSaved() ? stash_values_bwd : stash_values_bwd / 2;
+        // Get the stash method based on problem size and WG size
+        stash_method = GetStashMethod(problem.IsLayoutNHWC(),
+                                      problem.GetXDesc().GetType(),
+                                      stash_values,
+                                      c,
+                                      n,
+                                      in_cstride,
+                                      ylocalsize,
+                                      zlocalsize,
+                                      nelements);
+
+        // WG size for Final kernels (NHWC)
+        if(problem.IsLayoutNHWC() && c % 2 == 0 && xlocalsize % 2 == 0)
+        {
+            // increase number of blocks (xgridsize does not change for final kernels)
+            // 2 is the lower bound because of stashing
+            xlocalsize_final = 2;
+            // increase the number of threads in the y and z direction to decrease the number of
+            // loads/stores for each thread
+            zlocalsize_final = zgridsize / zlocalsize * zlocalsize;
+            ylocalsize_final =
+                (xlocalsize * ylocalsize * zlocalsize) / xlocalsize_final / zlocalsize_final;
+        }
+        ldsnogcn = xlocalsize * ylocalsize * zlocalsize;
+        ldsgcn   = xlocalsize * ylocalsize * zlocalsize / wavesize;
     }
 
     auto result = ConvSolution{miopenStatusSuccess};
@@ -244,30 +297,36 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
     {
         auto kernel = KernelInfo{};
 
-        auto build_params = KernelBuildParameters{
-            {"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
-            {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
-            {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
-            {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
-            {"MIO_BN_USESAVED", static_cast<int>(problem.UseSaved())},
-            {"MIO_BN_N", static_cast<int>(n)},
-            {"MIO_BN_C", static_cast<int>(c)},
-            {"MIO_BN_HW", static_cast<int>(in_cstride)},
-            {"MIO_BN_NHW", static_cast<int>(in_nhw)},
-            {"MIO_BN_CHW", in_nstride},
-            {"MIO_BN_NCHW", in_nchw},
-            {"MIO_BN_NGRPS", ygridsize / ylocalsize},
-            {"MIO_BN_LDS_SIZE", ldsnogcn},
-            {"MIO_BN_LDSGCN_SIZE", ldsgcn},
-            {"MIO_BN_VARIANT", variant},
-            {"MIO_WAVESIZE", wavesize},
-            {"MIO_BN_GRP0", xlocalsize},
-            {"MIO_BN_GRP1", ylocalsize},
-            {"MIO_BN_GRP2", zlocalsize},
-            {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
-            {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
-            {"MIO_BN_STASH_METHOD", stash_method},
-        };
+        auto build_params =
+            KernelBuildParameters{{"MIOPEN_USE_FP16", static_cast<int>(bfp16parm)},
+                                  {"MIOPEN_USE_FP32", static_cast<int>(bfp32parm)},
+                                  {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
+                                  {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
+                                  {"MIO_BN_USESAVED", static_cast<int>(problem.UseSaved())},
+                                  {"MIO_BN_N", static_cast<int>(n)},
+                                  {"MIO_BN_C", static_cast<int>(c)},
+                                  {"MIO_BN_HW", static_cast<int>(in_cstride)},
+                                  {"MIO_BN_NHW", static_cast<int>(in_nhw)},
+                                  {"MIO_BN_CHW", in_nstride},
+                                  {"MIO_BN_NCHW", in_nchw},
+                                  {"MIO_BN_NGRPS", ygridsize / ylocalsize},
+                                  {"MIO_BN_NGRPS2", zgridsize / zlocalsize},
+                                  {"MIO_BN_N_ELEMENTS", nelements},
+                                  {"MIO_BN_LDS_SIZE", ldsnogcn},
+                                  {"MIO_BN_LDSGCN_SIZE", ldsgcn},
+                                  {"MIO_BN_VARIANT", variant},
+                                  {"MIO_WAVESIZE", wavesize},
+                                  {"MIO_BN_GRP0", xlocalsize},
+                                  {"MIO_BN_GRP1", ylocalsize},
+                                  {"MIO_BN_GRP2", zlocalsize},
+                                  {"MIO_BN_GRP0_FINAL", xlocalsize_final},
+                                  {"MIO_BN_GRP1_FINAL", ylocalsize_final},
+                                  {"MIO_BN_GRP2_FINAL", zlocalsize_final},
+                                  {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
+                                  {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
+                                  {"MIO_BN_VEC_SIZE", vectorsize},
+                                  {"MIO_BN_STASH_METHOD", stash_method},
+                                  {"MIOPEN_NRN_OP_ID", problem.GetActivationDesc().GetMode()}};
 
         {
             // OpenCL kernels for variant 0-4
@@ -297,24 +356,28 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
             }
             else
             {
-                auto single_ygroup_kernel = kernel;
+                auto single_yzgroup_kernel = kernel;
 
-                single_ygroup_kernel.g_wk[1] = single_ygroup_kernel.l_wk[1];
+                single_yzgroup_kernel.l_wk[0] = xlocalsize_final;
+                single_yzgroup_kernel.l_wk[1] = ylocalsize_final;
+                single_yzgroup_kernel.l_wk[2] = zlocalsize_final;
+                single_yzgroup_kernel.g_wk[1] = ylocalsize_final;
+                single_yzgroup_kernel.g_wk[2] = zlocalsize_final;
 
                 if(!problem.UseSaved())
                 {
                     kernel.kernel_name = kernel_name + "MeanVariance";
                     result.construction_params.push_back(kernel);
 
-                    single_ygroup_kernel.kernel_name = kernel_name + "FinalMeanVariance";
-                    result.construction_params.push_back(single_ygroup_kernel);
+                    single_yzgroup_kernel.kernel_name = kernel_name + "FinalMeanVariance";
+                    result.construction_params.push_back(single_yzgroup_kernel);
                 }
 
                 kernel.kernel_name = kernel_name + "DScaleDBias";
                 result.construction_params.push_back(kernel);
 
-                single_ygroup_kernel.kernel_name = kernel_name + "FinalDScaleDBias";
-                result.construction_params.push_back(single_ygroup_kernel);
+                single_yzgroup_kernel.kernel_name = kernel_name + "FinalDScaleDBias";
+                result.construction_params.push_back(single_yzgroup_kernel);
 
                 kernel.kernel_name = kernel_name + "DX";
                 result.construction_params.push_back(kernel);
@@ -329,7 +392,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::BwdInvokeParams>();
 
-            float ctime = 0.;
+            float alpha_activ = problem.GetActivationDesc().GetAlpha();
+            float beta_activ  = problem.GetActivationDesc().GetBeta();
+            float gamma_activ = problem.GetActivationDesc().GetGamma();
+            float ctime       = 0.;
             visit_float(dtype, [&](auto as_float) {
                 if(variant != 2)
                 {
@@ -344,7 +410,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                params.resultBnBiasDiff,
                                params.savedMean,
                                params.savedInvVariance,
-                               as_float(inhw));
+                               as_float(inhw),
+                               alpha_activ,
+                               beta_activ,
+                               gamma_activ);
                     }
                     else
                     {
@@ -355,7 +424,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                params.resultBnScaleDiff,
                                params.resultBnBiasDiff,
                                params.epsilon,
-                               inhw);
+                               inhw,
+                               alpha_activ,
+                               beta_activ,
+                               gamma_activ);
                     }
                 }
                 else
@@ -381,7 +453,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                                 params.resultBnBiasDiff,
                                                 params.savedMean,
                                                 params.savedInvVariance,
-                                                as_float(inhw));
+                                                as_float(inhw),
+                                                alpha_activ,
+                                                beta_activ,
+                                                gamma_activ);
                         profileSequence(handle_, 2, &ctime);
                     }
                     else
@@ -407,7 +482,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                                 params.bnScale,
                                                 params.resultBnScaleDiff,
                                                 params.resultBnBiasDiff,
-                                                as_float(inhw)); // dx
+                                                as_float(inhw),
+                                                alpha_activ,
+                                                beta_activ,
+                                                gamma_activ);
                         profileSequence(handle_, 2, &ctime);
                     }
                 }

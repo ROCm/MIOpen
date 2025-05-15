@@ -41,6 +41,7 @@
 #include <miopen/batch_norm.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
+#include <miopen/activ.hpp>
 #include <utility>
 #include <cfloat>
 // Run CPU emulations in hierarchical reduction mode.
@@ -299,6 +300,7 @@ struct verify_forward_train_bn_spatial
         float alpha = 1.0;
         float beta  = 0.0;
 
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
         miopen::BatchNormForwardTraining(handle,
                                          miopenBNSpatial,
                                          &alpha,
@@ -318,7 +320,8 @@ struct verify_forward_train_bn_spatial
                                          runVar_dev.get(),
                                          epsilon,
                                          saveMean_dev.get(),
-                                         saveInvVar_dev.get());
+                                         saveInvVar_dev.get(),
+                                         actDesc);
 
         saveMean.data   = handle.Read<U>(saveMean_dev, saveMean.data.size());
         saveInvVar.data = handle.Read<U>(saveInvVar_dev, saveInvVar.data.size());
@@ -478,6 +481,7 @@ struct verify_forward_infer_bn_spatial_recalc
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
         miopen::BatchNormForwardInference(handle,
                                           miopenBNSpatial,
                                           &alpha,
@@ -494,7 +498,8 @@ struct verify_forward_infer_bn_spatial_recalc
                                           shift_dev.get(),
                                           nullptr,
                                           nullptr,
-                                          epsilon);
+                                          epsilon,
+                                          actDesc);
         out.data = handle.Read<T>(out_dev, out.data.size());
 
 #if(MIO_BN_TIME_EVERYTHING == 1)
@@ -593,6 +598,7 @@ struct verify_forward_infer_bn_spatial_use_est
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
         miopen::BatchNormForwardInference(handle,
                                           miopenBNSpatial,
                                           &alpha,
@@ -609,7 +615,8 @@ struct verify_forward_infer_bn_spatial_use_est
                                           shift_dev.get(),
                                           estMean_dev.get(),
                                           estVar_dev.get(),
-                                          epsilon);
+                                          epsilon,
+                                          actDesc);
         out.data = handle.Read<T>(out_dev, out.data.size());
 #if(MIO_BN_TIME_EVERYTHING == 1)
         auto t_end = std::chrono::high_resolution_clock::now();
@@ -849,6 +856,7 @@ struct verify_backward_bn_spatial_recalc
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
         miopen::BatchNormBackward(handle,
                                   miopenBNSpatial,
                                   &alpha,
@@ -870,7 +878,8 @@ struct verify_backward_bn_spatial_recalc
                                   dshift_dev.get(),
                                   epsilon,
                                   nullptr,
-                                  nullptr);
+                                  nullptr,
+                                  actDesc);
 
         dx_out.data = handle.Read<T>(dx_out_dev, dx_out.data.size());
         dscale.data = handle.Read<U>(dscale_dev, dscale.data.size());
@@ -1064,6 +1073,7 @@ struct verify_backward_bn_spatial_use_saved
 
         double epsilon = MIO_BN_TEST_EPSILON;
 
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
         miopen::BatchNormBackward(handle,
                                   miopenBNSpatial,
                                   &alpha,
@@ -1085,7 +1095,8 @@ struct verify_backward_bn_spatial_use_saved
                                   dshift_dev.get(),
                                   epsilon,
                                   savedMean_dev.get(),
-                                  savedInvVar_dev.get());
+                                  savedInvVar_dev.get(),
+                                  actDesc);
 
         dx_out.data = handle.Read<T>(dx_out_dev, dx_out.data.size());
         dscale.data = handle.Read<U>(dscale_dev, dscale.data.size());

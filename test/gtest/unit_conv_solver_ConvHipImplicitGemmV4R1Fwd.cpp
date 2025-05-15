@@ -38,7 +38,14 @@
 /// https://github.com/ROCm/MIOpen/issues/2038
 /// WORKAROUND_ISSUE_2038
 
+// LLVM buffer intrinsics llvm.amdgcn.buffer.* have been removed in HIP 6.4
+#define WORKAROUND_SWDEV_498660 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
+
+#if WORKAROUND_SWDEV_498660
+#define SOLVER_NAME DISABLED_ConvHipImplicitGemmV4R1Fwd
+#else
 #define SOLVER_NAME ConvHipImplicitGemmV4R1Fwd
+#endif
 
 namespace {
 
@@ -56,8 +63,9 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx103X;
-        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        Gpu supported_gpus =
+            Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx103X;
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
