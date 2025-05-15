@@ -829,6 +829,10 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
             return false;
     }
 #endif
+#if WORKAROUND_SWDEV_498660
+    if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS))
+        return false;
+#endif
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
@@ -849,9 +853,6 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
         return false;
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16()))
         return false;
-    const std::string name = ctx.GetStream().GetDeviceName();
-    if(name == "gfx942" || name == "gfx950")
-        return false;
     if(problem.IsTensorsCasted())
         return false;
     if(!IsApplicableXdlops(ctx, problem))
@@ -860,7 +861,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
+    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     bool is_applicable = true;
@@ -1056,11 +1057,8 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (env::enabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM) ? '1' : '0') +
                 std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE) ? '1' : '0') +
                 std::string(" -DCK_PARAM_GEMM_ID=") + std::to_string(gemm_id) +
-#if HIP_PACKAGE_VERSION_FLAT >= 6004000000
-                " -DCK_USE_AMD_BUFFER_PTR_TYPE=1" +
-#endif
                 get_static_ck_common_compiler_flag(ctx) +
-                ctx.general_compile_options + " --std=c++17";
+                ctx.general_compile_options;
 
                 construction_parameters.comp_options +=
                     std::string(" -DCK_PARAM_KPACK_LENGTH=") + std::to_string(pcfg->GemmKPACKSize) +
