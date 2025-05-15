@@ -165,10 +165,8 @@ private:
     std::vector<DescriptorWrapperPtr> m_refsToKeep;
 };
 
-using TensorVariant = std::variant<tensor<float>,
-                                   tensor<float8_fnuz>,
-                                   tensor<bfloat8_fnuz>,
-                                   tensor<int64_t>>;
+using TensorVariant =
+    std::variant<tensor<float>, tensor<float8_fnuz>, tensor<bfloat8_fnuz>, tensor<int64_t>>;
 
 template <typename T>
 tensor<T>& GetTensor(TensorVariant& var)
