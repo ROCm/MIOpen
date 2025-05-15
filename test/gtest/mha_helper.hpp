@@ -426,7 +426,7 @@ void MultiHeadAttentionForwardfp8(const tensor<T>& q_val,
 }
 
 template <typename T>
-void MultiHeadAttentionf32(
+void MultiHeadAttentionForwardf32(
     const tensor<T>& q_val,
     const tensor<T>& k_val,
     const tensor<T>& v_val,

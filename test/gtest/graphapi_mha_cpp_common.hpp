@@ -388,7 +388,7 @@ protected:
 
         CpuMhaFwdOut out(n, h, s, d);
 
-        test::cpu::MultiHeadAttentionfp8(lookup_f("Q"),
+        test::cpu::MultiHeadAttentionForwardfp8(lookup_f("Q"),
                                          lookup_f("K"),
                                          lookup_f("V"),
                                          out.mSoftMax,
