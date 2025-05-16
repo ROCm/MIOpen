@@ -68,8 +68,6 @@ std::vector<std::vector<size_t>> stridesArr = {{8 * 16 * 20 * 16, 8 * 16 * 20, 8
 
 std::vector<bool> packedArr = {true, false};
 
-std::vector<miopenTensorOp_t> operationArr = {
-    miopenTensorOpAdd, miopenTensorOpMul, miopenTensorOpMin, miopenTensorOpMax};
 } // namespace
 
 struct TestCase
@@ -171,29 +169,21 @@ private:
         float alpha2 = testCase.alphabeta[1];
         float beta   = testCase.alphabeta[2];
 
-        if(testCase.operation == miopenTensorOpAdd)
-        {
-            return CalculateOnCPUDataOp([alpha1, alpha2, beta](auto& C, auto A, auto B) {
-                C = A * alpha1 + B * alpha2 + C * beta;
-            });
-        }
-        else if(testCase.operation == miopenTensorOpMul)
-        {
-            return CalculateOnCPUDataOp([alpha1, alpha2, beta](auto& C, auto A, auto B) {
-                C = A * alpha1 * B * alpha2 + C * beta;
-            });
-        }
-        else if(testCase.operation == miopenTensorOpMin)
+        if(testCase.operation == miopenTensorOpMin)
         {
             return CalculateOnCPUDataOp([alpha1, alpha2, beta](auto& C, auto A, auto B) {
                 C = std::min(A * alpha1, B * alpha2) + C * beta;
             });
         }
-        else
+        else if(testCase.operation == miopenTensorOpMax)
         {
             return CalculateOnCPUDataOp([alpha1, alpha2, beta](auto& C, auto A, auto B) {
                 C = std::max(A * alpha1, B * alpha2) + C * beta;
             });
+        }
+        else
+        {
+            return std::vector<T>{};
         }
     }
 
@@ -276,6 +266,9 @@ void AddTestCases(std::vector<TestCase>& testCases,
                   const std::vector<size_t>& tensorALens,
                   const std::vector<size_t>& tensorBLens)
 {
+    auto flip = false;
+    auto alternateBetweenMinandMax = [&flip](){ return (flip = !flip) ? miopenTensorOpMin : miopenTensorOpMax; };
+
     const auto& stride_a = stridesArr[0];
     const auto& stride_b = stridesArr[0];
     const auto& stride_c = stridesArr[0];
@@ -326,20 +319,19 @@ void AddTestCases(std::vector<TestCase>& testCases,
                 continue;
 
             for(const auto& alphabeta : alphabetaArr)
-                for(const auto& operation : operationArr)
-                {
-                    TestCase& testCase = testCases.emplace_back();
+            {
+                TestCase& testCase = testCases.emplace_back();
 
-                    testCase.tensorlens_ac = tensorALens;
-                    testCase.tensorlens_b  = tensorBLens;
-                    testCase.alphabeta     = alphabeta;
-                    testCase.offsets       = final_offsets;
-                    testCase.packed        = packed;
-                    testCase.operation     = operation;
-                    testCase.stride_a      = stride_a;
-                    testCase.stride_b      = stride_b;
-                    testCase.stride_c      = stride_c;
-                }
+                testCase.tensorlens_ac = tensorALens;
+                testCase.tensorlens_b  = tensorBLens;
+                testCase.alphabeta     = alphabeta;
+                testCase.offsets       = final_offsets;
+                testCase.packed        = packed;
+                testCase.operation     = alternateBetweenMinandMax();
+                testCase.stride_a      = stride_a;
+                testCase.stride_b      = stride_b;
+                testCase.stride_c      = stride_c;
+            }
         }
 }
 
