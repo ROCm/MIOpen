@@ -883,6 +883,21 @@ endif()
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     target_link_libraries(MIOpen PRIVATE frugally-deep::fdeep Eigen3::Eigen)
+
+    find_library(ONNXRUNTIME_LIB onnxruntime PATHS /usr/local/lib /opt/onnxruntime/lib)
+    find_path(ONNXRUNTIME_INCLUDE_DIR onnxruntime_cxx_api.h 
+            PATHS /usr/local/include/onnxruntime /usr/local/include /opt/onnxruntime/include
+            PATH_SUFFIXES onnxruntime)
+
+    if(ONNXRUNTIME_LIB AND ONNXRUNTIME_INCLUDE_DIR)
+        message(STATUS "Found ONNX Runtime: ${ONNXRUNTIME_LIB}")
+        message(STATUS "Found ONNX Runtime include: ${ONNXRUNTIME_INCLUDE_DIR}")
+        target_link_libraries(MIOpen PRIVATE ${ONNXRUNTIME_LIB})
+        target_include_directories(MIOpen PRIVATE ${ONNXRUNTIME_INCLUDE_DIR}/../../)
+    else()
+        message(FATAL_ERROR "ONNX Runtime library or headers not found")
+    endif()
+
     if(NOT TARGET nlohmann_json)
         # frugally-deep has broken linking to nlohmann_json
         add_library(nlohmann_json INTERFACE IMPORTED GLOBAL)

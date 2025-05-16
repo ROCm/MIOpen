@@ -43,6 +43,9 @@ for arg in "$@"; do
     fi
 done
 
+# Fix path to ONNX runtime
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/onnxruntime/lib:/usr/local/lib
+
 config_file=""
 if [[ "$*" == *"--config-file"* ]]; then
     config_file=$(echo "$*" | grep -oP '(?<=--config-file )\S+')

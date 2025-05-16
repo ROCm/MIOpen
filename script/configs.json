@@ -125,7 +125,8 @@
     "env_vars": {
       "MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS": "1",
       "MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR": "1",
-      "MIOPEN_KTN_MODELS_PATH": "/workspaces/MIOpen/ktn_models/transformer"
+      "MIOPEN_KTN_MODELS_PATH": "/workspaces/MIOpen/ktn_models/transformer",
+      "MIOPEN_USE_ONNX_KTN": "1"
     }
   },
   "wrw_no_ai_heuristics": 

@@ -28,6 +28,11 @@
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK || MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <fdeep/fdeep.hpp>
 #include <miopen/filesystem.hpp>
+#include <onnxruntime/onnxruntime_cxx_api.h>
+#include <filesystem>
+#include <vector>
+#include <memory>
+#include <string>
 
 namespace miopen {
 namespace ai {
@@ -686,6 +691,247 @@ private:
     }
 };
 
+class OnnxTransformerModel
+{
+public:
+    Metadata metadata;
+
+    OnnxTransformerModel(const std::string& arch, const std::string& solver)
+        : metadata(Metadata(arch, solver)),
+          env_(ORT_LOGGING_LEVEL_WARNING, "MIOpenAI"),
+          encoder_options_(CreateSessionOptions()),
+          decoder_options_(CreateSessionOptions())
+    {
+        // Load models from filesystem
+        auto models_path = GetKtnModelsPath();
+        if (!models_path)
+            MIOPEN_THROW(miopenStatusInternalError, "MIOPEN_KTN_MODELS_PATH not set or invalid");
+            
+        encoder_session_ = std::make_unique<Ort::Session>(
+            env_,
+            EncoderPath(arch, solver).c_str(),
+            encoder_options_);
+            
+        decoder_session_ = std::make_unique<Ort::Session>(
+            env_,
+            DecoderPath(arch, solver).c_str(),
+            decoder_options_);
+            
+        // Initialize memory info for CPU execution
+        memory_info_ = Ort::MemoryInfo::CreateCpu(
+            OrtAllocatorType::OrtArenaAllocator,
+            OrtMemType::OrtMemTypeDefault);
+              
+        // Get encoder input names
+        encoder_input_count_ = encoder_session_->GetInputCount();
+        encoder_input_names_ = encoder_session_->GetInputNames(); 
+        
+        // Get encoder output names
+        encoder_output_count_ = encoder_session_->GetOutputCount();
+        encoder_output_names_ = encoder_session_->GetOutputNames();
+        
+        
+        // Get decoder input names
+        decoder_input_count_ = decoder_session_->GetInputCount();
+        decoder_input_names_ = decoder_session_->GetInputNames();
+        
+        // Get decoder output names
+        decoder_output_count_ = decoder_session_->GetOutputCount();
+        decoder_output_names_ = decoder_session_->GetOutputNames();
+    }
+    
+    // Run the complete encoder-decoder inference process
+    std::vector<Ort::Value> Encode(const std::vector<float>& features, 
+                                   std::size_t dim, 
+                                   bool transform_features) const
+    {
+        // Reshape input features based on transform flag
+        std::vector<int64_t> input_shape;
+        if (transform_features) {
+            // Reshape to square matrix if transform is true
+            input_shape = {1, static_cast<int64_t>(dim), static_cast<int64_t>(dim)};
+        } else {
+            // Keep as flat vector if transform is false
+            input_shape = {1, static_cast<int64_t>(features.size())};
+        }
+        
+        // Create input tensor for encoder
+        Ort::Value encoder_input_tensor = Ort::Value::CreateTensor<float>(
+            memory_info_,
+            const_cast<float*>(features.data()), 
+            features.size(),
+            input_shape.data(), 
+            input_shape.size());
+        
+        // Prepare output names
+        std::vector<const char*> output_name_ptrs;
+        output_name_ptrs.reserve(encoder_output_names_.size());
+        for (const auto& name : encoder_output_names_) {
+            output_name_ptrs.push_back(name.c_str());
+        }
+
+        // Prepare input names
+        std::vector<const char*> input_name_ptrs;
+        input_name_ptrs.reserve(encoder_input_names_.size());
+        for (const auto& name : encoder_input_names_) {
+            input_name_ptrs.push_back(name.c_str());
+        }
+        
+        // Run encoder and return encoder outputs
+        return encoder_session_->Run(
+            Ort::RunOptions{nullptr},
+            input_name_ptrs.data(),
+            &encoder_input_tensor,
+            encoder_input_count_, 
+            output_name_ptrs.data(),
+            encoder_output_count_);
+    }
+    
+    std::vector<float> Decode(const std::vector<int32_t>& sequence, 
+                  const std::vector<Ort::Value>& encoder_outputs) const
+    {
+        // Create tensor for current sequence
+        std::vector<int64_t> sequence_shape = {1, static_cast<int64_t>(sequence.size())};
+        Ort::Value sequence_tensor = Ort::Value::CreateTensor<int32_t>(
+            memory_info_,
+            const_cast<int32_t*>(sequence.data()),
+            sequence.size(),
+            sequence_shape.data(),
+            sequence_shape.size());
+        
+        // Prepare inputs for decoder
+        std::vector<Ort::Value> decoder_inputs;
+        decoder_inputs.push_back(std::move(sequence_tensor));
+        
+        // Add encoder outputs to decoder inputs
+        for (size_t i = 0; i < encoder_outputs.size(); i++) {
+            // We need to clone encoder outputs for each decode step
+            auto tensor_info = encoder_outputs[i].GetTensorTypeAndShapeInfo();
+            auto shape = tensor_info.GetShape();
+            auto element_type = tensor_info.GetElementType();
+            
+            if (element_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
+                auto* data = encoder_outputs[i].GetTensorData<float>();
+                auto size = tensor_info.GetElementCount();
+                
+                Ort::Value cloned = Ort::Value::CreateTensor<float>(
+                    memory_info_,
+                    const_cast<float*>(data),
+                    size,
+                    shape.data(),
+                    shape.size());
+                
+                decoder_inputs.push_back(std::move(cloned));
+            }
+        }
+        
+        // Prepare output names
+        std::vector<const char*> decoder_output_name_ptrs;
+        decoder_output_name_ptrs.reserve(decoder_output_names_.size());
+        for (const auto& name : decoder_output_names_) {
+            decoder_output_name_ptrs.push_back(name.c_str());
+        }
+
+        // Prepare input names
+        std::vector<const char*> decoder_input_name_ptrs;
+        decoder_input_name_ptrs.reserve(decoder_input_names_.size());
+        for (const auto& name : decoder_input_names_) {
+            decoder_input_name_ptrs.push_back(name.c_str());
+        }
+
+        // Run decoder
+        std::vector<Ort::Value> decoder_outputs = decoder_session_->Run(
+            Ort::RunOptions{nullptr},
+            decoder_input_name_ptrs.data(),
+            decoder_inputs.data(),
+            decoder_input_count_,
+            decoder_output_name_ptrs.data(),
+            decoder_output_count_);
+        
+        // Get token scores from first output
+        auto* output_data = decoder_outputs[0].GetTensorData<float>();
+        auto output_info = decoder_outputs[0].GetTensorTypeAndShapeInfo();
+        auto output_shape = output_info.GetShape();
+        
+        // Convert output to vector of scores
+        size_t vocab_size = output_shape[1];
+        std::vector<float> token_scores(output_data, output_data + vocab_size);
+        
+        return token_scores;
+    }
+
+private:
+    Ort::Env env_;
+    Ort::SessionOptions encoder_options_;
+    Ort::SessionOptions decoder_options_;
+    std::unique_ptr<Ort::Session> encoder_session_;
+    std::unique_ptr<Ort::Session> decoder_session_;
+    Ort::MemoryInfo memory_info_{nullptr};
+    
+    // Input/output names and counts
+    size_t encoder_input_count_ = 0;
+    size_t encoder_output_count_ = 0;
+    size_t decoder_input_count_ = 0;
+    size_t decoder_output_count_ = 0;
+    std::vector<std::string> encoder_input_names_;
+    std::vector<std::string> encoder_output_names_;
+    std::vector<std::string> decoder_input_names_;
+    std::vector<std::string> decoder_output_names_;
+    
+    // Helper method to create session options
+    Ort::SessionOptions CreateSessionOptions() const
+    {
+        Ort::SessionOptions options;
+        options.SetIntraOpNumThreads(1);
+        options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+        return options;
+    }
+    
+    // Path helpers
+    static std::optional<fs::path> GetKtnModelsPath()
+    {
+        const char* env_path = std::getenv("MIOPEN_KTN_MODELS_PATH");
+        if(!env_path)
+            return std::nullopt;
+            
+        fs::path path(env_path);
+        if(fs::exists(path) && fs::is_directory(path))
+            return path;
+            
+        return std::nullopt;
+    }
+    
+    fs::path EncoderPath(const std::string& arch, const std::string& solver) const
+    {
+        auto base_path = GetSystemDbPath();
+        auto override_path = GetKtnModelsPath();
+        if(override_path.has_value())
+        {
+            base_path = override_path.value();
+        }
+        const auto path = base_path / (arch + "_" + solver + "_encoder.onnx");
+        MIOPEN_LOG_I2("KTN Encoder model path: " << path);
+        if(!fs::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
+        return path;
+    }
+    
+    fs::path DecoderPath(const std::string& arch, const std::string& solver) const
+    {
+        auto base_path = GetSystemDbPath();
+        auto override_path = GetKtnModelsPath();
+        if(override_path.has_value())
+        {
+            base_path = override_path.value();
+        }
+        const auto path = base_path / (arch + "_" + solver + "_decoder.onnx");
+        MIOPEN_LOG_I2("KTN Decoder model path: " << path);
+        if(!fs::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
+        return path;
+    }
+};
+
 /**
  * Return the KernelTuningNet model for given architecture and solver
  *
@@ -732,29 +978,7 @@ bool ModelSetParams(const std::string& arch,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator)
 {
-    using model_type = decltype(GetModel(arch, solver));
-    model_type model;
-    try
-    {
-        model = GetModel(arch, solver);
-    }
-    catch(const miopen::Exception& ex)
-    {
-        MIOPEN_LOG_I2("[Warning] Could not retrieve model: (" << ex.what() << ")");
-        return false;
-    }
-
-    // get context
-    int dim = 0;
-    if(transform_features)
-        dim = std::sqrt(features.size());
-    else
-        dim = features.size();
-    auto start             = std::chrono::high_resolution_clock::now();
-    fdeep::tensors context = model->Encode(features, dim, transform_features);
-    float decoder_input    = 0.0;
-
-    // set direction string
+    // Set direction string
     std::string dir;
     switch(direction)
     {
@@ -763,57 +987,167 @@ bool ModelSetParams(const std::string& arch,
     case miopen::conv::Direction::BackwardWeights: dir = "wrw"; break;
     default: return false;
     }
-
-    // run decoder to set kernel parameters
-    for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params; ++i)
-    {
-        if(i == 0 && (model->metadata.predict_type == 0u))
-            num_tuning_params = model->metadata.num_tuning_params[dir];
-
-        fdeep::tensors decoder_output = model->Decode(decoder_input, context);
-        auto token_scores             = decoder_output[0].to_vector(); // token_scores[k] gives the
-                                                                       // score of the k-th token
-        // order tokens according to their scores
-        std::priority_queue<std::pair<float, int>> pq;
-        for(int j = 0; j < token_scores.size(); j++)
-        {
-            pq.push(std::make_pair(token_scores[j], j)); // sort by value at index
-        }
-
-        // find a token whose value is a valid kernel parameter for the i-th position
-        int output_token_index = -1;
-        while(!pq.empty())
-        {
-            // get the token with the highest score and look up its value
-            int token         = pq.top().second;
-            std::string value = model->metadata.tuning_decodings[std::to_string(token)];
-            pq.pop();
-
-            if(value == "-1") // if token-value is "-1", then decoding has finished
+    
+    // Check if we should use ONNX model
+    const char* use_onnx_env = std::getenv("MIOPEN_USE_ONNX_KTN");
+    bool use_onnx = (use_onnx_env != nullptr && std::string(use_onnx_env) == "1");
+    
+    auto start = std::chrono::high_resolution_clock::now();
+    bool success = false;
+    
+    // Try ONNX implementation if requested
+    if (use_onnx) {
+        try {
+            OnnxTransformerModel onnx_model(arch, solver);
+            
+            // Get dimension for features
+            int dim = transform_features ? std::sqrt(features.size()) : features.size();
+            
+            // Run encoder to get context
+            auto context = onnx_model.Encode(features, dim, transform_features);
+            
+            // Initialize with start token
+            std::vector<int32_t> sequence = {0};
+            size_t num_tuning_params = 1;
+            
+            // run decoder to set kernel parameters
+            for(size_t i = 0; i < num_tuning_params; ++i)
             {
-                auto stop     = std::chrono::high_resolution_clock::now();
-                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-                MIOPEN_LOG_I2("KTN ran for " << duration.count() << " micro-seconds. Ended at -1.");
-                return false;
+                if(i == 0 && (onnx_model.metadata.predict_type == 0u))
+                    num_tuning_params = onnx_model.metadata.num_tuning_params[dir];
+
+                // Get token scores from decoder
+                std::vector<float> token_scores = onnx_model.Decode(sequence, context);
+                
+                // Find the best valid token
+                int output_token_index = -1;
+                bool valid_token_found = false;
+                
+                // Order tokens by score
+                std::priority_queue<std::pair<float, int>> pq;
+                for(int j = 0; j < token_scores.size(); j++) {
+                    pq.push(std::make_pair(token_scores[j], j));
+                }
+
+                while(!pq.empty() && !valid_token_found)
+                {
+                    int token = pq.top().second;
+                    std::string value = onnx_model.metadata.tuning_decodings[std::to_string(token)];
+                    pq.pop();
+
+                    if(value == "-1") { // End of decoding
+                        MIOPEN_LOG_I2("ONNX KTN ended at -1");
+                        success = false;
+                        break;
+                    }
+                    
+                    if(validator(i, value)) {
+                        output_token_index = token;
+                        valid_token_found = true;
+                        
+                        if(i == 0 && onnx_model.metadata.predict_type != 0u)
+                            num_tuning_params = onnx_model.metadata.num_tuning_params[value];
+                    }
+                }
+                
+                if(!valid_token_found) {
+                    MIOPEN_LOG_I2("ONNX KTN could not find valid token for position " << i);
+                    success = false;
+                    break;
+                }
+                
+                // Add selected token to sequence for next iteration
+                sequence.push_back(output_token_index);
             }
-            if(validator(i, value)) // if token-value is a valid kernel parameter, it's set
-            {
-                output_token_index =
-                    token; // index with largest value that is valid = predicted index
-                if(i == 0 && model->metadata.predict_type != 0u)
-                    num_tuning_params = model->metadata.num_tuning_params[value];
-                break;
+            
+            success = sequence.size() == num_tuning_params;
+            if (success) {
+                MIOPEN_LOG_I2("ONNX KTN successfully set kernel parameters");
+            } else {
+                MIOPEN_LOG_I2("ONNX KTN failed to set kernel parameters");
             }
         }
-        decoder_input = float(output_token_index);
-        context       = {decoder_output.begin() + 1, decoder_output.end()};
+        catch(const miopen::Exception& ex)
+        {
+            MIOPEN_LOG_I2("[Warning] Could not use ONNX model: (" << ex.what() << ")");
+            MIOPEN_LOG_I2("Falling back to frugally-deep model");
+            success = false;
+        }
+    }
+    
+    // Frugally-deep implementation
+    if (!use_onnx) {
+        using model_type = decltype(GetModel(arch, solver));
+        model_type model;
+        try
+        {
+            model = GetModel(arch, solver);
+            
+            // Get context
+            int dim = transform_features ? std::sqrt(features.size()) : features.size();
+            fdeep::tensors context = model->Encode(features, dim, transform_features);
+            float decoder_input = 0.0;
+            bool valid_token_found = true;
+
+            // Run decoder to set kernel parameters
+            for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params && valid_token_found; ++i)
+            {
+                if(i == 0 && (model->metadata.predict_type == 0u))
+                    num_tuning_params = model->metadata.num_tuning_params[dir];
+
+                fdeep::tensors decoder_output = model->Decode(decoder_input, context);
+                auto token_scores = decoder_output[0].to_vector();
+                
+                // Order tokens by score
+                std::priority_queue<std::pair<float, int>> pq;
+                for(int j = 0; j < token_scores.size(); j++) {
+                    pq.push(std::make_pair(token_scores[j], j));
+                }
+
+                int output_token_index = -1;
+                valid_token_found = false;
+                
+                while(!pq.empty() && !valid_token_found)
+                {
+                    int token = pq.top().second;
+                    std::string value = model->metadata.tuning_decodings[std::to_string(token)];
+                    pq.pop();
+
+                    if(value == "-1") { // End of decoding
+                        MIOPEN_LOG_I2("KTN ended at -1");
+                        break;
+                    }
+                    
+                    if(validator(i, value)) {
+                        output_token_index = token;
+                        valid_token_found = true;
+                        
+                        if(i == 0 && model->metadata.predict_type != 0u)
+                            num_tuning_params = model->metadata.num_tuning_params[value];
+                    }
+                }
+                
+                if(valid_token_found) {
+                    decoder_input = float(output_token_index);
+                    context = {decoder_output.begin() + 1, decoder_output.end()};
+                }
+            }
+            
+            success = valid_token_found;
+        }
+        catch(const miopen::Exception& ex)
+        {
+            MIOPEN_LOG_I2("[Warning] Could not retrieve model: (" << ex.what() << ")");
+            success = false;
+        }
     }
 
-    auto stop     = std::chrono::high_resolution_clock::now();
+    auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     MIOPEN_LOG_I2("KTN ran for " << duration.count() << " micro-seconds");
-    return true;
+    return success;
 }
+
 
 } // namespace tuning
 #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
