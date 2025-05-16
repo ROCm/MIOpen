@@ -313,14 +313,16 @@ void CompileAgent(size_t thread_index,
                   const Solver& s,
                   const Context& context,
                   const Problem& problem,
+                  const AnyInvokeParams& invoke_ctx_,
                   std::vector<PerformanceConfig>& data,
                   ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>>& comp_queue)
 {
     const auto start_time =
         std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now());
-    const auto data_size   = data.size();
-    const auto time_budget = GetTuningTimeMax();
-    const auto& profile_h  = context.GetStream();
+    const auto data_size     = data.size();
+    const auto time_budget   = GetTuningTimeMax();
+    const auto& profile_h    = context.GetStream();
+    const auto provided_size = invoke_ctx_.GetWorkspaceSize();
     // start the counter
     for(auto idx = thread_index; idx < data_size; idx += total_threads)
     {
@@ -330,12 +332,18 @@ void CompileAgent(size_t thread_index,
         if(current_time - start_time > time_budget)
         {
             MIOPEN_LOG_I2("Thread: " << thread_index << " Done, exhausted time budget");
-            auto tmp = std::make_tuple<PerformanceConfig, ConvSolution, bool>({}, {}, true);
-            comp_queue.push(std::move(tmp));
             break;
         }
         auto& current_config          = data.at(idx);
         ConvSolution current_solution = s.GetSolution(context, problem, current_config);
+        // Skip config if provided workspace size is smaller
+        if(provided_size < current_solution.workspace_sz)
+        {
+            MIOPEN_LOG_I2("Thread: " << thread_index
+                                     << " Skipping config due to workspace requirement "
+                                     << provided_size << " < " << current_solution.workspace_sz);
+            continue;
+        }
         for(const auto& kernel : current_solution.construction_params)
         {
             if(profile_h.HasProgram(kernel.kernel_file, kernel.comp_options))
@@ -346,6 +354,9 @@ void CompileAgent(size_t thread_index,
             std::move(current_config), std::move(current_solution), false);
         comp_queue.push(std::move(tup));
     }
+    // Singal completion with termination tuple
+    auto term_tup = std::make_tuple<PerformanceConfig, ConvSolution, bool>({}, {}, true);
+    comp_queue.push(std::move(term_tup));
     MIOPEN_LOG_I2("Thread: " << thread_index << " Done, completed tuning");
 }
 
@@ -422,6 +433,7 @@ auto GenericSearch(const Solver s,
                                     std::cref(s),
                                     std::cref(context),
                                     std::cref(problem),
+                                    std::cref(invoke_ctx_),
                                     std::ref(all_configs),
                                     std::ref(solution_queue));
     }
