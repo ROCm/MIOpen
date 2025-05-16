@@ -191,7 +191,16 @@ RUN echo "en_US.UTF8 UTF-8" >> /etc/locale.gen && locale-gen
 # Install JSON parser
 RUN apt-get install -y jq
 
-ENV CXX=/opt/rocm/llvm/bin/clang++
+RUN wget https://github.com/microsoft/onnxruntime/releases/download/v1.22.0/onnxruntime-linux-x64-1.22.0.tgz && \
+    tar -xvf onnxruntime-linux-x64-1.22.0.tgz && \
+    rm -rf onnxruntime-linux-x64-1.22.0.tgz && \
+    mv onnxruntime-linux-x64-1.22.0 /opt/onnxruntime
+RUN ln -s /opt/onnxruntime/lib/libonnxruntime.so /usr/local/lib/libonnxruntime.so
+
+RUN mkdir -p /usr/local/include/onnxruntime && \
+    ln -s /opt/onnxruntime/include/* /usr/local/include/onnxruntime/
+
+ENV LD_LIBRARY_PATH=/opt/onnxruntime/lib:$LD_LIBRARY_PATH
 
 # Utilize multi-stage build in order to squash the container.
 FROM ubuntu:22.04
