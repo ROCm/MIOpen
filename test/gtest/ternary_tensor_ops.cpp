@@ -266,8 +266,10 @@ void AddTestCases(std::vector<TestCase>& testCases,
                   const std::vector<size_t>& tensorALens,
                   const std::vector<size_t>& tensorBLens)
 {
-    auto flip = false;
-    auto alternateBetweenMinandMax = [&flip](){ return (flip = !flip) ? miopenTensorOpMin : miopenTensorOpMax; };
+    auto flip                      = false;
+    auto alternateBetweenMinandMax = [&flip]() {
+        return (flip = !flip) ? miopenTensorOpMin : miopenTensorOpMax;
+    };
 
     const auto& stride_a = stridesArr[0];
     const auto& stride_b = stridesArr[0];
