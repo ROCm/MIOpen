@@ -368,6 +368,6 @@ TEST_P(GPU_TernaryTensorOps_FP16, TestFloat16) { this->Run(); }
 
 TEST_P(GPU_TernaryTensorOps_FP64, TestDouble) { this->Run(); }
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TernaryTensorOps_FP32, GetCases());
+INSTANTIATE_TEST_SUITE_P(Full, GPU_TernaryTensorOps_FP32, GetCases());
 INSTANTIATE_TEST_SUITE_P(Full, GPU_TernaryTensorOps_FP64, GetCases());
 INSTANTIATE_TEST_SUITE_P(Full, GPU_TernaryTensorOps_FP16, GetCases());
