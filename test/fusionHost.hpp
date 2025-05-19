@@ -839,6 +839,24 @@ void visitActivationHostBwd(
     }
 }
 
+template <class T, class U, class V>
+inline void activationHostBnormBwd(miopenActivationMode_t activMode,
+                                   double gamma,
+                                   double beta,
+                                   double alpha,
+                                   const std::vector<U> dyinput,
+                                   const std::vector<V> xinput,
+                                   std::vector<T>& output)
+{
+    double dummy;
+    visitActivationHostBwd(activMode, gamma, beta, alpha, [&](auto f) {
+        par_for(dyinput.size(), 1, [&](int index) {
+            output[index] = static_cast<T>(
+                f(static_cast<double>(dyinput[index]), static_cast<double>(xinput[index]), dummy));
+        });
+    });
+}
+
 template <class T>
 inline void activationHostBwd(miopenActivationMode_t activMode,
                               double gamma,

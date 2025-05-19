@@ -62,6 +62,7 @@
 
 #if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) out = tmp;
+#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) out = out;
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_LOGISTIC
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
     out = (_FLOAT_PREC_TYPE)1.f / ((_FLOAT_PREC_TYPE)1.f + exp(-tmp));
@@ -70,6 +71,7 @@
     out = (_FLOAT_PREC_TYPE)_beta * tanh((_FLOAT_PREC_TYPE)_alpha * tmp);
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) out = max(tmp, (_FLOAT_PREC_TYPE)0.);
+#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) out = (x > 0) ? dy : (_FLOAT_PREC_TYPE)0.f;
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_SOFTRELU
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE)                    \
     out = (tmp > 0) ? (tmp + log((_FLOAT_PREC_TYPE)1.f + exp(-tmp))) \

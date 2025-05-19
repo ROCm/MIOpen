@@ -384,13 +384,15 @@ protected:
         bn_bwd_test_data.dBias.data = handle.Read<DscaleDbiasDataType>(
             bn_bwd_test_data.dBias_dev, bn_bwd_test_data.dBias.data.size());
 
+        activationHostBnormBwd(activ_mode,
+                               activ_gamma,
+                               activ_beta,
+                               activ_alpha,
+                               bn_bwd_test_data.dy.data,
+                               bn_bwd_test_data.input.data,
+                               bn_bwd_test_data.dy.data);
+
         test::ComputeCPUBNBwd(bn_bwd_test_data);
-        activationHostInfer(activ_mode,
-                            activ_gamma,
-                            activ_beta,
-                            activ_alpha,
-                            bn_bwd_test_data.out_ref.data,
-                            bn_bwd_test_data.out_ref.data);
 
         test::CompareTensor<DxDataType, AccDataType>(
             bn_bwd_test_data.output, bn_bwd_test_data.out_ref, bwd_tol);

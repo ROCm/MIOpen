@@ -1723,6 +1723,16 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
+        if(activ_mode > 0)
+        {
+            activationHostBnormBwd(activ_mode,
+                                   inflags.GetValueDouble("activ_gamma"),
+                                   inflags.GetValueDouble("activ_beta"),
+                                   inflags.GetValueDouble("activ_alpha"),
+                                   dy.GetTensor().data,
+                                   in.GetTensor().data,
+                                   dy.GetTensor().data);
+        }
         if(saveMeanVar)
         {
 
@@ -1746,15 +1756,6 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          dBias_ref,
                                          empty_tensor,
                                          empty_tensor);
-        }
-        if(activ_mode > 0)
-        {
-            activationHostInfer(activ_mode,
-                                inflags.GetValueDouble("activ_gamma"),
-                                inflags.GetValueDouble("activ_beta"),
-                                inflags.GetValueDouble("activ_alpha"),
-                                out_ref.data,
-                                out_ref.data);
         }
     }
     else
