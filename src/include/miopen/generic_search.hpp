@@ -313,6 +313,7 @@ void CompileAgent(size_t thread_index,
                   const Solver& s,
                   const Context& context,
                   const Problem& problem,
+                  const AnyInvokeParams& invoke_ctx,
                   std::vector<PerformanceConfig>& data,
                   ThreadSafeQueue<std::tuple<PerformanceConfig, ConvSolution, bool>>& comp_queue)
 {
@@ -340,7 +341,7 @@ void CompileAgent(size_t thread_index,
 
         try
         {
-            provided_size = invoke_ctx_.GetWorkspaceSize();
+            provided_size = invoke_ctx.GetWorkspaceSize();
         }
         catch(const miopen::Exception&)
         {
@@ -444,6 +445,7 @@ auto GenericSearch(const Solver s,
                                     std::cref(s),
                                     std::cref(context),
                                     std::cref(problem),
+                                    std::cref(invoke_ctx_),
                                     std::ref(all_configs),
                                     std::ref(solution_queue));
     }
