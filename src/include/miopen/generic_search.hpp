@@ -335,8 +335,8 @@ void CompileAgent(size_t thread_index,
         auto& current_config          = data.at(idx);
         ConvSolution current_solution = s.GetSolution(context, problem, current_config);
 
-        // --- Get provided workspace size or treat as unlimited if not implemented---
-        std::size_t provided_size = std::numeric_limits<std::size_t>::max(); // <<< CHANGED
+        // Get provided workspace size or treat as unlimited if not implemented
+        std::size_t provided_size = std::numeric_limits<std::size_t>::max();
 
         try
         {
