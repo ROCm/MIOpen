@@ -144,8 +144,7 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                       const conv::ProblemDescription& problem,
                                       const AnyInvokeParams& invoke_ctx,
                                       int requestAlgoCount,
-                                      bool force_attach_binary,
-                                      bool less_workSpaceSize)
+                                      bool force_attach_binary)
 {
     auto results         = std::vector<Solution>{};
     auto sol             = boost::optional<miopenConvSolution_t>{};
@@ -157,12 +156,10 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
         auto fallback = bool{};
         auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
         // override the normal find with immed mode with env var
-        if(!sols.empty() &&
-           (!(findMode.IsHybrid(ctx) && fallback) ||
-            env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK) || less_workSpaceSize))
+        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
+                             env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
-        // Use immediate fallback kernels when provided workspace is smaller than required workspace
     }
 
     if(sol.has_value())
@@ -268,9 +265,7 @@ void ConvolutionDescriptor::FindConvFwdAlgorithm(const Handle& handle,
     const auto invoke_ctx = conv::DataInvokeParams{
         {xDesc, x, wDesc, w, yDesc, y}, workSpace, workSpaceSize, attribute.gfx90aFp16alt.GetFwd()};
 
-    const size_t req_workSpaceSize = this->GetWorkSpaceSize(ctx, problem);
-    const auto results             = FindConvolution(
-        ctx, problem, invoke_ctx, requestAlgoCount, false, workSpaceSize < req_workSpaceSize);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount, false);
 
     if(results.empty())
     {
@@ -908,9 +903,7 @@ void ConvolutionDescriptor::FindConvBwdDataAlgorithm(const Handle& handle,
                                                    workSpaceSize,
                                                    this->attribute.gfx90aFp16alt.GetBwd()};
 
-    const size_t req_workSpaceSize = this->GetWorkSpaceSize(ctx, problem);
-    const auto results             = FindConvolution(
-        ctx, problem, invoke_ctx, requestAlgoCount, false, workSpaceSize < req_workSpaceSize);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount, false);
 
     if(results.empty())
     {
@@ -1117,9 +1110,7 @@ void ConvolutionDescriptor::FindConvBwdWeightsAlgorithm(const Handle& handle,
                                                   workSpaceSize,
                                                   attribute.gfx90aFp16alt.GetWrW()};
 
-    const size_t req_workSpaceSize = this->GetWorkSpaceSize(ctx, problem);
-    const auto results             = FindConvolution(
-        ctx, problem, invoke_ctx, requestAlgoCount, false, workSpaceSize < req_workSpaceSize);
+    const auto results = FindConvolution(ctx, problem, invoke_ctx, requestAlgoCount, false);
 
     if(results.empty())
     {
