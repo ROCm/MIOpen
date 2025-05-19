@@ -582,10 +582,25 @@ std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 namespace tuning {
 
+fs::path GetKtnModelsPath()
+{
+    const char* env_path = std::getenv("MIOPEN_KTN_MODELS_PATH");
+    fs::path models_path = GetSystemDbPath();
+    if(env_path != nullptr)
+    {
+        fs::path path(env_path);
+        if(fs::exists(path))
+        {
+            models_path = path; 
+        }
+    }
+    return models_path;
+}
+
 Metadata::Metadata(const std::string& arch, const std::string& solver)
 {
     const nlohmann::json metadata =
-        common::LoadJSON(GetSystemDbPath() / (arch + "_" + solver + "_metadata.ktn.model"));
+        common::LoadJSON(GetKtnModelsPath() / (arch + "_" + solver + "_metadata.ktn.model"));
     predict_type = metadata["predict_type"].get<std::size_t>();
     num_tuning_params =
         metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
@@ -597,13 +612,20 @@ class Model
 {
 public:
     Metadata metadata;
-    Model(const std::string& arch, const std::string& solver)
-        : metadata(Metadata(arch, solver)),
+    Model(const std::string& arch, const std::string& solver) : metadata(Metadata(arch, solver))
+    {}
+};
+
+class FrugalModel : public Model
+{
+public:
+    FrugalModel(const std::string& arch, const std::string& solver)
+        : Model(arch, solver),
           encoder(fdeep::load_model(EncoderPath(arch, solver), true, fdeep::dev_null_logger)),
           decoder(fdeep::load_model(DecoderPath(arch, solver), true, fdeep::dev_null_logger))
     {
     }
-    virtual ~Model() = default;
+    virtual ~FrugalModel() = default;
     /**
      * Encode the input features into a "context" tensor
      *
@@ -647,28 +669,9 @@ public:
 private:
     const fdeep::model encoder;
     const fdeep::model decoder;
-    static std::optional<fs::path> GetKtnModelsPath()
-    {
-        const char* env_path = std::getenv("MIOPEN_KTN_MODELS_PATH");
-        std::optional<fs::path> models_path = std::nullopt;
-        if(env_path != nullptr)
-        {
-            fs::path path(env_path);
-            if(fs::exists(path))
-            {
-                models_path = path; 
-            }
-        }
-        return models_path;
-    }
     static std::string EncoderPath(const std::string& arch, const std::string& solver)
     {
-        auto base_path = GetSystemDbPath();
-        auto override_path = GetKtnModelsPath();
-        if(override_path.has_value())
-        {
-            base_path = override_path.value();
-        }
+        const auto base_path = GetKtnModelsPath();
         const auto path = base_path / (arch + "_" + solver + "_encoder.ktn.model");
         MIOPEN_LOG_I2("KTN Encoder model path" << path);
         if(!fs::exists(path))
@@ -677,12 +680,7 @@ private:
     }
     static std::string DecoderPath(const std::string& arch, const std::string& solver)
     {
-        auto base_path = GetSystemDbPath();
-        auto override_path = GetKtnModelsPath();
-        if(override_path.has_value())
-        {
-            base_path = override_path.value();
-        }
+        const auto base_path = GetKtnModelsPath();
         const auto path = base_path / (arch + "_" + solver + "_decoder.ktn.model");
         MIOPEN_LOG_I2("KTN Decoder model path" << path);
         if(!fs::exists(path))
@@ -691,22 +689,15 @@ private:
     }
 };
 
-class OnnxTransformerModel
+class OnnxTransformerModel : public Model
 {
 public:
-    Metadata metadata;
-
     OnnxTransformerModel(const std::string& arch, const std::string& solver)
-        : metadata(Metadata(arch, solver)),
+        : Model(arch, solver),
           env_(ORT_LOGGING_LEVEL_WARNING, "MIOpenAI"),
           encoder_options_(CreateSessionOptions()),
           decoder_options_(CreateSessionOptions())
     {
-        // Load models from filesystem
-        auto models_path = GetKtnModelsPath();
-        if (!models_path)
-            MIOPEN_THROW(miopenStatusInternalError, "MIOPEN_KTN_MODELS_PATH not set or invalid");
-            
         encoder_session_ = std::make_unique<Ort::Session>(
             env_,
             EncoderPath(arch, solver).c_str(),
@@ -724,33 +715,57 @@ public:
               
         // Get encoder input names
         encoder_input_count_ = encoder_session_->GetInputCount();
-        encoder_input_names_ = encoder_session_->GetInputNames(); 
+        const auto& enc_input_names = encoder_session_->GetInputNames();
+        encoder_input_names_.reserve(enc_input_names.size());
+        for (const auto& name : enc_input_names) 
+        {   
+            encoder_input_names_.push_back(std::string(name));
+            encoder_input_name_ptrs_.push_back(encoder_input_names_.back().c_str());
+        }
         
         // Get encoder output names
         encoder_output_count_ = encoder_session_->GetOutputCount();
-        encoder_output_names_ = encoder_session_->GetOutputNames();
-        
-        
+        const auto& enc_output_names = encoder_session_->GetOutputNames();
+        encoder_output_names_.reserve(enc_output_names.size());
+        for (const auto& name : enc_output_names) 
+        {
+            encoder_output_names_.push_back(std::string(name));
+            encoder_output_name_ptrs_.push_back(encoder_output_names_.back().c_str());
+        }
+            
         // Get decoder input names
         decoder_input_count_ = decoder_session_->GetInputCount();
-        decoder_input_names_ = decoder_session_->GetInputNames();
+        const auto& dec_input_names = decoder_session_->GetInputNames();
+        decoder_input_names_.reserve(dec_input_names.size());
+        for (const auto& name : dec_input_names) 
+        {
+            decoder_input_names_.push_back(std::string(name));
+            decoder_input_name_ptrs_.push_back(decoder_input_names_.back().c_str());
+        }
         
         // Get decoder output names
         decoder_output_count_ = decoder_session_->GetOutputCount();
-        decoder_output_names_ = decoder_session_->GetOutputNames();
+        const auto& dec_output_names = decoder_session_->GetOutputNames();
+        decoder_output_names_.reserve(dec_output_names.size());
+        for (const auto& name : dec_output_names) 
+        {
+            decoder_output_names_.push_back(std::string(name));
+            decoder_output_name_ptrs_.push_back(decoder_output_names_.back().c_str());
+        }
     }
     
-    // Run the complete encoder-decoder inference process
     std::vector<Ort::Value> Encode(const std::vector<float>& features, 
                                    std::size_t dim, 
                                    bool transform_features) const
     {
-        // Reshape input features based on transform flag
         std::vector<int64_t> input_shape;
-        if (transform_features) {
+        if (transform_features) 
+        {
             // Reshape to square matrix if transform is true
             input_shape = {1, static_cast<int64_t>(dim), static_cast<int64_t>(dim)};
-        } else {
+        } 
+        else 
+        {
             // Keep as flat vector if transform is false
             input_shape = {1, static_cast<int64_t>(features.size())};
         }
@@ -763,27 +778,13 @@ public:
             input_shape.data(), 
             input_shape.size());
         
-        // Prepare output names
-        std::vector<const char*> output_name_ptrs;
-        output_name_ptrs.reserve(encoder_output_names_.size());
-        for (const auto& name : encoder_output_names_) {
-            output_name_ptrs.push_back(name.c_str());
-        }
-
-        // Prepare input names
-        std::vector<const char*> input_name_ptrs;
-        input_name_ptrs.reserve(encoder_input_names_.size());
-        for (const auto& name : encoder_input_names_) {
-            input_name_ptrs.push_back(name.c_str());
-        }
-        
         // Run encoder and return encoder outputs
         return encoder_session_->Run(
             Ort::RunOptions{nullptr},
-            input_name_ptrs.data(),
+            encoder_input_name_ptrs_.data(),
             &encoder_input_tensor,
             encoder_input_count_, 
-            output_name_ptrs.data(),
+            encoder_output_name_ptrs_.data(),
             encoder_output_count_);
     }
     
@@ -810,7 +811,8 @@ public:
             auto shape = tensor_info.GetShape();
             auto element_type = tensor_info.GetElementType();
             
-            if (element_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) {
+            if (element_type == ONNX_TENSOR_ELEMENT_DATA_TYPE_FLOAT) 
+            {
                 auto* data = encoder_outputs[i].GetTensorData<float>();
                 auto size = tensor_info.GetElementCount();
                 
@@ -823,29 +825,19 @@ public:
                 
                 decoder_inputs.push_back(std::move(cloned));
             }
-        }
-        
-        // Prepare output names
-        std::vector<const char*> decoder_output_name_ptrs;
-        decoder_output_name_ptrs.reserve(decoder_output_names_.size());
-        for (const auto& name : decoder_output_names_) {
-            decoder_output_name_ptrs.push_back(name.c_str());
-        }
-
-        // Prepare input names
-        std::vector<const char*> decoder_input_name_ptrs;
-        decoder_input_name_ptrs.reserve(decoder_input_names_.size());
-        for (const auto& name : decoder_input_names_) {
-            decoder_input_name_ptrs.push_back(name.c_str());
+            else   
+            {
+                MIOPEN_THROW(miopenStatusInternalError, "Unsupported tensor type");
+            }
         }
 
         // Run decoder
         std::vector<Ort::Value> decoder_outputs = decoder_session_->Run(
             Ort::RunOptions{nullptr},
-            decoder_input_name_ptrs.data(),
+            decoder_input_name_ptrs_.data(),
             decoder_inputs.data(),
             decoder_input_count_,
-            decoder_output_name_ptrs.data(),
+            decoder_output_name_ptrs_.data(),
             decoder_output_count_);
         
         // Get token scores from first output
@@ -868,7 +860,8 @@ private:
     std::unique_ptr<Ort::Session> decoder_session_;
     Ort::MemoryInfo memory_info_{nullptr};
     
-    // Input/output names and counts
+    // Input/output names and counts for running the encoder and decoder
+    // sessions.
     size_t encoder_input_count_ = 0;
     size_t encoder_output_count_ = 0;
     size_t decoder_input_count_ = 0;
@@ -877,57 +870,42 @@ private:
     std::vector<std::string> encoder_output_names_;
     std::vector<std::string> decoder_input_names_;
     std::vector<std::string> decoder_output_names_;
+    std::vector<const char*> encoder_input_name_ptrs_;
+    std::vector<const char*> encoder_output_name_ptrs_;
+    std::vector<const char*> decoder_input_name_ptrs_;
+    std::vector<const char*> decoder_output_name_ptrs_;
     
     // Helper method to create session options
     Ort::SessionOptions CreateSessionOptions() const
     {
         Ort::SessionOptions options;
-        options.SetIntraOpNumThreads(1);
+        const int max_num_threads = std::thread::hardware_concurrency();
+        options.SetIntraOpNumThreads(max_num_threads);
         options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
         return options;
-    }
-    
-    // Path helpers
-    static std::optional<fs::path> GetKtnModelsPath()
-    {
-        const char* env_path = std::getenv("MIOPEN_KTN_MODELS_PATH");
-        if(!env_path)
-            return std::nullopt;
-            
-        fs::path path(env_path);
-        if(fs::exists(path) && fs::is_directory(path))
-            return path;
-            
-        return std::nullopt;
-    }
+    }  
     
     fs::path EncoderPath(const std::string& arch, const std::string& solver) const
     {
-        auto base_path = GetSystemDbPath();
-        auto override_path = GetKtnModelsPath();
-        if(override_path.has_value())
-        {
-            base_path = override_path.value();
-        }
+        const auto base_path = GetKtnModelsPath();
         const auto path = base_path / (arch + "_" + solver + "_encoder.onnx");
         MIOPEN_LOG_I2("KTN Encoder model path: " << path);
         if(!fs::exists(path))
+        {
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
+        } 
         return path;
     }
     
     fs::path DecoderPath(const std::string& arch, const std::string& solver) const
     {
-        auto base_path = GetSystemDbPath();
-        auto override_path = GetKtnModelsPath();
-        if(override_path.has_value())
-        {
-            base_path = override_path.value();
-        }
+        const auto base_path = GetKtnModelsPath();
         const auto path = base_path / (arch + "_" + solver + "_decoder.onnx");
         MIOPEN_LOG_I2("KTN Decoder model path: " << path);
         if(!fs::exists(path))
+        {
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
+        }
         return path;
     }
 };
@@ -943,20 +921,31 @@ private:
  * @param arch GPU Architecture
  * @param solver Solver
  */
-std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solver)
+std::shared_ptr<FrugalModel> GetFrugalModel(const std::string& arch, const std::string& solver)
 {
-    static std::map<std::string, std::shared_ptr<Model>> models;
-    auto it = models.find(solver);
-    if(it == models.end())
+    static std::map<std::string, std::shared_ptr<FrugalModel>> frugally_models;
+    auto frugal_it = frugally_models.find(solver);
+    if(frugal_it == frugally_models.end()) 
     {
-        std::shared_ptr<Model> model = std::make_shared<Model>(arch, solver);
-        models[solver]               = model;
+        std::shared_ptr<FrugalModel> model = std::make_shared<FrugalModel>(arch, solver);
+        frugally_models[solver] = model;
         return model;
-    }
-    else
+    } 
+    return frugal_it->second;
+}
+
+std::shared_ptr<OnnxTransformerModel> GetOnnxModel(const std::string& arch, const std::string& solver)
+{
+    static std::map<std::string, std::shared_ptr<OnnxTransformerModel>> onnx_models;
+    auto onnx_it = onnx_models.find(solver);
+    if (onnx_it == onnx_models.end()) 
     {
-        return it->second;
-    }
+        std::shared_ptr<OnnxTransformerModel> model = 
+                std::make_shared<OnnxTransformerModel>(arch, solver);
+        onnx_models[solver] = model;
+        return model;
+    } 
+    return onnx_it->second;
 }
 
 /**
@@ -970,6 +959,7 @@ std::shared_ptr<Model> GetModel(const std::string& arch, const std::string& solv
  *                           matrix before feeding them to KernelTuningNet
  * @param validator A boolean function that accepts an index `i` and a string `v`, and returns
  *                  True iff `v` is a valid kernel parameter value at index `i`
+ *                  Note: This also applies the predicted token to kernel parameters, i.e., uses the prediction.
  */
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
@@ -998,90 +988,91 @@ bool ModelSetParams(const std::string& arch,
     // Try ONNX implementation if requested
     if (use_onnx) {
         try {
-            OnnxTransformerModel onnx_model(arch, solver);
+            auto onnx_model = GetOnnxModel(arch, solver);
             
             // Get dimension for features
             int dim = transform_features ? std::sqrt(features.size()) : features.size();
             
             // Run encoder to get context
-            auto context = onnx_model.Encode(features, dim, transform_features);
+            MIOPEN_LOG_I2("Running ONNX KTN encoder");
+            const auto& context = onnx_model->Encode(features, dim, transform_features);
             
             // Initialize with start token
             std::vector<int32_t> sequence = {0};
             size_t num_tuning_params = 1;
+            bool valid_token_found = true;
             
+            MIOPEN_LOG_I2("Running ONNX KTN decoder");
             // run decoder to set kernel parameters
-            for(size_t i = 0; i < num_tuning_params; ++i)
+            for(size_t i = 0; i < num_tuning_params && valid_token_found; ++i)
             {
-                if(i == 0 && (onnx_model.metadata.predict_type == 0u))
-                    num_tuning_params = onnx_model.metadata.num_tuning_params[dir];
+                if(i == 0 && (onnx_model->metadata.predict_type == 0u))
+                {
+                    num_tuning_params = onnx_model->metadata.num_tuning_params[dir];
+                }
 
                 // Get token scores from decoder
-                std::vector<float> token_scores = onnx_model.Decode(sequence, context);
-                
-                // Find the best valid token
-                int output_token_index = -1;
-                bool valid_token_found = false;
-                
+                std::vector<float> token_scores = onnx_model->Decode(sequence, context);
+
                 // Order tokens by score
                 std::priority_queue<std::pair<float, int>> pq;
                 for(int j = 0; j < token_scores.size(); j++) {
                     pq.push(std::make_pair(token_scores[j], j));
                 }
 
+                // Find the best valid token
+                int output_token_index = -1;
+                valid_token_found = false;
+
                 while(!pq.empty() && !valid_token_found)
                 {
                     int token = pq.top().second;
-                    std::string value = onnx_model.metadata.tuning_decodings[std::to_string(token)];
+                    std::string value = onnx_model->metadata.tuning_decodings[std::to_string(token)];
                     pq.pop();
 
-                    if(value == "-1") { // End of decoding
+                    if(value == "-1") 
+                    { 
+                        // End of decoding
                         MIOPEN_LOG_I2("ONNX KTN ended at -1");
-                        success = false;
                         break;
                     }
                     
-                    if(validator(i, value)) {
+                    if(validator(i, value)) 
+                    {
                         output_token_index = token;
                         valid_token_found = true;
                         
-                        if(i == 0 && onnx_model.metadata.predict_type != 0u)
-                            num_tuning_params = onnx_model.metadata.num_tuning_params[value];
+                        if(i == 0 && onnx_model->metadata.predict_type != 0u)
+                        {
+                            num_tuning_params = onnx_model->metadata.num_tuning_params[value];
+                        }  
                     }
                 }
-                
-                if(!valid_token_found) {
-                    MIOPEN_LOG_I2("ONNX KTN could not find valid token for position " << i);
-                    success = false;
-                    break;
+
+                if(valid_token_found) 
+                {
+                    sequence.push_back(output_token_index);
                 }
-                
-                // Add selected token to sequence for next iteration
-                sequence.push_back(output_token_index);
+                else 
+                {
+                    MIOPEN_LOG_I2("ONNX KTN could not find valid token for position " << i);
+                }
             }
             
-            success = sequence.size() == num_tuning_params;
-            if (success) {
-                MIOPEN_LOG_I2("ONNX KTN successfully set kernel parameters");
-            } else {
-                MIOPEN_LOG_I2("ONNX KTN failed to set kernel parameters");
-            }
+            success = valid_token_found;
         }
         catch(const miopen::Exception& ex)
         {
             MIOPEN_LOG_I2("[Warning] Could not use ONNX model: (" << ex.what() << ")");
-            MIOPEN_LOG_I2("Falling back to frugally-deep model");
             success = false;
         }
     }
     
     // Frugally-deep implementation
     if (!use_onnx) {
-        using model_type = decltype(GetModel(arch, solver));
-        model_type model;
         try
         {
-            model = GetModel(arch, solver);
+            auto model = GetFrugalModel(arch, solver);
             
             // Get context
             int dim = transform_features ? std::sqrt(features.size()) : features.size();
@@ -1093,8 +1084,10 @@ bool ModelSetParams(const std::string& arch,
             for(size_t i = 0, num_tuning_params = 1; i < num_tuning_params && valid_token_found; ++i)
             {
                 if(i == 0 && (model->metadata.predict_type == 0u))
+                {
                     num_tuning_params = model->metadata.num_tuning_params[dir];
-
+                }
+                    
                 fdeep::tensors decoder_output = model->Decode(decoder_input, context);
                 auto token_scores = decoder_output[0].to_vector();
                 
@@ -1113,17 +1106,22 @@ bool ModelSetParams(const std::string& arch,
                     std::string value = model->metadata.tuning_decodings[std::to_string(token)];
                     pq.pop();
 
-                    if(value == "-1") { // End of decoding
+                    if(value == "-1") 
+                    { 
+                        // End of decoding
                         MIOPEN_LOG_I2("KTN ended at -1");
                         break;
                     }
                     
-                    if(validator(i, value)) {
+                    if(validator(i, value)) 
+                    {
                         output_token_index = token;
                         valid_token_found = true;
                         
                         if(i == 0 && model->metadata.predict_type != 0u)
+                        {
                             num_tuning_params = model->metadata.num_tuning_params[value];
+                        }
                     }
                 }
                 
