@@ -612,8 +612,25 @@ class Model
 {
 public:
     Metadata metadata;
-    Model(const std::string& arch, const std::string& solver) : metadata(Metadata(arch, solver))
-    {}
+    Model(const std::string& arch, const std::string& solver) : metadata(Metadata(arch, solver)){}
+    std::string EncoderPath(const std::string& arch, const std::string& solver, const std::string& model_extension) const
+    {
+        const auto base_path = GetKtnModelsPath();
+        const auto path = base_path / (arch + "_" + solver + "_encoder." + model_extension);
+        MIOPEN_LOG_I2("KTN Encoder model path" << path);
+        if(!fs::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
+        return path.string();
+    }
+    std::string DecoderPath(const std::string& arch, const std::string& solver, const std::string& model_extension) const
+    {
+        const auto base_path = GetKtnModelsPath();
+        const auto path = base_path / (arch + "_" + solver + "_decoder." + model_extension);
+        MIOPEN_LOG_I2("KTN Decoder model path" << path);
+        if(!fs::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
+        return path.string();
+    }
 };
 
 class FrugalModel : public Model
@@ -669,23 +686,13 @@ public:
 private:
     const fdeep::model encoder;
     const fdeep::model decoder;
-    static std::string EncoderPath(const std::string& arch, const std::string& solver)
+    std::string EncoderPath(const std::string& arch, const std::string& solver) const
     {
-        const auto base_path = GetKtnModelsPath();
-        const auto path = base_path / (arch + "_" + solver + "_encoder.ktn.model");
-        MIOPEN_LOG_I2("KTN Encoder model path" << path);
-        if(!fs::exists(path))
-            MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
-        return path.string();
+        return Model::EncoderPath(arch, solver, "ktn.model");
     }
-    static std::string DecoderPath(const std::string& arch, const std::string& solver)
+    std::string DecoderPath(const std::string& arch, const std::string& solver) const
     {
-        const auto base_path = GetKtnModelsPath();
-        const auto path = base_path / (arch + "_" + solver + "_decoder.ktn.model");
-        MIOPEN_LOG_I2("KTN Decoder model path" << path);
-        if(!fs::exists(path))
-            MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
-        return path.string();
+        return Model::DecoderPath(arch, solver, "ktn.model");
     }
 };
 
@@ -787,7 +794,7 @@ public:
             encoder_output_name_ptrs_.data(),
             encoder_output_count_);
     }
-    
+
     std::vector<float> Decode(const std::vector<int32_t>& sequence, 
                   const std::vector<Ort::Value>& encoder_outputs) const
     {
@@ -885,28 +892,13 @@ private:
         return options;
     }  
     
-    fs::path EncoderPath(const std::string& arch, const std::string& solver) const
+    std::string EncoderPath(const std::string& arch, const std::string& solver) const
     {
-        const auto base_path = GetKtnModelsPath();
-        const auto path = base_path / (arch + "_" + solver + "_encoder.onnx");
-        MIOPEN_LOG_I2("KTN Encoder model path: " << path);
-        if(!fs::exists(path))
-        {
-            MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
-        } 
-        return path;
+        return Model::EncoderPath(arch, solver, "onnx");
     }
-    
-    fs::path DecoderPath(const std::string& arch, const std::string& solver) const
+    std::string DecoderPath(const std::string& arch, const std::string& solver) const
     {
-        const auto base_path = GetKtnModelsPath();
-        const auto path = base_path / (arch + "_" + solver + "_decoder.onnx");
-        MIOPEN_LOG_I2("KTN Decoder model path: " << path);
-        if(!fs::exists(path))
-        {
-            MIOPEN_THROW(miopenStatusInternalError, "Unable to load file: " + path);
-        }
-        return path;
+        return Model::DecoderPath(arch, solver, "onnx");
     }
 };
 
@@ -988,13 +980,12 @@ bool ModelSetParams(const std::string& arch,
     // Try ONNX implementation if requested
     if (use_onnx) {
         try {
-            auto onnx_model = GetOnnxModel(arch, solver);
+            const auto onnx_model = GetOnnxModel(arch, solver);
             
             // Get dimension for features
             int dim = transform_features ? std::sqrt(features.size()) : features.size();
             
             // Run encoder to get context
-            MIOPEN_LOG_I2("Running ONNX KTN encoder");
             const auto& context = onnx_model->Encode(features, dim, transform_features);
             
             // Initialize with start token
@@ -1002,7 +993,6 @@ bool ModelSetParams(const std::string& arch,
             size_t num_tuning_params = 1;
             bool valid_token_found = true;
             
-            MIOPEN_LOG_I2("Running ONNX KTN decoder");
             // run decoder to set kernel parameters
             for(size_t i = 0; i < num_tuning_params && valid_token_found; ++i)
             {
@@ -1072,7 +1062,7 @@ bool ModelSetParams(const std::string& arch,
     if (!use_onnx) {
         try
         {
-            auto model = GetFrugalModel(arch, solver);
+            const auto model = GetFrugalModel(arch, solver);
             
             // Get context
             int dim = transform_features ? std::sqrt(features.size()) : features.size();
