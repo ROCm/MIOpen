@@ -452,8 +452,9 @@ void ActivationFunction_Clamp_Diff(const uint n,
 {
     for(uint i = 0; i < n; ++i)
     {
-        bot_diff[i] = top_diff[i] * ((bot_data[i] > alpha && bot_data[i] <= beta) ? (_FLOAT_PREC)1.f
-                                                                                  : (_FLOAT_PREC)0.f);
+        bot_diff[i] =
+            top_diff[i] *
+            ((bot_data[i] > alpha && bot_data[i] <= beta) ? (_FLOAT_PREC)1.f : (_FLOAT_PREC)0.f);
     }
 }
 
