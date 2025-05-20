@@ -526,8 +526,7 @@ typedef enum
     miopenActivationELU =
         9, /*!< Exponential Rectified Linear Unit \f$ \alpha * (e^{x} - 1) | x <= 0; x | x > 0 \f$
             */
-    miopenActivationCLAMP    =
-        10, /*!< Clamp \f$ max(\alpha, min(\beta, x)) \f$ */
+    miopenActivationCLAMP = 10, /*!< Clamp \f$ max(\alpha, min(\beta, x)) \f$ */
 } miopenActivationMode_t;
 
 /*! @ingroup softmax
