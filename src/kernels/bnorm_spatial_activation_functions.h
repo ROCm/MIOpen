@@ -24,21 +24,16 @@
     (void)_beta;         \
     (void)_gamma;
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLAMP
-#define ACTIVATION_SET() \
-    (void)_gamma;
+#define ACTIVATION_SET() (void)_gamma;
 #endif
 
 #if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
-    out = tmp;
-#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) \
-    out = dy;
+#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) out = tmp;
+#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) out = dy;
 
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
-#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
-    out = max((_FLOAT_PREC_TYPE)0., tmp);
-#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) \
-    out = dy * (x > 0);
+#define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) out = max((_FLOAT_PREC_TYPE)0., tmp);
+#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) out = dy * (x > 0);
 
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLIPPED_RELU
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
