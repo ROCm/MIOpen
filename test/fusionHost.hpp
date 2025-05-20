@@ -770,8 +770,11 @@ void visitActivationHostInfer(
     case miopenActivationLEAKYRELU: // alpha * x | x<=0; x | x>0
         f([=](double x) { return ((x > 0.) ? x : x * alpha); });
         break;
-    case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
+    case miopenActivationELU: // alpha * (exp(x)-1) | x<=0; x | x>0
         f([=](double x) { return ((x > 0.) ? x : alpha * std::expm1(x)); });
+        break;
+    case miopenActivationCLAMP: // max(alpha, min(beta, x))
+        f([=](double x) { return (std::max(alpha, std::min(beta, x))); });
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
@@ -834,6 +837,9 @@ void visitActivationHostBwd(
         break;
     case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
         f([=](double dy, double x, double y) { return dy * ((x > 0) ? 1 : y + alpha); });
+        break;
+    case miopenActivationCLAMP: // max(alpha, min(beta, x))
+        f([=](double dy, double x, double) { return (x > alpha && x <= beta) ? dy : 0; });
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
