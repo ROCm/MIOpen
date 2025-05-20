@@ -384,12 +384,69 @@ protected:
         bn_bwd_test_data.dBias.data = handle.Read<DscaleDbiasDataType>(
             bn_bwd_test_data.dBias_dev, bn_bwd_test_data.dBias.data.size());
 
+        tensor<AccDataType> input_norm = tensor<AccDataType>{bn_bwd_test_data.tensor_layout,
+                                                             bn_bwd_test_data.bn_config.GetInput()};
+        int height, width, n_batch, channels;
+        std::tie(n_batch, channels, height, width) =
+            miopen::tien<4>(bn_bwd_test_data.input.desc.GetLengths());
+        auto nhw = double(height * width * n_batch);
+        par_for(channels, 1, [&](int cidx) {
+            double mean           = 0.0;
+            double invVar         = 0.0;
+            double elemStd        = 0.;
+            double mean_accum     = 0.0;
+            double variance_accum = 0.0;
+            if(!bn_bwd_test_data.savedMean.data.empty())
+            {
+                mean =
+                    static_cast<double>(bn_bwd_test_data.savedMean(0, cidx, 0, 0)); // HxW elements
+                invVar = static_cast<double>(
+                    bn_bwd_test_data.savedInvVar(0, cidx, 0, 0)); // HxW elements
+            }
+            else
+            {
+                for(int row = 0; row < height; row++)
+                { // via rows
+                    for(int column = 0; column < width; column++)
+                    { // via columns
+                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        { // via mini_batch
+                            auto inval = static_cast<double>(
+                                bn_bwd_test_data.input(bidx, cidx, row, column));
+                            mean_accum += inval;
+                            variance_accum += inval * inval;
+                        }
+                    }
+                }
+                mean_accum /= nhw;
+                variance_accum /= nhw;
+                variance_accum += (-mean_accum * mean_accum);
+
+                mean   = mean_accum;
+                invVar = 1.0 / sqrt(variance_accum);
+            }
+            for(int row = 0; row < height; row++)
+            { // via rows
+                for(int column = 0; column < width; column++)
+                { // via columns
+                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    { // via mini_batch
+                        elemStd =
+                            static_cast<double>(bn_bwd_test_data.input(bidx, cidx, row, column)) -
+                            mean; // (x_i - mean)
+                        input_norm(bidx, cidx, row, column) =
+                            static_cast<AccDataType>(elemStd * invVar);
+                    }
+                }
+            }
+        });
+
         activationHostBnormBwd(activ_mode,
                                activ_gamma,
                                activ_beta,
                                activ_alpha,
                                bn_bwd_test_data.dy.data,
-                               bn_bwd_test_data.input.data,
+                               input_norm.data,
                                bn_bwd_test_data.dy.data);
 
         test::ComputeCPUBNBwd(bn_bwd_test_data);

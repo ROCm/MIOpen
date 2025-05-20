@@ -174,13 +174,12 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             dyvalues[n] = FLOAT2FLOATPREC(*(dy_in + index));
 
 #if(MIO_BN_USESAVED == 1)
-            xvalue = FLOAT2FLOATPREC(*(x_in + index));
-            ACTIVATION_OP_BWD(dyvalues[n], xvalue, dyvalues[n], _FLOAT_PREC)
+            xvalue         = FLOAT2FLOATPREC(*(x_in + index));
             batchvalues[n] = (xvalue - mean) * invVariance;
 #else
-            ACTIVATION_OP_BWD(dyvalues[n], batchvalues[n], dyvalues[n], _FLOAT_PREC)
             batchvalues[n] = (batchvalues[n] - mean) * invVariance;
 #endif
+            ACTIVATION_OP_BWD(dyvalues[n], batchvalues[n], dyvalues[n], _FLOAT_PREC)
             // batchvalues is now xhat
             db += dyvalues[n];
             ds = mad(batchvalues[n], dyvalues[n], ds);
@@ -192,13 +191,12 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 
 #if(MIO_BN_USESAVED == 1)
         xvalue = (index < MIO_BN_NCHW) ? FLOAT2FLOATPREC(*(x_in + index)) : (_FLOAT_PREC)0.;
-        ACTIVATION_OP_BWD(dyvalue, xvalue, dyvalue, _FLOAT_PREC)
         batchvalues[MIO_BN_NLOOPM] =
             (index < MIO_BN_NCHW) ? ((xvalue - mean) * invVariance) : (_FLOAT_PREC)0.;
 #else
-        ACTIVATION_OP_BWD(dyvalue, batchvalues[MIO_BN_NLOOPM], dyvalue, _FLOAT_PREC)
         batchvalues[MIO_BN_NLOOPM] = (batchvalues[MIO_BN_NLOOPM] - mean) * invVariance;
 #endif
+        ACTIVATION_OP_BWD(dyvalue, batchvalues[MIO_BN_NLOOPM], dyvalue, _FLOAT_PREC)
         // batchvalues is now xhat
         dyvalues[MIO_BN_NLOOPM] = dyvalue;
         db += dyvalues[MIO_BN_NLOOPM];
@@ -461,16 +459,16 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
                                                k += GRPRD)
 #endif
     {
-        nidx    = k / MIO_BN_HW;
-        hwidx   = k - (nidx * MIO_BN_HW);
+        nidx     = k / MIO_BN_HW;
+        hwidx    = k - (nidx * MIO_BN_HW);
 #if MIO_LAYOUT_NHWC
-        index   = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
-        xread   = *((const global _FLOAT*)(x_in + index));
-        dyRead  = *((const global _FLOAT*)(dy_in + index));
-        dyvalue = FLOAT2FLOATPREC(dyRead);
-        xvalue  = FLOAT2FLOATPREC(xread);
-        ACTIVATION_OP_BWD(dyvalue, xvalue, dyvalue, _FLOAT_PREC)
+        index    = nidx * MIO_BN_CHW + hwidx * MIO_BN_C + grpid;
+        xread    = *((const global _FLOAT*)(x_in + index));
+        dyRead   = *((const global _FLOAT*)(dy_in + index));
+        dyvalue  = FLOAT2FLOATPREC(dyRead);
+        xvalue   = FLOAT2FLOATPREC(xread);
         xhat_tmp = (xvalue - mean) * invVariance;
+        ACTIVATION_OP_BWD(dyvalue, xhat_tmp, dyvalue, _FLOAT_PREC)
         db += dyvalue;
         ds = mad(xhat_tmp, dyvalue, ds);
 #else
@@ -485,12 +483,12 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         dyvalue4.y = FLOAT2FLOATPREC(dyRead4.y);
         dyvalue4.z = FLOAT2FLOATPREC(dyRead4.z);
         dyvalue4.w = FLOAT2FLOATPREC(dyRead4.w);
-        ACTIVATION_OP_BWD(dyvalue4, xvalue4, dyvalue4, _FLOAT_PREC4)
 
         xhat4.x = (xvalue4.x - mean) * invVariance;
         xhat4.y = (xvalue4.y - mean) * invVariance;
         xhat4.z = (xvalue4.z - mean) * invVariance;
         xhat4.w = (xvalue4.w - mean) * invVariance;
+        ACTIVATION_OP_BWD(dyvalue4, xhat4, dyvalue4, _FLOAT_PREC4)
         db += dyvalue4.x;
         db += dyvalue4.y;
         db += dyvalue4.z;
@@ -511,14 +509,14 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
             hwidx * MIO_BN_C + grpid;
     if(index < MIO_BN_NCHW)
     {
-        xread   = *((const global _FLOAT*)(x_in + index));
-        dyRead  = *((const global _FLOAT*)(dy_in + index));
-        xvalue  = FLOAT2FLOATPREC(xread);
-        dyvalue = FLOAT2FLOATPREC(dyRead);
-        ACTIVATION_OP_BWD(dyvalue, xvalue, dyvalue, _FLOAT_PREC)
-        xhat_tmp = (FLOAT2FLOATPREC(xread) - mean) * invVariance;
-        db += FLOAT2FLOATPREC(dyRead);
-        ds = mad(xhat_tmp, FLOAT2FLOATPREC(dyRead), ds);
+        xread    = *((const global _FLOAT*)(x_in + index));
+        dyRead   = *((const global _FLOAT*)(dy_in + index));
+        xvalue   = FLOAT2FLOATPREC(xread);
+        dyvalue  = FLOAT2FLOATPREC(dyRead);
+        xhat_tmp = (xvalue - mean) * invVariance;
+        ACTIVATION_OP_BWD(dyvalue, xhat_tmp, dyvalue, _FLOAT_PREC)
+        db += dyvalue;
+        ds = mad(xhat_tmp, dyvalue, ds);
 #else
             chwid + hwidx;
     if(index < (MIO_BN_NCHW - 3))
@@ -533,12 +531,12 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         dyvalue4.y = FLOAT2FLOATPREC(dyRead4.y);
         dyvalue4.z = FLOAT2FLOATPREC(dyRead4.z);
         dyvalue4.w = FLOAT2FLOATPREC(dyRead4.w);
-        ACTIVATION_OP_BWD(dyvalue4, xvalue4, dyvalue4, _FLOAT_PREC4)
 
         xhat4.x = (xvalue4.x - mean) * invVariance;
         xhat4.y = (xvalue4.y - mean) * invVariance;
         xhat4.z = (xvalue4.z - mean) * invVariance;
         xhat4.w = (xvalue4.w - mean) * invVariance;
+        ACTIVATION_OP_BWD(dyvalue4, xhat4, dyvalue4, _FLOAT_PREC4)
         db += dyvalue4.x;
         db += dyvalue4.y;
         db += dyvalue4.z;
@@ -604,8 +602,8 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #endif
             value1         = FLOAT2FLOATPREC(*(dy_in + index));
             value2         = FLOAT2FLOATPREC(*(x_in + index));
-            ACTIVATION_OP_BWD(value1, value2, value1, _FLOAT_PREC)
-            xhat            = (value2 - mean) * invVariance;
+            xhat           = (value2 - mean) * invVariance;
+            ACTIVATION_OP_BWD(value1, xhat, value1, _FLOAT_PREC)
 #if MIOPEN_USE_FP16 == 1
             float temp_tmp1 = mad((float)NHW, (float)value1, -temp_db);
             float temp_tmp2 = -((float)xhat) * temp_ds;
@@ -656,8 +654,8 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
         {
             value1 = FLOAT2FLOATPREC(*(dy_in + index));
             value2 = FLOAT2FLOATPREC(*(x_in + index));
-            ACTIVATION_OP_BWD(value1, value2, value1, _FLOAT_PREC)
-            xhat    = (value2 - mean) * invVariance;
+            xhat   = (value2 - mean) * invVariance;
+            ACTIVATION_OP_BWD(value1, xhat, value1, _FLOAT_PREC)
             tmp1    = mad(NHW, value1, -db);
             tmp2    = -xhat * ds;
             vals[j] = tmp3 * (tmp2 + tmp1);
@@ -953,16 +951,16 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
                                   ygid * ystride * VEC_SIZE_Y + xgid * xstride * VEC_SIZE_X;
         for(unsigned int n = 0; n < MIO_BN_N_ELEMENTS; n++)
         {
-            index  = index_base + n * MIO_BN_CHW;
-            read4  = *((const __global _FLOAT_LS*)(dy_in + index));
-            value1 = FLOAT2FLOATPREC_VEC(read4);
-            read4  = *((const __global _FLOAT_LS*)(x_in + index));
-            value2 = FLOAT2FLOATPREC_VEC(read4);
-            ACTIVATION_OP_BWD(value1, value2, value1, _FLOAT_PREC_LS)
-            _ACCUMULATE(dbias, value1)
+            index   = index_base + n * MIO_BN_CHW;
+            read4   = *((const __global _FLOAT_LS*)(dy_in + index));
+            value1  = FLOAT2FLOATPREC_VEC(read4);
+            read4   = *((const __global _FLOAT_LS*)(x_in + index));
+            value2  = FLOAT2FLOATPREC_VEC(read4);
             elemStd = value2 - mean;
             xhat    = elemStd * invVar;
+            ACTIVATION_OP_BWD(value1, xhat, value1, _FLOAT_PREC_LS)
             // apply activation function on dy
+            _ACCUMULATE(dbias, value1)
             _ACCUMULATE_MAD(dscale, xhat, value1, dscale)
         }
     }
@@ -1184,7 +1182,7 @@ MIOpenBatchNormBwdSpatialDX(const __global _FLOAT* __restrict x_in,
             xhat        = elemStd * invVar;  // recalculating this again...
             read4       = *((const __global _FLOAT_LS*)(dy_in + index));
             value_dy_in = FLOAT2FLOATPREC_VEC(read4);
-            ACTIVATION_OP_BWD(value_dy_in, value_x_in, value_dy_in, _FLOAT_PREC)
+            ACTIVATION_OP_BWD(value_dy_in, xhat, value_dy_in, _FLOAT_PREC_LS)
             tmp1 = mad((_FLOAT_PREC_LS)NHW, value_dy_in, -dbias);
             tmp2 = -xhat * dscale;
             tmp3 = scale * invVar * INHW;
@@ -1312,28 +1310,26 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     {
         for(unsigned int n = 0; n < MIO_BN_N; n++)
         {
-            index              = n * MIO_BN_CHW + cidx + lid;
+            index          = n * MIO_BN_CHW + cidx + lid;
 #if(MIO_BN_N < MIO_BN_MAXN)
-            dyvalues[n]        = FLOAT2FLOATPREC(*(dy_in + index));
+            dyvalues[n]    = FLOAT2FLOATPREC(*(dy_in + index));
 
 #if(MIO_BN_USESAVED == 1)
-            _FLOAT_PREC xvalue = FLOAT2FLOATPREC(*(x_in + index));
-            ACTIVATION_OP_BWD(dyvalues[n], xvalue, dyvalues[n], _FLOAT_PREC)
             batchvalues[n] = (xvalue - mean) * invVariance;
 #else
-            ACTIVATION_OP_BWD(dyvalues[n], batchvalues[n], dyvalues[n], _FLOAT_PREC)
             batchvalues[n] = (batchvalues[n] - mean) * invVariance;
 #endif // batchvalues is now xhat
 
+            ACTIVATION_OP_BWD(dyvalues[n], batchvalues[n], dyvalues[n], _FLOAT_PREC)
             db += dyvalues[n];
             ds = mad(batchvalues[n], dyvalues[n], ds);
 #else  // maxn
             _FLOAT_PREC dyvalue = FLOAT2FLOATPREC(*(dy_in + index));
             _FLOAT_PREC xvalue  = FLOAT2FLOATPREC(*(x_in + index));
-            ACTIVATION_OP_BWD(dyvalue, xvalue, dyvalue, _FLOAT_PREC)
+            _FLOAT_PREC xhat    = ((xvalue - mean) * invVariance);
+            ACTIVATION_OP_BWD(dyvalue, xhat, dyvalue, _FLOAT_PREC)
             db += dyvalue;
-            _FLOAT_PREC xhat = ((xvalue - mean) * invVariance);
-            ds               = mad(xhat, dyvalue, ds);
+            ds = mad(xhat, dyvalue, ds);
 #endif
         }
     }
@@ -1370,7 +1366,8 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
 #else
             _FLOAT_PREC dyvalue = FLOAT2FLOATPREC(*(dy_in + index));
             _FLOAT_PREC xvalue  = FLOAT2FLOATPREC(*(x_in + index));
-            ACTIVATION_OP_BWD(dyvalue, xvalue, dyvalue, _FLOAT_PREC)
+            _FLOAT_PREC xhat    = ((xvalue - mean) * invVariance);
+            ACTIVATION_OP_BWD(dyvalue, xhat, dyvalue, _FLOAT_PREC)
 
             tmp1 = mad(NHW, dyvalue, -db);
             tmp2 = -(xvalue - mean) * invVariance * ds;
