@@ -80,7 +80,6 @@ def process_single_config(test_case, index, kernel_times_path, algs, tuning, pid
     """Process a single configuration"""
     name = test_case["name"]
     test_name = f"{name}_{index}"
-    print(f"Running test case: {test_name}")
     
     # Set environment variables from config
     set_env_vars = []
@@ -100,7 +99,6 @@ def process_single_config(test_case, index, kernel_times_path, algs, tuning, pid
     if log_to_file:
       log_path_config = f"../logs/individual_logs/{test_name}_{algs}_{tuning}{pid}.log"
       os.makedirs(os.path.dirname(log_path_config), exist_ok=True)
-      print(f"Log file: {log_path_config}")
     
     # Prepare the MIOpenDriver command
     miopen_driver_path = os.path.abspath(os.path.join(os.getcwd(), "../build/bin/MIOpenDriver"))
@@ -146,8 +144,8 @@ def process_single_config(test_case, index, kernel_times_path, algs, tuning, pid
         log_file.write(f"\n=== Execution completed at {datetime.now()} ===\n")
     
     # Extract kernel times
-    extract_kernel_times(log_path_config, kernel_times_path, test_name)
-    print(f"Kernel times extracted to: {kernel_times_path}")
+    if log_to_file:
+      extract_kernel_times(log_path_config, kernel_times_path, test_name)
     
     # Unset environment variables
     for var in set_env_vars:
@@ -182,7 +180,7 @@ def main():
     if args.onnx_model_path:
         os.environ["MIOPEN_KTN_MODELS_PATH"] = args.onnx_model_path
         os.environ["MIOPEN_USE_ONNX_KTN"] = "1"
-        
+
     # Fix path to ONNX runtime
     os.environ["LD_LIBRARY_PATH"] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:/opt/onnxruntime/lib:/usr/local/lib"
     
@@ -322,7 +320,6 @@ def main():
     # Process configurations
     if args.config:
         config_name = args.config
-        print(f"Processing configuration: {config_name}")
         try:
             with open(config_file, 'r') as f:
                 config_data = json.load(f)
@@ -333,6 +330,7 @@ def main():
                     exit(1)
                 else:
                     for i,case in enumerate(test_cases):
+                      print(f"Processing configuration {i + 1}/{len(test_cases)}")
                       process_single_config(case, i, kernel_times_path, algs, tuning, pid, args)
         except Exception as e:
             print(f"Error processing configuration {config_name}: {e}")
@@ -340,6 +338,10 @@ def main():
     else:
         # Process all configurations
         print("Processing all configurations")
+        configs = config_data['test_cases']
+        for i, case in enumerate(configs):
+            print(f"Processing configuration {i + 1}/{len(configs)}")
+            process_single_config(case, i, kernel_times_path, algs, tuning, pid, args)
 
 if __name__ == "__main__":
     main()
