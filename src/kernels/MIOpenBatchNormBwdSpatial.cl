@@ -875,14 +875,17 @@ MIOpenBatchNormBwdSpatialMeanVariance(const __global _FLOAT* __restrict in,
 __attribute__((reqd_work_group_size(MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2))) __kernel void
 MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
                                      const __global _FLOAT* __restrict dy_in,
-                                     __global _FLOAT* __restrict buff
+                                     __global _FLOAT* __restrict buff,
 #if MIO_BN_USESAVED == 1
-                                     ,
                                      const __global _FLOAT_PREC* __restrict savedMean,
-                                     const __global _FLOAT_PREC* __restrict savedInvVariance
+                                     const __global _FLOAT_PREC* __restrict savedInvVariance,
 #endif
-)
+                                     _FLOAT_PREC _alpha,
+                                     _FLOAT_PREC _beta,
+                                     _FLOAT_PREC _gamma)
 {
+
+    ACTIVATION_SET()
 
     unsigned int xlid    = get_local_id(0);
     unsigned int ylid    = get_local_id(1);
@@ -955,7 +958,7 @@ MIOpenBatchNormBwdSpatialDScaleDBias(const __global _FLOAT* __restrict x_in,
             value1 = FLOAT2FLOATPREC_VEC(read4);
             read4  = *((const __global _FLOAT_LS*)(x_in + index));
             value2 = FLOAT2FLOATPREC_VEC(read4);
-            ACTIVATION_OP_BWD(value1, value2, value1, _FLOAT_PREC)
+            ACTIVATION_OP_BWD(value1, value2, value1, _FLOAT_PREC_LS)
             _ACCUMULATE(dbias, value1)
             elemStd = value2 - mean;
             xhat    = elemStd * invVar;

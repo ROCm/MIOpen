@@ -441,7 +441,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                                 params.dy,
                                                 params.dx,
                                                 params.savedMean,
-                                                params.savedInvVariance);
+                                                params.savedInvVariance,
+                                                alpha_activ,
+                                                beta_activ,
+                                                gamma_activ);
                         profileSequence(handle_, 0, &ctime);
 
                         handle_.Run(kernels[1])(
@@ -471,7 +474,12 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                             params.dx, as_float(inhw), params.epsilon); // final mean variance
                         profileSequence(handle_, 1, &ctime);
 
-                        handle_.Run(kernels[2])(params.x, params.dy, params.dx); // dscale dbias
+                        handle_.Run(kernels[2])(params.x,
+                                                params.dy,
+                                                params.dx, // dscale dbias
+                                                alpha_activ,
+                                                beta_activ,
+                                                gamma_activ);
                         profileSequence(handle_, 1, &ctime);
 
                         handle_.Run(kernels[3])(params.dx,

@@ -51,7 +51,8 @@ bool BnFwdInference::IsApplicable(const ExecutionContext&,
         return false;
 
     int activ_mode = bn_problem.GetActivationDesc().GetMode();
-    if(activ_mode < miopenActivationPASTHRU || activ_mode > miopenActivationELU)
+    if(activ_mode != miopenActivationPASTHRU && activ_mode != miopenActivationRELU &&
+       activ_mode != miopenActivationCLIPPEDRELU && activ_mode != miopenActivationCLAMP)
         return false;
 
     return true;

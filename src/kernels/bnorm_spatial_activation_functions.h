@@ -39,12 +39,13 @@
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
     out = max((_FLOAT_PREC_TYPE)0., min((_FLOAT_PREC_TYPE)_alpha, tmp));
 #define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) \
-    out = dy * (x > 0) * (x <= (_FLOAT_PREC_TYPE)_alpha);
+    out = (x > 0 && x <= (_FLOAT_PREC_TYPE)_alpha) ? dy : (_FLOAT_PREC_TYPE)0.f;
 
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLAMP
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
     out = max((_FLOAT_PREC_TYPE)_alpha, min((_FLOAT_PREC_TYPE)_beta, tmp));
-#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) \
-    out = dy * (x > (_FLOAT_PREC_TYPE)_alpha) * (x <= (_FLOAT_PREC_TYPE)_beta);
+#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE)                       \
+    out = (x > (_FLOAT_PREC_TYPE)_alpha && x <= (_FLOAT_PREC_TYPE)_beta) ? dy \
+                                                                         : (_FLOAT_PREC_TYPE)0.f;
 
 #endif
