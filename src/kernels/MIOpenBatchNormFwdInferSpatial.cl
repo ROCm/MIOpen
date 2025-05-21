@@ -50,8 +50,7 @@ MIOpenBatchNormFwdInferSpatialEst(const __global _FLOAT* __restrict in, /* x inp
                                   unsigned int hwStride,
                                   unsigned int batchStride,
                                   _FLOAT_PREC _alpha,
-                                  _FLOAT_PREC _beta,
-                                  _FLOAT_PREC _gamma)
+                                  _FLOAT_PREC _beta)
 {
 
     ACTIVATION_SET()

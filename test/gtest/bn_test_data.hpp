@@ -257,7 +257,6 @@ struct BNInferTestData : public BNTestData<XDataType, YDataType, AccDataType, TC
     float beta     = static_cast<float>(0);
     double activ_alpha;
     double activ_beta;
-    double activ_gamma;
     miopenActivationMode_t activ_mode;
 
 private:
@@ -353,7 +352,6 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, AccDataType, TCo
 
     double activ_alpha;
     double activ_beta;
-    double activ_gamma;
     miopenActivationMode_t activ_mode;
 
 private:
@@ -468,7 +466,6 @@ struct BNFwdTrainTestData : public BNTestData<XDataType, YDataType, AccDataType,
     float beta           = static_cast<float>(0);
     double activ_alpha;
     double activ_beta;
-    double activ_gamma;
     miopenActivationMode_t activ_mode;
 
 private:

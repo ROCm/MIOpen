@@ -105,7 +105,6 @@ void ComputeCPUBNBwd(DLModule& dl_module)
                                      dl_module.savedMean,
                                      dl_module.savedInvVar,
                                      dl_module.activ_mode,
-                                     dl_module.activ_gamma,
                                      dl_module.activ_beta,
                                      dl_module.activ_alpha);
     }

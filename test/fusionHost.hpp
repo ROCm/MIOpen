@@ -299,10 +299,10 @@ void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
                                   const tensor<AccDataType>& savedMean,
                                   const tensor<AccDataType>& savedInvVar,
                                   miopenActivationMode_t activ_mode,
-                                  double activ_gamma,
                                   double activ_beta,
                                   double activ_alpha)
 {
+    double activ_gamma = 0.;
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
     auto nhw                                   = double(height * width * n_batch);

@@ -343,8 +343,6 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AddCmdLineArgs()
         "activ_alpha", 'x', "1.0", "Activation function parameter alpha (Default=1.0)", "float");
     inflags.AddInputFlag(
         "activ_beta", 'y', "1.0", "Activation function parameter beta (Default=1.0)", "float");
-    inflags.AddInputFlag(
-        "activ_gamma", 'z', "1.0", "Activation function parameter gamma (Default=1.0)", "float");
     AddGpuBufferCheckFlag(inflags);
 
     return miopenStatusSuccess;
@@ -700,7 +698,7 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdInferenceAc
                                   activ_mode,
                                   inflags.GetValueDouble("activ_alpha"),
                                   inflags.GetValueDouble("activ_beta"),
-                                  inflags.GetValueDouble("activ_gamma"));
+                                  static_cast<double>(0.0));
     if(keepRunningMeanVar)
     { // use precalculated mean and variance
         miopenBatchNormForwardInferenceActivation(GetHandle(),
@@ -882,7 +880,7 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrainActiva
                                   activ_mode,
                                   inflags.GetValueDouble("activ_alpha"),
                                   inflags.GetValueDouble("activ_beta"),
-                                  inflags.GetValueDouble("activ_gamma"));
+                                  static_cast<double>(0.0));
     if(saveMeanVar && keepRunningMeanVar)
     {
         miopenBatchNormForwardTrainingActivation(GetHandle(),
@@ -1161,7 +1159,7 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runCPUFwdInference(T
         if(activ_mode > 0)
         {
             activationHostInfer(activ_mode,
-                                inflags.GetValueDouble("activ_gamma"),
+                                static_cast<double>(0.0),
                                 inflags.GetValueDouble("activ_beta"),
                                 inflags.GetValueDouble("activ_alpha"),
                                 out_ref.data,
@@ -1240,7 +1238,7 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runCPUFwdTrain(Tref 
         if(activ_mode > 0)
         {
             activationHostInfer(activ_mode,
-                                inflags.GetValueDouble("activ_gamma"),
+                                static_cast<double>(0.0),
                                 inflags.GetValueDouble("activ_beta"),
                                 inflags.GetValueDouble("activ_alpha"),
                                 out_ref.data,
@@ -1306,7 +1304,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardGPU()
                                   activ_mode,
                                   inflags.GetValueDouble("activ_alpha"),
                                   inflags.GetValueDouble("activ_beta"),
-                                  inflags.GetValueDouble("activ_gamma"));
+                                  static_cast<double>(0.0));
 
     for(int i = 0; i < iters; i++)
     {
@@ -1745,7 +1743,6 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          savedMean.GetTensor(),
                                          savedInvVar.GetTensor(),
                                          activ_mode,
-                                         inflags.GetValueDouble("activ_gamma"),
                                          inflags.GetValueDouble("activ_beta"),
                                          inflags.GetValueDouble("activ_alpha"));
         }
@@ -1762,7 +1759,6 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          empty_tensor,
                                          empty_tensor,
                                          activ_mode,
-                                         inflags.GetValueDouble("activ_gamma"),
                                          inflags.GetValueDouble("activ_beta"),
                                          inflags.GetValueDouble("activ_alpha"));
         }
