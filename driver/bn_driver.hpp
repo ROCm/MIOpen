@@ -162,6 +162,7 @@ private:
     GpumemTensor<TOut> out_bwd;
 
     GpumemTensor<TScaleBias> bnScale;
+    GpumemTensor<TScaleBias> bnBias;
     GpumemTensor<TAcc> dScale;
     GpumemTensor<TAcc> dBias;
     // savedMean declared above as TAcc as well
@@ -250,6 +251,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         out_bwd.AllocOnHost(tensor<TOut>{bn_layout, in_len});
 
         bnScale.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
+        bnBias.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
         dy.AllocOnHost(tensor<TOut>{bn_layout, in_len});
         // -2.0 to 2.0
         dy.InitHostData(dy.GetTensor().desc.GetElementSize(),
@@ -265,6 +267,9 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
             bnScale.GetTensor().desc.GetElementSize(),
             true,
             uniform_signed_initializer<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/));
+        bnBias.InitHostData(bnBias.GetTensor().desc.GetElementSize(),
+                            true,
+                            uniform_signed_initializer<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/));
         // -2.0 to 2.0
         savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(),
                                true,
@@ -599,6 +604,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AllocateBuffersAndCop
 
         status |= bnScale.AllocOnDeviceAndInit(
             q, ctx, GetTensorSize(&bnScale.GetTensor().desc), buffer_check);
+        status |= bnBias.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&bnBias.GetTensor().desc), buffer_check);
         status |=
             dy.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&dy.GetTensor().desc), buffer_check);
 
@@ -1351,6 +1358,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardGPU()
                                                   &savedMean.GetTensor().desc,
                                                   &savedInvVar.GetTensor().desc,
                                                   bnScale.GetDevicePtr(),
+                                                  bnBias.GetDevicePtr(),
                                                   dScale.GetDevicePtr(),
                                                   dBias.GetDevicePtr(),
                                                   epsilon,
@@ -1405,6 +1413,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardGPU()
                                                   &savedMean.GetTensor().desc,
                                                   &savedInvVar.GetTensor().desc,
                                                   bnScale.GetDevicePtr(),
+                                                  bnBias.GetDevicePtr(),
                                                   dScale.GetDevicePtr(),
                                                   dBias.GetDevicePtr(),
                                                   epsilon,
@@ -1730,6 +1739,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          dy.GetTensor(),
                                          out_ref,
                                          bnScale.GetTensor(),
+                                         bnBias.GetTensor(),
                                          dScale_ref,
                                          dBias_ref,
                                          savedMean.GetTensor(),
@@ -1746,6 +1756,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          dy.GetTensor(),
                                          out_ref,
                                          bnScale.GetTensor(),
+                                         bnBias.GetTensor(),
                                          dScale_ref,
                                          dBias_ref,
                                          empty_tensor,

@@ -275,7 +275,9 @@ protected:
             this->GetParam();
         bn_bwd_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
 
-        bn_bwd_test_data.activ_alpha = static_cast<double>(0.1f);
+        bn_bwd_test_data.activ_alpha = bn_bwd_test_data.activ_mode == 10
+                                           ? static_cast<double>(0.1f)
+                                           : static_cast<double>(0.5f);
         bn_bwd_test_data.activ_beta  = static_cast<double>(0.3f);
         bn_bwd_test_data.activ_gamma = static_cast<double>(1.0f);
 
@@ -311,6 +313,7 @@ protected:
                                                     &bn_bwd_test_data.savedMean.desc,
                                                     &bn_bwd_test_data.savedInvVar.desc,
                                                     bn_bwd_test_data.bnScale_dev.get(),
+                                                    bn_bwd_test_data.bnBias_dev.get(),
                                                     bn_bwd_test_data.dScale_dev.get(),
                                                     bn_bwd_test_data.dBias_dev.get(),
                                                     bn_bwd_test_data.epsilon,

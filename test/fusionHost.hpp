@@ -293,6 +293,7 @@ void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
                                   tensor<DyDataType>& dy_input,
                                   tensor<DxDataType>& dx_out,
                                   const tensor<ScaleDataType>& bnScale,
+                                  const tensor<ScaleDataType>& bnBias,
                                   tensor<RefDataType>& dscale,
                                   tensor<RefDataType>& dbias,
                                   const tensor<AccDataType>& savedMean,
@@ -350,8 +351,8 @@ void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
                     { // via mini_batch
                         elemStd = static_cast<double>(x_input(bidx, cidx, row, column)) -
                                   mean; // (x_i - mean)
-                        input_norm(bidx, cidx, row, column) =
-                            static_cast<AccDataType>(elemStd * invVar);
+                        input_norm(bidx, cidx, row, column) = static_cast<AccDataType>(
+                            bnScale(0, cidx, 0, 0) * (elemStd * invVar) + bnBias(0, cidx, 0, 0));
                     }
                 }
             }
