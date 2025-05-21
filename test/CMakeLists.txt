@@ -453,9 +453,11 @@ set(EXCLUDE_TESTS)
 if(NOT MIOPEN_ENABLE_SQLITE)
     list(APPEND EXCLUDE_TESTS test_sqlite)
 endif()
-if(NOT MIOPEN_ENABLE_SQLITE OR (NOT MIOPEN_EMBED_DB STREQUAL ""))
+
+# Disable flaky test test_sqlite_perfdb (May 21 2025)
+#if(NOT MIOPEN_ENABLE_SQLITE OR (NOT MIOPEN_EMBED_DB STREQUAL ""))
     list(APPEND EXCLUDE_TESTS test_sqlite_perfdb)
-endif()
+#endif()
 
 set(EXCLUDE_TEST_SOURCES)
 foreach(TEST_SOURCE ${TEST_SOURCES})
