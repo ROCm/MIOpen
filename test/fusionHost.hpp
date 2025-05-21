@@ -290,18 +290,81 @@ template <typename XDataType,
           typename AccDataType,
           typename RefDataType>
 void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
-                                  const tensor<DyDataType>& dy_input,
+                                  tensor<DyDataType>& dy_input,
                                   tensor<DxDataType>& dx_out,
                                   const tensor<ScaleDataType>& bnScale,
                                   tensor<RefDataType>& dscale,
                                   tensor<RefDataType>& dbias,
                                   const tensor<AccDataType>& savedMean,
-                                  const tensor<AccDataType>& savedInvVar)
+                                  const tensor<AccDataType>& savedInvVar,
+                                  miopenActivationMode_t activ_mode,
+                                  double activ_gamma,
+                                  double activ_beta,
+                                  double activ_alpha)
 {
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
     auto nhw                                   = double(height * width * n_batch);
     int in_cstride                             = height * width;
+
+    if(activ_mode > 0)
+    {
+        tensor<AccDataType> input_norm =
+            tensor<AccDataType>{x_input.desc.GetLayout_t(), x_input.desc.GetLengths()};
+        par_for(channels, 1, [&](int cidx) {
+            double mean           = 0.0;
+            double invVar         = 0.0;
+            double elemStd        = 0.;
+            double mean_accum     = 0.0;
+            double variance_accum = 0.0;
+            if(!savedMean.data.empty())
+            {
+                mean   = static_cast<double>(savedMean(0, cidx, 0, 0));   // HxW elements
+                invVar = static_cast<double>(savedInvVar(0, cidx, 0, 0)); // HxW elements
+            }
+            else
+            {
+                for(int row = 0; row < height; row++)
+                { // via rows
+                    for(int column = 0; column < width; column++)
+                    { // via columns
+                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        { // via mini_batch
+                            auto inval = static_cast<double>(x_input(bidx, cidx, row, column));
+                            mean_accum += inval;
+                            variance_accum += inval * inval;
+                        }
+                    }
+                }
+                mean_accum /= nhw;
+                variance_accum /= nhw;
+                variance_accum += (-mean_accum * mean_accum);
+                mean   = mean_accum;
+                invVar = 1.0 / sqrt(variance_accum);
+            }
+            for(int row = 0; row < height; row++)
+            { // via rows
+                for(int column = 0; column < width; column++)
+                { // via columns
+                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    { // via mini_batch
+                        elemStd = static_cast<double>(x_input(bidx, cidx, row, column)) -
+                                  mean; // (x_i - mean)
+                        input_norm(bidx, cidx, row, column) =
+                            static_cast<AccDataType>(elemStd * invVar);
+                    }
+                }
+            }
+        });
+
+        activationHostBnormBwd(activ_mode,
+                               activ_gamma,
+                               activ_beta,
+                               activ_alpha,
+                               dy_input.data,
+                               input_norm.data,
+                               dy_input.data);
+    }
 
     par_for(channels, 1, [&](int cidx) {
         double elemStd = 0.;

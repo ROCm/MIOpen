@@ -119,8 +119,13 @@ struct BNInferTest : public ::testing::TestWithParam<std::tuple<TestCase,
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, bn_mode, api_type, activ_mode) = this->GetParam();
+        std::tie(bn_config, tensor_layout, bn_mode, api_type, bn_infer_test_data.activ_mode) =
+            this->GetParam();
         bn_infer_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
+
+        bn_infer_test_data.activ_alpha = static_cast<double>(0.1f);
+        bn_infer_test_data.activ_beta  = static_cast<double>(0.3f);
+        bn_infer_test_data.activ_gamma = static_cast<double>(1.0f);
 
         auto&& handle = get_handle();
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
@@ -129,11 +134,14 @@ protected:
             GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
         miopenStatus_t res = miopenStatusUnknownError;
-        if(activ_mode > 0)
+        if(bn_infer_test_data.activ_mode > 0)
         {
             miopenCreateActivationDescriptor(&activ_desc);
-            miopenSetActivationDescriptor(
-                activ_desc, activ_mode, activ_alpha, activ_beta, activ_gamma);
+            miopenSetActivationDescriptor(activ_desc,
+                                          bn_infer_test_data.activ_mode,
+                                          bn_infer_test_data.activ_alpha,
+                                          bn_infer_test_data.activ_beta,
+                                          bn_infer_test_data.activ_gamma);
             res =
                 miopenBatchNormForwardInferenceActivation(&handle,
                                                           bn_mode,
@@ -220,10 +228,10 @@ protected:
         bn_infer_test_data.output.data = handle.Read<YDataType>(
             bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
         test::ComputeCPUBNInference(bn_infer_test_data);
-        activationHostInfer(activ_mode,
-                            activ_gamma,
-                            activ_beta,
-                            activ_alpha,
+        activationHostInfer(bn_infer_test_data.activ_mode,
+                            bn_infer_test_data.activ_gamma,
+                            bn_infer_test_data.activ_beta,
+                            bn_infer_test_data.activ_alpha,
                             bn_infer_test_data.out_ref.data,
                             bn_infer_test_data.out_ref.data);
         // 4e-3 is tolerance used by CK kernel.
@@ -243,11 +251,7 @@ protected:
     miopenTensorLayout_t tensor_layout;
     miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
-    miopenActivationMode_t activ_mode;
     miopenActivationDescriptor_t activ_desc;
-    const double activ_alpha = static_cast<double>(0.1f);
-    const double activ_beta  = static_cast<double>(0.3f);
-    const double activ_gamma = static_cast<double>(1.0f);
 };
 
 template <typename XDataType,
@@ -267,8 +271,13 @@ struct BNBwdTest : public ::testing::TestWithParam<std::tuple<TestCase,
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, bn_mode, api_type, activ_mode) = this->GetParam();
+        std::tie(bn_config, tensor_layout, bn_mode, api_type, bn_bwd_test_data.activ_mode) =
+            this->GetParam();
         bn_bwd_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
+
+        bn_bwd_test_data.activ_alpha = static_cast<double>(0.1f);
+        bn_bwd_test_data.activ_beta  = static_cast<double>(0.3f);
+        bn_bwd_test_data.activ_gamma = static_cast<double>(1.0f);
 
         auto&& handle = get_handle();
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
@@ -277,11 +286,14 @@ protected:
             GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
         miopenStatus_t res = miopenStatusUnknownError;
-        if(activ_mode > 0)
+        if(bn_bwd_test_data.activ_mode > 0)
         {
             miopenCreateActivationDescriptor(&activ_desc);
-            miopenSetActivationDescriptor(
-                activ_desc, activ_mode, activ_alpha, activ_beta, activ_gamma);
+            miopenSetActivationDescriptor(activ_desc,
+                                          bn_bwd_test_data.activ_mode,
+                                          bn_bwd_test_data.activ_alpha,
+                                          bn_bwd_test_data.activ_beta,
+                                          bn_bwd_test_data.activ_gamma);
             res = miopenBatchNormBackwardActivation(&handle,
                                                     bn_mode,
                                                     &bn_bwd_test_data.alphaDataDiff,
@@ -384,71 +396,6 @@ protected:
         bn_bwd_test_data.dBias.data = handle.Read<DscaleDbiasDataType>(
             bn_bwd_test_data.dBias_dev, bn_bwd_test_data.dBias.data.size());
 
-        tensor<AccDataType> input_norm = tensor<AccDataType>{bn_bwd_test_data.tensor_layout,
-                                                             bn_bwd_test_data.bn_config.GetInput()};
-        int height, width, n_batch, channels;
-        std::tie(n_batch, channels, height, width) =
-            miopen::tien<4>(bn_bwd_test_data.input.desc.GetLengths());
-        auto nhw = double(height * width * n_batch);
-        par_for(channels, 1, [&](int cidx) {
-            double mean           = 0.0;
-            double invVar         = 0.0;
-            double elemStd        = 0.;
-            double mean_accum     = 0.0;
-            double variance_accum = 0.0;
-            if(!bn_bwd_test_data.savedMean.data.empty())
-            {
-                mean =
-                    static_cast<double>(bn_bwd_test_data.savedMean(0, cidx, 0, 0)); // HxW elements
-                invVar = static_cast<double>(
-                    bn_bwd_test_data.savedInvVar(0, cidx, 0, 0)); // HxW elements
-            }
-            else
-            {
-                for(int row = 0; row < height; row++)
-                { // via rows
-                    for(int column = 0; column < width; column++)
-                    { // via columns
-                        for(int bidx = 0; bidx < n_batch; bidx++)
-                        { // via mini_batch
-                            auto inval = static_cast<double>(
-                                bn_bwd_test_data.input(bidx, cidx, row, column));
-                            mean_accum += inval;
-                            variance_accum += inval * inval;
-                        }
-                    }
-                }
-                mean_accum /= nhw;
-                variance_accum /= nhw;
-                variance_accum += (-mean_accum * mean_accum);
-
-                mean   = mean_accum;
-                invVar = 1.0 / sqrt(variance_accum);
-            }
-            for(int row = 0; row < height; row++)
-            { // via rows
-                for(int column = 0; column < width; column++)
-                { // via columns
-                    for(int bidx = 0; bidx < n_batch; bidx++)
-                    { // via mini_batch
-                        elemStd =
-                            static_cast<double>(bn_bwd_test_data.input(bidx, cidx, row, column)) -
-                            mean; // (x_i - mean)
-                        input_norm(bidx, cidx, row, column) =
-                            static_cast<AccDataType>(elemStd * invVar);
-                    }
-                }
-            }
-        });
-
-        activationHostBnormBwd(activ_mode,
-                               activ_gamma,
-                               activ_beta,
-                               activ_alpha,
-                               bn_bwd_test_data.dy.data,
-                               input_norm.data,
-                               bn_bwd_test_data.dy.data);
-
         test::ComputeCPUBNBwd(bn_bwd_test_data);
 
         test::CompareTensor<DxDataType, AccDataType>(
@@ -473,12 +420,8 @@ protected:
     miopenTensorLayout_t tensor_layout;
     miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
-    miopenActivationMode_t activ_mode;
     miopenActivationDescriptor_t activ_desc;
-    const double activ_alpha = static_cast<double>(0.1f);
-    const double activ_beta  = static_cast<double>(0.3f);
-    const double activ_gamma = static_cast<double>(2.0f);
-    double bwd_tol           = 4e-3;
+    double bwd_tol = 4e-3;
 };
 
 template <typename XDataType,
@@ -497,8 +440,13 @@ struct BNFwdTrainTest : public ::testing::TestWithParam<std::tuple<TestCase,
 protected:
     void SetUp() override
     {
-        std::tie(bn_config, tensor_layout, bn_mode, api_type, activ_mode) = this->GetParam();
+        std::tie(bn_config, tensor_layout, bn_mode, api_type, bn_fwd_train_test_data.activ_mode) =
+            this->GetParam();
         bn_fwd_train_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
+
+        bn_fwd_train_test_data.activ_alpha = static_cast<double>(0.1f);
+        bn_fwd_train_test_data.activ_beta  = static_cast<double>(0.3f);
+        bn_fwd_train_test_data.activ_gamma = static_cast<double>(1.0f);
 
         auto&& handle = get_handle();
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
@@ -507,11 +455,14 @@ protected:
             GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
         }
         miopenStatus_t res = miopenStatusUnknownError;
-        if(activ_mode > 0)
+        if(bn_fwd_train_test_data.activ_mode > 0)
         {
             miopenCreateActivationDescriptor(&activ_desc);
-            miopenSetActivationDescriptor(
-                activ_desc, activ_mode, activ_alpha, activ_beta, activ_gamma);
+            miopenSetActivationDescriptor(activ_desc,
+                                          bn_fwd_train_test_data.activ_mode,
+                                          bn_fwd_train_test_data.activ_alpha,
+                                          bn_fwd_train_test_data.activ_beta,
+                                          bn_fwd_train_test_data.activ_gamma);
             res = miopenBatchNormForwardTrainingActivation(
                 &handle,
                 bn_mode,
@@ -624,10 +575,10 @@ protected:
             handle.Read<RunSaveDataType>(bn_fwd_train_test_data.runVariance_dev,
                                          bn_fwd_train_test_data.runVariance_ref.data.size());
         test::ComputeCPUBNFwdTrain(bn_fwd_train_test_data);
-        activationHostInfer(activ_mode,
-                            activ_gamma,
-                            activ_beta,
-                            activ_alpha,
+        activationHostInfer(bn_fwd_train_test_data.activ_mode,
+                            bn_fwd_train_test_data.activ_gamma,
+                            bn_fwd_train_test_data.activ_beta,
+                            bn_fwd_train_test_data.activ_alpha,
                             bn_fwd_train_test_data.out_ref.data,
                             bn_fwd_train_test_data.out_ref.data);
 
@@ -657,9 +608,5 @@ protected:
     miopenTensorLayout_t tensor_layout;
     miopenBatchNormMode_t bn_mode;
     BNApiType api_type;
-    miopenActivationMode_t activ_mode;
     miopenActivationDescriptor_t activ_desc;
-    const double activ_alpha = static_cast<double>(0.1f);
-    const double activ_beta  = static_cast<double>(0.3f);
-    const double activ_gamma = static_cast<double>(2.0f);
 };

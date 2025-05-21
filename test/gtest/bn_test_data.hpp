@@ -252,12 +252,13 @@ struct BNInferTestData : public BNTestData<XDataType, YDataType, AccDataType, TC
     miopen::Allocator::ManageDataPtr shift_dev;
     miopen::Allocator::ManageDataPtr estMean_dev;
     miopen::Allocator::ManageDataPtr estVariance_dev;
-    double epsilon          = 1.0e-5;
-    float alpha             = static_cast<float>(1.0f);
-    float beta              = static_cast<float>(0);
-    const float activ_alpha = static_cast<double>(0.5f);
-    const float activ_beta  = static_cast<double>(0.5f);
-    const float activ_gamma = static_cast<double>(0.5f);
+    double epsilon = 1.0e-5;
+    float alpha    = static_cast<float>(1.0f);
+    float beta     = static_cast<float>(0);
+    double activ_alpha;
+    double activ_beta;
+    double activ_gamma;
+    miopenActivationMode_t activ_mode;
 
 private:
     void CreateTensors()
@@ -347,6 +348,11 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, AccDataType, TCo
 
     float alphaDataDiff = static_cast<float>(1), betaDataDiff = static_cast<float>(0);
     float alphaParamDiff = static_cast<float>(1), betaParamDiff = static_cast<float>(0);
+
+    double activ_alpha;
+    double activ_beta;
+    double activ_gamma;
+    miopenActivationMode_t activ_mode;
 
 private:
     void CreateTensors()
@@ -449,13 +455,14 @@ struct BNFwdTrainTestData : public BNTestData<XDataType, YDataType, AccDataType,
     miopen::Allocator::ManageDataPtr saveVariance_dev;
     miopen::Allocator::ManageDataPtr runMean_dev;
     miopen::Allocator::ManageDataPtr runVariance_dev;
-    double epsilon          = 1.0e-5;
-    double averageFactor    = 0.1;
-    float alpha             = static_cast<float>(1.0f);
-    float beta              = static_cast<float>(0);
-    const float activ_alpha = static_cast<double>(0.5f);
-    const float activ_beta  = static_cast<double>(0.5f);
-    const float activ_gamma = static_cast<double>(0.5f);
+    double epsilon       = 1.0e-5;
+    double averageFactor = 0.1;
+    float alpha          = static_cast<float>(1.0f);
+    float beta           = static_cast<float>(0);
+    double activ_alpha;
+    double activ_beta;
+    double activ_gamma;
+    miopenActivationMode_t activ_mode;
 
 private:
     void CreateTensors()

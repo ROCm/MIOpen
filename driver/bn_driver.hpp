@@ -1723,16 +1723,6 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
     }
     else if(bn_mode == miopenBNSpatial)
     { // 1xCx1x1
-        if(activ_mode > 0)
-        {
-            activationHostBnormBwd(activ_mode,
-                                   inflags.GetValueDouble("activ_gamma"),
-                                   inflags.GetValueDouble("activ_beta"),
-                                   inflags.GetValueDouble("activ_alpha"),
-                                   dy.GetTensor().data,
-                                   in.GetTensor().data,
-                                   dy.GetTensor().data);
-        }
         if(saveMeanVar)
         {
 
@@ -1743,7 +1733,11 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          dScale_ref,
                                          dBias_ref,
                                          savedMean.GetTensor(),
-                                         savedInvVar.GetTensor());
+                                         savedInvVar.GetTensor(),
+                                         activ_mode,
+                                         inflags.GetValueDouble("activ_gamma"),
+                                         inflags.GetValueDouble("activ_beta"),
+                                         inflags.GetValueDouble("activ_alpha"));
         }
         else
         {
@@ -1755,7 +1749,11 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          dScale_ref,
                                          dBias_ref,
                                          empty_tensor,
-                                         empty_tensor);
+                                         empty_tensor,
+                                         activ_mode,
+                                         inflags.GetValueDouble("activ_gamma"),
+                                         inflags.GetValueDouble("activ_beta"),
+                                         inflags.GetValueDouble("activ_alpha"));
         }
     }
     else
