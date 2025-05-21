@@ -632,9 +632,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemm3DGroupBwdXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver<batchnorm::BnCKFwdInference>(registry, ++id, Primitive::Batchnorm);
-    RegisterWithSolver<batchnorm::BnCKBwdBackward>(registry, ++id, Primitive::Batchnorm);
-    RegisterWithSolver<batchnorm::BnCKFwdTraining>(registry, ++id, Primitive::Batchnorm);
+    ++id; // removed batchnorm::BnCKFwdInference
+    ++id; // removed batchnorm::BnCKBwdBackward
+    ++id; // removed batchnorm::BnCKFwdTraining
     Register(
         registry, ++id, Primitive::Normalization, layernorm::Layernorm2DCKForward{}.SolverDbId());
     Register(
