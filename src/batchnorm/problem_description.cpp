@@ -34,9 +34,21 @@ namespace miopen {
 
 namespace batchnorm {
 
+bool is_fp16(miopenDataType_t type)
+{
+    return type == miopenHalf;
+}
+
+bool is_bfp16(miopenDataType_t type)
+{
+    return type == miopenBFloat16;
+}
+
+bool is_fp32(miopenDataType_t type) { return (type == miopenFloat); }
+
 bool is_fp16_or_bfp16(miopenDataType_t type)
 {
-    return ((type == miopenHalf) || (type == miopenBFloat16));
+    return is_fp16(type) || is_bfp16(type);
 }
 
 bool is_fp32_or_fp64(miopenDataType_t type)
@@ -44,18 +56,25 @@ bool is_fp32_or_fp64(miopenDataType_t type)
     return ((type == miopenFloat) || (type == miopenDouble));
 }
 
-bool is_fp32(miopenDataType_t type) { return (type == miopenFloat); }
-
 bool IsOCLInferTypeValid(const ProblemDescription& bn_problem)
 {
-    // case 1 : mix type
+    // case 1 : both FP16
+    bool both_fp16 = is_fp16(bn_problem.GetXDesc().GetType()) &&
+                     is_fp16(bn_problem.GetYDesc().GetType());
+    // case 2 : both BF16
+    bool both_bfp16 = is_bfp16(bn_problem.GetXDesc().GetType()) &&
+                      is_bfp16(bn_problem.GetYDesc().GetType());
+    // case 3 : both FP32
+    bool both_fp32 = is_fp32(bn_problem.GetXDesc().GetType()) &&
+                     is_fp32(bn_problem.GetYDesc().GetType());
+
+    // OCL supports mixed fp16, bfp16 and pure fp32
     return (
-        (is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
-         is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
-         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())) ||
-        // case 2 : float type
-        (is_fp32(bn_problem.GetXDesc().GetType()) && is_fp32(bn_problem.GetYDesc().GetType()) &&
-         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())));
+        (both_fp16 || both_bfp16 || both_fp32) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) &&
+         is_fp32(bn_problem.GetBnBias().GetType()) &&
+         is_fp32(bn_problem.GetBnSMean().GetType()) &&
+         is_fp32(bn_problem.GetBnSVar().GetType()));
 }
 
 bool IsCKInferTypeValid(const ProblemDescription& bn_problem)
@@ -78,14 +97,23 @@ bool IsCKInferTypeValid(const ProblemDescription& bn_problem)
 
 bool IsOCLFwdTrainTypeValid(const ProblemDescription& bn_problem)
 {
-    // case 1 : mix type
+    // case 1 : both FP16
+    bool both_fp16 = is_fp16(bn_problem.GetXDesc().GetType()) &&
+                     is_fp16(bn_problem.GetYDesc().GetType());
+    // case 2 : both BF16
+    bool both_bfp16 = is_bfp16(bn_problem.GetXDesc().GetType()) &&
+                      is_bfp16(bn_problem.GetYDesc().GetType());
+    // case 3 : both FP32
+    bool both_fp32 = is_fp32(bn_problem.GetXDesc().GetType()) &&
+                     is_fp32(bn_problem.GetYDesc().GetType());
+
+    // OCL supports mixed fp16, bfp16 and pure fp32
     return (
-        (is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
-         is_fp16_or_bfp16(bn_problem.GetYDesc().GetType()) &&
-         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())) ||
-        // case 2 : float type
-        (is_fp32(bn_problem.GetXDesc().GetType()) && is_fp32(bn_problem.GetYDesc().GetType()) &&
-         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType())));
+        (both_fp16 || both_bfp16 || both_fp32) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) &&
+         is_fp32(bn_problem.GetBnBias().GetType()) &&
+         is_fp32(bn_problem.GetBnSMean().GetType()) &&
+         is_fp32(bn_problem.GetBnSVar().GetType()));
 }
 
 bool IsCKFwdTrainTypeValid(const ProblemDescription& bn_problem)
@@ -108,16 +136,27 @@ bool IsCKFwdTrainTypeValid(const ProblemDescription& bn_problem)
 
 bool IsOCLBwdTypeValid(const ProblemDescription& bn_problem)
 {
+    // case 1 : both FP16
+    bool all_fp16 = is_fp16(bn_problem.GetXDesc().GetType()) &&
+                     is_fp16(bn_problem.GetDXDesc().GetType()) &&
+                     is_fp16(bn_problem.GetDYDesc().GetType());
+    // case 2 : both BF16
+    bool all_bfp16 = is_bfp16(bn_problem.GetXDesc().GetType()) &&
+                      is_bfp16(bn_problem.GetDXDesc().GetType()) &&
+                      is_bfp16(bn_problem.GetDYDesc().GetType());
+    // case 3 : both FP32
+    bool all_fp32 = is_fp32(bn_problem.GetXDesc().GetType()) &&
+                     is_fp32(bn_problem.GetDXDesc().GetType()) &&
+                     is_fp32(bn_problem.GetDYDesc().GetType());
+
+
+    // OCL supports mixed fp16, bfp16 and pure fp32
     return (
-        (is_fp16_or_bfp16(bn_problem.GetXDesc().GetType()) &&
-         is_fp16_or_bfp16(bn_problem.GetDXDesc().GetType()) &&
-         is_fp16_or_bfp16(bn_problem.GetDYDesc().GetType()) &&
-         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnSMean().GetType()) &&
-         is_fp32(bn_problem.GetBnSVar().GetType())) ||
-        // case 1 : fp32
-        (is_fp32(bn_problem.GetXDesc().GetType()) && is_fp32(bn_problem.GetDXDesc().GetType()) &&
-         is_fp32(bn_problem.GetBnScale().GetType()) && is_fp32(bn_problem.GetBnBias().GetType()) &&
-         is_fp32(bn_problem.GetBnSMean().GetType()) && is_fp32(bn_problem.GetBnSVar().GetType())));
+        (all_fp16 || all_bfp16 || all_fp32) &&
+         is_fp32(bn_problem.GetBnScale().GetType()) &&
+         is_fp32(bn_problem.GetBnBias().GetType()) &&
+         is_fp32(bn_problem.GetBnSMean().GetType()) &&
+         is_fp32(bn_problem.GetBnSVar().GetType()));
 }
 
 bool IsCKBwdTypeValid(const ProblemDescription& bn_problem)
