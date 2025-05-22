@@ -68,6 +68,7 @@ def parse_args():
     parser.add_argument("--config", type=str, help="Specify the configuration name to use from the config file")
     parser.add_argument("--disable-kernel-cache", action="store_true", help="Disable kernel cache")
     parser.add_argument("--onnx-model-path", type=str, help="Specify the ONNX model path")
+    parser.add_argument("--frugal-model-path", type=str, help="Specify the Frugal model path")
     parser.add_argument("--no-heuristics", dest="no_heuristics", action="store_true", help="Run only the cases without heuristics")
     parser.add_argument("--only-heuristics", dest="only_heuristics", action="store_true", help="Run only cases with AI heuristics enabled.")
     parser.add_argument("--run-id", type=str, dest="run_id", help="Run ID for the test case")
@@ -216,6 +217,7 @@ def main():
         print("  --config <name>: Specify the configuration name to use from the config file (required)")
         print("  --disable-kernel-cache: Disable kernel cache (optional)")
         print("  --onnx-model-path <path>: Specify the ONNX model path (optional)")
+        print("  --frugal-model-path <path>: Specify the Frugal model path (optional)")
         print("  --no-heuristics: Run only the cases without heuristics (optional)")
         print("  --only-heuristics: Run only cases with AI heuristics enabled (optional)")
         print("  --run-id <id>: Run ID for the test case (optional)")
@@ -229,6 +231,14 @@ def main():
     if args.onnx_model_path:
         os.environ["MIOPEN_KTN_MODELS_PATH"] = args.onnx_model_path
         os.environ["MIOPEN_USE_ONNX_KTN"] = "1"
+        if args.frugal_model_path:
+            raise ValueError("Cannot specify both --onnx-model-path and --frugal-model-path")
+    
+    if args.frugal_model_path:
+        os.environ["MIOPEN_KTN_MODELS_PATH"] = args.frugal_model_path
+        os.environ["MIOPEN_USE_ONNX_KTN"] = "0"
+        if args.onnx_model_path:
+            raise ValueError("Cannot specify both --onnx-model-path and --frugal-model-path")
 
     # Fix path to ONNX runtime
     os.environ["LD_LIBRARY_PATH"] = f"{os.environ.get('LD_LIBRARY_PATH', '')}:/opt/onnxruntime/lib:/usr/local/lib"
