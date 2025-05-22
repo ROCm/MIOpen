@@ -8,8 +8,42 @@ import json
 import re
 import time
 import shlex
+import csv
 from pathlib import Path
 from datetime import datetime
+
+class ProgressBar():
+  """ progress bar to track progress
+  inspired from stackoverflow.com/a/13685020/5046433 """
+
+  def __init__(self,
+               end_val,
+               title='Progress',
+               bar_length=100,
+               char_at_end='\n'):
+    self.title = title
+    self.end_val = end_val
+    self.bar_length = bar_length
+    self.char_at_end = char_at_end
+    self.wheel = ['|', '/', '\\', '|', '/', '\\']
+    self.wheel_length = len(self.wheel)
+    self.wheel_count = 0
+
+  def display(self, progress=0):
+    """ display progress bar filled to the ratio of progress:end_val """
+    percent = float(progress) / self.end_val
+    hashes = '#' * int(round(percent * self.bar_length))
+    wheel = self.wheel[self.wheel_count % self.wheel_length]
+    self.wheel_count += 1
+    spaces = ' ' * max(0,(self.bar_length - len(hashes) - 1))
+    sys.stdout.write("\r{0}: [{1}] {2}%".format(self.title, hashes + wheel + spaces,
+                                                int(round(percent * 100))))
+    sys.stdout.flush()
+
+    if progress == self.end_val:
+      if self.char_at_end:
+        sys.stdout.write(self.char_at_end)
+        sys.stdout.flush()
 
 def check_dependencies():
     """Check if required dependencies are installed"""
@@ -34,6 +68,10 @@ def parse_args():
     parser.add_argument("--config", type=str, help="Specify the configuration name to use from the config file")
     parser.add_argument("--disable-kernel-cache", action="store_true", help="Disable kernel cache")
     parser.add_argument("--onnx-model-path", type=str, help="Specify the ONNX model path")
+    parser.add_argument("--no-heuristics", dest="no_heuristics", action="store_true", help="Run only the cases without heuristics")
+    parser.add_argument("--only-heuristics", dest="only_heuristics", action="store_true", help="Run only cases with AI heuristics enabled.")
+    parser.add_argument("--run-id", type=str, dest="run_id", help="Run ID for the test case")
+    parser.add_argument("--log-to-file", dest="log_to_file",action="store_true", help="Log output to individual log files.")
     
     args, unknown_args = parser.parse_known_args()
     
@@ -74,12 +112,18 @@ def extract_kernel_times(log_file, times_file, config):
     
     # Append to CSV
     with open(times_file, 'a') as f:
-        f.write(f"{config}, {algo_num}, {sol_id}, {kernel_name}, {time_value}, {ktn_inference_time}\n")
+        data_row = [config, algo_num, sol_id, kernel_name, time_value, ktn_inference_time]
+        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+        writer.writerow(data_row)
 
-def process_single_config(test_case, index, kernel_times_path, algs, tuning, pid, log_to_file: True):
+def process_single_config(test_case, kernel_times_path, algs, tuning, pid, log_to_file=False):
     """Process a single configuration"""
+
+    # Get the verb from the command.
+    # The command can be in the form of: ./bin/MIOpenDriver convfp16 XXX, where we want to extract the e.g. the confvp16 part.
+    verb = test_case['mi_open_driver_command'].split(" ")[1]
     name = test_case["name"]
-    test_name = f"{name}_{index}"
+    test_name = f"{name}_{verb}"
     
     # Set environment variables from config
     set_env_vars = []
@@ -96,9 +140,8 @@ def process_single_config(test_case, index, kernel_times_path, algs, tuning, pid
             env_vars[key] = value
     
     # Setup log path
-    if log_to_file:
-      log_path_config = f"../logs/individual_logs/{test_name}_{algs}_{tuning}{pid}.log"
-      os.makedirs(os.path.dirname(log_path_config), exist_ok=True)
+    log_path_config = f"../logs/individual_logs/{test_name}_{algs}_{tuning}{pid}.log"
+    os.makedirs(os.path.dirname(log_path_config), exist_ok=True)
     
     # Prepare the MIOpenDriver command
     miopen_driver_path = os.path.abspath(os.path.join(os.getcwd(), "../build/bin/MIOpenDriver"))
@@ -143,11 +186,13 @@ def process_single_config(test_case, index, kernel_times_path, algs, tuning, pid
         
         log_file.write(f"\n=== Execution completed at {datetime.now()} ===\n")
     
-    # Extract kernel times
-    if log_to_file:
-      extract_kernel_times(log_path_config, kernel_times_path, test_name)
+    extract_kernel_times(log_path_config, kernel_times_path, test_name)
+    if not log_to_file:
+      # If the file based logging is not enabled, remove the log file.
+      # By default, we don't stire the log files since there are lot of them.
+      os.remove(log_path_config)
     
-    # Unset environment variables
+    # Unset environment variables specific to the test case
     for var in set_env_vars:
         if var in os.environ:
             del os.environ[var]
@@ -171,6 +216,10 @@ def main():
         print("  --config <name>: Specify the configuration name to use from the config file (required)")
         print("  --disable-kernel-cache: Disable kernel cache (optional)")
         print("  --onnx-model-path <path>: Specify the ONNX model path (optional)")
+        print("  --no-heuristics: Run only the cases without heuristics (optional)")
+        print("  --only-heuristics: Run only cases with AI heuristics enabled (optional)")
+        print("  --run-id <id>: Run ID for the test case (optional)")
+        print("  --log-to-file: Log output to individual log files (optional)")
         print("  --help: Show this help message")
         sys.exit(0)
     
@@ -209,7 +258,7 @@ def main():
         print("Kernel cache is enabled by default")
     
     # Set tuning flags
-    tuning = "_"
+    tuning = ""
     
     # Handle incremental tuning
     if args.incremental_tuning:
@@ -225,7 +274,7 @@ def main():
             print("Error: Kernel cache must be enabled when using --incremental-tuning", file=sys.stderr)
             sys.exit(1)
             
-        tuning = "_incremental-tuning_"
+        tuning = "-incremental_tuning-"
     
     # Handle exhaustive tuning
     if args.exhaustive_tuning:
@@ -242,7 +291,7 @@ def main():
             sys.exit(1)
             
         os.environ["MIOPEN_SYSTEM_DB_PATH"] = os.environ.get("MIOPEN_USER_DB_PATH", "")
-        tuning = "_exhaustive-tuning_"
+        tuning = "-exhaustive_tuning-"
     
     # Set log level
     log_level = args.log_level if args.log_level is not None else 5
@@ -312,36 +361,47 @@ def main():
     pid = os.getpid()
     
     # Create CSV file for kernel times
-    kernel_times_path = f"../logs/kernel_times_{algs}{tuning}{pid}.csv"
+    run_id = ""
+    if args.run_id:
+        run_id = f"{args.run_id}_"
+    kernel_times_path = f"../logs/kernel_times_{run_id}{algs}{tuning}{pid}.csv"
     os.makedirs(os.path.dirname(kernel_times_path), exist_ok=True)
     with open(kernel_times_path, 'w') as f:
         f.write("Configuration, Algo_num, Solution_ID, Solver_name, Elapsed_GPU_time_average_ms, KTN_inference_time_ms\n")
     
+    with open(config_file, 'r') as f:
+        config_data = json.load(f)
+    configs = config_data['test_cases']
+    if args.only_heuristics:
+        configs = [case for case in configs if case.get("heuristics_enabled", False)]
+
+    if args.no_heuristics:
+        configs = [case for case in configs if not case.get("heuristics_enabled", False)]
+
     # Process configurations
     if args.config:
         config_name = args.config
         try:
-            with open(config_file, 'r') as f:
-                config_data = json.load(f)
-                configs = config_data['test_cases']
-                test_cases = [case for case in configs if case['name'] == config_name]
-                if not test_cases:
-                    print(f"Error: Configuration '{config_name}' not found in {config_file}")
-                    exit(1)
-                else:
-                    for i,case in enumerate(test_cases):
-                      print(f"Processing configuration {i + 1}/{len(test_cases)}")
-                      process_single_config(case, i, kernel_times_path, algs, tuning, pid, args)
+            test_cases = [case for case in configs if case['name'] == config_name]
+            if not test_cases:
+                print(f"Error: Configuration '{config_name}' not found in {config_file}")
+                exit(1)
+            else:
+                progressbar = ProgressBar(end_val=len(test_cases), title='Progress', char_at_end='\t')
+                print(f"Running {len(test_cases)} test cases...")
+                for i, case in enumerate(test_cases):
+                    progressbar.display(progress=i+1)
+                    process_single_config(case, kernel_times_path, algs, tuning, pid, args.log_to_file)
         except Exception as e:
             print(f"Error processing configuration {config_name}: {e}")
             
     else:
         # Process all configurations
-        print("Processing all configurations")
-        configs = config_data['test_cases']
+        progressbar = ProgressBar(end_val=len(configs), title='Progress', char_at_end='\t')
+        print(f"Running {len(configs)} test cases...")
         for i, case in enumerate(configs):
-            print(f"Processing configuration {i + 1}/{len(configs)}")
-            process_single_config(case, i, kernel_times_path, algs, tuning, pid, args)
+            progressbar.display(progress=i+1)
+            process_single_config(case, kernel_times_path, algs, tuning, pid, args.log_to_file)
 
 if __name__ == "__main__":
     main()
