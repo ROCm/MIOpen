@@ -257,7 +257,6 @@ struct BNInferTestData : public BNTestData<XDataType, YDataType, AccDataType, TC
     float beta     = static_cast<float>(0);
     double activ_alpha;
     double activ_beta;
-    double activ_gamma;
     miopenActivationMode_t activ_mode;
 
 private:
@@ -325,6 +324,7 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, AccDataType, TCo
     }
 
     tensor<ScaleDataType> bnScale;
+    tensor<ScaleDataType> bnBias;
 
     tensor<MeanVarDataType> savedMean;
     tensor<MeanVarDataType> savedInvVar;
@@ -336,6 +336,7 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, AccDataType, TCo
     tensor<AccDataType> dBias_ref;
 
     miopen::Allocator::ManageDataPtr bnScale_dev;
+    miopen::Allocator::ManageDataPtr bnBias_dev;
     miopen::Allocator::ManageDataPtr savedMean_dev;
     miopen::Allocator::ManageDataPtr savedInvVar_dev;
 
@@ -351,7 +352,6 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, AccDataType, TCo
 
     double activ_alpha;
     double activ_beta;
-    double activ_gamma;
     miopenActivationMode_t activ_mode;
 
 private:
@@ -367,6 +367,9 @@ private:
             BNTestData<XDataType, DyDataType, AccDataType, TConfig>::input.desc,
             BNTestData<XDataType, DyDataType, AccDataType, TConfig>::bn_mode);
         bnScale = tensor<ScaleDataType>{
+            BNTestData<XDataType, DyDataType, AccDataType, TConfig>::tensor_layout,
+            derivedBnDesc.GetLengths()};
+        bnBias = tensor<ScaleDataType>{
             BNTestData<XDataType, DyDataType, AccDataType, TConfig>::tensor_layout,
             derivedBnDesc.GetLengths()};
         savedMean = tensor<MeanVarDataType>{
@@ -393,6 +396,7 @@ private:
     {
         dy.generate(uniform_signed_initializer<DyDataType>(2e-3 /*scale*/, 1000 /*range*/));
         bnScale.generate(uniform_signed_initializer<ScaleDataType>(2e-3 /*scale*/, 1000 /*range*/));
+        bnBias.generate(uniform_signed_initializer<ScaleDataType>(2e-3 /*scale*/, 1000 /*range*/));
         savedMean.generate(
             uniform_signed_initializer<MeanVarDataType>(2e-3 /*scale*/, 1000 /*range*/));
         savedInvVar.generate(
@@ -409,6 +413,7 @@ private:
         auto&& handle = get_handle();
 
         bnScale_dev     = handle.Write(bnScale.data);
+        bnBias_dev      = handle.Write(bnBias.data);
         savedMean_dev   = handle.Write(savedMean.data);
         savedInvVar_dev = handle.Write(savedInvVar.data);
         dy_dev          = handle.Write(dy.data);
@@ -461,7 +466,6 @@ struct BNFwdTrainTestData : public BNTestData<XDataType, YDataType, AccDataType,
     float beta           = static_cast<float>(0);
     double activ_alpha;
     double activ_beta;
-    double activ_gamma;
     miopenActivationMode_t activ_mode;
 
 private:

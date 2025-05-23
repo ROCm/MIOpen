@@ -125,7 +125,6 @@ protected:
 
         bn_infer_test_data.activ_alpha = static_cast<double>(0.1f);
         bn_infer_test_data.activ_beta  = static_cast<double>(0.3f);
-        bn_infer_test_data.activ_gamma = static_cast<double>(1.0f);
 
         auto&& handle = get_handle();
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
@@ -141,7 +140,7 @@ protected:
                                           bn_infer_test_data.activ_mode,
                                           bn_infer_test_data.activ_alpha,
                                           bn_infer_test_data.activ_beta,
-                                          bn_infer_test_data.activ_gamma);
+                                          static_cast<double>(0.0));
             res =
                 miopenBatchNormForwardInferenceActivation(&handle,
                                                           bn_mode,
@@ -229,7 +228,7 @@ protected:
             bn_infer_test_data.out_dev, bn_infer_test_data.output.data.size());
         test::ComputeCPUBNInference(bn_infer_test_data);
         activationHostInfer(bn_infer_test_data.activ_mode,
-                            bn_infer_test_data.activ_gamma,
+                            static_cast<double>(0.0),
                             bn_infer_test_data.activ_beta,
                             bn_infer_test_data.activ_alpha,
                             bn_infer_test_data.out_ref.data,
@@ -275,9 +274,10 @@ protected:
             this->GetParam();
         bn_bwd_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
 
-        bn_bwd_test_data.activ_alpha = static_cast<double>(0.1f);
+        bn_bwd_test_data.activ_alpha = bn_bwd_test_data.activ_mode == miopenActivationCLAMP
+                                           ? static_cast<double>(0.1f)
+                                           : static_cast<double>(0.5f);
         bn_bwd_test_data.activ_beta  = static_cast<double>(0.3f);
-        bn_bwd_test_data.activ_gamma = static_cast<double>(1.0f);
 
         auto&& handle = get_handle();
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
@@ -293,7 +293,7 @@ protected:
                                           bn_bwd_test_data.activ_mode,
                                           bn_bwd_test_data.activ_alpha,
                                           bn_bwd_test_data.activ_beta,
-                                          bn_bwd_test_data.activ_gamma);
+                                          static_cast<double>(0.0));
             res = miopenBatchNormBackwardActivation(&handle,
                                                     bn_mode,
                                                     &bn_bwd_test_data.alphaDataDiff,
@@ -311,6 +311,7 @@ protected:
                                                     &bn_bwd_test_data.savedMean.desc,
                                                     &bn_bwd_test_data.savedInvVar.desc,
                                                     bn_bwd_test_data.bnScale_dev.get(),
+                                                    bn_bwd_test_data.bnBias_dev.get(),
                                                     bn_bwd_test_data.dScale_dev.get(),
                                                     bn_bwd_test_data.dBias_dev.get(),
                                                     bn_bwd_test_data.epsilon,
@@ -446,7 +447,6 @@ protected:
 
         bn_fwd_train_test_data.activ_alpha = static_cast<double>(0.1f);
         bn_fwd_train_test_data.activ_beta  = static_cast<double>(0.3f);
-        bn_fwd_train_test_data.activ_gamma = static_cast<double>(1.0f);
 
         auto&& handle = get_handle();
         if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
@@ -462,7 +462,7 @@ protected:
                                           bn_fwd_train_test_data.activ_mode,
                                           bn_fwd_train_test_data.activ_alpha,
                                           bn_fwd_train_test_data.activ_beta,
-                                          bn_fwd_train_test_data.activ_gamma);
+                                          static_cast<double>(0.0));
             res = miopenBatchNormForwardTrainingActivation(
                 &handle,
                 bn_mode,
@@ -576,7 +576,7 @@ protected:
                                          bn_fwd_train_test_data.runVariance_ref.data.size());
         test::ComputeCPUBNFwdTrain(bn_fwd_train_test_data);
         activationHostInfer(bn_fwd_train_test_data.activ_mode,
-                            bn_fwd_train_test_data.activ_gamma,
+                            static_cast<double>(0.0),
                             bn_fwd_train_test_data.activ_beta,
                             bn_fwd_train_test_data.activ_alpha,
                             bn_fwd_train_test_data.out_ref.data,

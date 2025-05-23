@@ -397,7 +397,6 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
 
             float alpha_activ = problem.GetActivationDesc().GetAlpha();
             float beta_activ  = problem.GetActivationDesc().GetBeta();
-            float gamma_activ = problem.GetActivationDesc().GetGamma();
             float ctime       = 0.;
             visit_float(dtype, [&](auto as_float) {
                 if(variant != 2)
@@ -409,14 +408,14 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                params.dy,
                                params.dx,
                                params.bnScale,
+                               params.bnBias,
                                params.resultBnScaleDiff,
                                params.resultBnBiasDiff,
                                params.savedMean,
                                params.savedInvVariance,
                                as_float(inhw),
                                alpha_activ,
-                               beta_activ,
-                               gamma_activ);
+                               beta_activ);
                     }
                     else
                     {
@@ -424,13 +423,13 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                params.dy,
                                params.dx,
                                params.bnScale,
+                               params.bnBias,
                                params.resultBnScaleDiff,
                                params.resultBnBiasDiff,
                                params.epsilon,
                                inhw,
                                alpha_activ,
-                               beta_activ,
-                               gamma_activ);
+                               beta_activ);
                     }
                 }
                 else
@@ -440,11 +439,12 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                         handle_.Run(kernels[0])(params.x,
                                                 params.dy,
                                                 params.dx,
+                                                params.bnScale,
+                                                params.bnBias,
                                                 params.savedMean,
                                                 params.savedInvVariance,
                                                 alpha_activ,
-                                                beta_activ,
-                                                gamma_activ);
+                                                beta_activ);
                         profileSequence(handle_, 0, &ctime);
 
                         handle_.Run(kernels[1])(
@@ -455,14 +455,14 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                                 params.dy,
                                                 params.dx,
                                                 params.bnScale,
+                                                params.bnBias,
                                                 params.resultBnScaleDiff,
                                                 params.resultBnBiasDiff,
                                                 params.savedMean,
                                                 params.savedInvVariance,
                                                 as_float(inhw),
                                                 alpha_activ,
-                                                beta_activ,
-                                                gamma_activ);
+                                                beta_activ);
                         profileSequence(handle_, 2, &ctime);
                     }
                     else
@@ -477,9 +477,10 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                         handle_.Run(kernels[2])(params.x,
                                                 params.dy,
                                                 params.dx, // dscale dbias
+                                                params.bnScale,
+                                                params.bnBias,
                                                 alpha_activ,
-                                                beta_activ,
-                                                gamma_activ);
+                                                beta_activ);
                         profileSequence(handle_, 1, &ctime);
 
                         handle_.Run(kernels[3])(params.dx,
@@ -491,12 +492,12 @@ ConvSolution BnBwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                                 params.dy,
                                                 params.dx,
                                                 params.bnScale,
+                                                params.bnBias,
                                                 params.resultBnScaleDiff,
                                                 params.resultBnBiasDiff,
                                                 as_float(inhw),
                                                 alpha_activ,
-                                                beta_activ,
-                                                gamma_activ);
+                                                beta_activ);
                         profileSequence(handle_, 2, &ctime);
                     }
                 }

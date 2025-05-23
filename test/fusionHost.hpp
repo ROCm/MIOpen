@@ -293,15 +293,16 @@ void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
                                   tensor<DyDataType>& dy_input,
                                   tensor<DxDataType>& dx_out,
                                   const tensor<ScaleDataType>& bnScale,
+                                  const tensor<ScaleDataType>& bnBias,
                                   tensor<RefDataType>& dscale,
                                   tensor<RefDataType>& dbias,
                                   const tensor<AccDataType>& savedMean,
                                   const tensor<AccDataType>& savedInvVar,
                                   miopenActivationMode_t activ_mode,
-                                  double activ_gamma,
                                   double activ_beta,
                                   double activ_alpha)
 {
+    double activ_gamma = 0.;
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
     auto nhw                                   = double(height * width * n_batch);
@@ -350,8 +351,8 @@ void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
                     { // via mini_batch
                         elemStd = static_cast<double>(x_input(bidx, cidx, row, column)) -
                                   mean; // (x_i - mean)
-                        input_norm(bidx, cidx, row, column) =
-                            static_cast<AccDataType>(elemStd * invVar);
+                        input_norm(bidx, cidx, row, column) = static_cast<AccDataType>(
+                            bnScale(0, cidx, 0, 0) * (elemStd * invVar) + bnBias(0, cidx, 0, 0));
                     }
                 }
             }

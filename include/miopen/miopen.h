@@ -3206,6 +3206,7 @@ miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
  * , shifting, saved variance and
  * mean (input)
  * @param bnScale                   Batch norm scaling, gamma, tensor (input)
+ * @param bnBias                    Batch norm bias (input)
  * @param resultBnScaleDiff         Tensor for dscale (output)
  * @param resultBnBiasDiff          Tensor for dbias (output)
  * @param epsilon                   Value to stabilize inverse variance calculation (input)
@@ -3232,6 +3233,7 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                                   const miopenTensorDescriptor_t savedMeanDesc,
                                   const miopenTensorDescriptor_t savedVarianceDesc,
                                   const void* bnScale,
+                                  const void* bnBias,
                                   void* resultBnScaleDiff,
                                   void* resultBnBiasDiff,
                                   double epsilon,

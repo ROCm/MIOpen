@@ -12,40 +12,43 @@
 #if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
 #define ACTIVATION_SET() \
     (void)_alpha;        \
-    (void)_beta;         \
-    (void)_gamma;
+    (void)_beta;
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
 #define ACTIVATION_SET() \
     (void)_alpha;        \
-    (void)_beta;         \
-    (void)_gamma;
+    (void)_beta;
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLIPPED_RELU
-#define ACTIVATION_SET() \
-    (void)_beta;         \
-    (void)_gamma;
+#define ACTIVATION_SET() (void)_beta;
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLAMP
-#define ACTIVATION_SET() (void)_gamma;
+#define ACTIVATION_SET()
 #endif
 
 #if MIOPEN_NRN_OP_ID == MIOPEN_NEURON_PASTHRU
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) out = tmp;
-#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) out = dy;
+#define ACTIVATION_OP_BWD(out, xnorm, scale, bias, dy, _FLOAT_PREC_TYPE) out = dy;
 
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_RELU
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) out = max((_FLOAT_PREC_TYPE)0., tmp);
-#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) out = (x > 0) ? dy : (_FLOAT_PREC_TYPE)0.;
+#define ACTIVATION_OP_BWD(out, xnorm, scale, bias, dy, _FLOAT_PREC_TYPE)                   \
+    _FLOAT_PREC_TYPE macro_tmp = (_FLOAT_PREC_TYPE)scale * xnorm + (_FLOAT_PREC_TYPE)bias; \
+    out                        = ((macro_tmp) > 0) ? dy : (_FLOAT_PREC_TYPE)0.;
 
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLIPPED_RELU
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
     out = max((_FLOAT_PREC_TYPE)0., min((_FLOAT_PREC_TYPE)_alpha, tmp));
-#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE) \
-    out = (x > 0 && x <= (_FLOAT_PREC_TYPE)_alpha) ? dy : (_FLOAT_PREC_TYPE)0.f;
+#define ACTIVATION_OP_BWD(out, xnorm, scale, bias, dy, _FLOAT_PREC_TYPE)                   \
+    _FLOAT_PREC_TYPE macro_tmp = (_FLOAT_PREC_TYPE)scale * xnorm + (_FLOAT_PREC_TYPE)bias; \
+    out = (macro_tmp > (_FLOAT_PREC_TYPE)0. && macro_tmp <= (_FLOAT_PREC_TYPE)_alpha)      \
+              ? dy                                                                         \
+              : (_FLOAT_PREC_TYPE)0.f;
 
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLAMP
 #define ACTIVATION_OP(out, tmp, _FLOAT_PREC_TYPE) \
     out = max((_FLOAT_PREC_TYPE)_alpha, min((_FLOAT_PREC_TYPE)_beta, tmp));
-#define ACTIVATION_OP_BWD(out, x, dy, _FLOAT_PREC_TYPE)                       \
-    out = (x > (_FLOAT_PREC_TYPE)_alpha && x <= (_FLOAT_PREC_TYPE)_beta) ? dy \
-                                                                         : (_FLOAT_PREC_TYPE)0.f;
+#define ACTIVATION_OP_BWD(out, xnorm, scale, bias, dy, _FLOAT_PREC_TYPE)                   \
+    _FLOAT_PREC_TYPE macro_tmp = (_FLOAT_PREC_TYPE)scale * xnorm + (_FLOAT_PREC_TYPE)bias; \
+    out = (macro_tmp > (_FLOAT_PREC_TYPE)_alpha && macro_tmp <= (_FLOAT_PREC_TYPE)_beta)   \
+              ? dy                                                                         \
+              : (_FLOAT_PREC_TYPE)0.f;
 
 #endif
