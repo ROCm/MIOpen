@@ -321,10 +321,10 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
         }
         if (activDesc != nullptr && miopen::deref(activDesc).GetMode() != miopenActivationPASTHRU)
 	{
-            ss << " -activMode " << miopen::deref(activDesc).GetMode()
-	    << " -activAlpha " << miopen::deref(activDesc).GetAlpha()
-	    << " -activBeta " << miopen::deref(activDesc).GetBeta()
-	    << " -activGamma " << miopen::deref(activDesc).GetGamma();
+            ss << " -f " << miopen::deref(activDesc).GetMode()
+	    << " -x " << miopen::deref(activDesc).GetAlpha()
+	    << " -y " << miopen::deref(activDesc).GetBeta()
+	    << " -z " << miopen::deref(activDesc).GetGamma();
 	}
             ss << " -m " << bn_mode; // clang-format on
     if(print_for_bn_driver)
