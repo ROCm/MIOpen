@@ -289,6 +289,7 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
                                      const void* resultSaveMean,
                                      const void* resultSaveInvVariance,
                                      const BatchNormDirection_t& dir,
+				     const miopenActivationDescriptor_t activDesc,
                                      bool print_for_bn_driver)
 {
     int size = {0};
@@ -318,6 +319,13 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
             ss << " -H " << miopen::deref(xDesc).GetLengths()[2]
             << " -W " << miopen::deref(xDesc).GetLengths()[3];
         }
+        if (activDesc != nullptr && miopen::deref(activDesc).GetMode() != miopenActivationPASTHRU)
+	{
+            ss << " -activMode " << miopen::deref(activDesc).GetMode()
+	    << " -activAlpha " << miopen::deref(activDesc).GetAlpha()
+	    << " -activBeta " << miopen::deref(activDesc).GetBeta()
+	    << " -activGamma " << miopen::deref(activDesc).GetGamma();
+	}
             ss << " -m " << bn_mode; // clang-format on
     if(print_for_bn_driver)
     {
