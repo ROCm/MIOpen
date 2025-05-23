@@ -289,7 +289,7 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
                                      const void* resultSaveMean,
                                      const void* resultSaveInvVariance,
                                      const BatchNormDirection_t& dir,
-				     const miopenActivationDescriptor_t activDesc,
+                                     const miopenActivationDescriptor_t activDesc,
                                      bool print_for_bn_driver)
 {
     int size = {0};

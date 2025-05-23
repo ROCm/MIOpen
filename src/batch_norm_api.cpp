@@ -61,7 +61,7 @@ void LogCmdBNorm(const miopenTensorDescriptor_t xDesc,
                  const void* resultSaveMean,
                  const void* resultSaveInvVariance,
                  const BatchNormDirection_t dir,
-		 const miopenActivationDescriptor_t activDesc)
+                 const miopenActivationDescriptor_t activDesc)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -76,7 +76,7 @@ void LogCmdBNorm(const miopenTensorDescriptor_t xDesc,
                                                           resultSaveMean,
                                                           resultSaveInvVariance,
                                                           dir,
-							  activDesc);
+                                                          activDesc);
         MIOPEN_LOG_DRIVER_CMD(str);
     }
 }
@@ -328,7 +328,7 @@ miopenBatchNormForwardInferenceActivation(miopenHandle_t handle,
                         estimatedMean,
                         estimatedVariance,
                         epsilon,
-			activDesc);
+                        activDesc);
 
     miopen::debug::LogCmdBNorm(xDesc,
                                yDesc,
@@ -341,7 +341,7 @@ miopenBatchNormForwardInferenceActivation(miopenHandle_t handle,
                                estMeanDesc,
                                estimatedVariance,
                                miopen::debug::BatchNormDirection_t::ForwardInference,
-			       activDesc);
+                               activDesc);
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
     // In case of NxCxDxHxW
@@ -488,7 +488,7 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
                         epsilon,
                         resultSaveMean,
                         resultSaveInvVariance,
-			activDesc);
+                        activDesc);
 
     miopen::debug::LogCmdBNorm(xDesc,
                                yDesc,
@@ -501,7 +501,7 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
                                resultSaveMean,
                                resultSaveInvVariance,
                                miopen::debug::BatchNormDirection_t::ForwardTraining,
-			       activDesc);
+                               activDesc);
 
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
@@ -613,7 +613,7 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                         epsilon,
                         savedMean,
                         savedInvVariance,
-			activDesc);
+                        activDesc);
 
     miopen::debug::LogCmdBNorm(xDesc,
                                dyDesc,
@@ -626,7 +626,7 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                                savedMean,
                                savedInvVariance,
                                miopen::debug::BatchNormDirection_t::Backward,
-			       activDesc);
+                               activDesc);
 
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
