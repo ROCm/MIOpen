@@ -181,6 +181,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         ss << "x" << useSaved;
     }
     ss << "x" << GetModeStr();
+    ss << "x" << activDesc.GetMode();
 
     return NetworkConfig{ss.str()};
 }

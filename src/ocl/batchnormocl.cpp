@@ -317,6 +317,7 @@ void BatchNormBackward(const Handle& handle,
                        const TensorDescriptor& savedMeanDesc,
                        const TensorDescriptor& savedVarianceDesc,
                        ConstData_t bnScale,
+                       ConstData_t bnBias,
                        Data_t resultBnScaleDiff,
                        Data_t resultBnBiasDiff,
                        double epsilon,
@@ -399,6 +400,7 @@ void BatchNormBackward(const Handle& handle,
         tmp.dy                = dy;
         tmp.dx                = dx;
         tmp.bnScale           = bnScale;
+        tmp.bnBias            = bnBias;
         tmp.resultBnScaleDiff = resultBnScaleDiff;
         tmp.resultBnBiasDiff  = resultBnBiasDiff;
         tmp.epsilon           = epsilon;
