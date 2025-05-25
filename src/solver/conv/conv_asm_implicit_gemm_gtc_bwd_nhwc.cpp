@@ -862,6 +862,13 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
         return false;
 #endif // WORKAROUND_UNTRUSTED_PERF_PARAMETR
 
+     // limitation for loading filter using multielement instructions
+    int tb_c1     = tensor_b_thread_lengths[3];
+    int data_byte = miopen::GetTypeSize(problem.GetInDataType());
+
+    int vector_d1 = gcd(tb_c1, 4 * (4 / data_byte));
+    if((c / group) % vector_d1 != 0)
+        return false;
 
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
