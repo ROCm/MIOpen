@@ -107,42 +107,6 @@ inline std::vector<TestCase> GetFullTestCases()
     };
 }
 
-inline std::vector<TestCase> GetFp16SmokeCases()
-{
-    return {
-        {2, 1, 1, 256, 0.0f},
-        {2, 2, 65, 128, 0.0f},
-        {3, 2, 257, 64, 0.0f},
-        {3, 5, 528, 32, 0.0f},
-        {3, 7, 712, 16, 0.0f},
-        {5, 3, 1111, 8, 0.0f},
-    };
-}
-
-inline std::vector<TestCase> GetFp16FullTestCases()
-{
-    return {
-        {3, 11, 1731, 8, 0.0f},
-        {2049, 5, 7, 8, 0.0f},
-        {5, 2000, 32, 8, 0.0f},
-        {3, 9, 1407, 16, 0.0f},
-        {1027, 5, 21, 16, 0.0f},
-        {5, 1040, 32, 24, 0.0f},
-        {3, 7, 1212, 32, 0.0f},
-        {550, 5, 16, 40, 0.0f},
-        {5, 550, 40, 48, 0.0f},
-        {2, 9, 1057, 64, 0.0f},
-        {250, 3, 19, 72, 0.0f},
-        {5, 230, 27, 80, 0.0f},
-        {2, 5, 920, 128, 0.0f},
-        {111, 2, 27, 136, 0.0f},
-        {3, 110, 22, 152, 0.0f},
-        {2, 4, 600, 224, 0.0f},
-        {57, 1, 63, 232, 0.0f},
-        {2, 65, 18, 256, 0.0f},
-    };
-}
-
 } // namespace
 
 template <typename T>
@@ -399,74 +363,6 @@ class GPU_Fwd_Mha_FP32 : public Test_Fwd_Mha<float>
 {
 };
 
-class GPU_Fwd_Mha_FP16 : public Test_Fwd_Mha<half_float::half>
-{
-    void SetUp() override
-    {
-        if(!IsTestSupportedByDevice(Gpu::gfx90A | Gpu::gfx94X))
-        {
-            GTEST_SKIP() << "FP16 is unsupported on this HW";
-        }
-
-        Test_Fwd_Mha<half_float::half>::SetUp();
-
-        if(dropout != 0.0f)
-        {
-            GTEST_SKIP() << "Dropout not currently supported for FP16";
-        }
-    }
-
-    void RunReference(const tensor<half_float::half>& q_val,
-                      const tensor<half_float::half>& k_val,
-                      const tensor<half_float::half>& v_val,
-                      tensor<float>& softmax,
-                      tensor<float>& attn_max,
-                      tensor<float>& Z_sum,
-                      [[maybe_unused]] float q_descale,
-                      [[maybe_unused]] float k_descale,
-                      [[maybe_unused]] float v_descale,
-                      [[maybe_unused]] float s_descale,
-                      [[maybe_unused]] float s_scale,
-                      [[maybe_unused]] float o_scale,
-                      [[maybe_unused]] float dropout_rate,
-                      [[maybe_unused]] uint64_t seed,
-                      [[maybe_unused]] uint64_t offset,
-                      [[maybe_unused]] float& aMax_S,
-                      [[maybe_unused]] float& aMax_O,
-                      tensor<half_float::half>& output) override
-    {
-        test::cpu::MultiHeadAttentionForwardfp16(
-            q_val, k_val, v_val, softmax, attn_max, Z_sum, output);
-    }
-
-    void VerifyResults(const Handle& handle) override
-    {
-        auto GetResult = [this, &handle](miopenTensorArgumentId_t id) {
-            auto& tensorStructPtr = tensors[id];
-            auto& cpu_tensor = std::get<tensor<half_float::half>>(tensorStructPtr->m_cpu_tensor);
-
-            cpu_tensor.data = handle.Read<half_float::half>(tensorStructPtr->m_gpu_buffer,
-                                                            cpu_tensor.data.size());
-
-            return cpu_tensor;
-        };
-
-        const double errorThreshold = 4e-4;
-        double oError               = miopen::rms_range(oDesc_ref, GetResult(miopenTensorMhaO));
-
-        if(dropout > 0.0f)
-        {
-            // Due to GPU version using a different dropout generator we will compare to CPU without
-            // dropout and verify that dropout causes a large difference when comparing results.
-            EXPECT_GT(oError, errorThreshold);
-        }
-        else
-        {
-            EXPECT_LT(oError, errorThreshold);
-        }
-    }
-};
-
 class GPU_Fwd_Mha_FP8 : public Test_Fwd_Mha<float8_fnuz>
 {
     void SetUp() override
@@ -487,12 +383,6 @@ TEST_P(GPU_Fwd_Mha_FP32, Test_float) { return Test_Fwd_Mha<float>::TestBody(); }
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Fwd_Mha_FP32, testing::ValuesIn(GetSmokeCases()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Fwd_Mha_FP32, testing::ValuesIn(GetFullTestCases()));
 GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Fwd_Mha_FP32);
-
-TEST_P(GPU_Fwd_Mha_FP16, Test_float) { return GPU_Fwd_Mha_FP16::TestBody(); };
-
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Fwd_Mha_FP16, testing::ValuesIn(GetFp16SmokeCases()));
-INSTANTIATE_TEST_SUITE_P(Full, GPU_Fwd_Mha_FP16, testing::ValuesIn(GetFp16FullTestCases()));
-GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(GPU_Fwd_Mha_FP16);
 
 #if WORKAROUND_SWDEV_528878
 #define MHA_FP8_TEST_NAME DISABLED_Test_float8

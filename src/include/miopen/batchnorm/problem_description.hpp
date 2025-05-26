@@ -62,7 +62,7 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
                                                     SQLiteSerializable<ProblemDescription>
 #endif
 {
-    // Forward Training
+    // Forward Training without activation
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
@@ -94,7 +94,41 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
         out_layout = ComputeOutLayout();
     }
 
-    // Forward Inference
+    // Forward Training with activation
+    ProblemDescription(miopenBatchNormMode_t bn_mode_,
+                       const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& yDesc_,
+                       const TensorDescriptor& scaleDesc_,
+                       const TensorDescriptor& biasDesc_,
+                       const TensorDescriptor& sMeanDesc_,
+                       const TensorDescriptor& sVarianceDesc_,
+                       double expAvgFactor_,
+                       double epsilon_,
+                       bool resultsave_,
+                       bool resultrunning_,
+                       size_t min_workgroups_,
+                       const ActivationDescriptor& activDesc_)
+        : direction(Direction::ForwardTraining),
+          bn_mode(bn_mode_),
+          xDesc(xDesc_),
+          yOrDyDesc(yDesc_),
+          scaleDesc(scaleDesc_),
+          biasDesc(biasDesc_),
+          sMeanDesc(sMeanDesc_),
+          sVarianceDesc(sVarianceDesc_),
+          expAvgFactor(expAvgFactor_),
+          epsilon(epsilon_),
+          resultsave(resultsave_),
+          resultrunning(resultrunning_),
+          min_workgroups(min_workgroups_),
+          activDesc(activDesc_)
+    {
+        SetSpatialDims();
+        in_layout  = ComputeInLayout();
+        out_layout = ComputeOutLayout();
+    }
+
+    // Forward Inference without activation
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& yDesc_,
@@ -118,7 +152,33 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
         out_layout = ComputeOutLayout();
     }
 
-    // Backward
+    // Forward Inference with activation
+    ProblemDescription(miopenBatchNormMode_t bn_mode_,
+                       const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& yDesc_,
+                       const TensorDescriptor& scaleDesc_,
+                       const TensorDescriptor& biasDesc_,
+                       const TensorDescriptor& sMeanDesc_,
+                       const TensorDescriptor& sVarianceDesc_,
+                       double epsilon_,
+                       const ActivationDescriptor& activDesc_)
+        : direction(Direction::ForwardInference),
+          bn_mode(bn_mode_),
+          xDesc(xDesc_),
+          yOrDyDesc(yDesc_),
+          scaleDesc(scaleDesc_),
+          biasDesc(biasDesc_),
+          sMeanDesc(sMeanDesc_),
+          sVarianceDesc(sVarianceDesc_),
+          epsilon(epsilon_),
+          activDesc(activDesc_)
+    {
+        SetSpatialDims();
+        in_layout  = ComputeInLayout();
+        out_layout = ComputeOutLayout();
+    }
+
+    // Backward without activation
     ProblemDescription(miopenBatchNormMode_t bn_mode_,
                        const TensorDescriptor& xDesc_,
                        const TensorDescriptor& dyDesc_,
@@ -142,6 +202,39 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
           epsilon(epsilon_),
           useSaved(useSaved_),
           min_workgroups(min_workgroups_)
+    {
+        SetSpatialDims();
+        in_layout  = ComputeInLayout();
+        out_layout = ComputeOutLayout();
+        din_layout = ComputeDinLayout();
+    }
+
+    // Backward with activation
+    ProblemDescription(miopenBatchNormMode_t bn_mode_,
+                       const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& dyDesc_,
+                       const TensorDescriptor& dxDesc_,
+                       const TensorDescriptor& scaleDesc_,
+                       const TensorDescriptor& biasDesc_,
+                       const TensorDescriptor& sMeanDesc_,
+                       const TensorDescriptor& sVarianceDesc_,
+                       double epsilon_,
+                       bool useSaved_,
+                       size_t min_workgroups_,
+                       const ActivationDescriptor& activDesc_)
+        : direction(Direction::Backward),
+          bn_mode(bn_mode_),
+          xDesc(xDesc_),
+          yOrDyDesc(dyDesc_),
+          dxDesc(dxDesc_),
+          scaleDesc(scaleDesc_),
+          biasDesc(biasDesc_),
+          sMeanDesc(sMeanDesc_),
+          sVarianceDesc(sVarianceDesc_),
+          epsilon(epsilon_),
+          useSaved(useSaved_),
+          min_workgroups(min_workgroups_),
+          activDesc(activDesc_)
     {
         SetSpatialDims();
         in_layout  = ComputeInLayout();
@@ -199,6 +292,8 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
         assert(direction == Direction::ForwardTraining);
         return resultrunning;
     }
+
+    const ActivationDescriptor& GetActivationDesc() const { return activDesc; }
 
     std::size_t GetMinWorkgroups() const
     {
@@ -325,6 +420,8 @@ private:
     std::string din_layout     = "NCHW";
     std::size_t spatial_dim    = 2;
     std::size_t min_workgroups = 1;
+
+    ActivationDescriptor activDesc;
 
     std::string ComputeLayout(const TensorDescriptor& td) const { return td.GetLayout_str(); }
     std::string ComputeInLayout() const { return ComputeLayout(xDesc); }
