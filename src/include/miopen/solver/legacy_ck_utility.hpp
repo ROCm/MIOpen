@@ -37,8 +37,8 @@
 #include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
 #include "../composable_kernel/host/solver/include/convolution_problem_descriptor.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LEGACY_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LEGACY_CK_USE_AMD_BUFFER_ADDRESSING)
 
 namespace miopen {
 namespace solver {
@@ -91,11 +91,11 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
 
     // sync LDS
     compiler_flag << " -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM="
-                  << (env::disabled(MIOPEN_DEBUG_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM) ? '0' : '1');
+                  << (env::disabled(MIOPEN_DEBUG_LEGACY_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM) ? '0' : '1');
 
     // buffer addressing
     compiler_flag << " -DCK_USE_AMD_BUFFER_ADDRESSING="
-                  << (env::disabled(MIOPEN_DEBUG_CK_USE_AMD_BUFFER_ADDRESSING) ? '0' : '1');
+                  << (env::disabled(MIOPEN_DEBUG_LEGACY_CK_USE_AMD_BUFFER_ADDRESSING) ? '0' : '1');
 
     return compiler_flag.str();
 }
