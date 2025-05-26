@@ -836,20 +836,6 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     const int ho = problem.GetInHeight();
     const int wo = problem.GetInWidth();
 
-    const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
-    const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
-    const auto y_tilda               = stride_h / gcd_stride_dilation_h;
-    const auto x_tilda               = stride_w / gcd_stride_dilation_w;
-
-    const auto h_tilda = ho + integer_divide_ceil(dilation_h * (y - 1), stride_h);
-    const auto w_tilda = wo + integer_divide_ceil(dilation_w * (x - 1), stride_w);
-
-    const auto h_tilda_left = std::max(0, pad_h - dilation_h * (y_tilda - 1)) / stride_h;
-    const auto w_tilda_left = std::max(0, pad_w - dilation_w * (x_tilda - 1)) / stride_w;
-
-    const auto h_tilda_right = std::min(h_tilda, integer_divide_ceil(pad_h + hi - 1, stride_h) + 1);
-    const auto w_tilda_right = std::min(w_tilda, integer_divide_ceil(pad_w + wi - 1, stride_w) + 1);
-
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
 
