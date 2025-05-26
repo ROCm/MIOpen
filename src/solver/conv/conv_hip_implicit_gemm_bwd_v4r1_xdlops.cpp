@@ -27,10 +27,9 @@
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-#include <cstddef>
+#include <miopen/solver/static_ck_utility.hpp>
 
 /// Disable ConvHipImplicitGemmBwdDataV4R1Xdlops for FP32 by default.
 /// \ref https://github.com/ROCm/MIOpen/issues/1206.
@@ -839,7 +838,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!static_ck_utility::IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!problem.IsDirectionBackwardData())
         return false;

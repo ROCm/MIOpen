@@ -23,14 +23,13 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-
-#include <cstddef>
+#include <miopen/solver/static_ck_utility.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R4)
 
@@ -597,7 +596,7 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!static_ck_utility::IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!problem.IsDirectionForward())
         return false;

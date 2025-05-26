@@ -27,12 +27,9 @@
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
-#include <miopen/handle.hpp>
-#include <miopen/hip_build_utils.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-
-#include <cstddef>
+#include <miopen/solver/static_ck_utility.hpp>
 
 #define WORKAROUND_ISSUE_309 1
 
@@ -655,7 +652,7 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!static_ck_utility::IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!problem.IsDirectionBackwardData())
         return false;

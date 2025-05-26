@@ -574,16 +574,6 @@ static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ct
     return compiler_flag;
 }
 
-static inline bool IsComposableKernelSupportedHardware(const ExecutionContext& c)
-{
-    return (c.GetStream().GetDeviceName() == "gfx803" &&
-            c.GetStream().GetMaxComputeUnits() == 64) ||
-           c.GetStream().GetDeviceName() == "gfx900" || c.GetStream().GetDeviceName() == "gfx906" ||
-           c.GetStream().GetDeviceName() == "gfx908" || c.GetStream().GetDeviceName() == "gfx90a" ||
-           c.GetStream().GetDeviceName() == "gfx942" ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx103");
-}
-
 // greatest common divisor, aka highest common factor
 template <typename T>
 T gcd(T x, T y)

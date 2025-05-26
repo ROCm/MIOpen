@@ -31,6 +31,7 @@
 #include <miopen/conv/solvers.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
+#include <miopen/solver/mlir_utility.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_MLIR_IGEMM_FWD)
 
@@ -174,7 +175,7 @@ bool ConvMlirIgemmFwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!mlir_utility::IsMlirSupportedHardware(ctx))
         return false;
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
