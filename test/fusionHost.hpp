@@ -290,18 +290,82 @@ template <typename XDataType,
           typename AccDataType,
           typename RefDataType>
 void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
-                                  const tensor<DyDataType>& dy_input,
+                                  tensor<DyDataType>& dy_input,
                                   tensor<DxDataType>& dx_out,
                                   const tensor<ScaleDataType>& bnScale,
+                                  const tensor<ScaleDataType>& bnBias,
                                   tensor<RefDataType>& dscale,
                                   tensor<RefDataType>& dbias,
                                   const tensor<AccDataType>& savedMean,
-                                  const tensor<AccDataType>& savedInvVar)
+                                  const tensor<AccDataType>& savedInvVar,
+                                  miopenActivationMode_t activ_mode,
+                                  double activ_beta,
+                                  double activ_alpha)
 {
+    double activ_gamma = 0.;
     int height, width, n_batch, channels;
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(x_input.desc.GetLengths());
     auto nhw                                   = double(height * width * n_batch);
     int in_cstride                             = height * width;
+
+    if(activ_mode > 0)
+    {
+        tensor<AccDataType> input_norm =
+            tensor<AccDataType>{x_input.desc.GetLayout_t(), x_input.desc.GetLengths()};
+        par_for(channels, 1, [&](int cidx) {
+            double mean           = 0.0;
+            double invVar         = 0.0;
+            double elemStd        = 0.;
+            double mean_accum     = 0.0;
+            double variance_accum = 0.0;
+            if(!savedMean.data.empty())
+            {
+                mean   = static_cast<double>(savedMean(0, cidx, 0, 0));   // HxW elements
+                invVar = static_cast<double>(savedInvVar(0, cidx, 0, 0)); // HxW elements
+            }
+            else
+            {
+                for(int row = 0; row < height; row++)
+                { // via rows
+                    for(int column = 0; column < width; column++)
+                    { // via columns
+                        for(int bidx = 0; bidx < n_batch; bidx++)
+                        { // via mini_batch
+                            auto inval = static_cast<double>(x_input(bidx, cidx, row, column));
+                            mean_accum += inval;
+                            variance_accum += inval * inval;
+                        }
+                    }
+                }
+                mean_accum /= nhw;
+                variance_accum /= nhw;
+                variance_accum += (-mean_accum * mean_accum);
+                mean   = mean_accum;
+                invVar = 1.0 / sqrt(variance_accum);
+            }
+            for(int row = 0; row < height; row++)
+            { // via rows
+                for(int column = 0; column < width; column++)
+                { // via columns
+                    for(int bidx = 0; bidx < n_batch; bidx++)
+                    { // via mini_batch
+                        elemStd = static_cast<double>(x_input(bidx, cidx, row, column)) -
+                                  mean; // (x_i - mean)
+                        input_norm(bidx, cidx, row, column) = static_cast<AccDataType>(
+                            bnScale(0, cidx, 0, 0) * (elemStd * invVar) + bnBias(0, cidx, 0, 0));
+                    }
+                }
+            }
+        });
+
+        activationHostBnormBwd(activ_mode,
+                               activ_gamma,
+                               activ_beta,
+                               activ_alpha,
+                               dy_input.data,
+                               input_norm.data,
+                               dy_input.data);
+    }
 
     par_for(channels, 1, [&](int cidx) {
         double elemStd = 0.;
@@ -770,8 +834,11 @@ void visitActivationHostInfer(
     case miopenActivationLEAKYRELU: // alpha * x | x<=0; x | x>0
         f([=](double x) { return ((x > 0.) ? x : x * alpha); });
         break;
-    case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
+    case miopenActivationELU: // alpha * (exp(x)-1) | x<=0; x | x>0
         f([=](double x) { return ((x > 0.) ? x : alpha * std::expm1(x)); });
+        break;
+    case miopenActivationCLAMP: // max(alpha, min(beta, x))
+        f([=](double x) { return (std::max(alpha, std::min(beta, x))); });
         break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
@@ -835,8 +902,29 @@ void visitActivationHostBwd(
     case miopenActivationELU: // alpah * (exp(x)-1) | x<=0; x | x>0
         f([=](double dy, double x, double y) { return dy * ((x > 0) ? 1 : y + alpha); });
         break;
+    case miopenActivationCLAMP: // max(alpha, min(beta, x))
+        f([=](double dy, double x, double) { return (x > alpha && x <= beta) ? dy : 0; });
+        break;
         // default: printf("ERROR: unknown neuron type: %d\n", activMode); break;
     }
+}
+
+template <class T, class U, class V>
+inline void activationHostBnormBwd(miopenActivationMode_t activMode,
+                                   double gamma,
+                                   double beta,
+                                   double alpha,
+                                   const std::vector<U> dyinput,
+                                   const std::vector<V> xinput,
+                                   std::vector<T>& output)
+{
+    double dummy;
+    visitActivationHostBwd(activMode, gamma, beta, alpha, [&](auto f) {
+        par_for(dyinput.size(), 1, [&](int index) {
+            output[index] = static_cast<T>(
+                f(static_cast<double>(dyinput[index]), static_cast<double>(xinput[index]), dummy));
+        });
+    });
 }
 
 template <class T>
