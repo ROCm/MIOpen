@@ -862,7 +862,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
         return false;
 #endif // WORKAROUND_UNTRUSTED_PERF_PARAMETR
 
-     // limitation for loading filter using multielement instructions
+    // limitation for loading filter using multielement instructions
     int tb_c1     = tensor_b_thread_lengths[3];
     int data_byte = miopen::GetTypeSize(problem.GetInDataType());
 
@@ -883,7 +883,6 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
-
     if(!(tensor_a_thread_lengths[1] == 1 && merge_e == 1))
     {
         // TODO check ??
@@ -899,8 +898,8 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     }
 
     if((problem.IsBfp16() || problem.IsFp16()) &&
-        !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 && merge_e == 1 &&
-            gemm_k_global_split == 0))
+       !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 && merge_e == 1 &&
+         gemm_k_global_split == 0))
     {
         if(gemm_k_global_split != 0)
         {

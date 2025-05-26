@@ -712,9 +712,6 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
-    
-
-
     // use_workspace = 1; ATOMIC_ADD_FP16
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
@@ -733,8 +730,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
         uint32_t s_move_slice_k_c = gemm_k_per_block % (c / group);
         if((c / group) >= 0xffffff || y >= 0xffffff || x >= 0xffffff) // 24 bit
             return false;
-        if(s_move_slice_k_y >= 256 || s_move_slice_k_x >= 256 ||
-            s_move_slice_k_c >= 256) // 8 bit
+        if(s_move_slice_k_y >= 256 || s_move_slice_k_x >= 256 || s_move_slice_k_c >= 256) // 8 bit
             return false;
     }
 
@@ -754,13 +750,11 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
             }
             else
             {
-                if((k / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) !=
-                    0)
+                if((k / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
                     return false;
             }
         }
     }
-    
 
     if((nxe == 0) && !unit_conv)
     {
