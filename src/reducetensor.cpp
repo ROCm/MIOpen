@@ -33,7 +33,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/reducetensor.hpp>
 #include <miopen/stringutils.hpp>
-#include <miopen/solver/legacy_ck_utility_common.hpp>
+#include <miopen/solver/legacy_ck_utility.hpp>
 
 #include <cassert>
 #include <cstddef>

@@ -33,7 +33,7 @@
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-#include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/solver/ck_utility.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #endif

@@ -27,7 +27,7 @@
 
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
-#include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/solver/ck_utility.hpp>
 
 #include "bn_test_data.hpp"
 #include "test_operations.hpp"

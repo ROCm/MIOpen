@@ -28,7 +28,7 @@
 #include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/solver/legacy_ck_utility_common.hpp>
+#include <miopen/solver/legacy_ck_utility.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
 #include "../composable_kernel/host/solver/include/solver_common.hpp"
