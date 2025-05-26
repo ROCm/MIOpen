@@ -56,10 +56,12 @@ struct BnFwdTrainingPerActivation final : BatchnormSolver
         return GetSolverDbId<BnFwdTrainingPerActivation>();
     }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct PerformanceConfigBnBwdBackward : PerfConfigBase<PerformanceConfigBnBwdBackward>
@@ -132,11 +134,13 @@ struct BnBwdTrainingSpatial final : BatchNormTunableSolver<PerformanceConfigBnBw
            const miopen::batchnorm::ProblemDescription& problem,
            const AnyInvokeParams& invoke_ctx) const override;
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem,
-                             const PerformanceConfigBnBwdBackward& config) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::batchnorm::ProblemDescription& problem,
+                const PerformanceConfigBnBwdBackward& config) const override;
 };
 
 struct BnFwdTrainingSpatial final : BatchNormTunableSolver<PerformanceConfigBnFwdTraining>
@@ -157,11 +161,13 @@ struct BnFwdTrainingSpatial final : BatchNormTunableSolver<PerformanceConfigBnFw
            const miopen::batchnorm::ProblemDescription& problem,
            const AnyInvokeParams& invoke_ctx) const override;
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem,
-                             const PerformanceConfigBnFwdTraining& config) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::batchnorm::ProblemDescription& problem,
+                const PerformanceConfigBnFwdTraining& config) const override;
 };
 
 struct BnBwdTrainingPerActivation final : BatchnormSolver
@@ -171,21 +177,25 @@ struct BnBwdTrainingPerActivation final : BatchnormSolver
         return GetSolverDbId<BnBwdTrainingPerActivation>();
     }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const override;
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct BnFwdInference final : BatchnormSolver
 {
     const std::string& SolverDbId() const override { return GetSolverDbId<BnFwdInference>(); }
 
-    bool IsApplicable(const ExecutionContext& context,
-                      const miopen::batchnorm::ProblemDescription& problem) const override;
-    bool IsDynamic() const override { return true; }
-    ConvSolution GetSolution(const ExecutionContext& context,
-                             const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext& context,
+                 const miopen::batchnorm::ProblemDescription& problem) const override;
+    MIOPEN_INTERNALS_EXPORT bool IsDynamic() const override { return true; }
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext& context,
+                const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct PerformanceConfigBnCKFwdInference : PerfConfigBaseCK<PerformanceConfigBnCKFwdInference>
