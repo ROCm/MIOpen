@@ -40,8 +40,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_PK_ATOMIC_ADD_FP
 #define BWD_MAX_GEMM_K_SPLITS 8
 // #define DEBUG_IGEMM_ASM_BWD_NHWC_CHECK_VALID_TILE_LIST
 
-#define WORKAROUND_UNTRUSTED_PERF_PARAMETR 1
-
 namespace miopen {
 namespace solver {
 namespace conv {
@@ -838,11 +836,6 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
 
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
-
-#if WORKAROUND_UNTRUSTED_PERF_PARAMETR
-    if((gemm_k_global_split != 0) && !problem.IsFp32())
-        return false;
-#endif // WORKAROUND_UNTRUSTED_PERF_PARAMETR
 
     // limitation for loading filter using multielement instructions
     int tb_c1     = tensor_b_thread_lengths[3];
