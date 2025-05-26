@@ -400,6 +400,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
                                         nullptr,
                                         nullptr,
                                         miopen::debug::BatchNormDirection_t::ForwardInference,
+                                        nullptr,
                                         false); // having false allows safe handling of nullptrs
     }
     else

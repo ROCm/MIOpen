@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include "miopen/common.hpp"
 #include <miopen/batch_norm.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle.hpp>
@@ -60,7 +61,8 @@ void LogCmdBNorm(const miopenTensorDescriptor_t xDesc,
                  const void* resultRunningVariance,
                  const void* resultSaveMean,
                  const void* resultSaveInvVariance,
-                 const BatchNormDirection_t dir)
+                 const BatchNormDirection_t dir,
+                 const miopenActivationDescriptor_t activDesc)
 {
     if(miopen::IsLoggingCmd())
     {
@@ -74,7 +76,8 @@ void LogCmdBNorm(const miopenTensorDescriptor_t xDesc,
                                                           resultRunningVariance,
                                                           resultSaveMean,
                                                           resultSaveInvVariance,
-                                                          dir);
+                                                          dir,
+                                                          activDesc);
         MIOPEN_LOG_DRIVER_CMD(str);
     }
 }
@@ -244,6 +247,7 @@ miopenBatchNormalizationBackward_V2(miopenHandle_t handle,
                                              savedMeanDesc,
                                              savedVarianceDesc,
                                              bnScale,
+                                             nullptr,
                                              resultBnScaleDiff,
                                              resultBnBiasDiff,
                                              epsilon,
@@ -325,7 +329,8 @@ miopenBatchNormForwardInferenceActivation(miopenHandle_t handle,
                         bnBias,
                         estimatedMean,
                         estimatedVariance,
-                        epsilon);
+                        epsilon,
+                        activDesc);
 
     miopen::debug::LogCmdBNorm(xDesc,
                                yDesc,
@@ -337,7 +342,8 @@ miopenBatchNormForwardInferenceActivation(miopenHandle_t handle,
                                nullptr,
                                estMeanDesc,
                                estimatedVariance,
-                               miopen::debug::BatchNormDirection_t::ForwardInference);
+                               miopen::debug::BatchNormDirection_t::ForwardInference,
+                               activDesc);
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
     // In case of NxCxDxHxW
@@ -483,7 +489,8 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
                         resultRunningVariance,
                         epsilon,
                         resultSaveMean,
-                        resultSaveInvVariance);
+                        resultSaveInvVariance,
+                        activDesc);
 
     miopen::debug::LogCmdBNorm(xDesc,
                                yDesc,
@@ -495,7 +502,8 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
                                resultRunningVariance,
                                resultSaveMean,
                                resultSaveInvVariance,
-                               miopen::debug::BatchNormDirection_t::ForwardTraining);
+                               miopen::debug::BatchNormDirection_t::ForwardTraining,
+                               activDesc);
 
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
@@ -582,6 +590,7 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                                   const miopenTensorDescriptor_t savedMeanDesc,
                                   const miopenTensorDescriptor_t savedVarianceDesc,
                                   const void* bnScale,
+                                  const void* bnBias,
                                   void* resultBnScaleDiff,
                                   void* resultBnBiasDiff,
                                   double epsilon,
@@ -602,11 +611,14 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                         savedMeanDesc,
                         savedVarianceDesc,
                         bnScale,
+                        bnBias,
                         resultBnScaleDiff,
                         resultBnBiasDiff,
                         epsilon,
                         savedMean,
-                        savedInvVariance);
+                        savedInvVariance,
+                        activDesc);
+
     miopen::debug::LogCmdBNorm(xDesc,
                                dyDesc,
                                scaleDesc,
@@ -617,7 +629,9 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                                nullptr,
                                savedMean,
                                savedInvVariance,
-                               miopen::debug::BatchNormDirection_t::Backward);
+                               miopen::debug::BatchNormDirection_t::Backward,
+                               activDesc);
+
     int size{0};
     miopenGetTensorDescriptorSize(xDesc, &size);
     // In case of NxCxDxHxW
@@ -649,6 +663,7 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                                       ReshapeIfNeeded(savedMeanDesc),
                                       ReshapeIfNeeded(savedVarianceDesc),
                                       DataCast(bnScale),
+                                      DataCast(bnBias),
                                       DataCast(resultBnScaleDiff),
                                       DataCast(resultBnBiasDiff),
                                       epsilon,
@@ -678,6 +693,7 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                                       ReshapeIfNeeded(savedMeanDesc),
                                       ReshapeIfNeeded(savedVarianceDesc),
                                       DataCast(bnScale),
+                                      DataCast(bnBias),
                                       DataCast(resultBnScaleDiff),
                                       DataCast(resultBnBiasDiff),
                                       epsilon,

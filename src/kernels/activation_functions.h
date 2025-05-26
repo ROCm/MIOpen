@@ -10,10 +10,11 @@
 #define MIOPEN_NEURON_SOFTRELU 4     // log(1 + e^x)   // bonomial normal log likelihood
 #define MIOPEN_NEURON_ABS 5          // abs(x)
 #define MIOPEN_NEURON_POWER 6        // (alpha + beta * x )^gamma
-#define MIOPEN_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
+#define MIOPEN_NEURON_CLIPPED_RELU 7 // max(0, min(alpha, x))
 #define MIOPEN_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
 #define MIOPEN_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
-#define MIOPEN_NEURON_TOTAL 10
+#define MIOPEN_NEURON_CLAMP 10       // max(alpha, min(beta, x))
+#define MIOPEN_NEURON_TOTAL 11
 
 static __constant _FLOAT kBNLL_THRESHOLD = (_FLOAT)50.;
 
@@ -194,6 +195,19 @@ void ActivationFunction_ELU(const uint n,
     }
 }
 
+void ActivationFunction_Clamp(const uint n,
+                              _FLOAT_PREC* res,
+                              const _FLOAT_PREC* data,
+                              UNUSED const _FLOAT_PREC gamma,
+                              const _FLOAT_PREC beta,
+                              const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        res[i] = fmax((_FLOAT_PREC)alpha, fmin((_FLOAT_PREC)_beta, (_FLOAT_PREC)data[i]));
+    }
+}
+
 void ActivationFunction(const uint n,
                         _FLOAT_PREC* res,
                         const _FLOAT_PREC* data,
@@ -244,6 +258,10 @@ void ActivationFunction(const uint n,
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ELU
     {
         ActivationFunction_ELU(n, res, data, gamma, beta, alpha);
+    }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLAMP
+    {
+        ActivationFunction_ClampU(n, res, data, gamma, beta, alpha);
     }
 #endif
 }
@@ -422,6 +440,24 @@ void ActivationFunction_ELU_Diff(const uint n,
     }
 }
 
+void ActivationFunction_Clamp_Diff(const uint n,
+                                   _FLOAT_PREC* bot_diff,
+                                   const _FLOAT_PREC* top_diff,
+                                   const _FLOAT_PREC* bot_data,
+                                   UNUSED const _FLOAT_PREC* top_data,
+                                   UNUSED const _FLOAT_PREC diff_scale,
+                                   UNUSED const _FLOAT_PREC gamma,
+                                   const _FLOAT_PREC beta,
+                                   const _FLOAT_PREC alpha)
+{
+    for(uint i = 0; i < n; ++i)
+    {
+        bot_diff[i] =
+            top_diff[i] *
+            ((bot_data[i] > alpha && bot_data[i] <= beta) ? (_FLOAT_PREC)1.f : (_FLOAT_PREC)0.f);
+    }
+}
+
 void ActivationFunction_Diff(const uint n,
                              _FLOAT_PREC* bot_diff,
                              const _FLOAT_PREC* top_diff,
@@ -484,6 +520,11 @@ void ActivationFunction_Diff(const uint n,
 #elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_ELU
     {
         ActivationFunction_ELU_Diff(
+            n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
+    }
+#elif MIOPEN_NRN_OP_ID == MIOPEN_NEURON_CLAMP
+    {
+        ActivationFunction_Clamp_Diff(
             n, bot_diff, top_diff, bot_data, top_data, diff_scale, gamma, beta, alpha);
     }
 #endif
