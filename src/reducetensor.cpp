@@ -33,7 +33,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/reducetensor.hpp>
 #include <miopen/stringutils.hpp>
-#include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/solver/legacy_ck_utility_common.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -984,7 +984,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         std::string param;
         std::string network_config;
 
-        param = solver::ck_utility::get_ck_common_compiler_flag(handle);
+        param = solver::legacy_ck_utility::get_ck_common_compiler_flag(handle);
 
         param += detailDynamic::get_definition_string_from_type_enums(
                      srcDataType, compType, dstDataType) +

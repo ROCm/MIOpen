@@ -362,7 +362,7 @@ bool BnCKBwdBackward::IsApplicable(
         return false;
     if(!bn_problem.IsLayoutNHWC() && !bn_problem.IsLayoutNCHW())
         return false;
-    if(!ck_utility::is_ck_supported_hardware(context.GetStream()))
+    if(!ck_utility::is_ck_whitelist(context.GetStream()))
         return false;
     if(!bn_problem.Is2D())
         return false;
