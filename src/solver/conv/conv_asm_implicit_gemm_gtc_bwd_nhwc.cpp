@@ -850,10 +850,6 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     const auto h_tilda_right = std::min(h_tilda, integer_divide_ceil(pad_h + hi - 1, stride_h) + 1);
     const auto w_tilda_right = std::min(w_tilda, integer_divide_ceil(pad_w + wi - 1, stride_w) + 1);
 
-    const auto h_tilda_slice = h_tilda_right - h_tilda_left;
-    const auto w_tilda_slice = w_tilda_right - w_tilda_left;
-    int num_of_gemm          = y_tilda * x_tilda;
-
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
 
