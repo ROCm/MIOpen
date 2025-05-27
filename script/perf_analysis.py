@@ -44,9 +44,9 @@ def calculate_statistics(data):
     failed_cases = 0
     for row in data:
       try:
-        inference_time = float(row[' KTN_inference_time_ms'])
+        inference_time = float(row['KTN_inference_time_ms'])
         if inference_time > 0:
-          kernel_times.append(float(row[' Elapsed_GPU_time_average_ms']))
+          kernel_times.append(float(row['Elapsed_GPU_time_average_ms']))
           inference_times.append(inference_time)
         else:
            failed_cases += 1
@@ -68,7 +68,7 @@ def calculate_statistics(data):
     }
     return stats
 
-def run_worst_cases_analysis(results, top_number=10):
+def run_worst_cases_analysis(results, top_number=10, print_results=False):
     """
     Analyze the worst cases based on kernel times and inference times.
     """
@@ -77,26 +77,27 @@ def run_worst_cases_analysis(results, top_number=10):
     # Then, compare the performance from other labels in these cases.
     worst_cases = {}
     all_kernel_times = {}
-    repeated_configs = {}
     for label, data in results.items():
         kernel_times = {}
         for row in data:
             try:
-                inference_time = float(row[' KTN_inference_time_ms'])
+                inference_time = float(row['KTN_inference_time_ms'])
                 if inference_time > 0:
                     configuration = row['Configuration']
-                    time = float(row[' Elapsed_GPU_time_average_ms'])
+                    time = float(row['Elapsed_GPU_time_average_ms'])
                     if configuration not in kernel_times:
-                        kernel_times[configuration] = time
+                        kernel_times[configuration] = [time]
                     else:
-                        raise LookupError(f"Configuration {configuration} appears multiple times in {label}.")
+                        kernel_times[configuration].append(time)
             except ValueError:
                 continue
 
+        # Convert lists to average times
+        for config, times in kernel_times.items():
+            kernel_times[config] = np.mean(times)
+
         # Get top_number worst cases based on kernel times
         sorted_cases = sorted(kernel_times.items(), key=lambda x: x[1], reverse=True)[:top_number]
-        kernel_times_array = np.array(list(kernel_times.values()), dtype=float)
-        print(f"max kernel time for {label}: {np.max(kernel_times_array):.2f} ms")
         worst_cases[label] = {
             'kernel_times': [time for _, time in sorted_cases],
             'configurations': [config for config, _ in sorted_cases]
@@ -104,13 +105,102 @@ def run_worst_cases_analysis(results, top_number=10):
         all_kernel_times[label] = kernel_times
 
     for label, worst_cases_data in worst_cases.items():
-        print(f"Worst cases for {label}:")
-        # Find the corresponding cases in other labels
+        if print_results:
+            print(f"Worst cases for {label}:")
+ 
+        plt.figure(figsize=(15, 10))
+        
+        all_labels = list(all_kernel_times.keys())
+        num_labels = len(all_labels)
+        x = np.arange(len(worst_cases_data['configurations']))
+        width = 0.8 / num_labels
+        
         for i, (config, time) in enumerate(zip(worst_cases_data['configurations'], worst_cases_data['kernel_times'])):
-            print(f"  {i+1}. Configuration: {config}")
-            for other_label, other_kernel_times in all_kernel_times.items():
-                if config in other_kernel_times:
-                    print(f"    {other_label}: {other_kernel_times[config]:.2f} ms")
+            if print_results:
+                print(f"  {i+1}. Configuration: {config}")
+            
+            for j, other_label in enumerate(all_labels):
+                if config in all_kernel_times[other_label]:
+                    other_time = all_kernel_times[other_label][config]
+                    if print_results:
+                        print(f"    {other_label}: {other_time:.2f} ms")
+                    plt.bar(x[i] + (j - num_labels/2 + 0.5) * width, other_time, 
+                        width=width, color=f'C{j}', label=other_label if i == 0 else "")
+                    plt.yscale('log')  # Set y-axis to logarithmic scale
+                else:
+                    if print_results:
+                        print(f"    {other_label}: N/A")
+        
+        plt.xlabel('Configuration')
+        plt.ylabel('Kernel Time (ms)')
+        plt.title(f"Top-10 longest running cases for '{label}' model")
+        plt.xticks(x, [f"{i+1}" for i in range(len(worst_cases_data['configurations']))], rotation=0)
+        if num_labels > 1:
+            plt.legend()
+
+        plt.savefig(f"worst_cases_{label}.png")
+
+def get_kernel_times(data):
+    kernel_times = {}
+    for row in data:
+        try:
+            inference_time = float(row['KTN_inference_time_ms'])
+            if inference_time > 0:
+                configuration = row['Configuration']
+                time = float(row['Elapsed_GPU_time_average_ms'])
+                if configuration not in kernel_times:
+                    kernel_times[configuration] = [time]
+                else:
+                    kernel_times[configuration].append(time)
+        except ValueError:
+            continue
+
+    # Convert lists to average times
+    for config, times in kernel_times.items():
+        kernel_times[config] = np.mean(times)
+
+    # Convert negative times to maximum value of float
+    for config, time in kernel_times.items():
+        if time < 0:
+            kernel_times[config] = float('inf')
+
+    return kernel_times
+
+def run_pairwise_comparison(results):
+    """
+    Run pairwise comparison of kernel times and inference times between different labels.
+    """
+    labels = list(results.keys())
+    num_labels = len(labels)
+
+    for i in range(num_labels):
+        label1 = labels[i]
+        data1 = results[label1]
+        kernel_times1 = get_kernel_times(data1)
+        for j in range(i + 1, num_labels):
+            label2 = labels[j]
+            data2 =results[label2]
+            kernel_times2 = get_kernel_times(data2)
+            
+            # Prepare data for boxplot
+            selected_configs = {}
+            selected_configs[label1] = 0
+            selected_configs[label2] = 0
+            for config in kernel_times1.keys():
+                time1 = kernel_times1.get(config, float('inf'))
+                time2 = kernel_times2.get(config, float('inf'))
+                if time1 < time2:
+                    selected_configs[label1] += 1
+                elif time2 < time1:
+                    selected_configs[label2] += 1
+
+            # Create a boxplot for the pairwise comparison
+            plt.figure(figsize=(10, 6))
+            plt.bar(selected_configs.keys(), selected_configs.values(), color=['blue', 'orange'])
+            plt.xlabel('Model')
+            plt.ylabel('Number of Configurations')
+            plt.title(f"Pairwise Comparison: {label1} vs {label2}")
+            plt.savefig(f"pairwise_comparison_{label1}_vs_{label2}.png")
 
 def main():
     base_dir, kernel_time_files, kernel_time_labels = parse_args().base_dir, parse_args().files, parse_args().labels
@@ -139,6 +229,8 @@ def main():
       print()
 
     run_worst_cases_analysis(results)
+
+    run_pairwise_comparison(results)
 
     print("Analysis complete.")
 
