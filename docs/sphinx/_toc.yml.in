@@ -53,6 +53,8 @@ subtrees:
         title: Modules
       - file: reference/datatypes.rst
         title: Datatypes
+      - file: reference/env_variables.rst
+        title: Environment variables
 
 - caption: About
   entries:
