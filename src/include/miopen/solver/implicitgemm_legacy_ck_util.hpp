@@ -26,78 +26,22 @@
 
 #pragma once
 
-#include <algorithm>
-#include <sstream>
-
-#include <miopen/env.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
-#include <miopen/stringutils.hpp>
 
 #include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
 #include "../composable_kernel/host/solver/include/convolution_problem_descriptor.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LEGACY_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_LEGACY_CK_USE_AMD_BUFFER_ADDRESSING)
-
 namespace miopen {
 namespace solver {
-namespace legacy_ck_utility {
+namespace legacy_ck {
 
-static inline bool is_ck_supported_hardware(const Handle& handle)
+static inline bool IsIndexRangeLargeEnough(const miopen::conv::ProblemDescription& problem)
 {
-    return (StartsWith(handle.GetDeviceName(), "gfx803") && handle.GetMaxComputeUnits() == 64) ||
-           StartsWith(handle.GetDeviceName(), "gfx900") ||
-           StartsWith(handle.GetDeviceName(), "gfx906") ||
-           StartsWith(handle.GetDeviceName(), "gfx908") ||
-           StartsWith(handle.GetDeviceName(), "gfx90a") ||
-           StartsWith(handle.GetDeviceName(), "gfx942") ||
-           StartsWith(handle.GetDeviceName(), "gfx950") ||
-           StartsWith(handle.GetDeviceName(), "gfx1030") ||
-           StartsWith(handle.GetDeviceName(), "gfx1031") ||
-           StartsWith(handle.GetDeviceName(), "gfx1100") ||
-           StartsWith(handle.GetDeviceName(), "gfx1101") ||
-           StartsWith(handle.GetDeviceName(), "gfx1102") ||
-           StartsWith(handle.GetDeviceName(), "gfx1200") ||
-           StartsWith(handle.GetDeviceName(), "gfx1201");
-}
+    // composable kernel use int32_t for memory offset, which covers 2GB of memory maximum
+    const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
 
-static inline bool is_support_amd_buffer_atomic_fadd(const std::string& device_name)
-{
-    return StartsWith(device_name, "gfx908");
-}
-
-static inline auto get_ck_common_compiler_flag(const Handle& handle)
-{
-    auto compiler_flag = std::stringstream();
-
-    // C++ standard
-    compiler_flag << " --std=c++17";
-
-    // GPU target
-    static const std::string device_name = handle.GetDeviceName();
-
-    // device_name: "gfx90a" -> macro: "CK_AMD_GPU_GFX90A"
-    if(StartsWith(device_name, "gfx"))
-    {
-        std::string gfxid = device_name.substr(3);
-        std::transform(gfxid.begin(), gfxid.end(), gfxid.begin(), ::toupper);
-        compiler_flag << " -DCK_AMD_GPU_GFX" << gfxid;
-    }
-
-    // buffer atomic-fadd
-    compiler_flag << " -DCK_USE_AMD_BUFFER_ATOMIC_FADD="
-                  << (is_support_amd_buffer_atomic_fadd(device_name) ? '1' : '0');
-
-    // sync LDS
-    compiler_flag << " -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM="
-                  << (env::disabled(MIOPEN_DEBUG_LEGACY_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM) ? '0' : '1');
-
-    // buffer addressing
-    compiler_flag << " -DCK_USE_AMD_BUFFER_ADDRESSING="
-                  << (env::disabled(MIOPEN_DEBUG_LEGACY_CK_USE_AMD_BUFFER_ADDRESSING) ? '0' : '1');
-
-    return compiler_flag.str();
+    return problem.GetInSize() < max_index_range && problem.GetWeightsSize() < max_index_range &&
+           problem.GetOutSize() < max_index_range;
 }
 
 static inline auto
@@ -139,6 +83,6 @@ get_ck_convolution_problem_descriptor(const miopen::conv::ProblemDescription& pr
         ck_datatype};
 }
 
-} // namespace legacy_ck_utility
+} // namespace legacy_ck
 } // namespace solver
 } // namespace miopen

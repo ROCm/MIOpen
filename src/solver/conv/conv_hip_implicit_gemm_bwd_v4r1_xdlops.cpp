@@ -28,8 +28,8 @@
 #include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
-#include <miopen/solver/static_ck_utility.hpp>
+#include <miopen/solver/implicitgemm_static_ck_util.hpp>
+#include <miopen/solver/static_ck_common.hpp>
 
 /// Disable ConvHipImplicitGemmBwdDataV4R1Xdlops for FP32 by default.
 /// \ref https://github.com/ROCm/MIOpen/issues/1206.
@@ -80,12 +80,12 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmM     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmM     = problem.IsFp32() ? amd_buffer_load_max_length<float>()
-                                                    : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmM     = problem.IsFp32() ? static_ck::amd_buffer_load_max_length<float>()
+                                                    : static_ck::amd_buffer_load_max_length<half_float::half>();
 
     int DstDataPerWrite_GemmKPack = problem.IsFp32()
-                                        ? amd_buffer_load_max_length<float>()
-                                        : amd_buffer_load_max_length<half_float::half>();
+                                        ? static_ck::amd_buffer_load_max_length<float>()
+                                        : static_ck::amd_buffer_load_max_length<half_float::half>();
 
     try
     {
@@ -173,11 +173,11 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmN     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmN     = problem.IsFp32() ? amd_buffer_load_max_length<float>()
-                                                    : amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmN     = problem.IsFp32() ? static_ck::amd_buffer_load_max_length<float>()
+                                                    : static_ck::amd_buffer_load_max_length<half_float::half>();
 
-    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? amd_lds_write_max_length<float>()
-                                                     : amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? static_ck::amd_lds_write_max_length<float>()
+                                                     : static_ck::amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -386,7 +386,7 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(
     if(!(GemmM % GemmMPerBlock == 0 && GemmN % GemmNPerBlock == 0 && GemmK % GemmKPerBlock == 0))
         return false; // wrong! cannot divice N evenly among thread
 
-    if(!IsValidBlockwiseGemmXdlops(problem,
+    if(!static_ck::IsValidBlockwiseGemmXdlops(problem,
                                    GemmMPerBlock,
                                    GemmNPerBlock,
                                    GemmKPerBlock,
@@ -838,7 +838,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
-    if(!static_ck_utility::IsComposableKernelSupportedHardware(ctx))
+    if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
     if(!problem.IsDirectionBackwardData())
         return false;
@@ -854,9 +854,9 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
         return false;
     if(problem.IsTensorsCasted())
         return false;
-    if(!IsApplicableXdlops(ctx, problem))
+    if(!static_ck::IsApplicableXdlops(ctx, problem))
         return false;
-    if(!IsIndexRangeLargeEnough(problem))
+    if(!static_ck::IsIndexRangeLargeEnough(problem))
         return false;
     if(!problem.IsLayoutDefault())
         return false;
@@ -872,7 +872,7 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
     for(int gemm_id = 0; gemm_id < CalculateNumberOfGemm(problem); ++gemm_id)
     {
         std::tie(gemm_g, gemm_m, gemm_n, gemm_k_total) = CalculateGemmSize(problem, gemm_id);
-        if(!IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total))
+        if(!static_ck::IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total))
             return false;
     }
     return is_applicable;
@@ -882,7 +882,7 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops
 ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfig(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>(ctx, problem);
+    return static_ck::GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(
@@ -1056,7 +1056,7 @@ ConvSolution ConvHipImplicitGemmBwdDataV4R1Xdlops::GetSolution(
                 std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (env::enabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM) ? '1' : '0') +
                 std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE) ? '1' : '0') +
                 std::string(" -DCK_PARAM_GEMM_ID=") + std::to_string(gemm_id) +
-                get_static_ck_common_compiler_flag(ctx) +
+                static_ck::get_static_ck_common_compiler_flag(ctx) +
                 ctx.general_compile_options;
 
                 construction_parameters.comp_options +=

@@ -33,7 +33,6 @@
 #include <miopen/conv/solvers.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
-#include <miopen/solver/mlir_utility.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_MLIR_IGEMM_WRW_XDLOPS)
 
@@ -61,7 +60,7 @@ bool ConvMlirIgemmWrWXdlops::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;
-    if(!mlir_utility::IsMlirSupportedHardware(ctx))
+    if(!mlir::IsMlirSupportedHardware(ctx))
         return false;
 
     return MiirIsConfigApplicable(mlir::ConstructBuildOptions(ctx, problem, true));

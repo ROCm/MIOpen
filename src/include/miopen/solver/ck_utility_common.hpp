@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2025 Advanced Micro Devices, Inc.
+ * Copyright (c) 2021 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,23 +26,28 @@
 
 #pragma once
 
-#include <miopen/execution_context.hpp>
+#include <miopen/handle.hpp>
 #include <miopen/stringutils.hpp>
 
 namespace miopen {
 namespace solver {
-namespace mlir_utility {
+namespace ck_utility {
 
-static inline bool IsMlirSupportedHardware(const ExecutionContext& c)
+// MI100 : gfx908
+// MI200 : gfx90a
+// MI300 : gfx942
+/// \todo This function should probably always return true, since the list of supported devices depends on which devices CK was compiled for, and the CK itself includes a check whether is an instance for the device.
+static inline bool is_ck_whitelist(const std::string& device_name)
 {
-    return (c.GetStream().GetDeviceName() == "gfx803" &&
-            c.GetStream().GetMaxComputeUnits() == 64) ||
-           c.GetStream().GetDeviceName() == "gfx900" || c.GetStream().GetDeviceName() == "gfx906" ||
-           c.GetStream().GetDeviceName() == "gfx908" || c.GetStream().GetDeviceName() == "gfx90a" ||
-           c.GetStream().GetDeviceName() == "gfx942" ||
-           StartsWith(c.GetStream().GetDeviceName(), "gfx103");
+    return (StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||
+            StartsWith(device_name, "gfx942") || StartsWith(device_name, "gfx950"));
 }
 
-} // namespace mlir_utility
+static inline bool is_ck_whitelist(const Handle& handle)
+{
+    return is_ck_whitelist(handle.GetDeviceName());
+}
+
+} // namespace ck_utility
 } // namespace solver
 } // namespace miopen

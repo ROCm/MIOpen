@@ -34,7 +34,7 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/convolution_forward.hpp>
-#include <miopen/solver/ck_utility.hpp>
+#include <miopen/solver/ck_utility_common.hpp>
 #endif
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>

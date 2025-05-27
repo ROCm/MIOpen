@@ -28,8 +28,8 @@
 #include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/solver/legacy_ck_utility.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/solver/implicitgemm_legacy_ck_util.hpp>
+#include <miopen/solver/legacy_ck_common.hpp>
 
 #include "../composable_kernel/host/solver/include/solver_common.hpp"
 #include "../composable_kernel/host/solver/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
@@ -76,14 +76,14 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ProblemDescription& p
 
     std::tie(compile_param, found) =
         ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::CalculateCompileParameterBasedOnTunable(
-            legacy_ck_utility::get_ck_convolution_problem_descriptor(problem),
+            legacy_ck::get_ck_convolution_problem_descriptor(problem),
             get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(*this));
 
     if(!found)
         return false;
 
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsValidCompileParameter(
-        legacy_ck_utility::get_ck_convolution_problem_descriptor(problem), compile_param);
+        legacy_ck::get_ck_convolution_problem_descriptor(problem), compile_param);
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
@@ -101,7 +101,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!legacy_ck_utility::is_ck_supported_hardware(ctx.GetStream()))
+    if(!legacy_ck::is_ck_supported_hardware(ctx.GetStream()))
         return false;
     if(!problem.IsLayoutDefault())
         return false;
@@ -122,11 +122,11 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
     if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
        problem.IsGfx90aFp16altRequired())
         return false;
-    if(!IsIndexRangeLargeEnough(problem))
+    if(!legacy_ck::IsIndexRangeLargeEnough(problem))
         return false;
 
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsApplicable(
-        legacy_ck_utility::get_ck_convolution_problem_descriptor(problem));
+        legacy_ck::get_ck_convolution_problem_descriptor(problem));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
@@ -162,7 +162,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ExecutionContext& ctx,
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
 
-    const auto ck_conv_problem_desc = legacy_ck_utility::get_ck_convolution_problem_descriptor(problem);
+    const auto ck_conv_problem_desc = legacy_ck::get_ck_convolution_problem_descriptor(problem);
 
     auto ck_compile_param = ck::driver::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{};
 
@@ -183,7 +183,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ExecutionContext& ctx,
         kernel0_info.g_wk = {1, 1, 1};
 
         kernel0_info.comp_options = ck_compile_param.GetCompileParameterString() +
-                                    legacy_ck_utility::get_ck_common_compiler_flag(ctx.GetStream());
+                                    legacy_ck::get_ck_common_compiler_flag(ctx.GetStream());
     }
 
     // kernel1: compute
@@ -205,7 +205,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ExecutionContext& ctx,
         kernel1_info.g_wk = {block_size * grid_size, 1, 1};
 
         kernel1_info.comp_options = ck_compile_param.GetCompileParameterString() +
-                                    legacy_ck_utility::get_ck_common_compiler_flag(ctx.GetStream());
+                                    legacy_ck::get_ck_common_compiler_flag(ctx.GetStream());
     }
 
     sol.construction_params.push_back(kernel0_info);
@@ -265,7 +265,7 @@ std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ExecutionContext
                                                           const ProblemDescription& problem) const
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
-        legacy_ck_utility::get_ck_convolution_problem_descriptor(problem));
+        legacy_ck::get_ck_convolution_problem_descriptor(problem));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
