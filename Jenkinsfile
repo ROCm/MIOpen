@@ -201,13 +201,13 @@ pipeline {
                     agent { label rocmnode("nogpu") }
                     when {
                         changeset "**/test/gtest/**"
-                }
-                steps {
-                    script {
-                        checkout scm
-                        sh 'cd ./test/utils && python3 gtest_formating_checks.py'
-                        }
                     }
+                    steps {
+                        script {
+                            checkout scm
+                            sh 'cd ./test/utils && python3 gtest_formating_checks.py'
+                            }
+                        }
                 }
                 stage('HipNoGPU Debug Build Test') {
                     when {
@@ -225,7 +225,8 @@ pipeline {
                         }
                     }
                 }
-                stage('Tuna Fin Build Test') {
+                stage('Tuna Fin Build Test') 
+                {
                     agent{ label rocmnode("nogpu") }
                     environment{
                       fin_flags = "-DMIOPEN_BACKEND=HIPNOGPU"
@@ -262,15 +263,15 @@ pipeline {
                                     beforeAgent true
                                     allOf{
                                         anyOf {
-                                            expression { params.TARGET_GFX908 && ${DEVICE} == 'gfx908' }
-                                            expression { params.TARGET_GFX90A && ${DEVICE} == 'gfx90a' }
-                                            expression { params.TARGET_GFX94X && ${DEVICE} == 'gfx94X' }
-                                            //expression { params.TARGET_NAVI32 && ${DEVICE} == 'gfx1101' }
+                                            expression { params.TARGET_GFX908 && "${DEVICE}" == 'gfx908' }
+                                            expression { params.TARGET_GFX90A && "${DEVICE}" == 'gfx90a' }
+                                            expression { params.TARGET_GFX94X && "${DEVICE}" == 'gfx94X' }
+                                            //expression { params.TARGET_NAVI32 && "${DEVICE}" == 'gfx1101' }
                                         }
                                         anyOf {
-                                            expression { params.DATATYPE_FP32 && ${PRECISION} == 'Fp32' }
-                                            expression { params.DATATYPE_BF16 && ${PRECISION} == 'Bf16' }
-                                            expression { params.DATATYPE_FP16 && ${PRECISION} == 'Fp16' }
+                                            expression { params.DATATYPE_FP32 && "${PRECISION}" == 'Fp32' }
+                                            expression { params.DATATYPE_BF16 && "${PRECISION}" == 'Bf16' }
+                                            expression { params.DATATYPE_FP16 && "${PRECISION}" == 'Fp16' }
                                         }
                                     }
                                 }
@@ -310,10 +311,10 @@ pipeline {
                                     beforeAgent true
                                     allOf{
                                         anyOf {
-                                            expression { params.TARGET_GFX908 && ${DEVICE} == 'gfx908' }
-                                            expression { params.TARGET_GFX90A && ${DEVICE} == 'gfx90a' }
-                                            expression { params.TARGET_GFX94X && ${DEVICE} == 'gfx94X' }
-                                            //expression { params.TARGET_NAVI32 && ${DEVICE} == 'gfx1101' }
+                                            expression { params.TARGET_GFX908 && "${DEVICE}" == 'gfx908' }
+                                            expression { params.TARGET_GFX90A && "${DEVICE}" == 'gfx90a' }
+                                            expression { params.TARGET_GFX94X && "${DEVICE}" == 'gfx94X' }
+                                            //expression { params.TARGET_NAVI32 && "${DEVICE}" == 'gfx1101' }
                                         }
                                         expression { params.DBSYNC_TEST }
                                     }
