@@ -240,91 +240,98 @@ pipeline {
         }
         stage("Build & Test")
         {
-            stage("Full Build & Test")
-            {
-                matrix {
-                    axes {
-                        axis {
-                            name 'DEVICE'
-                            values 'gfx908', 'gfx90a', 'gfx94X'
+            stages{
+                stage("Full Build & Test")
+                {
+                    matrix {
+                        axes {
+                            axis {
+                                name 'DEVICE'
+                                values 'gfx908', 'gfx90a', 'gfx94X'
+                            }
+                            axis {
+                                name 'PRECISION'
+                                values 'Fp32', 'Bf16', 'Fp16'
+                            }
                         }
-                        axis {
-                            name 'PRECISION'
-                            values 'Fp32', 'Bf16', 'Fp16'
-                        }
-                    }
-                    stages {
-                        stage('Hip Install All') {
-                            when {
-                                beforeAgent true
-                                allOf{
-                                    anyOf {
-                                        expression { params.TARGET_GFX908 && ${DEVICE} == 'gfx908' }
-                                        expression { params.TARGET_GFX90A && ${DEVICE} == 'gfx90a' }
-                                        expression { params.TARGET_GFX94X && ${DEVICE} == 'gfx94X' }
-                                        //expression { params.TARGET_NAVI32 && ${DEVICE} == 'gfx1101' }
-                                    }
-                                    anyOf {
-                                        expression { params.DATATYPE_FP32 && ${PRECISION} == 'Fp32' }
-                                        expression { params.DATATYPE_BF16 && ${PRECISION} == 'Bf16' }
-                                        expression { params.DATATYPE_FP16 && ${PRECISION} == 'Fp16' }
+                        stages 
+                        {
+                            stage('Hip Install All') 
+                            {
+                                when {
+                                    beforeAgent true
+                                    allOf{
+                                        anyOf {
+                                            expression { params.TARGET_GFX908 && ${DEVICE} == 'gfx908' }
+                                            expression { params.TARGET_GFX90A && ${DEVICE} == 'gfx90a' }
+                                            expression { params.TARGET_GFX94X && ${DEVICE} == 'gfx94X' }
+                                            //expression { params.TARGET_NAVI32 && ${DEVICE} == 'gfx1101' }
+                                        }
+                                        anyOf {
+                                            expression { params.DATATYPE_FP32 && ${PRECISION} == 'Fp32' }
+                                            expression { params.DATATYPE_BF16 && ${PRECISION} == 'Bf16' }
+                                            expression { params.DATATYPE_FP16 && ${PRECISION} == 'Fp16' }
+                                        }
                                     }
                                 }
-                            }
-                            options {
-                                retry(2)
-                            }
-                            agent{ label rocmnode("${DEVICE}") }
-                            steps{
-                                script {
-                                    def flags = Full_test
-                                    if (PRECISION == 'Bf16') {
-                                        flags += Bf16_flags
-                                    } else if (PRECISION == 'Fp16') {
-                                        flags += Fp16_flags
+                                options {
+                                    retry(2)
+                                }
+                                agent{ label rocmnode("${DEVICE}") }
+                                steps
+                                {
+                                    script 
+                                    {
+                                        def flags = Full_test
+                                        if (PRECISION == 'Bf16') {
+                                            flags += Bf16_flags
+                                        } else if (PRECISION == 'Fp16') {
+                                            flags += Fp16_flags
+                                        }
+                                        utils.buildHipClangJobAndReboot(setup_flags: flags, build_install: true)
                                     }
-                                    utils.buildHipClangJobAndReboot(setup_flags: flags, build_install: true)
                                 }
                             }
                         }
                     }
                 }
-            }
-            stage("DbSync") {
-                matrix {
-                    axes {
-                        axis {
-                            name 'DEVICE'
-                            values 'gfx908', 'gfx90a', 'gfx94X'
+                stage("DbSync") 
+                {
+                    matrix {
+                        axes {
+                            axis {
+                                name 'DEVICE'
+                                values 'gfx908', 'gfx90a', 'gfx94X'
+                            }
                         }
-                    }
-                    stages {
-                        stage('DbSyncs') {
-                            when {
-                                beforeAgent true
-                                allOf{
-                                    anyOf {
-                                        expression { params.TARGET_GFX908 && ${DEVICE} == 'gfx908' }
-                                        expression { params.TARGET_GFX90A && ${DEVICE} == 'gfx90a' }
-                                        expression { params.TARGET_GFX94X && ${DEVICE} == 'gfx94X' }
-                                        //expression { params.TARGET_NAVI32 && ${DEVICE} == 'gfx1101' }
+                        stages {
+                            stage('DbSyncs') {
+                                when {
+                                    beforeAgent true
+                                    allOf{
+                                        anyOf {
+                                            expression { params.TARGET_GFX908 && ${DEVICE} == 'gfx908' }
+                                            expression { params.TARGET_GFX90A && ${DEVICE} == 'gfx90a' }
+                                            expression { params.TARGET_GFX94X && ${DEVICE} == 'gfx94X' }
+                                            //expression { params.TARGET_NAVI32 && ${DEVICE} == 'gfx1101' }
+                                        }
+                                        expression { params.DBSYNC_TEST }
                                     }
-                                    expression { params.DBSYNC_TEST }
                                 }
-                            }
-                            options {
-                                retry(2)
-                            }
-                            agent{ label rocmnode("${DEVICE}") }
-                            steps{
-                                script {
-                                    utils.buildHipClangJobAndReboot(lfs_pull: true,
-                                                        setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
-                                                        make_targets: 'test_db_sync',
-                                                        execute_cmd: './bin/test_db_sync',
-                                                        needs_gpu:false,
-                                                        needs_reboot:false,
-                                                        build_install: true)
+                                options {
+                                    retry(2)
+                                }
+                                agent{ label rocmnode("${DEVICE}") }
+                                steps{
+                                    script {
+                                        utils.buildHipClangJobAndReboot(lfs_pull: true,
+                                                            setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
+                                                            make_targets: 'test_db_sync',
+                                                            execute_cmd: './bin/test_db_sync',
+                                                            needs_gpu:false,
+                                                            needs_reboot:false,
+                                                            build_install: true)
+                                    }
                                 }
                             }
                         }
