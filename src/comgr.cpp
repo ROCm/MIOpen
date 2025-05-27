@@ -920,7 +920,7 @@ private:
 void BuildHip(const std::string& name,
               std::string_view text,
               const std::string& options,
-              const miopen::TargetProperties& target,
+              [[maybe_unused]] const miopen::TargetProperties& target,
               std::vector<char>& binary)
 {
     PrintVersion();
