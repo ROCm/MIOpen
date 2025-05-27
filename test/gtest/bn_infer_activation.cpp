@@ -49,7 +49,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial}),
                                           testing::ValuesIn({testBNAPIV1}),
-                                          testing::ValuesIn({miopenActivationPOWER})),
+                                          testing::ValuesIn({miopenActivationCLAMP})),
                          TestNameGenerator<BN2DTestCase>());
 
 // bfp16
@@ -59,5 +59,5 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial}),
                                           testing::ValuesIn({testBNAPIV1}),
-                                          testing::ValuesIn({miopenActivationPOWER})),
+                                          testing::ValuesIn({miopenActivationCLAMP})),
                          TestNameGenerator<BN2DTestCase>());
