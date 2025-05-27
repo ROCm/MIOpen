@@ -4,6 +4,9 @@ import argparse
 import os
 import csv
 import numpy as np
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 def parse_args():
@@ -65,6 +68,50 @@ def calculate_statistics(data):
     }
     return stats
 
+def run_worst_cases_analysis(results, top_number=10):
+    """
+    Analyze the worst cases based on kernel times and inference times.
+    """
+    
+    # For each label, find the top worst cases based on kernel times.
+    # Then, compare the performance from other labels in these cases.
+    worst_cases = {}
+    all_kernel_times = {}
+    repeated_configs = {}
+    for label, data in results.items():
+        kernel_times = {}
+        for row in data:
+            try:
+                inference_time = float(row[' KTN_inference_time_ms'])
+                if inference_time > 0:
+                    configuration = row['Configuration']
+                    time = float(row[' Elapsed_GPU_time_average_ms'])
+                    if configuration not in kernel_times:
+                        kernel_times[configuration] = time
+                    else:
+                        raise LookupError(f"Configuration {configuration} appears multiple times in {label}.")
+            except ValueError:
+                continue
+
+        # Get top_number worst cases based on kernel times
+        sorted_cases = sorted(kernel_times.items(), key=lambda x: x[1], reverse=True)[:top_number]
+        kernel_times_array = np.array(list(kernel_times.values()), dtype=float)
+        print(f"max kernel time for {label}: {np.max(kernel_times_array):.2f} ms")
+        worst_cases[label] = {
+            'kernel_times': [time for _, time in sorted_cases],
+            'configurations': [config for config, _ in sorted_cases]
+        }
+        all_kernel_times[label] = kernel_times
+
+    for label, worst_cases_data in worst_cases.items():
+        print(f"Worst cases for {label}:")
+        # Find the corresponding cases in other labels
+        for i, (config, time) in enumerate(zip(worst_cases_data['configurations'], worst_cases_data['kernel_times'])):
+            print(f"  {i+1}. Configuration: {config}")
+            for other_label, other_kernel_times in all_kernel_times.items():
+                if config in other_kernel_times:
+                    print(f"    {other_label}: {other_kernel_times[config]:.2f} ms")
+
 def main():
     base_dir, kernel_time_files, kernel_time_labels = parse_args().base_dir, parse_args().files, parse_args().labels
 
@@ -90,6 +137,8 @@ def main():
       statistics[label] = stats
       print(f"Statistics for {label}: {stats}")
       print()
+
+    run_worst_cases_analysis(results)
 
     print("Analysis complete.")
 
