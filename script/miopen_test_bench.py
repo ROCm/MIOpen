@@ -73,6 +73,8 @@ def parse_args():
     parser.add_argument("--only-heuristics", dest="only_heuristics", action="store_true", help="Run only cases with AI heuristics enabled.")
     parser.add_argument("--run-id", type=str, dest="run_id", help="Run ID for the test case")
     parser.add_argument("--log-to-file", dest="log_to_file",action="store_true", help="Log output to individual log files.")
+    parser.add_argument("--start-from", type=int, dest="start_from", default=0, help="Start from a specific test case index (optional, default: 0)")
+    parser.add_argument("--pid", type=int, dest="pid", default=os.getpid(), help="Process ID for the test case (optional, default: current process ID)")
     
     args, unknown_args = parser.parse_known_args()
     
@@ -121,10 +123,10 @@ def process_single_config(test_case, kernel_times_path, algs, tuning, pid, log_t
     """Process a single configuration"""
 
     # Get the verb from the command.
-    # The command can be in the form of: ./bin/MIOpenDriver convfp16 XXX, where we want to extract the e.g. the confvp16 part.
-    verb = test_case['mi_open_driver_command'].split(" ")[1]
-    name = test_case["name"]
-    test_name = f"{name}_{verb}"
+    # The command can be in the form of: ./bin/MIOpenDriver convfp16 XXX, where we want to remove the "./bin/MIOpenDriver" part.
+    command = test_case['mi_open_driver_command'].split(" ")[1:]
+    test_name = " ".join(command)
+    test_name= test_name.strip()
     
     # Set environment variables from config
     set_env_vars = []
@@ -140,8 +142,12 @@ def process_single_config(test_case, kernel_times_path, algs, tuning, pid, log_t
         if key not in env_vars:
             env_vars[key] = value
     
+    # calculate hash for the test name
+    test_name_hash = hash(test_name)
+    test_name_hash = f"{test_name_hash:08x}"
+    
     # Setup log path
-    log_path_config = f"../logs/individual_logs/{test_name}_{algs}_{tuning}{pid}.log"
+    log_path_config = f"../logs/individual_logs/{test_name_hash}-{algs}{tuning}{pid}.log"
     os.makedirs(os.path.dirname(log_path_config), exist_ok=True)
     
     # Prepare the MIOpenDriver command
@@ -358,26 +364,25 @@ def main():
                 print(f"Error: Unknown algorithm: {algorithm}", file=sys.stderr)
                 sys.exit(1)
     
-    # Strip trailing dash
-    if algs.endswith('-'):
-        algs = algs[:-1]
-    
     # Set debug logging flags
     os.environ["MIOPEN_ENABLE_LOGGING"] = "1"
     os.environ["MIOPEN_LOG_LEVEL"] = str(log_level)
     os.environ["MIOPEN_ENABLE_LOGGING_ELAPSED_TIME"] = "1"
     
     # Set process ID
-    pid = os.getpid()
+    pid = args.pid
+
+    continue_previous_run = args.start_from > 0
     
     # Create CSV file for kernel times
     run_id = ""
     if args.run_id:
-        run_id = f"{args.run_id}_"
-    kernel_times_path = f"../logs/kernel_times_{run_id}{algs}{tuning}{pid}.csv"
+        run_id = f"{args.run_id}-"
+    kernel_times_path = f"../logs/kernel_times-{run_id}{algs}{tuning}{pid}.csv"
     os.makedirs(os.path.dirname(kernel_times_path), exist_ok=True)
-    with open(kernel_times_path, 'w') as f:
-        f.write("Configuration, Algo_num, Solution_ID, Solver_name, Elapsed_GPU_time_average_ms, KTN_inference_time_ms\n")
+    if not continue_previous_run or not os.path.exists(kernel_times_path):
+        with open(kernel_times_path, 'w') as f:
+            f.write("Configuration,Algo_num,Solution_ID,Solver_name,Elapsed_GPU_time_average_ms,KTN_inference_time_ms\n")
     
     with open(config_file, 'r') as f:
         config_data = json.load(f)
@@ -407,6 +412,10 @@ def main():
             
     else:
         # Process all configurations
+        start_from = args.start_from
+        if start_from > 0:
+            print(f"Starting from test case index: {start_from}")
+            configs = configs[start_from:]
         progressbar = ProgressBar(end_val=len(configs), title='Progress', char_at_end='\t')
         print(f"Running {len(configs)} test cases...")
         for i, case in enumerate(configs):
