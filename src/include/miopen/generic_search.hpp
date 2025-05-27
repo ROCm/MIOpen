@@ -512,7 +512,6 @@ auto GenericSearch(const Solver s,
                 break;
             }
 
-            last_imprv++;
             MIOPEN_LOG_I2("Waiting for item in queue");
             const auto kinder     = solution_queue.pop();
             auto current_config   = std::get<0>(kinder);
@@ -588,6 +587,7 @@ auto GenericSearch(const Solver s,
                 // config), then gather 9 more samples, and remove positive z-score outliers. Use
                 // the mean value with outliers removed for calculating best config.
                 constexpr int N_RUNS = 10;
+                last_imprv++;
                 if(elapsed_time / worst_time < 1.10f)
                 {
                     MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time
