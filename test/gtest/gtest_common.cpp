@@ -128,7 +128,7 @@ const std::multimap<Gpu, DevDescription>& GetAllKnownDevices()
         {Gpu::gfx110X, {"gfx1102", 16}},
         {Gpu::gfx120X, {"gfx1201", 32}},
         {Gpu::gfx120X, {"gfx1201", 28}}
-        //clang-format on
+        // clang-format on
     };
     return known_devs;
 }
