@@ -364,6 +364,13 @@ if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
     list(APPEND MIOpen_Source kern_db.cpp bz2.cpp)
 endif()
 
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+    list(APPEND MIOpen_Source kernels/ck_header_only/layernorm/fwd/device_layernorm2d_fwd_f16_instance.cpp)
+    list(APPEND MIOpen_Source kernels/ck_header_only/layernorm/fwd/device_layernorm2d_fwd_f32_instance.cpp)
+    list(APPEND MIOpen_Source kernels/ck_header_only/layernorm/fwd/device_layernorm4d_fwd_f16_instance.cpp)
+    list(APPEND MIOpen_Source kernels/ck_header_only/layernorm/fwd/device_layernorm4d_fwd_f32_instance.cpp)
+endif()
+
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     file(GLOB_RECURSE STATIC_COMPOSABLE_KERNEL_INCLUDE "kernels/static_composable_kernel/include/*/*.hpp")
     file(GLOB_RECURSE STATIC_COMPOSABLE_KERNEL_SOURCE "kernels/static_composable_kernel/src/*/*.cpp")
@@ -855,7 +862,7 @@ target_include_directories(MIOpen PUBLIC
 )
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_reduction_operations hip::host)
+set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_reduction_operations hip::host)
 endif()
 
 if(WIN32)
