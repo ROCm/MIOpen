@@ -168,8 +168,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ExecutionContext& ctx,
 
     std::tie(ck_compile_param, std::ignore) =
         ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::CalculateCompileParameterBasedOnTunable(
-            ck_conv_problem_desc,
-            get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config));
+            ck_conv_problem_desc, get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config));
 
     // kernel0: prepare
     {

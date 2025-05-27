@@ -384,8 +384,9 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmABlockCopyPerformanceParamete
     int SrcDataPerRead_GemmKPack  = problem.IsFp32()
                                         ? static_ck::amd_buffer_load_max_length<float>()
                                         : static_ck::amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? static_ck::amd_lds_write_max_length<float>()
-                                                     : static_ck::amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32()
+                                        ? static_ck::amd_lds_write_max_length<float>()
+                                        : static_ck::amd_lds_write_max_length<half_float::half>();
     try
     {
         bool valid = false;
@@ -482,8 +483,9 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
     int SrcDataPerRead_GemmKPack  = problem.IsFp32()
                                         ? static_ck::amd_buffer_load_max_length<float>()
                                         : static_ck::amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? static_ck::amd_lds_write_max_length<float>()
-                                                     : static_ck::amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32()
+                                        ? static_ck::amd_lds_write_max_length<float>()
+                                        : static_ck::amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -630,12 +632,12 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ExecutionContext&
         return false;
 
     if(!static_ck::IsValidBlockwiseGemmXdlops(problem,
-                                   GemmMPerBlock,
-                                   GemmNPerBlock,
-                                   GemmKPerBlock,
-                                   GemmMPerWave,
-                                   GemmNPerWave,
-                                   GemmKPack))
+                                              GemmMPerBlock,
+                                              GemmNPerBlock,
+                                              GemmKPerBlock,
+                                              GemmMPerWave,
+                                              GemmNPerWave,
+                                              GemmKPack))
         return false;
 
     bool valid = false;

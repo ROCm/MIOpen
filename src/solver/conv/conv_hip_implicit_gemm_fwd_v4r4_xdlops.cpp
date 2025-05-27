@@ -317,8 +317,9 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmABlockCopyPerformancePara
     int SrcDataPerRead_GemmKPack  = problem.IsFp32()
                                         ? static_ck::amd_buffer_load_max_length<float>()
                                         : static_ck::amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? static_ck::amd_lds_write_max_length<float>()
-                                                     : static_ck::amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32()
+                                        ? static_ck::amd_lds_write_max_length<float>()
+                                        : static_ck::amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -401,10 +402,12 @@ PerformanceImplicitGemmForwardV4R4Xdlops::CalculateGemmBBlockCopyPerformancePara
     int ClusterLengths_GemmK      = -1;
     int ClusterLengths_GemmN      = -1;
     int ClusterLengths_GemmKPack  = -1;
-    int SrcDataPerRead_GemmN      = problem.IsFp32() ? static_ck::amd_buffer_load_max_length<float>()
-                                                     : static_ck::amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? static_ck::amd_lds_write_max_length<float>()
-                                                     : static_ck::amd_lds_write_max_length<half_float::half>();
+    int SrcDataPerRead_GemmN      = problem.IsFp32()
+                                        ? static_ck::amd_buffer_load_max_length<float>()
+                                        : static_ck::amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32()
+                                        ? static_ck::amd_lds_write_max_length<float>()
+                                        : static_ck::amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -569,12 +572,12 @@ bool PerformanceImplicitGemmForwardV4R4Xdlops::IsReallyValid(
         return false;
 
     if(!static_ck::IsValidBlockwiseGemmXdlops(problem,
-                                   GemmMPerBlock,
-                                   GemmNPerBlock,
-                                   GemmKPerBlock,
-                                   GemmMPerWave,
-                                   GemmNPerWave,
-                                   GemmKPack))
+                                              GemmMPerBlock,
+                                              GemmNPerBlock,
+                                              GemmKPerBlock,
+                                              GemmMPerWave,
+                                              GemmNPerWave,
+                                              GemmKPack))
         return false;
 
     bool valid = false;

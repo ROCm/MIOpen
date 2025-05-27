@@ -36,7 +36,9 @@ namespace ck_utility {
 // MI100 : gfx908
 // MI200 : gfx90a
 // MI300 : gfx942
-/// \todo This function should probably always return true, since the list of supported devices depends on which devices CK was compiled for, and the CK itself includes a check whether is an instance for the device.
+/// \todo This function should probably always return true, since the list of supported devices
+/// depends on which devices CK was compiled for, and the CK itself includes a check whether is an
+/// instance for the device.
 static inline bool is_ck_whitelist(const std::string& device_name)
 {
     return (StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||

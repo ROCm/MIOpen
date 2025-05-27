@@ -80,8 +80,9 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmABlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmM     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmM     = problem.IsFp32() ? static_ck::amd_buffer_load_max_length<float>()
-                                                    : static_ck::amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmM     = problem.IsFp32()
+                                       ? static_ck::amd_buffer_load_max_length<float>()
+                                       : static_ck::amd_buffer_load_max_length<half_float::half>();
 
     int DstDataPerWrite_GemmKPack = problem.IsFp32()
                                         ? static_ck::amd_buffer_load_max_length<float>()
@@ -173,11 +174,13 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops::CalculateGemmBBlockCopyPerformancePara
     int ClusterLengths_GemmK     = 0;
     int ClusterLengths_GemmN     = 0;
     int ClusterLengths_GemmKPack = 0;
-    int SrcDataPerRead_GemmN     = problem.IsFp32() ? static_ck::amd_buffer_load_max_length<float>()
-                                                    : static_ck::amd_buffer_load_max_length<half_float::half>();
+    int SrcDataPerRead_GemmN     = problem.IsFp32()
+                                       ? static_ck::amd_buffer_load_max_length<float>()
+                                       : static_ck::amd_buffer_load_max_length<half_float::half>();
 
-    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? static_ck::amd_lds_write_max_length<float>()
-                                                     : static_ck::amd_lds_write_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32()
+                                        ? static_ck::amd_lds_write_max_length<float>()
+                                        : static_ck::amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -387,12 +390,12 @@ bool PerformanceImplicitGemmBwdDataV4R1Xdlops::IsReallyValid(
         return false; // wrong! cannot divice N evenly among thread
 
     if(!static_ck::IsValidBlockwiseGemmXdlops(problem,
-                                   GemmMPerBlock,
-                                   GemmNPerBlock,
-                                   GemmKPerBlock,
-                                   GemmMPerWave,
-                                   GemmNPerWave,
-                                   GemmKPACKSize))
+                                              GemmMPerBlock,
+                                              GemmNPerBlock,
+                                              GemmKPerBlock,
+                                              GemmMPerWave,
+                                              GemmNPerWave,
+                                              GemmKPACKSize))
         return false;
 
     bool valid = false;
@@ -882,7 +885,8 @@ PerformanceImplicitGemmBwdDataV4R1Xdlops
 ConvHipImplicitGemmBwdDataV4R1Xdlops::GetDefaultPerformanceConfig(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    return static_ck::GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>(ctx, problem);
+    return static_ck::GetPerformanceConfigBase<PerformanceImplicitGemmBwdDataV4R1Xdlops>(ctx,
+                                                                                         problem);
 }
 
 bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsValidPerformanceConfig(

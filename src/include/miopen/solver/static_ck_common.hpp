@@ -161,11 +161,12 @@ constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
 
 static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ctx)
 {
-    auto compiler_flag = std::string(" --std=c++14");
+    auto compiler_flag     = std::string(" --std=c++14");
     auto buffer_atomic_add = support_amd_buffer_atomic_fadd(ctx.GetStream().GetDeviceName());
 
     // atomic-fadd
-    compiler_flag += std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") + (buffer_atomic_add ? '1' : '0');
+    compiler_flag +=
+        std::string(" -DCK_USE_AMD_BUFFER_ATOMIC_FADD=") + (buffer_atomic_add ? '1' : '0');
 
     if(buffer_atomic_add)
         compiler_flag += std::string(" -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");
@@ -173,8 +174,7 @@ static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ct
     // LDS sync
     compiler_flag +=
         std::string(" -DCK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM=") +
-        (env::disabled(MIOPEN_DEBUG_STATIC_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM) ? '0'
-                                                                                : '1');
+        (env::disabled(MIOPEN_DEBUG_STATIC_CK_BLOCK_SYNC_LDS_WITHOUT_SYNC_VMEM) ? '0' : '1');
 
     // workaround
     compiler_flag +=

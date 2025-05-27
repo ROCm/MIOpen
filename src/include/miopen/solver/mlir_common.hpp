@@ -34,7 +34,8 @@ namespace miopen {
 namespace solver {
 namespace mlir {
 
-// Previously, this function was called 'IsComposableKernelSupportedHardware' (a single function was used for both libraries)
+// Previously, this function was called 'IsComposableKernelSupportedHardware' (a single function was
+// used for both libraries)
 // TODO Check which devices are currently supported
 static inline bool IsMlirSupportedHardware(const ExecutionContext& c)
 {
