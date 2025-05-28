@@ -165,7 +165,7 @@ std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
     }
 
     for(const auto& s : out)
-        MIOPEN_LOG_I2(s);
+        MIOPEN_LOG_I2(solver::Id{s.solution_id}.ToString());
 
     return out;
 }
@@ -276,7 +276,12 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
         std::vector<Solution> eval_sols;
         auto db = MakeConvDbGetter(ctx);
         // reverse solutions so that EvaluateInvokers registers the fastest solution last
-        for(auto sol = solutions.rbegin(); sol != solutions.rend(); ++sol)
+        auto sol_itr = solutions.rbegin();
+        auto sol_end = solutions.rend();
+        if(!model_result)
+            sol_itr = solutions.rend() - 1;
+
+        for(auto sol = sol_itr; sol != sol_end; ++sol)
         {
             const auto id      = solver::Id{sol->solution_id};
             const auto& solver = id.GetSolver();
@@ -299,11 +304,9 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
                                                               false);
 
             eval_sols.emplace_back(eval_sol.front());
-
-            if(!model_result)
-                break;
         }
-        std::reverse(eval_sols.begin(), eval_sols.end());
+        if(model_result)
+            std::reverse(eval_sols.begin(), eval_sols.end());
 
         bool good_entry         = false;
         const float eval_time_1 = eval_sols[0].GetTime();
@@ -320,7 +323,7 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
         else
         {
             // test evaluated vs recorded time
-            constexpr float VERIFY_TOLERANCE = 1.10f;
+            float VERIFY_TOLERANCE =  1.0 + env::value(MIOPEN_VERIFY_TOLERANCE_PCT) / 100.0f;
             const float rel_perf             = eval_time_1 / solutions[0].time;
             MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time_1 << ") / recorded("
                                                     << solutions[0].time << ") < "
