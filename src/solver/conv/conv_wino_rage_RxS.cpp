@@ -210,7 +210,7 @@ ConvWinoRageRxSCommon<Winodata, Winofilter>::GetSolution(const ExecutionContext&
     kernelInfo.l_wk.push_back(1);
     kernelInfo.l_wk.push_back(1);
 
-    kernelInfo.g_wk.push_back(wgSize * nGroups);
+    kernelInfo.g_wk.push_back(wgSize * nGroups * args.G);
     kernelInfo.g_wk.push_back(1);
     kernelInfo.g_wk.push_back(1);
 
