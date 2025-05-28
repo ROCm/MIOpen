@@ -249,7 +249,7 @@ pipeline {
                     }
                 }
                 stages {
-                    stage("${DEVICE}") {
+                    stage("DbSync ${DEVICE}") {
                         when {
                             beforeAgent true
                             allOf{
@@ -296,7 +296,7 @@ pipeline {
                 }
                 stages 
                 {
-                    stage("${DEVICE} - ${PRECISION}") 
+                    stage("Build & Test: ${DEVICE} - ${PRECISION}") 
                     {
                         when {
                             beforeAgent true
