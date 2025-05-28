@@ -29,6 +29,7 @@
 #include "get_handle.hpp"
 #include <miopen/conv/solvers.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
+#include <miopen/datatype.hpp>
 #include "../../driver/driver.hpp"
 
 struct KernelTuningNetTestCase : AIModelTestCase
@@ -160,15 +161,15 @@ protected:
                                                               conv_desc,
                                                               test_case.direction);
 
-        auto data_type = test_case.data_type;
+        auto data_size = miopen::get_data_size(test_case.data_type);
         auto in_tensor =
-            GPUMem{0, input_tensor_desc.GetNumBytes() / sizeof(data_type), sizeof(data_type)};
+            GPUMem{0, input_tensor_desc.GetNumBytes() / data_size, data_size};
         auto wt_tensor =
-            GPUMem{0, weights_tensor_desc.GetNumBytes() / sizeof(data_type), sizeof(data_type)};
+            GPUMem{0, weights_tensor_desc.GetNumBytes() / data_size, data_size};
         auto out_tensor =
-            GPUMem{0, output_desc.GetNumBytes() / sizeof(data_type), sizeof(data_type)};
+            GPUMem{0, output_desc.GetNumBytes() / data_size, data_size};
         auto workSpaceSize = conv_desc.GetWorkSpaceSize(ctx, problem);
-        auto workSpace     = GPUMem{0, workSpaceSize / sizeof(data_type), sizeof(data_type)};
+        auto workSpace     = GPUMem{0, workSpaceSize / data_size, data_size};
 
         miopen::AnyInvokeParams invoke_ctx;
         if(test_case.direction == miopen::conv::Direction::Forward)
