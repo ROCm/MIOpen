@@ -214,7 +214,6 @@ pipeline {
                 }
                 steps {
                     script {
-                        checkout scm
                         sh 'cd ./test/utils && python3 gtest_formating_checks.py'
                         }
                     }
