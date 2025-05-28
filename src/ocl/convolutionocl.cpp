@@ -384,12 +384,16 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
         if(findMode.IsTrustVerify(ctx))
+        {
             ufdb_sols = miopen::GetSolutions<UserFindDb>(ctx, problem, 1, &invoke_ctx);
-
-        if(!ufdb_sols.empty())
-            sols = ufdb_sols;
+            if(!ufdb_sols.empty())
+                sols = ufdb_sols;
+            else
+                sols = conv.GetSolutions(ctx, problem, 2, &fallback, &invoke_ctx);
+        }
         else
-            sols = conv.GetSolutions(ctx, problem, 2, &fallback, &invoke_ctx);
+            sols = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
+
         // override the normal find with immed mode with env var
         if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback != FallbackPath::None) ||
                              (findMode.IsTrustVerify(ctx) && fallback == FallbackPath::AI) ||
