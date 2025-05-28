@@ -153,6 +153,21 @@ ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
                            std::vector<int>&& pad_,
                            std::vector<int>&& stride_,
                            std::vector<int>&& dilation_,
+                           int groups_,
+                           miopenDataType_t type_)
+    : ConvTestCase(TensorDescriptorParams{type_, std::move(x_)},
+                   TensorDescriptorParams{type_, std::move(w_)},
+                   type_,
+                   ConvolutionDescriptorParams{
+                       std::move(pad_), std::move(stride_), std::move(dilation_), groups_})
+{
+}
+
+ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
+                           std::vector<size_t>&& w_,
+                           std::vector<int>&& pad_,
+                           std::vector<int>&& stride_,
+                           std::vector<int>&& dilation_,
                            miopenDataType_t type_x_,
                            miopenDataType_t type_w_,
                            miopenDataType_t type_y_)
