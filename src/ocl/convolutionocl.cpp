@@ -323,8 +323,8 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
         else
         {
             // test evaluated vs recorded time
-            float VERIFY_TOLERANCE =  1.0 + env::value(MIOPEN_VERIFY_TOLERANCE_PCT) / 100.0f;
-            const float rel_perf             = eval_time_1 / solutions[0].time;
+            float VERIFY_TOLERANCE = 1.0 + env::value(MIOPEN_VERIFY_TOLERANCE_PCT) / 100.0f;
+            const float rel_perf   = eval_time_1 / solutions[0].time;
             MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time_1 << ") / recorded("
                                                     << solutions[0].time << ") < "
                                                     << VERIFY_TOLERANCE << " ?");
