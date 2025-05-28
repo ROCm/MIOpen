@@ -46,12 +46,18 @@ def runDbSyncJob()
     }
 }
 
+//launch develop branch nightly jobs
+CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 0 * * * % RUN_NIGHTLY_TESTS=true;BUILD_PACKAGE_AND_CHECKS=false;BUILD_FULL_TESTS=false''' : ""
+
 pipeline {
     agent none
     options {
         parallelsAlwaysFailFast()
         // disable stage-wise timeout due to long wait with queue (limited resources)
         // timeout(time: 90, unit:'MINUTES')
+    }
+    triggers{
+        parameterizedCron(CRON_SETTINGS)
     }
     parameters {
         booleanParam(
@@ -137,6 +143,10 @@ pipeline {
             name: "USE_SCCACHE_DOCKER",
             defaultValue: true,
             description: "Use the sccache for building CK in the Docker Image (default: ON)")
+        booleanParam(
+            name: "RUN_NIGHTLY_TESTS",
+            defaultValue: false,
+            description: "Run the nightly tests (default: OFF)")
     }
 
     environment{
@@ -148,10 +158,6 @@ pipeline {
         Smoke_targets   = " check MIOpenDriver"
         NOCOMGR_flags   = " -DMIOPEN_USE_COMGR=Off"
         NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
-    }
-    triggers{
-
-        cron(env.BRANCH_NAME == env.NIGHTLY_BRANCH ? env.NIGHTLY_SCHEDULE : '')
     }
     stages{
         stage('Build Docker'){
@@ -458,6 +464,132 @@ pipeline {
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Full_test, build_install: true)
+                        }
+                    }
+                }
+            }
+        }
+        stage("Nightly Tests") {
+            when {
+                expression { false } // add way to only do for nightly builds
+            }
+            parallel{
+                stage('Fp32 Hip Debug NOMLIR gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    environment{
+                        // Can be removed altogether with when WORKAROUND_SWDEV_290754.
+                        NOMLIR_build_cmd = "CTEST_PARALLEL_LEVEL=4 MIOPEN_LOG_LEVEL=5 make -j\$(nproc) check"
+                    }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: NOMLIR_flags, build_cmd: NOMLIR_build_cmd, test_flags: ' --verbose ', build_install: true)
+                        }
+                    }
+                }
+                stage('Fp32 Hip Debug NOCK gfx90a Build-Only') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot( build_type: 'debug', setup_flags: "-DMIOPEN_USE_COMPOSABLEKERNEL=Off", make_targets: "", build_install: true)
+                        }
+                    }
+                }
+                stage('Fp32 Hip Static gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot( setup_flags: "-DBUILD_SHARED_LIBS=Off", mlir_build: 'OFF', build_install: true)
+                        }
+                    }
+                }
+                stage('Fp32 Hip Normal-Find gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    environment{
+                        make_targets = "test_conv2d"
+                        execute_cmd = "bin/test_conv2d --disable-verification-cache"
+                    }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(make_targets: make_targets, execute_cmd: execute_cmd, find_mode: "Normal", build_install: true)
+                        }
+                    }
+                }
+                stage('Fp32 Hip Fast-Find gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    environment{
+                        make_targets =   "test_conv2d"
+                        execute_cmd = "MIOPEN_FIND_MODE=2 CTEST_PARALLEL_LEVEL=4 bin/test_conv2d --disable-verification-cache"
+                    }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot( make_targets: make_targets, execute_cmd: execute_cmd, build_install: true)
+                        }
+                    }
+                }
+                stage('Fp32 Hip SqlitePerfdb gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(make_targets: Smoke_targets, setup_flags: "-DMIOPEN_USE_SQLITE_PERF_DB=On", build_install: true)
+                        }
+                    }
+                }
+                stage('Fp32 Hip Fin Interface gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(setup_flags: "-DMIOPEN_ENABLE_FIN_INTERFACE=On",
+                                                            make_targets: "test_unit_FinInterface",
+                                                            execute_cmd: "bin/test_unit_FinInterface")
                         }
                     }
                 }
