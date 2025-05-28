@@ -484,7 +484,7 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
     add_test_executable(test_${BASE_NAME} ${TEST_SOURCE})
 endforeach()
 
-if(MIOPEN_ENABLE_SQLITE AND (MIOPEN_EMBED_DB STREQUAL "") AND MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB)
+if(MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB)
     set_tests_properties(test_sqlite_perfdb PROPERTIES RUN_SERIAL On)
 endif()
 set_tests_properties(test_perfdb PROPERTIES RUN_SERIAL On)
