@@ -161,13 +161,10 @@ protected:
                                                               conv_desc,
                                                               test_case.direction);
 
-        auto data_size = miopen::get_data_size(test_case.data_type);
-        auto in_tensor =
-            GPUMem{0, input_tensor_desc.GetNumBytes() / data_size, data_size};
-        auto wt_tensor =
-            GPUMem{0, weights_tensor_desc.GetNumBytes() / data_size, data_size};
-        auto out_tensor =
-            GPUMem{0, output_desc.GetNumBytes() / data_size, data_size};
+        auto data_size     = miopen::get_data_size(test_case.data_type);
+        auto in_tensor     = GPUMem{0, input_tensor_desc.GetNumBytes() / data_size, data_size};
+        auto wt_tensor     = GPUMem{0, weights_tensor_desc.GetNumBytes() / data_size, data_size};
+        auto out_tensor    = GPUMem{0, output_desc.GetNumBytes() / data_size, data_size};
         auto workSpaceSize = conv_desc.GetWorkSpaceSize(ctx, problem);
         auto workSpace     = GPUMem{0, workSpaceSize / data_size, data_size};
 
