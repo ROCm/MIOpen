@@ -115,12 +115,14 @@ function(_fetch_composable_kernel VERSION HASH)
     _save_var(GPU_ARCHS)
     _save_var(CMAKE_BUILD_TYPE)
     _save_var(MIOPEN_REQ_LIBS_ONLY)
+    _save_var(DISABLE_OFFLOAD_COMPRESS)
     _save_var(ENABLE_CLANG_CPP_CHECKS)
 
     # Use GPU_ARCHs for CK as it stops CK's cmake from including the tests.
     set(GPU_ARCHS "${GPU_TARGETS}" CACHE INTERNAL "")
     set(CMAKE_BUILD_TYPE "Release" CACHE INTERNAL "")
     set(MIOPEN_REQ_LIBS_ONLY ON CACHE INTERNAL "")
+    set(DISABLE_OFFLOAD_COMPRESS ON CACHE INTERNAL "")
     set(ENABLE_CLANG_CPP_CHECKS OFF CACHE INTERNAL "")
 
     FetchContent_MakeAvailable(composable_kernel)
@@ -128,6 +130,7 @@ function(_fetch_composable_kernel VERSION HASH)
     _restore_var(CMAKE_BUILD_TYPE)
     _restore_var(GPU_ARCHS)
     _restore_var(MIOPEN_REQ_LIBS_ONLY)
+    _restore_var(DISABLE_OFFLOAD_COMPRESS)
     _restore_var(ENABLE_CLANG_CPP_CHECKS)
 
     _exclude_from_all(${composable_kernel_SOURCE_DIR})
