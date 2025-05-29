@@ -684,32 +684,49 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
     std::vector<std::size_t> layout_strides(base_layout.size());
     std::transform(base_layout.cbegin(), base_layout.cend(), layout_strides.begin(), op);
 
+    // Check monotonic decreasing with conservative PyTorch compatibility fix
     for(unsigned i = 0; i < (layout_strides.size() - 1); i++)
     {
         if(layout_strides[i] < layout_strides[i + 1])
         {
-            // Find which dimensions are involved in this stride violation
-            auto char_at_i = base_layout[i];
-            auto char_at_i_plus_1 = base_layout[i + 1];
+            // Conservative fix: Only allow stride violations when:
+            // 1. This is a 5D tensor 
+            // 2. The violating dimension has size 1
+            // 3. The stride values are actually shared (same value appears elsewhere)
+            bool allow_violation = false;
             
-            auto dim_pos_i = storage_layout.find(char_at_i);
-            auto dim_pos_i_plus_1 = storage_layout.find(char_at_i_plus_1);
-            
-            if(dim_pos_i == std::string::npos || dim_pos_i_plus_1 == std::string::npos)
-                MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
-            
-            // This is memory-safe because size-1 dimensions don't create aliasing
-            if(lens[dim_pos_i] == 1 || lens[dim_pos_i_plus_1] == 1)
+            if(lens.size() == 5)
             {
-                continue; // Skip this violation - it's safe
+                auto char_at_i = base_layout[i];
+                auto char_at_i_plus_1 = base_layout[i + 1];
+                
+                auto dim_pos_i = storage_layout.find(char_at_i);
+                auto dim_pos_i_plus_1 = storage_layout.find(char_at_i_plus_1);
+                
+                if(dim_pos_i != std::string::npos && dim_pos_i_plus_1 != std::string::npos)
+                {
+                    // Only allow if the larger stride dimension has size 1
+                    if(lens[dim_pos_i_plus_1] == 1)
+                    {
+                        // Verify this is genuine stride sharing (not arbitrary values)
+                        std::size_t shared_stride = layout_strides[i + 1];
+                        for(std::size_t k = 0; k < strides.size(); ++k)
+                        {
+                            if(k != dim_pos_i_plus_1 && strides[k] == shared_stride)
+                            {
+                                allow_violation = true;
+                                break;
+                            }
+                        }
+                    }
+                }
             }
             
-            // Real stride violation with non-size-1 dimensions - reject
-            return false;
+            if(!allow_violation)
+                return false;
         }
     }
     return true;
-
 }
 
 // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
