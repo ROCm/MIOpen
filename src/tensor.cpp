@@ -689,20 +689,16 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
     {
         if(layout_strides[i] < layout_strides[i + 1])
         {
-            // Conservative fix: Only allow stride violations when:
-            // 1. This is a 5D tensor 
-            // 2. The violating dimension has size 1
-            // 3. The stride values are actually shared (same value appears elsewhere)
             bool allow_violation = false;
-            
+    
             if(lens.size() == 5)
             {
                 auto char_at_i = base_layout[i];
                 auto char_at_i_plus_1 = base_layout[i + 1];
-                
+    
                 auto dim_pos_i = storage_layout.find(char_at_i);
                 auto dim_pos_i_plus_1 = storage_layout.find(char_at_i_plus_1);
-                
+    
                 if(dim_pos_i != std::string::npos && dim_pos_i_plus_1 != std::string::npos)
                 {
                     // Only allow if the larger stride dimension has size 1
@@ -721,7 +717,7 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
                     }
                 }
             }
-            
+    
             if(!allow_violation)
                 return false;
         }
