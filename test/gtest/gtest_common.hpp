@@ -320,11 +320,12 @@ MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_ENFORCE)
 #if MIOPEN_ENABLE_TEST_DRIVE_WITH_GTEST
 #define MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE()
 #else
-#define MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE()                                                     \
-protected:                                                                                         \
-    void SetUp() override                                                                          \
-    {                                                                                              \
-        GTEST_SKIP() << "-> GTests making use of test_drive<> functionaly are currently disabled"; \
+#define MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE()                                              \
+protected:                                                                                  \
+    void SetUp() override                                                                   \
+    {                                                                                       \
+        GTEST_SKIP()                                                                        \
+            << "-> GTests making use of test_drive<> functionality are currently disabled"; \
     }
 #endif
 
