@@ -29,7 +29,6 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include "get_handle.hpp"
-#include "gtest_common.hpp"
 #include "../conv2d.hpp"
 
 namespace conv_embed_db {
@@ -45,19 +44,15 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 
 class CPU_ConvEmbedConfig_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
-    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 class CPU_ConvEmbedConfig_I8 : public testing::TestWithParam<std::vector<std::string>>
 {
-    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 class CPU_ConvEmbedConfig_BFP16 : public testing::TestWithParam<std::vector<std::string>>
 {
-    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 class CPU_ConvEmbedConfig_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
-    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 void Run2dDriver(miopenDataType_t prec)
