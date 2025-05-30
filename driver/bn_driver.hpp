@@ -162,6 +162,7 @@ private:
     GpumemTensor<TOut> out_bwd;
 
     GpumemTensor<TScaleBias> bnScale;
+    GpumemTensor<TScaleBias> bnBias;
     GpumemTensor<TAcc> dScale;
     GpumemTensor<TAcc> dBias;
     // savedMean declared above as TAcc as well
@@ -250,6 +251,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         out_bwd.AllocOnHost(tensor<TOut>{bn_layout, in_len});
 
         bnScale.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
+        bnBias.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
         dy.AllocOnHost(tensor<TOut>{bn_layout, in_len});
         // -2.0 to 2.0
         dy.InitHostData(dy.GetTensor().desc.GetElementSize(),
@@ -265,6 +267,9 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
             bnScale.GetTensor().desc.GetElementSize(),
             true,
             uniform_signed_initializer<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/));
+        bnBias.InitHostData(bnBias.GetTensor().desc.GetElementSize(),
+                            true,
+                            uniform_signed_initializer<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/));
         // -2.0 to 2.0
         savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(),
                                true,
@@ -338,8 +343,6 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AddCmdLineArgs()
         "activ_alpha", 'x', "1.0", "Activation function parameter alpha (Default=1.0)", "float");
     inflags.AddInputFlag(
         "activ_beta", 'y', "1.0", "Activation function parameter beta (Default=1.0)", "float");
-    inflags.AddInputFlag(
-        "activ_gamma", 'z', "1.0", "Activation function parameter gamma (Default=1.0)", "float");
     AddGpuBufferCheckFlag(inflags);
 
     return miopenStatusSuccess;
@@ -599,6 +602,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AllocateBuffersAndCop
 
         status |= bnScale.AllocOnDeviceAndInit(
             q, ctx, GetTensorSize(&bnScale.GetTensor().desc), buffer_check);
+        status |= bnBias.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&bnBias.GetTensor().desc), buffer_check);
         status |=
             dy.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&dy.GetTensor().desc), buffer_check);
 
@@ -693,7 +698,7 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdInferenceAc
                                   activ_mode,
                                   inflags.GetValueDouble("activ_alpha"),
                                   inflags.GetValueDouble("activ_beta"),
-                                  inflags.GetValueDouble("activ_gamma"));
+                                  static_cast<double>(0.0));
     if(keepRunningMeanVar)
     { // use precalculated mean and variance
         miopenBatchNormForwardInferenceActivation(GetHandle(),
@@ -875,7 +880,7 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrainActiva
                                   activ_mode,
                                   inflags.GetValueDouble("activ_alpha"),
                                   inflags.GetValueDouble("activ_beta"),
-                                  inflags.GetValueDouble("activ_gamma"));
+                                  static_cast<double>(0.0));
     if(saveMeanVar && keepRunningMeanVar)
     {
         miopenBatchNormForwardTrainingActivation(GetHandle(),
@@ -1154,7 +1159,7 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runCPUFwdInference(T
         if(activ_mode > 0)
         {
             activationHostInfer(activ_mode,
-                                inflags.GetValueDouble("activ_gamma"),
+                                static_cast<double>(0.0),
                                 inflags.GetValueDouble("activ_beta"),
                                 inflags.GetValueDouble("activ_alpha"),
                                 out_ref.data,
@@ -1233,7 +1238,7 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runCPUFwdTrain(Tref 
         if(activ_mode > 0)
         {
             activationHostInfer(activ_mode,
-                                inflags.GetValueDouble("activ_gamma"),
+                                static_cast<double>(0.0),
                                 inflags.GetValueDouble("activ_beta"),
                                 inflags.GetValueDouble("activ_alpha"),
                                 out_ref.data,
@@ -1299,7 +1304,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardGPU()
                                   activ_mode,
                                   inflags.GetValueDouble("activ_alpha"),
                                   inflags.GetValueDouble("activ_beta"),
-                                  inflags.GetValueDouble("activ_gamma"));
+                                  static_cast<double>(0.0));
 
     for(int i = 0; i < iters; i++)
     {
@@ -1351,6 +1356,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardGPU()
                                                   &savedMean.GetTensor().desc,
                                                   &savedInvVar.GetTensor().desc,
                                                   bnScale.GetDevicePtr(),
+                                                  bnBias.GetDevicePtr(),
                                                   dScale.GetDevicePtr(),
                                                   dBias.GetDevicePtr(),
                                                   epsilon,
@@ -1405,6 +1411,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardGPU()
                                                   &savedMean.GetTensor().desc,
                                                   &savedInvVar.GetTensor().desc,
                                                   bnScale.GetDevicePtr(),
+                                                  bnBias.GetDevicePtr(),
                                                   dScale.GetDevicePtr(),
                                                   dBias.GetDevicePtr(),
                                                   epsilon,
@@ -1730,10 +1737,14 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          dy.GetTensor(),
                                          out_ref,
                                          bnScale.GetTensor(),
+                                         bnBias.GetTensor(),
                                          dScale_ref,
                                          dBias_ref,
                                          savedMean.GetTensor(),
-                                         savedInvVar.GetTensor());
+                                         savedInvVar.GetTensor(),
+                                         activ_mode,
+                                         inflags.GetValueDouble("activ_beta"),
+                                         inflags.GetValueDouble("activ_alpha"));
         }
         else
         {
@@ -1742,19 +1753,14 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          dy.GetTensor(),
                                          out_ref,
                                          bnScale.GetTensor(),
+                                         bnBias.GetTensor(),
                                          dScale_ref,
                                          dBias_ref,
                                          empty_tensor,
-                                         empty_tensor);
-        }
-        if(activ_mode > 0)
-        {
-            activationHostInfer(activ_mode,
-                                inflags.GetValueDouble("activ_gamma"),
-                                inflags.GetValueDouble("activ_beta"),
-                                inflags.GetValueDouble("activ_alpha"),
-                                out_ref.data,
-                                out_ref.data);
+                                         empty_tensor,
+                                         activ_mode,
+                                         inflags.GetValueDouble("activ_beta"),
+                                         inflags.GetValueDouble("activ_alpha"));
         }
     }
     else
