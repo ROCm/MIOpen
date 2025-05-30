@@ -734,7 +734,8 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
             return false;
     }
 
-    int is_gemm_k_split = gemm_k_global_split != 0 ? 1 : 0;
+    const bool is_gemm_k_split = gemm_k_global_split != 0;
+    const int gemm_k_shift     = gemm_k_global_split != 0 ? 1 : 0;
 
     if(is_gemm_k_split)
     {
@@ -745,7 +746,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
-        auto splited_c = (c / group) >> is_gemm_k_split;
+        auto splited_c = (c / group) >> gemm_k_shift;
         // if both 1, indicate padded c support
         if(splited_c == 0 || (splited_c % gemm_k_per_block != 0))
             return false;

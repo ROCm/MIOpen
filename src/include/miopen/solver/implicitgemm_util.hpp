@@ -585,13 +585,13 @@ static inline bool IsComposableKernelSupportedHardware(const ExecutionContext& c
 }
 
 template <typename T>
-auto inline igemm_get_max_gks(T gemm_k, T gemm_k_per_block, T max_log2_splits)
+inline T igemm_get_max_gks(T gemm_k, T gemm_k_per_block, T max_log2_splits)
 {
     if(gemm_k % gemm_k_per_block != 0)
         return 0;
-    size_t rem      = gemm_k / gemm_k_per_block;
-    size_t rem_pow2 = rem & (~(rem - 1));
-    size_t gks      = (size_t)log2(rem_pow2);
+    T rem      = gemm_k / gemm_k_per_block;
+    T rem_pow2 = rem & (~(rem - 1));
+    T gks      = (T)log2(rem_pow2);
 
     if(gks > max_log2_splits)
         gks = max_log2_splits;
