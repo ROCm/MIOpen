@@ -734,16 +734,25 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
             return false;
     }
 
+    int is_gemm_k_split = gemm_k_global_split != 0 ? 1 : 0;
+
+    if(is_gemm_k_split)
+    {
+        if(gemm_k_global_split >
+           igemm_get_max_gks(c / group, gemm_k_per_block, FWD_MAX_GEMM_K_SPLITS))
+            return false;
+    }
+
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
-        auto splited_c = (c / group) >> gemm_k_global_split;
+        auto splited_c = (c / group) >> is_gemm_k_split;
         // if both 1, indicate padded c support
         if(splited_c == 0 || (splited_c % gemm_k_per_block != 0))
             return false;
         // also, add this restriction to k, for vector write out
         if(problem.IsFp16() || problem.IsBfp16())
         {
-            if(gemm_k_global_split != 0)
+            if(is_gemm_k_split)
             {
                 if((k / group) % 2 != 0)
                     return false;
