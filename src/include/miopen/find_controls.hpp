@@ -170,7 +170,7 @@ public:
     template <class Context>
     bool IsTrustVerify(const Context& context) const
     {
-    //TrustVerify uses user db as groud truth, disable if no user db
+        // TrustVerify uses user db as groud truth, disable if no user db
 #if MIOPEN_DISABLE_USERDB
         return false
 #else
