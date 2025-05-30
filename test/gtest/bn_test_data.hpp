@@ -83,6 +83,9 @@ std::vector<T> Network2DLarge();
 template <typename T>
 std::vector<T> Network3DBN();
 
+template <typename T>
+std::vector<T> Network3DSerialCase();
+
 template <>
 inline std::vector<BN2DTestCase> Network2DLarge()
 {
@@ -92,9 +95,6 @@ inline std::vector<BN2DTestCase> Network2DLarge()
         {64, 1, 1024, 1024, miopen::batchnorm::Direction::Backward, 1, 0},
         {192, 1, 8, 8, miopen::batchnorm::Direction::Backward, 1, 0},
         {12, 40, 122, 122, miopen::batchnorm::Direction::Backward, 1, 0},
-        {64, 2048, 7, 7, miopen::batchnorm::Direction::Backward, 0, 1},
-        {64, 2048, 7, 7, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {64, 2048, 7, 7, miopen::batchnorm::Direction::ForwardInference, 1, 0},
         {64, 256, 14, 14, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 256, 14, 14, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 256, 14, 14, miopen::batchnorm::Direction::ForwardInference, 1, 0},
@@ -119,6 +119,8 @@ inline std::vector<BN2DTestCase> Network2DLarge()
         {64, 64, 56, 56, miopen::batchnorm::Direction::Backward, 0, 1},
         {64, 64, 56, 56, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {64, 64, 56, 56, miopen::batchnorm::Direction::ForwardInference, 1, 0},
+        {64, 2048, 7, 7, miopen::batchnorm::Direction::Backward, 0, 1},
+        {64, 2048, 17, 17, miopen::batchnorm::Direction::Backward, 0, 1},
         {128, 256, 14, 14, miopen::batchnorm::Direction::Backward, 0, 1},
         {128, 256, 16, 16, miopen::batchnorm::Direction::Backward, 0, 1},
         {670, 1, 224, 224, miopen::batchnorm::Direction::Backward, 0, 1},
@@ -128,10 +130,19 @@ inline std::vector<BN2DTestCase> Network2DLarge()
         {832, 1, 28, 28, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         // edge cases
         {69328, 1, 22, 22, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-        {69328, 1, 13, 79, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
-
+        {69328, 1, 13, 79, miopen::batchnorm::Direction::ForwardTraining, 1, 1}
         };
     // clang-format on
+}
+
+// These are very large tensors which caused memory insufficient error
+// when ran parallely by ctest. Hence, these are run serially.
+// Shape: (2, 2048, 16, 128, 128) --> Size: 1.07e+09
+// For now any test case with tensor size greater then 1e09 need to be run serially.
+template <>
+inline std::vector<BN3DTestCase> Network3DSerialCase()
+{
+    return {{2, 2048, 16, 128, 128, miopen::batchnorm::Direction::Backward, 0, 1}};
 }
 
 template <>
@@ -145,7 +156,6 @@ inline std::vector<BN2DTestCase> Network2DSmall()
         {192, 2, 8, 8, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 56, 56, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 128, 256, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
-        {64, 2048, 17, 17, miopen::batchnorm::Direction::Backward, 0, 1}
     };
     // clang-format on
 }
@@ -157,8 +167,7 @@ inline std::vector<BN3DTestCase> Network3DBN()
     return {
         {2, 2, 3, 224, 224, miopen::batchnorm::Direction::Backward, 1, 0},
         {16, 8, 132, 28, 28, miopen::batchnorm::Direction::Backward, 1, 0},
-        {16, 8, 16, 128, 128, miopen::batchnorm::Direction::ForwardTraining, 1, 0},
-        {2, 2048, 16, 128, 128, miopen::batchnorm::Direction::Backward, 0, 1}
+        {16, 8, 16, 128, 128, miopen::batchnorm::Direction::ForwardTraining, 1, 0}
     };
     // clang-format on
 }
@@ -243,12 +252,12 @@ struct BNInferTestData : public BNTestData<XDataType, YDataType, AccDataType, TC
     miopen::Allocator::ManageDataPtr shift_dev;
     miopen::Allocator::ManageDataPtr estMean_dev;
     miopen::Allocator::ManageDataPtr estVariance_dev;
-    double epsilon          = 1.0e-5;
-    float alpha             = static_cast<float>(1.0f);
-    float beta              = static_cast<float>(0);
-    const float activ_alpha = static_cast<double>(0.5f);
-    const float activ_beta  = static_cast<double>(0.5f);
-    const float activ_gamma = static_cast<double>(0.5f);
+    double epsilon = 1.0e-5;
+    float alpha    = static_cast<float>(1.0f);
+    float beta     = static_cast<float>(0);
+    double activ_alpha;
+    double activ_beta;
+    miopenActivationMode_t activ_mode;
 
 private:
     void CreateTensors()
@@ -315,6 +324,7 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, AccDataType, TCo
     }
 
     tensor<ScaleDataType> bnScale;
+    tensor<ScaleDataType> bnBias;
 
     tensor<MeanVarDataType> savedMean;
     tensor<MeanVarDataType> savedInvVar;
@@ -326,6 +336,7 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, AccDataType, TCo
     tensor<AccDataType> dBias_ref;
 
     miopen::Allocator::ManageDataPtr bnScale_dev;
+    miopen::Allocator::ManageDataPtr bnBias_dev;
     miopen::Allocator::ManageDataPtr savedMean_dev;
     miopen::Allocator::ManageDataPtr savedInvVar_dev;
 
@@ -338,6 +349,10 @@ struct BNBwdTestData : public BNTestData<XDataType, DyDataType, AccDataType, TCo
 
     float alphaDataDiff = static_cast<float>(1), betaDataDiff = static_cast<float>(0);
     float alphaParamDiff = static_cast<float>(1), betaParamDiff = static_cast<float>(0);
+
+    double activ_alpha;
+    double activ_beta;
+    miopenActivationMode_t activ_mode;
 
 private:
     void CreateTensors()
@@ -352,6 +367,9 @@ private:
             BNTestData<XDataType, DyDataType, AccDataType, TConfig>::input.desc,
             BNTestData<XDataType, DyDataType, AccDataType, TConfig>::bn_mode);
         bnScale = tensor<ScaleDataType>{
+            BNTestData<XDataType, DyDataType, AccDataType, TConfig>::tensor_layout,
+            derivedBnDesc.GetLengths()};
+        bnBias = tensor<ScaleDataType>{
             BNTestData<XDataType, DyDataType, AccDataType, TConfig>::tensor_layout,
             derivedBnDesc.GetLengths()};
         savedMean = tensor<MeanVarDataType>{
@@ -378,6 +396,7 @@ private:
     {
         dy.generate(uniform_signed_initializer<DyDataType>(2e-3 /*scale*/, 1000 /*range*/));
         bnScale.generate(uniform_signed_initializer<ScaleDataType>(2e-3 /*scale*/, 1000 /*range*/));
+        bnBias.generate(uniform_signed_initializer<ScaleDataType>(2e-3 /*scale*/, 1000 /*range*/));
         savedMean.generate(
             uniform_signed_initializer<MeanVarDataType>(2e-3 /*scale*/, 1000 /*range*/));
         savedInvVar.generate(
@@ -394,6 +413,7 @@ private:
         auto&& handle = get_handle();
 
         bnScale_dev     = handle.Write(bnScale.data);
+        bnBias_dev      = handle.Write(bnBias.data);
         savedMean_dev   = handle.Write(savedMean.data);
         savedInvVar_dev = handle.Write(savedInvVar.data);
         dy_dev          = handle.Write(dy.data);
@@ -440,13 +460,13 @@ struct BNFwdTrainTestData : public BNTestData<XDataType, YDataType, AccDataType,
     miopen::Allocator::ManageDataPtr saveVariance_dev;
     miopen::Allocator::ManageDataPtr runMean_dev;
     miopen::Allocator::ManageDataPtr runVariance_dev;
-    double epsilon          = 1.0e-5;
-    double averageFactor    = 0.1;
-    float alpha             = static_cast<float>(1.0f);
-    float beta              = static_cast<float>(0);
-    const float activ_alpha = static_cast<double>(0.5f);
-    const float activ_beta  = static_cast<double>(0.5f);
-    const float activ_gamma = static_cast<double>(0.5f);
+    double epsilon       = 1.0e-5;
+    double averageFactor = 0.1;
+    float alpha          = static_cast<float>(1.0f);
+    float beta           = static_cast<float>(0);
+    double activ_alpha;
+    double activ_beta;
+    miopenActivationMode_t activ_mode;
 
 private:
     void CreateTensors()

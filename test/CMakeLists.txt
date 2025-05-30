@@ -26,27 +26,15 @@
 
 cmake_policy(SET CMP0057 NEW)
 
-set(test_perf.py ${CMAKE_INSTALL_BINDIR}/test_perf.py)
-
-install(FILES  test_perf.py
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-    DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-set(MODEL_FILES)
-file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
-foreach (src ${model_src})
-    list (APPEND MODEL_FILES ${src})
-endforeach()
-
-install(FILES
-    ${MODEL_FILES}
-    DESTINATION ${DATA_INSTALL_DIR}/perf_models)
-foreach(MODEL_FILE ${MODEL_FILES})
-   get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-   configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
-endforeach()
-
 include(CheckCXXCompilerFlag)
+
+if(MIOPEN_USE_HIPBLASLT)
+  find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
+
+if(MIOPEN_USE_ROCBLAS)
+  find_package(rocblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
 
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
 option( MIOPEN_TEST_HALF "Test in half mode" OFF )
@@ -54,19 +42,44 @@ option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
 option( MIOPEN_TEST_BFLOAT16 "Test in bfloat16 mode" OFF )
 option( MIOPEN_TEST_GFX908 "Test on MI100 (gfx908)" OFF )
 option( MIOPEN_TEST_GFX90A "Test on MI2X0 (gfx90a)" OFF )
-option( MIOPEN_TEST_GFX94X "Test on MI300 (gfx940/1/2)" OFF )
+option( MIOPEN_TEST_GFX94X "Test on MI300 (gfx942)" OFF )
+option( MIOPEN_TEST_GFX95X "Test on (gfx950)" OFF )
 option( MIOPEN_TEST_GFX900 "Test on Vega10 (gfx900)" OFF )
 option( MIOPEN_TEST_GFX906 "Test on Vega20 (gfx906)" OFF )
 option( MIOPEN_TEST_GFX103X "Test on Navi21/22 (gfx1030/31)" OFF )
 option( MIOPEN_TEST_GFX110X "Test on Navi31/32 (gfx1100/02)" OFF )
 option( MIOPEN_TEST_GFX120X "Test on gfx1200/01" OFF )
 option( MIOPEN_TEST_GPU_XNACK_ENABLED "Test as if XNACK mode is enabled" OFF )
-option( MIOPEN_TEST_CONV "" OFF)
-option( MIOPEN_TEST_DEEPBENCH "" OFF)
-option( MIOPEN_TEST_DRIVER_ITER_MODE "" OFF)
+option( MIOPEN_TEST_CONV "" OFF )
+option( MIOPEN_TEST_DEEPBENCH "" OFF )
+option( MIOPEN_TEST_DRIVER_ITER_MODE "" OFF )
 option( MIOPEN_TEST_COMPOSABLEKERNEL "Test with composable_kernel library" ${MIOPEN_USE_COMPOSABLEKERNEL} )
-option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON)
-option( MIOPEN_TEST_DBSYNC "" OFF)
+option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON )
+option( MIOPEN_TEST_DBSYNC "" OFF )
+option( MIOPEN_TEST_PERF "" OFF )
+option( MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB "Enable the SQLite Perf DB test" OFF)
+
+if(NOT ENABLE_ASAN_PACKAGING AND MIOPEN_TEST_PERF)
+    set( CMAKE_INSTALL_TESTBINDIR "${DATA_INSTALL_DIR}/bin" )
+    set(test_perf.py ${CMAKE_INSTALL_TESTBINDIR}/test_perf.py)
+    install(FILES  test_perf.py
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+        DESTINATION ${CMAKE_INSTALL_TESTBINDIR})
+
+    set(MODEL_FILES)
+    file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
+    foreach (src ${model_src})
+        list (APPEND MODEL_FILES ${src})
+    endforeach()
+
+    install(FILES
+        ${MODEL_FILES}
+        DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+    foreach(MODEL_FILE ${MODEL_FILES})
+       get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+       configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
+    endforeach()
+endif()
 
 set_var_to_condition(MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT MIOPEN_BUILD_DRIVER)
 option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT})
@@ -94,7 +107,7 @@ endif()
 # Also we do not detect GPU when target GPU for testing is specified explicitly.
 set(MIOPEN_TEST_GPU_DETECTION_FAILED FALSE)
 set(MIOPEN_NO_GPU FALSE)
-if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX94X OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X OR MIOPEN_TEST_GFX120X OR MIOPEN_TEST_HIP_NOGPU))
+if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN_TEST_GFX90A OR MIOPEN_TEST_GFX94X OR MIOPEN_TEST_GFX95X OR MIOPEN_TEST_GFX103X OR MIOPEN_TEST_GFX110X OR MIOPEN_TEST_GFX120X OR MIOPEN_TEST_HIP_NOGPU))
     find_program(ROCMINFO
         NAMES rocminfo
         PATHS
@@ -116,19 +129,13 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
         elseif (NOT ROCMINFO_EXIT_STATUS EQUAL 0)
             message(WARNING "ROCMINFO FAILED, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
             set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1030")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx103.")
             set(MIOPEN_TEST_GFX103X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1031")
-            set(MIOPEN_TEST_GFX103X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1100")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx110.")
             set(MIOPEN_TEST_GFX110X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1101")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx115.")
             set(MIOPEN_TEST_GFX110X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1102")
-            set(MIOPEN_TEST_GFX110X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1200")
-            set(MIOPEN_TEST_GFX120X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1201")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx120.")
             set(MIOPEN_TEST_GFX120X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx900")
             set(MIOPEN_TEST_GFX900 ON)
@@ -138,8 +145,10 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
             set(MIOPEN_TEST_GFX908 ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx90a")
             set(MIOPEN_TEST_GFX90A ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx94")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx942")
             set(MIOPEN_TEST_GFX94X ON)
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx95")
+            set(MIOPEN_TEST_GFX95X ON)
         else()
             message(WARNING "TESTING IS NOT SUPPORTED FOR THE DETECTED GPU")
             set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
@@ -167,12 +176,17 @@ option( MIOPEN_LIBMLIR_SUPPORTS_GFX103X "libMLIR capability to support GFX10. En
 set_var_to_condition(MIOPEN_TEST_MLIR_DEFAULT ${MIOPEN_USE_MLIR} AND NOT (${MIOPEN_TEST_GFX103X} AND NOT ${MIOPEN_LIBMLIR_SUPPORTS_GFX103X}))
 option( MIOPEN_TEST_MLIR "Test for MLIR compilation backend" ${MIOPEN_TEST_MLIR_DEFAULT} )
 
+if((NOT MIOPEN_ENABLE_SQLITE) OR (NOT MIOPEN_EMBED_DB STREQUAL ""))
+    set(MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB OFF)
+endif()
+
 message(STATUS "MIOPEN_NO_GPU ${MIOPEN_NO_GPU}")
 message(STATUS "MIOPEN_TEST_GFX900 ${MIOPEN_TEST_GFX900}")
 message(STATUS "MIOPEN_TEST_GFX906 ${MIOPEN_TEST_GFX906}")
 message(STATUS "MIOPEN_TEST_GFX908 ${MIOPEN_TEST_GFX908}")
 message(STATUS "MIOPEN_TEST_GFX90A ${MIOPEN_TEST_GFX90A}")
 message(STATUS "MIOPEN_TEST_GFX94X ${MIOPEN_TEST_GFX94X}")
+message(STATUS "MIOPEN_TEST_GFX95X ${MIOPEN_TEST_GFX95X}")
 message(STATUS "MIOPEN_TEST_GFX103X ${MIOPEN_TEST_GFX103X}")
 message(STATUS "MIOPEN_TEST_GFX110X ${MIOPEN_TEST_GFX110X}")
 message(STATUS "MIOPEN_TEST_GFX120X ${MIOPEN_TEST_GFX120X}")
@@ -186,6 +200,8 @@ message(STATUS "MIOPEN_TEST_DRIVER_ITER_MODE ${MIOPEN_TEST_DRIVER_ITER_MODE}")
 message(STATUS "MIOPEN_TEST_COMPOSABLEKERNEL ${MIOPEN_TEST_COMPOSABLEKERNEL}")
 message(STATUS "MIOPEN_TEST_DISCRETE ${MIOPEN_TEST_DISCRETE}")
 message(STATUS "MIOPEN_TEST_DBSYNC ${MIOPEN_TEST_DBSYNC}")
+message(STATUS "MIOPEN_TEST_PERF ${MIOPEN_TEST_PERF}")
+message(STATUS "MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB ${MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB}")
 
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
@@ -384,6 +400,14 @@ function(add_test_executable TEST_NAME)
     if(HAS_LIB_STD_FILESYSTEM)
         target_link_libraries(${TEST_NAME} stdc++fs)
     endif()
+    # Need to add hipblaslt since static builds of MIOpen require hipBLASLt linkage
+    if(hipblaslt_FOUND)
+        target_link_libraries( ${TEST_NAME} roc::hipblaslt )
+    endif()
+    # Need to add rocBLAS since static builds of MIOpen require rocBLAS linkage
+    if(rocblas_FOUND)
+        target_link_libraries( ${TEST_NAME} $<BUILD_INTERFACE:roc::rocblas> )
+    endif()
 endfunction()
 
 set(MIOPEN_TEST_SANITIZERS)
@@ -435,8 +459,10 @@ set(EXCLUDE_TESTS)
 if(NOT MIOPEN_ENABLE_SQLITE)
     list(APPEND EXCLUDE_TESTS test_sqlite)
 endif()
-if(NOT MIOPEN_ENABLE_SQLITE OR (NOT MIOPEN_EMBED_DB STREQUAL ""))
+
+if(NOT MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB)
     list(APPEND EXCLUDE_TESTS test_sqlite_perfdb)
+    message(STATUS "Flaky test_sqlite_perfdb currently disabled (May 28 2025)")
 endif()
 
 set(EXCLUDE_TEST_SOURCES)
@@ -458,7 +484,7 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
     add_test_executable(test_${BASE_NAME} ${TEST_SOURCE})
 endforeach()
 
-if(MIOPEN_ENABLE_SQLITE AND (MIOPEN_EMBED_DB STREQUAL ""))
+if(MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB)
     set_tests_properties(test_sqlite_perfdb PROPERTIES RUN_SERIAL On)
 endif()
 set_tests_properties(test_perfdb PROPERTIES RUN_SERIAL On)
@@ -654,7 +680,7 @@ function(add_custom_test NAME)
         set_tests_properties(${NAME} PROPERTIES RUN_SERIAL On)
     endif()
 
-    if(  (is_gfx900_check OR is_gfx906_check OR is_gfx908_check OR is_gfx103x_check OR is_gfx110x_check OR is_gfx90a_check OR is_gfx94x_check)
+    if(  (is_gfx900_check OR is_gfx906_check OR is_gfx908_check OR is_gfx103x_check OR is_gfx110x_check OR is_gfx90a_check OR is_gfx94x_check OR is_gfx95x_check)
      AND is_full_check
      AND is_xnack_on_check
      AND is_mlir_check
@@ -706,21 +732,6 @@ set(IMPLICITGEMM_TESTING_ENV
  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1
 )
 
-if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
-    SET(SAVE_IMPLICITGEMM_TESTING_ENV ${IMPLICITGEMM_TESTING_ENV})
-    LIST(APPEND IMPLICITGEMM_TESTING_ENV MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0 MIOPEN_FIND_MODE=normal)
-    SET(SAVE_MIOPEN_TEST_FLOAT_ARG ${MIOPEN_TEST_FLOAT_ARG})
-    LIST(APPEND MIOPEN_TEST_FLOAT_ARG --disable-forward --disable-backward-data)
-    #Afther fix need to remove '| grep -v "No suitable algorithm was found to execute the required convolution"'
-endif()
-
-
-
-if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
-    SET(IMPLICITGEMM_TESTING_ENV ${SAVE_IMPLICITGEMM_TESTING_ENV})
-    SET(MIOPEN_TEST_FLOAT_ARG ${SAVE_MIOPEN_TEST_FLOAT_ARG})
-endif()
-
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench_rnn GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED
     )
@@ -728,43 +739,12 @@ endif()
 
 set(DYNAMIC_IMPLICITGEMM_COMMON
     MIOPEN_FIND_MODE=normal)
-set(DYNAMIC_IMPLICITGEMM_ENVS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd)
-set(DYNAMIC_IMPLICITGEMM_1X1_ENVS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicFwd_1x1)
-set(DYNAMIC_IMPLICITGEMM_FWD_GTC_DYNAMIC_XDLOPS_ENVS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlops)
-set(DYNAMIC_IMPLICITGEMM_BWD_ENVS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicBwd)
-set(DYNAMIC_IMPLICITGEMM_WRW_ENVS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmV4R1DynamicWrw)
-set(DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlops)
-set(DYNAMIC_IMPLICITGEMM_WRW_ENVS_XDLOPS
-    ${DYNAMIC_IMPLICITGEMM_COMMON}
-    MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicWrwXdlops)
 set(DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_FWD_ENVS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC)
 set(DYNAMIC_IMPLICITGEMM_XDLOPS_NHWC_BWD_ENVS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
     MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC)
-
-# TODO: disabled for WORKAROUND_ISSUE_1979
-#add_custom_test(test_conv_igemm_dynamic_xdlops_bwd_group SKIP_UNLESS_ALL HALF_ENABLED FLOAT_DISABLED GFX90A_DISABLED GFX94X_ENABLED GFX900_DISABLED GFX906_DISABLED SKIP_XNACK_ON
-#    ENVIRONMENT ${DYNAMIC_IMPLICITGEMM_BWD_ENVS_XDLOPS}
-#    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  64  32 28 28 --weights 16  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 2 --disable-forward --disable-backward-weights
-#    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  16  64 17 17 --weights 64  16 1 1 --pads_strides_dilations 0 0 1 1 1 1 --group-count 4 --disable-forward --disable-backward-weights
-#    COMMAND $<TARGET_FILE:test_conv2d> ${MIOPEN_TEST_FLOAT_ARG} --verbose --input  8  128 56 56 --weights 128 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 --group-count 8 --disable-forward --disable-backward-weights
-#)
-
-# Be careful to add testings for (x=1, y=1, c % 8 != 0) due to WORKAROUND_SWDEV_306318
 
 set(DYNAMIC_IMPLICITGEMM_DLOPS_NCHWC_FWD_ENVS
     ${DYNAMIC_IMPLICITGEMM_COMMON}
@@ -831,77 +811,6 @@ endif()
 # * Use TEST_TUNING. This flag leads to test failure in case of any "Error"
 #   message output to the log, which happens if something is broken in the tuning machinery.
 # * Use MIOPEN_DEBUG_TUNING_ITERATIONS_MAX to save testing time.
-
-add_custom_test(smoke_solver_ConvHipImplicitGemmFwdXdlops GFX900_DISABLED GFX906_DISABLED GFX90A_DISABLED GFX94X_ENABLED HALF_ENABLED INT8_ENABLED
-    ENVIRONMENT MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER=ConvHipImplicitGemmFwdXdlops
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_F} --input 128 64 56 56 --weights 64 64 1 1 --pads_strides_dilations 0 0 1 1 1 1 ${MIOPEN_TEST_CONV_INT8_OUTPUT_TYPE_INT8} --in_layout NHWC --fil_layout NHWC --out_layout NHWC ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-# FP16 ALT attribute is disabled to enable the backward solver on MI200 for HALF.
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x2 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-2>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x3 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-3>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 2 2 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x4 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X4=1 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-4>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x5 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X5=1 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-5>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_3x6 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_DEBUG_AMD_WINOGRAD_MPASS_F3X6=1 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<3-6>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 3 3 --pads_strides_dilations 1 1 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_5x3 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<5-3>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 5 5 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_5x4 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<5-4>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 5 5 --pads_strides_dilations 2 2 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_7x2 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<7-2>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 7 7 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_7x2x1x1 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<7-2-1-1>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 7 1 --pads_strides_dilations 3 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_1x1x7x2 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<1-1-7-2>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_7x3 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<7-3>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 7 7 --pads_strides_dilations 3 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW_7x3x1x1 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<7-3-1-1>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 7 1 --pads_strides_dilations 3 0 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
-
-add_custom_test(smoke_solver_ConvWinograd3x3MultipassWrW1x1x7x3 HALF_ENABLED BF16_ENABLED SKIP_XNACK_ON
-    ENVIRONMENT MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL=0 MIOPEN_FIND_MODE=normal MIOPEN_DEBUG_FIND_ONLY_SOLVER='ConvWinograd3x3MultipassWrW<1-1-7-3>'
-    COMMAND $<TARGET_FILE:test_conv2d> ${TEST_CONV_VERBOSE_W} --input 1 16 24 24 --weights 16 16 1 7 --pads_strides_dilations 0 3 1 1 1 1 ${MIOPEN_TEST_FLAGS_ARGS}
-)
 
 add_custom_test(smoke_solver_ConvMlirIgemm_F GFX900_DISABLED GFX908_DISABLED GFX90A_DISABLED GFX103X_ENABLED HALF_ENABLED SKIP_UNLESS_MLIR TEST_TUNING
     ENVIRONMENT MIOPEN_FIND_ENFORCE=SEARCH_DB_UPDATE MIOPEN_DEBUG_TUNING_ITERATIONS_MAX=5 ${IMPLICITGEMM_MLIR_ENV_F}

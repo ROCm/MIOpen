@@ -23,7 +23,9 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
@@ -581,6 +583,10 @@ ConvHipImplicitGemmV4R4WrW::CalculateGemmSize(const ProblemDescription& problem)
 bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
+#if WORKAROUND_SWDEV_498660
+    if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4))
+        return false;
+#endif
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))

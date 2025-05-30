@@ -1,9 +1,13 @@
 find_package(GTest REQUIRED)
-find_package(rocblas)
+
+include(GoogleTest)
 
 if(MIOPEN_USE_HIPBLASLT)
-  find_package(hipblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
   find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
+
+if(MIOPEN_USE_ROCBLAS)
+  find_package(rocblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
 endif()
 
 set(SOURCES
@@ -48,18 +52,26 @@ function(add_gtest TEST_NAME TEST_CPP)
   if(MIOPEN_ENABLE_AI_KERNEL_TUNING)
     target_link_libraries(${TEST_NAME} frugally-deep::fdeep Eigen3::Eigen)
   endif()
+
+  # Need to add hipblaslt since tests directly use gemm_v2.cpp
   if(hipblaslt_FOUND)
     target_link_libraries( ${TEST_NAME} roc::hipblaslt )
   endif()
+  # Need to add rocBLAS since static builds of MIOpen require rocBLAS linkage
+  if(rocblas_FOUND)
+    target_link_libraries( ${TEST_NAME} $<BUILD_INTERFACE:roc::rocblas> )
+  endif()
+
   # Workaround : change in rocm-cmake was causing linking error so had to add ${CMAKE_DL_LIBS}
   #               We can remove ${CMAKE_DL_LIBS} once root cause is identified.
-  target_link_libraries(${TEST_NAME} ${CMAKE_DL_LIBS} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host $<BUILD_INTERFACE:roc::rocblas> )
+  target_link_libraries(${TEST_NAME} ${CMAKE_DL_LIBS} GTest::gtest GTest::gtest_main MIOpen ${Boost_LIBRARIES} hip::host )
   if(NOT MIOPEN_EMBED_DB STREQUAL "")
       target_link_libraries(${TEST_NAME} $<BUILD_INTERFACE:miopen_data>)
   endif()
   if(MIOPEN_TEST_DISCRETE)
     string(CONCAT TEST_ENVIRONMENT_VARIABLES
-    "ENVIRONMENT;MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};")
+    "ENVIRONMENT;MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};"
+    "ENVIRONMENT;MIOPEN_INVOKED_FROM_CTEST=1;")
 
     set(MIOPEN_GTEST_PREFIX)
     set(MIOPEN_GTEST_FILTER_NEGATIVE)
@@ -105,7 +117,12 @@ function(add_gtest TEST_NAME TEST_CPP)
     # Enable CMake to discover the test binary
     # Note: Due to the following cmake issue with gtest_discover_tests https://gitlab.kitware.com/cmake/cmake/-/issues/17812 you cannot pass PROPERTIES as a list.
     #       To work around this limitation, we are passing the environment variables in the format ENVIRONMENT;value1=${value1};ENVIRONMENT;value2=${value2}.
-    gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
+    # bn tests are run sequentially since running tests in parallel was causing large tensor case fail with insufficient memory error.
+    if("${TEST_NAME}" STREQUAL "test_bn_bwd_serial_run" OR "${TEST_NAME}" STREQUAL "test_bn_fwd_train_serial_run" OR "${TEST_NAME}" STREQUAL "test_bn_infer_serial_run") 
+      gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES RUN_SERIAL TRUE ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
+    else()
+      gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
+    endif()
   endif()
   target_link_libraries(${TEST_NAME} BZip2::BZip2)
   if(WIN32)

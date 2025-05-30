@@ -24,8 +24,8 @@
  *
  *******************************************************************************/
 
-#include <miopen/filesystem.hpp>
 #include <miopen/execution_context.hpp>
+#include <miopen/filesystem.hpp>
 #include <miopen/find_solution.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/mlo_internal.hpp>
@@ -227,6 +227,9 @@ auto CallExecutePrimitive(const miopen::ExecutionContext& ctx) -> TestResults
 
     constexpr auto solvers =
         miopen::solver::SolverContainer<TunableTestSolver, RegularTestSolver>{};
+
+    ScopedEnvironment<std::string> clear_find_enforce_env{MIOPEN_FIND_ENFORCE};
+
     solvers.ExecutePrimitive(ctx, problem, miopen::AlgorithmName{"test::algo"}, {});
 
     return test_results;

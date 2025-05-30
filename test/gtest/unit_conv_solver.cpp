@@ -26,6 +26,7 @@
 
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
+#include <miopen/errors.hpp>
 #include <miopen/generic_search.hpp>
 
 #include "unit_conv_solver.hpp"
@@ -37,7 +38,7 @@
 
 #include "../workspace.hpp"
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
 
 namespace miopen {
 namespace unit_tests {
@@ -58,25 +59,60 @@ public:
         if(changed)
         {
             if(prev)
-                env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, false);
+                lib_env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, false);
             else
-                env::clear(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+                lib_env::clear(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
         }
     }
 
     void Enable()
     {
         if(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
-            prev = env::value(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
+            prev = lib_env::value<bool>(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
         if(prev != true)
         {
-            env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, true);
+            lib_env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, true);
             changed = true;
         }
     }
 
 private:
     std::optional<bool> prev;
+    bool changed = false;
+};
+
+class ConvAttrFp16AltScopedSetter
+{
+public:
+    ConvAttrFp16AltScopedSetter() noexcept {}
+    ConvAttrFp16AltScopedSetter(const ConvAttrFp16AltScopedSetter&) = delete;
+    ConvAttrFp16AltScopedSetter(ConvAttrFp16AltScopedSetter&&)      = delete;
+    ConvAttrFp16AltScopedSetter& operator=(const ConvAttrFp16AltScopedSetter&) = delete;
+    ConvAttrFp16AltScopedSetter& operator=(ConvAttrFp16AltScopedSetter&&) = delete;
+
+    ~ConvAttrFp16AltScopedSetter()
+    {
+        if(changed)
+        {
+            if(prev)
+                lib_env::update(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, prev.value());
+            else
+                lib_env::clear(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
+        }
+    }
+
+    void SetValue(uint64_t value)
+    {
+        if(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+            prev = lib_env::value<uint64_t>(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL);
+        if(value == prev)
+            return;
+        lib_env::update(wa::MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL, value);
+        changed = true;
+    }
+
+private:
+    std::optional<uint64_t> prev;
     bool changed = false;
 };
 
@@ -117,6 +153,21 @@ ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
                            std::vector<int>&& pad_,
                            std::vector<int>&& stride_,
                            std::vector<int>&& dilation_,
+                           int groups_,
+                           miopenDataType_t type_)
+    : ConvTestCase(TensorDescriptorParams{type_, std::move(x_)},
+                   TensorDescriptorParams{type_, std::move(w_)},
+                   type_,
+                   ConvolutionDescriptorParams{
+                       std::move(pad_), std::move(stride_), std::move(dilation_), groups_})
+{
+}
+
+ConvTestCase::ConvTestCase(std::vector<size_t>&& x_,
+                           std::vector<size_t>&& w_,
+                           std::vector<int>&& pad_,
+                           std::vector<int>&& stride_,
+                           std::vector<int>&& dilation_,
                            miopenDataType_t type_x_,
                            miopenDataType_t type_w_,
                            miopenDataType_t type_y_)
@@ -136,9 +187,10 @@ ConvTestCase::ConvTestCase(TensorDescriptorParams&& x_,
 {
     const auto num_spatial_dims = conv.GetNumSpatialDims();
     const auto num_tensor_dims  = num_spatial_dims + 2;
+    const auto group_count      = conv.GetGroupCount();
 
     if(x.GetNumDims() != num_tensor_dims || w.GetNumDims() != num_tensor_dims ||
-       x.GetLens()[1] != w.GetLens()[1])
+       x.GetLens()[1] != w.GetLens()[1] * group_count)
     {
         throw std::runtime_error("wrong test case format");
     }
@@ -176,8 +228,8 @@ ConvTestCase::GetProblemDescription(miopen::conv::Direction direction) const
     switch(direction)
     {
     case miopen::conv::Direction::Forward:
-    case miopen::conv::Direction::BackwardData:
         return miopen::conv::ProblemDescription(x_desc, w_desc, y_desc, conv_desc, direction);
+    case miopen::conv::Direction::BackwardData:
     case miopen::conv::Direction::BackwardWeights:
         return miopen::conv::ProblemDescription(y_desc, w_desc, x_desc, conv_desc, direction);
     default: throw std::runtime_error("unknown direction");
@@ -198,6 +250,56 @@ std::ostream& operator<<(std::ostream& os, const ConvTestCase& tc)
 //************************************************************************************
 // Unit test for convolution solver
 //************************************************************************************
+uint64_t Tolerances::GetKey(Gpu gpu, miopenDataType_t type)
+{
+    static_assert(sizeof(gpu) <= sizeof(uint64_t) / 2);
+    static_assert(sizeof(type) <= sizeof(uint64_t) / 2);
+
+    return (static_cast<uint64_t>(gpu) << 32) | static_cast<uint64_t>(type);
+}
+
+void Tolerances::Set(Gpu gpu, miopenDataType_t type, float value)
+{
+    if(gpu == Gpu::None)
+        return;
+
+    int igpu = static_cast<int>(gpu);
+    if((igpu & (igpu - 1)) == 0)
+    {
+        values[GetKey(gpu, type)] = value;
+    }
+    else
+    {
+        for(int g = 1; g <= static_cast<int>(Gpu::gfxLast); g <<= 1)
+        {
+            if((g & igpu) != 0)
+            {
+                values[GetKey(static_cast<Gpu>(g), type)] = value;
+            }
+        }
+    }
+}
+
+float Tolerances::Get(Gpu gpu, miopenDataType_t type) const
+{
+    MIOPEN_THROW_IF((static_cast<int>(gpu) & (static_cast<int>(gpu) - 1)) != 0,
+                    "cannot call Tolerance::Get with multiple gpus");
+    MIOPEN_THROW_IF(gpu > Gpu::gfxLast, "Tolerance::Get called with invalid gpu");
+
+    const auto& v = values.find(GetKey(gpu, type));
+    if(v == values.cend())
+        return 1.0f; // default value
+    return v->second;
+}
+
+std::ostream& operator<<(std::ostream& os, const Tolerances& t)
+{
+    os << "(";
+    for(const auto [key, value] : t.values)
+        os << std::hex << "0x" << key << std::dec << ":" << value << ",";
+    os << ")";
+    return os;
+}
 
 UnitTestConvSolverParams::UnitTestConvSolverParams() : UnitTestConvSolverParams(Gpu::None) {}
 
@@ -221,6 +323,34 @@ void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
 }
 
 void UnitTestConvSolverParams::CheckXnackDisabled() { check_xnack_disabled = true; }
+
+void UnitTestConvSolverParams::SetConvAttrFp16Alt(uint64_t value) { conv_attr_fp16_alt = value; }
+
+void UnitTestConvSolverParams::SetTolerance(Gpu gpu, miopenDataType_t type, float value)
+{
+    tolerances.Set(gpu, type, value);
+}
+
+std::ostream& operator<<(std::ostream& os, const UnitTestConvSolverParams& p)
+{
+    os << "(";
+    os << "Devs:" << std::hex << "0x"
+       << static_cast<std::underlying_type_t<decltype(p.supported_devs)>>(p.supported_devs)
+       << std::dec;
+    if(p.use_cpu_ref)
+        os << ", CpuRef:" << p.use_cpu_ref;
+    if(p.enable_deprecated_solvers)
+        os << ", EnDerpSolver:" << p.enable_deprecated_solvers;
+    if(p.tunable)
+        os << ", IterMax:" << p.tuning_iterations_max;
+    if(p.check_xnack_disabled)
+        os << ", CheckXnackOff:" << p.check_xnack_disabled;
+    if(p.conv_attr_fp16_alt)
+        os << ", AttrFp16Alt:" << p.conv_attr_fp16_alt.value();
+    os << ", Tolerances:" << p.tolerances;
+    os << ")";
+    return os;
+}
 
 namespace {
 
@@ -247,35 +377,11 @@ miopen::solver::ConvSolution FindSolution(const miopen::solver::conv::ConvSolver
 }
 
 template <typename T>
-double GetThreshold(miopenConvAlgorithm_t algo, miopen::conv::Direction direction)
+double GetThreshold(miopenConvAlgorithm_t algo,
+                    miopen::conv::Direction direction,
+                    const Tolerances& tolerances)
 {
-    double tolerance = 1.0;
-
-    if constexpr(std::is_same_v<T, half_float::half>)
-    {
-        if(algo == miopenConvolutionAlgoGEMM && direction != miopen::conv::Direction::Forward)
-        {
-            tolerance *= 2.0;
-        }
-        else if(algo == miopenConvolutionAlgoImplicitGEMM)
-        {
-            tolerance *= 2.0;
-        }
-    }
-
-    if constexpr(std::is_same_v<T, float>)
-    {
-        if(algo == miopenConvolutionAlgoDirect &&
-           direction == miopen::conv::Direction::BackwardWeights)
-        {
-            tolerance *= 2.0;
-        }
-        else if(algo == miopenConvolutionAlgoImplicitGEMM)
-        {
-            tolerance *= 3.0;
-        }
-    }
-
+    double tolerance = tolerances.Get(GetDevGpuType(), miopen_type<T>{});
     double threshold = std::numeric_limits<T>::epsilon() * tolerance;
     return threshold;
 }
@@ -284,7 +390,8 @@ template <typename T, typename Tref>
 void VerifyData(const std::vector<T>& data,
                 const std::vector<Tref>& ref_data,
                 miopenConvAlgorithm_t algo,
-                miopen::conv::Direction direction)
+                miopen::conv::Direction direction,
+                const Tolerances& tolerances)
 {
     ASSERT_FALSE(miopen::range_zero(ref_data)) << "Reference data is all zeros";
     if constexpr(!std::is_integral_v<T>)
@@ -311,7 +418,7 @@ void VerifyData(const std::vector<T>& data,
     else
     {
         const auto error       = miopen::rms_range(ref_data, data);
-        const double threshold = GetThreshold<T>(algo, direction);
+        const double threshold = GetThreshold<T>(algo, direction, tolerances);
         ASSERT_LT(error, threshold) << "Error beyond tolerance";
         // std::cout << "error: " << error << " threshold: " << threshold << std::endl;
     }
@@ -417,7 +524,8 @@ void RunSolverFwd(const miopen::solver::conv::ConvSolverInterface& solv,
 
     output.data = handle.Read<Tout>(out_dev, output.data.size());
 
-    VerifyData(output.data, ref_out.data, algo, miopen::conv::Direction::Forward);
+    VerifyData(
+        output.data, ref_out.data, algo, miopen::conv::Direction::Forward, params.tolerances);
 }
 
 template <typename T, typename Tref>
@@ -529,7 +637,8 @@ void RunSolverBwd(const miopen::solver::conv::ConvSolverInterface& solv,
 
     input.data = handle.Read<Tin>(in_dev, input.data.size());
 
-    VerifyData(input.data, ref_in.data, algo, miopen::conv::Direction::BackwardData);
+    VerifyData(
+        input.data, ref_in.data, algo, miopen::conv::Direction::BackwardData, params.tolerances);
 }
 
 template <typename T, typename Tref>
@@ -641,7 +750,11 @@ void RunSolverWrw(const miopen::solver::conv::ConvSolverInterface& solv,
 
     weights.data = handle.Read<Twei>(wei_dev, weights.data.size());
 
-    VerifyData(weights.data, ref_weights.data, algo, miopen::conv::Direction::BackwardWeights);
+    VerifyData(weights.data,
+               ref_weights.data,
+               algo,
+               miopen::conv::Direction::BackwardWeights,
+               params.tolerances);
 }
 
 template <typename T, typename Tref>
@@ -699,6 +812,9 @@ void RunSolver(const miopen::solver::conv::ConvSolverInterface& solver,
         case miopenBFloat16:
             RunSolver<bfloat16, bfloat16>(solver, params, direction, conv_config, algo);
             return;
+        case miopenInt8:
+            RunSolver<int8_t, int8_t>(solver, params, direction, conv_config, algo);
+            return;
         default:
             throw std::runtime_error("handling of this data type is not yet implemented");
         }
@@ -741,6 +857,10 @@ void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverI
         deprecated_solv_enabler.Enable();
     }
 
+    ConvAttrFp16AltScopedSetter conv_attr_fp16_alt_setter;
+    if(params.conv_attr_fp16_alt)
+        conv_attr_fp16_alt_setter.SetValue(params.conv_attr_fp16_alt.value());
+
     RunSolver(solver, params, direction, conv_config, algo);
 }
 
@@ -759,6 +879,10 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     {
         deprecated_solv_enabler.Enable();
     }
+
+    ConvAttrFp16AltScopedSetter conv_attr_fp16_alt_setter;
+    if(params.conv_attr_fp16_alt)
+        conv_attr_fp16_alt_setter.SetValue(params.conv_attr_fp16_alt.value());
 
     const auto problem = conv_config.GetProblemDescription(direction);
 

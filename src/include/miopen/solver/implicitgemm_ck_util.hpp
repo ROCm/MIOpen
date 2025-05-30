@@ -312,12 +312,13 @@ ConvSolution InitAnyInvokerFactory(const ProblemDescriptionType& problem,
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
                 auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx);
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
-
-                const auto enable_profiling = handle.IsProfilingEnabled();
-                float elapsed_time =
-                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), enable_profiling});
-                if(enable_profiling)
                 {
+                    WorkAroundHipEventProfiler prf(handle);
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                }
+                if(handle.IsProfilingEnabled())
+                {
+                    float elapsed_time = handle.GetKernelTime();
                     handle.ResetKernelTime();
                     handle.AccumKernelTime(elapsed_time);
                 }
@@ -1153,8 +1154,8 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         case miopenInt64:
         case miopenInt32:
         case miopenDouble:
-        case miopenFloat8:
-        case miopenBFloat8:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
         default:
             MIOPEN_THROW(miopenStatusInternalError,
                          "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this "
@@ -1172,8 +1173,8 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
         case miopenInt64:
         case miopenInt32:
         case miopenDouble:
-        case miopenFloat8:
-        case miopenBFloat8:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
         default:
             MIOPEN_THROW(miopenStatusInternalError,
                          "3DGroupConvolutionImplicitGemmXdlops operation not implemented for this "

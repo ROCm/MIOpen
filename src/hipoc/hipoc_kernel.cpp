@@ -34,9 +34,6 @@
 #include <hip/hip_ext.h>
 #include <hip/hip_runtime.h>
 
-#include <chrono>
-#include <thread>
-
 #define WORKAROUND_SWDEV_448157 1
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEVICE_ARCH)

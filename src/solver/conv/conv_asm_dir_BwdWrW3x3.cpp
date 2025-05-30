@@ -415,7 +415,7 @@ bool ConvAsmBwdWrW3x3::IsApplicable(const ExecutionContext& ctx,
         return false;
 
     const std::string name = ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx9")))
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90")))
         return false;
     if(!problem.IsLayoutDefault())
         return false;
