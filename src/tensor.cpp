@@ -674,7 +674,7 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         return true;
     }
 
-    auto op = [&](char cur_char) {
+    auto strides_op = [&](char cur_char) {
         const auto pos = storage_layout.find(cur_char);
         if(pos == std::string::npos)
             MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
@@ -682,43 +682,36 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
     };
 
     std::vector<std::size_t> layout_strides(base_layout.size());
-    std::transform(base_layout.cbegin(), base_layout.cend(), layout_strides.begin(), op);
+    std::transform(base_layout.cbegin(), base_layout.cend(), layout_strides.begin(), strides_op);
 
-    // Check monotonic decreasing with conservative PyTorch compatibility fix
-    for(unsigned i = 0; i < (layout_strides.size() - 1); i++)
+    auto dims_op = [&](char cur_char) {
+        const auto pos = storage_layout.find(cur_char);
+        if(pos == std::string::npos)
+            MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
+        return lens[pos];
+    };
+    std::vector<std::size_t> layout_dims(base_layout.size());
+    std::transform(base_layout.cbegin(), base_layout.cend(), layout_dims.begin(), dims_op);
+
+    unsigned current_index = 0;
+    unsigned next_index = 1;
+    // Check monotonic decreasing with skipping violations when dim == 1
+    while(next_index < layout_strides.size())
     {
-        if(layout_strides[i] < layout_strides[i + 1])
+        // potential violation detected
+        if(layout_strides[current_index] < layout_strides[next_index])
         {
-            bool allow_violation = false;
-
-            if(lens.size() == 5)
+             // if the next dimension is 1, then we want to skip checking this stride and look at the next non-1 dimension instead.
+            if(layout_dims[next_index] == 1)
             {
-                auto char_at_i        = base_layout[i];
-                auto char_at_i_plus_1 = base_layout[i + 1];
-
-                auto dim_pos_i        = storage_layout.find(char_at_i);
-                auto dim_pos_i_plus_1 = storage_layout.find(char_at_i_plus_1);
-
-
-                // Only allow if the larger stride dimension has size 1
-                if(lens[dim_pos_i_plus_1] == 1)
-                {
-                    // Verify this is genuine stride sharing (not arbitrary values)
-                    std::size_t shared_stride = layout_strides[i + 1];
-                    for(std::size_t k = 0; k < strides.size(); ++k)
-                    {
-                        if(k != dim_pos_i_plus_1 && strides[k] == shared_stride)
-                        {
-                            allow_violation = true;
-                            break;
-                        }
-                    }
-                }
+                next_index++;
+                continue;
             }
 
-            if(!allow_violation)
-                return false;
+            return false;
         }
+        current_index = next_index;
+        next_index++;
     }
     return true;
 }
