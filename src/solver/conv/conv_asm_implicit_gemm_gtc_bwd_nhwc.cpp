@@ -516,6 +516,15 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
 
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
+
+    // limitation for loading filter using multielement instructions
+    int tb_c1     = tensor_b_thread_lengths[3];
+    int data_byte = miopen::GetTypeSize(problem.GetInDataType());
+
+    int vector_d1 = gcd(tb_c1, 4 * (4 / data_byte));
+    if((c / group) % vector_d1 != 0)
+        return false;
+
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
 
@@ -531,16 +540,21 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
 
     if(!(tensor_a_thread_lengths[1] == 1 && merge_e == 1))
     {
+        // TODO check ??
         // in case k split too large
         if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
             return false;
+
+        auto splited_k = (k / group) >> gemm_k_global_split;
+
         // gemm_k need be multiply of gemm_k_per_block
-        if(((k >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
+        if(splited_k == 0 || splited_k % gemm_k_per_block != 0)
             return false;
     }
 
-    if(problem.IsFp16() && !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 &&
-                             merge_e == 1 && gemm_k_global_split == 0))
+    if((problem.IsBfp16() || problem.IsFp16()) &&
+       !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 && merge_e == 1 &&
+         gemm_k_global_split == 0))
     {
         if(gemm_k_global_split != 0)
         {
@@ -548,16 +562,6 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
                 return false;
         }
         else
-        {
-            if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
-                return false;
-        }
-    }
-
-    if(problem.IsBfp16() && !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 &&
-                              merge_e == 1 && gemm_k_global_split == 0))
-    {
-        if(gemm_k_global_split == 0)
         {
             if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
                 return false;
