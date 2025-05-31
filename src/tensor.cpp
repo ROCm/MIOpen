@@ -674,53 +674,24 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         return true;
     }
 
-    auto strides_op = [&](char cur_char) {
-        const auto pos = storage_layout.find(cur_char);
-        if(pos == std::string::npos)
-            MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
-        return strides[pos];
-    };
-
-    std::vector<std::size_t> layout_strides(base_layout.size());
-    std::transform(base_layout.cbegin(), base_layout.cend(), layout_strides.begin(), strides_op);
-
-    auto dims_op = [&](char cur_char) {
-        const auto pos = storage_layout.find(cur_char);
-        if(pos == std::string::npos)
-            MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
-        return lens[pos];
-    };
-    std::vector<std::size_t> layout_dims(base_layout.size());
-    std::transform(base_layout.cbegin(), base_layout.cend(), layout_dims.begin(), dims_op);
-
-    unsigned current_index = 0;
-    unsigned next_index    = 1;
-    // Check monotonic decreasing with skipping violations when dim == 1
-    while(next_index < layout_strides.size())
+    // Build layout_strides, skipping dims where dim == 1
+    std::vector<std::size_t> layout_strides;
+    layout_strides.reserve(base_layout.size());
+    for(size_t i = 0; i < base_layout.size(); ++i)
     {
-        // If our current dim is 1, then we skip ahead and don't check.
-        if(layout_dims[current_index] == 1)
-        {
-            current_index = next_index;
-            next_index++;
-        }
-        // If the next dim is 1, then we look ahead to the next non-1 dim.
-        else if(layout_dims[next_index] == 1)
-        {
-            next_index++;
-        }
-        // If our current dim and next dim are not 1, then we check for ordering violation.
-        else if(layout_strides[current_index] < layout_strides[next_index])
-        {
-            return false;
-        }
-        // No issues, continue to the next check.
-        else
-        {
-            current_index = next_index;
-            next_index++;
-        }
+        char cur_char = base_layout[i];
+        const auto pos = storage_layout.find(cur_char);
+        if(pos == std::string::npos)
+            MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
+        if(lens[pos] != 1)
+            layout_strides.push_back(strides[pos]);
+    }
 
+    // Check monotonic decreasing
+    for(size_t i = 1; i < layout_strides.size(); ++i)
+    {
+        if(layout_strides[i-1] < layout_strides[i])
+            return false;
     }
     return true;
 }
