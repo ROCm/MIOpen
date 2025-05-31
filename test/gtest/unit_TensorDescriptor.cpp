@@ -221,8 +221,6 @@ public:
             TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}, {1, 1000, 100, 10}}, {"CHWN"}},
             TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
             TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
-            TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
-            TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
 
             // Test cases where invalid strides with dim of 1 are allowed.
             // (When dim is 1 we can safely ignore stride values.)
