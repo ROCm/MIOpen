@@ -674,7 +674,10 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         return true;
     }
 
-    // Build layout_strides, skipping dims where dim == 1
+    // Build layout_strides, skipping the strides where lens[dim] == 1.
+    // We are ignoring the strides when lengths == 1, for a dimension as they are not relevant for the layout.
+    // I.E NCHW layout with lens = {5, 1, 10, 10} Is actually NHW since there is no channels dimension.
+    // Both NHWC & NCHW layouts are valid for this tensor as channels is not relevant.
     std::vector<std::size_t> layout_strides;
     layout_strides.reserve(base_layout.size());
     for(size_t i = 0; i < base_layout.size(); ++i)
