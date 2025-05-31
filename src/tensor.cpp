@@ -698,21 +698,29 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
     // Check monotonic decreasing with skipping violations when dim == 1
     while(next_index < layout_strides.size())
     {
-        // potential violation detected
-        if(layout_strides[current_index] < layout_strides[next_index])
+        // If our current dim is 1, then we skip ahead and don't check.
+        if(layout_dims[current_index] == 1)
         {
-            // if the next dimension is 1, then we want to skip checking this stride and look at the
-            // next non-1 dimension instead.
-            if(layout_dims[next_index] == 1)
-            {
-                next_index++;
-                continue;
-            }
-
+            current_index = next_index;
+            next_index++;
+        }
+        // If the next dim is 1, then we look ahead to the next non-1 dim.
+        else if(layout_dims[next_index] == 1)
+        {
+            next_index++;
+        }
+        // If our current dim and next dim are not 1, then we check for ordering violation.
+        else if(layout_strides[current_index] < layout_strides[next_index])
+        {
             return false;
         }
-        current_index = next_index;
-        next_index++;
+        // No issues, continue to the next check.
+        else
+        {
+            current_index = next_index;
+            next_index++;
+        }
+
     }
     return true;
 }
