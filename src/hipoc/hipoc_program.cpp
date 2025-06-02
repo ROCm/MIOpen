@@ -65,6 +65,9 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_OPENCL_WAVE64_NOWGP)
 #define MIOPEN_WORKAROUND_ROCM_COMPILER_SUPPORT_ISSUE_27 1
 #endif
 
+// Temporarily disable warnings as errors for kernel builds to see real breaks with compiler changes
+#define MIOPEN_WORKAROUND_COMPILER_CHANGE 1
+
 namespace miopen {
 
 #if !MIOPEN_USE_COMGR
@@ -307,7 +310,7 @@ void HIPOCProgramImpl::BuildCodeObject(std::string params, const std::string& ke
         return GetKernelSrc(program);
     }();
 
-#if MIOPEN_BUILD_DEV
+#if MIOPEN_BUILD_DEV && !MIOPEN_WORKAROUND_COMPILER_CHANGE
     if(program.extension() == ".cpp")
     {
         params += " -Werror" + HipKernelWarningsString();
