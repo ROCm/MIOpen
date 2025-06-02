@@ -78,8 +78,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
                                _FLOAT_PREC _alpha,
-                               _FLOAT_PREC _beta,
-                               _FLOAT_PREC _gamma)
+                               _FLOAT_PREC _beta)
 {
 
     ACTIVATION_SET()
@@ -241,8 +240,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
                                _FLOAT_PREC _alpha,
-                               _FLOAT_PREC _beta,
-                               _FLOAT_PREC _gamma)
+                               _FLOAT_PREC _beta)
 {
 
     ACTIVATION_SET()
@@ -463,8 +461,7 @@ MIOpenBatchNormFwdTrainSpatialNorm(const __global _FLOAT* __restrict in,
                                    const __global _FLOAT_PREC* __restrict scale,
                                    const __global _FLOAT_PREC* __restrict bias,
                                    _FLOAT_PREC _alpha,
-                                   _FLOAT_PREC _beta,
-                                   _FLOAT_PREC _gamma)
+                                   _FLOAT_PREC _beta)
 {
 
     ACTIVATION_SET()
@@ -789,8 +786,7 @@ MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict in,
                                __global _FLOAT_PREC* __restrict resultSaveInvVariance,
 #endif
                                _FLOAT_PREC _alpha,
-                               _FLOAT_PREC _beta,
-                               _FLOAT_PREC _gamma)
+                               _FLOAT_PREC _beta)
 {
 
     ACTIVATION_SET()
@@ -914,8 +910,7 @@ __kernel void MIOpenBatchNormFwdTrainSpatial(const __global _FLOAT* __restrict i
                                              unsigned int imageDims,
                                              unsigned int batchStride,
                                              _FLOAT_PREC _alpha,
-                                             _FLOAT_PREC _beta,
-                                             _FLOAT_PREC _gamma)
+                                             _FLOAT_PREC _beta)
 {
 
     ACTIVATION_SET()

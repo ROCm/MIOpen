@@ -51,7 +51,8 @@ bool BnFwdInference::IsApplicable(const ExecutionContext&,
         return false;
 
     int activ_mode = bn_problem.GetActivationDesc().GetMode();
-    if(activ_mode < miopenActivationPASTHRU || activ_mode > miopenActivationELU)
+    if(activ_mode != miopenActivationPASTHRU && activ_mode != miopenActivationRELU &&
+       activ_mode != miopenActivationCLIPPEDRELU && activ_mode != miopenActivationCLAMP)
         return false;
 
     return true;
@@ -171,7 +172,6 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
 
             float alpha_activ = problem.GetActivationDesc().GetAlpha();
             float beta_activ  = problem.GetActivationDesc().GetBeta();
-            float gamma_activ = problem.GetActivationDesc().GetGamma();
 
             if(params.xDesc->GetLayout_t() == miopenTensorNHWC)
             {
@@ -189,8 +189,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
                        c_,          // hwStride
                        in_nstride_, // batchStride
                        alpha_activ,
-                       beta_activ,
-                       gamma_activ);
+                       beta_activ);
             }
             else
             {
@@ -208,8 +207,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
                        1,           // hwStride
                        in_nstride_, // batchStride
                        alpha_activ,
-                       beta_activ,
-                       gamma_activ);
+                       beta_activ);
             }
         };
     };
