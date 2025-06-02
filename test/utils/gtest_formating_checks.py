@@ -32,14 +32,16 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 FOLDER_PATH = "../../test/gtest"
 
 # Ignore list: Add test names or file paths you want to exclude
+#              (keep the list sorted to min. git conflicts)
 IGNORE_LIST = {
-    "CPU_MIOpenDriverRegressionBigTensorTest_FP32",
-    "../../test/gtest/reduce_custom_fp32.cpp",
     "../../test/gtest/binary_tensor_ops.cpp",
-    "../../test/gtest/layout_transpose.cpp",
     "../../test/gtest/graphapi_conv_bias_res_add_activ_fwd.cpp",
+    "../../test/gtest/graphapi_operation_rng.cpp",
+    "../../test/gtest/layout_transpose.cpp",
+    "../../test/gtest/reduce_custom_fp32.cpp",
     "../../test/gtest/unary_tensor_ops.cpp",
-    "../../test/gtest/graphapi_operation_rng.cpp"
+    "CPU_MIOpenDriverRegressionBigTensorTest_FP32",
+    "GPU_UnitTestConvSolverAsmBwdWrW3x3Wrw_FP32",
 }
 
 # Valid enums and Regex for validation
