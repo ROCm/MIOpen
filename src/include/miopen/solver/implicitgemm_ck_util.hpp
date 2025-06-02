@@ -484,15 +484,6 @@ public:
         Run(handle, kernels, out_ptr, buf_handle.get());
     }
 
-    void ZeroOutBuffer(const Handle& handle)
-    {
-        HipEventProfiler pfr(handle);
-
-        [[maybe_unused]] auto status =
-            hipMemsetAsync(buf_handle.get(), 0, tensor_sz, handle.GetStream());
-        assert(status == hipSuccess);
-    }
-
     TransposeInstance()                         = delete;
     TransposeInstance(const TransposeInstance&) = default;
     TransposeInstance(TransposeInstance&&)      = default;
@@ -744,30 +735,6 @@ inline size_t GetWorkspaceSizeLayoutTransformConv(const miopen::conv::ProblemDes
     return wt.GetSize();
 }
 
-inline void
-ZeroOutTensor(const Handle& handle, const TensorDescriptor& tensorDesc, Data_t tensorData)
-{
-#if MIOPEN_BACKEND_HIP
-    // SetTensor is required for non-packed tensors, but is also slower.
-    // Use faster clear if possible.
-    if(tensorDesc.IsPacked())
-    {
-        HipEventProfiler pfr(handle);
-
-        auto status = hipMemsetAsync(tensorData, 0, tensorDesc.GetNumBytes(), handle.GetStream());
-        if(status != hipSuccess)
-        {
-            MIOPEN_THROW_HIP_STATUS(status, "hipMemsetAsync() failed");
-        }
-    }
-    else
-#endif
-    {
-        auto zero = 0.0f;
-        SetTensor(handle, tensorDesc, tensorData, &zero);
-    }
-}
-
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
@@ -861,23 +828,10 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
             }
 
-            float elapsed = 0.0f;
-
             // ConvertFrom automatically keeps kernel time and accumulates
             input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
             input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
             output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-
-            /// \todo: Will need SetTensor() to properly zero out non-packed tensors
-            /// Note: Need to clear buffer memory for BWD and WRW since all values may not be set.
-            if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Weights ||
-               output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
-            {
-                elapsed = handle.IsProfilingEnabled() ? handle.GetKernelTime() : 0.0f;
-                output_tr_inst.ZeroOutBuffer(handle);
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-            }
 
             std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
                 &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
@@ -926,6 +880,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
             }
 
+            float elapsed = 0.0f;
             if(handle.IsProfilingEnabled())
             {
                 elapsed += handle.GetKernelTime();
@@ -1009,16 +964,6 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                                       data_ctx.beta.GetAsFloat());
                 }
 
-                float elapsed = 0.0f;
-                if(alpha_beta_case == DEFAULT)
-                {
-                    ZeroOutTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw);
-
-                    if(handle.IsProfilingEnabled())
-                    {
-                        elapsed += handle.GetKernelTime();
-                    }
-                }
                 // use captured value, other wise getting warning
                 // "lambda capture is not used" since this variable is only used in assert.
                 (void)should_allocated_wrw_buffer;
@@ -1035,6 +980,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                     invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
                 }
 
+                float elapsed = 0.0f;
                 if(handle.IsProfilingEnabled())
                 {
                     elapsed += handle.GetKernelTime();
@@ -1061,19 +1007,6 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                                        data_ctx.alpha.GetAsFloat(),
                                                        data_ctx.beta.GetAsFloat());
                 auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
-
-                // Zero out the buffer for output data since it won't always write all output
-                // values.
-                float elapsed = 0.0f;
-                if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
-                {
-                    ZeroOutTensor(handle, data_ctx.tensors.outDesc, data_ctx.tensors.out);
-
-                    if(handle.IsProfilingEnabled())
-                    {
-                        elapsed += handle.GetKernelTime();
-                    }
-                }
 
                 {
                     WorkAroundHipEventProfiler prf(handle);
