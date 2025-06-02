@@ -166,7 +166,7 @@ def get_kernel_times(data):
 
     return kernel_times
 
-def run_pairwise_comparison(results):
+def run_pairwise_comparison(results, tol=0.025):
     """
     Run pairwise comparison of kernel times and inference times between different labels.
     """
@@ -184,22 +184,28 @@ def run_pairwise_comparison(results):
             
             # Prepare data for boxplot
             selected_configs = {}
-            selected_configs[label1] = 0
-            selected_configs[label2] = 0
+            key1 = label1 + ' better'
+            key2 = label2 + ' better'
+            selected_configs[key1] = 0
+            selected_configs[key2] = 0
+            equal_key = f'equal (tolerance: {100*tol:.1f}%)' 
+            selected_configs[equal_key] = 0
             for config in kernel_times1.keys():
                 time1 = kernel_times1.get(config, float('inf'))
                 time2 = kernel_times2.get(config, float('inf'))
-                if time1 < time2:
-                    selected_configs[label1] += 1
-                elif time2 < time1:
-                    selected_configs[label2] += 1
+                if abs(time1 - time2) < tol * min(time1, time2):
+                    selected_configs[equal_key] += 1
+                else:
+                    if time1 < time2:
+                        selected_configs[key1] += 1
+                    elif time2 < time1:
+                        selected_configs[key2] += 1
 
             # Create a boxplot for the pairwise comparison
             plt.figure(figsize=(10, 6))
-            plt.bar(selected_configs.keys(), selected_configs.values(), color=['blue', 'orange'])
-            plt.xlabel('Model')
+            plt.bar(selected_configs.keys(), selected_configs.values(), color=['blue', 'orange', 'green'])
             plt.ylabel('Number of Configurations')
-            plt.title(f"Pairwise Comparison: {label1} vs {label2}")
+            plt.title(f"Kernel runtime comparison for predicted parameters: {label1} vs {label2}")
             plt.savefig(f"pairwise_comparison_{label1}_vs_{label2}.png")
 
 def main():
