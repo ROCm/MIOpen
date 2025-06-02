@@ -114,22 +114,8 @@ using index_t = uint32_t;
 using index_t = int32_t;
 #endif
 
-// i32
 // int32x4_t used by buffer addressing LLVM intrinsic
-typedef int32_t int32x2_t __attribute__((ext_vector_type(2)));
 typedef int32_t int32x4_t __attribute__((ext_vector_type(4)));
-typedef int32_t int32x8_t __attribute__((ext_vector_type(8)));
-typedef int32_t int32x16_t __attribute__((ext_vector_type(16)));
-typedef int32_t int32x32_t __attribute__((ext_vector_type(32)));
-typedef int32_t int32x64_t __attribute__((ext_vector_type(64)));
-
-// i8
-typedef int8_t int8x2_t __attribute__((ext_vector_type(2)));
-typedef int8_t int8x4_t __attribute__((ext_vector_type(4)));
-typedef int8_t int8x8_t __attribute__((ext_vector_type(8)));
-typedef int8_t int8x16_t __attribute__((ext_vector_type(16)));
-typedef int8_t int8x32_t __attribute__((ext_vector_type(32)));
-typedef int8_t int8x64_t __attribute__((ext_vector_type(64)));
 
 } // namespace ck
 #endif

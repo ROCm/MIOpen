@@ -77,6 +77,7 @@ std::string BnormArgsForMIOpenDriver(miopenTensorDescriptor_t xDesc,
                                      const void* resultSaveMean,
                                      const void* resultSaveInvVariance,
                                      const BatchNormDirection_t& dir,
+                                     miopenActivationDescriptor_t activDesc,
                                      bool print_for_bn_driver = true);
 } // namespace debug
 } // namespace miopen
