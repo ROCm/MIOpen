@@ -681,9 +681,8 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
     // relevant.
     std::vector<std::size_t> layout_strides;
     layout_strides.reserve(base_layout.size());
-    for(size_t i = 0; i < base_layout.size(); ++i)
+    for(const auto& cur_char : base_layout)
     {
-        char cur_char  = base_layout[i];
         const auto pos = storage_layout.find(cur_char);
         if(pos == std::string::npos)
             MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
