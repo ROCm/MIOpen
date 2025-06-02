@@ -202,29 +202,20 @@ public:
             TestCase{{miopenHalf, {2, 2, 2, 2}, {1000, 1, 100, 10}}, {"NHWC"}},
             TestCase{{miopenHalf, {2, 2, 2, 2}, {1, 1000, 100, 10}}, {"CHWN"}},
             TestCase{{miopenHalf, {1, 1, 1, 1}, {1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
-            TestCase{{miopenHalf, {2, 2, 2, 2}, {1000, 100, 10, 1}}, {"NCHW"}},
-            TestCase{{miopenHalf, {2, 2, 2, 2}, {1000, 1, 100, 10}}, {"NHWC"}},
-            TestCase{{miopenHalf, {2, 2, 2, 2}, {1, 1000, 100, 10}}, {"CHWN"}},
             TestCase{{miopenHalf, {2, 2, 2, 2}, {1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
 
-            TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}, {1000, 100, 10, 1}}, {"NCHW"}},
-            TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}, {1000, 1, 100, 10}}, {"NHWC"}},
-            TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}, {1, 1000, 100, 10}}, {"CHWN"}},
             TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}, {1000, 100, 10, 1}}, {"NCHW"}},
             TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}, {1000, 1, 100, 10}}, {"NHWC"}},
             TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}, {1, 1000, 100, 10}}, {"CHWN"}},
             TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
             TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
 
-            // Test cases where invalid strides with dim of 1 are allowed.
-            // (When dim is 1 we can safely ignore stride values.)
-            // Note: Some layouts are equivalent when dim == 1 (NCHW == CHWN when n = 1 for example)
+            // Stride is ignored when the corresponding dimension length is 1. As a result,
+            // multiple layouts have identical memory footprints. For example, NCHW == CHWN for n = 1.
             TestCase{{miopenHalf, {1, 2, 2, 2}, {1, 100, 10, 1}}, {"NCHW", "CHWN"}},
             TestCase{{miopenHalf, {2, 1, 2, 2}, {1000, 10000, 10, 1}}, {"NCHW", "NHWC"}},
             TestCase{{miopenHalf, {2, 2, 1, 2}, {1000, 100, 10000, 1}}, {"NCHW"}},
