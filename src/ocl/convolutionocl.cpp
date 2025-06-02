@@ -308,7 +308,8 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
         if(model_result)
             std::reverse(eval_sols.begin(), eval_sols.end());
 
-        assert(eval_sols[0].GetSolver() == solver::Id{solutions[0].solution_id});
+        auto eval_slv_check_1 = solver::Id{solutions[0].solution_id};
+        assert(eval_sols[0].GetSolver() == eval_slv_check_1);
 
         bool good_entry         = false;
         const float eval_time_1 = eval_sols[0].GetTime();
