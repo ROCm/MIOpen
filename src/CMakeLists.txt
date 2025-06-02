@@ -209,17 +209,14 @@ set( MIOpen_Source
     solver/activ/fwd_1.cpp
     solver/adam/adam.cpp
     solver/adam/transformers_adam_w.cpp
-    solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
     solver/batchnorm/backward_spatial.cpp
     solver/batchnorm/forward_inference.cpp
-    solver/batchnorm/forward_inference_ck.cpp
     solver/batchnorm/forward_inference_fused.cpp
     solver/batchnorm/forward_per_activation.cpp
     solver/batchnorm/forward_per_activation_fused.cpp
     solver/batchnorm/forward_spatial.cpp
-    solver/batchnorm/forward_training_ck.cpp
     solver/cat/forward_cat.cpp
     solver/conv/conv_asm_1x1u.cpp
     solver/conv/conv_asm_1x1u_stride2.cpp
