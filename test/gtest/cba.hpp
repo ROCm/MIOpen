@@ -40,17 +40,17 @@
 #include "conv_test_base.hpp"
 #include "conv_tensor_gen.hpp"
 
-template <typename T = float>
+template <typename T = float, typename TestCaseType = ConvTestCaseBase>
 struct ConvBiasActivInferTest
     : public ::testing::TestWithParam<
-          std::tuple<miopenActivationMode_t, ConvTestCaseBase, miopenTensorLayout_t>>,
-      ConvFwdSolverTestBase<T, T>
+          std::tuple<miopenActivationMode_t, TestCaseType, miopenTensorLayout_t>>,
+      ConvFwdSolverTestBase<T, T, TestCaseType>
 {
 protected:
     void SetUp() override
     {
         test_skipped                                     = false;
-        std::tie(activ_mode, conv_config, tensor_layout) = GetParam();
+        std::tie(activ_mode, conv_config, tensor_layout) = this->GetParam();
 
         cfsb::SetUpImpl(conv_config, tensor_layout);
         activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
@@ -90,7 +90,7 @@ protected:
                             cfsb::ref_out.data);
         cfsb::ThresholdChecks();
     }
-    ConvTestCaseBase conv_config;
+    TestCaseType conv_config;
     miopen::ActivationDescriptor activ_desc;
     tensor<T> bias;
     miopen::Allocator::ManageDataPtr bias_dev;
@@ -104,5 +104,5 @@ protected:
     const float activ_beta  = static_cast<double>(0.5f);
     const float activ_gamma = static_cast<double>(0.5f);
     miopenTensorLayout_t tensor_layout;
-    using cfsb = ConvFwdSolverTestBase<T, T>;
+    using cfsb = ConvFwdSolverTestBase<T, T, TestCaseType>;
 };

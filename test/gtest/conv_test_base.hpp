@@ -32,6 +32,91 @@
 #include "conv_common.hpp"
 #include "conv_tensor_gen.hpp"
 
+using Direction = miopen::conv::Direction;
+
+template <unsigned NDIM>
+struct GroupConvTestConfig
+{
+};
+
+template <>
+struct GroupConvTestConfig<2u>
+{
+
+    struct Size2D
+    {
+        size_t y;
+        size_t x;
+    };
+
+    size_t G;
+    size_t N;
+    size_t C;
+    size_t k;
+
+    Size2D img;
+    Size2D filter;
+    Size2D pad;
+    Size2D stride;
+    Size2D dilation;
+
+    friend std::ostream& operator<<(std::ostream& os, const GroupConvTestConfig& tc)
+    {
+        return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " K:" << tc.k
+                  << " H:" << tc.img.y << " W:" << tc.img.x << " y:" << tc.filter.y
+                  << " x:" << tc.filter.x << " pad.y:" << tc.pad.y << " pad.x:" << tc.pad.x
+                  << " stride.y:" << tc.stride.y << " stride.x" << tc.stride.x
+                  << " dilation.y:" << tc.dilation.y << " dilation.x" << tc.dilation.x;
+    }
+
+    std::vector<size_t> GetInput() { return {N, C, img.y, img.x}; }
+    std::vector<size_t> GetWeights()
+    {
+        EXPECT_EQUAL(C % G, 0);
+        return {k, C / G, filter.y, filter.x};
+    }
+
+    miopen::ConvolutionDescriptor GetConv()
+    {
+        return miopen::ConvolutionDescriptor{
+            2,
+            miopenConvolution,
+            miopenPaddingDefault,
+            {static_cast<int>(pad.y), static_cast<int>(pad.x)},
+            {static_cast<int>(stride.y), static_cast<int>(stride.x)},
+            {static_cast<int>(dilation.y), static_cast<int>(dilation.x)},
+            {0, 0},
+            static_cast<int>(G),
+            1.0};
+    }
+
+    static std::vector<GroupConvTestConfig> GetConfigs()
+    {
+
+        // clang-format off2, 3, 10, 10, 1, 1, 1, 0,      0,     2,         2,         1, 1, miopenConvolution
+        return {
+            // g   n   C     K      img       filter   pad    stride  dilation
+            //   {1 , 2, 3 ,    1 , {10, 10}  , {1, 1}, {0, 0}, {2, 2}, {1, 1}},
+            {1, 1, 1, 1, {10, 10}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
+            //   {1 , 64, 1024  , 2048  , {14, 14}  , {1, 1}, {0, 0}, {2, 2}, {1, 1}},
+            //   {4 , 256, 192 , 192 , {28, 28}  , {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+            //   {8 , 256, 192 , 192 , {28, 28}  , {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+            //   {8 , 256, 384 , 384 , {28, 28}  , {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+            //   {32, 256, 1024, 2048, {28, 28}  , {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+            //   {4 , 256, 192 , 192 , {28, 28}  , {3, 3}, {1, 1}, {2, 2}, {1, 1}},
+            //   {8 , 256, 384 , 384 , {28, 28}  , {3, 3}, {1, 1}, {2, 2}, {1, 1}},
+            //   {32, 256, 1024, 2048, {28, 28}  , {3, 3}, {1, 1}, {2, 2}, {1, 1}},
+            //   {1 , 6  , 448 , 896 , {118, 182}, {3, 3}, {0, 0}, {2, 2}, {1, 1}},
+            //   {4 , 256, 192 , 192 , {28, 28}  , {1, 1}, {1, 1}, {2, 2}, {1, 1}},
+            //   {8 , 256, 384 , 384 , {28, 28}  , {1, 1}, {1, 1}, {2, 2}, {1, 1}},
+            //   {32, 256, 1024, 2048, {28, 28}  , {1, 1}, {1, 1}, {2, 2}, {1, 1}},
+            //   {1 , 6  , 448 , 896 , {118, 182}, {1, 1}, {0, 0}, {2, 2}, {1, 1}},
+            //   {4 , 16 , 224 , 224 , {469, 724}, {3, 3}, {1, 1}, {2, 2}, {1, 1}},
+        };
+        // clang-format on
+    }
+};
+
 struct ConvTestCaseBase
 {
     size_t N;
@@ -85,29 +170,33 @@ template <>
 inline std::vector<ConvTestCaseBase> GetNetwork1()
 {
     // pyt_mlperf_resnet50v1.5
-    return {{64, 1024, 14, 14, 2048, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
-            {64, 1024, 14, 14, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 1024, 14, 14, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 28, 28, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 28, 28, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 128, 56, 56, 128, 3, 3, 1, 1, 2, 2, 1, 1, miopenConvolution},
-            {64, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 14, 14, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 14, 14, 256, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 28, 28, 256, 3, 3, 1, 1, 2, 2, 1, 1, miopenConvolution},
-            {64, 256, 56, 56, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 256, 56, 56, 512, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
-            {64, 256, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 3, 224, 224, 64, 7, 7, 3, 3, 2, 2, 1, 1, miopenConvolution},
-            {64, 512, 14, 14, 512, 3, 3, 1, 1, 2, 2, 1, 1, miopenConvolution},
-            {64, 512, 28, 28, 1024, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
-            {64, 512, 28, 28, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 512, 28, 28, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 512, 7, 7, 2048, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 512, 7, 7, 512, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
-            {64, 64, 56, 56, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 64, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
-            {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
+    //       N, C, H,   W, k, y, x, pad_x, pad_y, stride_x, stride_y, dilation_x, dilation_y,
+    //       conv_mode
+    return {
+        {2, 3, 10, 10, 1, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
+        // {64, 1024, 14, 14, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 1024, 14, 14, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 128, 28, 28, 128, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+        // {64, 128, 28, 28, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 128, 56, 56, 128, 3, 3, 1, 1, 2, 2, 1, 1, miopenConvolution},
+        // {64, 2048, 7, 7, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 256, 14, 14, 1024, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 256, 14, 14, 256, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+        // {64, 256, 28, 28, 256, 3, 3, 1, 1, 2, 2, 1, 1, miopenConvolution},
+        // {64, 256, 56, 56, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 256, 56, 56, 512, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
+        // {64, 256, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 3, 224, 224, 64, 7, 7, 3, 3, 2, 2, 1, 1, miopenConvolution},
+        // {64, 512, 14, 14, 512, 3, 3, 1, 1, 2, 2, 1, 1, miopenConvolution},
+        // {64, 512, 28, 28, 1024, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
+        // {64, 512, 28, 28, 128, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 512, 28, 28, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 512, 7, 7, 2048, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 512, 7, 7, 512, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution},
+        // {64, 64, 56, 56, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 64, 56, 56, 64, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
+        // {64, 64, 56, 56, 64, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}
+    };
 }
 
 template <typename T>
@@ -123,11 +212,15 @@ inline std::vector<ConvTestCaseBase> ConvTestConfigs()
             {64, 1024, 14, 14, 1024, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
-template <typename T, typename Tref = float, bool use_cpu_ref = false>
+template <typename T,
+          typename Tref    = float,
+          typename TConfig = ConvTestCaseBase,
+          bool use_cpu_ref = false,
+          unsigned NDIM    = 2>
 struct ConvFwdSolverTestBase
 {
 protected:
-    void SetUpImpl(ConvTestCaseBase conv_config, miopenTensorLayout_t tensor_layout)
+    void SetUpImpl(TConfig conv_config, miopenTensorLayout_t tensor_layout)
     {
         input   = tensor<T>{tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};

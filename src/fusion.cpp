@@ -763,6 +763,7 @@ static auto GetFusedDirectSolvers()
 static auto GetFusedIGemmSolvers()
 {
     return solver::SolverContainer<solver::fusion::ConvCKIgemmFwdBiasActivFused,
+                                   solver::fusion::ConvCKIgemmGrpFwdBiasActivFused,
                                    solver::fusion::ConvCKIgemmFwdBiasResAddActivFused>{};
 }
 
