@@ -184,7 +184,6 @@ private:
     template <typename DataType>
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
-//================= start ================
 
 struct PerformanceConfigConvCKIgemmGrpFwdBiasActivFused
     : PerfConfigBase<PerformanceConfigConvCKIgemmGrpFwdBiasActivFused>
@@ -255,8 +254,6 @@ private:
     template <typename DataType>
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
-
-//=====================end =============
 
 struct PerfConfigConvCKIgemmFwdBiasResAddActivFused
     : PerfConfigBase<PerfConfigConvCKIgemmFwdBiasResAddActivFused>

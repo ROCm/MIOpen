@@ -31,7 +31,6 @@
 #include <miopen/fusion.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
-#include <miopen/conv_algo_name.hpp>
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
@@ -40,17 +39,17 @@
 
 namespace cba_infer {
 
-// struct GPU_ConvBiasActivInfer_FP32 : ConvBiasActivInferTest<float>
-// {
-// };
+struct GPU_ConvBiasActivInfer_FP32 : ConvBiasActivInferTest<float>
+{
+};
 
-// struct GPU_ConvBiasActivInferFusionCompileStep_FP32 : ConvBiasActivInferTest<float>
-// {
-// };
+struct GPU_ConvBiasActivInferFusionCompileStep_FP32 : ConvBiasActivInferTest<float>
+{
+};
 
-// struct GPU_ConvBiasActivInfer_FP16 : ConvBiasActivInferTest<half_float::half>
-// {
-// };
+struct GPU_ConvBiasActivInfer_FP16 : ConvBiasActivInferTest<half_float::half>
+{
+};
 
 struct GPU_ConvGrpBiasActivInfer_BFP16 : ConvBiasActivInferTest<bfloat16, GroupConvTestConfig<2u>>
 {
@@ -79,10 +78,10 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     (invoker)(handle, *(plan_params.get()));
     handle.Finish();
 }
-template <typename Solver>
+template <typename Solver, typename TCase = ConvTestCaseBase>
 void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
                       const std::unique_ptr<miopen::fusion::FusionInvokeParams>& plan_params,
-                      const GroupConvTestConfig<2>& conv_config,
+                      const TCase& conv_config,
                       bool& test_skipped)
 {
     auto& handle = get_handle();
@@ -99,17 +98,6 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
         fusion_ctx, fusion_problem, solv.GetDefaultPerformanceConfig(fusion_ctx, fusion_problem));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
-
-    // const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-
-    // PrintBfp16Tensor2D("bias from cba_infer.cpp",
-    //     bias_dev.get(),
-    // fusion_problem.GetConvProblem(miopen::conv::Direction::Forward).GetBiasSize(),
-    // 1,
-    // 0,      // first batch
-    // 0,      // starting from channel 0
-    // 1);     // pri
-
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
     (invoker)(handle, *(plan_params.get()));
     handle.Finish();
@@ -165,8 +153,8 @@ TEST_P(GPU_ConvGrpBiasActivInfer_BFP16, ConvCKIgemmGrpFwdBiasActivFused)
 {
     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
         params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
-    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdBiasActivFused>(
-        fusePlanDesc, plan_params, conv_config, test_skipped);
+    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdBiasActivFused,
+                     GroupConvTestConfig<2u>>(fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 
 // #if MIOPEN_BACKEND_HIP
@@ -174,8 +162,7 @@ TEST_P(GPU_ConvGrpBiasActivInfer_BFP16, ConvCKIgemmGrpFwdBiasActivFused)
 // TEST_P(GPU_ConvBiasActivInferFusionCompileStep_FP32, ConvBiasActivAsm1x1UFloat_testCompile)
 // {
 //     ScopedEnvironment<std::string> find_enforce_env(MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE");
-//     ScopedEnvironment<int> find_enforce_tuning_iter_env(wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX,
-//     5);
+//     ScopedEnvironment<int> find_enforce_tuning_iter_env(wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 5);
 
 //     fusePlanDesc.Compile(get_handle());
 //     const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
@@ -202,9 +189,8 @@ TEST_P(GPU_ConvGrpBiasActivInfer_BFP16, ConvCKIgemmGrpFwdBiasActivFused)
 // INSTANTIATE_TEST_SUITE_P(Smoke,
 //                          GPU_ConvBiasActivInfer_FP16,
 //                          testing::Combine(testing::Values(miopenActivationRELU),
-//                                           testing::ValuesIn(GroupConvTestConfig<2>::GetConfigs()),
+//                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
 //                                           testing::Values(miopenTensorNHWC)));
-
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_ConvGrpBiasActivInfer_BFP16,
                          testing::Combine(testing::Values(miopenActivationRELU),

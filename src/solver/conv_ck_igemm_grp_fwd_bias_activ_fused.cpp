@@ -37,7 +37,7 @@
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/implicitgemm_ck_util.hpp>
-#include "ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_bias_relu.hpp"
+#include "ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_bias_clamp.hpp"
 #endif
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_BIAS_ACTIV)
@@ -46,8 +46,12 @@ namespace solver {
 namespace fusion {
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-// ck::bhalf_t, NHWGC, GKYXC, NHWGK
 static constexpr ck::index_t NDimSpatial = 2;
+// todo : support 3D
+// static constexpr ck::index_t NDimSpatial = 3;    
+// if relu passed by user then 
+const float floor = 0;
+const float ceil  = std::numeric_limits<ck::bhalf_t>::max();
 
 using InLayout  = ck::tensor_layout::convolution::NHWGC;
 using WeiLayout = ck::tensor_layout::convolution::GKYXC;
@@ -55,11 +59,11 @@ using OutLayout = ck::tensor_layout::convolution::NHWGK;
 
 using InElementOp  = ck::tensor_operation::element_wise::PassThrough;
 using WeiElementOp = ck::tensor_operation::element_wise::PassThrough;
-using OutElementOp = ck::tensor_operation::element_wise::AddRelu;
+using OutElementOp = ck::tensor_operation::element_wise::AddClamp;
 
 const auto in_element_op  = InElementOp{};
 const auto wei_element_op = WeiElementOp{};
-const auto out_element_op = OutElementOp{};
+const auto out_element_op = OutElementOp{floor, ceil};
 
 template <typename InDataType,
           typename WeiDataType,
@@ -102,17 +106,19 @@ struct CKArgs
         Ho = ProblemInterpreter::GetOutputHeightHo(problem);
         Wo = ProblemInterpreter::GetOutputWidthWo(problem);
         Y  = ProblemInterpreter::GetFilterHeightY(problem);
-        X  = ProblemInterpreter::GetFilterWidthX(problem);
+        X  = ProblemInterpreter::GetFilterWidthX(problem); 
 
         input_len  = {G, N, C, Hi, Wi};
         output_len = {G, N, K, Ho, Wo};
         weight_len = {G, K, C, Y, X};
+        bias_len   = {G, 1, K, 1, 1};
 
         // NHWGC
+        bias_strides = {K, 0, 1, 0, 0};
+        
         // in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
         // out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
         // wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-
         auto miopen_in_strides  = problem.GetIn().GetStrides();
         auto miopen_out_strides = problem.GetOut().GetStrides();
         auto miopen_wei_strides = problem.GetWeights().GetStrides();
@@ -156,8 +162,8 @@ struct CKArgs
                                              in_strides,
                                              weight_len,
                                              wei_strides,
-                                             {output_len},
-                                             {out_strides},
+                                             {output_len}, // hack CK's is applicable check. instead of bias_len we use output_len
+                                             {bias_strides},
                                              output_len,
                                              out_strides,
                                              strides,
@@ -213,6 +219,8 @@ struct CKArgs
     std::array<ck::index_t, 5> in_strides;
     std::array<ck::index_t, 5> output_len;
     std::array<ck::index_t, 5> out_strides;
+    std::array<ck::index_t, 5> bias_len;
+    std::array<ck::index_t, 5> bias_strides;
     std::array<ck::index_t, 5> weight_len;
     std::array<ck::index_t, 5> wei_strides;
     std::array<ck::index_t, 2> strides;
@@ -406,7 +414,7 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     const std::string arch = ctx.GetStream().GetDeviceName();
     if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx942")
         return false;
-    if(!conv_problem.IsLayoutNHWC())
+    if(!conv_problem.IsLayoutNHWC() && !conv_problem.IsLayoutDefault())
         return false;
 
     switch(conv_problem.GetInDataType())
@@ -431,61 +439,36 @@ ConvSolution ConvCKIgemmGrpFwdBiasActivFused::GetSolution(
     const FusionDescription& fdesc_problem,
     const PerformanceConfigConvCKIgemmGrpFwdBiasActivFused& config) const
 {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
-    const auto conv_ctx     = context.GetConvContext(conv_problem);
+    #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+        std::ignore = fdesc_problem;
+        std::ignore = config;
+        return {};
+    #else
+        const auto conv_problem = fdesc_problem.GetConvProblem(0,
+        miopen::conv::Direction::Forward);
 
-    return MakeSolutionGroupConvImplicitGemmXdlops(
-        conv_problem,
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryFwdNCHW<2,
-                                             DeviceOpGFwdBiasReluPtrs<T>,
-                                             CKArgs,
-                                             miopen::fusion::FusionInvokeParams>(
-                conv_ctx, conv_problem, config.kernel_id);
-        },
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGFwdBiasReluPtrs<T>,
-                                          CKArgs,
-                                          miopen::fusion::FusionInvokeParams>(
-                conv_ctx, conv_problem, config.kernel_id);
-        });
-#else
-    return {};
-#endif
-    // #if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    //     std::ignore = fdesc_problem;
-    //     std::ignore = config;
-    //     return {};
-    // #else
-    //     const auto conv_problem = fdesc_problem.GetConvProblem(0,
-    //     miopen::conv::Direction::Forward);
+        using ParamType = miopen::fusion::FusionInvokeParams;
+        switch(conv_problem.GetInDataType())
+        {
+        case miopenBFloat16:
+                return InitAnyInvokerFactory<DeviceOpGFwdBiasReluPtrs<ck::bhalf_t>, CKArgs,
+                ParamType>(
+                    conv_problem, config.kernel_id);
+        case miopenInt8:
+        case miopenHalf:
+        case miopenFloat:
 
-    //     using ParamType = miopen::fusion::FusionInvokeParams;
-    //     switch(conv_problem.GetInDataType())
-    //     {
-    //     case miopenBFloat16:
-    //             return InitAnyInvokerFactory<DeviceOpGFwdBiasReluPtrs<ck::bhalf_t>, CKArgs,
-    //             ParamType>(
-    //                 conv_problem, config.kernel_id);
-    //     case miopenInt8:
-    //     case miopenHalf:
-    //     case miopenFloat:
+        case miopenInt32:
+        case miopenInt64:
+        case miopenDouble:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
+        default:
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "ConvHipImplicitGemmBwdXdlops operation not implemented for this data type");
+        }
 
-    //     case miopenInt32:
-    //     case miopenInt64:
-    //     case miopenDouble:
-    //     case miopenFloat8_fnuz:
-    //     case miopenBFloat8_fnuz:
-    //     default:
-    //         MIOPEN_THROW(miopenStatusInternalError,
-    //                      "ConvHipImplicitGemmBwdXdlops operation not implemented for this data
-    //                      type");
-    //     }
-
-    // #endif
+    #endif
 }
 
 } // namespace fusion
