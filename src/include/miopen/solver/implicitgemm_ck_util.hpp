@@ -1013,6 +1013,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                     invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
                 }
 
+                float elapsed = 0.0f;
                 if(handle.IsProfilingEnabled())
                 {
                     elapsed += handle.GetKernelTime();
