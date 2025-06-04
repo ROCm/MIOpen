@@ -156,6 +156,7 @@ protected:
     tensor<T> target;
     tensor<T> output;
     tensor<T> output_ref;
+    tensor<float> workspace;
 
     miopen::Allocator::ManageDataPtr input_dev;
     miopen::Allocator::ManageDataPtr target_dev;
@@ -196,11 +197,21 @@ protected:
             miopen::GetMSELossForwardWorkspaceSize(handle, input.desc, output.desc, reduction);
         if(ws_sizeInBytes == static_cast<size_t>(-1))
             GTEST_SKIP();
-        workspace_dev = handle.Create(ws_sizeInBytes);
+
+        if(ws_sizeInBytes != 0)
+        {
+            std::vector<size_t> workspace_dims;
+            workspace_dims.push_back(ws_sizeInBytes / sizeof(float));
+
+            workspace = tensor<float>{workspace_dims};
+            std::fill(workspace.begin(), workspace.end(), 0.0f);
+
+            workspace_dev = handle.Write(workspace.data);
+        }
 
         input_dev  = handle.Write(input.data);
         target_dev = handle.Write(target.data);
-        output_dev = handle.Create(output.desc.GetNumBytes());
+        output_dev = handle.Write(output.data);
     }
 
     void RunTest()
