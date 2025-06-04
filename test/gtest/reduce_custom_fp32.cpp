@@ -66,18 +66,22 @@ using TestCase = decltype(GetTestCases(""))::value_type;
 
 class GPU_reduce_custom_fp32_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_reduce_custom_fp32_FP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_reduce_custom_fp32_BFP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_reduce_custom_fp32_I8 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 bool IsTestSupportedForDevice()
