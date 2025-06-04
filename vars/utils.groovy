@@ -29,7 +29,10 @@ def miopenCheckout()
         $class: 'GitSCM',
         branches: scm.branches,
         doGenerateSubmoduleConfigurations: true,
-        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
+        extensions: scm.extensions + [
+            [$class: 'SubmoduleOption', parentCredentials: true],
+            [$class: 'CloneOption', shallow: true, depth: 1, noTags: false, reference: '']
+        ],
        userRemoteConfigs: scm.userRemoteConfigs
    ])
 }
@@ -213,7 +216,7 @@ def cmake_fin_build_cmd(prefixpath){
 
 def getDockerImageName(dockerArgs)
 {
-    checkout scm
+    miopenCheckout()
     sh "echo ${dockerArgs} > factors.txt"
     def image = "${env.MIOPEN_DOCKER_IMAGE_URL}"
     sh "md5sum Dockerfile requirements.txt dev-requirements.txt >> factors.txt"
@@ -231,10 +234,11 @@ def getDockerImageName(dockerArgs)
 
 def getDockerImage(Map conf=[:])
 {
-    checkout scm
+    miopenCheckout()
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
-    def gpu_arch = "gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
+    // Note: With offload compress disabled for CK expanding the target list might cause issues with the docker build.
+    def gpu_arch = "gfx908;gfx90a;gfx942" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
 
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS=\"${gpu_arch}\""
     if(env.CCACHE_HOST)
@@ -312,7 +316,6 @@ def getDockerImage(Map conf=[:])
 def buildHipClangJob(Map conf=[:]){
         show_node_info()
         miopenCheckout()
-        checkout scm
         env.HSA_ENABLE_SDMA=0
         env.DOCKER_BUILDKIT=1
         def image
@@ -395,7 +398,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 
 
 def RunPerfTest(Map conf=[:]){
-    checkout scm
+    miopenCheckout()
     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
     try {
         def docker_image = conf.get("docker_image")

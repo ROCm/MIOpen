@@ -218,6 +218,9 @@ void WinoShaderArgsV2::SetActivParams(miopenActivationMode_t mode)
     case miopenActivationLEAKYRELU:
         activation_mode = WinoShaderActivationModeV2_t::LEAKY_RELU;
         break;
+    case miopenActivationRELU:
+        activation_mode = WinoShaderActivationModeV2_t::RELU;
+        break;
     default:
         MIOPEN_THROW(miopenStatusInternalError);
     }

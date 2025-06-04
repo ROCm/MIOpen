@@ -150,10 +150,7 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
-    num_threads=$(( $(nproc) / 2 )) && \
-    if [ "$num_threads" -gt 32 ]; then \
-        num_threads=32; \
-    fi && \
+    num_threads=$(( $(nproc) )) && \
     echo Building CK with ${num_threads} threads && \
     CXX=/opt/rocm/bin/amdclang++ cmake \
     -D CMAKE_PREFIX_PATH=/opt/rocm \
@@ -161,6 +158,8 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     -D CMAKE_C_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
     -D CMAKE_BUILD_TYPE=Release \
     -D GPU_ARCHS=${GPU_ARCHS} \
+    -D MIOPEN_REQ_LIBS_ONLY=ON \
+    -D DISABLE_OFFLOAD_COMPRESS=ON \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
     make -j ${num_threads} install && \ 
     sccache -s
