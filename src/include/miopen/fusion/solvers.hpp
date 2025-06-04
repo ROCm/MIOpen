@@ -308,6 +308,24 @@ extern template struct ConvWinoFuryRxSFused<2, 3>;
 // extern template struct ConvWinoFuryRxSFused<3, 2>;
 #endif
 
+template <uint32_t Winodata, uint32_t Winofilter>
+struct ConvWinoRageRxSFused final : FusionSolverBase
+{
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvWinoRageRxSFused<Winodata, Winofilter>>();
+    }
+
+    bool IsApplicable(const FusionContext&, const FusionDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    float GetWti(const FusionContext&, const FusionDescription&) const override;
+    ConvSolution GetSolution(const FusionContext&, const FusionDescription&) const override;
+};
+
+#ifndef CONV_WINO_FURY_RXS_CPP
+extern template struct ConvWinoRageRxSFused<2, 3>;
+#endif
+
 struct BnFwdInferActivationFused final : FusionSolverBase
 {
     const std::string& SolverDbId() const override

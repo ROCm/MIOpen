@@ -85,10 +85,11 @@ inline std::ostream& operator<<(std::ostream& s, WinoShaderFlagsV2 flags)
 
 enum class WinoShaderActivationModeV2_t : uint8_t
 {
-    IDENTITY    = 0, // no activation, alpha and beta are ignored
-    LEAKY_RELU  = 1, // ReLU, beta field is ignored
-    SIGMOID     = 2, // sigmoid, alpha and beta fields are ignored
-    SCALED_TANH = 3, // parametric tanh function
+    IDENTITY    = 0, // y = x                       no activation, alpha and beta are ignored
+    LEAKY_RELU  = 1, // y = x >= 0 ? x : alpha * x  beta is ignored
+    SIGMOID     = 2, // y = 1 / (1 + e^-x)          alpha and beta fields are ignored
+    SCALED_TANH = 3, // y = alpha * tanh(beta * x), where tanh(x) = (e^x - e^-x) / (e^x + e^-x)
+    RELU        = 4  // y = max(0, x)               alpha and beta fields are ignored
 };
 
 inline std::ostream& operator<<(std::ostream& s, const WinoShaderActivationModeV2_t& mode)
