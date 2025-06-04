@@ -700,13 +700,19 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     const int y           = problem.GetWeightsHeight();
     const int x           = problem.GetWeightsWidth();
 
-    const int n    = problem.GetBatchSize();
-    const int ho   = problem.GetOutHeight();
-    const int wo   = problem.GetOutWidth();
-    const int hi   = problem.GetInHeight();
-    const int wi   = problem.GetInWidth();
+    const int n  = problem.GetBatchSize();
+    const int ho = problem.GetOutHeight();
+    const int wo = problem.GetOutWidth();
+    const int hi = problem.GetInHeight();
+    const int wi = problem.GetInWidth();
+
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
+
+    bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
+                     (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
+
+    // use_workspace = 1; ATOMIC_ADD_FP16
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
 
@@ -716,9 +722,6 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
     if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
         return false;
-
-    bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
-                     (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
     if(merge_e != 0)
     {
@@ -731,29 +734,31 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
             return false;
     }
 
+    const bool is_gemm_k_split = gemm_k_global_split != 0;
+    const int gemm_k_shift     = gemm_k_global_split != 0 ? 1 : 0;
+
+    if(is_gemm_k_split)
+    {
+        if(gemm_k_global_split >
+           igemm_get_max_gks(c / group, gemm_k_per_block, FWD_MAX_GEMM_K_SPLITS))
+            return false;
+    }
+
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
+        auto splited_c = (c / group) >> gemm_k_shift;
         // if both 1, indicate padded c support
-        if((c >> gemm_k_global_split == 0) ||
-           (((c >> gemm_k_global_split) / group) % gemm_k_per_block != 0))
+        if(splited_c == 0 || (splited_c % gemm_k_per_block != 0))
             return false;
         // also, add this restriction to k, for vector write out
-        if(problem.IsFp16())
+        if(problem.IsFp16() || problem.IsBfp16())
         {
-            if(gemm_k_global_split != 0)
+            if(is_gemm_k_split)
             {
                 if((k / group) % 2 != 0)
                     return false;
             }
             else
-            {
-                if((k / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
-                    return false;
-            }
-        }
-        else if(problem.IsBfp16())
-        {
-            if(gemm_k_global_split == 0)
             {
                 if((k / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
                     return false;
@@ -767,6 +772,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     }
 
     // add more restriction for spare
+    // extra limitation
     if(use_spare_set)
     {
         // non 1x1 kernel(except padding gemm_k) can't run 1x1 case
@@ -886,6 +892,9 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC::IsApplicable(
     const auto device_name = ctx.GetStream().GetDeviceName();
     if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx942") &&
        (!StartsWith(device_name, "gfx95")))
+        return false;
+
+    if(!(problem.IsLayoutDefault() || problem.IsLayoutNHWC()))
         return false;
 
     if(!ctx.use_asm_kernels)
