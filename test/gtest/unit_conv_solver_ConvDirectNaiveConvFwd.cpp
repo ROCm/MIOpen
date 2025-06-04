@@ -65,7 +65,8 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
     {
         // clang-format off
         // Regression test for https://github.com/ROCm/MIOpen/issues/3279
-        cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 7, 7}}, {datatype, {1, 1, 1, 1}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+        cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 2, 7, 7}}, {datatype, {1, 2, 1, 1}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+        cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 7, 7}}, {datatype, miopenTensorNHWC, {1, 1, 1, 1}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
         // clang-format on
     }
 
