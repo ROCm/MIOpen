@@ -33,11 +33,6 @@ void add_device_normalization_fwd_rank_4_3_f16_instances(
         std::unique_ptr<ck::tensor_operation::device::
                             DeviceNormalizationFwd<F16, F16, F16, F16, F16, PassThrough, 4, 3>>>&);
 
-void add_device_normalization_fwd_rank_5_3_f16_instances(
-    std::vector<
-        std::unique_ptr<ck::tensor_operation::device::
-                            DeviceNormalizationFwd<F16, F16, F16, F16, F16, PassThrough, 5, 3>>>&);
-
 // FP32
 void add_device_normalization_fwd_rank_2_1_f32_instances(
     std::vector<
@@ -48,11 +43,6 @@ void add_device_normalization_fwd_rank_4_3_f32_instances(
     std::vector<
         std::unique_ptr<ck::tensor_operation::device::
                             DeviceNormalizationFwd<F32, F32, F32, F32, F32, PassThrough, 4, 3>>>&);
-
-void add_device_normalization_fwd_rank_5_3_f32_instances(
-    std::vector<
-        std::unique_ptr<ck::tensor_operation::device::
-                            DeviceNormalizationFwd<F32, F32, F32, F32, F32, PassThrough, 5, 3>>>&);
 
 template <typename DeviceOp, typename Tag = void>
 struct DeviceOperationInstanceFactory;
