@@ -17,7 +17,10 @@ using F32  = float;
 using PassThrough = ck::tensor_operation::element_wise::PassThrough;
 using index_t = ck::index_t;
 
-namespace miopen::kernels::ck_header_only::layernorm {
+namespace miopen {
+namespace kernels {
+namespace ck_header_only {
+namespace layernorm {
 
 // FP16
 void add_device_normalization_fwd_rank_2_1_f16_instances(
@@ -44,14 +47,6 @@ void add_device_normalization_fwd_rank_4_3_f32_instances(
 void add_device_normalization_fwd_rank_5_3_f32_instances(
     std::vector<
         std::unique_ptr<ck::tensor_operation::device::DeviceNormalizationFwd<F32, F32, F32, F32, F32, PassThrough, 5, 3>>>&);
-
-} // namespace miopen::kernels::ck_header_only::layernorm
-
-namespace miopen {
-
-namespace solver {
-
-namespace layernorm {
 
 template <typename DeviceOp, typename Tag = void>
 struct DeviceOperationInstanceFactory;
@@ -128,6 +123,8 @@ struct DeviceOperationInstanceFactory<ck::tensor_operation::device::DeviceNormal
 
 } // namespace layernorm
 
-} // namespace solver
+} // namespace ck_header_only
+
+} // namespace kernels
 
 } // namespace miopen
