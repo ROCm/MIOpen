@@ -13,7 +13,8 @@ using F32  = float;
 using Pass = ck::tensor_operation::element_wise::PassThrough;
 
 void add_device_normalization_fwd_rank_4_3_f16_instances(
-    std::vector<std::unique_ptr<ck::tensor_operation::device::DeviceNormalizationFwd<F16, F16, F16, F16, F16, Pass, 4, 3>>>&
+    std::vector<std::unique_ptr<
+        ck::tensor_operation::device::DeviceNormalizationFwd<F16, F16, F16, F16, F16, Pass, 4, 3>>>&
         instances)
 {
     add_device_operation_instances(instances,
@@ -24,6 +25,6 @@ void add_device_normalization_fwd_rank_4_3_f16_instances(
 }
 
 } // namespace layernorm
-} // ck_header_only
-} // kernels
+} // namespace ck_header_only
+} // namespace kernels
 } // namespace miopen

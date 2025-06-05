@@ -15,8 +15,8 @@ namespace kernels {
 namespace ck_header_only {
 namespace layernorm {
 
-using F16 = ck::half_t;
-using F32 = float;
+using F16     = ck::half_t;
+using F32     = float;
 using index_t = ck::index_t;
 
 template <typename BaseOp, typename NewOpInstances>
@@ -154,6 +154,6 @@ using device_normalization_f32_generic_instance = std::tuple<
     >;
 
 } // namespace layernorm
-} // ck_header_only
-} // kernels
+} // namespace ck_header_only
+} // namespace kernels
 } // namespace miopen

@@ -12,10 +12,10 @@
 
 #include "ck/library/tensor_operation_instance/device_operation_instance_factory.hpp"
 
-using F16  = ck::half_t;
-using F32  = float;
+using F16         = ck::half_t;
+using F32         = float;
 using PassThrough = ck::tensor_operation::element_wise::PassThrough;
-using index_t = ck::index_t;
+using index_t     = ck::index_t;
 
 namespace miopen {
 namespace kernels {
@@ -25,28 +25,34 @@ namespace layernorm {
 // FP16
 void add_device_normalization_fwd_rank_2_1_f16_instances(
     std::vector<
-        std::unique_ptr<ck::tensor_operation::device::DeviceNormalizationFwd<F16, F16, F16, F16, F16, PassThrough, 2, 1>>>&);
+        std::unique_ptr<ck::tensor_operation::device::
+                            DeviceNormalizationFwd<F16, F16, F16, F16, F16, PassThrough, 2, 1>>>&);
 
 void add_device_normalization_fwd_rank_4_3_f16_instances(
     std::vector<
-        std::unique_ptr<ck::tensor_operation::device::DeviceNormalizationFwd<F16, F16, F16, F16, F16, PassThrough, 4, 3>>>&);
+        std::unique_ptr<ck::tensor_operation::device::
+                            DeviceNormalizationFwd<F16, F16, F16, F16, F16, PassThrough, 4, 3>>>&);
 
 void add_device_normalization_fwd_rank_5_3_f16_instances(
     std::vector<
-        std::unique_ptr<ck::tensor_operation::device::DeviceNormalizationFwd<F16, F16, F16, F16, F16, PassThrough, 5, 3>>>&);
+        std::unique_ptr<ck::tensor_operation::device::
+                            DeviceNormalizationFwd<F16, F16, F16, F16, F16, PassThrough, 5, 3>>>&);
 
 // FP32
 void add_device_normalization_fwd_rank_2_1_f32_instances(
     std::vector<
-        std::unique_ptr<ck::tensor_operation::device::DeviceNormalizationFwd<F32, F32, F32, F32, F32, PassThrough, 2, 1>>>&);
+        std::unique_ptr<ck::tensor_operation::device::
+                            DeviceNormalizationFwd<F32, F32, F32, F32, F32, PassThrough, 2, 1>>>&);
 
 void add_device_normalization_fwd_rank_4_3_f32_instances(
     std::vector<
-        std::unique_ptr<ck::tensor_operation::device::DeviceNormalizationFwd<F32, F32, F32, F32, F32, PassThrough, 4, 3>>>&);
+        std::unique_ptr<ck::tensor_operation::device::
+                            DeviceNormalizationFwd<F32, F32, F32, F32, F32, PassThrough, 4, 3>>>&);
 
 void add_device_normalization_fwd_rank_5_3_f32_instances(
     std::vector<
-        std::unique_ptr<ck::tensor_operation::device::DeviceNormalizationFwd<F32, F32, F32, F32, F32, PassThrough, 5, 3>>>&);
+        std::unique_ptr<ck::tensor_operation::device::
+                            DeviceNormalizationFwd<F32, F32, F32, F32, F32, PassThrough, 5, 3>>>&);
 
 template <typename DeviceOp, typename Tag = void>
 struct DeviceOperationInstanceFactory;
@@ -68,14 +74,15 @@ struct DeviceOperationInstanceFactory<ck::tensor_operation::device::DeviceNormal
     Rank,
     NumReduceDim>>
 {
-    using DeviceOp = ck::tensor_operation::device::DeviceNormalizationFwd<XDataType,
-                                            GammaDataType,
-                                            BetaDataType,
-                                            YDataType,
-                                            SaveMeanInvStdDataType,
-                                            ck::tensor_operation::element_wise::PassThrough,
-                                            Rank,
-                                            NumReduceDim>;
+    using DeviceOp = ck::tensor_operation::device::DeviceNormalizationFwd<
+        XDataType,
+        GammaDataType,
+        BetaDataType,
+        YDataType,
+        SaveMeanInvStdDataType,
+        ck::tensor_operation::element_wise::PassThrough,
+        Rank,
+        NumReduceDim>;
 
     static auto GetInstances()
     {
@@ -87,11 +94,13 @@ struct DeviceOperationInstanceFactory<ck::tensor_operation::device::DeviceNormal
         {
             if constexpr(Rank == 2 && NumReduceDim == 1)
             {
-                miopen::kernels::ck_header_only::layernorm::add_device_normalization_fwd_rank_2_1_f16_instances(op_ptrs);
+                miopen::kernels::ck_header_only::layernorm::
+                    add_device_normalization_fwd_rank_2_1_f16_instances(op_ptrs);
             }
             else if constexpr(Rank == 4 && NumReduceDim == 3)
             {
-                miopen::kernels::ck_header_only::layernorm::add_device_normalization_fwd_rank_4_3_f16_instances(op_ptrs);
+                miopen::kernels::ck_header_only::layernorm::
+                    add_device_normalization_fwd_rank_4_3_f16_instances(op_ptrs);
             }
         }
 
@@ -101,11 +110,13 @@ struct DeviceOperationInstanceFactory<ck::tensor_operation::device::DeviceNormal
         {
             if constexpr(Rank == 2 && NumReduceDim == 1)
             {
-                miopen::kernels::ck_header_only::layernorm::add_device_normalization_fwd_rank_2_1_f32_instances(op_ptrs);
+                miopen::kernels::ck_header_only::layernorm::
+                    add_device_normalization_fwd_rank_2_1_f32_instances(op_ptrs);
             }
             else if constexpr(Rank == 4 && NumReduceDim == 3)
             {
-                miopen::kernels::ck_header_only::layernorm::add_device_normalization_fwd_rank_4_3_f32_instances(op_ptrs);
+                miopen::kernels::ck_header_only::layernorm::
+                    add_device_normalization_fwd_rank_4_3_f32_instances(op_ptrs);
             }
         }
 
