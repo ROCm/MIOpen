@@ -93,10 +93,6 @@ struct DeviceOperationInstanceFactory<ck::tensor_operation::device::DeviceNormal
             {
                 miopen::kernels::ck_header_only::layernorm::add_device_normalization_fwd_rank_4_3_f16_instances(op_ptrs);
             }
-            else if constexpr(Rank == 5 && NumReduceDim == 3)
-            {
-                miopen::kernels::ck_header_only::layernorm::add_device_normalization_fwd_rank_5_3_f16_instances(op_ptrs);
-            }
         }
 
         if constexpr(ck::is_same_v<XDataType, F32> && ck::is_same_v<GammaDataType, F32> &&
@@ -110,10 +106,6 @@ struct DeviceOperationInstanceFactory<ck::tensor_operation::device::DeviceNormal
             else if constexpr(Rank == 4 && NumReduceDim == 3)
             {
                 miopen::kernels::ck_header_only::layernorm::add_device_normalization_fwd_rank_4_3_f32_instances(op_ptrs);
-            }
-            else if constexpr(Rank == 5 && NumReduceDim == 3)
-            {
-                miopen::kernels::ck_header_only::layernorm::add_device_normalization_fwd_rank_5_3_f32_instances(op_ptrs);
             }
         }
 
