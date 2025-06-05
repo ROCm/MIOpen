@@ -251,14 +251,14 @@ public:
             return;
         }
 
-        if(populate_buffers_with_garbage)
-        {
-            for(size_t i = 0; i < sz; ++i)
-            {
-                GetVector()[i] = std::numeric_limits<Tgpu>::quiet_NaN();
-            }
-            return;
-        }
+        // if(populate_buffers_with_garbage)
+        // {
+        //     for(size_t i = 0; i < sz; ++i)
+        //     {
+        //         GetVector()[i] = std::numeric_limits<Tgpu>::quiet_NaN();
+        //     }
+        //     return;
+        // }
 
         for(size_t i = 0; i < sz; ++i)
         {
@@ -286,6 +286,17 @@ public:
                                   GPUMem::Check check = GPUMem::Check::None)
     {
         AllocOnDevice(q, ctx, sz, check);
+
+        if(populate_buffers_with_garbage)
+        {
+            auto dev_buf_ptr = static_cast<Tgpu*>(dev->buf);
+            for(size_t i = 0; i < dev->sz; ++i)
+            {
+                dev_buf_ptr[i] = std::numeric_limits<Tgpu>::quiet_NaN();
+            }
+            return 0;
+        }
+
         if(is_gpualloc)
         {
             /// \anchor gpualloc_random_init

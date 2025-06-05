@@ -700,6 +700,7 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     warmup_out.SetGpuallocMode(is_gpualloc);
 
     populate_output_with_garbage = (inflags.GetValueInt("populate_output_with_garbage") == 1);
+
     out.SetGarbageBufferPopulate(populate_output_with_garbage);
     dout.SetGarbageBufferPopulate(populate_output_with_garbage);
     warmup_out.SetGarbageBufferPopulate(populate_output_with_garbage);
