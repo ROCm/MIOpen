@@ -674,23 +674,28 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         return true;
     }
 
-    auto op = [&](char cur_char) {
+    // Build layout_strides, skipping the strides where lens[dim] == 1.
+    // We are ignoring the strides when lengths == 1, for a dimension as they are not relevant for
+    // the layout. I.E NCHW layout with lens = {5, 1, 10, 10} Is actually NHW since there is no
+    // channels dimension. Both NHWC & NCHW layouts are valid for this tensor as channels is not
+    // relevant.
+    std::vector<std::size_t> layout_strides;
+    layout_strides.reserve(base_layout.size());
+    for(const auto& cur_char : base_layout)
+    {
         const auto pos = storage_layout.find(cur_char);
         if(pos == std::string::npos)
             MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
-        return strides[pos];
-    };
-
-    std::vector<std::size_t> layout_strides(base_layout.size());
-    std::transform(base_layout.cbegin(), base_layout.cend(), layout_strides.begin(), op);
-
-    // Check monotonic decreasing
-    for(unsigned i = 0; i < (layout_strides.size() - 1); i++)
-    {
-        if(layout_strides[i] < layout_strides[i + 1])
-            return false;
+        if(lens[pos] != 1)
+            layout_strides.push_back(strides[pos]);
     }
 
+    // Check monotonic decreasing
+    for(size_t i = 1; i < layout_strides.size(); ++i)
+    {
+        if(layout_strides[i - 1] < layout_strides[i])
+            return false;
+    }
     return true;
 }
 
