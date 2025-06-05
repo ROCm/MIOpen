@@ -3,10 +3,7 @@
 
 #include "normalization_fwd_instance_common.hpp"
 
-namespace miopen {
-namespace kernels {
-namespace ck_header_only {
-namespace layernorm {
+namespace miopen::kernels::ck_header_only::layernorm {
 
 using F16  = ck::half_t;
 using F32  = float;
@@ -24,7 +21,4 @@ void add_device_normalization_fwd_rank_2_1_f16_instances(
                                    device_normalization_splitk_f16_instances<Pass, 2, 1>{});
 }
 
-} // namespace layernorm
-} // namespace ck_header_only
-} // namespace kernels
-} // namespace miopen
+} // namespace miopen::kernels::ck_header_only::layernorm

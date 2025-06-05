@@ -10,10 +10,7 @@
 
 #include "ck/library/tensor_operation_instance/add_device_operation_instance.hpp"
 
-namespace miopen {
-namespace kernels {
-namespace ck_header_only {
-namespace layernorm {
+namespace miopen::kernels::ck_header_only::layernorm {
 
 using F16     = ck::half_t;
 using F32     = float;
@@ -153,7 +150,4 @@ using device_normalization_f32_generic_instance = std::tuple<
     // clang-format on
     >;
 
-} // namespace layernorm
-} // namespace ck_header_only
-} // namespace kernels
-} // namespace miopen
+} // namespace miopen::kernels::ck_header_only::layernorm
