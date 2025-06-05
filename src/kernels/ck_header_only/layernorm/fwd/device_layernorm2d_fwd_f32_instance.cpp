@@ -3,15 +3,17 @@
 
 #include "normalization_fwd_instance_common.hpp"
 
-namespace ck {
-namespace tensor_operation {
-namespace device {
-namespace instance {
+namespace miopen {
+namespace kernels {
+namespace ck_header_only {
+namespace layernorm {
 
+using F16  = ck::half_t;
+using F32  = float;
 using Pass = ck::tensor_operation::element_wise::PassThrough;
 
 void add_device_normalization_fwd_rank_2_1_f32_instances(
-    std::vector<std::unique_ptr<DeviceNormalizationFwd<F32, F32, F32, F32, F32, Pass, 2, 1>>>&
+    std::vector<std::unique_ptr<ck::tensor_operation::device::DeviceNormalizationFwd<F32, F32, F32, F32, F32, Pass, 2, 1>>>&
         instances)
 {
     add_device_operation_instances(instances,
@@ -21,7 +23,7 @@ void add_device_normalization_fwd_rank_2_1_f32_instances(
                                    device_normalization_splitk_f32_instances<Pass, 2, 1>{});
 }
 
-} // namespace instance
-} // namespace device
-} // namespace tensor_operation
-} // namespace ck
+} // namespace layernorm
+} // ck_header_only
+} // kernels
+} // namespace miopen

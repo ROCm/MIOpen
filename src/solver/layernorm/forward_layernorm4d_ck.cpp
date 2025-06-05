@@ -64,7 +64,7 @@ template <typename XDataType,
           typename BetaDataType,
           typename YDataType,
           typename SaveMeanInvStdDataType>
-using DeviceOpLnFwdPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+using DeviceOpLnFwdPtrs = DeviceOperationInstanceFactory<
     DeviceOp<XDataType, GammaDataType, BetaDataType, YDataType, SaveMeanInvStdDataType>>;
 
 namespace {
