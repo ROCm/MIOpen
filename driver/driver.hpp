@@ -84,7 +84,7 @@ struct GPUMem
     };
 
 #if MIOPEN_BACKEND_OPENCL
-    GPUMem(){};
+    GPUMem() {};
     GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz, Check ch = Check::None)
         : sz(psz), data_sz(pdata_sz)
     {
@@ -111,7 +111,7 @@ struct GPUMem
 
 #elif MIOPEN_BACKEND_HIP
 
-    GPUMem(){};
+    GPUMem() {};
     GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz, Check ch = Check::None)
         : _ctx(ctx), sz(psz), data_sz(pdata_sz), check(ch)
     {
@@ -201,10 +201,12 @@ class GpumemTensor
 {
     std::unique_ptr<GPUMem> dev;
     tensor<Tgpu> host;
-    bool is_gpualloc = false;
+    bool is_gpualloc                   = false;
+    bool populate_buffers_with_garbage = false;
 
 public:
     void SetGpuallocMode(bool v) { is_gpualloc = v; }
+    void SetGarbageBufferPopulate(bool v) { populate_buffers_with_garbage = v; }
     tensor<Tgpu>& GetTensor() { return host; }
 
     void AllocOnHost(miopenTensorDescriptor_t t)
@@ -246,6 +248,15 @@ public:
             /// In gpualloc mode, we do not care about reproducibility of results, because
             /// validation is not used. Therefore, we do not have to always generate random value
             /// (\ref move_rand)
+            return;
+        }
+
+        if(populate_buffers_with_garbage)
+        {
+            for(size_t i = 0; i < sz; ++i)
+            {
+                GetVector()[i] = std::numeric_limits<Tgpu>::quiet_NaN();
+            }
             return;
         }
 

@@ -101,10 +101,10 @@ struct AutoMiopenWarmupMode
         miopen::debug::FindEnforceDisable = true;
         miopen::debug::IsWarmupOngoing    = true;
     }
-    AutoMiopenWarmupMode(const AutoMiopenWarmupMode&) = delete;
-    AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)      = delete;
+    AutoMiopenWarmupMode(const AutoMiopenWarmupMode&)            = delete;
+    AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)                 = delete;
     AutoMiopenWarmupMode& operator=(const AutoMiopenWarmupMode&) = delete;
-    AutoMiopenWarmupMode& operator=(AutoMiopenWarmupMode&&) = delete;
+    AutoMiopenWarmupMode& operator=(AutoMiopenWarmupMode&&)      = delete;
     ~AutoMiopenWarmupMode()
     {
         miopen::debug::LoggingQuiet       = debug_logging_quiet_prev;
@@ -127,10 +127,10 @@ struct AutoPrepareForGpuReference
         miopen::debug::AlwaysEnableConvDirectNaive = true;
         miopen::debug::LoggingQuiet                = true;
     }
-    AutoPrepareForGpuReference(const AutoPrepareForGpuReference&) = delete;
-    AutoPrepareForGpuReference(AutoPrepareForGpuReference&&)      = delete;
+    AutoPrepareForGpuReference(const AutoPrepareForGpuReference&)            = delete;
+    AutoPrepareForGpuReference(AutoPrepareForGpuReference&&)                 = delete;
     AutoPrepareForGpuReference& operator=(const AutoPrepareForGpuReference&) = delete;
-    AutoPrepareForGpuReference& operator=(AutoPrepareForGpuReference&&) = delete;
+    AutoPrepareForGpuReference& operator=(AutoPrepareForGpuReference&&)      = delete;
     ~AutoPrepareForGpuReference()
     {
         miopen::debug::LoggingQuiet                = quiet_prev;
@@ -391,15 +391,16 @@ private:
     miopenConvolutionMode_t mode;
 
     bool is_wrw = true, is_bwd = true, is_fwd = true;
-    bool is_wrw_winograd       = false;
-    bool is_wrw_igemm          = false;
-    bool is_fwd_igemm          = false;
-    bool is_bwd_igemm          = false;
-    bool time_enabled          = false;
-    bool wall_enabled          = false;
-    bool warmup_enabled        = false;
-    bool is_gpualloc           = false;
-    GPUMem::Check buffer_check = GPUMem::Check::None;
+    bool is_wrw_winograd              = false;
+    bool is_wrw_igemm                 = false;
+    bool is_fwd_igemm                 = false;
+    bool is_bwd_igemm                 = false;
+    bool time_enabled                 = false;
+    bool wall_enabled                 = false;
+    bool warmup_enabled               = false;
+    bool is_gpualloc                  = false;
+    bool populate_output_with_garbage = false;
+    GPUMem::Check buffer_check        = GPUMem::Check::None;
 
     int num_iterations = 1;
 
@@ -697,6 +698,11 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     warmup_in.SetGpuallocMode(is_gpualloc);
     warmup_wei.SetGpuallocMode(is_gpualloc);
     warmup_out.SetGpuallocMode(is_gpualloc);
+
+    populate_output_with_garbage = (inflags.GetValueInt("populate_output_with_garbage") == 1);
+    out.SetGarbageBufferPopulate(populate_output_with_garbage);
+    dout.SetGarbageBufferPopulate(populate_output_with_garbage);
+    warmup_out.SetGarbageBufferPopulate(populate_output_with_garbage);
 
     buffer_check = GetGpuBufferCheck(inflags);
 
@@ -1000,6 +1006,11 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
         "out_cast_type", 'T', "-1", "Cast type for output tensor, default to not set", "string");
     inflags.AddInputFlag(
         "wei_cast_type", 'R', "-1", "Cast type for weight tensor, default to not set", "string");
+    inflags.AddInputFlag("populate_output_with_garbage",
+                         '+',
+                         "0",
+                         "populate output buffers with nans (Default=0)",
+                         "int");
 
     return 0;
 }
@@ -1493,8 +1504,7 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         if(!doutRead)
         {
-            auto gen = [&]() -> auto
-            {
+            auto gen = [&]() -> auto {
                 return is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) : prng::gen_0_to_B(Data_scale);
             };
             dout.InitHostData(out_sz, is_bwd || is_wrw, gen);
