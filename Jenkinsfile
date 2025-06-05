@@ -470,7 +470,7 @@ pipeline {
         }
         stage("Nightly Tests") {
             when {
-                expression { false } // add way to only do for nightly builds
+                expression { params.RUN_NIGHTLY_TESTS }
             }
             parallel{
                 stage('Fp32 Hip Debug NOMLIR gfx90a') {
