@@ -175,6 +175,7 @@ set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache fi
 option(MIOPEN_EMBED_BINCACHE "Embed Binary Cache or KDB" Off)
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
+option(MIOPEN_BUILD_CK "Build own CK libs inline with MIOpen build" OFF)
 
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
@@ -328,7 +329,21 @@ add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPI
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     if(MIOPEN_USE_COMPOSABLEKERNEL)
-        find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_conv_operations)
+        if(MIOPEN_BUILD_CK)
+            include(cmake/Dependencies.cmake)
+
+            file(READ "${CMAKE_SOURCE_DIR}/requirements.txt" REQUIREMENTS_TXT_CONTENTS)
+            string(REGEX MATCH "ROCm/composable_kernel@([a-fA-F0-9]+)" _match "${REQUIREMENTS_TXT_CONTENTS}")
+            if(_match)
+                string(REGEX REPLACE "ROCm/composable_kernel@([a-fA-F0-9]+).*" "\\1" COMPOSABLE_KERNEL_HASH "${_match}")
+                message(STATUS "Parsed composable_kernel hash from requirements.txt: ${COMPOSABLE_KERNEL_HASH}")
+            else()
+                message(FATAL_ERROR "Could not find ROCm/composable_kernel@<hash> in requirements.txt")
+            endif()
+            miopen_add_dependency(composable_kernel HASH ${COMPOSABLE_KERNEL_HASH} options NO_LOCAL)
+        else()
+            find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_conv_operations)
+        endif()
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)

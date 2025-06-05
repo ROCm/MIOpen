@@ -356,9 +356,6 @@ AnySolver<miopen::ExecutionContext, miopen::batchnorm::ProblemDescription>::AnyS
     {
     case 113: SetObject<miopen::solver::batchnorm::BnFwdTrainingSpatial>(); break;
     case 117: SetObject<miopen::solver::batchnorm::BnBwdTrainingSpatial>(); break;
-    case 142: SetObject<miopen::solver::batchnorm::BnCKFwdInference>(); break;
-    case 143: SetObject<miopen::solver::batchnorm::BnCKBwdBackward>(); break;
-    case 144: SetObject<miopen::solver::batchnorm::BnCKFwdTraining>(); break;
     // New tunable solver should be added here
     default:
         MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID (" + std::to_string(id) + ")");
