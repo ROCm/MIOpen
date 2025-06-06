@@ -943,7 +943,8 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     return result;
 }
 
-template <typename DeviceOpType,
+template <bool ZeroOutputs,
+          typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
           typename ProblemDescriptionType = miopen::conv::ProblemDescription>
@@ -1012,11 +1013,14 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 float elapsed = 0.0f;
                 if(alpha_beta_case == DEFAULT)
                 {
-                    ZeroOutTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw);
-
-                    if(handle.IsProfilingEnabled())
+                    if constexpr(ZeroOutputs)
                     {
-                        elapsed += handle.GetKernelTime();
+                        ZeroOutTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw);
+
+                        if(handle.IsProfilingEnabled())
+                        {
+                            elapsed += handle.GetKernelTime();
+                        }
                     }
                 }
                 // use captured value, other wise getting warning
@@ -1065,7 +1069,8 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 // Zero out the buffer for output data since it won't always write all output
                 // values.
                 float elapsed = 0.0f;
-                if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
+                if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams> &&
+                             ZeroOutputs)
                 {
                     ZeroOutTensor(handle, data_ctx.tensors.outDesc, data_ctx.tensors.out);
 

@@ -563,17 +563,20 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
             switch(problem.GetAlphaBetaCase())
             {
             case BILINEAR:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightBilinearPtrs<T>,
+                return InitInvokerFactoryNHWC<false,
+                                              DeviceOpGBwdWeightBilinearPtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::WrWInvokeParams>(
                     ctx, problem, config.kernel_id);
             case SCALE:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightScalePtrs<T>,
+                return InitInvokerFactoryNHWC<false,
+                                              DeviceOpGBwdWeightScalePtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::WrWInvokeParams>(
                     ctx, problem, config.kernel_id);
             default:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdWeightDefaultPtrs<T>,
+                return InitInvokerFactoryNHWC<false,
+                                              DeviceOpGBwdWeightDefaultPtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::WrWInvokeParams>(
                     ctx, problem, config.kernel_id);

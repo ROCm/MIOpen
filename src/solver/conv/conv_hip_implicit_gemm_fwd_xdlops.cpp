@@ -72,13 +72,13 @@ struct CKArgs
         K        = ProblemInterpreter::GetOutputChannelK(problem);
         C        = ProblemInterpreter::GetInputChannelC(problem);
         input    = {ProblemInterpreter::GetInputHeightHi(problem),
-                 ProblemInterpreter::GetInputWidthWi(problem)};
+                    ProblemInterpreter::GetInputWidthWi(problem)};
         output   = {ProblemInterpreter::GetOutputHeightHo(problem),
-                  ProblemInterpreter::GetOutputWidthWo(problem)};
+                    ProblemInterpreter::GetOutputWidthWo(problem)};
         filter   = {ProblemInterpreter::GetFilterHeightY(problem),
-                  ProblemInterpreter::GetFilterWidthX(problem)};
+                    ProblemInterpreter::GetFilterWidthX(problem)};
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
         lPadding = {ProblemInterpreter::GetInputLeftPadH(problem),
@@ -87,8 +87,8 @@ struct CKArgs
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
 
-    CKArgs(const CKArgs&) = default;
-    CKArgs(CKArgs&&)      = default;
+    CKArgs(const CKArgs&)            = default;
+    CKArgs(CKArgs&&)                 = default;
     CKArgs& operator=(const CKArgs&) = default;
     ~CKArgs()                        = default;
 
@@ -327,18 +327,26 @@ ConvSolution ConvHipImplicitGemmFwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenInt8:
-        return InitInvokerFactoryNHWC<DeviceOpPtrs<int8_t>, CKArgs, miopen::conv::DataInvokeParams>(
+        return InitInvokerFactoryNHWC<true,
+                                      DeviceOpPtrs<int8_t>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
     case miopenHalf:
-        return InitInvokerFactoryNHWC<DeviceOpPtrs<ck::half_t>,
+        return InitInvokerFactoryNHWC<true,
+                                      DeviceOpPtrs<ck::half_t>,
                                       CKArgs,
                                       miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactoryNHWC<DeviceOpPtrs<float>, CKArgs, miopen::conv::DataInvokeParams>(
+        return InitInvokerFactoryNHWC<true,
+                                      DeviceOpPtrs<float>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
     case miopenBFloat16:
-        return InitInvokerFactoryNHWC<DeviceOpPtrs<ck::bhalf_t>,
+        return InitInvokerFactoryNHWC<true,
+                                      DeviceOpPtrs<ck::bhalf_t>,
                                       CKArgs,
                                       miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
