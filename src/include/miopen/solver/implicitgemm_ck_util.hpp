@@ -1011,9 +1011,9 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 }
 
                 float elapsed = 0.0f;
-                if(alpha_beta_case == DEFAULT)
+                if constexpr(ZeroOutputs)
                 {
-                    if constexpr(ZeroOutputs)
+                    if(alpha_beta_case == DEFAULT)
                     {
                         ZeroOutTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw);
 
