@@ -559,21 +559,21 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
             {
             case BILINEAR:
                 return InitInvokerFactoryBwdNCHW<3,
-                                                 true,
+                                                 false,
                                                  DeviceOpGBwdBilinearPtrs<T>,
                                                  CKArgs<T>,
                                                  miopen::conv::DataInvokeParams>(
                     ctx, problem, config.kernel_id);
             case SCALE:
                 return InitInvokerFactoryBwdNCHW<3,
-                                                 true,
+                                                 false,
                                                  DeviceOpGBwdScalePtrs<T>,
                                                  CKArgs<T>,
                                                  miopen::conv::DataInvokeParams>(
                     ctx, problem, config.kernel_id);
             default:
                 return InitInvokerFactoryBwdNCHW<3,
-                                                 true,
+                                                 false,
                                                  DeviceOpGBwdDefaultPtrs<T>,
                                                  CKArgs<T>,
                                                  miopen::conv::DataInvokeParams>(
