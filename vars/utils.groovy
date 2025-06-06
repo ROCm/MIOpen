@@ -31,7 +31,7 @@ def miopenCheckout()
         doGenerateSubmoduleConfigurations: true,
         extensions: scm.extensions + [
             [$class: 'SubmoduleOption', parentCredentials: true],
-            [$class: 'CloneOption', shallow: true, depth: 1, noTags: false, reference: '']
+            [$class: 'CloneOption', shallow: true, depth: 30, noTags: false, reference: '']
         ],
        userRemoteConfigs: scm.userRemoteConfigs
    ])
