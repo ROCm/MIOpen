@@ -15,8 +15,8 @@ namespace miopen::kernels::ck_header_only::layernorm {
 using F16     = ck::half_t;
 using F32     = float;
 using index_t = ck::index_t;
-using ck::tensor_operation::device::DeviceNormalizationFwdSplitKImpl;
 using ck::tensor_operation::device::DeviceNormalizationFwdImpl;
+using ck::tensor_operation::device::DeviceNormalizationFwdSplitKImpl;
 
 template <typename OutElementwise, index_t Rank, index_t Reduce>
 using device_normalization_f16_instances =
