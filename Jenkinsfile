@@ -251,6 +251,7 @@ pipeline {
                     }
                     steps{
                         script {
+                            miopenSubmoduleCheckout()
                             utils.buildHipClangJobAndReboot(setup_flags: fin_flags, make_targets: "all", build_fin: "ON", needs_gpu:false, needs_reboot:false, build_install: true)
                         }
                     }

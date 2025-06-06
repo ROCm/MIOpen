@@ -23,7 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-def miopenCheckout()
+def miopenSubmoduleCheckout()
 {
     checkout([
         $class: 'GitSCM',
@@ -312,7 +312,6 @@ def getDockerImage(Map conf=[:])
 
 def buildHipClangJob(Map conf=[:]){
         show_node_info()
-        miopenCheckout()
         env.HSA_ENABLE_SDMA=0
         env.DOCKER_BUILDKIT=1
         def image
@@ -395,7 +394,7 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 
 
 def RunPerfTest(Map conf=[:]){
-    miopenCheckout()
+    miopenSubmoduleCheckout()
     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
     try {
         def docker_image = conf.get("docker_image")
