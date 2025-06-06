@@ -201,12 +201,12 @@ class GpumemTensor
 {
     std::unique_ptr<GPUMem> dev;
     tensor<Tgpu> host;
-    bool is_gpualloc                   = false;
-    bool populate_buffers_with_garbage = false;
+    bool is_gpualloc         = false;
+    bool init_gpu_output_nan = false;
 
 public:
     void SetGpuallocMode(bool v) { is_gpualloc = v; }
-    void SetGarbageBufferPopulate(bool v) { populate_buffers_with_garbage = v; }
+    void SetGpuNanOutputBuffers(bool v) { init_gpu_output_nan = v; }
     tensor<Tgpu>& GetTensor() { return host; }
 
     void AllocOnHost(miopenTensorDescriptor_t t)
@@ -251,15 +251,6 @@ public:
             return;
         }
 
-        // if(populate_buffers_with_garbage)
-        // {
-        //     for(size_t i = 0; i < sz; ++i)
-        //     {
-        //         GetVector()[i] = std::numeric_limits<Tgpu>::quiet_NaN();
-        //     }
-        //     return;
-        // }
-
         for(size_t i = 0; i < sz; ++i)
         {
             /// \anchor move_rand
@@ -287,8 +278,13 @@ public:
     {
         AllocOnDevice(q, ctx, sz, check);
 
-        if(populate_buffers_with_garbage)
+        if(init_gpu_output_nan)
         {
+            // In the past we have had some issues with incorrect results due to Nans in the output
+            // buffers.  In order to test we clear output buffers before computing anything you can
+            // init the buffers with NaNs.
+            // Note, we only do this for the gpu buffers, adding the behaviour for the host buffers
+            // causes a crash as the host code doesnt handle NaNs.
             auto dev_buf_ptr = static_cast<Tgpu*>(dev->buf);
             for(size_t i = 0; i < dev->sz; ++i)
             {
