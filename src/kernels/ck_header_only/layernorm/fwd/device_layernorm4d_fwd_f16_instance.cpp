@@ -14,6 +14,8 @@ void add_device_normalization_fwd_rank_4_3_f16_instances(
         ck::tensor_operation::device::DeviceNormalizationFwd<F16, F16, F16, F16, F16, Pass, 4, 3>>>&
         instances)
 {
+    using ck::tensor_operation::device::instance::add_device_operation_instances;
+
     add_device_operation_instances(instances,
                                    device_normalization_f16_generic_instance<Pass, 4, 3>{});
     add_device_operation_instances(instances, device_normalization_f16_instances<Pass, 4, 3>{});

@@ -16,22 +16,6 @@ using F16     = ck::half_t;
 using F32     = float;
 using index_t = ck::index_t;
 
-template <typename BaseOp, typename NewOpInstances>
-void add_device_operation_instances(std::vector<std::unique_ptr<BaseOp>>& op_instances,
-                                    const NewOpInstances& new_op_instances)
-{
-    ck::static_for<0, std::tuple_size_v<NewOpInstances>, 1>{}([&](auto i) {
-        const auto new_op_instance = std::get<i>(new_op_instances);
-
-        using NewOpInstance = ck::remove_cvref_t<decltype(new_op_instance)>;
-
-        static_assert(std::is_base_of_v<BaseOp, NewOpInstance>,
-                      "wrong! NewOpInstance should be derived from BaseOp");
-
-        op_instances.push_back(std::make_unique<NewOpInstance>(new_op_instance));
-    });
-}
-
 template <typename OutElementwise, index_t Rank, index_t Reduce>
 using device_normalization_f16_instances =
     // clang-format off

@@ -14,6 +14,8 @@ void add_device_normalization_fwd_rank_2_1_f32_instances(
         ck::tensor_operation::device::DeviceNormalizationFwd<F32, F32, F32, F32, F32, Pass, 2, 1>>>&
         instances)
 {
+    using ck::tensor_operation::device::instance::add_device_operation_instances;
+
     add_device_operation_instances(instances,
                                    device_normalization_f32_generic_instance<Pass, 2, 1>{});
     add_device_operation_instances(instances, device_normalization_f32_instances<Pass, 2, 1>{});
