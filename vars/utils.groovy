@@ -215,7 +215,6 @@ def cmake_fin_build_cmd(prefixpath){
 
 def getDockerImageName(dockerArgs)
 {
-    miopenCheckout()
     sh "echo ${dockerArgs} > factors.txt"
     def image = "${env.MIOPEN_DOCKER_IMAGE_URL}"
     sh "md5sum Dockerfile requirements.txt dev-requirements.txt >> factors.txt"
@@ -233,7 +232,6 @@ def getDockerImageName(dockerArgs)
 
 def getDockerImage(Map conf=[:])
 {
-    miopenCheckout()
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
     // Note: With offload compress disabled for CK expanding the target list might cause issues with the docker build.
