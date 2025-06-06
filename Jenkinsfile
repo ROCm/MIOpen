@@ -470,9 +470,18 @@ pipeline {
         }
         stage("Nightly Tests") {
             when {
-                expression { false } // add way to only do for nightly builds
+                expression { params.RUN_NIGHTLY_TESTS }
             }
             parallel{
+                stage('Mark Build As Nightly') {
+                    agent{ label rocmnode("nogpu") }
+                    steps{
+                        script {
+                            // Adds a comment under the jenkins build number so you can tell it is a nightly build.
+                            currentBuild.description = "Nightly Build"
+                        }
+                    }
+                }
                 stage('Fp32 Hip Debug NOMLIR gfx90a') {
                     when {
                         beforeAgent true
