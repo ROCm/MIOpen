@@ -868,12 +868,11 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
             input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
             output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-            /// \todo: Will need SetTensor() to properly zero out non-packed tensors
-            /// Note: Need to clear buffer memory for output since all values may not be set.
             elapsed = handle.IsProfilingEnabled() ? handle.GetKernelTime() : 0.0f;
 
             if constexpr(ZeroOutputs)
             {
+                /// Note: Need to clear buffer memory for output since all values may not be set.
                 output_tr_inst.ZeroOutBuffer(handle);
                 if(handle.IsProfilingEnabled())
                     elapsed += handle.GetKernelTime();

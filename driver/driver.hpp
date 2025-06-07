@@ -281,7 +281,7 @@ public:
         if(init_gpu_output_nan)
         {
             // In the past we have had some issues with incorrect results due to Nans in the output
-            // buffers.  In order to test we clear output buffers before computing anything you can
+            // buffers.  In order to test the clearing of the output buffers, you can
             // init the buffers with NaNs.
             // Note, we only do this for the gpu buffers, adding the behaviour for the host buffers
             // causes a crash as the host code doesnt handle NaNs.
