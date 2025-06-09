@@ -101,10 +101,10 @@ struct AutoMiopenWarmupMode
         miopen::debug::FindEnforceDisable = true;
         miopen::debug::IsWarmupOngoing    = true;
     }
-    AutoMiopenWarmupMode(const AutoMiopenWarmupMode&)            = delete;
-    AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)                 = delete;
+    AutoMiopenWarmupMode(const AutoMiopenWarmupMode&) = delete;
+    AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)      = delete;
     AutoMiopenWarmupMode& operator=(const AutoMiopenWarmupMode&) = delete;
-    AutoMiopenWarmupMode& operator=(AutoMiopenWarmupMode&&)      = delete;
+    AutoMiopenWarmupMode& operator=(AutoMiopenWarmupMode&&) = delete;
     ~AutoMiopenWarmupMode()
     {
         miopen::debug::LoggingQuiet       = debug_logging_quiet_prev;
@@ -127,10 +127,10 @@ struct AutoPrepareForGpuReference
         miopen::debug::AlwaysEnableConvDirectNaive = true;
         miopen::debug::LoggingQuiet                = true;
     }
-    AutoPrepareForGpuReference(const AutoPrepareForGpuReference&)            = delete;
-    AutoPrepareForGpuReference(AutoPrepareForGpuReference&&)                 = delete;
+    AutoPrepareForGpuReference(const AutoPrepareForGpuReference&) = delete;
+    AutoPrepareForGpuReference(AutoPrepareForGpuReference&&)      = delete;
     AutoPrepareForGpuReference& operator=(const AutoPrepareForGpuReference&) = delete;
-    AutoPrepareForGpuReference& operator=(AutoPrepareForGpuReference&&)      = delete;
+    AutoPrepareForGpuReference& operator=(AutoPrepareForGpuReference&&) = delete;
     ~AutoPrepareForGpuReference()
     {
         miopen::debug::LoggingQuiet                = quiet_prev;
@@ -1502,7 +1502,8 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
         if(!doutRead)
         {
-            auto gen = [&]() -> auto {
+            auto gen = [&]() -> auto
+            {
                 return is_fp8 ? prng::gen_A_to_B(Data_min, Data_max) : prng::gen_0_to_B(Data_scale);
             };
             dout.InitHostData(out_sz, is_bwd || is_wrw, gen);

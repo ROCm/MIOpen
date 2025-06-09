@@ -109,20 +109,20 @@ struct CKArgs
         }
 
         filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
-                            ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                            ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                          ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                          ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         filter_dilations = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
                             ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                             ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
         lPadding         = {ProblemInterpreter::GetInputLeftPadD(problem),
-                            ProblemInterpreter::GetInputLeftPadH(problem),
-                            ProblemInterpreter::GetInputLeftPadW(problem)};
+                    ProblemInterpreter::GetInputLeftPadH(problem),
+                    ProblemInterpreter::GetInputLeftPadW(problem)};
         rPadding         = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
-                            ProblemInterpreter::GetAdjustedInputRightPadH(problem),
-                            ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+                    ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+                    ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
-    CKArgs(const CKArgs&)            = default;
-    CKArgs(CKArgs&&)                 = default;
+    CKArgs(const CKArgs&) = default;
+    CKArgs(CKArgs&&)      = default;
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
