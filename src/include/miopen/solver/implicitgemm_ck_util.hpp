@@ -32,7 +32,6 @@
 #include <miopen/buffer_info.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/miopen_internal.h>
-#include <miopen/fusion/fusion_invoke_params.hpp>
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
@@ -769,175 +768,6 @@ ZeroOutTensor(const Handle& handle, const TensorDescriptor& tensorDesc, Data_t t
     }
 }
 
-template <typename CastType>
-Data_t GetWorkspacePointer(const CastType& data_ctx)
-{
-    if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
-    {
-        return data_ctx.workSpace;
-    }
-    else if constexpr(std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
-    {
-        return nullptr;
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported CastType for workspace extraction");
-    }
-}
-
-template <typename CastType>
-void ValidateWorkspacePointer(Data_t workspace_ptr)
-{
-    if(!workspace_ptr)
-    {
-        if constexpr(std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
-        {
-            // For FusionInvokeParams, workspace could be null
-            MIOPEN_LOG_I("Workspace pointer is null for FusionInvokeParams");
-        }
-        else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
-        {
-            MIOPEN_THROW(miopenStatusInvalidValue, "Workspace pointer is null");
-        }
-        else
-        {
-            MIOPEN_THROW(miopenStatusNotImplemented,
-                         "Unsupported CastType for workspace validation");
-        }
-    }
-}
-
-template <typename CastType>
-ConvTensors GetTensors(const CastType& data_ctx)
-{
-    if constexpr(std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
-    {
-        const auto& conv_param = dynamic_cast<const miopen::fusion::ConvolutionOpInvokeParam&>(
-            *data_ctx.op_args.params[0]);
-        assert(&conv_param);
-
-        ConvTensors tensors;
-        tensors.x     = data_ctx.in;
-        tensors.xDesc = data_ctx.inDesc;
-        tensors.w     = conv_param.weights;
-        tensors.y     = data_ctx.out;
-        tensors.yDesc = data_ctx.outDesc;
-
-        return tensors;
-    }
-    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
-    {
-        return ConvTensors(data_ctx.tensors);
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported CastType for tensor extraction");
-    }
-}
-
-template <typename DeviceOpType, typename CKArgsType, typename CastType>
-std::unique_ptr<ck::tensor_operation::device::BaseArgument>
-MakeNCHWCKArgPtr(const CKArgsType& ck_args,
-                 const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
-                 const std::array<internal::TransposeInstanceTagged*, 3>& tr_ptrs,
-                 const CastType& data_ctx,
-                 const std::optional<int>& split_k)
-{
-    std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
-
-    if constexpr(std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
-    {
-        const auto& conv_param = dynamic_cast<const miopen::fusion::ConvolutionOpInvokeParam&>(
-            *data_ctx.op_args.params[0]);
-        assert(&conv_param);
-
-        const auto& bias_param =
-            dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
-        assert(&bias_param);
-
-        ConstData_t weight_buf = conv_param.weights;
-        ConstData_t bias_buf   = bias_param.bdata;
-
-        argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                          data_ctx.in,
-                                          weight_buf,
-                                          bias_buf,
-                                          data_ctx.out,
-                                          conv_param.alpha,
-                                          conv_param.beta);
-    }
-    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
-    {
-        if constexpr(IsSplitKNeeded<DeviceOpType>())
-        {
-            if(split_k.has_value())
-            {
-                argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                  tr_ptrs[0]->GetBufferPtr(),
-                                                  tr_ptrs[1]->GetBufferPtr(),
-                                                  tr_ptrs[2]->GetBufferPtr(),
-                                                  data_ctx.alpha.GetAsFloat(),
-                                                  data_ctx.beta.GetAsFloat(),
-                                                  split_k.value());
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusInvalidValue, "split_k is required but not provided");
-            }
-        }
-        else
-        {
-            argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                              tr_ptrs[0]->GetBufferPtr(),
-                                              tr_ptrs[1]->GetBufferPtr(),
-                                              tr_ptrs[2]->GetBufferPtr(),
-                                              data_ctx.alpha.GetAsFloat(),
-                                              data_ctx.beta.GetAsFloat());
-        }
-    }
-
-    return argument_ptr;
-}
-
-template <typename DeviceOpType, typename CKArgsType, typename CastType>
-std::unique_ptr<ck::tensor_operation::device::BaseArgument>
-MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
-                 const CKArgsType& ck_args,
-                 const CastType& data_ctx)
-{
-    std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
-
-    if constexpr(std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
-    {
-        const auto& conv_param = dynamic_cast<const miopen::fusion::ConvolutionOpInvokeParam&>(
-            *data_ctx.op_args.params[0]);
-        assert(&conv_param);
-
-        const auto& bias_param =
-            dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
-        assert(&bias_param);
-
-        ConstData_t weight_buf = conv_param.weights;
-        ConstData_t bias_buf   = bias_param.bdata;
-
-        argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                          data_ctx.in,
-                                          weight_buf,
-                                          bias_buf,
-                                          data_ctx.out,
-                                          conv_param.alpha,
-                                          conv_param.beta);
-    }
-    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
-    {
-        argument_ptr = ck_args.MakeArgPtr(
-            sh_conv_ptr, data_ctx.tensors, data_ctx.alpha.GetAsFloat(), data_ctx.beta.GetAsFloat());
-    }
-
-    return argument_ptr;
-}
-
 template <typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
@@ -1008,24 +838,19 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             handle.ResetKernelTime();
 
             const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-            Data_t workspace_ptr = GetWorkspacePointer(data_ctx);
-            ValidateWorkspacePointer<CastType>(workspace_ptr);
 
-            if(workspace_ptr)
+            if(!data_ctx.workSpace)
             {
-                input1_tr_inst.AssignBuffer(handle, workspace_ptr);
-                input2_tr_inst.AssignBuffer(handle, workspace_ptr);
-                output_tr_inst.AssignBuffer(handle, workspace_ptr);
-                output_init_tr_inst.AssignBuffer(handle, workspace_ptr);
-            }
-            else
-            {
-                MIOPEN_LOG_W("Skipping buffer assignment as workspace_ptr is null");
+                MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
             }
 
-            // if FusionInvokeParams extract tensors from the params
+            input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            output_init_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+
             // conversion operator applied here to convert to ConvTensors
-            auto conv_tensors = GetTensors(data_ctx);
+            auto conv_tensors = ConvTensors(data_ctx.tensors);
 
             /// \todo remove this when DataInvokeParams stops swapping
             // "in" and "out" tensors for backward pass
@@ -1058,13 +883,35 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
             });
 
-            std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr =
-                MakeNCHWCKArgPtr<std::decay_t<decltype(*sh_conv_ptr)>, CKArgsType, CastType>(
-                    ck_args, sh_conv_ptr, tr_ptrs, data_ctx, split_k);
-
-            if(ck_buff_des.has_value() && ck_buff_des->ck_size && workspace_ptr)
+            std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
+            if constexpr(IsSplitKNeeded<DeviceOpType>())
             {
-                auto buf_handle = handle.CreateSubBuffer(workspace_ptr, ck_buff_des->ck_offset, 0);
+                if(split_k.has_value())
+                {
+                    argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                      tr_ptrs[0]->GetBufferPtr(),
+                                                      tr_ptrs[1]->GetBufferPtr(),
+                                                      tr_ptrs[2]->GetBufferPtr(),
+                                                      data_ctx.alpha.GetAsFloat(),
+                                                      data_ctx.beta.GetAsFloat(),
+                                                      split_k.value());
+                }
+            }
+            else
+            {
+                std::ignore  = split_k;
+                argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                  tr_ptrs[0]->GetBufferPtr(),
+                                                  tr_ptrs[1]->GetBufferPtr(),
+                                                  tr_ptrs[2]->GetBufferPtr(),
+                                                  data_ctx.alpha.GetAsFloat(),
+                                                  data_ctx.beta.GetAsFloat());
+            }
+
+            if(ck_buff_des.has_value() && ck_buff_des->ck_size)
+            {
+                auto buf_handle =
+                    handle.CreateSubBuffer(data_ctx.workSpace, ck_buff_des->ck_offset, 0);
                 assert(buf_handle.get());
                 sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
             }
@@ -1205,12 +1052,11 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
             return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-
-                std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr =
-                    MakeNHWCCKArgPtr<std::decay_t<decltype(*sh_conv_ptr)>, CKArgsType, CastType>(
-                        sh_conv_ptr, ck_args, data_ctx);
-
-                auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
+                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                       data_ctx.tensors,
+                                                       data_ctx.alpha.GetAsFloat(),
+                                                       data_ctx.beta.GetAsFloat());
+                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
 
                 // Zero out the buffer for output data since it won't always write all output
                 // values.
