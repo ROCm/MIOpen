@@ -1,4 +1,4 @@
-sqlite3@3.43.2 -DCMAKE_POSITION_INDEPENDENT_CODE=On
+sqlite3@3.49.1 -DCMAKE_POSITION_INDEPENDENT_CODE=On
 boost@1.83 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build -DCMAKE_CXX_FLAGS=" -std=c++14 -Wno-enum-constexpr-conversion -Wno-deprecated-builtins -Wno-deprecated-declarations "
 facebook/zstd@v1.4.5 -X subdir -DCMAKE_DIR=build/cmake
 # ROCm/half@10abd99e7815f0ca5d892f58dd7d15a23b7cf92c --build

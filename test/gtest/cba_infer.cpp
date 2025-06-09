@@ -140,6 +140,13 @@ TEST_P(GPU_ConvBiasActivInfer_FP16, ConvWinoFuryRxSf2x3Fused)
     RunSolver<miopen::solver::fusion::ConvWinoFuryRxSFused<2, 3>>(
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
+TEST_P(GPU_ConvBiasActivInfer_FP16, ConvWinoRageRxSf2x3Fused)
+{
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
+    RunSolver<miopen::solver::fusion::ConvWinoRageRxSFused<2, 3>>(
+        fusePlanDesc, plan_params, conv_config, test_skipped);
+}
 
 TEST_P(GPU_ConvBiasActivInfer_FP16, ConvCKIgemmFwdBiasActivFused)
 {

@@ -326,9 +326,6 @@ const auto& GetSolversInfo<BatchNormSolverInfo>()
         {"BnBwdTrainingSpatial",       {117,   false,  true}},
         {"BnBwdTrainingPerActivation", {119,   false,  false}},
         {"BnFwdInference",             {120,   true,  false}},
-        {"BnCKFwdInference",           {142,   true,   true}},
-        {"BnCKBwdBackward",            {143,   true,   true}},
-        {"BnCKFwdTraining",            {144,   true,   true}},
         // clang-format on
     };
 

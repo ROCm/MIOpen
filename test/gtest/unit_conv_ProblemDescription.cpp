@@ -125,20 +125,28 @@ public:
                 {miopenHalf, {1, 1, 1, 1}, {1, 1000, 100, 10}}, // CHWN
                 {{0, 0}, {1, 1}, {1, 1}},
                 miopen::conv::Direction::Forward,
+                "NCHW", "NCHW", "NCHW"
+            },
+            TestCase{
+                {miopenHalf, {2, 2, 2, 2}, {1000, 100, 10, 1}}, // NCHW
+                {miopenHalf, {2, 2, 2, 2}, {1000, 1, 100, 10}}, // NHWC
+                {miopenHalf, {2, 2, 2, 2}, {1, 1000, 100, 10}}, // CHWN
+                {{0, 0}, {1, 1}, {1, 1}},
+                miopen::conv::Direction::Forward,
                 "NCHW", "NHWC", "CHWN"
             },
             TestCase{
-                {miopenHalf, {1, 1, 1, 1}, {1, 1000, 100, 10}}, // CHWN
-                {miopenHalf, {1, 1, 1, 1}, {1000, 100, 10, 1}}, // NCHW
-                {miopenHalf, {1, 1, 1, 1}, {1000, 1, 100, 10}}, // NHWC
+                {miopenHalf, {2, 2, 2, 2}, {1, 1000, 100, 10}}, // CHWN
+                {miopenHalf, {2, 2, 2, 2}, {1000, 100, 10, 1}}, // NCHW
+                {miopenHalf, {2, 2, 2, 2}, {1000, 1, 100, 10}}, // NHWC
                 {{0, 0}, {1, 1}, {1, 1}},
                 miopen::conv::Direction::Forward,
                 "CHWN", "NCHW", "NHWC"
             },
             TestCase{
-                {miopenHalf, {1, 1, 1, 1}, {1000, 1, 100, 10}}, // NHWC
-                {miopenHalf, {1, 1, 1, 1}, {1, 1000, 100, 10}}, // CHWN
-                {miopenHalf, {1, 1, 1, 1}, {1000, 100, 10, 1}}, // NCHW
+                {miopenHalf, {2, 2, 2, 2}, {1000, 1, 100, 10}}, // NHWC
+                {miopenHalf, {2, 2, 2, 2}, {1, 1000, 100, 10}}, // CHWN
+                {miopenHalf, {2, 2, 2, 2}, {1000, 100, 10, 1}}, // NCHW
                 {{0, 0}, {1, 1}, {1, 1}},
                 miopen::conv::Direction::Forward,
                 "NHWC", "CHWN", "NCHW"

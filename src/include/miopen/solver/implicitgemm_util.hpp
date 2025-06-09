@@ -584,6 +584,20 @@ static inline bool IsComposableKernelSupportedHardware(const ExecutionContext& c
            StartsWith(c.GetStream().GetDeviceName(), "gfx103");
 }
 
+template <typename T>
+inline T igemm_get_max_gks(T gemm_k, T gemm_k_per_block, T max_log2_splits)
+{
+    if(gemm_k % gemm_k_per_block != 0)
+        return 0;
+    T rem      = gemm_k / gemm_k_per_block;
+    T rem_pow2 = rem & (~(rem - 1));
+    T gks      = (T)log2(rem_pow2);
+
+    if(gks > max_log2_splits)
+        gks = max_log2_splits;
+    return gks;
+}
+
 // greatest common divisor, aka highest common factor
 template <typename T>
 T gcd(T x, T y)

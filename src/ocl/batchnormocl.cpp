@@ -156,7 +156,6 @@ void BatchNormForwardTraining(const Handle& handle,
 
     const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdTrainingSpatial,
                                                  solver::batchnorm::BnFwdTrainingPerActivation>{};
-    //  solver::batchnorm::BnCKFwdTraining>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
@@ -261,7 +260,6 @@ void BatchNormForwardInference(const Handle& handle,
 
         const auto algo    = AlgorithmName{"miopenBatchNormalizationForwardInference"};
         const auto solvers = solver::SolverContainer<solver::batchnorm::BnFwdInference>{};
-        //  solver::batchnorm::BnCKFwdInference>{};
 
         solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
     }
@@ -317,6 +315,7 @@ void BatchNormBackward(const Handle& handle,
                        const TensorDescriptor& savedMeanDesc,
                        const TensorDescriptor& savedVarianceDesc,
                        ConstData_t bnScale,
+                       ConstData_t bnBias,
                        Data_t resultBnScaleDiff,
                        Data_t resultBnBiasDiff,
                        double epsilon,
@@ -399,6 +398,7 @@ void BatchNormBackward(const Handle& handle,
         tmp.dy                = dy;
         tmp.dx                = dx;
         tmp.bnScale           = bnScale;
+        tmp.bnBias            = bnBias;
         tmp.resultBnScaleDiff = resultBnScaleDiff;
         tmp.resultBnBiasDiff  = resultBnBiasDiff;
         tmp.epsilon           = epsilon;
@@ -409,7 +409,6 @@ void BatchNormBackward(const Handle& handle,
 
     const auto solvers = solver::SolverContainer<solver::batchnorm::BnBwdTrainingSpatial,
                                                  solver::batchnorm::BnBwdTrainingPerActivation>{};
-    //  solver::batchnorm::BnCKBwdBackward>{};
 
     solvers.ExecutePrimitive(handle, problem, algo, invoke_params);
 
