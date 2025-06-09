@@ -1,0 +1,355 @@
+MIOpenDriver convfp16 -n 128 -c 480 -H 28 -W 28 -k 480 -y 5 -x 5 -p 2 -q 2 -u 1 -v 1 -l 1 -j 1 -m conv -g 480 -F 4 -t 1
+ROCtracer (252040):
+    HIP-trace(*)
+MIOpen(HIP): Info [get_device_name] Raw device name: gfx942:sramecc+:xnack-
+MIOpen(HIP): Info [Handle] stream: 0x3740da0, device_id: 0
+MIOpen(HIP): miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t *){
+MIOpen(HIP):    tensorDesc = 0
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t *){
+MIOpen(HIP):    tensorDesc = 0
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t *){
+MIOpen(HIP):    tensorDesc = 0
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t *){
+MIOpen(HIP):    tensorDesc = 0
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t *){
+MIOpen(HIP):    tensorDesc = 0
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenCreateTensorDescriptor(miopenTensorDescriptor_t *){
+MIOpen(HIP):    tensorDesc = 0
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenCreateConvolutionDescriptor(miopenConvolutionDescriptor_t *){
+MIOpen(HIP):    convDesc = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [] MIOPEN_FIND_MODE = DYNAMIC_HYBRID(5)
+MIOpen(HIP): miopenStatus_t miopenSetTensorDescriptorV2(miopenTensorDescriptor_t, miopenDataType_t, int, const size_t *, const size_t *){
+MIOpen(HIP):    tensorDesc = {}, {}, packed,
+MIOpen(HIP):    dataType = 0
+MIOpen(HIP):    nbDims = 4
+MIOpen(HIP):    dim.values = { 128 480 28 28 }
+MIOpen(HIP):    stride.values = { 376320 784 28 1 }
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenSetTensorDescriptorV2(miopenTensorDescriptor_t, miopenDataType_t, int, const size_t *, const size_t *){
+MIOpen(HIP):    tensorDesc = {}, {}, packed,
+MIOpen(HIP):    dataType = 0
+MIOpen(HIP):    nbDims = 4
+MIOpen(HIP):    dim.values = { 480 1 5 5 }
+MIOpen(HIP):    stride.values = { 25 25 5 1 }
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenInitConvolutionNdDescriptor(miopenConvolutionDescriptor_t, int, const int *, const int *, const int *, miopenConvolutionMode_t){
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {0, 0}, {1, 1}, {1, 1},
+MIOpen(HIP):    spatialDim = 2
+MIOpen(HIP):    pads = { 2 2 }
+MIOpen(HIP):    strides = { 1 1 }
+MIOpen(HIP):    dilations = { 1 1 }
+MIOpen(HIP):    c_mode = 0
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenSetConvolutionGroupCount(miopenConvolutionDescriptor_t, int){
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1},
+MIOpen(HIP):    groupCount = 480
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGetConvolutionNdForwardOutputDim(miopenConvolutionDescriptor_t, const miopenTensorDescriptor_t, const miopenTensorDescriptor_t, int *, int *){
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    inputTensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    filterDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenSetTensorDescriptorV2(miopenTensorDescriptor_t, miopenDataType_t, int, const size_t *, const size_t *){
+MIOpen(HIP):    tensorDesc = {}, {}, packed,
+MIOpen(HIP):    dataType = 0
+MIOpen(HIP):    nbDims = 4
+MIOpen(HIP):    dim.values = { 128 480 28 28 }
+MIOpen(HIP):    stride.values = { 376320 784 28 1 }
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t, int *){
+MIOpen(HIP):    tensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGet4dTensorDescriptorLengths(miopenTensorDescriptor_t, int *, int *, int *, int *){
+MIOpen(HIP):    tensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    n = 0
+MIOpen(HIP):    c = 2
+MIOpen(HIP):    h = 32767
+MIOpen(HIP):    w = -1518646856
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t, int *){
+MIOpen(HIP):    tensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGetNdTensorDescriptorVectorLength(miopenTensorDescriptor_t, std::size_t *){
+MIOpen(HIP):    tensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    vectorLength = 0
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t, int *){
+MIOpen(HIP):    tensorDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGet4dTensorDescriptorLengths(miopenTensorDescriptor_t, int *, int *, int *, int *){
+MIOpen(HIP):    tensorDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    n = 32733
+MIOpen(HIP):    c = 1072762880
+MIOpen(HIP):    h = 32767
+MIOpen(HIP):    w = -1518647008
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t, int *){
+MIOpen(HIP):    tensorDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGetNdTensorDescriptorVectorLength(miopenTensorDescriptor_t, std::size_t *){
+MIOpen(HIP):    tensorDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    vectorLength = 1
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t, int *){
+MIOpen(HIP):    tensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGet4dTensorDescriptorLengths(miopenTensorDescriptor_t, int *, int *, int *, int *){
+MIOpen(HIP):    tensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    n = 32733
+MIOpen(HIP):    c = 1072762880
+MIOpen(HIP):    h = 32767
+MIOpen(HIP):    w = -1518647008
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGetTensorDescriptorSize(miopenTensorDescriptor_t, int *){
+MIOpen(HIP):    tensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenGetNdTensorDescriptorVectorLength(miopenTensorDescriptor_t, std::size_t *){
+MIOpen(HIP):    tensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    vectorLength = 1
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeightsGetWorkSpaceSize(miopenHandle_t, const miopenTensorDescriptor_t, const miopenTensorDescriptor_t, const miopenConvolutionDescriptor_t, const miopenTensorDescriptor_t, size_t *){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): Info [AmdRocmMetadataVersionDetect] ROCm MD version AMDHSA_COv3, HIP version 6.4.43482, MIOpen version 3.4.0.7e387ac49-dirty
+MIOpen(HIP): Info [GetSolutions]
+MIOpen(HIP): Info [IsNetworkedFilesystem] Filesystem type at '"/root/.config/miopen/"' is: 0x794c7630 'OVERLAYFS_SUPER_MAGIC'
+MIOpen(HIP): Info [Measure] ReadonlyRamDb::Prefetch time: 4e-05 ms
+MIOpen(HIP): Info [Measure] RamDb::Prefetch time: 0.024707 ms
+MIOpen(HIP): Info [GetWorkSpaceSize] 0
+PRNG seed: 12345678
+MIOpen(HIP): miopenStatus_t miopenFindConvolutionBackwardWeightsAlgorithm(miopenHandle_t, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, const miopenTensorDescriptor_t, void *, const int, int *, miopenConvAlgoPerf_t *, void *, size_t, bool){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    requestAlgoCount = 2
+MIOpen(HIP):    returnedAlgoCount = 0
+MIOpen(HIP):    perfResults =
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP):    exhaustiveSearch = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [FindConvBwdWeightsAlgorithm] requestAlgoCount = 2, workspace = 0
+MIOpen(HIP): Info [GetSolutions]
+MIOpen(HIP): Info [FindSolutionImpl] ConvWinoRageRxS<2-3> (not searchable)
+MIOpen(HIP): Info [IsNetworkedFilesystem] Filesystem type at '"/root/.cache/miopen/3.4.0.7e387ac49-dirty"' is: 0x794c7630 'OVERLAYFS_SUPER_MAGIC'
+MIOpen(HIP): Info [KernDb] database not present
+MIOpen(HIP): Info [FindConvolution] miopenConvolutionBwdWeightsAlgoWinograd     1.06986 0
+MIOpen(HIP): Info [FillFindReturnParameters] BWrW Chosen Algorithm: ConvWinoRageRxS<2-3> , 0, 1.06986
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeights(miopenHandle_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, miopenConvBwdWeightsAlgorithm_t, const void *, const miopenTensorDescriptor_t, void *, void *, size_t){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    alpha = 0x7fffa57b4af0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    algo = 3
+MIOpen(HIP):    beta = 0x7fffa57b4aec
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [ConvolutionBackwardWeights] algo = 3, workspace = 0
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeights(miopenHandle_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, miopenConvBwdWeightsAlgorithm_t, const void *, const miopenTensorDescriptor_t, void *, void *, size_t){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    alpha = 0x7fffa57b4af0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    algo = 3
+MIOpen(HIP):    beta = 0x7fffa57b4aec
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [ConvolutionBackwardWeights] algo = 3, workspace = 0
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeights(miopenHandle_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, miopenConvBwdWeightsAlgorithm_t, const void *, const miopenTensorDescriptor_t, void *, void *, size_t){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    alpha = 0x7fffa57b4af0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    algo = 3
+MIOpen(HIP):    beta = 0x7fffa57b4aec
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [ConvolutionBackwardWeights] algo = 3, workspace = 0
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeights(miopenHandle_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, miopenConvBwdWeightsAlgorithm_t, const void *, const miopenTensorDescriptor_t, void *, void *, size_t){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    alpha = 0x7fffa57b4af0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    algo = 3
+MIOpen(HIP):    beta = 0x7fffa57b4aec
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [ConvolutionBackwardWeights] algo = 3, workspace = 0
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeights(miopenHandle_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, miopenConvBwdWeightsAlgorithm_t, const void *, const miopenTensorDescriptor_t, void *, void *, size_t){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    alpha = 0x7fffa57b4af0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    algo = 3
+MIOpen(HIP):    beta = 0x7fffa57b4aec
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [ConvolutionBackwardWeights] algo = 3, workspace = 0
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeights(miopenHandle_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, miopenConvBwdWeightsAlgorithm_t, const void *, const miopenTensorDescriptor_t, void *, void *, size_t){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    alpha = 0x7fffa57b4af0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    algo = 3
+MIOpen(HIP):    beta = 0x7fffa57b4aec
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [ConvolutionBackwardWeights] algo = 3, workspace = 0
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeights(miopenHandle_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, miopenConvBwdWeightsAlgorithm_t, const void *, const miopenTensorDescriptor_t, void *, void *, size_t){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    alpha = 0x7fffa57b4af0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    algo = 3
+MIOpen(HIP):    beta = 0x7fffa57b4aec
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [ConvolutionBackwardWeights] algo = 3, workspace = 0
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeights(miopenHandle_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, miopenConvBwdWeightsAlgorithm_t, const void *, const miopenTensorDescriptor_t, void *, void *, size_t){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    alpha = 0x7fffa57b4af0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    algo = 3
+MIOpen(HIP):    beta = 0x7fffa57b4aec
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [ConvolutionBackwardWeights] algo = 3, workspace = 0
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeights(miopenHandle_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, miopenConvBwdWeightsAlgorithm_t, const void *, const miopenTensorDescriptor_t, void *, void *, size_t){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    alpha = 0x7fffa57b4af0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    algo = 3
+MIOpen(HIP):    beta = 0x7fffa57b4aec
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [ConvolutionBackwardWeights] algo = 3, workspace = 0
+MIOpen(HIP): miopenStatus_t miopenConvolutionBackwardWeights(miopenHandle_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenTensorDescriptor_t, const void *, const miopenConvolutionDescriptor_t, miopenConvBwdWeightsAlgorithm_t, const void *, const miopenTensorDescriptor_t, void *, void *, size_t){
+MIOpen(HIP):    handle = stream: 0x3740da0, device_id: 0
+MIOpen(HIP):    alpha = 0x7fffa57b4af0
+MIOpen(HIP):    dyDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    dy = 0x7fbb0b000000
+MIOpen(HIP):    xDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP):    x = 0x7fbb13e00000
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP):    algo = 3
+MIOpen(HIP):    beta = 0x7fffa57b4aec
+MIOpen(HIP):    dwDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP):    dw = 0x7fd938a00000
+MIOpen(HIP):    workSpace = nullptr
+MIOpen(HIP):    workSpaceSize = 0
+MIOpen(HIP): }
+MIOpen(HIP): Info [ConvolutionBackwardWeights] algo = 3, workspace = 0
+MIOpen Backward Weights Conv. Algorithm: 3, Solution: 180/ConvWinoRageRxS<2-3>
+GPU Kernel Time Backward Weights Conv. Elapsed: 1.072286 ms (average)
+stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, GB/s, timeMs
+stats: bwdw-conv5x5u1, 128, 480, 28, 28, 5, 5, 480,  2408448000, 0, 0, 2246, 0, 1.072286
+Backward Convolution Weights FAILED: 0.908858 > 0.0164
+MIOpen(HIP): miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t){
+MIOpen(HIP):    tensorDesc = {}, {}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t){
+MIOpen(HIP):    tensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t){
+MIOpen(HIP):    tensorDesc = {480, 1, 5, 5}, {25, 25, 5, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t){
+MIOpen(HIP):    tensorDesc = {128, 480, 28, 28}, {376320, 784, 28, 1}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t){
+MIOpen(HIP):    tensorDesc = {}, {}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t){
+MIOpen(HIP):    tensorDesc = {}, {}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t){
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {2, 2}, {1, 1}, {1, 1}, 480,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t){
+MIOpen(HIP):    tensorDesc = {}, {}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t){
+MIOpen(HIP):    tensorDesc = {}, {}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenDestroyTensorDescriptor(miopenTensorDescriptor_t){
+MIOpen(HIP):    tensorDesc = {}, {}, packed,
+MIOpen(HIP): }
+MIOpen(HIP): miopenStatus_t miopenDestroyConvolutionDescriptor(miopenConvolutionDescriptor_t){
+MIOpen(HIP):    convDesc = conv2d, miopenConvolution, miopenPaddingDefault, {0, 0}, {1, 1}, {1, 1},
+MIOpen(HIP): }
+Warning: Resource leak detected by SharedSignalPool, 85 Signals leaked.
+hsa_copy_deps: 0
+scan ops data 15:16                                                                                                    File '/tmp/src/MIOpen/build/bin/results.copy_stats.csv' is generating
+dump json 4:5
