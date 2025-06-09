@@ -95,11 +95,16 @@ public:
         miopenCreateOperatorArgs(&fusionArgs);
 
         workspace_fwd_dev = nullptr;
+        data_type         = miopenBFloat16;
 
-        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
+        // data_type = (sizeof(Tgpu) == 4) ? miopenFloat
+        // if miopenHalf;
         initTiming();
         iters = 0;
     }
+
+    void ValidateLayoutInputParameters(std::string layout_type);
+    int ChkLayout_ShortName();
 
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
@@ -265,9 +270,92 @@ private:
 };
 
 template <typename Tgpu, typename Tref>
+int CBAInferFusionDriver<Tgpu, Tref>::ChkLayout_ShortName()
+{
+    // check for short name of layout type
+    if((inflags.FindShortName("in_layout") == 'I') &&
+       (inflags.FindShortName("out_layout") == 'O') && (inflags.FindShortName("fil_layout") == 'f'))
+    {
+        // do noting
+        // found valid short names
+        return 0;
+    }
+    else
+    {
+        std::cerr << "Error:Invalid Short Name!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+template <typename Tgpu, typename Tref>
+void CBAInferFusionDriver<Tgpu, Tref>::ValidateLayoutInputParameters(std::string layout_value)
+{
+    if((ChkLayout_ShortName()))
+    {
+        std::cerr << " Invalid Layout Short Name = " << ChkLayout_ShortName() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        if((layout_value.compare("NCHW") == 0) || (layout_value.compare("NHWC") == 0) ||
+           (layout_value.compare("CHWN") == 0) || (layout_value.compare("NCDHW") == 0) ||
+           (layout_value.compare("NDHWC") == 0))
+        {
+            // do nothing,Values are matching as defined in Lib.
+        }
+        else
+        {
+            std::cerr << "Invalid Layout Parameter Value - " << layout_value << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+
+    // todo: get spatial dimension from cmd line
+    int spatial_dim = 2;
+
+    ///////////
+    const std::string default_layout = (spatial_dim == 2) ? "NCHW" : "NCDHW";
+
+    if(inflags.GetValueStr("in_layout").empty())
+    {
+        inflags.SetValue("in_layout", default_layout);
+    }
+    else
+    {
+        std::string in_layoutValue = inflags.GetValueStr("in_layout");
+        ValidateLayoutInputParameters(in_layoutValue);
+        inflags.SetValue("in_layout", in_layoutValue);
+    }
+    // fil layout argument value check
+    if(inflags.GetValueStr("fil_layout").empty())
+    {
+        inflags.SetValue("fil_layout", default_layout);
+    }
+    else
+    {
+        std::string fil_layoutValue = inflags.GetValueStr("fil_layout");
+        ValidateLayoutInputParameters(fil_layoutValue);
+        inflags.SetValue("fil_layout", fil_layoutValue);
+    }
+    // out layout argument check
+    if(inflags.GetValueStr("out_layout").empty())
+    {
+        inflags.SetValue("out_layout", default_layout);
+    }
+    else
+    {
+        std::string out_layoutValue = inflags.GetValueStr("out_layout");
+        ValidateLayoutInputParameters(out_layoutValue);
+        inflags.SetValue("out_layout", out_layoutValue);
+    }
+
+    ///////////////////
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -330,11 +418,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
-    SetTensor4d(inputTensor, in_len, data_type);
+    SetTensorNd(inputTensor, in_len, inflags.GetValueStr("in_layout"), data_type);
 
     miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor);
 
-    SetTensor4d(weightTensor, wei_len, data_type);
+    SetTensorNd(weightTensor, wei_len, inflags.GetValueStr("fil_layout"), data_type);
 
     std::vector<int> out_len{};
     if(fusion_mode != miopen_fusion_na)
@@ -345,12 +433,12 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     {
         out_len = in_len;
     }
-    SetTensor4d(outputTensor, out_len, data_type);
+    SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), data_type);
 
     if(bias_mode)
     {
         std::vector<int> b_len{1, out_len[1], 1, 1};
-        SetTensor4d(biasTensor, b_len, data_type);
+        SetTensorNd(biasTensor, b_len, data_type);
     }
 
     return miopenStatusSuccess;
@@ -359,6 +447,24 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
+    inflags.AddInputFlag("in_layout",
+                         'I',
+                         "",
+                         "Input Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string",
+                         true);
+    inflags.AddInputFlag("out_layout",
+                         'O',
+                         "",
+                         "Output Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string",
+                         true);
+    inflags.AddInputFlag("fil_layout",
+                         'f',
+                         "",
+                         "Filter Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string",
+                         true);
     inflags.AddInputFlag("batchsize", 'n', "32", "Mini-batch size (Default=32)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");

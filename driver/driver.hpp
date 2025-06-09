@@ -354,16 +354,15 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
 [[noreturn]] inline void Usage(int e)
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf(
-        "Supported Base Arguments: conv[fp16|int8|bfp16], CBAInfer[fp16], pool[fp16], lrn[fp16], "
-        "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
-        "tensorop, reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
-        "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
-        "t5layernorm[bfp16|fp16], adam[fp16], ampadam, reduceextreme[bfp16|fp16], "
-        "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
-        "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], rope[bfp16|fp16], "
-        "prelu[bfp16|fp16], kthvalue[bfp16|fp16], glu[bfp16|fp16], softmarginloss[bfp16|fp16], "
-        "multimarginloss[bfp16|fp16]\n");
+    printf("Supported Base Arguments: conv[fp16|int8|bfp16], CBAInferbfp16, pool[fp16], lrn[fp16], "
+           "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
+           "tensorop, reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
+           "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
+           "t5layernorm[bfp16|fp16], adam[fp16], ampadam, reduceextreme[bfp16|fp16], "
+           "adamw[fp16], ampadamw, transformersadamw[fp16], transformersampadamw, "
+           "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], rope[bfp16|fp16], "
+           "prelu[bfp16|fp16], kthvalue[bfp16|fp16], glu[bfp16|fp16], softmarginloss[bfp16|fp16], "
+           "multimarginloss[bfp16|fp16]\n");
     exit(e); // NOLINT (concurrency-mt-unsafe)
 }
 
@@ -378,15 +377,15 @@ inline std::string ParseBaseArg(int argc, char* argv[])
     std::string arg = argv[1];
 
     if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "convbfp16" &&
-       arg != "CBAInfer" && arg != "CBAInferfp16" && arg != "pool" && arg != "poolfp16" &&
-       arg != "lrn" && arg != "lrnfp16" && arg != "activ" && arg != "activfp16" &&
-       arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" &&
-       arg != "bnormbfp16" && arg != "bnormfp16fp32" && arg != "bnormbfp16fp32" && arg != "rnn" &&
-       arg != "rnnfp16" && arg != "rnn_seq" && arg != "rnn_seqfp16" && arg != "gemm" &&
-       arg != "gemmfp16" && arg != "ctc" && arg != "dropout" && arg != "dropoutfp16" &&
-       arg != "tensorop" && arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" &&
-       arg != "layernorm" && arg != "layernormfp16" && arg != "layernormbfp16" && arg != "sum" &&
-       arg != "sumfp16" && arg != "sumbfp16" && arg != "groupnorm" && arg != "groupnormfp16" &&
+       arg != "CBAInferbfp16" && arg != "pool" && arg != "poolfp16" && arg != "lrn" &&
+       arg != "lrnfp16" && arg != "activ" && arg != "activfp16" && arg != "softmax" &&
+       arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" && arg != "bnormbfp16" &&
+       arg != "bnormfp16fp32" && arg != "bnormbfp16fp32" && arg != "rnn" && arg != "rnnfp16" &&
+       arg != "rnn_seq" && arg != "rnn_seqfp16" && arg != "gemm" && arg != "gemmfp16" &&
+       arg != "ctc" && arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" &&
+       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" &&
+       arg != "layernormfp16" && arg != "layernormbfp16" && arg != "sum" && arg != "sumfp16" &&
+       arg != "sumbfp16" && arg != "groupnorm" && arg != "groupnormfp16" &&
        arg != "groupnormbfp16" && arg != "cat" && arg != "catfp16" && arg != "catbfp16" &&
        arg != "addlayernorm" && arg != "addlayernormfp16" && arg != "addlayernormbfp16" &&
        arg != "t5layernorm" && arg != "t5layernormfp16" && arg != "t5layernormbfp16" &&

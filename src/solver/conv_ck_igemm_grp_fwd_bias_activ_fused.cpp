@@ -50,8 +50,8 @@ static constexpr ck::index_t NDimSpatial = 2;
 // todo : support 3D
 // static constexpr ck::index_t NDimSpatial = 3;
 // if relu passed by user then
-const float floor = 0;
-const float ceil  = std::numeric_limits<ck::bhalf_t>::max();
+// const float floor = 0;
+// const float ceil  = std::numeric_limits<ck::bhalf_t>::max();
 
 using InLayout  = ck::tensor_layout::convolution::NHWGC;
 using WeiLayout = ck::tensor_layout::convolution::GKYXC;
@@ -63,7 +63,14 @@ using OutElementOp = ck::tensor_operation::element_wise::AddClamp;
 
 const auto in_element_op  = InElementOp{};
 const auto wei_element_op = WeiElementOp{};
-const auto out_element_op = OutElementOp{floor, ceil};
+// const auto out_element_op = OutElementOp{floor, ceil};
+const auto GetOutElementOp = []() {
+    const float floor = 0;
+    const float ceil  = std::numeric_limits<ck::bhalf_t>::max();
+    return OutElementOp{floor, ceil};
+};
+
+const auto out_element_op = GetOutElementOp();
 
 template <typename InDataType,
           typename WeiDataType,
@@ -436,7 +443,7 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
 }
 
 ConvSolution ConvCKIgemmGrpFwdBiasActivFused::GetSolution(
-    const FusionContext& context,
+    const FusionContext&,
     const FusionDescription& fdesc_problem,
     const PerformanceConfigConvCKIgemmGrpFwdBiasActivFused& config) const
 {
