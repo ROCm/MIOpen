@@ -84,7 +84,7 @@ struct GPUMem
     };
 
 #if MIOPEN_BACKEND_OPENCL
-    GPUMem(){};
+    GPUMem() {};
     GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz, Check ch = Check::None)
         : sz(psz), data_sz(pdata_sz)
     {
@@ -111,7 +111,7 @@ struct GPUMem
 
 #elif MIOPEN_BACKEND_HIP
 
-    GPUMem(){};
+    GPUMem() {};
     GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz, Check ch = Check::None)
         : _ctx(ctx), sz(psz), data_sz(pdata_sz), check(ch)
     {
@@ -285,11 +285,7 @@ public:
             // init the buffers with NaNs.
             // Note, we only do this for the gpu buffers, adding the behaviour for the host buffers
             // causes a crash as the host code doesnt handle NaNs.
-            auto dev_buf_ptr = static_cast<Tgpu*>(dev->buf);
-            for(size_t i = 0; i < dev->sz; ++i)
-            {
-                dev_buf_ptr[i] = std::numeric_limits<Tgpu>::quiet_NaN();
-            }
+            hipMemset(dev->GetMem(), std::numeric_limits<Tgpu>::quiet_NaN(), dev->GetSize());
             return 0;
         }
 
