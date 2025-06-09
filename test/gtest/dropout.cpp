@@ -416,10 +416,10 @@ private:
 
 private:
     std::vector<int> in_dim;
-    float dropout_rate = 0.0f;
+    float dropout_rate      = 0.0f;
     unsigned long long seed = 0;
-    bool mask = false;
-    int rng_mode_cmd = 0;
+    bool mask               = false;
+    int rng_mode_cmd        = 0;
 };
 
 using GPU_Dropout_FP32 = DropoutCommon<float>;
