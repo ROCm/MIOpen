@@ -45,8 +45,6 @@ namespace miopen {
 
 namespace {
 
-#if MIOPEN_USE_ROCBLAS
-
 bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
                              [[maybe_unused]] bool use_dropout)
 {
@@ -211,6 +209,7 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
             }
             else
             {
+#if MIOPEN_USE_ROCBLAS
                 if(dw_desc.GetType() != miopenDataType_t::miopenFloat)
                     MIOPEN_THROW(miopenStatusInternalError, "rocblas_sgemv wrong Type");
 
@@ -232,6 +231,10 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                               &beta,
                               static_cast<float*>(dstY_with_offset),
                               1);
+#else
+                MIOPEN_THROW(miopenStatusUnsupportedOp,
+                             "MIOpen is built with MIOPEN_USE_ROCBLAS=OFF");
+#endif // MIOPEN_USE_ROCBLAS
             }
         }
         break;
@@ -247,8 +250,6 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
 
     return miopenStatusSuccess;
 }
-
-#endif // MIOPEN_USE_ROCBLAS
 
 } // namespace
 
