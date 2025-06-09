@@ -94,8 +94,8 @@ struct CKArgs
         in_lens      = {G, N, C, Di, Hi, Wi};
         out_lens     = {G, N, K, Do, Ho, Wo};
         wei_lens     = {G, K, C, Z, Y, X};
-        bias_lens    = {G, 1, 1, 1, K};
-        bias_strides = {K, 0, 0, 0, 1};
+        bias_lens    = {G, 1, K, 1, 1};
+        bias_strides = {K, 0, 1, 0, 0};
 
         // miopen filter_stride to CK filter_stride
         auto miopen_in_strides  = problem.GetIn().GetStrides();
