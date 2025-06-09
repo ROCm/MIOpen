@@ -243,6 +243,7 @@ set( MIOpen_Source
     solver/conv/conv_bin_wino3x3U.cpp
     solver/conv/conv_bin_winoRxS.cpp
     solver/conv/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
+    solver/conv/conv_ck_grouped_bwd_weight_dl_4v.cpp
     solver/conv/conv_direct_naive_conv.cpp
     solver/conv/conv_direct_naive_conv_bwd.cpp
     solver/conv/conv_direct_naive_conv_fwd.cpp
@@ -962,6 +963,13 @@ endif()
 # Build with package rocMLIR
 if(rocMLIR_FOUND)
     target_link_libraries(MIOpen PRIVATE rocMLIR::rockCompiler)
+endif()
+find_library(ckUtility
+    NAMES utility
+    PATHS /opt/rocm/lib
+    NO_DEFAULT_PATH)
+if (ckUtility)
+    target_link_libraries(MIOpen PRIVATE ${ckUtility})
 endif()
 
 target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)

@@ -710,6 +710,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     RegisterWithSolver(
         registry, ++id, conv::ConvWinoRageRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
+
+    RegisterWithSolver(
+        registry, ++id, conv::ConvQunConvBwd{}, miopenConvolutionAlgoDirect);
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }
