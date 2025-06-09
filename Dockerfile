@@ -168,7 +168,7 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
 RUN sed -i '/composable_kernel/d' /requirements.txt
 
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
-rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}"; \
+RUN rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}";
 
 # Utilize multi-stage build in order to squash the container.
 FROM ubuntu:22.04
