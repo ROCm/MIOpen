@@ -400,6 +400,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
                                         nullptr,
                                         nullptr,
                                         miopen::debug::BatchNormDirection_t::ForwardInference,
+                                        nullptr,
                                         false); // having false allows safe handling of nullptrs
     }
     else
@@ -770,7 +771,8 @@ static auto GetFusedWinogradSolvers()
 {
     return solver::SolverContainer<solver::fusion::ConvBinWinogradRxSFused,
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
-                                   solver::fusion::ConvWinoFuryRxSFused<2, 3>>{};
+                                   solver::fusion::ConvWinoFuryRxSFused<2, 3>,
+                                   solver::fusion::ConvWinoRageRxSFused<2, 3>>{};
 }
 
 static auto GetAllFusionSolvers()

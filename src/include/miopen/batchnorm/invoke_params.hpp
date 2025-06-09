@@ -59,6 +59,7 @@ struct BwdInvokeParams : public miopen::InvokeParams
     ConstData_t dy               = nullptr;
     Data_t dx                    = nullptr;
     ConstData_t bnScale          = nullptr;
+    ConstData_t bnBias           = nullptr;
     Data_t resultBnScaleDiff     = nullptr;
     Data_t resultBnBiasDiff      = nullptr;
     double epsilon               = 0;

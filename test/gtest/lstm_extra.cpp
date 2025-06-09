@@ -86,6 +86,7 @@ using TestCase = decltype(GetTestCases({}))::value_type;
 
 class GPU_lstm_extra_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 bool IsTestSupportedForDevice()

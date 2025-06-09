@@ -27,7 +27,7 @@
 #include <gtest/gtest.h>
 #include <miopen/env.hpp>
 #include "get_handle.hpp"
-
+#include "gtest_common.hpp"
 #include "pooling2d.hpp"
 
 MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_TEST_FLAGS_ARGS)
@@ -38,10 +38,12 @@ namespace pooling2d_asymmetric {
 
 class GPU_AsymPooling2d_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_AsymPooling2d_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)

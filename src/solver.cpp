@@ -632,9 +632,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemm3DGroupBwdXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver<batchnorm::BnCKFwdInference>(registry, ++id, Primitive::Batchnorm);
-    RegisterWithSolver<batchnorm::BnCKBwdBackward>(registry, ++id, Primitive::Batchnorm);
-    RegisterWithSolver<batchnorm::BnCKFwdTraining>(registry, ++id, Primitive::Batchnorm);
+    ++id; // removed batchnorm::BnCKFwdInference
+    ++id; // removed batchnorm::BnCKBwdBackward
+    ++id; // removed batchnorm::BnCKFwdTraining
     Register(
         registry, ++id, Primitive::Normalization, layernorm::Layernorm2DCKForward{}.SolverDbId());
     Register(
@@ -710,6 +710,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
 
     RegisterWithSolver(
         registry, ++id, conv::ConvWinoRageRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvWinoRageRxSFused<2, 3>{}.SolverDbId(),
+             miopenConvolutionAlgoWinograd);
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }
