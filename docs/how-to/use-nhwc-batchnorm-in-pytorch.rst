@@ -45,36 +45,37 @@ and is performed for each training batch.
 
 For more information on Batchnorm, see `Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_.
 
-Enabling NHWC Batchnorm for MIOpen using PyTorch
-=================================================
+Enabling or disabling NHWC Batchnorm for MIOpen using PyTorch
+=============================================================
 
 The PyTorch open-source tensor library provides support for using NHWC Batchnorm with MIOpen.
 In addition to Batchnorm, NHWC support is also available for convolution and other MIOpen features.
 
-By default, NHWC Batchnorm support in MIOpen is disabled.
-However, it can be enabled in a PyTorch environment using ROCm version 6.5 or later.
-This configuration only supports 2D NHWC Batchnorm, with 3D NHWC Batchnorm planned for a future release.
-1D Batchnorm is not applicable to the NHWC format.
-To enable NHWC Batchnorm, use this command:
-
-.. code:: shell
-
-   PYTORCH_MIOPEN_SUGGEST_NHWC_BATCHNORM=1
-
-.. note::
-
-   In a future release, NHWC Batchnorm will be enabled by default and this command will be deprecated and
-   removed.
+NHWC Batchnorm support in MIOpen can be used in a PyTorch environment using ROCm version 7.0 or later.
+This configuration supports 2D and 3D NHWC Batchnorm. 1D Batchnorm is not applicable to the NHWC format.
 
 PyTorch branch support
 ------------------------
 
-Only the ``ROCm/pytorch`` PyTorch images support NHWC Batchnorm. ROCm version 6.5 or later is required.
-The ``upstream`` images do not support this feature. The following PyTorch branches support the
-NHWC Batchnorm feature:
+The ``ROCm/pytorch`` PyTorch images support NHWC Batchnorm. ROCm version 7.0 or later is required.
+The following PyTorch branches support the NHWC Batchnorm feature:
 
 *  `release/2.6 <https://github.com/ROCm/pytorch/tree/release/2.6>`_
 *  `release/2.7 <https://github.com/ROCm/pytorch/tree/release/2.7>`_
+
+In the ``release/2.7`` PyTorch branch, NHWC Batchnorm support in MIOpen is enabled by default.
+To use the native Batchnorm approach with this image, use this command:
+
+.. code:: shell
+
+   PYTORCH_MIOPEN_SUGGEST_NHWC_BATCHNORM=0
+
+In the ``release/2.6`` PyTorch branch, NHWC Batchnorm support in MIOpen is disabled by default.
+To enable NHWC Batchnorm for this image, use this command:
+
+.. code:: shell
+
+   PYTORCH_MIOPEN_SUGGEST_NHWC_BATCHNORM=1
 
 For information on installing and using PyTorch on ROCm, see :doc:`PyTorch on ROCm <rocm-install-on-linux:install/3rd-party/pytorch-install>`.
 
@@ -94,20 +95,19 @@ environment variable enabled.
    "not mixed".
 
 .. csv-table::
-   :header: "Input data type","Memory format","Mode","Default backend","Backend with variable enabled"
-   :widths: 20, 20, 20, 20, 25
+   :header: "Input data type","Memory format","Mode","Backend with NHWC Batchnorm","Backend without NHWC Batchnorm"
+   :widths: 20, 20, 20, 25, 25
 
-   "``float32``","NCHW","1D/2D","MIOpen","MIOpen"
-   "``float32``","NHWC","2D","native","MIOpen"
-   "``float16``","NCHW","1D/2D mixed","MIOpen","MIOpen"
+   "``float32``","NCHW","1D/2D/3D","MIOpen","MIOpen"
+   "``float32``","NHWC","2D/3D","native","MIOpen"
+   "``float16``","NCHW","1D/2D mixed/3D","MIOpen","MIOpen"
    "``float16``","NCHW","1D/2D not mixed","native","native"
-   "``float16``","NHWC","2D mixed","native","MIOpen"
+   "``float16``","NHWC","2D mixed/3D","native","MIOpen"
    "``float16``","NHWC","2D not mixed","native","native"
-   "``bfloat16``","NCHW","1D/2D mixed","MIOpen (*)","MIOpen (*)"
+   "``bfloat16``","NCHW","1D/2D mixed/3D","MIOpen (*)","MIOpen (*)"
    "``bfloat16``","NCHW","1D/2D not mixed","native","native"
-   "``bfloat16``","NHWC","2D mixed","native","MIOpen"
-   "``bfloat16``","NHWC","2D not mixed","native","native"
-   "any","any","3D","native","native"
+   "``bfloat16``","NHWC","2D mixed/3D","native","MIOpen"
+   "``bfloat16``","NHWC","2D not mixed/3D","native","native"
 
 (*) MIOpen is used with ROCm 6.4 and later. Otherwise, the native backend is used.
 
@@ -167,15 +167,28 @@ NHWC memory format was used.
 Running Batchnorm tests
 =======================
 
-Several test suites are available for Batchnorm. To test Batchnorm training using both NHWC and NCHW,
+Several test suites are available for Batchnorm. To test Batchnorm training using both NHWC and NCHW in 2D,
 run the following command:
 
 .. code:: shell
 
-   python test_nn.py -v -k test_batchnorm_train
+   python test_nn.py -v -k test_batchnorm_2D_train
 
-To test Batchnorm inference using both memory formats, use this command:
+To test Batchnorm training using both NHWC and NCHW in 3D,
+run the following command:
 
 .. code:: shell
 
-   python test_nn.py -v -k test_batchnorm_inference
+   python test_nn.py -v -k test_batchnorm_3D_train
+
+To test Batchnorm inference for 2D using both memory formats, use this command:
+
+.. code:: shell
+
+   python test_nn.py -v -k test_batchnorm_2D_inference
+
+To test the same functionality for 3D, use this command:
+
+.. code:: shell
+
+   python test_nn.py -v -k test_batchnorm_3D_inference
