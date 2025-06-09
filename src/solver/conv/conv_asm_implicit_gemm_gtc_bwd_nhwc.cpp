@@ -1024,7 +1024,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
 
     if(0 ==
        igemm_split_batch_size(ProblemInterpreter::GetInputHeightHi(problem),
-                              ProblemInterpreter::GetInputHeightWi(problem),
+                              ProblemInterpreter::GetInputWidthWi(problem),
                               ProblemInterpreter::GetOutputHeightHo(problem),
                               ProblemInterpreter::GetOutputWidthWo(problem),
                               ProblemInterpreter::GetBatchN(problem),

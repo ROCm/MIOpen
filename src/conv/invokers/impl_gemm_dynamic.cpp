@@ -11,6 +11,8 @@
 namespace miopen {
 namespace conv {
 
+using ProblemInterpreter = solver::ProblemInterpreter;
+
 static inline uint32_t igemm_find_tile_size_with_upper_bound(
     uint32_t out_size, size_t upper_bound, uint32_t stride, uint32_t dilation, uint32_t filter)
 {
