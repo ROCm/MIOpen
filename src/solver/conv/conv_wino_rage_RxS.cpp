@@ -32,6 +32,8 @@
 #include <miopen/conv/invokers/gcn_asm_wino.hpp>
 #include <miopen/conv/kernel_interface/winograd_kernel_interface.hpp>
 #include <miopen/conv/solvers.hpp>
+#include <miopen/fusion/solvers.hpp>
+#include <miopen/fusion/utils.hpp>
 
 namespace miopen {
 
@@ -257,6 +259,91 @@ ConvWinoRageRxS<Winodata, Winofilter>::GetSolution(const ExecutionContext& ctx,
 template struct MIOPEN_INTERNALS_EXPORT ConvWinoRageRxS<2, 3>;
 
 } // namespace conv
+
+namespace fusion {
+
+template <uint32_t Winodata, uint32_t Winofilter>
+bool ConvWinoRageRxSFused<Winodata, Winofilter>::IsApplicable(
+    const FusionContext& ctx, const FusionDescription& problem) const
+{
+    const auto& desc = *problem.fusion_plan_desc;
+
+    if(desc.op_map.empty())
+    {
+        MIOPEN_THROW(miopenStatusInternalError);
+    }
+
+    if(desc.op_map.size() > 3)
+        return false;
+    if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
+        return false;
+    if(desc.op_map.size() == 2)
+    {
+        const auto prim = desc.op_map[1]->kind();
+        if(!(prim == miopenFusionOpBiasForward || prim == miopenFusionOpActivForward))
+            return false;
+    }
+    if(desc.op_map.size() == 3)
+    {
+        if(desc.op_map[1]->kind() != miopenFusionOpBiasForward)
+            return false;
+        if(desc.op_map[2]->kind() != miopenFusionOpActivForward)
+            return false;
+    }
+
+    const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
+    if(activ_idx != -1)
+    {
+        const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+        switch(activ_op.activMode)
+        {
+        case miopenActivationPASTHRU:
+        case miopenActivationLOGISTIC:
+        case miopenActivationTANH:
+        case miopenActivationRELU:
+        case miopenActivationLEAKYRELU: break;
+        default: return false;
+        }
+    }
+
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    return ConvWinoRageRxSCommon<Winodata, Winofilter>::IsApplicable(ctx, conv_problem);
+}
+
+template <uint32_t Winodata, uint32_t Winofilter>
+float ConvWinoRageRxSFused<Winodata, Winofilter>::GetWti(const FusionContext& ctx,
+                                                         const FusionDescription& problem) const
+{
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    return ConvWinoRageRxSCommon<Winodata, Winofilter>::GetWti(ctx, conv_problem);
+}
+
+template <uint32_t Winodata, uint32_t Winofilter>
+ConvSolution
+ConvWinoRageRxSFused<Winodata, Winofilter>::GetSolution(const FusionContext& ctx,
+                                                        const FusionDescription& problem) const
+{
+    const auto& desc    = *problem.fusion_plan_desc;
+    const int bias_idx  = GetOpIdx(desc.op_map, miopenFusionOpBiasForward);
+    const int activ_idx = GetOpIdx(desc.op_map, miopenFusionOpActivForward);
+
+    const auto conv_problem = problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+
+    const bool do_bias = (bias_idx != -1);
+    auto activ_mode    = miopenActivationPASTHRU;
+    if(activ_idx != -1)
+    {
+        const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[activ_idx]);
+        activ_mode           = activ_op.activMode;
+    }
+
+    return ConvWinoRageRxSCommon<Winodata, Winofilter>::GetSolution(
+        ctx, conv_problem, true, do_bias, activ_mode);
+}
+
+template struct MIOPEN_INTERNALS_EXPORT ConvWinoRageRxSFused<2, 3>;
+
+} // namespace fusion
 
 } // namespace solver
 

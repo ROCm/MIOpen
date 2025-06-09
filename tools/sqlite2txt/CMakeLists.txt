@@ -1,11 +1,7 @@
 add_executable(sqlite2txt
-        main.cpp
+    main.cpp
 )
 
-target_link_libraries(sqlite2txt SQLite::SQLite3 Threads::Threads)
-
-if (NOT WIN32)
-    target_link_libraries(sqlite2txt dl)
-endif()
+target_link_libraries(sqlite2txt SQLite::SQLite3 Threads::Threads ${CMAKE_DL_LIBS})
 
 clang_tidy_check(sqlite2txt)

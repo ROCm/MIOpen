@@ -771,7 +771,8 @@ static auto GetFusedWinogradSolvers()
 {
     return solver::SolverContainer<solver::fusion::ConvBinWinogradRxSFused,
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
-                                   solver::fusion::ConvWinoFuryRxSFused<2, 3>>{};
+                                   solver::fusion::ConvWinoFuryRxSFused<2, 3>,
+                                   solver::fusion::ConvWinoRageRxSFused<2, 3>>{};
 }
 
 static auto GetAllFusionSolvers()
