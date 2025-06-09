@@ -36,6 +36,7 @@
 #include "util_driver.hpp"
 
 #include "../test/verify.hpp"
+#include "../test/cpu_conv.hpp"
 
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
@@ -97,8 +98,7 @@ public:
         workspace_fwd_dev = nullptr;
         data_type         = miopenBFloat16;
 
-        // data_type = (sizeof(Tgpu) == 4) ? miopenFloat
-        // if miopenHalf;
+        InitDataType<Tgpu>();
         initTiming();
         iters = 0;
     }
@@ -249,6 +249,7 @@ private:
     std::vector<Tgpu> conv_res;
     std::vector<Tgpu> bn_res;
     std::vector<Tref> in_host;
+    std::vector<Tref> wei_host;
     std::vector<Tref> conv_res_host;
     std::vector<Tref> bn_res_host;
     std::vector<Tref> out_host;
@@ -418,11 +419,15 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
-    SetTensorNd(inputTensor, in_len, inflags.GetValueStr("in_layout"), data_type);
+    SetTensorNdVector(
+        inputTensor, in_len, StringToLayoutType(inflags.GetValueStr("in_layout")), data_type);
+
+    std::cout << miopen::deref(inputTensor).GetLayout_t() << std::endl;
 
     miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor);
 
-    SetTensorNd(weightTensor, wei_len, inflags.GetValueStr("fil_layout"), data_type);
+    SetTensorNdVector(
+        weightTensor, wei_len, StringToLayoutType(inflags.GetValueStr("fil_layout")), data_type);
 
     std::vector<int> out_len{};
     if(fusion_mode != miopen_fusion_na)
@@ -433,7 +438,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     {
         out_len = in_len;
     }
-    SetTensorNd(outputTensor, out_len, inflags.GetValueStr("out_layout"), data_type);
+    SetTensorNdVector(
+        outputTensor, out_len, StringToLayoutType(inflags.GetValueStr("out_layout")), data_type);
 
     if(bias_mode)
     {
@@ -762,6 +768,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     // CPU allocation
     in_host       = std::vector<Tref>(in_sz, static_cast<Tref>(0));
+    wei_host      = std::vector<Tref>(wei_sz, static_cast<Tref>(0));
     conv_res_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
     out_host      = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
@@ -785,9 +792,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         for(int i = 0; i < wei_sz; i++)
         {
 #if(CBA_DEBUG_VALUES == 1)
-            wei[i] = 1.; // prng::gen_canonical<Tgpu>(); // 1.;
+            auto rval   = 1.; // prng::gen_canonical<Tgpu>(); // 1.;
+            wei[i]      = static_cast<double>(rval);
+            wei_host[i] = rval;
 #else
-            wei[i] = prng::gen_canonical<Tgpu>();
+            auto rval = prng::gen_canonical<Tgpu>();
+            wei_host[i] = static_cast<double>(rval);
+            wei[i] = rval;
 #endif
         }
         status |= wei_dev->ToGPU(q, wei.data());
@@ -1157,16 +1168,31 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
 {
-    ConvForwardCPU<Tgpu, Tref>(in_host,
-                               fusion_mode != miopen_fusion_cb ? conv_res_host
-                                                               : out_host, // dlowell 6 or 5???
-                               wei,
-                               b,
-                               bias_mode,
-                               convDesc,
-                               inputTensor,
-                               weightTensor,
-                               outputTensor);
+    tensor<Tref> in_local_host(miopen::deref(inputTensor).GetLengths(),
+                               miopen::deref(inputTensor).GetStrides());
+    tensor<Tref> wei_local_host(miopen::deref(weightTensor).GetLengths(),
+                                miopen::deref(weightTensor).GetStrides());
+    tensor<Tref> outhost_local_host(miopen::deref(outputTensor).GetLengths(),
+                                    miopen::deref(outputTensor).GetStrides());
+    in_local_host.data  = in_host;
+    wei_local_host.data = wei_host;
+    cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
+                            in_local_host,
+                            wei_local_host,
+                            outhost_local_host,
+                            miopen::deref(convDesc).GetConvPads(),
+                            miopen::deref(convDesc).GetConvStrides(),
+                            miopen::deref(convDesc).GetConvDilations(),
+                            miopen::deref(convDesc).GetGroupCount());
+
+    if(fusion_mode != miopen_fusion_cb)
+    {
+        conv_res_host = outhost_local_host.data;
+    }
+    else
+    {
+        out_host = outhost_local_host.data;
+    }
 
     return;
 }
@@ -1234,7 +1260,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
 
     if(useBatchNorm)
     {
-        // std::cout << "Running CPU fwd batch normalization." << std::endl;
+        std::cout << "Running CPU fwd batch normalization." << std::endl;
         runCPUBNFwdInference();
     }
 
@@ -1243,7 +1269,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
         std::cout << "Running CPU fwd activation." << std::endl;
         runCPUActivFwdInference();
     }
-
     return miopenStatusSuccess;
 }
 
