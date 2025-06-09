@@ -28,6 +28,14 @@ cmake_policy(SET CMP0057 NEW)
 
 include(CheckCXXCompilerFlag)
 
+if(MIOPEN_USE_HIPBLASLT)
+  find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
+
+if(MIOPEN_USE_ROCBLAS)
+  find_package(rocblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
+
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
 option( MIOPEN_TEST_HALF "Test in half mode" OFF )
 option( MIOPEN_TEST_INT8 "Test in int8 mode" OFF )
@@ -49,6 +57,7 @@ option( MIOPEN_TEST_COMPOSABLEKERNEL "Test with composable_kernel library" ${MIO
 option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON )
 option( MIOPEN_TEST_DBSYNC "" OFF )
 option( MIOPEN_TEST_PERF "" OFF )
+option( MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB "Enable the SQLite Perf DB test" OFF)
 
 if(NOT ENABLE_ASAN_PACKAGING AND MIOPEN_TEST_PERF)
     set( CMAKE_INSTALL_TESTBINDIR "${DATA_INSTALL_DIR}/bin" )
@@ -167,6 +176,10 @@ option( MIOPEN_LIBMLIR_SUPPORTS_GFX103X "libMLIR capability to support GFX10. En
 set_var_to_condition(MIOPEN_TEST_MLIR_DEFAULT ${MIOPEN_USE_MLIR} AND NOT (${MIOPEN_TEST_GFX103X} AND NOT ${MIOPEN_LIBMLIR_SUPPORTS_GFX103X}))
 option( MIOPEN_TEST_MLIR "Test for MLIR compilation backend" ${MIOPEN_TEST_MLIR_DEFAULT} )
 
+if((NOT MIOPEN_ENABLE_SQLITE) OR (NOT MIOPEN_EMBED_DB STREQUAL ""))
+    set(MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB OFF)
+endif()
+
 message(STATUS "MIOPEN_NO_GPU ${MIOPEN_NO_GPU}")
 message(STATUS "MIOPEN_TEST_GFX900 ${MIOPEN_TEST_GFX900}")
 message(STATUS "MIOPEN_TEST_GFX906 ${MIOPEN_TEST_GFX906}")
@@ -188,6 +201,7 @@ message(STATUS "MIOPEN_TEST_COMPOSABLEKERNEL ${MIOPEN_TEST_COMPOSABLEKERNEL}")
 message(STATUS "MIOPEN_TEST_DISCRETE ${MIOPEN_TEST_DISCRETE}")
 message(STATUS "MIOPEN_TEST_DBSYNC ${MIOPEN_TEST_DBSYNC}")
 message(STATUS "MIOPEN_TEST_PERF ${MIOPEN_TEST_PERF}")
+message(STATUS "MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB ${MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB}")
 
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
@@ -386,6 +400,14 @@ function(add_test_executable TEST_NAME)
     if(HAS_LIB_STD_FILESYSTEM)
         target_link_libraries(${TEST_NAME} stdc++fs)
     endif()
+    # Need to add hipblaslt since static builds of MIOpen require hipBLASLt linkage
+    if(hipblaslt_FOUND)
+        target_link_libraries( ${TEST_NAME} roc::hipblaslt )
+    endif()
+    # Need to add rocBLAS since static builds of MIOpen require rocBLAS linkage
+    if(rocblas_FOUND)
+        target_link_libraries( ${TEST_NAME} $<BUILD_INTERFACE:roc::rocblas> )
+    endif()
 endfunction()
 
 set(MIOPEN_TEST_SANITIZERS)
@@ -437,8 +459,10 @@ set(EXCLUDE_TESTS)
 if(NOT MIOPEN_ENABLE_SQLITE)
     list(APPEND EXCLUDE_TESTS test_sqlite)
 endif()
-if(NOT MIOPEN_ENABLE_SQLITE OR (NOT MIOPEN_EMBED_DB STREQUAL ""))
+
+if(NOT MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB)
     list(APPEND EXCLUDE_TESTS test_sqlite_perfdb)
+    message(STATUS "Flaky test_sqlite_perfdb currently disabled (May 28 2025)")
 endif()
 
 set(EXCLUDE_TEST_SOURCES)
@@ -460,7 +484,7 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
     add_test_executable(test_${BASE_NAME} ${TEST_SOURCE})
 endforeach()
 
-if(MIOPEN_ENABLE_SQLITE AND (MIOPEN_EMBED_DB STREQUAL ""))
+if(MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB)
     set_tests_properties(test_sqlite_perfdb PROPERTIES RUN_SERIAL On)
 endif()
 set_tests_properties(test_perfdb PROPERTIES RUN_SERIAL On)

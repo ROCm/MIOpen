@@ -53,6 +53,9 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_BLOCK_SYNC_LDS_WITHO
 #define WORKAROUND_MIOPEN_ISSUE_557 1
 #define WORKAROUND_SWDEV_413051 1
 
+// LLVM buffer intrinsics llvm.amdgcn.buffer.* have been removed in HIP 6.4
+#define WORKAROUND_SWDEV_498660 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
+
 namespace miopen {
 
 namespace solver {
@@ -579,6 +582,20 @@ static inline bool IsComposableKernelSupportedHardware(const ExecutionContext& c
            c.GetStream().GetDeviceName() == "gfx908" || c.GetStream().GetDeviceName() == "gfx90a" ||
            c.GetStream().GetDeviceName() == "gfx942" ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx103");
+}
+
+template <typename T>
+inline T igemm_get_max_gks(T gemm_k, T gemm_k_per_block, T max_log2_splits)
+{
+    if(gemm_k % gemm_k_per_block != 0)
+        return 0;
+    T rem      = gemm_k / gemm_k_per_block;
+    T rem_pow2 = rem & (~(rem - 1));
+    T gks      = (T)log2(rem_pow2);
+
+    if(gks > max_log2_splits)
+        gks = max_log2_splits;
+    return gks;
 }
 
 // greatest common divisor, aka highest common factor

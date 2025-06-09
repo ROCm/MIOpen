@@ -613,12 +613,10 @@ Problem::FindSolutionsImpl(const Handle& handle,
 
     const auto algo = AlgorithmName{"Mha"};
 
-    static solver::mha::MhaCKFlashAttentionV2Forward mhaCKFAForwardSolver;
     static solver::mha::MhaForward mhaForwardSolver;
     static solver::mha::MhaBackward mhaBackwardSolver;
 
-    std::vector<solver::mha::MhaSolver*> solvers = {
-        &mhaCKFAForwardSolver, &mhaForwardSolver, &mhaBackwardSolver};
+    std::vector<solver::mha::MhaSolver*> solvers = {&mhaForwardSolver, &mhaBackwardSolver};
 
     for(auto solver : solvers)
     {
