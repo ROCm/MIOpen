@@ -399,6 +399,7 @@ private:
     bool wall_enabled          = false;
     bool warmup_enabled        = false;
     bool is_gpualloc           = false;
+    bool init_output_nan       = false;
     GPUMem::Check buffer_check = GPUMem::Check::None;
 
     int num_iterations = 1;
@@ -697,6 +698,12 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     warmup_in.SetGpuallocMode(is_gpualloc);
     warmup_wei.SetGpuallocMode(is_gpualloc);
     warmup_out.SetGpuallocMode(is_gpualloc);
+
+    init_output_nan = (inflags.GetValueInt("init_output_nan") == 1);
+
+    out.SetGpuNanOutputBuffers(init_output_nan);
+    dout.SetGpuNanOutputBuffers(init_output_nan);
+    warmup_out.SetGpuNanOutputBuffers(init_output_nan);
 
     buffer_check = GetGpuBufferCheck(inflags);
 
@@ -1000,6 +1007,8 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
         "out_cast_type", 'T', "-1", "Cast type for output tensor, default to not set", "string");
     inflags.AddInputFlag(
         "wei_cast_type", 'R', "-1", "Cast type for weight tensor, default to not set", "string");
+    inflags.AddInputFlag(
+        "init_output_nan", 'N', "0", "populate output buffers with nans (Default=0)", "int");
 
     return 0;
 }

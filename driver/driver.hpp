@@ -201,10 +201,12 @@ class GpumemTensor
 {
     std::unique_ptr<GPUMem> dev;
     tensor<Tgpu> host;
-    bool is_gpualloc = false;
+    bool is_gpualloc         = false;
+    bool init_gpu_output_nan = false;
 
 public:
     void SetGpuallocMode(bool v) { is_gpualloc = v; }
+    void SetGpuNanOutputBuffers(bool v) { init_gpu_output_nan = v; }
     tensor<Tgpu>& GetTensor() { return host; }
 
     void AllocOnHost(miopenTensorDescriptor_t t)
@@ -275,6 +277,49 @@ public:
                                   GPUMem::Check check = GPUMem::Check::None)
     {
         AllocOnDevice(q, ctx, sz, check);
+
+        if(init_gpu_output_nan)
+        {
+            // In the past we have had some issues with incorrect results due to Nans in the output
+            // buffers.  In order to test the clearing of the output buffers, you can
+            // init the buffers with NaNs.
+            // Note, we only do this for the gpu buffers, adding the behaviour for the host buffers
+            // causes a crash as the host code doesnt handle NaNs.
+            if(std::is_same<Tgpu, float>::value)
+            {
+                hipMemsetD32(
+                    dev->GetMem(), std::numeric_limits<float>::quiet_NaN(), dev->GetSize());
+            }
+            else if(std::is_same<Tgpu, bfloat16>::value)
+            {
+                hipMemsetD16(
+                    dev->GetMem(), std::numeric_limits<bfloat16>::quiet_NaN(), dev->GetSize());
+            }
+            else if(std::is_same<Tgpu, half_float::half>::value)
+            {
+                hipMemsetD16(dev->GetMem(),
+                             std::numeric_limits<half_float::half>::quiet_NaN(),
+                             dev->GetSize());
+            }
+            else if(std::is_same<Tgpu, bfloat8_fnuz>::value)
+            {
+                hipMemset(
+                    dev->GetMem(), std::numeric_limits<bfloat8_fnuz>::quiet_NaN(), dev->GetSize());
+            }
+            else if(std::is_same<Tgpu, float8_fnuz>::value)
+            {
+                hipMemset(
+                    dev->GetMem(), std::numeric_limits<float8_fnuz>::quiet_NaN(), dev->GetSize());
+            }
+            else if(std::is_same<Tgpu, int8_t>::value)
+            {
+                // ints dont have Nan so use min value.
+                hipMemset(dev->GetMem(), std::numeric_limits<int8_t>::min(), dev->GetSize());
+            }
+
+            return 0;
+        }
+
         if(is_gpualloc)
         {
             /// \anchor gpualloc_random_init
