@@ -37,6 +37,7 @@
 
 #include "../test/verify.hpp"
 #include "../test/cpu_conv.hpp"
+#include "../test/cpu_bias.hpp"
 
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
@@ -96,7 +97,6 @@ public:
         miopenCreateOperatorArgs(&fusionArgs);
 
         workspace_fwd_dev = nullptr;
-        data_type         = miopenBFloat16;
 
         InitDataType<Tgpu>();
         initTiming();
@@ -255,6 +255,7 @@ private:
     std::vector<Tref> out_host;
     std::vector<Tgpu> scale;
     std::vector<Tgpu> bias;
+    std::vector<Tref> bias_host;
     std::vector<Tgpu> runningMean;
     std::vector<Tgpu> runningVariance;
 
@@ -723,9 +724,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         size_t b_sz = GetTensorSize(biasTensor);
         b_dev       = std::make_unique<GPUMem>(ctx, b_sz, sizeof(Tgpu));
         b           = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
+        bias_host   = std::vector<Tref>(b_sz, static_cast<Tref>(0));
         for(int i = 0; i < b_sz; i++)
         {
-            b[i] = prng::gen_canonical<Tgpu>();
+            b[i]         = prng::gen_canonical<Tgpu>();
+            bias_host[i] = static_cast<Tref>(b[i]);
         }
         status |= b_dev->ToGPU(q, b.data());
     }
@@ -1184,6 +1187,13 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
                             miopen::deref(convDesc).GetConvStrides(),
                             miopen::deref(convDesc).GetConvDilations(),
                             miopen::deref(convDesc).GetGroupCount());
+    if(bias_mode)
+    {
+        tensor<Tref> bias_local_host(miopen::deref(biasTensor).GetLengths(),
+                                     miopen::deref(biasTensor).GetStrides());
+        bias_local_host.data = bias_host;
+        cpu_bias_forward(outhost_local_host, bias_local_host);
+    }
 
     if(fusion_mode != miopen_fusion_cb)
     {
@@ -1254,14 +1264,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
     MIOPEN_LOG_I("Fusion mode: " << fusion_mode);
     if(fusion_mode != miopen_fusion_na)
     {
-        std::cout << "Running CPU fwd convolution." << std::endl;
+        std::cout << "Running CPU fwd convolution and/or bias." << std::endl;
         runCPUConvFwdInference();
-    }
-
-    if(useBatchNorm)
-    {
-        std::cout << "Running CPU fwd batch normalization." << std::endl;
-        runCPUBNFwdInference();
     }
 
     if(fusion_mode != miopen_fusion_cb && fusion_mode != miopen_fusion_cn)

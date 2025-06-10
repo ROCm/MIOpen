@@ -70,8 +70,6 @@ const auto GetOutElementOp = []() {
     return OutElementOp{floor, ceil};
 };
 
-const auto out_element_op = GetOutElementOp();
-
 template <typename InDataType,
           typename WeiDataType,
           typename OutDataType,
@@ -161,6 +159,8 @@ struct CKArgs
     {
         (void)alpha;
         (void)beta;
+        const auto out_element_op = GetOutElementOp();
+
         return conv_ptr->MakeArgumentPointer(
             in_buf,
             w_buf,
