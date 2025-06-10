@@ -205,6 +205,44 @@ public:
     Tgpu* GetVectorData() { return is_gpualloc ? nullptr : host.data(); }
     std::size_t GetVectorSize() const { return is_gpualloc ? 0 : host.size(); }
 
+    status_t FillGpuBufferWithNans()
+    {
+        // In the past we have had some issues with incorrect results due to Nans in the output
+        // buffers.  In order to test the clearing of the output buffers, you can
+        // init the buffers with NaNs.
+        // Note, we only do this for the gpu buffers, adding the behaviour for the host buffers
+        // causes a crash as the host code doesnt handle NaNs.
+        if(std::is_same<Tgpu, float>::value)
+        {
+            hipMemsetD32(dev->GetMem(), std::numeric_limits<float>::quiet_NaN(), dev->GetSize());
+        }
+        else if(std::is_same<Tgpu, bfloat16>::value)
+        {
+            hipMemsetD16(dev->GetMem(), std::numeric_limits<bfloat16>::quiet_NaN(), dev->GetSize());
+        }
+        else if(std::is_same<Tgpu, half_float::half>::value)
+        {
+            hipMemsetD16(
+                dev->GetMem(), std::numeric_limits<half_float::half>::quiet_NaN(), dev->GetSize());
+        }
+        else if(std::is_same<Tgpu, bfloat8_fnuz>::value)
+        {
+            hipMemset(
+                dev->GetMem(), std::numeric_limits<bfloat8_fnuz>::quiet_NaN(), dev->GetSize());
+        }
+        else if(std::is_same<Tgpu, float8_fnuz>::value)
+        {
+            hipMemset(dev->GetMem(), std::numeric_limits<float8_fnuz>::quiet_NaN(), dev->GetSize());
+        }
+        else if(std::is_same<Tgpu, int8_t>::value)
+        {
+            // ints dont have Nan so use min value.
+            hipMemset(dev->GetMem(), std::numeric_limits<int8_t>::min(), dev->GetSize());
+        }
+
+        return STATUS_SUCCESS;
+    }
+
     status_t AllocOnDevice(stream, context_t ctx, const size_t sz, GPUMem::Check check)
     {
         dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu), check);
@@ -701,9 +739,8 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 
     init_output_nan = (inflags.GetValueInt("init_output_nan") == 1);
 
-    out.SetGpuNanOutputBuffers(init_output_nan);
-    dout.SetGpuNanOutputBuffers(init_output_nan);
-    warmup_out.SetGpuNanOutputBuffers(init_output_nan);
+    // out.SetGpuNanOutputBuffers(init_output_nan);
+    //  warmup_out.SetGpuNanOutputBuffers(init_output_nan);
 
     buffer_check = GetGpuBufferCheck(inflags);
 
@@ -1851,6 +1888,12 @@ int ConvDriver<Tgpu, Tref>::RunWarmupFindForwardGPU()
             return 70;
 
         warmup_wall_total.resume(wall_enabled);
+
+        if(init_output_nan)
+        {
+            warmup_out.FillGpuBufferWithNans();
+        }
+
         rc = miopenConvolutionForwardImmediate(handle,
                                                warmupWeightTensor,
                                                warmup_wei.GetDevicePtr(),
@@ -2063,6 +2106,11 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
 
     for(int i = 0; i < num_iterations; i++)
     {
+        if(init_output_nan)
+        {
+            out.FillGpuBufferWithNans();
+        }
+
         rc = miopenConvolutionForward(GetHandle(),
                                       &alpha,
                                       in_tens,
@@ -2219,6 +2267,11 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
 
     for(int i = 0; i < num_iterations; i++)
     {
+        if(init_output_nan)
+        {
+            out.FillGpuBufferWithNans();
+        }
+
         rc = miopenConvolutionForwardImmediate(
             handle,
             (is_transform ? weightTensor_vect4 : weightTensor),
@@ -2326,6 +2379,11 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         std::cout << "gpu reference convolution does not support bias yet" << std::endl;
         return -1;
     }
+    if(init_output_nan)
+    {
+        out.FillGpuBufferWithNans();
+    }
+
     auto ref_solution_id = mode == miopenTranspose //
                                ? miopen::solver::Id("ConvDirectNaiveConvBwd").Value()
                                : miopen::solver::Id("ConvDirectNaiveConvFwd").Value();
@@ -2534,6 +2592,10 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
 
     for(int i = 0; i < num_iterations; i++)
     {
+        if(init_output_nan)
+        {
+            din.FillGpuBufferWithNans();
+        }
         rc = miopenConvolutionBackwardData(GetHandle(),
                                            &alpha,
                                            outputTensor,
@@ -2744,6 +2806,11 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
 
     for(int i = 0; i < num_iterations; i++)
     {
+        if(init_output_nan)
+        {
+            dwei.FillGpuBufferWithNans();
+        }
+
         rc = miopenConvolutionBackwardWeights(GetHandle(),
                                               &alpha,
                                               outputTensor,
@@ -2982,6 +3049,11 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
 
     for(int i = 0; i < num_iterations; i++)
     {
+        if(init_output_nan)
+        {
+            din.FillGpuBufferWithNans();
+        }
+
         rc = miopenConvolutionBackwardDataImmediate(handle,
                                                     outputTensor,
                                                     dout.GetDevicePtr(),
@@ -3112,6 +3184,11 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
 
     for(int i = 0; i < num_iterations; i++)
     {
+        if(init_output_nan)
+        {
+            dwei.FillGpuBufferWithNans();
+        }
+
         rc = miopenConvolutionBackwardWeightsImmediate(handle,
                                                        outputTensor,
                                                        dout.GetDevicePtr(),
@@ -3252,6 +3329,11 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
 {
     AutoPrepareForGpuReference naive_conv_enable;
 
+    if(init_output_nan)
+    {
+        dwei.FillGpuBufferWithNans();
+    }
+
     auto ref_solution_id = miopen::solver::Id("ConvDirectNaiveConvWrw").Value();
     auto rc              = miopenConvolutionBackwardWeightsImmediate(handle,
                                                         outputTensor,
@@ -3300,6 +3382,11 @@ template <typename Tgpu, typename Tref>
 int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
 {
     AutoPrepareForGpuReference naive_conv_enable;
+
+    if(init_output_nan)
+    {
+        din.FillGpuBufferWithNans();
+    }
 
     auto ref_solution_id = mode == miopenTranspose //
                                ? miopen::solver::Id("ConvDirectNaiveConvFwd").Value()
