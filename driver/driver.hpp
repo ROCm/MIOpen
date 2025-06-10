@@ -137,15 +137,12 @@ struct GPUMem
         return static_cast<int>(hipMemcpy(p, buf, GetSize(), hipMemcpyDeviceToHost));
     }
 
-    // To pass the Tgpu type, make FillBufferWithNans a template method:
     template <typename Tgpu>
     status_t FillBufferWithNans()
     {
         // In the past we have had some issues with incorrect results due to Nans in the output
         // buffers.  In order to test the clearing of the output buffers, you can
         // init the buffers with NaNs.
-        // Note, we only do this for the gpu buffers, adding the behaviour for the host buffers
-        // causes a crash as the host code doesnt handle NaNs.
         if(std::is_same<Tgpu, float>::value)
         {
             hipMemsetD32(GetMem(), std::numeric_limits<float>::quiet_NaN(), GetSize());
