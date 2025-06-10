@@ -185,18 +185,6 @@ pipeline {
                         }
                     }
                 }
-                stage('Hip Tidy') {
-                    agent{ label rocmnode("nogpu") }
-                    environment{
-                        setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
-                        build_cmd = "make -j\$(nproc) -k analyze"
-                    }
-                    steps{
-                        script {
-                            utils.buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false)
-                        }
-                    }
-                }
                 stage('Clang Format') {
                     agent{ label rocmnode("nogpu") }
                     environment{
@@ -479,6 +467,18 @@ pipeline {
                         script {
                             // Adds a comment under the jenkins build number so you can tell it is a nightly build.
                             currentBuild.description = "Nightly Build"
+                        }
+                    }
+                }
+                stage('Hip Tidy') {
+                    agent{ label rocmnode("nogpu") }
+                    environment{
+                        setup_cmd = "CXX='/opt/rocm/llvm/bin/clang++' cmake -DCMAKE_PREFIX_PATH=/opt/rocm -DMIOPEN_BACKEND=HIP -DBUILD_DEV=On .. "
+                        build_cmd = "make -j\$(nproc) -k analyze"
+                    }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(setup_cmd: setup_cmd, build_cmd: build_cmd, needs_gpu:false, needs_reboot:false)
                         }
                     }
                 }
