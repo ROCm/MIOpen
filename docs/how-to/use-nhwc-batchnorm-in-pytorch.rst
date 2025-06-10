@@ -95,19 +95,19 @@ environment variable enabled.
    "not mixed".
 
 .. csv-table::
-   :header: "Input data type","Memory format","Mode","Backend with NHWC Batchnorm","Backend without NHWC Batchnorm"
-   :widths: 20, 20, 20, 25, 25
+   :header: "Input data type","Memory format","Mode","Mixed/not mixed","Backend with NHWC Batchnorm enabled","Backend with NHWC Batchnorm disabled"
+   :widths: 20, 20, 15, 15, 25, 25
 
-   "``float32``","NCHW","1D/2D/3D","MIOpen","MIOpen"
-   "``float32``","NHWC","2D/3D","native","MIOpen"
-   "``float16``","NCHW","1D/2D mixed/3D","MIOpen","MIOpen"
-   "``float16``","NCHW","1D/2D not mixed","native","native"
-   "``float16``","NHWC","2D mixed/3D","native","MIOpen"
-   "``float16``","NHWC","2D not mixed","native","native"
-   "``bfloat16``","NCHW","1D/2D mixed/3D","MIOpen (*)","MIOpen (*)"
-   "``bfloat16``","NCHW","1D/2D not mixed","native","native"
-   "``bfloat16``","NHWC","2D mixed/3D","native","MIOpen"
-   "``bfloat16``","NHWC","2D not mixed/3D","native","native"
+   "``float32``","NCHW","1D/2D/3D","not mixed","MIOpen","MIOpen"
+   "``float32``","NHWC","2D/3D","not mixed","native","MIOpen"
+   "``float16``","NCHW","1D/2D/3D","mixed","MIOpen","MIOpen"
+   "``float16``","NCHW","1D/2D/3D","not mixed","native","native"
+   "``float16``","NHWC","2D/3D","mixed","native","MIOpen"
+   "``float16``","NHWC","2D/3D","not mixed","native","native"
+   "``bfloat16``","NCHW","1D/2D/3D","mixed","MIOpen (*)","MIOpen (*)"
+   "``bfloat16``","NCHW","1D/2D/3D","not mixed","native","native"
+   "``bfloat16``","NHWC","2D/3D","mixed","native","MIOpen"
+   "``bfloat16``","NHWC","2D/3D","not mixed","native","native"
 
 (*) MIOpen is used with ROCm 6.4 and later. Otherwise, the native backend is used.
 
