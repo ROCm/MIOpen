@@ -137,6 +137,44 @@ struct GPUMem
         return static_cast<int>(hipMemcpy(p, buf, GetSize(), hipMemcpyDeviceToHost));
     }
 
+    // To pass the Tgpu type, make FillBufferWithNans a template method:
+    template <typename Tgpu>
+    status_t FillBufferWithNans()
+    {
+        // In the past we have had some issues with incorrect results due to Nans in the output
+        // buffers.  In order to test the clearing of the output buffers, you can
+        // init the buffers with NaNs.
+        // Note, we only do this for the gpu buffers, adding the behaviour for the host buffers
+        // causes a crash as the host code doesnt handle NaNs.
+        if(std::is_same<Tgpu, float>::value)
+        {
+            hipMemsetD32(GetMem(), std::numeric_limits<float>::quiet_NaN(), GetSize());
+        }
+        else if(std::is_same<Tgpu, bfloat16>::value)
+        {
+            hipMemsetD16(GetMem(), std::numeric_limits<bfloat16>::quiet_NaN(), GetSize());
+        }
+        else if(std::is_same<Tgpu, half_float::half>::value)
+        {
+            hipMemsetD16(GetMem(), std::numeric_limits<half_float::half>::quiet_NaN(), GetSize());
+        }
+        else if(std::is_same<Tgpu, bfloat8_fnuz>::value)
+        {
+            hipMemset(GetMem(), std::numeric_limits<bfloat8_fnuz>::quiet_NaN(), GetSize());
+        }
+        else if(std::is_same<Tgpu, float8_fnuz>::value)
+        {
+            hipMemset(GetMem(), std::numeric_limits<float8_fnuz>::quiet_NaN(), GetSize());
+        }
+        else if(std::is_same<Tgpu, int8_t>::value)
+        {
+            // ints dont have Nan so use min value.
+            hipMemset(GetMem(), std::numeric_limits<int8_t>::min(), GetSize());
+        }
+
+        return STATUS_SUCCESS;
+    }
+
     void* GetMem() { return buf; }
     size_t GetSize() { return sz * data_sz; }
 
@@ -263,43 +301,7 @@ public:
         }
     }
 
-    status_t FillGpuBufferWithNans()
-    {
-        // In the past we have had some issues with incorrect results due to Nans in the output
-        // buffers.  In order to test the clearing of the output buffers, you can
-        // init the buffers with NaNs.
-        // Note, we only do this for the gpu buffers, adding the behaviour for the host buffers
-        // causes a crash as the host code doesnt handle NaNs.
-        if(std::is_same<Tgpu, float>::value)
-        {
-            hipMemsetD32(dev->GetMem(), std::numeric_limits<float>::quiet_NaN(), dev->GetSize());
-        }
-        else if(std::is_same<Tgpu, bfloat16>::value)
-        {
-            hipMemsetD16(dev->GetMem(), std::numeric_limits<bfloat16>::quiet_NaN(), dev->GetSize());
-        }
-        else if(std::is_same<Tgpu, half_float::half>::value)
-        {
-            hipMemsetD16(
-                dev->GetMem(), std::numeric_limits<half_float::half>::quiet_NaN(), dev->GetSize());
-        }
-        else if(std::is_same<Tgpu, bfloat8_fnuz>::value)
-        {
-            hipMemset(
-                dev->GetMem(), std::numeric_limits<bfloat8_fnuz>::quiet_NaN(), dev->GetSize());
-        }
-        else if(std::is_same<Tgpu, float8_fnuz>::value)
-        {
-            hipMemset(dev->GetMem(), std::numeric_limits<float8_fnuz>::quiet_NaN(), dev->GetSize());
-        }
-        else if(std::is_same<Tgpu, int8_t>::value)
-        {
-            // ints dont have Nan so use min value.
-            hipMemset(dev->GetMem(), std::numeric_limits<int8_t>::min(), dev->GetSize());
-        }
-
-        return STATUS_SUCCESS;
-    }
+    status_t FillGpuBufferWithNans() { return dev->FillBufferWithNans<Tgpu>(); }
 
     status_t
     AllocOnDevice(stream, context_t ctx, const size_t sz, GPUMem::Check check = GPUMem::Check::None)
