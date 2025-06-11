@@ -53,9 +53,9 @@ static constexpr ck::index_t NDimSpatial = 2;
 // const float floor = 0;
 // const float ceil  = std::numeric_limits<ck::bhalf_t>::max();
 
-using InLayout  = ck::tensor_layout::convolution::NHWGC;
-using WeiLayout = ck::tensor_layout::convolution::GKYXC;
-using OutLayout = ck::tensor_layout::convolution::NHWGK;
+// using InLayout  = ck::tensor_layout::convolution::NHWGC;
+// using WeiLayout = ck::tensor_layout::convolution::GKYXC;
+// using OutLayout = ck::tensor_layout::convolution::NHWGK;
 
 using InElementOp  = ck::tensor_operation::element_wise::PassThrough;
 using WeiElementOp = ck::tensor_operation::element_wise::PassThrough;
@@ -70,11 +70,38 @@ const auto GetOutElementOp = []() {
     return OutElementOp{floor, ceil};
 };
 
-template <typename InDataType,
+inline auto Get2DLayouts()
+{
+    struct Layouts
+    {
+        using InLayout  = ck::tensor_layout::convolution::NHWGC;
+        using WeiLayout = ck::tensor_layout::convolution::GKYXC;
+        using OutLayout = ck::tensor_layout::convolution::NHWGK;
+    };
+    return Layouts{};
+}
+
+// Helper function for 3D layouts
+inline auto Get3DLayouts()
+{
+    struct Layouts
+    {
+        using InLayout  = ck::tensor_layout::convolution::NDHWGC;
+        using WeiLayout = ck::tensor_layout::convolution::GKZYXC;
+        using OutLayout = ck::tensor_layout::convolution::NDHWGK;
+    };
+    return Layouts{};
+}
+
+template <ck::index_t NumDimSpatial,
+          typename InDataType,
           typename WeiDataType,
           typename OutDataType,
           typename AComputeType = InDataType,
-          typename BComputeType = AComputeType>
+          typename BComputeType = AComputeType,
+          typename InLayout= ck::tensor_layout::convolution::NHWGC,
+          typename WeiLayout= ck::tensor_layout::convolution::GKYXC,
+          typename OutLayout = ck::tensor_layout::convolution::NHWGK>
 using DeviceOpGFwdBiasRelu =
     ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NDimSpatial,
                                                                   InLayout,
@@ -91,39 +118,80 @@ using DeviceOpGFwdBiasRelu =
                                                                   AComputeType,
                                                                   BComputeType>;
 
-template <typename DataType>
+template <ck::index_t NumDimSpatial, typename DataType,typename InLayout,
+typename WeiLayout,
+typename OutLayout>
 using DeviceOpGFwdBiasReluPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGFwdBiasRelu<DataType, DataType, DataType>>;
+        DeviceOpGFwdBiasRelu<NumDimSpatial, DataType, DataType, DataType, DataType, DataType,InLayout, WeiLayout, OutLayout>>;
 namespace {
-struct CKArgs
-{
-    CKArgs(const miopen::conv::ProblemDescription& problem)
+    struct CKArgs
     {
-        G  = ProblemInterpreter::GetGroupCountG(problem);
-        N  = ProblemInterpreter::GetBatchN(problem);
-        K1 = ProblemInterpreter::GetOutputChannelK(problem);
-        C1 = ProblemInterpreter::GetInputChannelC(problem);
-        C  = C1 / G; // Number of input Channel per group
-        K  = K1 / G; // Number of output Channel per group
-        Hi = ProblemInterpreter::GetInputHeightHi(problem);
-        Wi = ProblemInterpreter::GetInputWidthWi(problem);
-        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
-        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
-        Y  = ProblemInterpreter::GetFilterHeightY(problem);
-        X  = ProblemInterpreter::GetFilterWidthX(problem);
-
-        input_len  = {G, N, C, Hi, Wi};
-        output_len = {G, N, K, Ho, Wo};
-        weight_len = {G, K, C, Y, X};
-        bias_len   = {G, 1, K, 1, 1};
-
-        // NHWGC
-        bias_strides = {K, 0, 1, 0, 0};
-
-        // in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-        // out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
-        // wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+        CKArgs(const miopen::conv::ProblemDescription& problem)
+        {
+            G  = ProblemInterpreter::GetGroupCountG(problem);
+            N  = ProblemInterpreter::GetBatchN(problem);
+            K1 = ProblemInterpreter::GetOutputChannelK(problem);
+            C1 = ProblemInterpreter::GetInputChannelC(problem);
+            C  = C1 / G; // Number of input Channel per group
+            K  = K1 / G; // Number of output Channel per group
+    
+            // Handle both 2D and 3D cases dynamically
+            if(problem.Is3d())
+            {
+                Di = ProblemInterpreter::GetInputDepthDi(problem);
+                Do = ProblemInterpreter::GetOutputDepthDo(problem);
+                Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+                Hi = ProblemInterpreter::GetInputHeightHi(problem);
+                Wi = ProblemInterpreter::GetInputWidthWi(problem);
+                Ho = ProblemInterpreter::GetOutputHeightHo(problem);
+                Wo = ProblemInterpreter::GetOutputWidthWo(problem);
+    
+                in_lens      = {G, N, C, Di, Hi, Wi};
+                out_lens     = {G, N, K, Do, Ho, Wo};
+                wei_lens     = {G, K, C, Z, Y, X};
+                bias_lens    = {G, 1, 1, 1, K};
+                bias_strides = {K, 0, 0, 0, 1};
+    
+                filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+                                   ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                filter_dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+                                   ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+                                   ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
+                lPadding        = {ProblemInterpreter::GetInputLeftPadD(problem),
+                                   ProblemInterpreter::GetInputLeftPadH(problem),
+                                   ProblemInterpreter::GetInputLeftPadW(problem)};
+                rPadding        = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+                                   ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+                                   ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+            }
+            else
+            {
+                Hi = ProblemInterpreter::GetInputHeightHi(problem);
+                Wi = ProblemInterpreter::GetInputWidthWi(problem);
+                Ho = ProblemInterpreter::GetOutputHeightHo(problem);
+                Wo = ProblemInterpreter::GetOutputWidthWo(problem);
+                Y  = ProblemInterpreter::GetFilterHeightY(problem);
+                X  = ProblemInterpreter::GetFilterWidthX(problem);
+    
+                in_lens      = {G, N, C, Hi, Wi};
+                out_lens     = {G, N, K, Ho, Wo};
+                wei_lens     = {G, K, C, Y, X};
+                bias_lens    = {G, 1, K, 1, 1};
+                bias_strides = {K, 0, 1, 0, 0};
+    
+                filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                filter_dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+                                   ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
+                lPadding        = {ProblemInterpreter::GetInputLeftPadH(problem),
+                                   ProblemInterpreter::GetInputLeftPadW(problem)};
+                rPadding        = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+                                   ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+            }
+    
+            // Handle strides dynamically
         auto miopen_in_strides  = problem.GetIn().GetStrides();
         auto miopen_out_strides = problem.GetOut().GetStrides();
         auto miopen_wei_strides = problem.GetWeights().GetStrides();
@@ -133,20 +201,12 @@ struct CKArgs
         std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
         std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
         std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
-
-        strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
-                    ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding = {ProblemInterpreter::GetInputLeftPadH(problem),
-                    ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
-                    ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
-    }
-
-    CKArgs(const CKArgs&) = default;
-    CKArgs(CKArgs&&)      = default;
-    CKArgs& operator=(const CKArgs&) = default;
+        }
+    
+        CKArgs(const CKArgs&) = default;
+        CKArgs(CKArgs&&)      = default;
+        CKArgs& operator=(const CKArgs&) = default;
+    
 
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr,
@@ -166,16 +226,16 @@ struct CKArgs
             w_buf,
             {bias_buf},
             out_buf,
-            input_len,
+            in_lens,
             in_strides,
-            weight_len,
+            wei_lens,
             wei_strides,
-            {output_len}, // hack CK's is applicable check. instead of bias_len we use output_len
+            {out_lens}, // hack CK's is applicable check. instead of bias_len we use out_len
             {bias_strides},
-            output_len,
+            out_lens,
             out_strides,
-            strides,
-            dilation,
+            filter_stride,
+            filter_dilation,
             lPadding,
             rPadding,
             in_element_op,
@@ -223,18 +283,21 @@ struct CKArgs
     int Wo;
     int Y;
     int X;
-    std::array<ck::index_t, 5> input_len;
-    std::array<ck::index_t, 5> in_strides;
-    std::array<ck::index_t, 5> output_len;
-    std::array<ck::index_t, 5> out_strides;
-    std::array<ck::index_t, 5> bias_len;
-    std::array<ck::index_t, 5> bias_strides;
-    std::array<ck::index_t, 5> weight_len;
-    std::array<ck::index_t, 5> wei_strides;
-    std::array<ck::index_t, 2> strides;
-    std::array<ck::index_t, 2> dilation;
-    std::array<ck::index_t, 2> lPadding;
-    std::array<ck::index_t, 2> rPadding;
+    int Di = 0; // Depth for 3D
+    int Do = 0; // Depth for 3D
+    int Z  = 0; // Filter depth for 3D
+    std::array<ck::index_t, 6> in_lens;
+    std::array<ck::index_t, 6> in_strides;
+    std::array<ck::index_t, 6> out_lens;
+    std::array<ck::index_t, 6> out_strides;
+    std::array<ck::index_t, 6> wei_lens;
+    std::array<ck::index_t, 6> wei_strides;
+    std::array<ck::index_t, 6> bias_lens;
+    std::array<ck::index_t, 6> bias_strides;
+    std::array<ck::index_t, 3> filter_stride;
+    std::array<ck::index_t, 3> filter_dilation;
+    std::array<ck::index_t, 3> lPadding;
+    std::array<ck::index_t, 3> rPadding;
 };
 
 } // namespace
@@ -244,7 +307,20 @@ void PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::Init(
     const miopen::conv::ProblemDescription& problem)
 {
     if(valid_kernels.empty())
-        valid_kernels = FillValidKernelsIDs<DeviceOpGFwdBiasReluPtrs<DataType>, CKArgs>(problem);
+    {
+        if(problem.Is3d())
+        {
+            using Layouts = decltype(Get3DLayouts());
+            valid_kernels =
+                FillValidKernelsIDs<DeviceOpGFwdBiasReluPtrs<3, DataType, typename Layouts::InLayout, typename Layouts::WeiLayout, typename Layouts::OutLayout>, CKArgs>(problem);
+        }
+        else
+        {
+            using Layouts = decltype(Get2DLayouts());
+            valid_kernels =
+                FillValidKernelsIDs<DeviceOpGFwdBiasReluPtrs<2, DataType, typename Layouts::InLayout, typename Layouts::WeiLayout, typename Layouts::OutLayout>, CKArgs>(problem);
+        }
+    }
     index     = 0;
     kernel_id = valid_kernels[index];
 }
@@ -253,14 +329,34 @@ template <typename DataType>
 bool PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::CheckIsSupportCKArgs(
     const miopen::conv::ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGFwdBiasReluPtrs<DataType>, CKArgs>(problem, kernel_id);
+    if(problem.Is3d())
+    {
+        using Layouts = decltype(Get3DLayouts());
+        return IsCKArgsSupported<DeviceOpGFwdBiasReluPtrs<3, DataType, typename Layouts::InLayout, typename Layouts::WeiLayout, typename Layouts::OutLayout>, CKArgs>(
+            problem, kernel_id);
+    }
+    else
+    {
+        using Layouts = decltype(Get2DLayouts());
+        return IsCKArgsSupported<DeviceOpGFwdBiasReluPtrs<2, DataType, typename Layouts::InLayout, typename Layouts::WeiLayout, typename Layouts::OutLayout>, CKArgs>(
+            problem, kernel_id);
+    }
 }
 
 template <typename DataType>
 bool ConvCKIgemmGrpFwdBiasActivFused::CheckCKApplicability(
     const miopen::conv::ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGFwdBiasReluPtrs<DataType>, CKArgs>(problem);
+    if(problem.Is3d())
+    {
+        using Layouts = decltype(Get3DLayouts());
+        return IsCKApplicable<DeviceOpGFwdBiasReluPtrs<3, DataType, typename Layouts::InLayout, typename Layouts::WeiLayout, typename Layouts::OutLayout>, CKArgs>(problem);
+    }
+    else
+    {
+        using Layouts = decltype(Get2DLayouts());
+        return IsCKApplicable<DeviceOpGFwdBiasReluPtrs<2, DataType, typename Layouts::InLayout, typename Layouts::WeiLayout, typename Layouts::OutLayout>, CKArgs>(problem);
+    }
 }
 
 #endif
@@ -372,6 +468,15 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsValidPerformanceConfig(
     return config.IsValid(ctx, fdesc_problem);
 }
 
+size_t
+ConvCKIgemmGrpFwdBiasActivFused::GetWorkspaceSize(const FusionContext&,
+                                                      const FusionDescription& fdesc_problem) const
+{
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    return GetWorkspaceSizeLayoutTransformConv(conv_problem);
+}
+
+
 PerformanceConfigConvCKIgemmGrpFwdBiasActivFused
 ConvCKIgemmGrpFwdBiasActivFused::Search(const FusionContext& ctx,
                                         const FusionDescription& fdesc_problem,
@@ -407,6 +512,8 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_BIAS_ACTIV))
         return false;
+    if(!conv_problem.IsBfp16())
+        return false;
     if(conv_problem.IsTensorsCasted())
         return false;
     if(conv_problem.GetConv().attribute.deterministic)
@@ -417,12 +524,12 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(conv_problem.HasMixedDataTypes())
         return false;
-    if(!conv_problem.Is2d())
+    if(!conv_problem.Is2d() || !conv_problem.Is3d())
         return false;
     const std::string arch = ctx.GetStream().GetDeviceName();
     if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx942")
         return false;
-    if(!conv_problem.IsLayoutNHWC())
+    if(!conv_problem.IsLayoutNHWC() && !conv_problem.IsLayoutDefault())
         return false;
 
     switch(conv_problem.GetInDataType())
@@ -442,38 +549,76 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
 #endif
 }
 
+template <typename ContextType, typename ProblemType, typename ConfigType>
+ConvSolution Handle3DCase(const ContextType& ctx,
+                          const ProblemType& conv_problem,
+                          const ConfigType& config)
+{
+    return MakeSolutionGroupConvImplicitGemmXdlops(
+        conv_problem,
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            using Layouts = decltype(Get3DLayouts());
+            return InitInvokerFactoryFwdNCHW<3,
+                                             DeviceOpGFwdBiasReluPtrs<3, T, typename Layouts::InLayout, typename Layouts::WeiLayout, typename Layouts::OutLayout>,
+                                             CKArgs,
+                                             miopen::fusion::FusionInvokeParams>(
+                ctx, conv_problem, config.kernel_id);
+        },
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            using Layouts = decltype(Get3DLayouts());
+            return InitInvokerFactoryNHWC<3,
+                                          DeviceOpGFwdBiasReluPtrs<3, T, typename Layouts::InLayout, typename Layouts::WeiLayout, typename Layouts::OutLayout>,
+                                          CKArgs,
+                                          miopen::fusion::FusionInvokeParams>(
+                ctx, conv_problem, config.kernel_id);
+        });
+}
+
+template <typename ContextType, typename ProblemType, typename ConfigType>
+ConvSolution Handle2DCase(const ContextType& ctx,
+                          const ProblemType& conv_problem,
+                          const ConfigType& config)
+{
+    return MakeSolutionGroupConvImplicitGemmXdlops(
+        conv_problem,
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            auto layouts = Get2DLayouts();
+            return InitInvokerFactoryFwdNCHW<2,
+                                            DeviceOpGFwdBiasReluPtrs<2, T, typename Layouts::InLayout, typename Layouts::WeiLayout, typename Layouts::OutLayout>,
+                                            CKArgs,
+                                            miopen::fusion::FusionInvokeParams>(
+                ctx, conv_problem, config.kernel_id);
+        },
+        [&](auto data_type_val) {
+            using T = decltype(data_type_val);
+            auto layouts = Get2DLayouts();
+            return InitInvokerFactoryNHWC<2,
+                                          DeviceOpGFwdBiasReluPtrs<2, T, typename Layouts::InLayout, typename Layouts::WeiLayout, typename Layouts::OutLayout>,
+                                          CKArgs,
+                                          miopen::fusion::FusionInvokeParams>(ctx, conv_problem, config.kernel_id);
+        });
+}
+
 ConvSolution ConvCKIgemmGrpFwdBiasActivFused::GetSolution(
-    const FusionContext&,
+    const FusionContext& ctx,
     const FusionDescription& fdesc_problem,
     const PerformanceConfigConvCKIgemmGrpFwdBiasActivFused& config) const
 {
-#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
-    std::ignore = fdesc_problem;
-    std::ignore = config;
-    return {};
-#else
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
-
-    using ParamType = miopen::fusion::FusionInvokeParams;
-    switch(conv_problem.GetInDataType())
+    if(conv_problem.Is3d())
     {
-    case miopenBFloat16:
-        return InitAnyInvokerFactory<DeviceOpGFwdBiasReluPtrs<ck::bhalf_t>, CKArgs, ParamType>(
-            conv_problem, config.kernel_id);
-    case miopenInt8:
-    case miopenHalf:
-    case miopenFloat:
-
-    case miopenInt32:
-    case miopenInt64:
-    case miopenDouble:
-    case miopenFloat8_fnuz:
-    case miopenBFloat8_fnuz:
-    default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "ConvHipImplicitGemmBwdXdlops operation not implemented for this data type");
+        return Handle3DCase(ctx, conv_problem, config);
     }
-
+    else
+    {
+        return Handle2DCase(ctx, conv_problem, config);
+    }
+#else
+    return {};
 #endif
 }
 

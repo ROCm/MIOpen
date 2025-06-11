@@ -249,7 +249,8 @@ struct ConvCKIgemmGrpFwdBiasActivFused final
     GetSolution(const FusionContext& ctx,
                 const FusionDescription& fdesc_problem,
                 const PerformanceConfigConvCKIgemmGrpFwdBiasActivFused& config) const override;
-
+    bool MayNeedWorkspace() const override { return true; }
+    size_t GetWorkspaceSize(const FusionContext&, const FusionDescription&) const override;
 private:
     template <typename DataType>
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;

@@ -35,13 +35,18 @@
 
 using Direction = miopen::conv::Direction;
 
+struct GroupConvTestConfigBase
+{
+    virtual ~GroupConvTestConfigBase() = default; // Virtual destructor for polymorphism
+};
+
 template <unsigned NDIM>
-struct GroupConvTestConfig
+struct GroupConvTestConfig : GroupConvTestConfigBase
 {
 };
 
 template <>
-struct GroupConvTestConfig<2u>
+struct GroupConvTestConfig<2u> : GroupConvTestConfigBase
 {
 
     struct Size2D
@@ -299,6 +304,7 @@ protected:
         ASSERT_LT(error, threshold) << "Error beyond tolerance";
     }
 
+    // GroupConvTestConfig<2> conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;

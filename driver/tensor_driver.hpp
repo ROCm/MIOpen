@@ -166,7 +166,7 @@ inline int SetTensorNdVector(miopenTensorDescriptor_t t,
                              miopenTensorLayout_t layout,
                              miopenDataType_t data_type = miopenFloat)
 {
-    if(layout == miopenTensorNCHWc4 || layout == miopenTensorNCHWc8 || layout == miopenTensorNHWC)
+    if(layout == miopenTensorNCHWc4 || layout == miopenTensorNCHWc8 || layout == miopenTensorNHWC  || layout == miopenTensorNCHW)
     {
         // Do nothing, MIOpen implicit logic that lens are in NCHW order.
     }
