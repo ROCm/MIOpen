@@ -232,22 +232,22 @@ struct CKArgs
 
     size_t GetParamHash() const
     {
-        size_t seed = 0;  
+        size_t seed = 0;
         // Combine hashes of each parameter  
-        hash_combine(seed, hash_array(input_lengths));  
-        hash_combine(seed, hash_array(in_strides));  
-        hash_combine(seed, hash_array(out_lens));  
-        hash_combine(seed, hash_array(out_strides));  
-        hash_combine(seed, hash_array(wei_lens));  
-        hash_combine(seed, hash_array(wei_strides));  
-        hash_combine(seed, hash_array(bias_lens));  
-        hash_combine(seed, hash_array(bias_strides));  
-        hash_combine(seed, hash_array(filter_stride));  
-        hash_combine(seed, hash_array(filter_dilation));  
-        hash_combine(seed, hash_array(lPadding));  
-        hash_combine(seed, hash_array(rPadding));  
+        hash_combine(seed, hash_array(input_lengths));
+        hash_combine(seed, hash_array(in_strides));
+        hash_combine(seed, hash_array(out_lens));
+        hash_combine(seed, hash_array(out_strides));
+        hash_combine(seed, hash_array(wei_lens));
+        hash_combine(seed, hash_array(wei_strides));
+        hash_combine(seed, hash_array(bias_lens));
+        hash_combine(seed, hash_array(bias_strides));
+        hash_combine(seed, hash_array(filter_stride));
+        hash_combine(seed, hash_array(filter_dilation));
+        hash_combine(seed, hash_array(lPadding));
+        hash_combine(seed, hash_array(rPadding));
     
-        return seed;  
+        return seed;
     }
 
     CKArgs(const CKArgs&) = default;
@@ -408,7 +408,7 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
     wei_device_buf.SetZero();
 
     // Find the best
-    ck::index_t split_k     = 1;
+    ck::index_t split_k     = -1;
     float best_tflops       = 0;
     //float best_gb_per_sec   = 0;
     float best_avg_time     = 3.4e+30;
@@ -428,7 +428,7 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
     ck::static_for<0, std::tuple_size_v<DeviceConvBwdWeightFactory>, 1>{}([&](auto i) -> void {
         const auto device_conv_bwd_weight_instance = std::get<i>(DeviceConvBwdWeightFactory{});
         using DeviceConvBwdWeightInstance = ck::remove_cvref_t<decltype(device_conv_bwd_weight_instance)>;
-        auto conv_ptr = std::make_shared<DeviceConvBwdWeightInstance>();  
+        auto conv_ptr = std::make_shared<DeviceConvBwdWeightInstance>();
 
         for (ck::index_t j = 0; j < split_k_count; j++)
         {
@@ -458,7 +458,7 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
             if(conv_ptr->IsSupportedArgument(argument))
             {
                 found_kernel = true;
-                std::cout << "Run conv :" << conv_ptr->GetTypeString() << std::endl;
+                std::cout << "Run conv : (split_K:" << cur_split_k << ") " << conv_ptr->GetTypeString() << std::endl;
                 invoker.ShowInfo(argument);
                 float avg_time = invoker.Run(argument, StreamConfig{nullptr, true});
                 {
