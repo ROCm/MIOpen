@@ -64,7 +64,7 @@ using OutElementOp = ck::tensor_operation::element_wise::AddClamp;
 const auto in_element_op  = InElementOp{};
 const auto wei_element_op = WeiElementOp{};
 
-static OutElementOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activationOp)
+OutElementOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activationOp)
 {
     auto activationMode = activationOp.activMode;
     switch(activationMode)
