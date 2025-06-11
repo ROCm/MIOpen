@@ -145,28 +145,28 @@ struct GPUMem
         // init the buffers with NaNs.
         if(std::is_same<Tgpu, float>::value)
         {
-            hipMemsetD32(GetMem(), std::numeric_limits<float>::quiet_NaN(), GetSize());
+            hipMemsetD32(GetMem(), std::numeric_limits<float>::max(), GetSize());
         }
         else if(std::is_same<Tgpu, bfloat16>::value)
         {
-            hipMemsetD16(GetMem(), std::numeric_limits<bfloat16>::quiet_NaN(), GetSize());
+            hipMemsetD16(GetMem(), std::numeric_limits<bfloat16>::max(), GetSize());
         }
         else if(std::is_same<Tgpu, half_float::half>::value)
         {
-            hipMemsetD16(GetMem(), std::numeric_limits<half_float::half>::quiet_NaN(), GetSize());
+            hipMemsetD16(GetMem(), std::numeric_limits<half_float::half>::max(), GetSize());
         }
         else if(std::is_same<Tgpu, bfloat8_fnuz>::value)
         {
-            hipMemset(GetMem(), std::numeric_limits<bfloat8_fnuz>::quiet_NaN(), GetSize());
+            hipMemset(GetMem(), std::numeric_limits<bfloat8_fnuz>::max(), GetSize());
         }
         else if(std::is_same<Tgpu, float8_fnuz>::value)
         {
-            hipMemset(GetMem(), std::numeric_limits<float8_fnuz>::quiet_NaN(), GetSize());
+            hipMemset(GetMem(), std::numeric_limits<float8_fnuz>::max(), GetSize());
         }
         else if(std::is_same<Tgpu, int8_t>::value)
         {
             // ints dont have Nan so use min value.
-            hipMemset(GetMem(), std::numeric_limits<int8_t>::min(), GetSize());
+            hipMemset(GetMem(), std::numeric_limits<int8_t>::max(), GetSize());
         }
 
         return STATUS_SUCCESS;
