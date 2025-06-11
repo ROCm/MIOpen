@@ -63,12 +63,21 @@ using OutElementOp = ck::tensor_operation::element_wise::AddClamp;
 
 const auto in_element_op  = InElementOp{};
 const auto wei_element_op = WeiElementOp{};
-// const auto out_element_op = OutElementOp{floor, ceil};
-const auto GetOutElementOp = []() {
-    const float floor = 0;
-    const float ceil  = std::numeric_limits<ck::bhalf_t>::max();
-    return OutElementOp{floor, ceil};
-};
+
+OutElementOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activationOp)
+{
+    auto activationMode = activationOp.activMode;
+    switch(activationMode)
+    {
+    case miopenActivationRELU: return OutElementOp{0, std::numeric_limits<ck::bhalf_t>::max()};
+    case miopenActivationCLIPPEDRELU: return OutElementOp{0, activationOp.activAlpha};
+    case miopenActivationCLAMP:
+        return OutElementOp{activationOp.activAlpha, activationOp.activBeta};
+    default:
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Unsupported activation type: " + std::to_string(activationMode));
+    }
+}
 
 template <typename InDataType,
           typename WeiDataType,
@@ -155,11 +164,11 @@ struct CKArgs
                     ConstData_t bias_buf,
                     Data_t out_buf,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    OutElementOp clampOp) const
     {
         (void)alpha;
         (void)beta;
-        const auto out_element_op = GetOutElementOp();
 
         return conv_ptr->MakeArgumentPointer(
             in_buf,
@@ -180,7 +189,7 @@ struct CKArgs
             rPadding,
             in_element_op,
             wei_element_op,
-            out_element_op);
+            clampOp);
     }
 
     template <typename DevOpPtr>
@@ -195,19 +204,30 @@ struct CKArgs
             dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
         assert(&bias_param);
 
+        const auto& activ_param =
+            dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[2]);
+
         return MakeArgPtr(op_ptr,
                           data_ctx.in,
                           conv_param.weights,
                           bias_param.bdata,
                           data_ctx.out,
                           conv_param.alpha,
-                          conv_param.beta);
+                          conv_param.beta,
+                          GetOutElementOp(activ_param));
     }
 
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+        auto arg_ptr = MakeArgPtr(conv_ptr,
+                                  nullptr,
+                                  nullptr,
+                                  nullptr,
+                                  nullptr,
+                                  1.0f,
+                                  0.0f,
+                                  OutElementOp{0, std::numeric_limits<ck::bhalf_t>::max()});
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -401,8 +421,10 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(desc.op_map[2]->kind() != miopenFusionOpActivForward)
         return false;
-    const auto& activ_op = dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[2]);
-    if(activ_op.activMode != miopenActivationRELU)
+    const auto& activationType =
+        dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[2]).activMode;
+    if(activationType != miopenActivationRELU && activationType != miopenActivationCLIPPEDRELU &&
+       activationType != miopenActivationCLAMP)
         return false;
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_BIAS_ACTIV))
