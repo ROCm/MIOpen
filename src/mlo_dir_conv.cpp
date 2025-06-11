@@ -199,7 +199,8 @@ static auto GetBwdWrW2DSolvers()
                                            miopen::solver::conv::ConvOclBwdWrW1x1,
                                            miopen::solver::conv::ConvDirectNaiveConvFwd,
                                            miopen::solver::conv::ConvDirectNaiveConvBwd,
-                                           miopen::solver::conv::ConvDirectNaiveConvWrw>{};
+                                           miopen::solver::conv::ConvDirectNaiveConvWrw,
+                                           miopen::solver::conv::ConvQunConvBwd>{};
 }
 
 static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::conv::fft>{}; }

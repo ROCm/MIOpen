@@ -34,25 +34,11 @@
 #include <cstddef>
 
 #include "../composable_kernel/host/solver/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
-#include "../composable_kernel/composable_kernel/src/kernel_wrapper/device_grouped_conv_bwd_weight_dl_v4.hpp"
-#include "common.hpp"
-using InDataType  = F16;
-using WeiDataType = F16;
-using OutDataType = F16;
-using AccDataType = F32;
-
-using InElementOp  = PassThrough;
-using WeiElementOp = PassThrough;
-using OutElementOp = PassThrough;
-
-using ALayout = ck::tensor_layout::convolution::GNHWC;
-using BLayout = ck::tensor_layout::convolution::GKYXC;
-using ELayout = ck::tensor_layout::convolution::GNHWK;
 
 #define WORKAROUND_SWDEV_411729 1
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_QUN_CONV_FWD)
+
 namespace miopen {
 namespace solver {
 namespace ck_utility {
@@ -65,161 +51,6 @@ static inline auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
 }
 
 } // namespace ck_utility
-
-namespace conv {
-/*
-struct ConvQunConvFwd final : ConvSolver
-{
-    const std::string& SolverDbId() const override
-    {
-        return GetSolverDbId<ConvQunConvFwd>();
-    }
-
-    MIOPEN_INTERNALS_EXPORT bool
-    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-    bool IsDynamic() const override { return true; }
-    /// Use very small fixed value enough to backup GEMM for cases when
-    /// GEMM is disabled.
-    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
-    {
-        return 0.01f;
-    }
-    MIOPEN_INTERNALS_EXPORT ConvSolution
-    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
-};*/
-
-
-using ProblemDescription = miopen::conv::ProblemDescription;
-
-bool ConvQunConvFwd::IsApplicable(const ExecutionContext& ctx,
-                                          const ProblemDescription& problem) const
-{
-    if(!miopen::debug::AlwaysEnableConvDirectNaive)
-    {
-        if(env::disabled(MIOPEN_DEBUG_CONV_QUN_CONV_FWD))
-            return false;
-        if(!ctx.use_hip_kernels)
-            return false;
-    }
-
-    if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
-        return false;
-
-    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsInt8() ||
-         problem.IsFp8() || problem.IsBfp8()))
-        return false;
-
-    if(!problem.IsDirectionForward())
-        return false;
-
-    if(!problem.AllTensorsLengthsFitIntoInt())
-        return false;
-
-    if(problem.IsTensorsCasted())
-    {
-        auto test_cast = [&](const TensorDescriptor& desc) {
-            if(desc.GetCastType())
-            {
-                const auto cast_type = *desc.GetCastType();
-                if(cast_type == miopenFloat8_fnuz || cast_type == miopenBFloat8_fnuz)
-                    return false;
-            }
-            // all tested tensors must have cast type set
-            return true;
-        };
-        if(test_cast(problem.GetIn()))
-            return false;
-        if(test_cast(problem.GetWeights()))
-            return false;
-    }
-    return true;
-}
-
-ConvSolution ConvQunConvFwd::GetSolution(const ExecutionContext& ctx,
-                                         const ProblemDescription& problem) const
-{
-    ConvSolution sol;
-    const auto ck_conv_problem_desc = ck_utility::get_ck_convolution_problem_descriptor(problem);
-    /*
-                auto argument = conv.MakeArgument(static_cast<InDataType*>(in_device_buf.GetDeviceBuffer()),
-                                            static_cast<WeiDataType*>(wei_device_buf.GetDeviceBuffer()),
-                                            static_cast<OutDataType*>(out_device_buf.GetDeviceBuffer()),
-                                            input_lengths,
-                                            input_strides,
-                                            filter_lengths,
-                                            weights_strides,
-                                            output_lengths,
-                                            output_strides,
-                                            conv_filter_strides,
-                                            conv_filter_dilations,
-                                            input_left_pads,
-                                            input_right_pads,
-                                            InElementOp{},
-                                            WeiElementOp{},
-                                            OutElementOp{},
-                                            cur_split_k);
-    */
-
-
-auto deviceConvBwdWeightInstance =
-    ck::tensor_operation::device::GridwiseGroupedConv2DBwdWeightDlV4<256,
-         InDataType, WeiDataType, OutDataType, AccDataType, S<28, 28>,
-         5,          ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,
-         2,     1,             2,                2,                 2,                 false>();
-/*
-ck::tensor_operation::device::GridwiseGroupedConv2DBwdWeightDlV4::Argument conv_arg{nullptr,
-                                                              arg.nullptr,
-                                                              nullptr,
-                                                              nullptr,
-                                                              arg.in_g_n_c_wis_lengths_,
-                                                              arg.in_g_n_c_wis_strides_,
-                                                              arg.wei_g_k_c_xs_lengths_,
-                                                              arg.k_batch_ > 1 ? arg.acc_g_k_c_xs_strides_ : arg.wei_g_k_c_xs_strides_,
-                                                              arg.out_g_n_k_wos_lengths_,
-                                                              arg.out_g_n_k_wos_strides_,
-                                                              arg.k_batch_};
-
-                                                              */
-    KernelInfo kernel0_info, kernel1_info;
-
-        // kernel0: prepare
-    {
-        kernel0_info.kernel_file =
-            "device_grouped_conv_bwd_weight_dl_v4.hpp";
-
-        kernel0_info.kernel_name =
-            "kernel_grouped_conv_bwd_weight_dl_v4";
-
-        kernel0_info.l_wk = {1, 1, 1};
-        kernel0_info.g_wk = {1, 1, 1};
-
-        kernel0_info.comp_options = ck_utility::get_ck_common_compiler_flag(ctx.GetStream());
-    }
-    sol.construction_params.push_back(kernel0_info);
-
-
-    sol.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle, const AnyInvokeParams& primitive_params) {
-            const auto& data_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
-            const auto& tensors  = data_ctx.tensors;
-            auto kernel0         = handle.Run(kernels[0]);
-            auto kernel1         = handle.Run(kernels[1]);
-
-            float elapsed = 0;
-
-
-
-            if(handle.IsProfilingEnabled())
-            {
-                elapsed += handle.GetKernelTime();
-            }
-        };
-    };
-
-    return sol;
-}
-
-}
 
 namespace conv {
 

@@ -2844,11 +2844,11 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
 };
 
 
-struct ConvQunConvFwd final : ConvSolver
+struct ConvQunConvBwd final : ConvSolver
 {
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvQunConvFwd>();
+        return GetSolverDbId<ConvQunConvBwd>();
     }
 
     MIOPEN_INTERNALS_EXPORT bool
@@ -2862,6 +2862,9 @@ struct ConvQunConvFwd final : ConvSolver
     }
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetBestSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvDirectNaiveConvBwd final : ConvSolver
