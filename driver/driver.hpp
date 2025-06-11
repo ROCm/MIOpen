@@ -138,8 +138,7 @@ struct GPUMem
     }
 
     template <typename Tgpu>
-    status_t FillBufferWithMaxValue(miopenHandle_t handle,
-                                    const miopenTensorDescriptor_t tensorDesc)
+    status_t FillBufferWithNans(miopenHandle_t handle, const miopenTensorDescriptor_t tensorDesc)
     {
         // In the past we have had some issues with incorrect results due to Nans in the output
         // buffers.  In order to test the clearing of the output buffers, you can
@@ -286,10 +285,9 @@ public:
         }
     }
 
-    status_t FillGpuBufferWithMaxValue(miopenHandle_t handle,
-                                       const miopenTensorDescriptor_t tensorDesc)
+    status_t FillGpuBufferWithNans(miopenHandle_t handle, const miopenTensorDescriptor_t tensorDesc)
     {
-        return dev->FillBufferWithMaxValue<Tgpu>(handle, tensorDesc);
+        return dev->FillBufferWithNans<Tgpu>(handle, tensorDesc);
     }
 
     status_t
