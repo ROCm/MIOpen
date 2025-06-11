@@ -61,7 +61,7 @@ const auto& GetTestParams()
         {
             supported_gpus = supported_gpus | Gpu::gfx94X;
         }
-        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
@@ -129,10 +129,11 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsDevApplicabilityWrw_BFP16,
-                         testing::Combine(testing::Values(GetTestParamsBFP16()),
-                                          testing::Values(GetConvTestCases(miopenBFloat16)[0])));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsDevApplicabilityWrw_BFP16,
+    testing::Combine(testing::Values(GetTestParamsBFP16()),
+                     testing::Values(GetConvTestCases(miopenBFloat16)[0])));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverHipImplicitGemmWrwV4R4XdlopsDevApplicabilityWrw_FP32,
