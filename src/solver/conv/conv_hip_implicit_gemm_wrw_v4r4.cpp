@@ -602,7 +602,6 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(problem.IsFp32())
     {
         // Missing instruction: v_mac_f32
         const auto dev_name = ctx.GetStream().GetDeviceName();
