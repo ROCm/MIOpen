@@ -138,35 +138,23 @@ struct GPUMem
     }
 
     template <typename Tgpu>
-    status_t FillBufferWithMaxValue()
+    status_t FillBufferWithMaxValue(miopenHandle_t handle,
+                                    const miopenTensorDescriptor_t tensorDesc)
     {
         // In the past we have had some issues with incorrect results due to Nans in the output
         // buffers.  In order to test the clearing of the output buffers, you can
         // init the buffers with NaNs.
-        if(std::is_same<Tgpu, float>::value)
+
+        if(std::is_same<Tgpu, int8_t>::value)
         {
-            hipMemsetD32(GetMem(), std::numeric_limits<float>::max(), GetSize());
+            // ints dont have Nan so use max value.
+            Tgpu max = std::numeric_limits<Tgpu>::max();
+            miopenSetTensor(handle, tensorDesc, GetMem(), &max);
         }
-        else if(std::is_same<Tgpu, bfloat16>::value)
+        else
         {
-            hipMemsetD16(GetMem(), std::numeric_limits<bfloat16>::max(), GetSize());
-        }
-        else if(std::is_same<Tgpu, half_float::half>::value)
-        {
-            hipMemsetD16(GetMem(), std::numeric_limits<half_float::half>::max(), GetSize());
-        }
-        else if(std::is_same<Tgpu, bfloat8_fnuz>::value)
-        {
-            hipMemset(GetMem(), std::numeric_limits<bfloat8_fnuz>::max(), GetSize());
-        }
-        else if(std::is_same<Tgpu, float8_fnuz>::value)
-        {
-            hipMemset(GetMem(), std::numeric_limits<float8_fnuz>::max(), GetSize());
-        }
-        else if(std::is_same<Tgpu, int8_t>::value)
-        {
-            // ints dont have Nan so use min value.
-            hipMemset(GetMem(), std::numeric_limits<int8_t>::max(), GetSize());
+            Tgpu nan = std::numeric_limits<Tgpu>::quiet_NaN();
+            miopenSetTensor(handle, tensorDesc, GetMem(), &nan);
         }
 
         return STATUS_SUCCESS;
@@ -298,7 +286,11 @@ public:
         }
     }
 
-    status_t FillGpuBufferWithMaxValue() { return dev->FillBufferWithMaxValue<Tgpu>(); }
+    status_t FillGpuBufferWithMaxValue(miopenHandle_t handle,
+                                       const miopenTensorDescriptor_t tensorDesc)
+    {
+        return dev->FillBufferWithMaxValue<Tgpu>(handle, tensorDesc);
+    }
 
     status_t
     AllocOnDevice(stream, context_t ctx, const size_t sz, GPUMem::Check check = GPUMem::Check::None)

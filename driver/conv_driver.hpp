@@ -205,7 +205,11 @@ public:
     Tgpu* GetVectorData() { return is_gpualloc ? nullptr : host.data(); }
     std::size_t GetVectorSize() const { return is_gpualloc ? 0 : host.size(); }
 
-    status_t FillGpuBufferWithMaxValue() { return dev->FillBufferWithMaxValue<Tgpu>(); }
+    status_t FillGpuBufferWithMaxValue(miopenHandle_t handle,
+                                       const miopenTensorDescriptor_t tensorDesc)
+    {
+        return dev->FillBufferWithMaxValue<Tgpu>(handle, tensorDesc);
+    }
 
     status_t AllocOnDevice(stream, context_t ctx, const size_t sz, GPUMem::Check check)
     {
@@ -1852,7 +1856,7 @@ int ConvDriver<Tgpu, Tref>::RunWarmupFindForwardGPU()
 
         if(init_output_max)
         {
-            warmup_out.FillGpuBufferWithMaxValue();
+            warmup_out.FillGpuBufferWithMaxValue(handle, warmupOutputTensor);
         }
 
         rc = miopenConvolutionForwardImmediate(handle,
@@ -2069,7 +2073,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
     {
         if(init_output_max)
         {
-            out.FillGpuBufferWithMaxValue();
+            out.FillGpuBufferWithMaxValue(handle, outputTensor);
         }
 
         rc = miopenConvolutionForward(GetHandle(),
@@ -2230,7 +2234,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
     {
         if(init_output_max)
         {
-            out.FillGpuBufferWithMaxValue();
+            out.FillGpuBufferWithMaxValue(handle, outputTensor);
         }
 
         rc = miopenConvolutionForwardImmediate(
@@ -2342,7 +2346,7 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
     }
     if(init_output_max)
     {
-        out.FillGpuBufferWithMaxValue();
+        out.FillGpuBufferWithMaxValue(handle, outputTensor);
     }
 
     auto ref_solution_id = mode == miopenTranspose //
@@ -2555,7 +2559,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
     {
         if(init_output_max)
         {
-            din.FillGpuBufferWithMaxValue();
+            din.FillGpuBufferWithMaxValue(handle, inputTensor);
         }
         rc = miopenConvolutionBackwardData(GetHandle(),
                                            &alpha,
@@ -2769,7 +2773,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
     {
         if(init_output_max)
         {
-            dwei.FillGpuBufferWithMaxValue();
+            dwei.FillGpuBufferWithMaxValue(handle, weightTensor);
         }
 
         rc = miopenConvolutionBackwardWeights(GetHandle(),
@@ -3012,7 +3016,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
     {
         if(init_output_max)
         {
-            din.FillGpuBufferWithMaxValue();
+            din.FillGpuBufferWithMaxValue(handle, inputTensor);
         }
 
         rc = miopenConvolutionBackwardDataImmediate(handle,
@@ -3147,7 +3151,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
     {
         if(init_output_max)
         {
-            dwei.FillGpuBufferWithMaxValue();
+            dwei.FillGpuBufferWithMaxValue(handle, weightTensor);
         }
 
         rc = miopenConvolutionBackwardWeightsImmediate(handle,
@@ -3292,7 +3296,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
 
     if(init_output_max)
     {
-        dwei.FillGpuBufferWithMaxValue();
+        dwei.FillGpuBufferWithMaxValue(handle, weightTensor);
     }
 
     auto ref_solution_id = miopen::solver::Id("ConvDirectNaiveConvWrw").Value();
@@ -3346,7 +3350,7 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
 
     if(init_output_max)
     {
-        din.FillGpuBufferWithMaxValue();
+        din.FillGpuBufferWithMaxValue(handle, inputTensor);
     }
 
     auto ref_solution_id = mode == miopenTranspose //
