@@ -746,6 +746,14 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
     if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
 
+    if(problem.IsFp32())
+    {
+        // Missing instruction: v_mac_f32
+        const auto dev_name = ctx.GetStream().GetDeviceName();
+        if(dev_name == "gfx942")
+            return false;
+    }
+
     if(!problem.IsDirectionBackwardData())
         return false;
 

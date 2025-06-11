@@ -55,6 +55,13 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
+    if(problem.IsFp32())
+    {
+        // Missing instruction: v_mac_f32
+        const auto dev_name = ctx.GetStream().GetDeviceName();
+        if(dev_name == "gfx942")
+            return false;
+    }
     if(problem.GetConv().attribute.deterministic)
         return false;
     if(!problem.IsDirectionForward())
@@ -109,6 +116,13 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
+    if(problem.IsFp32())
+    {
+        // Missing instruction: v_mac_f32
+        const auto dev_name = ctx.GetStream().GetDeviceName();
+        if(dev_name == "gfx942")
+            return false;
+    }
     if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())

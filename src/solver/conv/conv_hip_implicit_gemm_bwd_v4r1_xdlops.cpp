@@ -843,6 +843,13 @@ bool ConvHipImplicitGemmBwdDataV4R1Xdlops::IsApplicable(const ExecutionContext& 
         return false;
     if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
+    if(problem.IsBfp16())
+    {
+        // Missing intrinsic: llvm.amdgcn.mfma.f32.16x16x8bf16
+        const auto dev_name = ctx.GetStream().GetDeviceName();
+        if(dev_name == "gfx942")
+            return false;
+    }
     if(!problem.IsDirectionBackwardData())
         return false;
     if(!ctx.use_hip_kernels)

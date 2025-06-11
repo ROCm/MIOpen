@@ -598,6 +598,13 @@ bool ConvHipImplicitGemmV4R4Fwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
+    if(problem.IsFp32())
+    {
+        // Missing instruction: v_mac_f32
+        const auto dev_name = ctx.GetStream().GetDeviceName();
+        if(dev_name == "gfx942")
+            return false;
+    }
     if(!problem.IsDirectionForward())
         return false;
     if(!problem.Is2d() && !problem.Is3d())
