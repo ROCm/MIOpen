@@ -60,12 +60,37 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases_FP32
               miopen::conv::Direction::Forward,
               miopenFloat,
               miopenTensorNHWC},
-             "gfx90a"}};
+             "gfx90a"},
+            {{{1, 128, 64, 128, {209, 209}, {3, 3}, {0, 0}, {2, 2}, {1, 1}},
+              miopen::conv::Direction::Forward,
+              miopenFloat,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 128, 256, 512, {56, 56}, {1, 1}, {0, 0}, {2, 2}, {1, 1}},
+              miopen::conv::Direction::Forward,
+              miopenFloat,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 128, 1024, 2048, {14, 14}, {1, 1}, {0, 0}, {2, 2}, {1, 1}},
+              miopen::conv::Direction::Forward,
+              miopenFloat,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 32, 16, 64, {54, 54}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
+              miopen::conv::Direction::Forward,
+              miopenFloat,
+              miopenTensorNHWC},
+             "gfx942"}};
 }
 
 std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupFwdXdlopsTestCases_FP16()
 {
     return {{{{16, 256, 2016, 192, {7, 7}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
+              miopen::conv::Direction::Forward,
+              miopenHalf,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 128, 144, 288, {14, 14}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
               miopen::conv::Direction::Forward,
               miopenHalf,
               miopenTensorNHWC},
@@ -78,6 +103,21 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupBwdXdlopsTestCases_FP32
               miopen::conv::Direction::BackwardData,
               miopenFloat,
               miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 32, 512, 1024, {28, 28}, {1, 1}, {0, 0}, {2, 2}, {1, 1}},
+              miopen::conv::Direction::BackwardData,
+              miopenFloat,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 32, 256, 512, {56, 56}, {1, 1}, {0, 0}, {2, 2}, {1, 1}},
+              miopen::conv::Direction::BackwardData,
+              miopenFloat,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 16, 128, 32, {54, 54}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
+              miopen::conv::Direction::BackwardData,
+              miopenFloat,
+              miopenTensorNHWC},
              "gfx942"}};
 }
 
@@ -87,7 +127,17 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupBwdXdlopsTestCases_FP16
               miopen::conv::Direction::BackwardData,
               miopenHalf,
               miopenTensorNHWC},
-             "gfx90a"}};
+             "gfx90a"},
+            {{{32, 4, 256, 256, {59, 59}, {3, 3}, {1, 1}, {2, 2}, {1, 1}},
+              miopen::conv::Direction::BackwardData,
+              miopenHalf,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 128, 64, 64, {56, 56}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
+              miopen::conv::Direction::BackwardData,
+              miopenHalf,
+              miopenTensorNHWC},
+             "gfx942"}};
 }
 
 std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases_FP32()
@@ -98,6 +148,21 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases_FP32
               miopenTensorNHWC},
              "gfx942"},
             {{{1, 2, 2, 1, {9, 1}, {1, 1}, {1, 0}, {3, 1}, {2, 1}}, // uneven stride
+              miopen::conv::Direction::BackwardWeights,
+              miopenFloat,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 32, 2048, 2048, {7, 7}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
+              miopen::conv::Direction::BackwardWeights,
+              miopenFloat,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 128, 64, 256, {56, 56}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
+              miopen::conv::Direction::BackwardWeights,
+              miopenFloat,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 16, 32, 128, {54, 54}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
               miopen::conv::Direction::BackwardWeights,
               miopenFloat,
               miopenTensorNHWC},
@@ -112,6 +177,11 @@ std::vector<KernelTuningNetTestCase> GetConvHipIgemmGroupWrwXdlopsTestCases_FP16
               miopenTensorNHWC},
              "gfx942"},
             {{{1, 2, 2, 1, {9, 1}, {1, 1}, {1, 0}, {3, 1}, {2, 1}}, // uneven stride
+              miopen::conv::Direction::BackwardWeights,
+              miopenHalf,
+              miopenTensorNHWC},
+             "gfx942"},
+            {{{1, 128, 512, 24, {14, 14}, {1, 1}, {0, 0}, {1, 1}, {1, 1}},
               miopen::conv::Direction::BackwardWeights,
               miopenHalf,
               miopenTensorNHWC},
@@ -166,7 +236,8 @@ protected:
         auto wt_tensor     = GPUMem{0, weights_tensor_desc.GetNumBytes() / data_size, data_size};
         auto out_tensor    = GPUMem{0, output_desc.GetNumBytes() / data_size, data_size};
         auto workSpaceSize = conv_desc.GetWorkSpaceSize(ctx, problem);
-        auto workSpace     = GPUMem{0, workSpaceSize / data_size, data_size};
+        // warning thrown by deconstructor when workSpaceSize is 0
+        auto workSpace = GPUMem{0, workSpaceSize / data_size, data_size};
 
         miopen::AnyInvokeParams invoke_ctx;
         if(test_case.direction == miopen::conv::Direction::Forward)
