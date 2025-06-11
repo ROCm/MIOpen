@@ -205,7 +205,7 @@ public:
     Tgpu* GetVectorData() { return is_gpualloc ? nullptr : host.data(); }
     std::size_t GetVectorSize() const { return is_gpualloc ? 0 : host.size(); }
 
-    status_t FillGpuBufferWithNans() { return dev->FillBufferWithNans<Tgpu>(); }
+    status_t FillGpuBufferWithMaxValue() { return dev->FillBufferWithMaxValue<Tgpu>(); }
 
     status_t AllocOnDevice(stream, context_t ctx, const size_t sz, GPUMem::Check check)
     {
@@ -401,7 +401,7 @@ private:
     bool wall_enabled          = false;
     bool warmup_enabled        = false;
     bool is_gpualloc           = false;
-    bool init_output_nan       = false;
+    bool init_output_max       = false;
     GPUMem::Check buffer_check = GPUMem::Check::None;
 
     int num_iterations = 1;
@@ -701,7 +701,7 @@ int ConvDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     warmup_wei.SetGpuallocMode(is_gpualloc);
     warmup_out.SetGpuallocMode(is_gpualloc);
 
-    init_output_nan = (inflags.GetValueInt("init_output_nan") == 1);
+    init_output_max = (inflags.GetValueInt("init_output_max") == 1);
 
     buffer_check = GetGpuBufferCheck(inflags);
 
@@ -1006,7 +1006,7 @@ int ConvDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "wei_cast_type", 'R', "-1", "Cast type for weight tensor, default to not set", "string");
     inflags.AddInputFlag(
-        "init_output_nan", 'N', "0", "populate output buffers with nans (Default=0)", "int");
+        "init_output_max", 'N', "0", "populate output buffers with max values (Default=0)", "int");
 
     return 0;
 }
@@ -1850,9 +1850,9 @@ int ConvDriver<Tgpu, Tref>::RunWarmupFindForwardGPU()
 
         warmup_wall_total.resume(wall_enabled);
 
-        if(init_output_nan)
+        if(init_output_max)
         {
-            warmup_out.FillGpuBufferWithNans();
+            warmup_out.FillGpuBufferWithMaxValue();
         }
 
         rc = miopenConvolutionForwardImmediate(handle,
@@ -2067,9 +2067,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuFind(const bool is_transform)
 
     for(int i = 0; i < num_iterations; i++)
     {
-        if(init_output_nan)
+        if(init_output_max)
         {
-            out.FillGpuBufferWithNans();
+            out.FillGpuBufferWithMaxValue();
         }
 
         rc = miopenConvolutionForward(GetHandle(),
@@ -2228,9 +2228,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGpuImmed(const bool is_transform)
 
     for(int i = 0; i < num_iterations; i++)
     {
-        if(init_output_nan)
+        if(init_output_max)
         {
-            out.FillGpuBufferWithNans();
+            out.FillGpuBufferWithMaxValue();
         }
 
         rc = miopenConvolutionForwardImmediate(
@@ -2340,9 +2340,9 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPUReference()
         std::cout << "gpu reference convolution does not support bias yet" << std::endl;
         return -1;
     }
-    if(init_output_nan)
+    if(init_output_max)
     {
-        out.FillGpuBufferWithNans();
+        out.FillGpuBufferWithMaxValue();
     }
 
     auto ref_solution_id = mode == miopenTranspose //
@@ -2553,9 +2553,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuFind()
 
     for(int i = 0; i < num_iterations; i++)
     {
-        if(init_output_nan)
+        if(init_output_max)
         {
-            din.FillGpuBufferWithNans();
+            din.FillGpuBufferWithMaxValue();
         }
         rc = miopenConvolutionBackwardData(GetHandle(),
                                            &alpha,
@@ -2767,9 +2767,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuFind()
 
     for(int i = 0; i < num_iterations; i++)
     {
-        if(init_output_nan)
+        if(init_output_max)
         {
-            dwei.FillGpuBufferWithNans();
+            dwei.FillGpuBufferWithMaxValue();
         }
 
         rc = miopenConvolutionBackwardWeights(GetHandle(),
@@ -3010,9 +3010,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGpuImmed()
 
     for(int i = 0; i < num_iterations; i++)
     {
-        if(init_output_nan)
+        if(init_output_max)
         {
-            din.FillGpuBufferWithNans();
+            din.FillGpuBufferWithMaxValue();
         }
 
         rc = miopenConvolutionBackwardDataImmediate(handle,
@@ -3145,9 +3145,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWrwGpuImmed()
 
     for(int i = 0; i < num_iterations; i++)
     {
-        if(init_output_nan)
+        if(init_output_max)
         {
-            dwei.FillGpuBufferWithNans();
+            dwei.FillGpuBufferWithMaxValue();
         }
 
         rc = miopenConvolutionBackwardWeightsImmediate(handle,
@@ -3290,9 +3290,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardWeightsGPUReference()
 {
     AutoPrepareForGpuReference naive_conv_enable;
 
-    if(init_output_nan)
+    if(init_output_max)
     {
-        dwei.FillGpuBufferWithNans();
+        dwei.FillGpuBufferWithMaxValue();
     }
 
     auto ref_solution_id = miopen::solver::Id("ConvDirectNaiveConvWrw").Value();
@@ -3344,9 +3344,9 @@ int ConvDriver<Tgpu, Tref>::RunBackwardDataGPUReference()
 {
     AutoPrepareForGpuReference naive_conv_enable;
 
-    if(init_output_nan)
+    if(init_output_max)
     {
-        din.FillGpuBufferWithNans();
+        din.FillGpuBufferWithMaxValue();
     }
 
     auto ref_solution_id = mode == miopenTranspose //

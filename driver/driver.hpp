@@ -138,7 +138,7 @@ struct GPUMem
     }
 
     template <typename Tgpu>
-    status_t FillBufferWithNans()
+    status_t FillBufferWithMaxValue()
     {
         // In the past we have had some issues with incorrect results due to Nans in the output
         // buffers.  In order to test the clearing of the output buffers, you can
@@ -298,7 +298,7 @@ public:
         }
     }
 
-    status_t FillGpuBufferWithNans() { return dev->FillBufferWithNans<Tgpu>(); }
+    status_t FillGpuBufferWithMaxValue() { return dev->FillBufferWithMaxValue<Tgpu>(); }
 
     status_t
     AllocOnDevice(stream, context_t ctx, const size_t sz, GPUMem::Check check = GPUMem::Check::None)
