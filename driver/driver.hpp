@@ -137,6 +137,41 @@ struct GPUMem
         return static_cast<int>(hipMemcpy(p, buf, GetSize(), hipMemcpyDeviceToHost));
     }
 
+    template <typename Tgpu>
+    status_t FillBufferWithNans()
+    {
+        // In the past we have had some issues with incorrect results due to Nans in the output
+        // buffers.  In order to test the clearing of the output buffers, you can
+        // init the buffers with NaNs.
+        if(std::is_same<Tgpu, float>::value)
+        {
+            hipMemsetD32(GetMem(), std::numeric_limits<float>::max(), GetSize());
+        }
+        else if(std::is_same<Tgpu, bfloat16>::value)
+        {
+            hipMemsetD16(GetMem(), std::numeric_limits<bfloat16>::max(), GetSize());
+        }
+        else if(std::is_same<Tgpu, half_float::half>::value)
+        {
+            hipMemsetD16(GetMem(), std::numeric_limits<half_float::half>::max(), GetSize());
+        }
+        else if(std::is_same<Tgpu, bfloat8_fnuz>::value)
+        {
+            hipMemset(GetMem(), std::numeric_limits<bfloat8_fnuz>::max(), GetSize());
+        }
+        else if(std::is_same<Tgpu, float8_fnuz>::value)
+        {
+            hipMemset(GetMem(), std::numeric_limits<float8_fnuz>::max(), GetSize());
+        }
+        else if(std::is_same<Tgpu, int8_t>::value)
+        {
+            // ints dont have Nan so use min value.
+            hipMemset(GetMem(), std::numeric_limits<int8_t>::max(), GetSize());
+        }
+
+        return STATUS_SUCCESS;
+    }
+
     void* GetMem() { return buf; }
     size_t GetSize() { return sz * data_sz; }
 
@@ -201,7 +236,8 @@ class GpumemTensor
 {
     std::unique_ptr<GPUMem> dev;
     tensor<Tgpu> host;
-    bool is_gpualloc = false;
+    bool is_gpualloc         = false;
+    bool init_gpu_output_nan = false;
 
 public:
     void SetGpuallocMode(bool v) { is_gpualloc = v; }
@@ -261,6 +297,8 @@ public:
                 GetVector()[i] = val;
         }
     }
+
+    status_t FillGpuBufferWithNans() { return dev->FillBufferWithNans<Tgpu>(); }
 
     status_t
     AllocOnDevice(stream, context_t ctx, const size_t sz, GPUMem::Check check = GPUMem::Check::None)
