@@ -2865,6 +2865,7 @@ struct ConvQunConvBwd final : ConvSolver
 
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetBestSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    uint32_t GetSupportedSolutionCount(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
 };
 
 struct ConvDirectNaiveConvBwd final : ConvSolver

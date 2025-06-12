@@ -208,7 +208,7 @@ struct CKArgs
         wei_lens        = {G, K, C, Y, X};   // filter = wei
         bias_lens       = {G, 1, K, 1, 1};
         bias_strides    = {K, 0, 1, 0, 0};
-        
+
         /*
         // miopen filter_stride to CK filter_stride
         auto miopen_in_strides  = problem.GetIn().GetStrides();
@@ -388,7 +388,50 @@ bool ConvQunConvBwd::IsApplicable(const ExecutionContext&   ctx,
             return false;
     }
 
+    if (GetSupportedSolutionCount(ctx, problem) == 0)
+    {
+        std::cerr << "Warning, ConvQunConvBwd with the specified compilation parameters does "
+                     "not support this Conv problem" << std::endl;
+
+        return false;
+    }
+
     return true;
+}
+
+uint32_t ConvQunConvBwd::GetSupportedSolutionCount(const ExecutionContext& ctx,
+                                                   const miopen::conv::ProblemDescription& problem) const
+{
+    uint32_t solutionCount = 0;
+    const auto& ck_args    = CKArgs{problem};
+
+    ck::static_for<0, std::tuple_size_v<DeviceConvBwdWeightFactory>, 1>{}([&](auto i) -> void {
+        const auto device_conv_bwd_weight_instance = std::get<i>(DeviceConvBwdWeightFactory{});
+        using DeviceConvBwdWeightInstance = ck::remove_cvref_t<decltype(device_conv_bwd_weight_instance)>;
+        auto conv_ptr = std::make_shared<DeviceConvBwdWeightInstance>();
+
+        auto argument = conv_ptr->MakeArgument(nullptr, nullptr, nullptr,
+                                                ck_args.input_lengths,
+                                                ck_args.in_strides,
+                                                ck_args.wei_lens,
+                                                ck_args.wei_strides,
+                                                ck_args.out_lens,
+                                                ck_args.out_strides,
+                                                ck_args.filter_stride,
+                                                ck_args.filter_dilation,
+                                                ck_args.lPadding,
+                                                ck_args.rPadding,
+                                                InElementOp{},
+                                                WeiElementOp{},
+                                                OutElementOp{},
+                                                1);
+        if(conv_ptr->IsSupportedArgument(argument))
+        {
+            solutionCount ++;
+        }
+    });
+
+    return solutionCount;
 }
 
 ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
@@ -529,12 +572,6 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
             }
         }
     });
-
-    if (found_kernel == false)
-    {
-        std::cerr << "wrong! device_conv with the specified compilation parameters does "
-                     "not support this Conv problem" << std::endl;
-    }
 
     return sol;
 }
