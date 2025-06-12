@@ -4,7 +4,7 @@
 #include "ck/utility/common_header.hpp"
 
 #include "ck/tensor_operation/gpu/device/device_grouped_conv_bwd_weight.hpp"
-#include "ck/tensor_operation/gpu/element/unary_element_wise_operation.hpp"
+//#include "ck/tensor_operation/gpu/element/unary_element_wise_operation.hpp"
 #include "ck/host_utility/kernel_launch.hpp"
 
 #define ENABLE_PIPELINE_V2 1
@@ -67,7 +67,7 @@ __launch_bounds__(BlockSize, MinimumOccupancy)
     __shared__ char p_share_out[GridwiseConvBwdWeight::ShareMemOutSize *
                                 GridwiseConvBwdWeight::NumTilePerBlock];
 
-    GridwiseConvBwdWeight::template Run(arg, p_share_in, p_share_out);
+    GridwiseConvBwdWeight::template Run<>(arg, p_share_in, p_share_out);
 }
 
 template <typename WeiDataType, typename AccDataType, index_t FilterSize>
@@ -1057,9 +1057,9 @@ struct DeviceGroupedConvBwdWeightDlV4 : public DeviceGroupedConvBwdWeight<NDimSp
     static_assert(FilterSize * FilterSize < 64);
     static_assert(RequirePadding == false);
     static_assert(NBatch % DstScalarPerVector == 0);
-    static_assert(is_same_v<InElementwiseOperation, element_wise::PassThrough>);
-    static_assert(is_same_v<WeiElementwiseOperation, element_wise::PassThrough>);
-    static_assert(is_same_v<OutElementwiseOperation, element_wise::PassThrough>);
+    //static_assert(is_same_v<InElementwiseOperation, element_wise::PassThrough>);
+    //static_assert(is_same_v<WeiElementwiseOperation, element_wise::PassThrough>);
+    //static_assert(is_same_v<OutElementwiseOperation, element_wise::PassThrough>);
 
     using GridwiseConvBwdWeight = GridwiseGroupedConv2DBwdWeightDlV4<BlockSize,
                                                                      InDataType,
@@ -1292,11 +1292,49 @@ struct DeviceGroupedConvBwdWeightDlV4 : public DeviceGroupedConvBwdWeight<NDimSp
         {
             return false;
         }
-        if(Pad_H != arg.input_left_pads_[0] || Pad_W != arg.input_left_pads_[1] ||
-           Pad_H != arg.input_right_pads_[0] || Pad_W != arg.input_right_pads_[1])
+        if(Pad_H != arg.input_left_pads_[0] || Pad_W != arg.input_left_pads_[1])
         {
             return false;
         }
+        if(Pad_H != arg.input_right_pads_[0])
+        {
+            if(Stride_H == 2 && Pad_H > 0)
+            {
+                index_t alter_pad_h = Pad_H;
+                if((Tile_H + Pad_H + Pad_H - ((FilterSize - 1) * Dilation_Y + 1)) % Stride_H != 0)
+                {
+                    alter_pad_h = Pad_H - 1;
+                }
+                if(alter_pad_h != arg.input_right_pads_[0])
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+        if(Pad_W != arg.input_right_pads_[1])
+        {
+            if(Stride_W == 2 && Pad_W > 0)
+            {
+                index_t alter_pad_w = Pad_W;
+                if((Tile_W + Pad_W + Pad_W - ((FilterSize - 1) * Dilation_X + 1)) % Stride_W != 0)
+                {
+                    alter_pad_w = Pad_W - 1;
+                }
+                if(alter_pad_w != arg.input_right_pads_[1])
+                {
+                    return false;
+                }
+            }
+            else
+            {
+                return false;
+            }
+        }
+
         if(Stride_H != arg.conv_filter_strides_[0] || Stride_W != arg.conv_filter_strides_[1])
         {
             return false;
