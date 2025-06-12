@@ -768,7 +768,8 @@ ZeroOutTensor(const Handle& handle, const TensorDescriptor& tensorDesc, Data_t t
     }
 }
 
-template <typename DeviceOpType,
+template <bool ZeroOutputs,
+          typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
           typename Input1TposeOp,
@@ -867,13 +868,15 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
             input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
             output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-
-            /// \todo: Will need SetTensor() to properly zero out non-packed tensors
-            /// Note: Need to clear buffer memory for output since all values may not be set.
             elapsed = handle.IsProfilingEnabled() ? handle.GetKernelTime() : 0.0f;
-            output_tr_inst.ZeroOutBuffer(handle);
-            if(handle.IsProfilingEnabled())
-                elapsed += handle.GetKernelTime();
+
+            if constexpr(ZeroOutputs)
+            {
+                /// Note: Need to clear buffer memory for output since all values may not be set.
+                output_tr_inst.ZeroOutBuffer(handle);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
 
             std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
                 &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
@@ -939,7 +942,8 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
     return result;
 }
 
-template <typename DeviceOpType,
+template <bool ZeroOutputs,
+          typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
           typename ProblemDescriptionType = miopen::conv::ProblemDescription>
@@ -1008,11 +1012,14 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 float elapsed = 0.0f;
                 if(alpha_beta_case == DEFAULT)
                 {
-                    ZeroOutTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw);
-
-                    if(handle.IsProfilingEnabled())
+                    if constexpr(ZeroOutputs)
                     {
-                        elapsed += handle.GetKernelTime();
+                        ZeroOutTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw);
+
+                        if(handle.IsProfilingEnabled())
+                        {
+                            elapsed += handle.GetKernelTime();
+                        }
                     }
                 }
                 // use captured value, other wise getting warning
@@ -1061,7 +1068,8 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 // Zero out the buffer for output data since it won't always write all output
                 // values.
                 float elapsed = 0.0f;
-                if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
+                if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams> &&
+                             ZeroOutputs)
                 {
                     ZeroOutTensor(handle, data_ctx.tensors.outDesc, data_ctx.tensors.out);
 
@@ -1088,7 +1096,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
     }
 }
 
-template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
+template <int ND, bool ZeroOutputs, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
                                        const miopen::conv::ProblemDescription& problem,
                                        const std::string& kernel_id)
@@ -1100,11 +1108,11 @@ ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
     using Input2 = internal::CKTransposeInputOp<ND, internal::ConvOperandTag::Weights>;
     using Output = internal::CKTransposeOutputOp<ND, internal::ConvOperandTag::Output>;
 
-    return InitInvokerFactoryNCHW<DeviceOpType, CKArgsType, CastType>(
+    return InitInvokerFactoryNCHW<ZeroOutputs, DeviceOpType, CKArgsType, CastType>(
         ctx, problem, kernel_id, Input1{}, Input2{}, Output{});
 }
 
-template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
+template <int ND, bool ZeroOutputs, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryBwdNCHW(const ExecutionContext& ctx,
                                        const miopen::conv::ProblemDescription& problem,
                                        const std::string& kernel_id)
@@ -1116,11 +1124,11 @@ ConvSolution InitInvokerFactoryBwdNCHW(const ExecutionContext& ctx,
     using Input2 = internal::CKTransposeInputOp<ND, internal::ConvOperandTag::Weights>;
     using Output = internal::CKTransposeOutputOp<ND, internal::ConvOperandTag::Input>;
 
-    return InitInvokerFactoryNCHW<DeviceOpType, CKArgsType, CastType>(
+    return InitInvokerFactoryNCHW<ZeroOutputs, DeviceOpType, CKArgsType, CastType>(
         ctx, problem, kernel_id, Input1{}, Input2{}, Output{});
 }
 
-template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
+template <int ND, bool ZeroOutputs, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryWrwNCHW(const ExecutionContext& ctx,
                                        const miopen::conv::ProblemDescription& problem,
                                        const std::string& kernel_id)
@@ -1131,7 +1139,7 @@ ConvSolution InitInvokerFactoryWrwNCHW(const ExecutionContext& ctx,
     using Input2 = internal::CKTransposeInputOp<ND, internal::ConvOperandTag::Output>;
     using Output = internal::CKTransposeOutputOp<ND, internal::ConvOperandTag::Weights>;
 
-    return InitInvokerFactoryNCHW<DeviceOpType, CKArgsType, CastType>(
+    return InitInvokerFactoryNCHW<ZeroOutputs, DeviceOpType, CKArgsType, CastType>(
         ctx, problem, kernel_id, Input1{}, Input2{}, Output{});
 }
 
