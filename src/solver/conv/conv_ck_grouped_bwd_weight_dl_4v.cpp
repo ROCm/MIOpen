@@ -30,6 +30,10 @@
 #include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <cstddef>
+#include <unordered_map>
+#include <mutex>
+#include <sstream>
+#include <filesystem>
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
@@ -94,6 +98,69 @@ std::size_t hash_array(const std::array<T, N>& arr) {
         hash_combine(seed, elem);
     }
     return seed;
+}
+
+struct CacheData
+{
+    size_t      hashcode;
+    ck::index_t instanceIdx;
+    ck::index_t split_k;
+};
+
+static std::mutex s_fileMutex;
+static std::unordered_map<size_t, CacheData> s_cacheTable;
+static std::filesystem::path exp_path;
+
+void ReadCacheFile()
+{
+    std::lock_guard<std::mutex> lock(s_fileMutex);
+
+    std::ifstream infile(exp_path);
+    if (infile)
+    {
+        std::string line;
+        while (std::getline(infile, line))
+        {
+            size_t hashcode;
+            ck::index_t instanceId, split_k;
+            std::istringstream iss(line);
+            if (!(iss >> std::hex >> hashcode >> std::dec >> instanceId >> split_k))
+            {
+                continue;
+            }
+
+            CacheData cd = { hashcode, instanceId, split_k };
+            s_cacheTable[hashcode] = cd;
+        }
+
+        infile.close();
+    }
+    else
+    {
+        MIOPEN_LOG_I("Failed to open Qun conv cache file. " << exp_path);
+    }
+}
+
+void AppandToCache(CacheData cd)
+{
+    std::lock_guard<std::mutex> lock(s_fileMutex);
+
+    s_cacheTable[cd.hashcode] = cd;
+
+    std::ofstream outfile(exp_path, std::ios::app);
+    if (outfile.is_open()) {
+        MIOPEN_LOG_I("AppandToCache to " << exp_path);
+    } else {
+        MIOPEN_LOG_E("Failed to create or open Qun conv cache file. " << exp_path);
+        MIOPEN_LOG_E("Error: " << std::strerror(errno));
+    }
+
+    if (outfile)
+    {
+        outfile << std::hex << std::setw(16) << std::setfill('0') << cd.hashcode << " "
+            << std::dec << cd.instanceIdx <<" " << cd.split_k << "\n";
+        outfile.close();
+    }
 }
 
 namespace miopen {
@@ -345,6 +412,16 @@ struct CKArgs
     std::array<ck::index_t, 2> rPadding;
 };
 
+ConvQunConvBwd::ConvQunConvBwd()
+{
+    const std::string filename = ".config/miopen/conv_qun_conv_cache.txt";
+    exp_path = filename;
+    exp_path = std::filesystem::path(std::getenv("HOME")) / filename;
+    std::filesystem::create_directories(exp_path.parent_path());
+
+    ReadCacheFile();
+}
+
 bool ConvQunConvBwd::IsApplicable(const ExecutionContext&   ctx,
                                   const ProblemDescription& problem) const
 {
@@ -434,11 +511,97 @@ uint32_t ConvQunConvBwd::GetSupportedSolutionCount(const ExecutionContext& ctx,
     return solutionCount;
 }
 
+bool ConvQunConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const
+{
+    bool found = false;
+    ck::index_t best_idx;
+    ck::index_t best_split_k;
+    {
+        std::lock_guard<std::mutex> lock(s_fileMutex);
+        auto it = s_cacheTable.find(hashcode);
+        found = it != s_cacheTable.end();
+        if (found)
+        {
+            const CacheData cd = it->second;
+            best_idx     = cd.instanceIdx;
+            best_split_k = cd.split_k;
+        }
+    }
+
+    if (found)
+    {
+        ck::static_for<0, std::tuple_size_v<DeviceConvBwdWeightFactory>, 1>{}([&](auto i) -> void {
+
+            if (i == best_idx)
+            {
+                const auto device_conv_bwd_weight_instance = std::get<i>(DeviceConvBwdWeightFactory{});
+                using DeviceConvBwdWeightInstance = ck::remove_cvref_t<decltype(device_conv_bwd_weight_instance)>;
+                auto conv_ptr = std::make_shared<DeviceConvBwdWeightInstance>();
+
+                sol.invoker_factory = [
+                conv_ptr, problem, best_split_k
+                ](const std::vector<Kernel>& kernels) {
+                    return [conv_ptr, problem, best_split_k](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                        const auto& data_ctx = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
+                        const auto& ck_args  = CKArgs{problem};
+                        auto invoker  = conv_ptr->MakeInvoker();
+                        auto argument = conv_ptr->MakeArgument(static_cast<const InDataType*>(data_ctx.tensors.x),
+                                                            static_cast<WeiDataType*>(data_ctx.tensors.dw),
+                                                            static_cast<const OutDataType*>(data_ctx.tensors.dy),
+                                                            ck_args.input_lengths,
+                                                            ck_args.in_strides,
+                                                            ck_args.wei_lens,
+                                                            ck_args.wei_strides,
+                                                            ck_args.out_lens,
+                                                            ck_args.out_strides,
+                                                            ck_args.filter_stride,
+                                                            ck_args.filter_dilation,
+                                                            ck_args.lPadding,
+                                                            ck_args.rPadding,
+                                                            InElementOp{},
+                                                            WeiElementOp{},
+                                                            OutElementOp{},
+                                                            best_split_k);
+
+                        DeviceMem gemm_workspace_dev(conv_ptr->GetWorkSpaceSize(&argument));
+                        conv_ptr->SetWorkSpacePointer(&argument, gemm_workspace_dev.GetDeviceBuffer());
+
+                        if(conv_ptr->IsSupportedArgument(argument))
+                        {
+                            invoker.ShowInfo(argument);
+                            WorkAroundHipEventProfiler prf(handle);
+                            float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
+
+                            if(handle.IsProfilingEnabled())
+                            {
+                                avg_time = handle.GetKernelTime();
+                                handle.ResetKernelTime();
+                                handle.AccumKernelTime(avg_time);
+                            }
+                        }
+                    };
+                };
+            }
+
+        });
+    }
+
+    return found;
+}
+
 ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
                                              const miopen::conv::ProblemDescription& problem) const
 {
     ConvSolution sol;
-    const auto& ck_args  = CKArgs{problem};
+    const auto& ck_args   = CKArgs{problem};
+    const size_t argsHash = ck_args.GetParamHash();
+    CacheData cd;
+    cd.hashcode = argsHash;
+    if (FindCachedSolution(argsHash, problem, sol))
+    {
+        MIOPEN_LOG_I("Find cached solution " << std::hex << std::setw(16) << std::setfill('0') << argsHash);
+        return sol;
+    }
 
     Tensor<InDataType> in_g_n_c_wis(std::initializer_list<ck::index_t>{ck_args.G, ck_args.N, ck_args.C, ck_args.Hi, ck_args.Wi});
     Tensor<WeiDataType> wei_g_k_c_xs(std::initializer_list<ck::index_t>{ck_args.G, ck_args.K, ck_args.C, ck_args.Y, ck_args.X});
@@ -523,6 +686,8 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
                         best_kernel = conv_ptr->GetTypeString();
                         MIOPEN_LOG_I("* ^ best kernel ^*");
                         instance_idx = i;
+                        cd.instanceIdx = instance_idx;
+                        cd.split_k     = cur_split_k;
 
                         sol.invoker_factory = [
                         conv_ptr, problem, best_split_k
@@ -572,6 +737,11 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
             }
         }
     });
+
+    if (found_kernel)
+    {
+        AppandToCache(cd);
+    }
 
     return sol;
 }

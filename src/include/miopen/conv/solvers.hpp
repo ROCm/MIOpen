@@ -2846,6 +2846,7 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
 
 struct ConvQunConvBwd final : ConvSolver
 {
+    ConvQunConvBwd();
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvQunConvBwd>();
@@ -2865,6 +2866,7 @@ struct ConvQunConvBwd final : ConvSolver
 
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetBestSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool FindCachedSolution(size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const;
     uint32_t GetSupportedSolutionCount(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
 };
 
