@@ -32,6 +32,7 @@
 #include <miopen/buffer_info.hpp>
 #include <miopen/tensor_ops.hpp>
 #include <miopen/miopen_internal.h>
+#include <miopen/fusion/fusion_invoke_params.hpp>
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
@@ -1190,6 +1191,26 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
 #else
     return {};
 #endif
+}
+
+inline ck::tensor_operation::element_wise::AddClamp
+GetActivationElementOp(const miopen::fusion::ActivationOpInvokeParam& activationOp)
+{
+    auto activationMode = activationOp.activMode;
+    switch(activationMode)
+    {
+    case miopenActivationRELU:
+        return ck::tensor_operation::element_wise::AddClamp{
+            0, std::numeric_limits<ck::bhalf_t>::max()};
+    case miopenActivationCLIPPEDRELU:
+        return ck::tensor_operation::element_wise::AddClamp{0, activationOp.activAlpha};
+    case miopenActivationCLAMP:
+        return ck::tensor_operation::element_wise::AddClamp{activationOp.activAlpha,
+                                                            activationOp.activBeta};
+    default:
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Unsupported activation type: " + std::to_string(activationMode));
+    }
 }
 
 } // namespace solver

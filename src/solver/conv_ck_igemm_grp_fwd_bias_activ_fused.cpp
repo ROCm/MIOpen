@@ -144,7 +144,7 @@ struct CKArgs
         std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                     ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
         lPadding = {ProblemInterpreter::GetInputLeftPadH(problem),
@@ -153,8 +153,8 @@ struct CKArgs
                     ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
 
-    CKArgs(const CKArgs&) = default;
-    CKArgs(CKArgs&&)      = default;
+    CKArgs(const CKArgs&)            = default;
+    CKArgs(CKArgs&&)                 = default;
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>

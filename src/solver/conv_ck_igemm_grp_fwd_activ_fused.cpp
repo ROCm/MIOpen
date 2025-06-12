@@ -27,51 +27,66 @@
 #include <vector>
 #include <cstdint>
 
-#include <miopen/conv/solvers.hpp>
+#include <miopen/fusion/solvers.hpp>
 #include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-#include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_forward.hpp>
-#include <miopen/conv/heuristics/ai_heuristics.hpp>
-#endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
+#include "ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_bias_clamp.hpp"
+#endif
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_ACTIV)
 
 namespace miopen {
 namespace solver {
-namespace conv {
+namespace fusion {
 
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+static constexpr ck::index_t NDimSpatial = 2;
 
-const auto GetOutElementOp = []() {
-    const float floor = 0;
-    const float ceil  = std::numeric_limits<ck::bhalf_t>::max();
-    return OutElementOp{floor, ceil};
-};
+using InLayout  = ck::tensor_layout::convolution::NHWGC;
+using WeiLayout = ck::tensor_layout::convolution::GKYXC;
+using OutLayout = ck::tensor_layout::convolution::NHWGK;
+
+using InElementOp  = ck::tensor_operation::element_wise::PassThrough;
+using WeiElementOp = ck::tensor_operation::element_wise::PassThrough;
+using OutElementOp = ck::tensor_operation::element_wise::AddClamp;
+
+// const auto GetOutElementOp = []() {
+//     const float floor = 0;
+//     const float ceil  = std::numeric_limits<ck::bhalf_t>::max();
+//     return GetActivationElementOp { floor, ceil }
+// };
+
+using OutElementOp = ck::tensor_operation::element_wise::AddClamp;
+
+template <typename InDataType,
+          typename WeiDataType,
+          typename OutDataType,
+          typename AComputeType = InDataType,
+          typename BComputeType = AComputeType>
+using DeviceOpGFwdRelu =
+    ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NDimSpatial,
+                                                                  InLayout,
+                                                                  WeiLayout,
+                                                                  ck::Tuple<OutLayout>,
+                                                                  OutLayout,
+                                                                  InDataType,
+                                                                  WeiDataType,
+                                                                  ck::Tuple<OutDataType>,
+                                                                  OutDataType,
+                                                                  InElementOp,
+                                                                  WeiElementOp,
+                                                                  OutElementOp,
+                                                                  AComputeType,
+                                                                  BComputeType>;
 
 template <typename DataType>
-using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
-    2,
-    ck::tensor_layout::convolution::NHWGC,
-    ck::tensor_layout::convolution::GKYXC,
-    ck::Tuple<>,
-    ck::tensor_layout::convolution::NHWGK,
-    DataType,
-    DataType,
-    ck::Tuple<>,
-    DataType,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::AddClamp>;
-
-template <typename DataType>
-using DeviceOpGFwdPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGFwd<DataType>>;
+using DeviceOpGFwdReluPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    DeviceOpGFwdRelu<DataType, DataType, DataType>>;
 
 namespace {
 struct CKArgs
@@ -120,11 +135,12 @@ struct CKArgs
                     ConstData_t w,
                     Data_t out,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    OutElementOp clampOp) const
     {
         (void)alpha;
         (void)beta;
-        const auto out_element_op = GetOutElementOp();
+        // const auto out_element_op = GetActivationElementOp();
         return conv_ptr->MakeArgumentPointer(in,
                                              w,
                                              {},
@@ -143,22 +159,39 @@ struct CKArgs
                                              rPadding,
                                              {},
                                              {},
-                                             out_element_op);
+                                             clampOp);
     }
 
-    template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr,
-                    const ConvDataTensors& tensors,
-                    float alpha,
-                    float beta) const
+    template <typename DevOpPtr>
+    auto MakeArgPtr(const DevOpPtr& op_ptr,
+                    const miopen::fusion::FusionInvokeParams& data_ctx) const
     {
-        return MakeArgPtr(conv_ptr, tensors.in, tensors.w, tensors.out, alpha, beta);
+        const auto& conv_param =
+            dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(*data_ctx.op_args.params[0]);
+        assert(&conv_param);
+
+        const auto& activ_param =
+            dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[1]);
+
+        return MakeArgPtr(op_ptr,
+                          data_ctx.in,
+                          conv_param.weights,
+                          data_ctx.out,
+                          conv_param.alpha,
+                          conv_param.beta,
+                          GetActivationElementOp(activ_param));
     }
 
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+        auto arg_ptr = MakeArgPtr(conv_ptr,
+                                  nullptr,
+                                  nullptr,
+                                  nullptr,
+                                  1.0f,
+                                  0.0f,
+                                  OutElementOp{0, std::numeric_limits<ck::bhalf_t>::max()});
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -190,243 +223,67 @@ struct CKArgs
 
 template <typename DataType>
 void PerformanceConfigConvCKIgemmGrpFwdActivFused::Init(
-    const ProblemDescription& problem) // should be parameterized with execution context
+    const miopen::conv::ProblemDescription& problem)
 {
     if(valid_kernels.empty())
-        valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
+        valid_kernels = FillValidKernelsIDs<DeviceOpGFwdReluPtrs<DataType>, CKArgs>(problem);
     index     = 0;
     kernel_id = valid_kernels[index];
 }
 
 template <typename DataType>
 bool PerformanceConfigConvCKIgemmGrpFwdActivFused::CheckIsSupportCKArgs(
-    const ProblemDescription& problem) const
+    const miopen::conv::ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGFwdReluPtrs<DataType>, CKArgs>(problem, kernel_id);
 }
 
 template <typename DataType>
-bool ConvCKIgemmGrpFwdActivFused::CheckCKApplicability(const ProblemDescription& problem) const
+bool ConvCKIgemmGrpFwdActivFused::CheckCKApplicability(
+    const miopen::conv::ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
+    return IsCKApplicable<DeviceOpGFwdReluPtrs<DataType>, CKArgs>(problem);
 }
 
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
-{
-    std::vector<std::string> tokens;
-    std::string token;
-    std::istringstream tokenStream(
-        kernel.substr(kernel.find('<') + 1, kernel.find('>') - kernel.find('<') - 1));
-    while(std::getline(tokenStream, token, ','))
-    {
-        token.erase(remove_if(token.begin(), token.end(), isspace),
-                    token.end()); // strip whitespace
-        tokens.push_back(token);
-    }
-    return tokens;
-}
-
-void PerformanceConfigConvCKIgemmGrpFwdActivFused::InitHeuristicKernelIDs(const std::string& type)
-{
-    for(int i = 0; i < valid_kernels.size(); i++)
-    {
-        if(valid_kernels[i].find(type) != std::string::npos)
-        {
-            heuristic_indexes.push_back(i);
-            heuristic_kernels[i] = GetKernelAsTokens(valid_kernels[i]);
-        }
-    }
-}
-
-bool PerformanceConfigConvCKIgemmGrpFwdActivFused::ModelApplyToken(int idx,
-                                                                   std::string value,
-                                                                   const std::string& arch)
-{
-    if(arch == "gfx90a")
-    {
-        if(idx >= 5)
-        {
-            idx += 2; // skip MPerXDL and NPerXDL as they are constant
-        }
-    }
-    if(idx == 0 && arch == "gfx942")
-    {
-        InitHeuristicKernelIDs(value);
-        if(!heuristic_indexes.empty())
-            return true;
-        return false;
-    }
-    if(idx >= 1 && arch == "gfx942")
-        idx--;
-    auto eraseBegin = std::remove_if(
-        heuristic_indexes.begin(), heuristic_indexes.end(), [&](int heuristic_index) {
-            return heuristic_kernels[heuristic_index][idx] != value;
-        });
-
-    if(eraseBegin != heuristic_indexes.begin())
-    {
-        heuristic_indexes.erase(eraseBegin, heuristic_indexes.end());
-        return true;
-    }
-    return false;
-}
-
-static std::vector<float>
-GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::string& arch)
-{
-    if(arch == "gfx90a")
-    {
-        std::size_t n = 18;
-        std::vector<float> features(n, 0.0f);
-        features[0]  = problem.GetInDataType() == miopenFloat ? 2 : 1;
-        features[1]  = problem.GetInChannels();
-        features[2]  = problem.GetInHeight();
-        features[3]  = problem.GetInWidth();
-        features[4]  = problem.GetOutChannels();
-        features[5]  = problem.GetOutHeight();
-        features[6]  = problem.GetOutWidth();
-        features[7]  = problem.GetWeightsHeight();
-        features[8]  = problem.GetWeightsWidth();
-        features[9]  = problem.GetPadH();
-        features[10] = problem.GetPadW();
-        features[11] = problem.GetKernelStrideH();
-        features[12] = problem.GetKernelStrideW();
-        features[13] = problem.GetDilationH();
-        features[14] = problem.GetDilationW();
-        features[15] = problem.GetBatchSize();
-        features[16] = problem.GetGroupCount();
-        features[17] = num_cu;
-        return features;
-    }
-
-    const bool isFwd = problem.GetDirection() == miopen::conv::Direction::Forward;
-    float precision  = 2.0; // miopenHalf
-    if(problem.GetInDataType() == miopenFloat)
-        precision = 3.0;
-    else if(problem.GetInDataType() == miopenBFloat16)
-        precision = 1.0;
-
-    std::size_t n = 17;
-    std::vector<float> features(n * n, 0.0f);
-    features[0]           = isFwd ? problem.GetInChannels() : problem.GetOutChannels();
-    features[n + 1]       = isFwd ? problem.GetInHeight() : problem.GetOutHeight();
-    features[2 * n + 2]   = isFwd ? problem.GetInWidth() : problem.GetOutWidth();
-    features[3 * n + 3]   = isFwd ? problem.GetOutChannels() : problem.GetInChannels();
-    features[4 * n + 4]   = isFwd ? problem.GetOutHeight() : problem.GetInHeight();
-    features[5 * n + 5]   = isFwd ? problem.GetOutWidth() : problem.GetInWidth();
-    features[6 * n + 6]   = problem.GetWeightsHeight();
-    features[7 * n + 7]   = problem.GetWeightsWidth();
-    features[8 * n + 8]   = problem.GetPadH();
-    features[9 * n + 9]   = problem.GetPadW();
-    features[10 * n + 10] = problem.GetKernelStrideH();
-    features[11 * n + 11] = problem.GetKernelStrideW();
-    features[12 * n + 12] = problem.GetDilationH();
-    features[13 * n + 13] = problem.GetDilationW();
-    features[14 * n + 14] = problem.GetBatchSize();
-    features[15 * n + 15] = precision;
-    features[16 * n + 16] = problem.GetGroupCount();
-    return features;
-}
-
-template <typename DataType>
-bool PerformanceConfigConvCKIgemmGrpFwdActivFused::RunParameterPredictionModel(
-    const ExecutionContext& ctx, const ProblemDescription& problem)
-{
-    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(
-        problem); // filter valid_kernel ID's
-    static const std::string& arch = ctx.GetStream().GetDeviceName();
-    if(arch == "gfx90a")
-        InitHeuristicKernelIDs("DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle");
-    static const std::string solver = "ConvHipIgemmGroupFwdXdlops";
-    std::vector<float> features = GetFeatures(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
-    bool transform              = (arch == "gfx90a") ? false : true;
-    if(ai::tuning::ModelSetParams(arch,
-                                  solver,
-                                  problem.GetDirection(),
-                                  features,
-                                  transform,
-                                  [&](int idx, const std::string& value) {
-                                      return this->ModelApplyToken(idx, value, arch);
-                                  }))
-    {
-        index     = heuristic_indexes[0];
-        kernel_id = valid_kernels[index];
-        MIOPEN_LOG_I("Params set by AI: " << ToString());
-        return true;
-    }
-    return false;
-}
-#endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
-#endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-
-bool PerformanceConfigConvCKIgemmGrpFwdActivFused::IsModelApplicable(
-    const ExecutionContext& ctx, const ProblemDescription& problem) const
-{
-    if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942")
-        return false;
-    if(problem.GetInDataType() != miopenFloat && problem.GetInDataType() != miopenHalf &&
-       problem.GetInDataType() != miopenBFloat16)
-        return false;
-    if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR))
-        return false;
-    return true;
-}
+#endif
 
 void PerformanceConfigConvCKIgemmGrpFwdActivFused::HeuristicInit(
-    [[maybe_unused]] const ExecutionContext& ctx,
-    [[maybe_unused]] const ProblemDescription& problem)
+    const FusionDescription& fdesc_problem)
 {
-    index     = 0;
-    kernel_id = "";
-
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    if(IsModelApplicable(ctx, problem))
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = fdesc_problem;
+#else
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    switch(conv_problem.GetInDataType())
     {
-        if(problem.GetInDataType() == miopenFloat)
-        {
-            if(RunParameterPredictionModel<float>(ctx, problem))
-                return;
-        }
-        else if(problem.GetInDataType() == miopenBFloat16)
-        {
-            if(RunParameterPredictionModel<ck::bhalf_t>(ctx, problem))
-                return;
-        }
-        else
-        {
-            if(RunParameterPredictionModel<ck::half_t>(ctx, problem))
-                return;
-        }
-    }
-#endif
-    switch(problem.GetInDataType())
-    {
-    case miopenHalf: Init<ck::half_t>(problem); break;
-    case miopenFloat: Init<float>(problem); break;
-    case miopenInt8: Init<int8_t>(problem); break;
-    case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
-    case miopenInt64:
-    case miopenInt32:
+    case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
+    case miopenHalf:
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
-    case miopenDouble: break;
+    case miopenInt8:
+    case miopenFloat:
+    case miopenInt32:
+    case miopenInt64:
+    case miopenDouble:
+    default: MIOPEN_THROW("Unsupported datatype");
     }
+
 #endif
 }
 
-bool PerformanceConfigConvCKIgemmGrpFwdActivFused::SetNextValue(const ProblemDescription& problem)
+bool PerformanceConfigConvCKIgemmGrpFwdActivFused::SetNextValue(
+    const FusionDescription& fdesc_problem)
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
     {
-        switch(problem.GetInDataType())
+        const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+        switch(conv_problem.GetInDataType())
         {
-        case miopenHalf: Init<ck::half_t>(problem); break;
-        case miopenFloat: Init<float>(problem); break;
-        case miopenInt8: Init<int8_t>(problem); break;
-        case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
+        case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
+        case miopenHalf:
+        case miopenFloat:
+        case miopenInt8:
         case miopenInt64:
         case miopenInt32:
         case miopenFloat8_fnuz:
@@ -453,15 +310,16 @@ bool PerformanceConfigConvCKIgemmGrpFwdActivFused::IsValidValue() const
 }
 
 bool PerformanceConfigConvCKIgemmGrpFwdActivFused::IsValid(
-    [[maybe_unused]] const ProblemDescription& problem) const
+    const FusionContext&, const FusionDescription& fdesc_problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    switch(problem.GetInDataType())
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    switch(conv_problem.GetInDataType())
     {
-    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
-    case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
-    case miopenInt8: return CheckIsSupportCKArgs<int8_t>(problem);
-    case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
+    case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(conv_problem);
+    case miopenHalf:
+    case miopenFloat:
+    case miopenInt8:
     case miopenInt64:
     case miopenInt32:
     case miopenFloat8_fnuz:
@@ -479,108 +337,130 @@ bool PerformanceConfigConvCKIgemmGrpFwdActivFused::operator==(
 }
 
 PerformanceConfigConvCKIgemmGrpFwdActivFused
-ConvCKIgemmGrpFwdActivFused::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
-                                                         const ProblemDescription& problem) const
+ConvCKIgemmGrpFwdActivFused::GetDefaultPerformanceConfig(
+    const FusionContext&, const FusionDescription& fdesc_problem) const
 {
     PerformanceConfigConvCKIgemmGrpFwdActivFused pp;
-    pp.HeuristicInit(ctx, problem);
+    pp.HeuristicInit(fdesc_problem);
+    MIOPEN_LOG_I(pp.ToString());
     return pp;
 }
 
 bool ConvCKIgemmGrpFwdActivFused::IsValidPerformanceConfig(
-    const ExecutionContext&,
-    const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
+    const FusionContext& ctx,
+    const FusionDescription& fdesc_problem,
+    const PerformanceConfigConvCKIgemmGrpFwdActivFused& config) const
 {
-    return config.IsValid(problem);
+    return config.IsValid(ctx, fdesc_problem);
 }
 
-size_t ConvCKIgemmGrpFwdActivFused::GetWorkspaceSize(const ExecutionContext&,
-                                                     const ProblemDescription& problem) const
-{
-    return GetWorkspaceSizeLayoutTransformConv(problem);
-}
-
-PerformanceConfigHipImplicitGemmGroupFwdXdlops
-ConvCKIgemmGrpFwdActivFused::Search(const ExecutionContext& ctx,
-                                    const ProblemDescription& problem,
+PerformanceConfigConvCKIgemmGrpFwdActivFused
+ConvCKIgemmGrpFwdActivFused::Search(const FusionContext& ctx,
+                                    const FusionDescription& fdesc_problem,
                                     const AnyInvokeParams& invoke_ctx) const
 {
-    return GenericSearch(*this, ctx, problem, invoke_ctx);
+    return GenericSearch(*this, ctx, fdesc_problem, invoke_ctx);
 }
 
-bool ConvCKIgemmGrpFwdActivFused::IsApplicable(
-    [[maybe_unused]] const ExecutionContext& ctx,
-    [[maybe_unused]] const ProblemDescription& problem) const
+bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
+                                               const FusionDescription& fdesc_problem) const
 {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS))
-        return false;
-    if(problem.GetConv().attribute.deterministic)
-        return false;
-    if(problem.HasNonPackedTensors())
-        return false;
-    if(!problem.AllTensorsDimsFitIntoInt())
-        return false;
-    if(problem.IsTensorsCasted())
-        return false;
-    if(problem.HasMixedDataTypes())
-        return false;
-    if(!problem.IsDirectionForward())
-        return false;
-    if(!problem.Is2d())
-        return false;
-    if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
-        return false;
-    // needed because layout transpose kernel does not support non-packed tensors
-    if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
-        return false;
-    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
-        return false;
-    switch(problem.GetInDataType())
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = ctx;
+    std::ignore = fdesc_problem;
+    return false;
+#else
+    const auto& desc = *fdesc_problem.fusion_plan_desc;
+    if(desc.op_map.empty())
     {
-    case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
-    case miopenFloat: return CheckCKApplicability<float>(problem);
-    case miopenInt8: return CheckCKApplicability<int8_t>(problem);
-    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
-    case miopenInt64:
-    case miopenInt32:
+        MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
+    }
+    if(desc.op_map.size() != 3)
+        return false;
+    if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
+        return false;
+    if(desc.op_map[1]->kind() != miopenFusionOpBiasForward)
+        return false;
+    if(desc.op_map[2]->kind() != miopenFusionOpActivForward)
+        return false;
+    const auto& activationType =
+        dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[2]).activMode;
+    if(activationType != miopenActivationRELU && activationType != miopenActivationCLIPPEDRELU &&
+       activationType != miopenActivationCLAMP)
+        return false;
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_ACTIV))
+        return false;
+    if(conv_problem.IsTensorsCasted())
+        return false;
+    if(conv_problem.GetConv().attribute.deterministic)
+        return false;
+    if(conv_problem.HasNonPackedTensors())
+        return false;
+    if(!conv_problem.AllTensorsDimsFitIntoInt())
+        return false;
+    if(conv_problem.HasMixedDataTypes())
+        return false;
+    if(!conv_problem.Is2d())
+        return false;
+    const std::string arch = ctx.GetStream().GetDeviceName();
+    if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx942")
+        return false;
+    if(!conv_problem.IsLayoutNHWC())
+        return false;
+
+    switch(conv_problem.GetInDataType())
+    {
+    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(conv_problem);
+    case miopenHalf:
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
-    case miopenDouble: break;
+    case miopenInt8:
+    case miopenFloat:
+    case miopenInt32:
+    case miopenInt64:
+    case miopenDouble:
+    default: MIOPEN_THROW("Unsupported datatype");
     }
-#endif
     return false;
+#endif
 }
 
 ConvSolution ConvCKIgemmGrpFwdActivFused::GetSolution(
-    [[maybe_unused]] const ExecutionContext& ctx,
-    [[maybe_unused]] const ProblemDescription& problem,
-    [[maybe_unused]] const PerformanceConfigConvCKIgemmGrpFwdActivFused& config) const
+    const FusionContext&,
+    const FusionDescription& fdesc_problem,
+    const PerformanceConfigConvCKIgemmGrpFwdActivFused& config) const
 {
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-    return MakeSolutionGroupConvImplicitGemmXdlops(
-        problem,
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryFwdNCHW<2,
-                                             DeviceOpGFwdPtrs<T>,
-                                             CKArgs,
-                                             miopen::conv::DataInvokeParams>(
-                ctx, problem, config.kernel_id);
-        },
-        [&](auto data_type_val) {
-            using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>,
-                                          CKArgs,
-                                          miopen::conv::DataInvokeParams>(
-                ctx, problem, config.kernel_id);
-        });
-#else
+#if !MIOPEN_BACKEND_HIP || !MIOPEN_USE_COMPOSABLEKERNEL
+    std::ignore = fdesc_problem;
+    std::ignore = config;
     return {};
+#else
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+
+    using ParamType = miopen::fusion::FusionInvokeParams;
+    switch(conv_problem.GetInDataType())
+    {
+    case miopenBFloat16:
+        return InitAnyInvokerFactory<DeviceOpGFwdReluPtrs<ck::bhalf_t>, CKArgs, ParamType>(
+            conv_problem, config.kernel_id);
+    case miopenInt8:
+    case miopenHalf:
+    case miopenFloat:
+
+    case miopenInt32:
+    case miopenInt64:
+    case miopenDouble:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
+    default:
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "ConvHipImplicitGemmBwdXdlops operation not implemented for this data type");
+    }
+
 #endif
 }
 
-} // namespace conv
+} // namespace fusion
 } // namespace solver
 } // namespace miopen
