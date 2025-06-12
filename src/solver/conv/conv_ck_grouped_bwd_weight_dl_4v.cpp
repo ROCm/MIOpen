@@ -508,20 +508,20 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
             if(conv_ptr->IsSupportedArgument(argument))
             {
                 found_kernel = true;
-                std::cout << "Run conv : (split_K:" << cur_split_k << ") " << conv_ptr->GetTypeString() << std::endl;
+                MIOPEN_LOG_I("Run conv : (split_K:" << cur_split_k << ") " << conv_ptr->GetTypeString());
                 invoker.ShowInfo(argument);
                 float avg_time = invoker.Run(argument, StreamConfig{nullptr, true});
                 {
                     std::size_t flop = ck_args.GetFlops();
                     float tflops     = static_cast<float>(flop) / 1.E9 / avg_time;
-                    std::cout<<"avg_time:" << avg_time <<" , tflops:"<< tflops << std::endl;
+                    MIOPEN_LOG_I("avg_time:" << avg_time <<" , tflops:");
                     if (avg_time < best_avg_time)
                     {
                         best_tflops = tflops;
                         best_avg_time = avg_time;
                         best_split_k = cur_split_k;
                         best_kernel = conv_ptr->GetTypeString();
-                        std::cout<< "* ^ best kernel ^*" << std::endl << std::endl;
+                        MIOPEN_LOG_I("* ^ best kernel ^*");
                         instance_idx = i;
 
                         sol.invoker_factory = [
