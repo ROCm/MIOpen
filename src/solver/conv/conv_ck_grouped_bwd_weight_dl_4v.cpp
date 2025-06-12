@@ -34,6 +34,7 @@
 #include <mutex>
 #include <sstream>
 #include <filesystem>
+#include "miopen/direct_ck_mgr.hpp"
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
@@ -100,12 +101,6 @@ std::size_t hash_array(const std::array<T, N>& arr) {
     return seed;
 }
 
-struct CacheData
-{
-    size_t      hashcode;
-    ck::index_t instanceIdx;
-    ck::index_t split_k;
-};
 
 static std::mutex s_fileMutex;
 static std::unordered_map<size_t, CacheData> s_cacheTable;
@@ -121,15 +116,15 @@ void ReadCacheFile()
         std::string line;
         while (std::getline(infile, line))
         {
-            size_t hashcode;
-            ck::index_t instanceId, split_k;
+            size_t hashcode, kernalHash;
+            int split_k;
             std::istringstream iss(line);
-            if (!(iss >> std::hex >> hashcode >> std::dec >> instanceId >> split_k))
+            if (!(iss >> std::hex >> hashcode >> std::hex >> kernalHash >> split_k))
             {
                 continue;
             }
 
-            CacheData cd = { hashcode, instanceId, split_k };
+            CacheData cd = { hashcode, kernalHash, split_k };
             s_cacheTable[hashcode] = cd;
         }
 
@@ -143,13 +138,14 @@ void ReadCacheFile()
 
 void AppandToCache(CacheData cd)
 {
+    if (DirectCkMgr::GetInst()->enableConvCache == false) return;
     std::lock_guard<std::mutex> lock(s_fileMutex);
 
     s_cacheTable[cd.hashcode] = cd;
 
     std::ofstream outfile(exp_path, std::ios::app);
     if (outfile.is_open()) {
-        MIOPEN_LOG_I("AppandToCache to " << exp_path);
+        MIOPEN_LOG_I("AppandToCache hash "<< std::setw(16) << std::setfill('0') << cd.hashcode << " to " << exp_path);
     } else {
         MIOPEN_LOG_E("Failed to create or open Qun conv cache file. " << exp_path);
         MIOPEN_LOG_E("Error: " << std::strerror(errno));
@@ -158,7 +154,8 @@ void AppandToCache(CacheData cd)
     if (outfile)
     {
         outfile << std::hex << std::setw(16) << std::setfill('0') << cd.hashcode << " "
-            << std::dec << cd.instanceIdx <<" " << cd.split_k << "\n";
+                << std::hex << std::setw(16) << std::setfill('0') << cd.kernelhash << " "
+                << cd.split_k << "\n";
         outfile.close();
     }
 }
@@ -320,6 +317,9 @@ struct CKArgs
         hash_combine(seed, hash_array(filter_dilation));
         hash_combine(seed, hash_array(lPadding));
         hash_combine(seed, hash_array(rPadding));
+
+        std::array<ck::index_t, 5> others = {C1, K1, Di, Do, Z };
+        hash_combine(seed, hash_array(others));
     
         return seed;
     }
@@ -513,9 +513,11 @@ uint32_t ConvQunConvBwd::GetSupportedSolutionCount(const ExecutionContext& ctx,
 
 bool ConvQunConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const
 {
+    if (DirectCkMgr::GetInst()->enableConvCache == false) return false;
+
     bool found = false;
-    ck::index_t best_idx;
-    ck::index_t best_split_k;
+    size_t best_kernel;
+    int best_split_k;
     {
         std::lock_guard<std::mutex> lock(s_fileMutex);
         auto it = s_cacheTable.find(hashcode);
@@ -523,21 +525,28 @@ bool ConvQunConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::Pro
         if (found)
         {
             const CacheData cd = it->second;
-            best_idx     = cd.instanceIdx;
+            best_kernel  = cd.kernelhash;
             best_split_k = cd.split_k;
+
+            MIOPEN_LOG_I("Find cached solution " << std::hex << std::setw(16) << std::setfill('0') << cd.hashcode 
+            << ", kernal hash:" << std::hex << std::setw(16) << std::setfill('0') << best_kernel 
+            <<", split_k:"<< best_split_k);
         }
     }
-
+    bool foundBest = false;
     if (found)
     {
         ck::static_for<0, std::tuple_size_v<DeviceConvBwdWeightFactory>, 1>{}([&](auto i) -> void {
 
-            if (i == best_idx)
-            {
-                const auto device_conv_bwd_weight_instance = std::get<i>(DeviceConvBwdWeightFactory{});
-                using DeviceConvBwdWeightInstance = ck::remove_cvref_t<decltype(device_conv_bwd_weight_instance)>;
-                auto conv_ptr = std::make_shared<DeviceConvBwdWeightInstance>();
+            const auto device_conv_bwd_weight_instance = std::get<i>(DeviceConvBwdWeightFactory{});
+            using DeviceConvBwdWeightInstance = ck::remove_cvref_t<decltype(device_conv_bwd_weight_instance)>;
+            auto conv_ptr = std::make_shared<DeviceConvBwdWeightInstance>();
 
+            size_t curKernelCache = DirectCkMgr::GetInst()->GetStringHash(conv_ptr->GetTypeString());
+            if (curKernelCache == best_kernel)
+            {
+                MIOPEN_LOG_I("Find best cached kernel " << conv_ptr->GetTypeString() << " , best split_k" <<best_split_k);
+                foundBest = true;
                 sol.invoker_factory = [
                 conv_ptr, problem, best_split_k
                 ](const std::vector<Kernel>& kernels) {
@@ -583,10 +592,12 @@ bool ConvQunConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::Pro
                 };
             }
 
+            if (foundBest) true;
+
         });
     }
 
-    return found;
+    return foundBest;
 }
 
 ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
@@ -599,7 +610,6 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
     cd.hashcode = argsHash;
     if (FindCachedSolution(argsHash, problem, sol))
     {
-        MIOPEN_LOG_I("Find cached solution " << std::hex << std::setw(16) << std::setfill('0') << argsHash);
         return sol;
     }
 
@@ -677,17 +687,16 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
                 {
                     std::size_t flop = ck_args.GetFlops();
                     float tflops     = static_cast<float>(flop) / 1.E9 / avg_time;
-                    MIOPEN_LOG_I("avg_time:" << avg_time <<" , tflops:");
+                    MIOPEN_LOG_I("avg_time:" << avg_time <<" , tflops:" << tflops);
                     if (avg_time < best_avg_time)
                     {
                         best_tflops = tflops;
                         best_avg_time = avg_time;
                         best_split_k = cur_split_k;
                         best_kernel = conv_ptr->GetTypeString();
-                        MIOPEN_LOG_I("* ^ best kernel ^*");
+                        MIOPEN_LOG_I("* ^best kernel so far^* ");
                         instance_idx = i;
-                        cd.instanceIdx = instance_idx;
-                        cd.split_k     = cur_split_k;
+                        cd.split_k   = static_cast<int>(cur_split_k);
 
                         sol.invoker_factory = [
                         conv_ptr, problem, best_split_k
@@ -740,6 +749,8 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
 
     if (found_kernel)
     {
+        cd.kernelhash = DirectCkMgr::GetInst()->GetStringHash(best_kernel);
+        MIOPEN_LOG_I("*** ^ best kernel ^*** " << std::hex << cd.kernelhash);
         AppandToCache(cd);
     }
 
