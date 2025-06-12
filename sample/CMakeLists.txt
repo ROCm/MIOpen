@@ -1,27 +1,53 @@
-message(STATUS "Building MIOpen standalone CBA integration sample")
-cmake_minimum_required( VERSION 3.15 )
-add_compile_definitions(__HIP_PLATFORM_AMD__)
+################################################################################
+#
+# MIT License
+#
+# Copyright (c) 2017 Advanced Micro Devices, Inc.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+################################################################################
 
-project(MIOpenCBASample CXX)
+# if the number of samples grows, its likely better to organize them in subdirectories
+message(STATUS "Building MIOpen samples")
+cmake_minimum_required(VERSION 3.15)
+project(MIOpenSamples LANGUAGES CXX)
+
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+add_compile_definitions(__HIP_PLATFORM_AMD__)
 
 list(
     APPEND
     CMAKE_PREFIX_PATH
-    ${ROCM_PATH}/llvm
     ${ROCM_PATH}
-    ${ROCM_PATH}/hip
-    /opt/rocm/llvm
     /opt/rocm
-    /opt/rocm/hip 
 )
 
+find_package(MIOpen CONFIG REQUIRED)
 find_package(hip REQUIRED)
-find_package(miopen CONFIG REQUIRED)
 
 add_executable(sample_conv_cba_fused_op sample_conv_cba_fused_op.cpp)
 
-target_link_libraries(sample_conv_fused_op PRIVATE miopen hip)
-target_include_directories(sample_conv_fused_op PRIVATE ${HIP_INCLUDE_DIRS})
+target_include_directories(sample_conv_cba_fused_op PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${HIP_INCLUDE_DIRS}
+)
 
-# install(TARGETS sample_conv_fused_op EXPORT sample_conv_fused_op LIBRARY DESTINATION bin/samples)
+target_link_libraries(sample_conv_cba_fused_op PRIVATE MIOpen hip)
