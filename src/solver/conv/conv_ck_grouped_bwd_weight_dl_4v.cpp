@@ -208,7 +208,8 @@ struct CKArgs
         wei_lens        = {G, K, C, Y, X};   // filter = wei
         bias_lens       = {G, 1, K, 1, 1};
         bias_strides    = {K, 0, 1, 0, 0};
-
+        
+        /*
         // miopen filter_stride to CK filter_stride
         auto miopen_in_strides  = problem.GetIn().GetStrides();
         auto miopen_out_strides = problem.GetOut().GetStrides();
@@ -216,9 +217,15 @@ struct CKArgs
         miopen_in_strides.insert(miopen_in_strides.begin(), C);
         miopen_out_strides.insert(miopen_out_strides.begin(), K);
         miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
+
         std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
         std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
         std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
+        */
+
+        in_strides  = { N*Hi*Wi*C,  Hi*Wi*C,  1,  Wi*C,  C};
+        out_strides = { N*Ho*Wo*K,  Ho*Wo*K,  1,  Wo*K,  K};
+        wei_strides = { K*Y*X*C,    Y*X*C,    1,  X*C,   C};
 
         filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                            ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
