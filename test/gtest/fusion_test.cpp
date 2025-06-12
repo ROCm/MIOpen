@@ -123,6 +123,9 @@ INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_FusionSetArg_FP16,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
-                                          testing::Values(miopenTensorNCHW)));
+                                          testing::Values(miopenTensorNCHW),
+                                          testing::Values(0.25f),
+                                          testing::Values(0.75f),
+                                          testing::Values(0.5f)));
 
 #endif

@@ -289,7 +289,7 @@ protected:
         ASSERT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
         ASSERT_EQ(miopen::range_distance(ref_out), miopen::range_distance(output));
 
-        const double tolerance = 80;
+        const double tolerance = std::is_same_v<T, bfloat16> ? 4 : 80;
         double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
         auto error             = miopen::rms_range(ref_out, output);
 
