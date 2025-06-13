@@ -544,10 +544,9 @@ struct GridwiseReduction
                 ? static_cast<void*>(static_cast<char*>(ws_buf1_global) + ws_buf2_bytes_offset)
                 : nullptr;
 
-        if(warpSize == 32)
-        {
+
             ReductionMethod_t reduceImpl2 =
-            ReduceKernelSimpleConfigurator<BlockSize, 32>::GetReductionMethod(
+            ReduceKernelSimpleConfigurator<BlockSize>::GetReductionMethod(
                 Number<invariantLength>{}, Number<toReduceLength>{});
 
             using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl2, false, true>;
@@ -562,29 +561,7 @@ struct GridwiseReduction
                 const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(p_dst_global)),
                 const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(nullptr)),
                 static_cast<int* const __restrict__>(ws_buf2_global),
-                static_cast<int* const __restrict__>(indices_global));
-        }
-        else
-        {
-            ReductionMethod_t reduceImpl2 =
-            ReduceKernelSimpleConfigurator<BlockSize, 64>::GetReductionMethod(
-                Number<invariantLength>{}, Number<toReduceLength>{});
-
-            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl2, false, true>;
-
-            gridwise_2d_reduce{}.Run(
-                workspace_2d_desc,
-                one_dim_dstDesc,
-                type_convert<srcDataType>{}(alpha),
-                const_cast<const srcDataType* const __restrict__>(
-                    static_cast<srcDataType*>(ws_buf1_global)),
-                type_convert<dstDataType>{}(beta),
-                const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(p_dst_global)),
-                const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(nullptr)),
-                static_cast<int* const __restrict__>(ws_buf2_global),
-                static_cast<int* const __restrict__>(indices_global));
-        }
-        
+                static_cast<int* const __restrict__>(indices_global));        
     };
 };
 

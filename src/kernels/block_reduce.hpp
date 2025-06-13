@@ -55,14 +55,14 @@ __device__ FLOAT_ACCUM block_reduce_warp(FLOAT_ACCUM val)
     const uint64_t lane = tid % WARP_SIZE;
     const uint64_t wid  = tid / WARP_SIZE;
 
-    val = warp_reduce_updated<Op>(val);
+    val = warp_reduce<Op>(val);
     if(lane == 0)
         shared[wid] = val;
     __syncthreads();
 
     val = tid < reduce_size / WARP_SIZE ? shared[lane] : 0;
     if(wid == 0)
-        val = warp_reduce_updated<Op>(val);
+        val = warp_reduce<Op>(val);
     return val;
 }
 
@@ -70,7 +70,7 @@ template <BinaryOp_t Op, uint64_t reduce_size, ReduceThreadDim thread_dim>
 __device__ FLOAT_ACCUM block_reduce(FLOAT_ACCUM val)
 {
     if(reduce_size == warpSize)
-        return warp_reduce_updated<Op>(val);
+        return warp_reduce<Op>(val);
 
     if(warpSize == 32)
     {
