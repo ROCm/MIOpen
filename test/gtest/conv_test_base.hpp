@@ -37,7 +37,7 @@ using Direction = miopen::conv::Direction;
 
 struct GroupConvTestConfigBase
 {
-    virtual ~GroupConvTestConfigBase() = default; // Virtual destructor for polymorphism
+    virtual ~GroupConvTestConfigBase() = default;
 };
 
 template <unsigned NDIM>

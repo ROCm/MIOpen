@@ -710,6 +710,7 @@ GetSolutionForDimensionality(const FusionContext& ctx,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryFwdNCHW<NDimSpatial,
+                                                false,
                                              DeviceOpGFwdBiasReluPtrs<NDimSpatial,
                                                                       T,
                                                                       typename Layouts::InLayout,
@@ -721,7 +722,7 @@ GetSolutionForDimensionality(const FusionContext& ctx,
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGFwdBiasReluPtrs<NDimSpatial,
+            return InitInvokerFactoryNHWC<false,DeviceOpGFwdBiasReluPtrs<NDimSpatial,
                                                                    T,
                                                                    typename Layouts::InLayout,
                                                                    typename Layouts::WeiLayout,
