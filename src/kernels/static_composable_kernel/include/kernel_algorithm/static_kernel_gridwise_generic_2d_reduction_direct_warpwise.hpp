@@ -127,14 +127,13 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             if(warpSize == 32)
             {
                 threadwise_src_load.MoveSrcSliceWindow(
-                Sequence<0, 32 * GredAccessesPerThreadInWarp>{}, True);
+                    Sequence<0, 32 * GredAccessesPerThreadInWarp>{}, True);
             }
             else
             {
                 threadwise_src_load.MoveSrcSliceWindow(
-                Sequence<0, 64 * GredAccessesPerThreadInWarp>{}, True);
+                    Sequence<0, 64 * GredAccessesPerThreadInWarp>{}, True);
             }
-            
         }
 
         posUnaryOp{}(accuValue);
@@ -247,16 +246,16 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             indexOffset += warpSize * GredAccessesPerThreadInWarp;
 
             constexpr auto True = integral_constant<bool, true>{};
-;
+            ;
             if(warpSize == 32)
             {
                 threadwise_src_load.MoveSrcSliceWindow(
-                Sequence<0, 32 * GredAccessesPerThreadInWarp>{}, True);
+                    Sequence<0, 32 * GredAccessesPerThreadInWarp>{}, True);
             }
             else
             {
                 threadwise_src_load.MoveSrcSliceWindow(
-                Sequence<0, 64 * GredAccessesPerThreadInWarp>{}, True);
+                    Sequence<0, 64 * GredAccessesPerThreadInWarp>{}, True);
             }
         }
 
@@ -370,12 +369,12 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             if(warpSize == 32)
             {
                 threadwise_src_load.MoveSrcSliceWindow(
-                Sequence<0, 32 * GredAccessesPerThreadInWarp>{}, True);
+                    Sequence<0, 32 * GredAccessesPerThreadInWarp>{}, True);
             }
             else
             {
                 threadwise_src_load.MoveSrcSliceWindow(
-                Sequence<0, 64 * GredAccessesPerThreadInWarp>{}, True);
+                    Sequence<0, 64 * GredAccessesPerThreadInWarp>{}, True);
             }
         }
 
