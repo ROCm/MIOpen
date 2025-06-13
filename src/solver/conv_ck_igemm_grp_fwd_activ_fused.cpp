@@ -126,17 +126,17 @@ struct CKArgs
         out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
         wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
         strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                       ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                   ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
-                       ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
+                    ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
         lPadding    = {ProblemInterpreter::GetInputLeftPadH(problem),
-                       ProblemInterpreter::GetInputLeftPadW(problem)};
+                    ProblemInterpreter::GetInputLeftPadW(problem)};
         rPadding    = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
-                       ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+                    ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
 
-    CKArgs(const CKArgs&)            = default;
-    CKArgs(CKArgs&&)                 = default;
+    CKArgs(const CKArgs&) = default;
+    CKArgs(CKArgs&&)      = default;
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
