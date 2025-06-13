@@ -130,11 +130,11 @@ extern "C" __global__ void gridwise_generic_reduce_1_prepare(int GridSize,
     constexpr int invariantLen = 1;
     const auto toReduceLen     = src2dDesc.GetLength(Number<1>{});
 
-    constexpr auto copySliceLen = WarpSize * GredAccessesPerThreadInWarp;
+    auto copySliceLen = warpSize * GredAccessesPerThreadInWarp;
 
     if constexpr(src2d_need_padding)
     {
-        const auto srcPad1 = GridSize * BlockSize / WarpSize - invariantLen;
+        const auto srcPad1 = GridSize * BlockSize / warpSize - invariantLen;
         const auto srcPad2 =
             ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
 
@@ -155,7 +155,7 @@ extern "C" __global__ void gridwise_generic_reduce_1_prepare(int GridSize,
 
     if constexpr(dst1d_need_padding)
     {
-        const auto dstPad = GridSize * BlockSize / WarpSize - invariantLen;
+        const auto dstPad = GridSize * BlockSize / warpSize - invariantLen;
         auto dst1dDesc_2 =
             transform_tensor_descriptor(dstDesc,
                                         make_tuple(make_pad_transform(invariantLen, 0, dstPad)),
