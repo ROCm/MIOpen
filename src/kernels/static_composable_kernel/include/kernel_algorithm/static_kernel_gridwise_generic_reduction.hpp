@@ -181,7 +181,7 @@ struct GridwiseReduction
 
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
-            auto copySliceLen = warpSize * GredAccessesPerThreadInWarp;
+            const auto copySliceLen = warpSize * GredAccessesPerThreadInWarp;
             bool src_need_padding =
                 (invariantLen < GridSize * BlockSize / warpSize || toReduceLen % copySliceLen > 0)
                     ? true
@@ -543,7 +543,6 @@ struct GridwiseReduction
             ws_buf2_bytes_offset > 0
                 ? static_cast<void*>(static_cast<char*>(ws_buf1_global) + ws_buf2_bytes_offset)
                 : nullptr;
-
 
             ReductionMethod_t reduceImpl2 =
             ReduceKernelSimpleConfigurator<BlockSize>::GetReductionMethod(
