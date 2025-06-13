@@ -60,6 +60,12 @@
 #define dO_TYPE float
 #endif
 
+  #if defined(__GFX8__) || defined(__GFX9__)
+    #define WarpSize 64
+  #else
+    #define WarpSize 32
+  #endif
+
 namespace {
 constexpr float plus_op(float a, float b) { return a + b; };
 constexpr float fmaxf_op(float a, float b) { return fmaxf(a, b); };
@@ -74,19 +80,6 @@ __forceinline__ __device__ float atomicMaxOfNonNegative(float* addr, float value
     // cppcheck-suppress invalidPointerCast
     return __int_as_float(atomicMax(reinterpret_cast<int32_t*>(addr), __float_as_int(value)));
     // NOLINTEND
-}
-
-template <typename Op, uint32_t SWIZZLE_SIZE = WARP_SIZE>
-__forceinline__ __device__ float reductionFullWarpUpdated(float reduced_val, uint32_t laneId, Op op)
-{
-    if(warpSize == 32)
-    {
-        return reductionFullWarp<32, Op, SWIZZLE_SIZE>(reduced_val, laneId, op);
-    }
-    else
-    {
-        return reductionFullWarp<64, Op, SWIZZLE_SIZE>(reduced_val, laneId, op);
-    }
 }
 
 template <uint32_t WARP_SIZE, typename Op, uint32_t SWIZZLE_SIZE = WARP_SIZE>
@@ -149,13 +142,11 @@ template <uint32_t NumWarps, typename Op>
 __forceinline__ __device__ float
 reductionBlock(float local_val, Op op, uint32_t lid, uint32_t laneId, uint32_t warpId)
 {
-#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
-    static_assert(NumWarps <= warpSize);
-#endif
+    static_assert(NumWarps <= WarpSize);
     static_assert((NumWarps & (NumWarps - 1)) == 0, "NumWarps must be a power of 2");
     __shared__ float reduction_tmp[NumWarps];
 
-    float reduced_val = reductionFullWarpUpdated(local_val, laneId, op);
+    float reduced_val = reductionFullWarp<WarpSize>(local_val, laneId, op);
     if(laneId == 0)
         reduction_tmp[warpId] = reduced_val;
     __syncthreads();
@@ -223,13 +214,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                 uint32_t seq_len,
                 uint64_t nhs)
 {
-#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
-    static_assert(THREADS % warpSize == 0);
-#endif
-    uint32_t NumWarps = THREADS / warpSize;
+    static_assert(THREADS % WarpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / WarpSize;
     const uint32_t lid          = threadIdx.x;
-    const uint32_t laneId       = lid % warpSize;
-    const uint32_t warpId       = lid / warpSize;
+    const uint32_t laneId       = lid % WarpSize;
+    const uint32_t warpId       = lid / WarpSize;
     const float descaler        = (descale_Q ? *descale_Q : 1.0f) * (descale_K ? *descale_K : 1.0f);
     const float dropout         = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
     const float scaler          = (scale_S ? *scale_S : 1.0f) / (1.0f - dropout);
@@ -255,11 +244,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
         if(bias)
             local_val -= *(bias + gid * seq_len + laneId);
 
-        float r_max = reductionFullWarpUpdated(local_val, laneId, fmaxf_op);
+        float r_max = reductionFullWarp<WarpSize>(local_val, laneId, fmaxf_op);
 
         local_val = (laneId < seq_len) ? expf(local_val - r_max) : 0;
 
-        float r_sum = 1.0f / reductionFullWarpUpdated(local_val, laneId, fmaxf_op);
+        float r_sum = 1.0f / reductionFullWarp<WarpSize>(local_val, laneId, plus_op);
 
         local_val *= r_sum;
 
@@ -306,13 +295,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                  uint32_t seq_len,
                  uint64_t nhs)
 {
-#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
-    static_assert(THREADS % warpSize == 0);
-#endif
-    uint32_t NumWarps = THREADS / warpSize;
+    static_assert(THREADS % WarpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / WarpSize;
     const uint32_t lid          = threadIdx.x;
-    const uint32_t laneId       = lid % warpSize;
-    const uint32_t warpId       = lid / warpSize;
+    const uint32_t laneId       = lid % WarpSize;
+    const uint32_t warpId       = lid / WarpSize;
     const float descaler        = (descale_Q ? *descale_Q : 1.0f) * (descale_K ? *descale_K : 1.0f);
     const float dropout         = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
     const float scaler          = (scale_S ? *scale_S : 1.0f) / (1.0f - dropout);
@@ -389,13 +376,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                   uint32_t seq_len,
                   uint64_t nhs)
 {
-#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
-    static_assert(THREADS % warpSize == 0);
-#endif
-    constexpr uint32_t NumWarps = THREADS / warpSize;
+    static_assert(THREADS % WarpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / WarpSize;
     const uint32_t lid          = threadIdx.x;
-    const uint32_t laneId       = lid % warpSize;
-    const uint32_t warpId       = lid / warpSize;
+    const uint32_t laneId       = lid % WarpSize;
+    const uint32_t warpId       = lid / WarpSize;
     const float descaler        = (descale_Q ? *descale_Q : 1.0f) * (descale_K ? *descale_K : 1.0f);
     const float dropout         = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
     const float scaler          = (scale_S ? *scale_S : 1.0f) / (1.0f - dropout);
@@ -501,10 +486,10 @@ extern "C" __global__ void __launch_bounds__(THREADS)
         out_ptr += step;
     }
 
-    constexpr uint32_t NumWarps = THREADS / warpSize;
+    constexpr uint32_t NumWarps = THREADS / WarpSize;
     const uint32_t lid          = threadIdx.x;
-    const uint32_t laneId       = lid % warpSize;
-    const uint32_t warpId       = lid / warpSize;
+    const uint32_t laneId       = lid % WarpSize;
+    const uint32_t warpId       = lid / WarpSize;
 
     r_Amax = reductionBlock<NumWarps>(r_Amax, fmaxf_op, lid, laneId, warpId);
     if(lid == 0)
@@ -523,13 +508,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                        uint32_t d,
                        uint64_t nhs)
 {
-#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
-    static_assert(THREADS % warpSize == 0);
-#endif
-    constexpr uint32_t NumWarps = THREADS / warpSize;
+    static_assert(THREADS % WarpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / WarpSize;
     const uint32_t lid          = threadIdx.x;
-    const uint32_t laneId       = lid % warpSize;
-    const uint32_t warpId       = lid / warpSize;
+    const uint32_t laneId       = lid % WarpSize;
+    const uint32_t warpId       = lid / WarpSize;
     const float scaler          = (*descale_dO) * (*descale_O) * (1.0f - (*dropout_P));
 
     for(uint64_t gid = blockIdx.x * NumWarps + warpId; gid < nhs; gid += gridDim.x * NumWarps)
@@ -543,7 +526,7 @@ extern "C" __global__ void __launch_bounds__(THREADS)
             local_val = static_cast<float>(*dO_ptr) * static_cast<float>(*O_ptr) * scaler;
         }
 
-        local_val = reductionFullWarpUpdated(local_val, laneId, plus_op);
+        local_val = reductionFullWarp<WarpSize>(local_val, laneId, plus_op);
 
         if(laneId == 0)
         {
@@ -562,13 +545,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                         uint32_t d,
                         uint64_t nhs)
 {
-#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
-    static_assert(THREADS % warpSize == 0);
-#endif
-    constexpr uint32_t NumWarps = THREADS / warpSize;
+    static_assert(THREADS % WarpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / WarpSize;
     const uint32_t lid          = threadIdx.x;
-    const uint32_t laneId       = lid % warpSize;
-    const uint32_t warpId       = lid / warpSize;
+    const uint32_t laneId       = lid % WarpSize;
+    const uint32_t warpId       = lid / WarpSize;
     const float scaler          = (*descale_dO) * (*descale_O) * (1.0f - (*dropout_P));
 
     for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
@@ -601,13 +582,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                          uint32_t d,
                          uint64_t nhs)
 {
-#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
-    static_assert(THREADS % warpSize == 0);
-#endif
-    constexpr uint32_t NumWarps = THREADS / warpSize;
+    static_assert(THREADS % WarpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / WarpSize;
     const uint32_t lid          = threadIdx.x;
-    const uint32_t laneId       = lid % warpSize;
-    const uint32_t warpId       = lid / warpSize;
+    const uint32_t laneId       = lid % WarpSize;
+    const uint32_t warpId       = lid / WarpSize;
     const float scaler          = (*descale_dO) * (*descale_O) * (1.0f - (*dropout_P));
 
     for(uint64_t gid = blockIdx.x; gid < nhs; gid += gridDim.x)
@@ -653,13 +632,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                      uint32_t seq_len,
                      uint64_t nhs)
 {
-#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
-    static_assert(THREADS % warpSize == 0);
-#endif
-    constexpr uint32_t NumWarps = THREADS / warpSize;
+    static_assert(THREADS % WarpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / WarpSize;
     const uint32_t lid          = threadIdx.x;
-    const uint32_t laneId       = lid % warpSize;
-    const uint32_t warpId       = lid / warpSize;
+    const uint32_t laneId       = lid % WarpSize;
+    const uint32_t warpId       = lid / WarpSize;
 
     const float dropout            = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
     const float scaler_dropout     = 1.0f - dropout;
@@ -730,13 +707,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                       uint32_t seq_len,
                       uint64_t nhs)
 {
-#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
-    static_assert(THREADS % warpSize == 0);
-#endif
-    constexpr uint32_t NumWarps = THREADS / warpSize;
+    static_assert(THREADS % WarpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / WarpSize;
     const uint32_t lid          = threadIdx.x;
-    const uint32_t laneId       = lid % warpSize;
-    const uint32_t warpId       = lid / warpSize;
+    const uint32_t laneId       = lid % WarpSize;
+    const uint32_t warpId       = lid / WarpSize;
 
     const float dropout            = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
     const float scaler_dropout     = 1.0f - dropout;
@@ -806,13 +781,11 @@ extern "C" __global__ void __launch_bounds__(THREADS)
                        uint32_t seq_len,
                        uint64_t nhs)
 {
-#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
-    static_assert(THREADS % warpSize == 0);
-#endif
-    constexpr uint32_t NumWarps = THREADS / warpSize;
+    static_assert(THREADS % WarpSize == 0);
+    constexpr uint32_t NumWarps = THREADS / WarpSize;
     const uint32_t lid          = threadIdx.x;
-    const uint32_t laneId       = lid % warpSize;
-    const uint32_t warpId       = lid / warpSize;
+    const uint32_t laneId       = lid % WarpSize;
+    const uint32_t warpId       = lid / WarpSize;
 
     const float dropout            = (dropout_P && seed && offset) ? (*dropout_P) : 0.0f;
     const float scaler_dropout     = 1.0f - dropout;
