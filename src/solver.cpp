@@ -709,6 +709,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::Fusion,
              fusion::ConvCKIgemmGrpFwdBiasActivFused{}.SolverDbId(),
              miopenConvolutionAlgoImplicitGEMM);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvCKIgemmGrpFwdActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
 
     // removed CK MHA solver
     ++id;

@@ -34,7 +34,7 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/implicitgemm_ck_util.hpp>
-#include "ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_bias_clamp.hpp"
+#include "ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_clamp.hpp"
 #endif
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_ACTIV)
 
@@ -53,15 +53,25 @@ using OutLayout = ck::tensor_layout::convolution::NHWGK;
 
 using InElementOp  = ck::tensor_operation::element_wise::PassThrough;
 using WeiElementOp = ck::tensor_operation::element_wise::PassThrough;
-using OutElementOp = ck::tensor_operation::element_wise::AddClamp;
+using OutElementOp = ck::tensor_operation::element_wise::Clamp;
 
-// const auto GetOutElementOp = []() {
-//     const float floor = 0;
-//     const float ceil  = std::numeric_limits<ck::bhalf_t>::max();
-//     return GetActivationElementOp { floor, ceil }
-// };
+const auto in_element_op  = InElementOp{};
+const auto wei_element_op = WeiElementOp{};
 
-using OutElementOp = ck::tensor_operation::element_wise::AddClamp;
+OutElementOp GetOutElementOpClamp(const miopen::fusion::ActivationOpInvokeParam& activationOp)
+{
+    auto activationMode = activationOp.activMode;
+    switch(activationMode)
+    {
+    case miopenActivationRELU: return OutElementOp{0, std::numeric_limits<ck::bhalf_t>::max()};
+    case miopenActivationCLIPPEDRELU: return OutElementOp{0, activationOp.activAlpha};
+    case miopenActivationCLAMP:
+        return OutElementOp{activationOp.activAlpha, activationOp.activBeta};
+    default:
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Unsupported activation type: " + std::to_string(activationMode));
+    }
+}
 
 template <typename InDataType,
           typename WeiDataType,
@@ -72,11 +82,11 @@ using DeviceOpGFwdRelu =
     ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NDimSpatial,
                                                                   InLayout,
                                                                   WeiLayout,
-                                                                  ck::Tuple<OutLayout>,
+                                                                  ck::Tuple<>, // diff
                                                                   OutLayout,
                                                                   InDataType,
                                                                   WeiDataType,
-                                                                  ck::Tuple<OutDataType>,
+                                                                  ck::Tuple<>, // diff
                                                                   OutDataType,
                                                                   InElementOp,
                                                                   WeiElementOp,
@@ -157,8 +167,8 @@ struct CKArgs
                                              dilation,
                                              lPadding,
                                              rPadding,
-                                             {},
-                                             {},
+                                             in_element_op,
+                                             wei_element_op,
                                              clampOp);
     }
 
@@ -179,7 +189,7 @@ struct CKArgs
                           data_ctx.out,
                           conv_param.alpha,
                           conv_param.beta,
-                          GetActivationElementOp(activ_param));
+                          GetOutElementOpClamp(activ_param));
     }
 
     template <typename ConvPtr>
@@ -375,16 +385,14 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
     {
         MIOPEN_THROW(miopenStatusInternalError, "desc.op_map.empty()");
     }
-    if(desc.op_map.size() != 3)
+    if(desc.op_map.size() != 2)
         return false;
     if(desc.op_map[0]->kind() != miopenFusionOpConvForward)
         return false;
-    if(desc.op_map[1]->kind() != miopenFusionOpBiasForward)
-        return false;
-    if(desc.op_map[2]->kind() != miopenFusionOpActivForward)
+    if(desc.op_map[1]->kind() != miopenFusionOpActivForward)
         return false;
     const auto& activationType =
-        dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[2]).activMode;
+        dynamic_cast<ActivFwdFusionOpDescriptor&>(*desc.op_map[1]).activMode;
     if(activationType != miopenActivationRELU && activationType != miopenActivationCLIPPEDRELU &&
        activationType != miopenActivationCLAMP)
         return false;

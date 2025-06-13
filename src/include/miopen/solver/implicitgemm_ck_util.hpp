@@ -1193,25 +1193,5 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
 #endif
 }
 
-inline ck::tensor_operation::element_wise::AddClamp
-GetActivationElementOp(const miopen::fusion::ActivationOpInvokeParam& activationOp)
-{
-    auto activationMode = activationOp.activMode;
-    switch(activationMode)
-    {
-    case miopenActivationRELU:
-        return ck::tensor_operation::element_wise::AddClamp{
-            0, std::numeric_limits<ck::bhalf_t>::max()};
-    case miopenActivationCLIPPEDRELU:
-        return ck::tensor_operation::element_wise::AddClamp{0, activationOp.activAlpha};
-    case miopenActivationCLAMP:
-        return ck::tensor_operation::element_wise::AddClamp{activationOp.activAlpha,
-                                                            activationOp.activBeta};
-    default:
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "Unsupported activation type: " + std::to_string(activationMode));
-    }
-}
-
 } // namespace solver
 } // namespace miopen
