@@ -54,7 +54,11 @@ protected:
 
         cfsb::SetUpImpl(conv_config, tensor_layout);
         activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
-        bias       = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
+        int dim    = cfsb::output.desc.GetNumDims() - 2;
+        if(dim == 3)
+            bias = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1, 1};
+        else
+            bias = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
         bias.generate(tensor_elem_gen_integer{3});
         auto&& handle = get_handle();
         std::fill(
@@ -79,16 +83,16 @@ protected:
         if(test_skipped)
             return;
         conv_stats stats;
-        // cfsb::TearDownConv();
-        // cpu_bias_forward(cfsb::ref_out, bias);
+        cfsb::TearDownConv();
+        cpu_bias_forward(cfsb::ref_out, bias);
 
-        // activationHostInfer(activ_mode,
-        //                     activ_gamma,
-        //                     activ_beta,
-        //                     activ_alpha,
-        //                     cfsb::ref_out.data,
-        //                     cfsb::ref_out.data);
-        // cfsb::ThresholdChecks();
+        activationHostInfer(activ_mode,
+                            activ_gamma,
+                            activ_beta,
+                            activ_alpha,
+                            cfsb::ref_out.data,
+                            cfsb::ref_out.data);
+        cfsb::ThresholdChecks();
     }
     TestCaseType conv_config;
     miopen::ActivationDescriptor activ_desc;

@@ -51,9 +51,8 @@ using InElementOp  = ck::tensor_operation::element_wise::PassThrough;
 using WeiElementOp = ck::tensor_operation::element_wise::PassThrough;
 using OutElementOp = ck::tensor_operation::element_wise::AddClamp;
 
-const auto in_element_op  = InElementOp{};
-const auto wei_element_op = WeiElementOp{};
-// const auto out_element_op = OutElementOp{floor, ceil};
+const auto in_element_op   = InElementOp{};
+const auto wei_element_op  = WeiElementOp{};
 const auto GetOutElementOp = []() {
     const float floor = 0;
     const float ceil  = std::numeric_limits<ck::bhalf_t>::max();
@@ -71,7 +70,6 @@ inline auto Get2DLayouts()
     return Layouts{};
 }
 
-// Helper function for 3D layouts
 inline auto Get3DLayouts()
 {
     struct Layouts
@@ -142,8 +140,8 @@ template <ck::index_t NDimSpatial,
           typename InElemOp,
           typename WeiElemOp,
           typename OutElemOp,
-          typename ACompType, // Removed default value
-          typename BCompType> // Removed default value
+          typename ACompType,
+          typename BCompType>
 struct ConvTraits<ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NDimSpatial,
                                                                                 InLayout,
                                                                                 WeiLayout,
@@ -160,29 +158,22 @@ struct ConvTraits<ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
                                                                                 BCompType>>
 {
     static constexpr ck::index_t NDim = NDimSpatial;
-    using InputDataType               = InDataT;
-    using WeightDataType              = WeiDataT;
-    using OutputDataType              = OutDataT;
-    using InputElementOpType          = InElemOp;
-    using WeightElementOpType         = WeiElemOp;
-    using OutputElementOpType         = OutElemOp;
-    using AComputeType                = ACompType;
-    using BComputeType                = BCompType;
+    // using BComputeType                = BCompType;
+    // ..
 };
 struct CKArgs
 {
     CKArgs(const miopen::conv::ProblemDescription& problem)
     {
-        G            = ProblemInterpreter::GetGroupCountG(problem);
-        N            = ProblemInterpreter::GetBatchN(problem);
-        K1           = ProblemInterpreter::GetOutputChannelK(problem);
-        C1           = ProblemInterpreter::GetInputChannelC(problem);
-        C            = C1 / G; // Number of input Channel per group
-        K            = K1 / G; // Number of output Channel per group
+        G  = ProblemInterpreter::GetGroupCountG(problem);
+        N  = ProblemInterpreter::GetBatchN(problem);
+        K1 = ProblemInterpreter::GetOutputChannelK(problem);
+        C1 = ProblemInterpreter::GetInputChannelC(problem);
+        C  = C1 / G; // Number of input Channel per group
+        K  = K1 / G; // Number of output Channel per group
 
         if(problem.Is3d())
         {
-            // 3d case
             Di = ProblemInterpreter::GetInputDepthDi(problem);
             Do = ProblemInterpreter::GetOutputDepthDo(problem);
             Z  = ProblemInterpreter::GetFilterDepthZ(problem);
@@ -190,6 +181,8 @@ struct CKArgs
             Wi = ProblemInterpreter::GetInputWidthWi(problem);
             Ho = ProblemInterpreter::GetOutputHeightHo(problem);
             Wo = ProblemInterpreter::GetOutputWidthWo(problem);
+            Y  = ProblemInterpreter::GetFilterHeightY(problem);
+            X  = ProblemInterpreter::GetFilterWidthX(problem);
 
             in_lens      = {G, N, C, Di, Hi, Wi};
             out_lens     = {G, N, K, Do, Ho, Wo};
@@ -231,7 +224,20 @@ struct CKArgs
             in_lens      = {G, N, C, Hi, Wi};
             out_lens     = {G, N, K, Ho, Wo};
             wei_lens     = {G, K, C, Y, X};
-            bias_strides = {K, 0, 0, 0, 1};
+            bias_strides = {K, 0, 1, 0, 0};
+
+            // in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
+            // out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
+            // wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+            auto miopen_in_strides  = problem.GetIn().GetStrides();
+            auto miopen_out_strides = problem.GetOut().GetStrides();
+            auto miopen_wei_strides = problem.GetWeights().GetStrides();
+            miopen_in_strides.insert(miopen_in_strides.begin(), C);
+            miopen_out_strides.insert(miopen_out_strides.begin(), K);
+            miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
+            std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
+            std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
+            std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                              ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
@@ -242,17 +248,6 @@ struct CKArgs
             rPadding        = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                         ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
         }
-
-        // Handle strides dynamically
-        auto miopen_in_strides  = problem.GetIn().GetStrides();
-        auto miopen_out_strides = problem.GetOut().GetStrides();
-        auto miopen_wei_strides = problem.GetWeights().GetStrides();
-        miopen_in_strides.insert(miopen_in_strides.begin(), C);
-        miopen_out_strides.insert(miopen_out_strides.begin(), K);
-        miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
-        std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-        std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
-        std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
     }
 
     CKArgs(const CKArgs&) = default;
@@ -270,9 +265,7 @@ struct CKArgs
     {
         (void)alpha;
         (void)beta;
-        using ConvType          = std::remove_reference_t<decltype(*conv_ptr)>;
-        using Traits            = ConvTraits<ConvType>;
-        constexpr int dim       = Traits::NDim;
+        constexpr int dim       = ConvTraits<std::remove_reference_t<decltype(*conv_ptr)>>::NDim;
         constexpr bool is3DConv = (dim == 3);
 
         if constexpr(is3DConv)
@@ -301,18 +294,14 @@ struct CKArgs
         else
         {
 
-            // lens
             std::array<ck::index_t, 5> adjusted_in_lens{};
             std::array<ck::index_t, 5> adjusted_out_lens{};
             std::array<ck::index_t, 5> adjusted_wei_lens{};
-            // std::array<ck::index_t, 5> adjusted_bias_lens{};
 
             std::copy(in_lens.begin(), in_lens.begin() + 5, adjusted_in_lens.begin());
             std::copy(out_lens.begin(), out_lens.begin() + 5, adjusted_out_lens.begin());
             std::copy(wei_lens.begin(), wei_lens.begin() + 5, adjusted_wei_lens.begin());
-            // std::copy(bias_lens.begin(), bias_lens.begin() + 5, adjusted_bias_lens.begin());
 
-            // strides
             std::array<ck::index_t, 5> adjusted_in_strides{};
             std::array<ck::index_t, 5> adjusted_out_strides{};
             std::array<ck::index_t, 5> adjusted_wei_strides{};
@@ -321,13 +310,11 @@ struct CKArgs
             std::copy(out_strides.begin(), out_strides.begin() + 5, adjusted_out_strides.begin());
             std::copy(wei_strides.begin(), wei_strides.begin() + 5, adjusted_wei_strides.begin());
 
-            // convs
             std::array<ck::index_t, 2> adjusted_filter_stride{};
             std::array<ck::index_t, 2> adjusted_filter_dilation{};
             std::array<ck::index_t, 2> adjusted_lPadding{};
             std::array<ck::index_t, 2> adjusted_rPadding{};
 
-            // Copy filter parameters for 2D
             std::copy(
                 filter_stride.begin(), filter_stride.begin() + 2, adjusted_filter_stride.begin());
             std::copy(filter_dilation.begin(),
@@ -360,61 +347,61 @@ struct CKArgs
         }
     }
 
-        template <typename DevOpPtr>
-        auto MakeArgPtr(const DevOpPtr& op_ptr, const miopen::fusion::FusionInvokeParams& data_ctx)
-            const
-        {
-            const auto& conv_param = dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(
-                *data_ctx.op_args.params[0]);
-            assert(&conv_param);
+    template <typename DevOpPtr>
+    auto MakeArgPtr(const DevOpPtr& op_ptr,
+                    const miopen::fusion::FusionInvokeParams& data_ctx) const
+    {
+        const auto& conv_param =
+            dynamic_cast<miopen::fusion::ConvolutionOpInvokeParam&>(*data_ctx.op_args.params[0]);
+        assert(&conv_param);
 
-            const auto& bias_param =
-                dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
-            assert(&bias_param);
+        const auto& bias_param =
+            dynamic_cast<miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
+        assert(&bias_param);
 
-            return MakeArgPtr(op_ptr,
-                              data_ctx.in,
-                              conv_param.weights,
-                              bias_param.bdata,
-                              data_ctx.out,
-                              conv_param.alpha,
-                              conv_param.beta);
-        }
+        return MakeArgPtr(op_ptr,
+                          data_ctx.in,
+                          conv_param.weights,
+                          bias_param.bdata,
+                          data_ctx.out,
+                          conv_param.alpha,
+                          conv_param.beta);
+    }
 
-        template <typename ConvPtr>
-        bool IsSupportedBy(const ConvPtr& conv_ptr) const
-        {
-            auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
-            return conv_ptr->IsSupportedArgument(arg_ptr.get());
-        }
+    template <typename ConvPtr>
+    bool IsSupportedBy(const ConvPtr& conv_ptr) const
+    {
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+        return conv_ptr->IsSupportedArgument(arg_ptr.get());
+    }
 
-        int G;
-        int N;
-        int K1;
-        int C1;
-        int K;
-        int C;
-        int Hi;
-        int Wi;
-        int Ho;
-        int Wo;
-        int Y;
-        int X;
-        int Di = 0; // Depth for 3D
-        int Do = 0; // Depth for 3D
-        int Z  = 0; // Filter depth for 3D
-        std::array<ck::index_t, 6> in_lens;
-        std::array<ck::index_t, 6> in_strides;
-        std::array<ck::index_t, 6> out_lens;
-        std::array<ck::index_t, 6> out_strides;
-        std::array<ck::index_t, 6> wei_lens;
-        std::array<ck::index_t, 6> wei_strides;
-        // std::array<ck::index_t, 6> bias_lens;
-        std::array<ck::index_t, 6> bias_strides;
-        std::array<ck::index_t, 3> filter_stride;
-        std::array<ck::index_t, 3> filter_dilation;
-        std::array<ck::index_t, 3> lPadding;
-        std::array<ck::index_t, 3> rPadding;
+    int G;
+    int N;
+    int K1;
+    int C1;
+    int K;
+    int C;
+    int Hi;
+    int Wi;
+    int Ho;
+    int Wo;
+    int Y;
+    int X;
+    int Di = 0; // Depth for 3D
+    int Do = 0; // Depth for 3D
+    int Z  = 0; // Filter depth for 3D
+    std::array<ck::index_t, 6> in_lens;
+    std::array<ck::index_t, 6> in_strides;
+    std::array<ck::index_t, 6> out_lens;
+    std::array<ck::index_t, 6> out_strides;
+    std::array<ck::index_t, 6> wei_lens;
+    std::array<ck::index_t, 6> wei_strides;
+    // std::array<ck::index_t, 6> bias_lens;
+    std::array<ck::index_t, 6> bias_strides;
+    std::array<ck::index_t, 3> filter_stride;
+    std::array<ck::index_t, 3> filter_dilation;
+    std::array<ck::index_t, 3> lPadding;
+    std::array<ck::index_t, 3> rPadding;
 };
 } // namespace
 
@@ -757,6 +744,13 @@ ConvSolution GetSolutionWithDim(const FusionContext& ctx,
     case miopenBFloat16:
         return GetSolutionForDimensionality<NDim, ck::bhalf_t>(ctx, conv_problem, config);
     case miopenHalf:
+    case miopenFloat:
+    case miopenInt8:
+    case miopenInt64:
+    case miopenInt32:
+    case miopenFloat8_fnuz:
+    case miopenBFloat8_fnuz:
+    case miopenDouble:
     default: MIOPEN_THROW("Unsupported datatype");
     }
 }

@@ -119,10 +119,12 @@ struct GroupConvTestConfig<2u> : GroupConvTestConfigBase
             1.0};
     }
 
+    template <Direction DIR>
     static std::vector<GroupConvTestConfig> GetConfigs()
     {
-
-        // clang-format off
+        if constexpr(DIR == Direction::Forward)
+        {
+            // clang-format off
         return {
             // g   n     C     K      img       filter   pad    stride  dilation
               {1,  64,  1024, 2048, {14, 14},   {1, 1}, {0, 0}, {2, 2}, {1, 1}},
@@ -140,7 +142,8 @@ struct GroupConvTestConfig<2u> : GroupConvTestConfigBase
               {1,  6,   448,  896,  {118, 182}, {1, 1}, {0, 0}, {2, 2}, {1, 1}},
               {4,  16,  224,  224,  {469, 724}, {3, 3}, {1, 1}, {2, 2}, {1, 1}},
         };
-        // clang-format on
+            // clang-format on
+        }
     }
 };
 
@@ -382,7 +385,6 @@ protected:
         const double tolerance = 80;
         double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
         auto error             = miopen::rms_range(ref_out, output);
-
         ASSERT_LT(miopen::find_idx(ref_out, miopen::not_finite), 0)
             << "Non finite number found in the CPU data";
 
