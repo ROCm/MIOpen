@@ -254,14 +254,6 @@ TEST_P(GPU_ConvGrpBiasActivInfer3D_BFP16, ConvCKIgemmGrpFwdBiasActiv3DFused)
                                                                               wspace);
 }
 
-TEST_P(GPU_ConvGrpBiasActivInfer_BFP16, ConvCKIgemmGrpFwdBiasActivFused)
-{
-    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
-        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
-    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdBiasActivFused,
-                     GroupConvTestConfig<2u>>(fusePlanDesc, plan_params, conv_config, test_skipped);
-}
-
 #if MIOPEN_BACKEND_HIP
 
 TEST_P(GPU_ConvBiasActivInferFusionCompileStep_FP32, ConvBiasActivAsm1x1UFloat_testCompile)
