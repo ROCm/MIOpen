@@ -69,7 +69,7 @@ Summary of base_args meant for different datatypes and different operations:
 | CBAInfer             | ? | ? | ? |   
 | pool                 | ✓ | ✓ | x |
 | lrn                  | ✓ | ✓ | x |
-| active               | ✓ | ✓ | x |
+| activ                | ✓ | ✓ | x |
 | softmax              | ✓ | ✓ | x |
 | bnorm                | ✓ | ✓ | ✓ |
 | rnn                  | ✓ | ✓ | x |
