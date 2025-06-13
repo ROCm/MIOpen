@@ -60,11 +60,11 @@
 #define dO_TYPE float
 #endif
 
-  #if defined(__GFX8__) || defined(__GFX9__)
-    #define WarpSize 64
-  #else
-    #define WarpSize 32
-  #endif
+#if defined(__GFX8__) || defined(__GFX9__)
+#define WarpSize 64
+#else
+#define WarpSize 32
+#endif
 
 namespace {
 constexpr float plus_op(float a, float b) { return a + b; };

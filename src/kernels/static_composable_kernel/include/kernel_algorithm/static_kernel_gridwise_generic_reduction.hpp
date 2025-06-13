@@ -181,7 +181,7 @@ struct GridwiseReduction
 
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
-            const auto copySliceLen = warpSize * GredAccessesPerThreadInWarp;
+            const auto copySliceLen     = warpSize * GredAccessesPerThreadInWarp;
             bool src_need_padding =
                 (invariantLen < GridSize * BlockSize / warpSize || toReduceLen % copySliceLen > 0)
                     ? true
@@ -544,23 +544,23 @@ struct GridwiseReduction
                 ? static_cast<void*>(static_cast<char*>(ws_buf1_global) + ws_buf2_bytes_offset)
                 : nullptr;
 
-            ReductionMethod_t reduceImpl2 =
-            ReduceKernelSimpleConfigurator<BlockSize>::GetReductionMethod(
-                Number<invariantLength>{}, Number<toReduceLength>{});
+        ReductionMethod_t reduceImpl2 =
+            ReduceKernelSimpleConfigurator<BlockSize>::GetReductionMethod(Number<invariantLength>{},
+                                                                          Number<toReduceLength>{});
 
-            using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl2, false, true>;
+        using gridwise_2d_reduce = GridwiseReduction_2d_wrapper<reduceImpl2, false, true>;
 
-            gridwise_2d_reduce{}.Run(
-                workspace_2d_desc,
-                one_dim_dstDesc,
-                type_convert<srcDataType>{}(alpha),
-                const_cast<const srcDataType* const __restrict__>(
-                    static_cast<srcDataType*>(ws_buf1_global)),
-                type_convert<dstDataType>{}(beta),
-                const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(p_dst_global)),
-                const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(nullptr)),
-                static_cast<int* const __restrict__>(ws_buf2_global),
-                static_cast<int* const __restrict__>(indices_global));        
+        gridwise_2d_reduce{}.Run(
+            workspace_2d_desc,
+            one_dim_dstDesc,
+            type_convert<srcDataType>{}(alpha),
+            const_cast<const srcDataType* const __restrict__>(
+                static_cast<srcDataType*>(ws_buf1_global)),
+            type_convert<dstDataType>{}(beta),
+            const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(p_dst_global)),
+            const_cast<dstDataType* const __restrict__>(static_cast<dstDataType*>(nullptr)),
+            static_cast<int* const __restrict__>(ws_buf2_global),
+            static_cast<int* const __restrict__>(indices_global));
     };
 };
 
