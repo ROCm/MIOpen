@@ -16,7 +16,8 @@ struct ReduceKernelSimpleConfigurator
     static constexpr index_t numWarpsPerBlock = BlockSize / MIOPEN_WARP_SIZE;
 
     template <index_t invariantLength, index_t toReduceLength>
-    __device__ static constrexpr index_t GetGridSize(Number<invariantLength>, Number<toReduceLength>)
+    __device__ static constrexpr index_t GetGridSize(Number<invariantLength>,
+                                                     Number<toReduceLength>)
     {
         if(toReduceLength <= MIOPEN_WARP_SIZE / 4) // let one thread to do each reduction
             return ((invariantLength + BlockSize - 1) / BlockSize);

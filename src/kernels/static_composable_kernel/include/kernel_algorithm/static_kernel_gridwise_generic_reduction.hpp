@@ -183,9 +183,10 @@ struct GridwiseReduction
 
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
-            constexpr auto copySliceLen     = MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp;
+            constexpr auto copySliceLen = MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp;
             constexpr bool src_need_padding =
-                (invariantLen < GridSize * BlockSize / MIOPEN_WARP_SIZE || toReduceLen % copySliceLen > 0)
+                (invariantLen < GridSize * BlockSize / MIOPEN_WARP_SIZE ||
+                 toReduceLen % copySliceLen > 0)
                     ? true
                     : false;
             constexpr auto srcPad1 = GridSize * BlockSize / MIOPEN_WARP_SIZE - invariantLen;

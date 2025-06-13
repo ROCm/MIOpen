@@ -27,9 +27,9 @@
 #define MIOPEN_WARP_SIZE_HPP_
 
 #if defined(__GFX8__) || defined(__GFX9__)
-    #define MIOPEN_WARP_SIZE 64
+#define MIOPEN_WARP_SIZE 64
 #else
-    #define MIOPEN_WARP_SIZE 32
+#define MIOPEN_WARP_SIZE 32
 #endif
 
 #endif // MIOPEN_WARP_SIZE_HPP_

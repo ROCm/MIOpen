@@ -239,8 +239,8 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             indexOffset += MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp;
 
             constexpr auto True = integral_constant<bool, true>{};
-                threadwise_src_load.MoveSrcSliceWindow(
-                    Sequence<0, MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp>{}, True);
+            threadwise_src_load.MoveSrcSliceWindow(
+                Sequence<0, MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp>{}, True);
         }
 
         using ReducedDataLengths       = Sequence<1>;
