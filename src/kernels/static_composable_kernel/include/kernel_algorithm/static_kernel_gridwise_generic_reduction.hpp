@@ -38,6 +38,8 @@
 #include "static_kernel_gridwise_generic_2d_reduction_blockwise.hpp"
 #include "static_kernel_gridwise_generic_2d_reduction_multiblock.hpp"
 
+#include "miopen_warp_size.hpp"
+
 namespace ck {
 
 template <index_t BlkGroupSize,
@@ -181,12 +183,12 @@ struct GridwiseReduction
 
             constexpr auto invariantLen = src2dDesc::GetLengths()[0];
             constexpr auto toReduceLen  = src2dDesc::GetLengths()[1];
-            const auto copySliceLen     = warpSize * GredAccessesPerThreadInWarp;
-            bool src_need_padding =
-                (invariantLen < GridSize * BlockSize / warpSize || toReduceLen % copySliceLen > 0)
+            constexpr auto copySliceLen     = MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp;
+            constexpr bool src_need_padding =
+                (invariantLen < GridSize * BlockSize / MIOPEN_WARP_SIZE || toReduceLen % copySliceLen > 0)
                     ? true
                     : false;
-            auto srcPad1 = GridSize * BlockSize / warpSize - invariantLen;
+            constexpr auto srcPad1 = GridSize * BlockSize / MIOPEN_WARP_SIZE - invariantLen;
             constexpr auto srcPad2 =
                 ((toReduceLen + copySliceLen - 1) / copySliceLen) * copySliceLen - toReduceLen;
 
@@ -201,8 +203,8 @@ struct GridwiseReduction
                 typename std::conditional<src_need_padding, decltype(src2dDesc_2), src2dDesc>::type;
 
             constexpr auto dst_need_padding =
-                (invariantLen < GridSize * BlockSize / warpSize) ? true : false;
-            constexpr auto dstPad = GridSize * BlockSize / warpSize - invariantLen;
+                (invariantLen < GridSize * BlockSize / MIOPEN_WARP_SIZE) ? true : false;
+            constexpr auto dstPad = GridSize * BlockSize / MIOPEN_WARP_SIZE - invariantLen;
 
             constexpr auto dst1dDesc_2 = transform_tensor_descriptor(
                 dst1dDesc{},
@@ -544,7 +546,7 @@ struct GridwiseReduction
                 ? static_cast<void*>(static_cast<char*>(ws_buf1_global) + ws_buf2_bytes_offset)
                 : nullptr;
 
-        ReductionMethod_t reduceImpl2 =
+        constexpr ReductionMethod_t reduceImpl2 =
             ReduceKernelSimpleConfigurator<BlockSize>::GetReductionMethod(Number<invariantLength>{},
                                                                           Number<toReduceLength>{});
 
