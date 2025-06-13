@@ -40,3 +40,5 @@ typedef __hip_internal::int64_t int64_t;
 #else
 #include <cstdint> // int8_t, int16_t
 #endif
+
+__device__ static constexpr int WarpSize = 64;

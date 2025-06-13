@@ -194,9 +194,9 @@ struct WarpReduce
         // synchronize among all threads in this warp
         __all(1);
 
-        for(index_t stride = warpSize / 2; stride > 0; stride /= 2)
+        for(index_t stride = WarpSize / 2; stride > 0; stride /= 2)
         {
-            compType tmpVal = __shfl_down(lAccuData, stride, warpSize);
+            compType tmpVal = __shfl_down(lAccuData, stride, WarpSize);
             binop::calculate(lAccuData, tmpVal);
             __all(1);
         }
@@ -219,18 +219,18 @@ struct WarpReduce
         __syncthreads();
 
         index_t thread_id        = get_thread_local_1d_id();
-        index_t warpId           = thread_id / warpSize;
-        index_t thread_inwarp_id = thread_id % warpSize;
+        index_t warpId           = thread_id / WarpSize;
+        index_t thread_inwarp_id = thread_id % WarpSize;
 
         __shared__ compType shuffle_buffer[BlockSize];
 
-        compType* myBuffer = &shuffle_buffer[warpId * warpSize];
+        compType* myBuffer = &shuffle_buffer[warpId * WarpSize];
 
         myBuffer[thread_inwarp_id] = lAccuData;
 
         __syncthreads();
 
-        for(index_t stride = warpSize / 2; stride > 0; stride /= 2)
+        for(index_t stride = WarpSize / 2; stride > 0; stride /= 2)
         {
             if(thread_inwarp_id < stride)
             {
@@ -266,7 +266,7 @@ struct WarpReduce
     {
         compType lAccuData       = opReduce::GetZeroVal();
         int lAccuIndex           = 0;
-        index_t thread_inwarp_id = get_thread_local_1d_id() % warpSize;
+        index_t thread_inwarp_id = get_thread_local_1d_id() % WarpSize;
 
         for(index_t i = 0; i < ThreadBufferLen; i++)
         {
@@ -278,10 +278,10 @@ struct WarpReduce
         // synchronize among all threads in this warp
         __all(1);
 
-        for(index_t stride = 1; stride < warpSize; stride *= 2)
+        for(index_t stride = 1; stride < WarpSize; stride *= 2)
         {
-            compType tmpVal = __shfl_down(lAccuData, stride, warpSize);
-            int tmpIndex    = __shfl_down(lAccuIndex, stride, warpSize);
+            compType tmpVal = __shfl_down(lAccuData, stride, WarpSize);
+            int tmpIndex    = __shfl_down(lAccuIndex, stride, WarpSize);
 
             binop::calculate(lAccuData, tmpVal, lAccuIndex, tmpIndex);
             __all(1);
@@ -301,8 +301,8 @@ struct WarpReduce
         compType lAccuData       = opReduce::GetZeroVal();
         int lAccuIndex           = 0;
         index_t thread_id        = get_thread_local_1d_id();
-        index_t warpId           = thread_id / warpSize;
-        index_t thread_inwarp_id = thread_id % warpSize;
+        index_t warpId           = thread_id / WarpSize;
+        index_t thread_inwarp_id = thread_id % WarpSize;
 
         for(index_t i = 0; i < ThreadBufferLen; i++)
         {
@@ -314,15 +314,15 @@ struct WarpReduce
         __shared__ compType shuffle_data_buffer[BlockSize];
         __shared__ int shuffle_indices_buffer[BlockSize];
 
-        compType* myDataBuffer = &shuffle_data_buffer[warpId * warpSize];
-        int* myIndicesBuffer   = &shuffle_indices_buffer[warpId * warpSize];
+        compType* myDataBuffer = &shuffle_data_buffer[warpId * WarpSize];
+        int* myIndicesBuffer   = &shuffle_indices_buffer[warpId * WarpSize];
 
         myDataBuffer[thread_inwarp_id]    = lAccuData;
         myIndicesBuffer[thread_inwarp_id] = lAccuIndex;
 
         __syncthreads();
 
-        for(index_t stride = 1; stride < warpSize; stride *= 2)
+        for(index_t stride = 1; stride < WarpSize; stride *= 2)
         {
             compType currVal1 = myDataBuffer[thread_inwarp_id];
             compType currVal2 = myDataBuffer[thread_inwarp_id + stride];
@@ -374,10 +374,10 @@ struct WarpReduce
         // synchronize among all threads in this warp
         __all(1);
 
-        for(index_t stride = 1; stride < warpSize; stride *= 2)
+        for(index_t stride = 1; stride < WarpSize; stride *= 2)
         {
-            compType tmpVal = __shfl_down(lAccuData, stride, warpSize);
-            int tmpIndex    = __shfl_down(lAccuIndex, stride, warpSize);
+            compType tmpVal = __shfl_down(lAccuData, stride, WarpSize);
+            int tmpIndex    = __shfl_down(lAccuIndex, stride, WarpSize);
 
             binop::calculate(lAccuData, tmpVal, lAccuIndex, tmpIndex);
             __all(1);
@@ -396,8 +396,8 @@ struct WarpReduce
         compType lAccuData       = opReduce::GetZeroVal();
         int lAccuIndex           = 0;
         index_t thread_id        = get_thread_local_1d_id();
-        index_t warpId           = thread_id / warpSize;
-        index_t thread_inwarp_id = thread_id % warpSize;
+        index_t warpId           = thread_id / WarpSize;
+        index_t thread_inwarp_id = thread_id % WarpSize;
 
         for(index_t i = 0; i < ThreadBufferLen; i++)
         {
@@ -409,15 +409,15 @@ struct WarpReduce
         __shared__ compType shuffle_data_buffer[BlockSize];
         __shared__ int shuffle_indices_buffer[BlockSize];
 
-        compType* myDataBuffer = &shuffle_data_buffer[warpId * warpSize];
-        int* myIndicesBuffer   = &shuffle_indices_buffer[warpId * warpSize];
+        compType* myDataBuffer = &shuffle_data_buffer[warpId * WarpSize];
+        int* myIndicesBuffer   = &shuffle_indices_buffer[warpId * WarpSize];
 
         myDataBuffer[thread_inwarp_id]    = lAccuData;
         myIndicesBuffer[thread_inwarp_id] = lAccuIndex;
 
         __syncthreads();
 
-        for(index_t stride = 1; stride < warpSize; stride *= 2)
+        for(index_t stride = 1; stride < WarpSize; stride *= 2)
         {
             compType currVal1 = myDataBuffer[thread_inwarp_id];
             compType currVal2 = myDataBuffer[thread_inwarp_id + stride];

@@ -47,7 +47,7 @@ struct BinaryFunc<BinaryOp_t::Add, T>
     constexpr void exec(T& a, const T& b) { a += b; }
 };
 
-template <BinaryOp_t Op, uint32_t ws = warpSize>
+template <BinaryOp_t Op, uint32_t ws = WarpSize>
 __device__ FLOAT_ACCUM warp_reduce(FLOAT_ACCUM val)
 {
     for(auto d = ws / 2; d >= 1; d >>= 1)
