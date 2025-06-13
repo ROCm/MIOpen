@@ -30,6 +30,7 @@
 #include "data_type_enum_helper.hpp"
 #include "reduction_common.hpp"
 #include "gridwise_generic_2d_reduction_direct_warpwise.hpp"
+#include "miopen_warp_size.hpp"
 
 using namespace ck;
 
