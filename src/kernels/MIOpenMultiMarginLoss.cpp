@@ -27,8 +27,9 @@
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #endif
-#include "float_types.h"
+#include "miopen_cstdint.hpp"
 
+#include "float_types.h"
 #include "tensor_view.hpp"
 
 template <typename DTYPE, int REDUCTION_T>
