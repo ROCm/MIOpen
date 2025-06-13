@@ -208,11 +208,19 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::Values(0.75f),
                                           testing::Values(0.5f)));
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    GPU_ConvGrpBiasActivInfer_BFP16,
+    testing::Combine(testing::Values(miopenActivationRELU, miopenActivationCLIPPEDRELU),
+                     testing::ValuesIn(GroupConvTestConfig<2>::GetSmokeConfigs()),
+                     testing::Values(miopenTensorNHWC),
+                     testing::Values(0.5f),
+                     testing::Values(1.0f),
+                     testing::Values(0.5f)));
+
+INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_ConvGrpBiasActivInfer_BFP16,
-                         testing::Combine(testing::Values(miopenActivationRELU,
-                                                          miopenActivationCLIPPEDRELU,
-                                                          miopenActivationCLAMP),
+                         testing::Combine(testing::Values(miopenActivationCLAMP),
                                           testing::ValuesIn(GroupConvTestConfig<2>::GetConfigs()),
                                           testing::Values(miopenTensorNHWC),
                                           testing::Values(0.5f),

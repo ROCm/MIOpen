@@ -114,6 +114,19 @@ struct GroupConvTestConfig<2u>
             1.0};
     }
 
+    static std::vector<GroupConvTestConfig> GetSmokeConfigs()
+    {
+        return {
+            // clang-format off
+            // g   n    C    K    img         filter    pad     stride  dilation
+            {1,   32,   64,  128, {28, 28},   {3, 3},   {0, 1}, {1, 2}, {2, 1}},
+            {32,  16,   32,   64,  {7, 7},    {3, 3},   {1, 1}, {1, 1}, {1, 1}},
+            {1,   16,   32,   64, {16, 16},   {2, 2},   {0, 0}, {3, 3}, {1, 1}},
+            {4,    8,   16,   32, {32, 4},    {3, 1},   {1, 0}, {1, 1}, {1, 1}},
+            // clang-format on
+        };
+    }
+
     static std::vector<GroupConvTestConfig> GetConfigs()
     {
 
@@ -289,9 +302,14 @@ protected:
         ASSERT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
         ASSERT_EQ(miopen::range_distance(ref_out), miopen::range_distance(output));
 
-        const double tolerance = std::is_same_v<T, bfloat16> ? 4 : 80;
-        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-        auto error             = miopen::rms_range(ref_out, output);
+        double tolerance = 80;
+        if constexpr(std::is_same_v<T, bfloat16>)
+        {
+            tolerance = 4;
+        }
+
+        double threshold = std::numeric_limits<T>::epsilon() * tolerance;
+        auto error       = miopen::rms_range(ref_out, output);
 
         ASSERT_LT(miopen::find_idx(ref_out, miopen::not_finite), 0)
             << "Non finite number found in the CPU data";
