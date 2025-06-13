@@ -127,7 +127,8 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             src2dDesc,
             make_multi_index(warp_global_1d_id, thread_inwarp_id * GredAccessesPerThreadInWarp));
 
-        constexpr auto in_thread_copy_step = make_multi_index(0, MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp);
+        constexpr auto in_thread_copy_step =
+            make_multi_index(0, MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp);
 
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp)
@@ -439,7 +440,8 @@ struct GridwiseReduction_xy_to_x_direct_warpwise
             src2dDesc,
             make_multi_index(warp_global_1d_id, thread_inwarp_id * GredAccessesPerThreadInWarp));
 
-        constexpr auto in_thread_copy_step = make_multi_index(0, MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp);
+        constexpr auto in_thread_copy_step =
+            make_multi_index(0, MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp);
 
         for(index_t reducedLength = 0; reducedLength < toReduceLength;
             reducedLength += MIOPEN_WARP_SIZE * GredAccessesPerThreadInWarp)
