@@ -8,7 +8,7 @@ static bool IsEnvEnabled(const char* pEnv)
     const char* env_val = std::getenv(pEnv);
     if (env_val == nullptr)
     {
-        return false;
+        return true;
     }
 
     std::string value(env_val);

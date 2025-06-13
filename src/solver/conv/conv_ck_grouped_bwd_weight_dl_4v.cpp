@@ -136,16 +136,18 @@ void ReadCacheFile()
     }
 }
 
-void AppandToCache(CacheData cd)
+void AppendToCache(CacheData cd)
 {
-    if (DirectCkMgr::GetInst()->enableConvCache == false) return;
+    if (DirectCkMgr::GetInst()->enableConvCache == false)   return;
+    if (cd.hashcode == 0x48d7fb2d2182270c)                  return;
+
     std::lock_guard<std::mutex> lock(s_fileMutex);
 
     s_cacheTable[cd.hashcode] = cd;
 
     std::ofstream outfile(exp_path, std::ios::app);
     if (outfile.is_open()) {
-        MIOPEN_LOG_I("AppandToCache hash "<< std::setw(16) << std::setfill('0') << cd.hashcode << " to " << exp_path);
+        MIOPEN_LOG_I("AppendToCache hash "<< std::setw(16) << std::setfill('0') << cd.hashcode << " to " << exp_path);
     } else {
         MIOPEN_LOG_E("Failed to create or open Qun conv cache file. " << exp_path);
         MIOPEN_LOG_E("Error: " << std::strerror(errno));
@@ -414,7 +416,7 @@ struct CKArgs
 
 ConvQunConvBwd::ConvQunConvBwd()
 {
-    const std::string filename = ".config/miopen/conv_qun_conv_cache.txt";
+    const std::string filename = ".config/miopen/dck_conv_cache.txt";
     exp_path = filename;
     exp_path = std::filesystem::path(std::getenv("HOME")) / filename;
     std::filesystem::create_directories(exp_path.parent_path());
@@ -751,7 +753,7 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
     {
         cd.kernelhash = DirectCkMgr::GetInst()->GetStringHash(best_kernel);
         MIOPEN_LOG_I("*** ^ best kernel ^*** " << std::hex << cd.kernelhash);
-        AppandToCache(cd);
+        AppendToCache(cd);
     }
 
     return sol;
