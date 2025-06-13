@@ -820,6 +820,21 @@ ConvTensors GetTensors(const CastType& data_ctx)
     }
 }
 
+template <typename DataType, typename OutElemOp>
+OutElemOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activationOp)
+{
+    auto activationMode = activationOp.activMode;
+    switch(activationMode)
+    {
+    case miopenActivationRELU: return OutElemOp{0, std::numeric_limits<DataType>::max()};
+    case miopenActivationCLIPPEDRELU: return OutElemOp{0, activationOp.activAlpha};
+    case miopenActivationCLAMP: return OutElemOp{activationOp.activAlpha, activationOp.activBeta};
+    default:
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Unsupported activation type: " + std::to_string(activationMode));
+    }
+}
+
 template <typename DeviceOpType, typename CKArgsType, typename CastType>
 std::unique_ptr<ck::tensor_operation::device::BaseArgument>
 MakeNCHWCKArgPtr(const CKArgsType& ck_args,
@@ -840,15 +855,22 @@ MakeNCHWCKArgPtr(const CKArgsType& ck_args,
             dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
         assert(&bias_param);
 
+        const auto& activ_param =
+            dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[2]);
+        assert(&activ_param);
+
         ConstData_t bias_buf = bias_param.bdata;
 
-        argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                          tr_ptrs[0]->GetBufferPtr(),
-                                          tr_ptrs[1]->GetBufferPtr(),
-                                          bias_buf,
-                                          tr_ptrs[2]->GetBufferPtr(),
-                                          conv_param.alpha,
-                                          conv_param.beta);
+        argument_ptr = ck_args.MakeArgPtr(
+            sh_conv_ptr,
+            tr_ptrs[0]->GetBufferPtr(),
+            tr_ptrs[1]->GetBufferPtr(),
+            bias_buf,
+            tr_ptrs[2]->GetBufferPtr(),
+            conv_param.alpha,
+            conv_param.beta,
+            GetOutElementOp<typename CKArgsType::OutputDataType,
+                            typename CKArgsType::OutputElementOpType>(activ_param));
     }
     else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
     {
@@ -901,16 +923,23 @@ MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
             dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
         assert(&bias_param);
 
+        const auto& activ_param =
+            dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[2]);
+        assert(&activ_param);
+
         ConstData_t weight_buf = conv_param.weights;
         ConstData_t bias_buf   = bias_param.bdata;
 
-        argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                          data_ctx.in,
-                                          weight_buf,
-                                          bias_buf,
-                                          data_ctx.out,
-                                          conv_param.alpha,
-                                          conv_param.beta);
+        argument_ptr = ck_args.MakeArgPtr(
+            sh_conv_ptr,
+            data_ctx.in,
+            weight_buf,
+            bias_buf,
+            data_ctx.out,
+            conv_param.alpha,
+            conv_param.beta,
+            GetOutElementOp<typename CKArgsType::OutputDataType,
+                            typename CKArgsType::OutputElementOpType>(activ_param));
     }
     else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
     {

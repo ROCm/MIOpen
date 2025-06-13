@@ -65,13 +65,14 @@ struct TensorScaleAddOpInvokeParam : public FusionOpInvokeParamBase
 
 struct ActivationOpInvokeParam : FusionOpInvokeParamBase
 {
-    ActivationOpInvokeParam(double alpha, double beta, double gamma)
-        : activAlpha(alpha), activBeta(beta), activGamma(gamma)
+    ActivationOpInvokeParam(double alpha, double beta, double gamma, miopenActivationMode_t mode)
+        : activAlpha(alpha), activBeta(beta), activGamma(gamma), activMode(mode)
     {
     }
     double activAlpha;
     double activBeta;
     double activGamma;
+    miopenActivationMode_t activMode = miopenActivationRELU;
 };
 
 struct ActivationBwdOpInvokeParam : FusionOpInvokeParamBase
