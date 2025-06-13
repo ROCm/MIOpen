@@ -772,7 +772,8 @@ ZeroOutTensor(const Handle& handle, const TensorDescriptor& tensorDesc, Data_t t
 template <typename CastType>
 Data_t GetWorkspacePointer(const CastType& data_ctx)
 {
-    if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams> || std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
+    if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams> ||
+                 std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
     {
         return data_ctx.workSpace;
     }
@@ -839,13 +840,13 @@ MakeNCHWCKArgPtr(const CKArgsType& ck_args,
             dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
         assert(&bias_param);
 
-        ConstData_t bias_buf   = bias_param.bdata;
+        ConstData_t bias_buf = bias_param.bdata;
 
         argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                         tr_ptrs[0]->GetBufferPtr(),
-                                         tr_ptrs[1]->GetBufferPtr(),
+                                          tr_ptrs[0]->GetBufferPtr(),
+                                          tr_ptrs[1]->GetBufferPtr(),
                                           bias_buf,
-                                        tr_ptrs[2]->GetBufferPtr(),
+                                          tr_ptrs[2]->GetBufferPtr(),
                                           conv_param.alpha,
                                           conv_param.beta);
     }
