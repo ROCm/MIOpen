@@ -436,7 +436,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip All gfx90a') {
+                stage('Fp32 Hip All gfx90a Inline') {
                     when {
                         beforeAgent true
                         expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
