@@ -36,6 +36,8 @@
 #include "util_driver.hpp"
 
 #include "../test/verify.hpp"
+#include "../test/cpu_conv.hpp"
+#include "../test/cpu_bias.hpp"
 
 #include <miopen/env.hpp>
 #include <miopen/handle.hpp>
@@ -96,10 +98,13 @@ public:
 
         workspace_fwd_dev = nullptr;
 
-        data_type = (sizeof(Tgpu) == 4) ? miopenFloat : miopenHalf;
+        InitDataType<Tgpu>();
         initTiming();
         iters = 0;
     }
+
+    void ValidateLayoutInputParameters(std::string layout_type);
+    int ChkLayout_ShortName();
 
     int AddCmdLineArgs() override;
     int ParseCmdLineArgs(int argc, char* argv[]) override;
@@ -244,11 +249,13 @@ private:
     std::vector<Tgpu> conv_res;
     std::vector<Tgpu> bn_res;
     std::vector<Tref> in_host;
+    std::vector<Tref> wei_host;
     std::vector<Tref> conv_res_host;
     std::vector<Tref> bn_res_host;
     std::vector<Tref> out_host;
     std::vector<Tgpu> scale;
     std::vector<Tgpu> bias;
+    std::vector<Tref> bias_host;
     std::vector<Tgpu> runningMean;
     std::vector<Tgpu> runningVariance;
 
@@ -265,9 +272,89 @@ private:
 };
 
 template <typename Tgpu, typename Tref>
+int CBAInferFusionDriver<Tgpu, Tref>::ChkLayout_ShortName()
+{
+    // check for short name of layout type
+    if((inflags.FindShortName("in_layout") == 'I') &&
+       (inflags.FindShortName("out_layout") == 'O') && (inflags.FindShortName("fil_layout") == 'f'))
+    {
+        // do noting
+        // found valid short names
+        return 0;
+    }
+    else
+    {
+        std::cerr << "Error:Invalid Short Name!" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+}
+
+template <typename Tgpu, typename Tref>
+void CBAInferFusionDriver<Tgpu, Tref>::ValidateLayoutInputParameters(std::string layout_value)
+{
+    if((ChkLayout_ShortName()))
+    {
+        std::cerr << " Invalid Layout Short Name = " << ChkLayout_ShortName() << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    else
+    {
+        if((layout_value.compare("NCHW") == 0) || (layout_value.compare("NHWC") == 0) ||
+           (layout_value.compare("CHWN") == 0) || (layout_value.compare("NCDHW") == 0) ||
+           (layout_value.compare("NDHWC") == 0))
+        {
+            // do nothing,Values are matching as defined in Lib.
+        }
+        else
+        {
+            std::cerr << "Invalid Layout Parameter Value - " << layout_value << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
+
+    // todo: get spatial dimension from cmd line
+    int spatial_dim = 2;
+
+    const std::string default_layout = (spatial_dim == 2) ? "NCHW" : "NCDHW";
+
+    if(inflags.GetValueStr("in_layout").empty())
+    {
+        inflags.SetValue("in_layout", default_layout);
+    }
+    else
+    {
+        std::string in_layoutValue = inflags.GetValueStr("in_layout");
+        ValidateLayoutInputParameters(in_layoutValue);
+        inflags.SetValue("in_layout", in_layoutValue);
+    }
+    // fil layout argument value check
+    if(inflags.GetValueStr("fil_layout").empty())
+    {
+        inflags.SetValue("fil_layout", default_layout);
+    }
+    else
+    {
+        std::string fil_layoutValue = inflags.GetValueStr("fil_layout");
+        ValidateLayoutInputParameters(fil_layoutValue);
+        inflags.SetValue("fil_layout", fil_layoutValue);
+    }
+    // out layout argument check
+    if(inflags.GetValueStr("out_layout").empty())
+    {
+        inflags.SetValue("out_layout", default_layout);
+    }
+    else
+    {
+        std::string out_layoutValue = inflags.GetValueStr("out_layout");
+        ValidateLayoutInputParameters(out_layoutValue);
+        inflags.SetValue("out_layout", out_layoutValue);
+    }
 
     if(inflags.GetValueInt("time") == 1)
     {
@@ -311,8 +398,10 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetActivationDescriptorFromCmdLineArgs()
 template <typename Tgpu, typename Tref>
 std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
 {
-    int wei_n = inflags.GetValueInt("out_channels");
-    int wei_c = inflags.GetValueInt("in_channels");
+    int wei_n       = inflags.GetValueInt("out_channels");
+    int group_count = inflags.GetValueInt("group_count");
+    int wei_c       = inflags.GetValueInt("in_channels") / group_count;
+    ;
     int wei_h = inflags.GetValueInt("fil_h");
     int wei_w = inflags.GetValueInt("fil_w");
 
@@ -330,11 +419,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     std::vector<int> in_len  = GetInputTensorLengthsFromCmdLine();
     std::vector<int> wei_len = GetWeightTensorLengthsFromCmdLine();
 
-    SetTensor4d(inputTensor, in_len, data_type);
+    SetTensorNdVector(
+        inputTensor, in_len, StringToLayoutType(inflags.GetValueStr("in_layout")), data_type);
 
     miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor);
 
-    SetTensor4d(weightTensor, wei_len, data_type);
+    SetTensorNdVector(
+        weightTensor, wei_len, StringToLayoutType(inflags.GetValueStr("fil_layout")), data_type);
 
     std::vector<int> out_len{};
     if(fusion_mode != miopen_fusion_na)
@@ -345,12 +436,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
     {
         out_len = in_len;
     }
-    SetTensor4d(outputTensor, out_len, data_type);
+    SetTensorNdVector(
+        outputTensor, out_len, StringToLayoutType(inflags.GetValueStr("out_layout")), data_type);
 
     if(bias_mode)
     {
         std::vector<int> b_len{1, out_len[1], 1, 1};
-        SetTensor4d(biasTensor, b_len, data_type);
+        SetTensorNd(biasTensor, b_len, data_type);
     }
 
     return miopenStatusSuccess;
@@ -359,6 +451,24 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
+    inflags.AddInputFlag("in_layout",
+                         'I',
+                         "",
+                         "Input Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string",
+                         true);
+    inflags.AddInputFlag("out_layout",
+                         'O',
+                         "",
+                         "Output Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string",
+                         true);
+    inflags.AddInputFlag("fil_layout",
+                         'f',
+                         "",
+                         "Filter Layout (Default=NCHW for 2d conv, NCDHW for 3d conv)",
+                         "string",
+                         true);
     inflags.AddInputFlag("batchsize", 'n', "32", "Mini-batch size (Default=32)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
@@ -611,9 +721,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         size_t b_sz = GetTensorSize(biasTensor);
         b_dev       = std::make_unique<GPUMem>(ctx, b_sz, sizeof(Tgpu));
         b           = std::vector<Tgpu>(b_sz, static_cast<Tgpu>(0));
+        bias_host   = std::vector<Tref>(b_sz, static_cast<Tref>(0));
         for(int i = 0; i < b_sz; i++)
         {
-            b[i] = prng::gen_canonical<Tgpu>();
+            b[i]         = prng::gen_canonical<Tgpu>();
+            bias_host[i] = static_cast<Tref>(b[i]);
         }
         status |= b_dev->ToGPU(q, b.data());
     }
@@ -656,6 +768,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 
     // CPU allocation
     in_host       = std::vector<Tref>(in_sz, static_cast<Tref>(0));
+    wei_host      = std::vector<Tref>(wei_sz, static_cast<Tref>(0));
     conv_res_host = std::vector<Tref>(out_sz, static_cast<Tref>(0));
     out_host      = std::vector<Tref>(out_sz, static_cast<Tref>(0));
 
@@ -679,9 +792,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         for(int i = 0; i < wei_sz; i++)
         {
 #if(CBA_DEBUG_VALUES == 1)
-            wei[i] = 1.; // prng::gen_canonical<Tgpu>(); // 1.;
+            auto rval   = 1.; // prng::gen_canonical<Tgpu>(); // 1.;
+            wei[i]      = static_cast<double>(rval);
+            wei_host[i] = rval;
 #else
-            wei[i] = prng::gen_canonical<Tgpu>();
+            auto rval = prng::gen_canonical<Tgpu>();
+            wei_host[i] = static_cast<double>(rval);
+            wei[i] = rval;
 #endif
         }
         status |= wei_dev->ToGPU(q, wei.data());
@@ -1051,16 +1168,41 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
 {
-    ConvForwardCPU<Tgpu, Tref>(in_host,
-                               fusion_mode != miopen_fusion_cb ? conv_res_host
-                                                               : out_host, // dlowell 6 or 5???
-                               wei,
-                               b,
-                               bias_mode,
-                               convDesc,
-                               inputTensor,
-                               weightTensor,
-                               outputTensor);
+    tensor<Tref> in_local_host;
+    tensor<Tref> wei_local_host;
+    tensor<Tref> outhost_local_host;
+
+    in_local_host.desc      = miopen::deref(inputTensor);
+    wei_local_host.desc     = miopen::deref(weightTensor);
+    outhost_local_host.desc = miopen::deref(outputTensor);
+
+    in_local_host.data  = in_host;
+    wei_local_host.data = wei_host;
+    outhost_local_host.data.resize(outhost_local_host.desc.GetElementSpace());
+    cpu_convolution_forward(miopen::deref(convDesc).GetSpatialDimension(),
+                            in_local_host,
+                            wei_local_host,
+                            outhost_local_host,
+                            miopen::deref(convDesc).GetConvPads(),
+                            miopen::deref(convDesc).GetConvStrides(),
+                            miopen::deref(convDesc).GetConvDilations(),
+                            miopen::deref(convDesc).GetGroupCount());
+    if(bias_mode)
+    {
+        tensor<Tref> bias_local_host(miopen::deref(biasTensor).GetLengths(),
+                                     miopen::deref(biasTensor).GetStrides());
+        bias_local_host.data = bias_host;
+        cpu_bias_forward(outhost_local_host, bias_local_host);
+    }
+
+    if(fusion_mode != miopen_fusion_cb)
+    {
+        conv_res_host = outhost_local_host.data;
+    }
+    else
+    {
+        out_host = outhost_local_host.data;
+    }
 
     return;
 }
@@ -1122,13 +1264,13 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
     MIOPEN_LOG_I("Fusion mode: " << fusion_mode);
     if(fusion_mode != miopen_fusion_na)
     {
-        std::cout << "Running CPU fwd convolution." << std::endl;
+        std::cout << "Running CPU fwd convolution and/or bias." << std::endl;
         runCPUConvFwdInference();
     }
 
     if(useBatchNorm)
     {
-        // std::cout << "Running CPU fwd batch normalization." << std::endl;
+        std::cout << "Running CPU fwd batch normalization." << std::endl;
         runCPUBNFwdInference();
     }
 
@@ -1137,7 +1279,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
         std::cout << "Running CPU fwd activation." << std::endl;
         runCPUActivFwdInference();
     }
-
     return miopenStatusSuccess;
 }
 
