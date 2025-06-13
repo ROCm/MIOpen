@@ -436,6 +436,24 @@ pipeline {
                         }
                     }
                 }
+                stage('Fp32 Hip All gfx90a') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX90A && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx90a") }
+                    environment{
+                      fin_flags = "-DMIOPEN_BUILD_CK=ON"
+                    }
+                    steps{
+                        script {
+                            utils.buildHipClangJobAndReboot(setup_flags: Full_test)
+                        }
+                    }
+                }
                 stage('Fp32 Hip All gfx94X') {
                     when {
                         beforeAgent true
