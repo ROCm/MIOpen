@@ -114,6 +114,19 @@ struct GroupConvTestConfig<2u>
             1.0};
     }
 
+    static std::vector<GroupConvTestConfig> GetSmokeConfigs()
+    {
+        return {
+            // clang-format off
+            // g   n    C    K    img         filter    pad     stride  dilation
+            {1,   32,   64,  128, {28, 28},   {3, 3},   {0, 1}, {1, 2}, {2, 1}},
+            {32,  16,   32,   64,  {7, 7},    {3, 3},   {1, 1}, {1, 1}, {1, 1}},
+            {1,   16,   32,   64, {16, 16},   {2, 2},   {0, 0}, {3, 3}, {1, 1}},
+            {4,    8,   16,   32, {32, 4},    {3, 1},   {1, 0}, {1, 1}, {1, 1}},
+            // clang-format on
+        };
+    }
+
     static std::vector<GroupConvTestConfig> GetConfigs()
     {
 
