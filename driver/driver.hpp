@@ -137,6 +137,28 @@ struct GPUMem
         return static_cast<int>(hipMemcpy(p, buf, GetSize(), hipMemcpyDeviceToHost));
     }
 
+    template <typename Tgpu>
+    status_t FillBufferWithNans(miopenHandle_t handle, const miopenTensorDescriptor_t tensorDesc)
+    {
+        // In the past we have had some issues with incorrect results due to Nans in the output
+        // buffers.  In order to test the clearing of the output buffers, you can
+        // init the buffers with NaNs.
+
+        if(std::is_same<Tgpu, int8_t>::value)
+        {
+            // ints dont have Nan so use max value.
+            Tgpu max = std::numeric_limits<Tgpu>::max();
+            miopenSetTensor(handle, tensorDesc, GetMem(), &max);
+        }
+        else
+        {
+            Tgpu nan = std::numeric_limits<Tgpu>::quiet_NaN();
+            miopenSetTensor(handle, tensorDesc, GetMem(), &nan);
+        }
+
+        return STATUS_SUCCESS;
+    }
+
     void* GetMem() { return buf; }
     size_t GetSize() { return sz * data_sz; }
 
@@ -201,7 +223,8 @@ class GpumemTensor
 {
     std::unique_ptr<GPUMem> dev;
     tensor<Tgpu> host;
-    bool is_gpualloc = false;
+    bool is_gpualloc         = false;
+    bool init_gpu_output_nan = false;
 
 public:
     void SetGpuallocMode(bool v) { is_gpualloc = v; }
@@ -260,6 +283,11 @@ public:
             if(do_write)
                 GetVector()[i] = val;
         }
+    }
+
+    status_t FillGpuBufferWithNans(miopenHandle_t handle, const miopenTensorDescriptor_t tensorDesc)
+    {
+        return dev->FillBufferWithNans<Tgpu>(handle, tensorDesc);
     }
 
     status_t
