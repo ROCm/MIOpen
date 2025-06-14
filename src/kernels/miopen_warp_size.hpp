@@ -23,13 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef MIOPEN_WARP_SIZE_HPP_
-#define MIOPEN_WARP_SIZE_HPP_
+#pragma once
 
 #if defined(__GFX8__) || defined(__GFX9__)
 #define MIOPEN_WARP_SIZE 64
 #else
 #define MIOPEN_WARP_SIZE 32
 #endif
-
-#endif // MIOPEN_WARP_SIZE_HPP_
