@@ -292,6 +292,7 @@ set( MIOpen_Source
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_bin_winoRxS_fused.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
+    solver/conv_ck_igemm_grp_fwd_bias_activ_fused.cpp
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
@@ -491,6 +492,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/miopen_rocrand.hpp
         kernels/miopen_type_traits.hpp
         kernels/miopen_utility.hpp
+        kernels/miopen_warp_size.hpp
         kernels/neuron.inc
         kernels/radix.hpp
         kernels/rocm_version.inc

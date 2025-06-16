@@ -34,10 +34,10 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR)
 
@@ -48,24 +48,6 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-template <typename DataType>
-using DeviceOpGBwd = ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
-    2,
-    ck::tensor_layout::convolution::NHWGK,
-    ck::tensor_layout::convolution::GKYXC,
-    ck::Tuple<>,
-    ck::tensor_layout::convolution::NHWGC,
-    DataType,
-    DataType,
-    ck::Tuple<>,
-    DataType,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough>;
-
-template <typename DataType>
-using DeviceOpGBwdPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGBwd<DataType>>;
 
 namespace {
 
@@ -73,18 +55,20 @@ struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
     {
-        G  = ProblemInterpreter::GetGroupCountG(problem);
-        N  = ProblemInterpreter::GetBatchN(problem);
-        K1 = ProblemInterpreter::GetOutputChannelK(problem);
-        C1 = ProblemInterpreter::GetInputChannelC(problem);
-        C  = C1 / G; // Number of input Channel per group
-        K  = K1 / G; // Number of output Channel per group
-        Hi = ProblemInterpreter::GetInputHeightHi(problem);
-        Wi = ProblemInterpreter::GetInputWidthWi(problem);
-        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
-        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
-        Y  = ProblemInterpreter::GetFilterHeightY(problem);
-        X  = ProblemInterpreter::GetFilterWidthX(problem);
+        G               = ProblemInterpreter::GetGroupCountG(problem);
+        N               = ProblemInterpreter::GetBatchN(problem);
+        K1              = ProblemInterpreter::GetOutputChannelK(problem);
+        C1              = ProblemInterpreter::GetInputChannelC(problem);
+        C               = C1 / G; // Number of input Channel per group
+        K               = K1 / G; // Number of output Channel per group
+        Hi              = ProblemInterpreter::GetInputHeightHi(problem);
+        Wi              = ProblemInterpreter::GetInputWidthWi(problem);
+        Ho              = ProblemInterpreter::GetOutputHeightHo(problem);
+        Wo              = ProblemInterpreter::GetOutputWidthWo(problem);
+        Y               = ProblemInterpreter::GetFilterHeightY(problem);
+        X               = ProblemInterpreter::GetFilterWidthX(problem);
+        data_type       = ProblemInterpreter::GetOutputDataType(problem);
+        alpha_beta_case = ProblemInterpreter::GetAlphaBetaCase(problem);
 
         input  = {G, N, C, Hi, Wi};
         output = {G, N, K, Ho, Wo};
@@ -142,7 +126,8 @@ struct CKArgs
                     ConstData_t w,
                     ConstData_t out,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
         (void)alpha;
         (void)beta;
@@ -164,22 +149,38 @@ struct CKArgs
                                              rPadding,
                                              {},
                                              {},
-                                             {});
+                                             {},
+                                             split_k);
     }
 
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr,
                     const ConvDataTensors& tensors,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
-        return MakeArgPtr(conv_ptr, tensors.out, tensors.w, tensors.in, alpha, beta);
+        return MakeArgPtr(conv_ptr, tensors.out, tensors.w, tensors.in, alpha, beta, split_k);
     }
 
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, 1);
+        return conv_ptr->IsSupportedArgument(arg_ptr.get());
+    }
+
+    template <typename ConvPtr>
+    bool IsSupportedBySplitK(const ConvPtr& conv_ptr, int split_k) const
+    {
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
+
+        if(CKWrwRequireWorkspace(G, C1, K1, data_type, alpha_beta_case))
+        {
+            // Creat dummy workspace to pass the ck IsSupportedArgument check.
+            int dummy_var = 1;
+            conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
+        }
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -195,6 +196,8 @@ struct CKArgs
     int Wo;
     int Y;
     int X;
+    miopenDataType_t data_type;
+    miopenAlphaBetaCase_t alpha_beta_case;
     std::array<ck::index_t, 5> input;
     std::array<ck::index_t, 5> in_strides;
     std::array<ck::index_t, 5> output;
@@ -213,7 +216,8 @@ void PerformanceConfigHipImplicitGemmGroupBwdXdlops::Init(const ProblemDescripti
 {
     valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem);
     index         = 0;
-    kernel_id     = valid_kernels[index];
+    split_k       = 1;
+    kernel_id     = valid_kernels[index] + "+" + std::to_string(split_k);
 }
 
 template <typename DataType>
@@ -367,7 +371,7 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::RunParameterPredictionModel
            }))
     {
         index     = heuristic_indexes[0];
-        kernel_id = valid_kernels[index];
+        kernel_id = valid_kernels[index] + "+1";
         MIOPEN_LOG_I("Params set by AI: " << ToString());
         return true;
     }
@@ -394,6 +398,7 @@ void PerformanceConfigHipImplicitGemmGroupBwdXdlops::HeuristicInit(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem)
 {
+    split_k   = 1;
     index     = 0;
     kernel_id = "";
 
@@ -453,15 +458,25 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::SetNextValue(const ProblemD
         assert(!valid_kernels.empty());
         return true;
     }
-    if((index + 1) < valid_kernels.size())
+    do
     {
-        ++index;
-        kernel_id = valid_kernels[index];
-        return true;
-    }
-    else
-#endif
+        bool flag = NextTwoPower<1, 128>(split_k);
+        if(!flag)
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
+        }
+
+        if(!NextLinear(0, valid_kernels.size() - 1, index))
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
+        }
+        // All split_k and index values were iterated
         return false;
+    } while(false);
+#endif
+    return true;
 }
 
 bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsValidValue() const
@@ -577,6 +592,7 @@ ConvSolution ConvHipImplicitGemmGroupBwdXdlops::GetSolution(
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryBwdNCHW<2,
+                                             false,
                                              DeviceOpGBwdPtrs<T>,
                                              CKArgs,
                                              miopen::conv::DataInvokeParams>(
@@ -584,7 +600,8 @@ ConvSolution ConvHipImplicitGemmGroupBwdXdlops::GetSolution(
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<T>,
+            return InitInvokerFactoryNHWC<false,
+                                          DeviceOpGBwdPtrs<T>,
                                           CKArgs,
                                           miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
