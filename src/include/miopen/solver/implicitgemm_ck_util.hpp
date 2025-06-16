@@ -944,16 +944,28 @@ MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
             *data_ctx.op_args.params[0]);
         assert(&conv_param);
 
-        const auto& bias_param =
-            dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
-        assert(&bias_param);
+        const miopen::fusion::ActivationOpInvokeParam* activ_param_ptr = nullptr;
+        ConstData_t bias_buf                                           = nullptr;
 
-        const auto& activ_param =
-            dynamic_cast<miopen::fusion::ActivationOpInvokeParam&>(*data_ctx.op_args.params[2]);
-        assert(&activ_param);
+        if(data_ctx.op_args.params.size() == 2)
+        {
+            activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
+                *data_ctx.op_args.params[1]);
+            assert(activ_param_ptr);
+        }
+        else if(data_ctx.op_args.params.size() > 2)
+        {
+            const auto& bias_param =
+                dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
+            assert(&bias_param);
+            bias_buf = bias_param.bdata;
+
+            activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
+                *data_ctx.op_args.params[2]);
+            assert(activ_param_ptr);
+        }
 
         ConstData_t weight_buf = conv_param.weights;
-        ConstData_t bias_buf   = bias_param.bdata;
 
         argument_ptr = ck_args.MakeArgPtr(
             sh_conv_ptr,
@@ -964,7 +976,7 @@ MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
             conv_param.alpha,
             conv_param.beta,
             GetOutElementOp<typename CKArgsType::OutputDataType,
-                            typename CKArgsType::OutputElementOpType>(activ_param));
+                            typename CKArgsType::OutputElementOpType>(*activ_param_ptr));
     }
     else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
     {
