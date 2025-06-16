@@ -704,6 +704,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvCKIgemmGrpFwdBiasActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
 
     // removed CK MHA solver
     ++id;

@@ -25,12 +25,132 @@
  *******************************************************************************/
 #pragma once
 
+#include <miopen/bfloat16.hpp>
 #include <miopen/miopen.h>
 #include <iostream>
 
 #include "tensor_holder.hpp"
 #include "conv_common.hpp"
 #include "conv_tensor_gen.hpp"
+
+using Direction = miopen::conv::Direction;
+
+template <unsigned NDIM>
+struct GroupConvTestConfig
+{
+};
+
+template <>
+struct GroupConvTestConfig<2u>
+{
+
+    struct Size2D
+    {
+        size_t y;
+        size_t x;
+    };
+
+    size_t G;
+    size_t N;
+    size_t C;
+    size_t k;
+
+    Size2D img;
+    Size2D filter;
+    Size2D pad;
+    Size2D stride;
+    Size2D dilation;
+
+    GroupConvTestConfig() = default;
+
+    GroupConvTestConfig(size_t g_,
+                        size_t n_,
+                        size_t c_,
+                        size_t k_,
+                        Size2D img_,
+                        Size2D filter_,
+                        Size2D pad_,
+                        Size2D stride_,
+                        Size2D dilation_)
+        : G(g_),
+          N(n_),
+          C(c_),
+          k(k_),
+          img(img_),
+          filter(filter_),
+          pad(pad_),
+          stride(stride_),
+          dilation(dilation_)
+    {
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const GroupConvTestConfig& tc)
+    {
+        return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " K:" << tc.k
+                  << " H:" << tc.img.y << " W:" << tc.img.x << " y:" << tc.filter.y
+                  << " x:" << tc.filter.x << " pad.y:" << tc.pad.y << " pad.x:" << tc.pad.x
+                  << " stride.y:" << tc.stride.y << " stride.x" << tc.stride.x
+                  << " dilation.y:" << tc.dilation.y << " dilation.x" << tc.dilation.x;
+    }
+
+    std::vector<size_t> GetInput() { return {N, C, img.y, img.x}; }
+    std::vector<size_t> GetWeights()
+    {
+        EXPECT_EQUAL(C % G, 0);
+        return {k, C / G, filter.y, filter.x};
+    }
+
+    miopen::ConvolutionDescriptor GetConv()
+    {
+        return miopen::ConvolutionDescriptor{
+            2,
+            miopenConvolution,
+            miopenPaddingDefault,
+            {static_cast<int>(pad.y), static_cast<int>(pad.x)},
+            {static_cast<int>(stride.y), static_cast<int>(stride.x)},
+            {static_cast<int>(dilation.y), static_cast<int>(dilation.x)},
+            {0, 0},
+            static_cast<int>(G),
+            1.0};
+    }
+
+    static std::vector<GroupConvTestConfig> GetSmokeConfigs()
+    {
+        return {
+            // clang-format off
+            // g   n    C    K    img         filter    pad     stride  dilation
+            {1,   32,   64,  128, {28, 28},   {3, 3},   {0, 1}, {1, 2}, {2, 1}},
+            {32,  16,   32,   64,  {7, 7},    {3, 3},   {1, 1}, {1, 1}, {1, 1}},
+            {1,   16,   32,   64, {16, 16},   {2, 2},   {0, 0}, {3, 3}, {1, 1}},
+            {4,    8,   16,   32, {32, 4},    {3, 1},   {1, 0}, {1, 1}, {1, 1}},
+            // clang-format on
+        };
+    }
+
+    static std::vector<GroupConvTestConfig> GetConfigs()
+    {
+
+        // clang-format off
+        return {
+            // g   n     C     K      img       filter   pad    stride  dilation
+              {1,  64,  1024, 2048, {14, 14},   {1, 1}, {0, 0}, {2, 2}, {1, 1}},
+              {1,  256, 192,  192,  {28, 28},   {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+              {8,  256, 192,  192,  {28, 28},   {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+              {8,  256, 384,  384,  {28, 28},   {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+              {32, 256, 1024, 2048, {28, 28},   {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+              {4,  256, 192,  192,  {28, 28},   {3, 3}, {1, 1}, {2, 2}, {1, 1}},
+              {8,  256, 384,  384,  {28, 28},   {3, 3}, {1, 1}, {2, 2}, {1, 1}},
+              {32, 256, 1024, 2048, {28, 28},   {3, 3}, {1, 1}, {2, 2}, {1, 1}},
+              {1,  6,   448,  896,  {118, 182}, {3, 3}, {0, 0}, {2, 2}, {1, 1}},
+              {4,  256, 192,  192,  {28, 28},   {1, 1}, {1, 1}, {2, 2}, {1, 1}},
+              {8,  256, 384,  384,  {28, 28},   {1, 1}, {1, 1}, {2, 2}, {1, 1}},
+              {32, 256, 1024, 2048, {28, 28},   {1, 1}, {1, 1}, {2, 2}, {1, 1}},
+              {1,  6,   448,  896,  {118, 182}, {1, 1}, {0, 0}, {2, 2}, {1, 1}},
+              {4,  16,  224,  224,  {469, 724}, {3, 3}, {1, 1}, {2, 2}, {1, 1}},
+        };
+        // clang-format on
+    }
+};
 
 struct ConvTestCaseBase
 {
@@ -85,6 +205,7 @@ template <>
 inline std::vector<ConvTestCaseBase> GetNetwork1()
 {
     // pyt_mlperf_resnet50v1.5
+    // N, C, H, W, k, y, x, pad_x, pad_y, stride_x, stride_y, dilation_x, dilation_y, conv_mode
     return {{64, 1024, 14, 14, 2048, 1, 1, 0, 0, 2, 2, 1, 1, miopenConvolution},
             {64, 1024, 14, 14, 256, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
             {64, 1024, 14, 14, 512, 1, 1, 0, 0, 1, 1, 1, 1, miopenConvolution},
@@ -123,11 +244,15 @@ inline std::vector<ConvTestCaseBase> ConvTestConfigs()
             {64, 1024, 14, 14, 1024, 3, 3, 1, 1, 1, 1, 1, 1, miopenConvolution}};
 }
 
-template <typename T, typename Tref = float, bool use_cpu_ref = false>
+template <typename T,
+          typename Tref    = float,
+          typename TConfig = ConvTestCaseBase,
+          bool use_cpu_ref = false,
+          unsigned NDIM    = 2>
 struct ConvFwdSolverTestBase
 {
 protected:
-    void SetUpImpl(ConvTestCaseBase conv_config, miopenTensorLayout_t tensor_layout)
+    void SetUpImpl(TConfig conv_config, miopenTensorLayout_t tensor_layout)
     {
         input   = tensor<T>{tensor_layout, conv_config.GetInput()};
         weights = tensor<T>{tensor_layout, conv_config.GetWeights()};
@@ -177,9 +302,14 @@ protected:
         ASSERT_FALSE(miopen::range_zero(output)) << "Gpu data is all zeros";
         ASSERT_EQ(miopen::range_distance(ref_out), miopen::range_distance(output));
 
-        const double tolerance = 80;
-        double threshold       = std::numeric_limits<T>::epsilon() * tolerance;
-        auto error             = miopen::rms_range(ref_out, output);
+        double tolerance = 80;
+        if constexpr(std::is_same_v<T, bfloat16>)
+        {
+            tolerance = 4;
+        }
+
+        double threshold = std::numeric_limits<T>::epsilon() * tolerance;
+        auto error       = miopen::rms_range(ref_out, output);
 
         ASSERT_LT(miopen::find_idx(ref_out, miopen::not_finite), 0)
             << "Non finite number found in the CPU data";
