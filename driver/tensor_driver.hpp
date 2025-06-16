@@ -66,7 +66,8 @@ inline miopenTensorLayout_t StringToLayoutType(std::string layout_str)
     }
     else
     {
-        MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8, NCHW, NHWC, NDHWC, NCDHW vectorized tensor layout.");
+        MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8, NCHW, NHWC, NDHWC, NCDHW "
+                     "vectorized tensor layout.");
         return default_layout;
     }
 }
