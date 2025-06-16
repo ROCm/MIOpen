@@ -39,6 +39,7 @@
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
+#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
 namespace miopen {
@@ -65,6 +66,25 @@ using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
 template <typename DataType>
 using DeviceOpGWrwPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrw<DataType>>;
+
+template <typename DataType>
+using DeviceOpGBwd = ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
+    2,
+    ck::tensor_layout::convolution::NHWGK,
+    ck::tensor_layout::convolution::GKYXC,
+    ck::Tuple<>,
+    ck::tensor_layout::convolution::NHWGC,
+    DataType,
+    DataType,
+    ck::Tuple<>,
+    DataType,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough>;
+
+template <typename DataType>
+using DeviceOpGBwdPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGBwd<DataType>>;
 
 using InLayout    = ck::tensor_layout::convolution::NDHWGC;
 using WeiLayout   = ck::tensor_layout::convolution::GKZYXC;
@@ -202,6 +222,11 @@ inline constexpr bool IsSplitKNeeded()
            std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<ck::half_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<float>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<int8_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<ck::bhalf_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<signed char>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<ck::half_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<float>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<int8_t>> ||
@@ -835,6 +860,12 @@ OutElemOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activat
     }
 }
 
+// template <typename T>
+// struct DebugDeviceOpType
+// {
+//     static_assert(sizeof(T) == 0, "DeviceOpType info:  __PRETTY_FUNCTION__");
+// };
+
 template <typename DeviceOpType, typename CKArgsType, typename CastType>
 std::unique_ptr<ck::tensor_operation::device::BaseArgument>
 MakeNCHWCKArgPtr(const CKArgsType& ck_args,
@@ -893,6 +924,24 @@ MakeNCHWCKArgPtr(const CKArgsType& ck_args,
         }
         else
         {
+//             if constexpr( std::is_same_v<CastType, miopen::conv::DataInvokeParams>&& std::is_same_v<DeviceOpType, 
+//                 ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
+//                     2,
+//                     ck::tensor_layout::convolution::NHWGK,
+//                     ck::tensor_layout::convolution::GKYXC,
+//                     ck::Tuple<>,
+//                     ck::tensor_layout::convolution::NHWGC,
+//                     ck::half_t,   // example for a specific DataType
+//                     ck::half_t,
+//                     ck::Tuple<>,
+//                     ck::half_t,
+//                     ck::tensor_operation::element_wise::PassThrough,
+//                     ck::tensor_operation::element_wise::PassThrough,
+//                     ck::tensor_operation::element_wise::PassThrough>>)
+//    {
+//        // This code will activate if DeviceOpType exactly matches the expected backward op.
+//        DebugDeviceOpType<DeviceOpType> debug_device_op_type;
+//    }
             argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
                                               tr_ptrs[0]->GetBufferPtr(),
                                               tr_ptrs[1]->GetBufferPtr(),
@@ -909,7 +958,8 @@ template <typename DeviceOpType, typename CKArgsType, typename CastType>
 std::unique_ptr<ck::tensor_operation::device::BaseArgument>
 MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
                  const CKArgsType& ck_args,
-                 const CastType& data_ctx)
+                 const CastType& data_ctx,
+                 const std::optional<int>& split_k)
 {
     std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
 
@@ -943,8 +993,23 @@ MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
     }
     else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
     {
-        argument_ptr = ck_args.MakeArgPtr(
-            sh_conv_ptr, data_ctx.tensors, data_ctx.alpha.GetAsFloat(), data_ctx.beta.GetAsFloat());
+        if constexpr(IsSplitKNeeded<DeviceOpType>())
+        {
+            std::ignore  = split_k;
+            argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                              data_ctx.tensors,
+                                              data_ctx.alpha.GetAsFloat(),
+                                              data_ctx.beta.GetAsFloat(),
+                                              split_k.value());
+        }
+        else
+        {
+            std::ignore  = split_k;
+            argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                              data_ctx.tensors,
+                                              data_ctx.alpha.GetAsFloat(),
+                                              data_ctx.beta.GetAsFloat());
+        }
     }
 
     return argument_ptr;
@@ -1109,8 +1174,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                     const ProblemDescriptionType& problem,
                                     const std::string& kernel_id)
 {
-    auto conv_ptrs = DeviceOpType::GetInstances();
-
+    auto conv_ptrs             = DeviceOpType::GetInstances();
     std::optional<int> split_k = std::nullopt;
     std::string id_string      = kernel_id;
     auto pos                   = kernel_id.find_last_of('+');
@@ -1149,23 +1213,9 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                     sh_conv_ptr                 = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
-                if constexpr(IsSplitKNeeded<DeviceOpType>())
-                {
-                    argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                      data_ctx.tensors,
-                                                      data_ctx.alpha.GetAsFloat(),
-                                                      data_ctx.beta.GetAsFloat(),
-                                                      split_k.value());
-                }
-                else
-                {
-                    std::ignore  = split_k;
-                    argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                      data_ctx.tensors,
-                                                      data_ctx.alpha.GetAsFloat(),
-                                                      data_ctx.beta.GetAsFloat());
-                }
+                std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr =
+                    MakeNHWCCKArgPtr<std::decay_t<decltype(*sh_conv_ptr)>, CKArgsType, CastType>(
+                        sh_conv_ptr, ck_args, data_ctx, split_k);
 
                 float elapsed = 0.0f;
                 if(alpha_beta_case == DEFAULT)
@@ -1211,16 +1261,19 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
     else
     {
         ConvSolution result;
-        result.invoker_factory = [ck_args     = CKArgsType{problem},
+        result.invoker_factory = [split_k     = split_k,
+                                  ck_args     = CKArgsType{problem},
                                   sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
                                      const std::vector<Kernel>&) mutable {
-            return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
+            return [split_k     = split_k,
+                    ck_args     = std::move(ck_args),
+                    sh_conv_ptr = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
 
                 std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr =
                     MakeNHWCCKArgPtr<std::decay_t<decltype(*sh_conv_ptr)>, CKArgsType, CastType>(
-                        sh_conv_ptr, ck_args, data_ctx);
+                        sh_conv_ptr, ck_args, data_ctx, split_k);
 
                 auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
 
