@@ -51,6 +51,10 @@ struct GPU_ConvBiasActivInfer_FP16 : ConvBiasActivInferTest<half_float::half>
 {
 };
 
+struct GPU_ConvGrpBiasActivInfer_BFP16 : ConvBiasActivInferTest<bfloat16, GroupConvTestConfig<2u>>
+{
+};
+
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
                const std::unique_ptr<miopen::fusion::FusionInvokeParams>& plan_params,
@@ -74,10 +78,10 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     (invoker)(handle, *(plan_params.get()));
     handle.Finish();
 }
-template <typename Solver>
+template <typename Solver, typename TCase = ConvTestCaseBase>
 void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
                       const std::unique_ptr<miopen::fusion::FusionInvokeParams>& plan_params,
-                      const ConvTestCaseBase& conv_config,
+                      const TCase& conv_config,
                       bool& test_skipped)
 {
     auto& handle = get_handle();
@@ -152,6 +156,14 @@ TEST_P(GPU_ConvBiasActivInfer_FP16, ConvCKIgemmFwdBiasActivFused)
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 
+TEST_P(GPU_ConvGrpBiasActivInfer_BFP16, ConvCKIgemmGrpFwdBiasActivFused)
+{
+    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
+        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
+    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdBiasActivFused,
+                     GroupConvTestConfig<2u>>(fusePlanDesc, plan_params, conv_config, test_skipped);
+}
+
 #if MIOPEN_BACKEND_HIP
 
 TEST_P(GPU_ConvBiasActivInferFusionCompileStep_FP32, ConvBiasActivAsm1x1UFloat_testCompile)
@@ -171,7 +183,10 @@ INSTANTIATE_TEST_SUITE_P(
     GPU_ConvBiasActivInferFusionCompileStep_FP32,
     testing::Combine(testing::Values(miopenActivationRELU),
                      testing::ValuesIn(GetNetworkForFusionCompileStepTest<ConvTestCaseBase>()),
-                     testing::Values(miopenTensorNCHW)));
+                     testing::Values(miopenTensorNCHW),
+                     testing::Values(0.25f),
+                     testing::Values(0.75f),
+                     testing::Values(0.5f)));
 
 #endif
 
@@ -179,10 +194,35 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_ConvBiasActivInfer_FP32,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
-                                          testing::Values(miopenTensorNCHW)));
+                                          testing::Values(miopenTensorNCHW),
+                                          testing::Values(0.25f),
+                                          testing::Values(0.75f),
+                                          testing::Values(0.5f)));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_ConvBiasActivInfer_FP16,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
-                                          testing::Values(miopenTensorNCHW)));
+                                          testing::Values(miopenTensorNHWC),
+                                          testing::Values(0.25f),
+                                          testing::Values(0.75f),
+                                          testing::Values(0.5f)));
+
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    GPU_ConvGrpBiasActivInfer_BFP16,
+    testing::Combine(testing::Values(miopenActivationRELU, miopenActivationCLIPPEDRELU),
+                     testing::ValuesIn(GroupConvTestConfig<2>::GetSmokeConfigs()),
+                     testing::Values(miopenTensorNHWC),
+                     testing::Values(0.5f),
+                     testing::Values(1.0f),
+                     testing::Values(0.5f)));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_ConvGrpBiasActivInfer_BFP16,
+                         testing::Combine(testing::Values(miopenActivationCLAMP),
+                                          testing::ValuesIn(GroupConvTestConfig<2>::GetConfigs()),
+                                          testing::Values(miopenTensorNHWC),
+                                          testing::Values(0.5f),
+                                          testing::Values(1.0f),
+                                          testing::Values(0.5f)));
