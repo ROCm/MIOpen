@@ -40,17 +40,21 @@
 #include "conv_test_base.hpp"
 #include "conv_tensor_gen.hpp"
 
-template <typename T = float>
-struct ConvBiasActivInferTest
-    : public ::testing::TestWithParam<
-          std::tuple<miopenActivationMode_t, ConvTestCaseBase, miopenTensorLayout_t>>,
-      ConvFwdSolverTestBase<T, T>
+template <typename T = float, typename TestCaseType = ConvTestCaseBase>
+struct ConvBiasActivInferTest : public ::testing::TestWithParam<std::tuple<miopenActivationMode_t,
+                                                                           TestCaseType,
+                                                                           miopenTensorLayout_t,
+                                                                           float,
+                                                                           float,
+                                                                           float>>,
+                                ConvFwdSolverTestBase<T, T, TestCaseType>
 {
 protected:
     void SetUp() override
     {
-        test_skipped                                     = false;
-        std::tie(activ_mode, conv_config, tensor_layout) = GetParam();
+        test_skipped = false;
+        std::tie(activ_mode, conv_config, tensor_layout, activ_alpha, activ_beta, activ_gamma) =
+            this->GetParam();
 
         cfsb::SetUpImpl(conv_config, tensor_layout);
         activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
@@ -90,7 +94,7 @@ protected:
                             cfsb::ref_out.data);
         cfsb::ThresholdChecks();
     }
-    ConvTestCaseBase conv_config;
+    TestCaseType conv_config;
     miopen::ActivationDescriptor activ_desc;
     tensor<T> bias;
     miopen::Allocator::ManageDataPtr bias_dev;
@@ -98,11 +102,11 @@ protected:
     miopenActivationMode_t activ_mode;
     miopen::FusionPlanDescriptor fusePlanDesc;
     miopen::OperatorArgs params;
-    const float alpha       = static_cast<float>(1.0f);
-    const float beta        = static_cast<float>(0);
-    const float activ_alpha = static_cast<double>(0.25f);
-    const float activ_beta  = static_cast<double>(0.75f);
-    const float activ_gamma = static_cast<double>(0.5f);
+    const float alpha = static_cast<float>(1.0f);
+    const float beta  = static_cast<float>(0);
+    float activ_alpha = static_cast<double>(0.25f);
+    float activ_beta  = static_cast<double>(0.75f);
+    float activ_gamma = static_cast<double>(0.5f);
     miopenTensorLayout_t tensor_layout;
-    using cfsb = ConvFwdSolverTestBase<T, T>;
+    using cfsb = ConvFwdSolverTestBase<T, T, TestCaseType>;
 };

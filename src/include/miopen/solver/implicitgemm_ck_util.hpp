@@ -38,6 +38,7 @@
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
+#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
 namespace miopen {
@@ -64,6 +65,25 @@ using DeviceOpGWrw = ck::tensor_operation::device::DeviceGroupedConvBwdWeight<
 template <typename DataType>
 using DeviceOpGWrwPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGWrw<DataType>>;
+
+template <typename DataType>
+using DeviceOpGBwd = ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
+    2,
+    ck::tensor_layout::convolution::NHWGK,
+    ck::tensor_layout::convolution::GKYXC,
+    ck::Tuple<>,
+    ck::tensor_layout::convolution::NHWGC,
+    DataType,
+    DataType,
+    ck::Tuple<>,
+    DataType,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough,
+    ck::tensor_operation::element_wise::PassThrough>;
+
+template <typename DataType>
+using DeviceOpGBwdPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGBwd<DataType>>;
 
 using InLayout    = ck::tensor_layout::convolution::NDHWGC;
 using WeiLayout   = ck::tensor_layout::convolution::GKZYXC;
@@ -201,6 +221,10 @@ inline constexpr bool IsSplitKNeeded()
            std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<float>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<int8_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGWrwPtrs<ck::bhalf_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<ck::half_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<float>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<int8_t>> ||
+           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<ck::bhalf_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<ck::half_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<float>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<int8_t>> ||
@@ -951,8 +975,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                     const ProblemDescriptionType& problem,
                                     const std::string& kernel_id)
 {
-    auto conv_ptrs = DeviceOpType::GetInstances();
-
+    auto conv_ptrs             = DeviceOpType::GetInstances();
     std::optional<int> split_k = std::nullopt;
     std::string id_string      = kernel_id;
     auto pos                   = kernel_id.find_last_of('+');
@@ -1053,17 +1076,34 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
     else
     {
         ConvSolution result;
-        result.invoker_factory = [ck_args     = CKArgsType{problem},
+        result.invoker_factory = [split_k     = split_k,
+                                  ck_args     = CKArgsType{problem},
                                   sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
                                      const std::vector<Kernel>&) mutable {
-            return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
+            return [split_k     = split_k,
+                    ck_args     = std::move(ck_args),
+                    sh_conv_ptr = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
                 const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                       data_ctx.tensors,
-                                                       data_ctx.alpha.GetAsFloat(),
-                                                       data_ctx.beta.GetAsFloat());
-                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+                std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
+                if constexpr(IsSplitKNeeded<DeviceOpType>())
+                {
+                    std::ignore  = split_k;
+                    argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                      data_ctx.tensors,
+                                                      data_ctx.alpha.GetAsFloat(),
+                                                      data_ctx.beta.GetAsFloat(),
+                                                      split_k.value());
+                }
+                else
+                {
+                    std::ignore  = split_k;
+                    argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                      data_ctx.tensors,
+                                                      data_ctx.alpha.GetAsFloat(),
+                                                      data_ctx.beta.GetAsFloat());
+                }
+                auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
 
                 // Zero out the buffer for output data since it won't always write all output
                 // values.
