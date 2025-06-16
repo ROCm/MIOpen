@@ -226,7 +226,6 @@ inline constexpr bool IsSplitKNeeded()
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<float>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<int8_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<ck::bhalf_t>> ||
-           std::is_same_v<DeviceOpType, conv::DeviceOpGBwdPtrs<signed char>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<ck::half_t>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<float>> ||
            std::is_same_v<DeviceOpType, conv::DeviceOpGBwdWeightDefaultPtrs<int8_t>> ||
@@ -924,24 +923,6 @@ MakeNCHWCKArgPtr(const CKArgsType& ck_args,
         }
         else
         {
-//             if constexpr( std::is_same_v<CastType, miopen::conv::DataInvokeParams>&& std::is_same_v<DeviceOpType, 
-//                 ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
-//                     2,
-//                     ck::tensor_layout::convolution::NHWGK,
-//                     ck::tensor_layout::convolution::GKYXC,
-//                     ck::Tuple<>,
-//                     ck::tensor_layout::convolution::NHWGC,
-//                     ck::half_t,   // example for a specific DataType
-//                     ck::half_t,
-//                     ck::Tuple<>,
-//                     ck::half_t,
-//                     ck::tensor_operation::element_wise::PassThrough,
-//                     ck::tensor_operation::element_wise::PassThrough,
-//                     ck::tensor_operation::element_wise::PassThrough>>)
-//    {
-//        // This code will activate if DeviceOpType exactly matches the expected backward op.
-//        DebugDeviceOpType<DeviceOpType> debug_device_op_type;
-//    }
             argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
                                               tr_ptrs[0]->GetBufferPtr(),
                                               tr_ptrs[1]->GetBufferPtr(),
