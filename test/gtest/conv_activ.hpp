@@ -34,7 +34,6 @@
 #include <fusionHost.hpp>
 
 #include "tensor_util.hpp"
-#include "get_handle.hpp"
 #include "conv_common.hpp"
 
 #include "conv_test_base.hpp"
@@ -58,7 +57,6 @@ protected:
 
         cfsb::SetUpImpl(conv_config, tensor_layout);
         activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
-        // auto&& handle = get_handle();
         std::fill(
             cfsb::output.begin(), cfsb::output.end(), std::numeric_limits<double>::quiet_NaN());
 

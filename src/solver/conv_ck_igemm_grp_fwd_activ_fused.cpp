@@ -150,7 +150,6 @@ struct CKArgs
     {
         (void)alpha;
         (void)beta;
-        // const auto out_element_op = GetActivationElementOp();
         return conv_ptr->MakeArgumentPointer(in,
                                              w,
                                              {},
