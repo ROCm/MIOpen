@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,36 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#ifndef GUARD_WARP_REDUCE_HPP
-#define GUARD_WARP_REDUCE_HPP
+#pragma once
 
-#ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-#include <hip/hip_fp16.h>
-#include <hip/hip_runtime.h>
+#if defined(__GFX8__) || defined(__GFX9__)
+#define MIOPEN_WARP_SIZE 64
+#else
+#define MIOPEN_WARP_SIZE 32
 #endif
-
-#include "float_types.h"
-
-enum class BinaryOp_t
-{
-    Add,
-};
-
-template <BinaryOp_t Op, typename T>
-struct BinaryFunc;
-
-template <typename T>
-struct BinaryFunc<BinaryOp_t::Add, T>
-{
-    constexpr void exec(T& a, const T& b) { a += b; }
-};
-
-template <BinaryOp_t Op>
-__device__ FLOAT_ACCUM warp_reduce(FLOAT_ACCUM val)
-{
-    for(auto d = warpSize / 2; d >= 1; d >>= 1)
-        BinaryFunc<Op, FLOAT_ACCUM>{}.exec(val, __shfl_down(val, d));
-    return val;
-}
-
-#endif // GUARD_WARP_REDUCE_HPP
