@@ -596,7 +596,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
 {
 
     miopenConvolutionMode_t mode;
-    miopenPaddingMode_t pmode = miopenPaddingDefault;
 
     std::vector<int> in_spatial_lens(spatial_dim);
     std::vector<int> wei_spatial_lens(spatial_dim);
@@ -651,7 +650,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
         }
     }
 
-    // pmode = miopenPaddingDefault;
     mode  = miopenConvolution;
 
     if(mode == miopenConvolution &&
@@ -694,7 +692,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
 template <typename Tgpu, typename Tref>
 std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetOutputTensorLengths()
 {
-    // todo: check this works
     int ndim = miopen::deref(inputTensor).GetNumDims();
 
     std::vector<int> out_lens(ndim);
