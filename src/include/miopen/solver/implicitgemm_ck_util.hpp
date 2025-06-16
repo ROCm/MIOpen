@@ -1076,6 +1076,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
     else
     {
         ConvSolution result;
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         result.invoker_factory = [split_k     = split_k,
                                   ck_args     = CKArgsType{problem},
                                   sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
@@ -1132,6 +1133,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 }
             };
         };
+#endif
         return result;
     }
 }
