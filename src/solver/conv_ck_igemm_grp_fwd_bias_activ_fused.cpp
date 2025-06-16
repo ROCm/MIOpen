@@ -163,17 +163,17 @@ struct CKArgs
             std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
-                             ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                             ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                               ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                               ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
             filter_dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
                                ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                                ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
             lPadding        = {ProblemInterpreter::GetInputLeftPadD(problem),
-                        ProblemInterpreter::GetInputLeftPadH(problem),
-                        ProblemInterpreter::GetInputLeftPadW(problem)};
+                               ProblemInterpreter::GetInputLeftPadH(problem),
+                               ProblemInterpreter::GetInputLeftPadW(problem)};
             rPadding        = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
-                        ProblemInterpreter::GetAdjustedInputRightPadH(problem),
-                        ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+                               ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+                               ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
         }
         else
         {
@@ -203,18 +203,18 @@ struct CKArgs
             std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                             ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                               ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
             filter_dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                                ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
             lPadding        = {ProblemInterpreter::GetInputLeftPadH(problem),
-                        ProblemInterpreter::GetInputLeftPadW(problem)};
+                               ProblemInterpreter::GetInputLeftPadW(problem)};
             rPadding        = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
-                        ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+                               ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
         }
     }
 
-    CKArgs(const CKArgs&) = default;
-    CKArgs(CKArgs&&)      = default;
+    CKArgs(const CKArgs&)            = default;
+    CKArgs(CKArgs&&)                 = default;
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
