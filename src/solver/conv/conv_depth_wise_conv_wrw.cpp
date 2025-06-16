@@ -38,6 +38,7 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/utility/data_type.hpp>
+#include <ck/utility/array.hpp>
 #endif
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DEPTH_WISE_CONV_WRW)
@@ -69,7 +70,7 @@ struct PerfArgs
     bool require_padding;
 };
 
-//                                    b_s, t_w, t_h, f_s, d_w, d_h, s_w, s_h, p_w, p_h, n_b, n_w, i_s, o_s, d_s, w_s, r_p
+//                                              b_s, t_w, t_h, f_s, d_w, d_h, s_w, s_h, p_w, p_h, n_b, n_w, i_s, o_s, d_s, w_s, r_p
 static const std::vector<PerfArgs> perf_arg = {{256, 28,  28,  5,   1,   1,   1,   1,   2,   2,   2,   1,   2,   2,   2,   1,   false}, 
                                                {256, 14,  14,  5,   1,   1,   1,   1,   2,   2,   8,   1,   2,   2,   8,   1,   false}};
 
@@ -125,7 +126,7 @@ struct CKArgs
     //     hash_combine(seed, hash_array(lPadding));
     //     hash_combine(seed, hash_array(rPadding));
 
-    //     std::array<ck::index_t, 5> others = {C1, K1, Di, Do, Z };
+    //     ck::Array<ck::index_t, 5> others = {C1, K1, Di, Do, Z };
     //     hash_combine(seed, hash_array(others));
 
     //     return seed;
@@ -167,16 +168,16 @@ struct CKArgs
         int c_per_g;
         int k_per_g;
 
-        std::array<ck::index_t, 5> in_lengths;
-        std::array<ck::index_t, 5> in_strides;
-        std::array<ck::index_t, 5> out_lengths;
-        std::array<ck::index_t, 5> out_strides;
-        std::array<ck::index_t, 5> wei_lengths;
-        std::array<ck::index_t, 5> wei_strides;
+        ck::Array<ck::index_t, 5> in_lengths;
+        ck::Array<ck::index_t, 5> in_strides;
+        ck::Array<ck::index_t, 5> out_lengths;
+        ck::Array<ck::index_t, 5> out_strides;
+        ck::Array<ck::index_t, 5> wei_lengths;
+        ck::Array<ck::index_t, 5> wei_strides;
 
-        std::array<ck::index_t, 2> padding;
-        std::array<ck::index_t, 2> stride;
-        std::array<ck::index_t, 2> dilation;
+        ck::Array<ck::index_t, 2> padding;
+        ck::Array<ck::index_t, 2> stride;
+        ck::Array<ck::index_t, 2> dilation;
 };
 
 static bool IsSupportedArgument(const PerfArgs& arg,
@@ -361,21 +362,17 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
         uint best_perf_arg_index = 0;
 
         // TODO: choose the best split_k !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        uint split_k = 2;
+        uint split_k = 1;
 
-        std::array<ck::index_t, 5> acc_strides = {};
-
-        if (split_k > 1)
-        {
-            ck_args.in_lengths[1] /= split_k;
-            ck_args.out_lengths[1] /= split_k;
-
-            acc_strides[4] = 1;
-            acc_strides[3] = ck_args.wei_lengths[4];
-            acc_strides[2] = acc_strides[3] * ck_args.wei_lengths[3];
-            acc_strides[1] = acc_strides[2] * ck_args.wei_lengths[2];
-            acc_strides[0] = acc_strides[1] * ck_args.wei_lengths[1];
-        }
+        ck::Array<ck::index_t, 5> acc_strides = {ck_args.wei_lengths[1] * ck_args.wei_lengths[2] * ck_args.wei_lengths[3] * ck_args.wei_lengths[4],
+                                                 ck_args.wei_lengths[2] * ck_args.wei_lengths[3] * ck_args.wei_lengths[4],
+                                                 ck_args.wei_lengths[3] * ck_args.wei_lengths[4],
+                                                 ck_args.wei_lengths[4],
+                                                 1};
+        ck::Array<ck::index_t, 5> new_in_lengths = ck_args.in_lengths;
+        ck::Array<ck::index_t, 5> new_out_lengths = ck_args.out_lengths;
+        new_in_lengths.At(1) /= split_k;
+        new_out_lengths.At(1) /= split_k;
 
         size_t block_size = perf_arg[best_perf_arg_index].block_size;
         size_t grid_size  = static_cast<size_t>(ck_args.in_lengths[0]);
@@ -443,11 +440,11 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
                                            split_k > 1 ? nullptr : tensors.dw,
                                            tensors.dy,
                                            split_k > 1 ? data_ctx.workSpace : nullptr,
-                                           ck_args.in_lengths,
+                                           split_k > 1 ? new_in_lengths : ck_args.in_lengths,
                                            ck_args.in_strides,
                                            ck_args.wei_lengths,
                                            split_k > 1 ? acc_strides : ck_args.wei_strides,
-                                           ck_args.out_lengths,
+                                           split_k > 1 ? new_out_lengths : ck_args.out_lengths,
                                            ck_args.out_strides,
                                            split_k > 1);
                 }
