@@ -704,17 +704,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
-    Register(registry,
-             ++id,
-             Primitive::Fusion,
-             fusion::ConvCKIgemmGrpFwdBiasActivFused{}.SolverDbId(),
-             miopenConvolutionAlgoImplicitGEMM);
-    Register(registry,
-             ++id,
-             Primitive::Fusion,
-             fusion::ConvCKIgemmGrpFwdActivFused{}.SolverDbId(),
-             miopenConvolutionAlgoImplicitGEMM);
-
     // removed CK MHA solver
     ++id;
 
@@ -725,6 +714,11 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              Primitive::Fusion,
              fusion::ConvWinoRageRxSFused<2, 3>{}.SolverDbId(),
              miopenConvolutionAlgoWinograd);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvCKIgemmGrpFwdBiasActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }
