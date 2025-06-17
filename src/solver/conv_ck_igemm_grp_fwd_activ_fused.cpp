@@ -637,7 +637,7 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(!(conv_problem.Is2d() || conv_problem.Is3d()))
         return false;
-    if(ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
     if(!conv_problem.IsLayoutNHWC())
         return false;
