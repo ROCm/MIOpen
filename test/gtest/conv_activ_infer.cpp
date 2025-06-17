@@ -103,21 +103,22 @@ TEST_P(GPU_ConvGrpActivInfer_BFP16, ConvCKIgemmGrpFwdActivFused)
         fusePlanDesc, plan_params, conv_config, test_skipped);
 }
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_ConvGrpActivInfer_BFP16,
-                         testing::Combine(testing::Values(miopenActivationRELU,
-                                                          miopenActivationCLIPPEDRELU),
-                                          testing::ValuesIn(GroupConvTestConfig<2>::GetConfigs<Direction::Forward>()),
-                                          testing::Values(miopenTensorNHWC),
-                                          testing::Values(0.5f),
-                                          testing::Values(1.0f),
-                                          testing::Values(0.5f)));
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    GPU_ConvGrpActivInfer_BFP16,
+    testing::Combine(testing::Values(miopenActivationRELU, miopenActivationCLIPPEDRELU),
+                     testing::ValuesIn(GroupConvTestConfig<2>::GetConfigs<Direction::Forward>()),
+                     testing::Values(miopenTensorNHWC),
+                     testing::Values(0.5f),
+                     testing::Values(1.0f),
+                     testing::Values(0.5f)));
 
-INSTANTIATE_TEST_SUITE_P(Full,
-                         GPU_ConvGrpActivInfer_BFP16,
-                         testing::Combine(testing::Values(miopenActivationCLAMP),
-                                          testing::ValuesIn(GroupConvTestConfig<2>::GetConfigs<Direction::Forward>()),
-                                          testing::Values(miopenTensorNHWC),
-                                          testing::Values(0.5f),
-                                          testing::Values(1.0f),
-                                          testing::Values(0.5f)));
+INSTANTIATE_TEST_SUITE_P(
+    Full,
+    GPU_ConvGrpActivInfer_BFP16,
+    testing::Combine(testing::Values(miopenActivationCLAMP),
+                     testing::ValuesIn(GroupConvTestConfig<2>::GetConfigs<Direction::Forward>()),
+                     testing::Values(miopenTensorNHWC),
+                     testing::Values(0.5f),
+                     testing::Values(1.0f),
+                     testing::Values(0.5f)));

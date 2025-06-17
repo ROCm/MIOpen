@@ -797,13 +797,16 @@ template <typename CastType>
 Data_t GetWorkspacePointer(const CastType& data_ctx)
 {
     if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams> ||
+                 std::is_same_v<CastType, miopen::conv::WrWInvokeParams> ||
                  std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
     {
         return data_ctx.workSpace;
     }
     else
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported CastType for workspace extraction");
+        MIOPEN_THROW(miopenStatusNotImplemented,
+                     "Unsupported CastType for workspace extraction: " +
+                         std::string(typeid(CastType).name()));
     }
 }
 
@@ -1067,7 +1070,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             handle.ResetKernelTime();
 
             const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-            Data_t workspace_ptr = GetWorkspacePointer(data_ctx);
+            Data_t workspace_ptr = GetWorkspacePointer<CastType>(data_ctx);
             ValidateWorkspacePointer<CastType>(workspace_ptr);
 
             input1_tr_inst.AssignBuffer(handle, workspace_ptr);
