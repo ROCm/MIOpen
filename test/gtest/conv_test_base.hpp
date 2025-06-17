@@ -433,7 +433,6 @@ protected:
         ASSERT_LT(error, threshold) << "Error beyond tolerance";
     }
 
-    // GroupConvTestConfig<2> conv_config;
     miopen::ConvolutionDescriptor conv_desc;
     tensor<T> input;
     tensor<T> weights;
