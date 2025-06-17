@@ -70,11 +70,50 @@ void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
     (invoker)(handle, *(plan_params.get()));
     handle.Finish();
 }
+
+template <typename Solver>
+std::unique_ptr<miopen::fusion::FusionInvokeParams>
+createFusionInvokeParams(const miopen::FusionDescription& fusion_desc,
+                         const miopen::FusionContext& fusion_ctx,
+                         const miopen::OperatorArgs& params,
+                         const Solver& solv,
+                         const miopen::TensorDescriptor& input_desc,
+                         ConstData_t in_dev_ptr,
+                         const miopen::TensorDescriptor& output_desc,
+                         Data_t out_dev_ptr,
+                         Workspace& wspace,
+                         bool useWorkspace = false)
+{
+    if(useWorkspace)
+    {
+        wspace.resize(solv.GetWorkspaceSize(fusion_ctx, fusion_desc));
+
+        return std::make_unique<miopen::fusion::FusionInvokeParams>(params,
+                                                                    input_desc,
+                                                                    in_dev_ptr,
+                                                                    output_desc,
+                                                                    out_dev_ptr,
+                                                                    false,
+                                                                    wspace.ptr(),
+                                                                    wspace.size());
+    }
+    else
+    {
+        return std::make_unique<miopen::fusion::FusionInvokeParams>(
+            params, input_desc, in_dev_ptr, output_desc, out_dev_ptr, false);
+    }
+}
+
 template <typename Solver, typename TCase = ConvTestCaseBase>
 void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
-                      const std::unique_ptr<miopen::fusion::FusionInvokeParams>& plan_params,
+                      const miopen::OperatorArgs& params,
                       const TCase& conv_config,
-                      bool& test_skipped)
+                      bool& test_skipped,
+                      const miopen::TensorDescriptor& input_desc,
+                      ConstData_t in_dev_ptr,
+                      const miopen::TensorDescriptor& output_desc,
+                      Data_t out_dev_ptr,
+                      Workspace& wspace)
 {
     auto& handle = get_handle();
     Solver solv{};
@@ -90,6 +129,18 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
         fusion_ctx, fusion_problem, solv.GetDefaultPerformanceConfig(fusion_ctx, fusion_problem));
     ASSERT_TRUE(sol.Succeeded());
     ASSERT_TRUE(sol.invoker_factory);
+
+    auto plan_params = createFusionInvokeParams<Solver>(fusion_problem,
+                                                        fusion_ctx,
+                                                        params,
+                                                        solv,
+                                                        input_desc,
+                                                        in_dev_ptr,
+                                                        output_desc,
+                                                        out_dev_ptr,
+                                                        wspace,
+                                                        solv.MayNeedWorkspace());
+
     const auto invoker = handle.PrepareInvoker(*sol.invoker_factory, sol.construction_params);
     (invoker)(handle, *(plan_params.get()));
     handle.Finish();
@@ -101,18 +152,29 @@ using namespace ca_infer;
 
 TEST_P(GPU_ConvGrpActivInfer_BFP16, ConvCKIgemmGrpFwdActivFused)
 {
-    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
-        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
-    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdActivFused, GroupConvTestConfig<2u>>(
-        fusePlanDesc, plan_params, conv_config, test_skipped);
+    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdActivFused>(fusePlanDesc,
+                                                                          params,
+                                                                          conv_config,
+                                                                          test_skipped,
+                                                                          input.desc,
+                                                                          in_dev.get(),
+                                                                          output.desc,
+                                                                          out_dev.get(),
+                                                                          wspace);
 }
 
 TEST_P(GPU_ConvGrpActivInfer3D_BFP16, ConvCKIgemmGrpFwdActiv3DFused)
 {
-    const auto plan_params = std::make_unique<miopen::fusion::FusionInvokeParams>(
-        params, input.desc, in_dev.get(), output.desc, out_dev.get(), false);
-    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdActivFused, GroupConvTestConfig<3u>>(
-        fusePlanDesc, plan_params, conv_config, test_skipped);
+
+    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdActivFused>(fusePlanDesc,
+                                                                          params,
+                                                                          conv_config,
+                                                                          test_skipped,
+                                                                          input.desc,
+                                                                          in_dev.get(),
+                                                                          output.desc,
+                                                                          out_dev.get(),
+                                                                          wspace);
 }
 
 INSTANTIATE_TEST_SUITE_P(
@@ -121,7 +183,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(miopenActivationRELU, miopenActivationCLIPPEDRELU),
         testing::ValuesIn(GroupConvTestConfig<2>::GetSmokeConfigs<Direction::Forward>()),
-        testing::Values(miopenTensorNHWC),
+        testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/),
         testing::Values(0.5f),
         testing::Values(1.0f),
         testing::Values(0.5f)));
@@ -131,7 +193,7 @@ INSTANTIATE_TEST_SUITE_P(
     GPU_ConvGrpActivInfer_BFP16,
     testing::Combine(testing::Values(miopenActivationCLAMP),
                      testing::ValuesIn(GroupConvTestConfig<2>::GetConfigs<Direction::Forward>()),
-                     testing::Values(miopenTensorNHWC),
+                     testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/),
                      testing::Values(0.5f),
                      testing::Values(1.0f),
                      testing::Values(0.5f)));
@@ -142,7 +204,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(miopenActivationRELU, miopenActivationCLIPPEDRELU),
         testing::ValuesIn(GroupConvTestConfig<3>::GetSmokeConfigs<Direction::Forward>()),
-        testing::Values(miopenTensorNDHWC),
+        testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/),
         testing::Values(0.5f),
         testing::Values(1.0f),
         testing::Values(0.5f)));
@@ -152,7 +214,7 @@ INSTANTIATE_TEST_SUITE_P(
     GPU_ConvGrpActivInfer3D_BFP16,
     testing::Combine(testing::Values(miopenActivationCLAMP),
                      testing::ValuesIn(GroupConvTestConfig<3>::GetConfigs<Direction::Forward>()),
-                     testing::Values(miopenTensorNDHWC),
+                     testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/),
                      testing::Values(0.5f),
                      testing::Values(1.0f),
                      testing::Values(0.5f)));

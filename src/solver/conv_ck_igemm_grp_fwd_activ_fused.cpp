@@ -588,6 +588,13 @@ bool ConvCKIgemmGrpFwdActivFused::IsValidPerformanceConfig(
     return config.IsValid(ctx, fdesc_problem);
 }
 
+size_t ConvCKIgemmGrpFwdActivFused::GetWorkspaceSize(const FusionContext&,
+                                                     const FusionDescription& fdesc_problem) const
+{
+    const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
+    return GetWorkspaceSizeLayoutTransformConv(conv_problem);
+}
+
 PerformanceConfigConvCKIgemmGrpFwdActivFused
 ConvCKIgemmGrpFwdActivFused::Search(const FusionContext& ctx,
                                     const FusionDescription& fdesc_problem,
@@ -639,7 +646,7 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    if(!conv_problem.IsLayoutNHWC())
+    if(!conv_problem.IsLayoutNHWC() && !conv_problem.IsLayoutDefault())
         return false;
 
     switch(conv_problem.GetInDataType())
