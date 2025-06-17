@@ -246,6 +246,7 @@ set( MIOpen_Source
     solver/conv/conv_ck_igemm_fwd_v6r1_dlops_nchw.cpp
     solver/conv/conv_ck_grouped_bwd_weight_dl_4v.cpp
     solver/conv/conv_ck_grouped_conv_fwd_dl_v4.cpp
+    solver/conv/conv_ck_grouped_conv_bwd_multiple_d.cpp
     solver/conv/conv_direct_naive_conv.cpp
     solver/conv/conv_direct_naive_conv_bwd.cpp
     solver/conv/conv_direct_naive_conv_fwd.cpp

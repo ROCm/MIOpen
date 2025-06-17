@@ -717,6 +717,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     RegisterWithSolver(
         registry, ++id, conv::ConvQunConvFwd{}, miopenConvolutionAlgoDirect);
 
+    // ConvJinMDConvBwd
+    RegisterWithSolver(
+        registry, ++id, conv::ConvJinMDConvBwd{}, miopenConvolutionAlgoDirect);
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }
