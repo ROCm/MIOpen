@@ -153,177 +153,6 @@ using DeviceOpGBwdWeightScalePtrs =
 
 } // namespace conv
 
-template <bool NeedsSplitK, typename DeviceOpType, typename CKArgsType, typename CastType>
-std::unique_ptr<ck::tensor_operation::device::BaseArgument>
-MakeNCHWCKArgPtr(const CKArgsType& ck_args,
-                 const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
-                 const std::array<internal::TransposeInstanceTagged*, 3>& tr_ptrs,
-                 const CastType& data_ctx,
-                 const std::optional<int>& split_k)
-{
-    std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
-
-    if constexpr(std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
-    {
-        const auto& conv_param = dynamic_cast<const miopen::fusion::ConvolutionOpInvokeParam&>(
-            *data_ctx.op_args.params[0]);
-        assert(&conv_param);
-
-        const miopen::fusion::ActivationOpInvokeParam* activ_param_ptr = nullptr;
-        ConstData_t bias_buf                                           = nullptr;
-
-        if(data_ctx.op_args.params.size() == 2)
-        {
-            activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
-                *data_ctx.op_args.params[1]);
-            assert(activ_param_ptr);
-        }
-        else if(data_ctx.op_args.params.size() == 3)
-        {
-            const auto& bias_param =
-                dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
-            assert(&bias_param);
-            bias_buf = bias_param.bdata;
-
-            activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
-                *data_ctx.op_args.params[2]);
-            assert(activ_param_ptr);
-        }
-        else
-        {
-            throw miopen::Exception(miopenStatusInternalError,
-                                    "Unsupported number of parameters for FusionInvokeParams: " +
-                                        std::to_string(data_ctx.op_args.params.size()));
-        }
-
-        argument_ptr = ck_args.MakeArgPtr(
-            sh_conv_ptr,
-            tr_ptrs[0]->GetBufferPtr(),
-            tr_ptrs[1]->GetBufferPtr(),
-            bias_buf,
-            tr_ptrs[2]->GetBufferPtr(),
-            conv_param.alpha,
-            conv_param.beta,
-            GetOutElementOp<typename CKArgsType::OutputDataType,
-                            typename CKArgsType::OutputElementOpType>(*activ_param_ptr));
-    }
-    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
-    {
-        if constexpr(NeedsSplitK)
-        {
-            if(split_k.has_value())
-            {
-                argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                  tr_ptrs[0]->GetBufferPtr(),
-                                                  tr_ptrs[1]->GetBufferPtr(),
-                                                  tr_ptrs[2]->GetBufferPtr(),
-                                                  data_ctx.alpha.GetAsFloat(),
-                                                  data_ctx.beta.GetAsFloat(),
-                                                  split_k.value());
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusInvalidValue, "split_k is required but not provided");
-            }
-        }
-        else
-        {
-            argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                              tr_ptrs[0]->GetBufferPtr(),
-                                              tr_ptrs[1]->GetBufferPtr(),
-                                              tr_ptrs[2]->GetBufferPtr(),
-                                              data_ctx.alpha.GetAsFloat(),
-                                              data_ctx.beta.GetAsFloat());
-        }
-    }
-
-    return argument_ptr;
-}
-
-template <bool NeedsSplitK, typename DeviceOpType, typename CKArgsType, typename CastType>
-std::unique_ptr<ck::tensor_operation::device::BaseArgument>
-MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
-                 const CKArgsType& ck_args,
-                 const CastType& data_ctx,
-                 const std::optional<int>& split_k)
-{
-    std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
-
-    if constexpr(std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
-    {
-        const auto& conv_param = dynamic_cast<const miopen::fusion::ConvolutionOpInvokeParam&>(
-            *data_ctx.op_args.params[0]);
-        assert(&conv_param);
-
-        const miopen::fusion::ActivationOpInvokeParam* activ_param_ptr = nullptr;
-        ConstData_t bias_buf                                           = nullptr;
-
-        if(data_ctx.op_args.params.size() == 2)
-        {
-            activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
-                *data_ctx.op_args.params[1]);
-            assert(activ_param_ptr);
-        }
-        else if(data_ctx.op_args.params.size() == 3)
-        {
-            const auto& bias_param =
-                dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
-            assert(&bias_param);
-            bias_buf = bias_param.bdata;
-
-            activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
-                *data_ctx.op_args.params[2]);
-            assert(activ_param_ptr);
-        }
-        else
-        {
-            throw miopen::Exception(miopenStatusInternalError,
-                                    "Unsupported number of parameters for FusionInvokeParams: " +
-                                        std::to_string(data_ctx.op_args.params.size()));
-        }
-
-        ConstData_t weight_buf = conv_param.weights;
-
-        argument_ptr = ck_args.MakeArgPtr(
-            sh_conv_ptr,
-            data_ctx.in,
-            weight_buf,
-            bias_buf,
-            data_ctx.out,
-            conv_param.alpha,
-            conv_param.beta,
-            GetOutElementOp<typename CKArgsType::OutputDataType,
-                            typename CKArgsType::OutputElementOpType>(*activ_param_ptr));
-    }
-    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
-    {
-        if constexpr(NeedsSplitK)
-        {
-            if(split_k.has_value())
-            {
-                argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                  data_ctx.tensors,
-                                                  data_ctx.alpha.GetAsFloat(),
-                                                  data_ctx.beta.GetAsFloat(),
-                                                  split_k.value());
-            }
-            else
-            {
-                MIOPEN_THROW(miopenStatusInvalidValue, "split_k is required but not provided");
-            }
-        }
-        else
-        {
-            std::ignore  = split_k;
-            argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                              data_ctx.tensors,
-                                              data_ctx.alpha.GetAsFloat(),
-                                              data_ctx.beta.GetAsFloat());
-        }
-    }
-
-    return argument_ptr;
-}
 #endif
 
 inline bool IsLinear(int L, int H, const int v)
@@ -1033,6 +862,181 @@ OutElemOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activat
                      "Unsupported activation type: " + std::to_string(activationMode));
     }
 }
+
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+
+template <bool NeedsSplitK, typename DeviceOpType, typename CKArgsType, typename CastType>
+std::unique_ptr<ck::tensor_operation::device::BaseArgument>
+MakeNCHWCKArgPtr(const CKArgsType& ck_args,
+                 const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
+                 const std::array<internal::TransposeInstanceTagged*, 3>& tr_ptrs,
+                 const CastType& data_ctx,
+                 const std::optional<int>& split_k)
+{
+    std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
+
+    if constexpr(std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
+    {
+        const auto& conv_param = dynamic_cast<const miopen::fusion::ConvolutionOpInvokeParam&>(
+            *data_ctx.op_args.params[0]);
+        assert(&conv_param);
+
+        const miopen::fusion::ActivationOpInvokeParam* activ_param_ptr = nullptr;
+        ConstData_t bias_buf                                           = nullptr;
+
+        if(data_ctx.op_args.params.size() == 2)
+        {
+            activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
+                *data_ctx.op_args.params[1]);
+            assert(activ_param_ptr);
+        }
+        else if(data_ctx.op_args.params.size() == 3)
+        {
+            const auto& bias_param =
+                dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
+            assert(&bias_param);
+            bias_buf = bias_param.bdata;
+
+            activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
+                *data_ctx.op_args.params[2]);
+            assert(activ_param_ptr);
+        }
+        else
+        {
+            throw miopen::Exception(miopenStatusInternalError,
+                                    "Unsupported number of parameters for FusionInvokeParams: " +
+                                        std::to_string(data_ctx.op_args.params.size()));
+        }
+
+        argument_ptr = ck_args.MakeArgPtr(
+            sh_conv_ptr,
+            tr_ptrs[0]->GetBufferPtr(),
+            tr_ptrs[1]->GetBufferPtr(),
+            bias_buf,
+            tr_ptrs[2]->GetBufferPtr(),
+            conv_param.alpha,
+            conv_param.beta,
+            GetOutElementOp<typename CKArgsType::OutputDataType,
+                            typename CKArgsType::OutputElementOpType>(*activ_param_ptr));
+    }
+    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
+    {
+        if constexpr(NeedsSplitK)
+        {
+            if(split_k.has_value())
+            {
+                argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                  tr_ptrs[0]->GetBufferPtr(),
+                                                  tr_ptrs[1]->GetBufferPtr(),
+                                                  tr_ptrs[2]->GetBufferPtr(),
+                                                  data_ctx.alpha.GetAsFloat(),
+                                                  data_ctx.beta.GetAsFloat(),
+                                                  split_k.value());
+            }
+            else
+            {
+                MIOPEN_THROW(miopenStatusInvalidValue, "split_k is required but not provided");
+            }
+        }
+        else
+        {
+            argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                              tr_ptrs[0]->GetBufferPtr(),
+                                              tr_ptrs[1]->GetBufferPtr(),
+                                              tr_ptrs[2]->GetBufferPtr(),
+                                              data_ctx.alpha.GetAsFloat(),
+                                              data_ctx.beta.GetAsFloat());
+        }
+    }
+
+    return argument_ptr;
+}
+
+template <bool NeedsSplitK, typename DeviceOpType, typename CKArgsType, typename CastType>
+std::unique_ptr<ck::tensor_operation::device::BaseArgument>
+MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
+                 const CKArgsType& ck_args,
+                 const CastType& data_ctx,
+                 const std::optional<int>& split_k)
+{
+    std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
+
+    if constexpr(std::is_same_v<CastType, miopen::fusion::FusionInvokeParams>)
+    {
+        const auto& conv_param = dynamic_cast<const miopen::fusion::ConvolutionOpInvokeParam&>(
+            *data_ctx.op_args.params[0]);
+        assert(&conv_param);
+
+        const miopen::fusion::ActivationOpInvokeParam* activ_param_ptr = nullptr;
+        ConstData_t bias_buf                                           = nullptr;
+
+        if(data_ctx.op_args.params.size() == 2)
+        {
+            activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
+                *data_ctx.op_args.params[1]);
+            assert(activ_param_ptr);
+        }
+        else if(data_ctx.op_args.params.size() == 3)
+        {
+            const auto& bias_param =
+                dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
+            assert(&bias_param);
+            bias_buf = bias_param.bdata;
+
+            activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
+                *data_ctx.op_args.params[2]);
+            assert(activ_param_ptr);
+        }
+        else
+        {
+            throw miopen::Exception(miopenStatusInternalError,
+                                    "Unsupported number of parameters for FusionInvokeParams: " +
+                                        std::to_string(data_ctx.op_args.params.size()));
+        }
+
+        ConstData_t weight_buf = conv_param.weights;
+
+        argument_ptr = ck_args.MakeArgPtr(
+            sh_conv_ptr,
+            data_ctx.in,
+            weight_buf,
+            bias_buf,
+            data_ctx.out,
+            conv_param.alpha,
+            conv_param.beta,
+            GetOutElementOp<typename CKArgsType::OutputDataType,
+                            typename CKArgsType::OutputElementOpType>(*activ_param_ptr));
+    }
+    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
+    {
+        if constexpr(NeedsSplitK)
+        {
+            if(split_k.has_value())
+            {
+                argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                  data_ctx.tensors,
+                                                  data_ctx.alpha.GetAsFloat(),
+                                                  data_ctx.beta.GetAsFloat(),
+                                                  split_k.value());
+            }
+            else
+            {
+                MIOPEN_THROW(miopenStatusInvalidValue, "split_k is required but not provided");
+            }
+        }
+        else
+        {
+            std::ignore  = split_k;
+            argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                              data_ctx.tensors,
+                                              data_ctx.alpha.GetAsFloat(),
+                                              data_ctx.beta.GetAsFloat());
+        }
+    }
+
+    return argument_ptr;
+}
+#endif
 
 template <bool ZeroOutputs,
           typename DeviceOpType,
