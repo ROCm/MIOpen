@@ -59,7 +59,7 @@
 #undef EPSILON
 #define EPSILON 1e-6
 
-//#define MIO_CONV_ALGO_COUNT 4
+// #define MIO_CONV_ALGO_COUNT 4
 
 #define ERRTOL 1e-4
 #define RMSTOL_FP32 1e-4
@@ -1031,11 +1031,6 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
     miopenActivationMode_t activ_mode;
     miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-
-    int stride_h, stride_w, pad_h, pad_w, dilation_h, dilation_w;
-    miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &stride_h, &stride_w, &dilation_h, &dilation_w);
 
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
 
