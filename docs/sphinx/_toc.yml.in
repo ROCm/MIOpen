@@ -41,7 +41,7 @@ subtrees:
   - file: how-to/find-and-immediate.rst
     title: Use the find APIs and immediate mode
   - file: how-to/use-nhwc-batchnorm-in-pytorch.rst
-    title: Use NHWC Batchnorm in PyTorch
+    title: Use NHWC Batchnorm on PyTorch
 
 - caption: Reference
   entries:

@@ -1,16 +1,16 @@
 .. meta::
-  :description: Using NHWC Batchnorm in PyTorch
+  :description: Using NHWC Batchnorm on PyTorch
   :keywords: MIOpen, ROCm, API, documentation, NHWC Batchnorm, PyTorch
 
 ************************************************************************************************
-Using NHWC Batchnorm in PyTorch
+Using NHWC Batchnorm on PyTorch
 ************************************************************************************************
 
 This topic explains how to use NHWC Batchnorm for MIOpen operations in PyTorch. NHWC is
-a deep learning memory format that has certain performance advantages over traditional
+a deep-learning memory format that has certain performance advantages over traditional
 memory formats.
 
-For information on installing and using PyTorch with ROCm, see :doc:`PyTorch on ROCm <rocm-install-on-linux:install/3rd-party/pytorch-install>`.
+For information about installing and using PyTorch with ROCm, see :doc:`PyTorch on ROCm <rocm-install-on-linux:install/3rd-party/pytorch-install>`.
 For a list of the ROCm components and features that PyTorch supports, see :doc:`PyTorch compatibility <rocm:compatibility/ml-compatibility/pytorch-compatibility>`.
 For more background on using PyTorch and ROCm for AI tasks, see
 :doc:`Training a model with PyTorch for ROCm <rocm:how-to/rocm-for-ai/training/benchmark-docker/pytorch-training>`.
@@ -19,7 +19,7 @@ NHWC versus NCHW
 =================================================
 
 NHWC (also known as "Channels Last") and NCHW are two types of memory formats for deep learning. They describe how
-multidimensional arrays (nD) are translated to a linear (1-dimensional) memory address space.
+multidimensional arrays (nD) are translated to a linear (one-dimensional) memory address space.
 
 *  NCHW (Number of samples, channels, height, width): This is the default data layout in which channels
    are stored separately from one another. The height and width information is stored after
@@ -27,12 +27,12 @@ multidimensional arrays (nD) are translated to a linear (1-dimensional) memory a
 *  NHWC (Number of samples, height, width, channels): In this alternative format, channels are stored next
    to each other after the height and width information.
 
-The performance of NHWC is better than NCHW and is close to that observed when using blocked memory format. NHWC is also
+The performance of NHWC is better than that of NCHW and is close to that observed when using a blocked memory format. NHWC is also
 easier to work with for common operations.
 
 For more information about these memory formats, see the
 `PyTorch memory format documentation <https://pytorch.org/tutorials/intermediate/memory_format_tutorial.html>`_
-and the `Intel® Extension for PyTorch GitHub <https://intel.github.io/intel-extension-for-pytorch/cpu/latest/tutorials/features/nhwc.html>`_.
+and the `Intel Extension for PyTorch GitHub <https://intel.github.io/intel-extension-for-pytorch/cpu/latest/tutorials/features/nhwc.html>`_.
 
 Batchnorm
 =================================================
@@ -51,13 +51,13 @@ Enabling or disabling NHWC Batchnorm for MIOpen using PyTorch
 The PyTorch open-source tensor library provides support for using NHWC Batchnorm with MIOpen.
 In addition to Batchnorm, NHWC support is also available for convolution and other MIOpen features.
 
-NHWC Batchnorm support in MIOpen can be used in a PyTorch environment using ROCm version 7.0 or later.
+NHWC Batchnorm support in MIOpen can be used in a PyTorch environment using ROCm 7.0 or later.
 This configuration supports 2D and 3D NHWC Batchnorm. 1D Batchnorm is not applicable to the NHWC format.
 
 PyTorch branch support
 ------------------------
 
-The ``ROCm/pytorch`` PyTorch images support NHWC Batchnorm. ROCm version 7.0 or later is required.
+The ``ROCm/pytorch`` PyTorch images support NHWC Batchnorm. ROCm 7.0 or later is required.
 The following PyTorch branches support the NHWC Batchnorm feature:
 
 *  `release/2.6 <https://github.com/ROCm/pytorch/tree/release/2.6>`_
