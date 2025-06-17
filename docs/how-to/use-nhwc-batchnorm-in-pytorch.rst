@@ -77,7 +77,7 @@ To enable NHWC Batchnorm for this image, use this command:
 
    PYTORCH_MIOPEN_SUGGEST_NHWC_BATCHNORM=1
 
-For information on installing and using PyTorch on ROCm, see :doc:`PyTorch on ROCm <rocm-install-on-linux:install/3rd-party/pytorch-install>`.
+For information about installing and using PyTorch on ROCm, see :doc:`PyTorch on ROCm <rocm-install-on-linux:install/3rd-party/pytorch-install>`.
 
 Supported configurations
 =================================================
@@ -132,7 +132,7 @@ To disable the use of MIOpen with Batchnorm, add this code to your application.
 Verifying NHWC Batchnorm use with MIOpen
 =================================================
 
-For some operations, it can be difficult to determine the backend and memory format that were used.
+For some operations, it can be difficult to determine the backend and memory format used.
 To verify whether MIOpen is being used and whether the memory format is NHWC or NCHW, run your program
 with the following environment variable:
 
