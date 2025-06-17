@@ -970,12 +970,18 @@ MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
     {
         if constexpr(NeedsSplitK)
         {
-            std::ignore  = split_k;
-            argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                              data_ctx.tensors,
-                                              data_ctx.alpha.GetAsFloat(),
-                                              data_ctx.beta.GetAsFloat(),
-                                              split_k.value());
+            if(split_k.has_value())
+            {
+                argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                  data_ctx.tensors,
+                                                  data_ctx.alpha.GetAsFloat(),
+                                                  data_ctx.beta.GetAsFloat(),
+                                                  split_k.value());
+            }
+            else
+            {
+                MIOPEN_THROW(miopenStatusInvalidValue, "split_k is required but not provided");
+            }
         }
         else
         {
