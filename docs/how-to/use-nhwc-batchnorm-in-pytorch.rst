@@ -1,12 +1,12 @@
 .. meta::
-  :description: Using NHWC Batchnorm on PyTorch
-  :keywords: MIOpen, ROCm, API, documentation, NHWC Batchnorm, PyTorch
+  :description: Using NHWC Batch Normalization on PyTorch
+  :keywords: MIOpen, ROCm, API, documentation, NHWC Batch Normalization, PyTorch
 
 ************************************************************************************************
-Using NHWC Batchnorm on PyTorch
+Using NHWC Batch Normalization with PyTorch
 ************************************************************************************************
 
-This topic explains how to use NHWC Batchnorm for MIOpen operations in PyTorch. NHWC is
+This topic explains how to use NHWC Batch Normalization for MIOpen operations in PyTorch. NHWC is
 a deep-learning memory format that has certain performance advantages over traditional
 memory formats.
 
@@ -34,44 +34,44 @@ For more information about these memory formats, see the
 `PyTorch memory format documentation <https://pytorch.org/tutorials/intermediate/memory_format_tutorial.html>`_
 and the `Intel Extension for PyTorch GitHub <https://intel.github.io/intel-extension-for-pytorch/cpu/latest/tutorials/features/nhwc.html>`_.
 
-Batchnorm
+Batch Normalization
 =================================================
 
-Batchnorm (Batch Normalization) enables higher learning rates and reduces initialization overhead by
+Batch Normalization (also known as Batchnorm or BatchNorm) enables higher learning rates and reduces initialization overhead by
 normalizing layer inputs. Ordinarily, the distribution of the inputs to each layer changes as the
 parameters to the previous layer change. This makes it more difficult to train deep learning models
-and leads to lower learning rates. With Batchnorm, normalization is part of the architecture
+and leads to lower learning rates. With Batch Normalization, normalization is part of the architecture
 and is performed for each training batch.
 
-For more information on Batchnorm, see `Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_.
+For more information on Batch Normalization, see `Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_.
 
-Enabling or disabling NHWC Batchnorm for MIOpen using PyTorch
+Enabling or disabling NHWC Batch Normalization for MIOpen using PyTorch
 =============================================================
 
-The PyTorch open-source tensor library provides support for using NHWC Batchnorm with MIOpen.
-In addition to Batchnorm, NHWC support is also available for convolution and other MIOpen features.
+The PyTorch open-source tensor library provides support for using NHWC Batch Normalization with MIOpen.
+In addition to Batch Normalization, NHWC support is also available for convolution and other MIOpen features.
 
-NHWC Batchnorm support in MIOpen can be used in a PyTorch environment using ROCm 7.0 or later.
-This configuration supports 2D and 3D NHWC Batchnorm. 1D Batchnorm is not applicable to the NHWC format.
+NHWC Batch Normalization support in MIOpen can be used in a PyTorch environment using ROCm 7.0 or later.
+This configuration supports 2D and 3D NHWC Batch Normalization. 1D Batch Normalization is not applicable to the NHWC format.
 
 PyTorch branch support
 ------------------------
 
-The ``ROCm/pytorch`` PyTorch images support NHWC Batchnorm. ROCm 7.0 or later is required.
-The following PyTorch branches support the NHWC Batchnorm feature:
+The ``ROCm/pytorch`` PyTorch images support NHWC Batch Normalization. ROCm 7.0 or later is required.
+The following PyTorch branches support the NHWC Batch Normalization feature:
 
 *  `release/2.6 <https://github.com/ROCm/pytorch/tree/release/2.6>`_
 *  `release/2.7 <https://github.com/ROCm/pytorch/tree/release/2.7>`_
 
-In the ``release/2.7`` PyTorch branch, NHWC Batchnorm support in MIOpen is enabled by default.
-To use the native Batchnorm approach with this image, use this command:
+In the ``release/2.7`` PyTorch branch, NHWC Batch Normalization support in MIOpen is enabled by default.
+To use the native Batch Normalization approach with this image, use this command:
 
 .. code:: shell
 
    PYTORCH_MIOPEN_SUGGEST_NHWC_BATCHNORM=0
 
-In the ``release/2.6`` PyTorch branch, NHWC Batchnorm support in MIOpen is disabled by default.
-To enable NHWC Batchnorm for this image, use this command:
+In the ``release/2.6`` PyTorch branch, NHWC Batch Normalization support in MIOpen is disabled by default.
+To enable NHWC Batch Normalization for this image, use this command:
 
 .. code:: shell
 
@@ -82,20 +82,20 @@ For information about installing and using PyTorch on ROCm, see :doc:`PyTorch on
 Supported configurations
 =================================================
 
-The following table shows the Batchnorm support for NHWC and NCHW with various data types and modes.
+The following table shows the Batch Normalization support for NHWC and NCHW with various data types and modes.
 It also indicates which backend is used with and without the ``PYTORCH_MIOPEN_SUGGEST_NHWC_BATCHNORM``
 environment variable enabled.
 
 .. note::
 
-   Mixed mode means that the Batchnorm module has a different type than the inputs, for example,
-   an input or gradient data type of ``FP16`` or ``BF16`` and a Batchnorm type of ``FP32``.
-   If the Batchnorm module has the same data type as the inputs, for instance, an
-   input or gradient data type of ``FP32`` and a Batchnorm module that is also ``FP32``, the mode is
+   Mixed mode means that the Batch Normalization module has a different type than the inputs, for example,
+   an input or gradient data type of ``FP16`` or ``BF16`` and a Batch Normalization type of ``FP32``.
+   If the Batch Normalization module has the same data type as the inputs, for instance, an
+   input or gradient data type of ``FP32`` and a Batch Normalization module that is also ``FP32``, the mode is
    "not mixed".
 
 .. csv-table::
-   :header: "Input data type","Memory format","Mode","Mixed/not mixed","Backend with NHWC Batchnorm enabled","Backend with NHWC Batchnorm disabled"
+   :header: "Input data type","Memory format","Mode","Mixed/not mixed","Backend with NHWC Batch Normalization enabled","Backend with NHWC Batch Normalization disabled"
    :widths: 20, 20, 15, 15, 25, 25
 
    "``float32``","NCHW","1D/2D/3D","not mixed","MIOpen","MIOpen"
@@ -112,11 +112,11 @@ environment variable enabled.
 (*) MIOpen is used with ROCm 6.4 and later. Otherwise, the native backend is used.
 
 
-Disabling MIOpen for Batchnorm in PyTorch
-=================================================
+Disabling MIOpen for Batch Normalization in PyTorch
+====================================================
 
-In some situations, you might not want to use MIOpen as the backend for Batchnorm operations.
-To disable the use of MIOpen with Batchnorm, add this code to your application.
+In some situations, you might not want to use MIOpen as the backend for Batch Normalization operations.
+To disable the use of MIOpen with Batch Normalization, add this code to your application.
 
 .. code:: python
 
@@ -129,8 +129,8 @@ To disable the use of MIOpen with Batchnorm, add this code to your application.
       out = mod(inp)
       out.backward(grad)
 
-Verifying NHWC Batchnorm use with MIOpen
-=================================================
+Verifying NHWC Batch Normalization use with MIOpen
+===================================================
 
 For some operations, it can be difficult to determine the backend and memory format used.
 To verify whether MIOpen is being used and whether the memory format is NHWC or NCHW, run your program
@@ -164,24 +164,24 @@ The ``./bin/MIOpenDriver`` string indicates that MIOpen was used for the operati
 The ``--layout`` parameter shows whether NHWC or NCHW was used, for example, ``--layout NHWC`` means the
 NHWC memory format was used.
 
-Running Batchnorm tests
-=======================
+Running Batch Normalization tests
+==================================
 
-Several test suites are available for Batchnorm. To test Batchnorm training using both NHWC and NCHW in 2D,
+Several test suites are available for Batch Normalization. To test Batch Normalization training using both NHWC and NCHW in 2D,
 run the following command:
 
 .. code:: shell
 
    python test_nn.py -v -k test_batchnorm_2D_train
 
-To test Batchnorm training using both NHWC and NCHW in 3D,
+To test Batch Normalization training using both NHWC and NCHW in 3D,
 run the following command:
 
 .. code:: shell
 
    python test_nn.py -v -k test_batchnorm_3D_train
 
-To test Batchnorm inference for 2D using both memory formats, use this command:
+To test Batch Normalization inference for 2D using both memory formats, use this command:
 
 .. code:: shell
 
