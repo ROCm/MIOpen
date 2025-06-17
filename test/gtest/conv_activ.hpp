@@ -98,4 +98,5 @@ protected:
     float activ_gamma = static_cast<double>(0.5f);
     miopenTensorLayout_t tensor_layout;
     using cfsb = ConvFwdSolverTestBase<T, T, TestCaseType>;
+    Workspace wspace{};
 };

@@ -59,7 +59,7 @@
 #undef EPSILON
 #define EPSILON 1e-6
 
-//#define MIO_CONV_ALGO_COUNT 4
+// #define MIO_CONV_ALGO_COUNT 4
 
 #define ERRTOL 1e-4
 #define RMSTOL_FP32 1e-4
@@ -213,6 +213,7 @@ private:
     miopenBatchNormMode_t bn_mode;
     int bias_mode   = 0;
     int fusion_mode = 0;
+    int spatial_dim = 2;
     bool estimatedMeanVar;
     bool useBatchNorm = false;
     unsigned char back;
@@ -318,8 +319,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 {
     inflags.Parse(argc, argv);
 
-    // todo: get spatial dimension from cmd line
-    int spatial_dim = 2;
+    spatial_dim = inflags.GetValueInt("spatial_dim") == 3 ? 3 : 2;
 
     const std::string default_layout = (spatial_dim == 2) ? "NCHW" : "NCDHW";
 
@@ -399,12 +399,27 @@ template <typename Tgpu, typename Tref>
 std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetWeightTensorLengthsFromCmdLine()
 {
     int wei_n       = inflags.GetValueInt("out_channels");
-    int group_count = inflags.GetValueInt("group_count");
-    int wei_c       = inflags.GetValueInt("in_channels") / group_count;
-    ;
-    int wei_h = inflags.GetValueInt("fil_h");
-    int wei_w = inflags.GetValueInt("fil_w");
+    int group_count = std::max(inflags.GetValueInt("group_count"), 1);
+    int wei_c       = inflags.GetValueInt("in_channels");
+    int wei_h       = inflags.GetValueInt("fil_h");
+    int wei_w       = inflags.GetValueInt("fil_w");
 
+    if(group_count > 1)
+    {
+        if(wei_c % group_count != 0 || wei_n % group_count != 0 || group_count > wei_c ||
+           group_count > wei_n)
+        {
+            MIOPEN_THROW("Invalid group number\n");
+        }
+    }
+
+    wei_c /= group_count;
+
+    if(spatial_dim == 3)
+    {
+        int wei_d = inflags.GetValueInt("fil_d");
+        return std::vector<int>({wei_n, wei_c, wei_d, wei_h, wei_w});
+    }
     return std::vector<int>({wei_n, wei_c, wei_h, wei_w});
 }
 
@@ -441,7 +456,9 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
 
     if(bias_mode)
     {
-        std::vector<int> b_len{1, out_len[1], 1, 1};
+        std::vector<int> b_len(2 + spatial_dim, 1);
+        b_len[1] = out_len[1];
+
         SetTensorNd(biasTensor, b_len, data_type);
     }
 
@@ -451,6 +468,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::GetandSetData()
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
+    inflags.AddInputFlag(
+        "spatial_dim", '_', "2", "convolution spatial dimensions (Default=2)", "int");
     inflags.AddInputFlag("in_layout",
                          'I',
                          "",
@@ -471,18 +490,22 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
                          true);
     inflags.AddInputFlag("batchsize", 'n', "32", "Mini-batch size (Default=32)", "int");
     inflags.AddInputFlag("in_channels", 'c', "3", "Number of Input Channels (Default=3)", "int");
+    inflags.AddInputFlag("in_d", '!', "1", "Input Depth (Default=1)", "int");
     inflags.AddInputFlag("in_h", 'H', "32", "Input Height (Default=32)", "int");
     inflags.AddInputFlag("in_w", 'W', "32", "Input Width (Default=32)", "int");
     inflags.AddInputFlag(
         "out_channels", 'k', "32", "Number of Output Channels (Default=32)", "int");
     inflags.AddInputFlag(
         "group_count", 'g', "1", "Number of groups in convolution (Default=1)", "int");
+    inflags.AddInputFlag("fil_d", '@', "3", "Filter Depth (Default=3)", "int"); // should be 1?
     inflags.AddInputFlag("fil_h", 'y', "3", "Filter Height (Default=3)", "int");
     inflags.AddInputFlag("fil_w", 'x', "3", "Filter Width (Default=3)", "int");
+    inflags.AddInputFlag("conv_stride_d", '#', "1", "Convolution Stride Depth (Default=1)", "int");
     inflags.AddInputFlag(
         "conv_stride_h", 'u', "1", "Convolution Stride Vertical (Default=1)", "int");
     inflags.AddInputFlag(
         "conv_stride_w", 'v', "1", "Convolution Stride Horizontal (Default=1)", "int");
+    inflags.AddInputFlag("pad_d", '$', "0", "Zero Padding Depth (Default=0)", "int");
     inflags.AddInputFlag("pad_h", 'p', "0", "Zero Padding Height (Default=0)", "int");
     inflags.AddInputFlag("pad_w", 'q', "0", "Zero Padding Width (Default=0)", "int");
     inflags.AddInputFlag("pad_val", 'r', "0", "Padding Value (Default=0)", "int");
@@ -505,6 +528,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
                          "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
+    inflags.AddInputFlag("dilation_d", '^', "1", "Dilation of Filter Depth (Default=1)", "int");
     inflags.AddInputFlag("dilation_h", 'l', "1", "Dilation of Filter Height (Default=1)", "int");
     inflags.AddInputFlag("dilation_w", 'j', "1", "Dilation of Filter Width (Default=1)", "int");
 
@@ -533,8 +557,12 @@ std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdL
 {
     int in_n = inflags.GetValueInt("batchsize");
     int in_c = inflags.GetValueInt("in_channels");
+    int in_d = inflags.GetValueInt("in_d");
     int in_h = inflags.GetValueInt("in_h");
     int in_w = inflags.GetValueInt("in_w");
+
+    if(spatial_dim == 3)
+        return std::vector<int>({in_n, in_c, in_d, in_h, in_w});
     return std::vector<int>({in_n, in_c, in_h, in_w});
 }
 
@@ -565,58 +593,105 @@ int CBAInferFusionDriver<Tgpu, Tref>::SetConvDescriptorFromCmdLineArgs()
 {
 
     miopenConvolutionMode_t mode;
-    miopenPaddingMode_t pmode = miopenPaddingDefault;
-    int in_h                  = inflags.GetValueInt("in_h");
-    int in_w                  = inflags.GetValueInt("in_w");
-    int wei_h                 = inflags.GetValueInt("fil_h");
-    int wei_w                 = inflags.GetValueInt("fil_w");
-    int pad_h                 = inflags.GetValueInt("pad_h");
-    int pad_w                 = inflags.GetValueInt("pad_w");
-    int stride_h              = inflags.GetValueInt("conv_stride_h");
-    int stride_w              = inflags.GetValueInt("conv_stride_w");
-    int dilation_h            = inflags.GetValueInt("dilation_h");
-    int dilation_w            = inflags.GetValueInt("dilation_w");
-    int group_count           = inflags.GetValueInt("group_count");
 
-    pmode = miopenPaddingDefault;
-    mode  = miopenConvolution;
+    std::vector<int> in_spatial_lens(spatial_dim);
+    std::vector<int> wei_spatial_lens(spatial_dim);
+    std::vector<int> pads(spatial_dim);
+    std::vector<int> strides(spatial_dim);
+    std::vector<int> dilations(spatial_dim);
+    std::vector<int> trans_output_pads(spatial_dim);
 
-    if((inflags.GetValueStr("pad_mode")) == "same")
+    if(spatial_dim == 2)
     {
-        mode  = miopenConvolution;
-        pmode = miopenPaddingSame;
-        pad_h = (in_h % stride_h == 0) ? (std::max((wei_h - stride_h), 0))
-                                       : (std::max((wei_h - (in_h % stride_h)), 0));
-        pad_w = (in_w % stride_w == 0) ? (std::max((wei_w - stride_w), 0))
-                                       : (std::max((wei_w - (in_w % stride_w)), 0));
-        pad_h /= 2;
-        pad_w /= 2;
+        in_spatial_lens[0]  = inflags.GetValueInt("in_h");
+        in_spatial_lens[1]  = inflags.GetValueInt("in_w");
+        wei_spatial_lens[0] = inflags.GetValueInt("fil_h");
+        wei_spatial_lens[1] = inflags.GetValueInt("fil_w");
+        pads[0]             = inflags.GetValueInt("pad_h");
+        pads[1]             = inflags.GetValueInt("pad_w");
+        strides[0]          = inflags.GetValueInt("conv_stride_h");
+        strides[1]          = inflags.GetValueInt("conv_stride_w");
+        dilations[0]        = inflags.GetValueInt("dilation_h");
+        dilations[1]        = inflags.GetValueInt("dilation_w");
     }
-    else if((inflags.GetValueStr("pad_mode")) == "valid")
+    else if(spatial_dim == 3)
     {
-        pmode = miopenPaddingValid;
-        mode  = miopenConvolution;
-        pad_h = 0;
-        pad_w = 0;
+        in_spatial_lens[0]  = inflags.GetValueInt("in_d");
+        in_spatial_lens[1]  = inflags.GetValueInt("in_h");
+        in_spatial_lens[2]  = inflags.GetValueInt("in_w");
+        wei_spatial_lens[0] = inflags.GetValueInt("fil_d");
+        wei_spatial_lens[1] = inflags.GetValueInt("fil_h");
+        wei_spatial_lens[2] = inflags.GetValueInt("fil_w");
+        pads[0]             = inflags.GetValueInt("pad_d");
+        pads[1]             = inflags.GetValueInt("pad_h");
+        pads[2]             = inflags.GetValueInt("pad_w");
+        strides[0]          = inflags.GetValueInt("conv_stride_d");
+        strides[1]          = inflags.GetValueInt("conv_stride_h");
+        strides[2]          = inflags.GetValueInt("conv_stride_w");
+        dilations[0]        = inflags.GetValueInt("dilation_d");
+        dilations[1]        = inflags.GetValueInt("dilation_h");
+        dilations[2]        = inflags.GetValueInt("dilation_w");
     }
 
-    miopen::deref(convDesc) = miopen::ConvolutionDescriptor(2,
-                                                            mode,
-                                                            pmode,
-                                                            {pad_h, pad_w},
-                                                            {stride_h, stride_w},
-                                                            {dilation_h, dilation_w},
-                                                            {0, 0},
-                                                            group_count);
+    int out_c       = inflags.GetValueInt("out_channels");
+    int in_c        = inflags.GetValueInt("in_channels");
+    int group_count = std::max(inflags.GetValueInt("group_count"), 1);
+
+    if(group_count > 1)
+    {
+        if(in_c % group_count != 0 || out_c % group_count != 0 || group_count > in_c ||
+           group_count > out_c)
+        {
+            printf("Invalid group number\n");
+            exit(0); // NOLINT (concurrency-mt-unsafe)
+        }
+    }
+
+    mode = miopenConvolution;
+
+    if(mode == miopenConvolution &&
+       (miopen::all_of(dilations, [](auto v) { return v == 1; }) ||
+        miopen::all_of(wei_spatial_lens, [](auto v) { return v == 1; })))
+    {
+        if((inflags.GetValueStr("pad_mode")) == "same")
+        {
+            for(int i = 0; i < spatial_dim; ++i)
+            {
+                pads[i] =
+                    (in_spatial_lens[i] % strides[i] == 0)
+                        ? (std::max((wei_spatial_lens[i] - strides[i]), 0))
+                        : (std::max((wei_spatial_lens[i] - (in_spatial_lens[i] % strides[i])), 0));
+                pads[i] /= 2;
+            }
+        }
+        else if((inflags.GetValueStr("pad_mode")) == "valid")
+        {
+            for(int i = 0; i < spatial_dim; ++i)
+            {
+                pads[i] = 0;
+            }
+        }
+    }
+
+    miopenInitConvolutionNdDescriptor(
+        convDesc, spatial_dim, pads.data(), strides.data(), dilations.data(), mode);
+
+    miopenSetConvolutionGroupCount(convDesc, group_count);
+
     return miopenStatusSuccess;
 }
 
 template <typename Tgpu, typename Tref>
 std::vector<int> CBAInferFusionDriver<Tgpu, Tref>::GetOutputTensorLengths()
 {
-    int n, c, h, w;
-    miopenGetConvolutionForwardOutputDim(convDesc, inputTensor, weightTensor, &n, &c, &h, &w);
-    return std::vector<int>({n, c, h, w});
+    int ndim = miopen::deref(inputTensor).GetNumDims();
+
+    std::vector<int> out_lens(ndim);
+
+    miopenGetConvolutionNdForwardOutputDim(
+        convDesc, inputTensor, weightTensor, &ndim, out_lens.data());
+
+    return out_lens;
 }
 
 template <typename Tgpu, typename Tref>
@@ -873,12 +948,14 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     double epsilon = static_cast<double>(EPSILON);
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
 
-    int stride_h, stride_w, pad_h, pad_w, dilation_h, dilation_w;
-    std::string plan_error_str;
-
+    std::vector<int> pads(spatial_dim);
+    std::vector<int> strides(spatial_dim);
+    std::vector<int> dilations(spatial_dim);
     miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &stride_h, &stride_w, &dilation_h, &dilation_w);
+
+    miopenGetConvolutionNdDescriptor(
+        convDesc, spatial_dim, &spatial_dim, pads.data(), strides.data(), dilations.data(), &mode);
+    std::string plan_error_str;
 
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
     plan_error_str += "Convolution";
@@ -948,16 +1025,12 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
 {
+    // TODO: 3d
     miopenError = miopenStatusSuccess;
     double activ_alpha, activ_beta, activ_gamma;
     miopenActivationMode_t activ_mode;
     miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
-
-    int stride_h, stride_w, pad_h, pad_w, dilation_h, dilation_w;
-    miopenConvolutionMode_t mode;
-    miopenGetConvolutionDescriptor(
-        convDesc, &mode, &pad_h, &pad_w, &stride_h, &stride_w, &dilation_h, &dilation_w);
 
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
 
