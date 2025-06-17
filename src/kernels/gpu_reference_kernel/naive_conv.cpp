@@ -1049,11 +1049,15 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
      *  hence need `n * ho` workgroups (grid_size).
      */
 
+    int bid   = blockIdx.x;
+    int iho   = bid % ho;
+    int cur_h = sy * iho - py;
+    if(cur_h < 0) continue;
+    
     int k             = k_per_group * group;
     int c             = c_per_group * group;
     int thread_length = wo * k;
-    int bid           = blockIdx.x;
-    int iho           = bid % ho;
+
     int in            = (bid / ho) % n;
 
     if constexpr(ASSUME_PACKED)
@@ -1078,7 +1082,10 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
         // , but
         //      tid = tid / k * k + tid % k = iwo * k + ik
         // so we can avoid the % operation.
-        int iwo       = tid / k;
+        int iwo     = tid / k;
+        int cur_w   = sx * iwo - px;
+        if(cur_w < 0) continue;
+
         int global_ik = tid - iwo * k;
         int ig        = global_ik / k_per_group;
         int ik        = global_ik - ig * k_per_group;
@@ -1087,55 +1094,52 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
 
         for(int iy = 0; iy < fy; iy++)
         {
-            int valid_h = 1;
-            int cur_h   = sy * iho - py + dy * iy;
-            if(cur_h < 0 || cur_h >= hi)
-                valid_h &= 0;
+            if(cur_h >= hi) continue;
+
             for(int ix = 0; ix < fx; ix++)
             {
-                int valid_w = 1;
-                int cur_w   = sx * iwo - px + dx * ix;
-                if(cur_w < 0 || cur_w >= wi)
-                    valid_w &= 0;
+                if(cur_w >= wi) continue;
+
                 for(int ic = 0; ic < c_per_group; ic++)
                 {
-                    if(valid_w & valid_h)
+                    if constexpr(ASSUME_PACKED)
                     {
-                        if constexpr(ASSUME_PACKED)
-                        {
-                            size_t i_idx = static_cast<size_t>(cur_h) * wi * c +
-                                           static_cast<size_t>(cur_w) * c +
-                                           static_cast<size_t>(ig) * c_per_group +
-                                           static_cast<size_t>(ic);
+                        size_t i_idx = static_cast<size_t>(cur_h) * wi * c +
+                                        static_cast<size_t>(cur_w) * c +
+                                        static_cast<size_t>(ig) * c_per_group +
+                                        static_cast<size_t>(ic);
 
-                            size_t f_idx =
-                                static_cast<size_t>(ig) * k_per_group * fy * fx * c_per_group +
-                                static_cast<size_t>(ik) * fy * fx * c_per_group +
-                                static_cast<size_t>(iy) * fx * c_per_group +
-                                static_cast<size_t>(ix) * c_per_group + static_cast<size_t>(ic);
+                        size_t f_idx =
+                            static_cast<size_t>(ig) * k_per_group * fy * fx * c_per_group +
+                            static_cast<size_t>(ik) * fy * fx * c_per_group +
+                            static_cast<size_t>(iy) * fx * c_per_group +
+                            static_cast<size_t>(ix) * c_per_group + static_cast<size_t>(ic);
 
-                            value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
-                                     cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
-                        }
-                        else
-                        {
-                            size_t i_idx = static_cast<size_t>(cur_h) * in_strides[3] +
-                                           static_cast<size_t>(cur_w) * in_strides[2] +
-                                           static_cast<size_t>(ig) * in_strides[1] +
-                                           static_cast<size_t>(ic) * in_strides[0];
+                        value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
+                                    cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
+                    }
+                    else
+                    {
+                        size_t i_idx = static_cast<size_t>(cur_h) * in_strides[3] +
+                                        static_cast<size_t>(cur_w) * in_strides[2] +
+                                        static_cast<size_t>(ig) * in_strides[1] +
+                                        static_cast<size_t>(ic) * in_strides[0];
 
-                            size_t f_idx = static_cast<size_t>(ig) * wei_strides[4] +
-                                           static_cast<size_t>(ik) * wei_strides[3] +
-                                           static_cast<size_t>(iy) * wei_strides[2] +
-                                           static_cast<size_t>(ix) * wei_strides[1] +
-                                           static_cast<size_t>(ic) * wei_strides[0];
+                        size_t f_idx = static_cast<size_t>(ig) * wei_strides[4] +
+                                        static_cast<size_t>(ik) * wei_strides[3] +
+                                        static_cast<size_t>(iy) * wei_strides[2] +
+                                        static_cast<size_t>(ix) * wei_strides[1] +
+                                        static_cast<size_t>(ic) * wei_strides[0];
 
-                            value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
-                                     cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
-                        }
+                        value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
+                                    cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
                     }
                 }
+
+                cur_w += dx;
             }
+
+            cur_h += dy;
         }
 
         if constexpr(ASSUME_PACKED)
