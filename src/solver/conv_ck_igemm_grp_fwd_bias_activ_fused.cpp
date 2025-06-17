@@ -36,6 +36,7 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#include <miopen/solver/ck_utility_common.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include "ck/library/tensor_operation_instance/gpu/grouped_convolution_forward_bias_clamp.hpp"
 #endif
@@ -630,8 +631,7 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(!(conv_problem.Is2d() || conv_problem.Is3d()))
         return false;
-    const std::string arch = ctx.GetStream().GetDeviceName();
-    if(arch != "gfx908" && arch != "gfx90a" && arch != "gfx942")
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
     if(!conv_problem.IsLayoutNHWC() && !conv_problem.IsLayoutDefault())
         return false;
