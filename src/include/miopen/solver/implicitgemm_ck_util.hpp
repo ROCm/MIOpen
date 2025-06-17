@@ -887,7 +887,7 @@ MakeNCHWCKArgPtr(const CKArgsType& ck_args,
                 *data_ctx.op_args.params[1]);
             assert(activ_param_ptr);
         }
-        else if(data_ctx.op_args.params.size() > 2)
+        else if(data_ctx.op_args.params.size() == 3)
         {
             const auto& bias_param =
                 dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
@@ -897,6 +897,12 @@ MakeNCHWCKArgPtr(const CKArgsType& ck_args,
             activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
                 *data_ctx.op_args.params[2]);
             assert(activ_param_ptr);
+        }
+        else
+        {
+            throw miopen::Exception(miopenStatusInternalError,
+                                    "Unsupported number of parameters for FusionInvokeParams: " +
+                                        std::to_string(data_ctx.op_args.params.size()));
         }
 
         argument_ptr = ck_args.MakeArgPtr(
@@ -967,7 +973,7 @@ MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
                 *data_ctx.op_args.params[1]);
             assert(activ_param_ptr);
         }
-        else if(data_ctx.op_args.params.size() > 2)
+        else if(data_ctx.op_args.params.size() == 3)
         {
             const auto& bias_param =
                 dynamic_cast<const miopen::fusion::BiasOpInvokeParam&>(*data_ctx.op_args.params[1]);
@@ -977,6 +983,12 @@ MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
             activ_param_ptr = &dynamic_cast<const miopen::fusion::ActivationOpInvokeParam&>(
                 *data_ctx.op_args.params[2]);
             assert(activ_param_ptr);
+        }
+        else
+        {
+            throw miopen::Exception(miopenStatusInternalError,
+                                    "Unsupported number of parameters for FusionInvokeParams: " +
+                                        std::to_string(data_ctx.op_args.params.size()));
         }
 
         ConstData_t weight_buf = conv_param.weights;

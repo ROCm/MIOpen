@@ -152,8 +152,6 @@ struct ConvTraits<ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
                                                                                 BCompType>>
 {
     static constexpr ck::index_t NDim = NDimSpatial;
-    // using BComputeType                = BCompType;
-    // ..
 };
 
 struct CKArgs
@@ -491,11 +489,11 @@ void PerformanceConfigConvCKIgemmGrpFwdActivFused::HeuristicInit(
     switch(conv_problem.GetInDataType())
     {
     case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
-    case miopenHalf:
+    case miopenHalf: Init<ck::half_t>(conv_problem); break;
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
     case miopenInt8:
-    case miopenFloat:
+    case miopenFloat: Init<float>(conv_problem); break;
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
@@ -515,8 +513,8 @@ bool PerformanceConfigConvCKIgemmGrpFwdActivFused::SetNextValue(
         switch(conv_problem.GetInDataType())
         {
         case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
-        case miopenHalf:
-        case miopenFloat:
+        case miopenHalf: Init<ck::half_t>(conv_problem); break;
+        case miopenFloat: Init<float>(conv_problem); break;
         case miopenInt8:
         case miopenInt64:
         case miopenInt32:
@@ -551,8 +549,8 @@ bool PerformanceConfigConvCKIgemmGrpFwdActivFused::IsValid(
     switch(conv_problem.GetInDataType())
     {
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(conv_problem);
-    case miopenHalf:
-    case miopenFloat:
+    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(conv_problem);
+    case miopenFloat: return CheckIsSupportCKArgs<float>(conv_problem);
     case miopenInt8:
     case miopenInt64:
     case miopenInt32:
@@ -630,7 +628,7 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_ACTIV))
         return false;
-    if(!conv_problem.IsBfp16())
+    if(!conv_problem.IsBfp16() && !conv_problem.IsFp16() && !conv_problem.IsFp32())
         return false;
     if(conv_problem.IsTensorsCasted())
         return false;
@@ -652,11 +650,11 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
     switch(conv_problem.GetInDataType())
     {
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(conv_problem);
-    case miopenHalf:
+    case miopenHalf: return CheckCKApplicability<ck::half_t>(conv_problem);
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
     case miopenInt8:
-    case miopenFloat:
+    case miopenFloat: return CheckCKApplicability<float>(conv_problem);
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
