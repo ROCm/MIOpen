@@ -106,9 +106,13 @@ static std::mutex s_fileMutex;
 static std::unordered_map<size_t, CacheData> s_cacheTable;
 static std::filesystem::path exp_path;
 
-void ReadCacheFile()
+static void ReadCacheFile()
 {
     std::lock_guard<std::mutex> lock(s_fileMutex);
+    const std::string filename = ".config/miopen/dck_conv_cache.txt";
+    exp_path = filename;
+    exp_path = std::filesystem::path(std::getenv("HOME")) / filename;
+    std::filesystem::create_directories(exp_path.parent_path());
 
     std::ifstream infile(exp_path);
     if (infile)
@@ -136,7 +140,7 @@ void ReadCacheFile()
     }
 }
 
-void AppendToCache(CacheData cd)
+static void AppendToCache(CacheData cd)
 {
     if (DirectCkMgr::GetInst()->enableConvCache == false)   return;
     if (cd.hashcode == 0x48d7fb2d2182270c)                  return;
@@ -248,7 +252,8 @@ using DeviceConvBwdWeightFactory = std::tuple<
 >;
 
 using ProblemDescription = miopen::conv::ProblemDescription;
-
+namespace
+{
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -275,23 +280,13 @@ struct CKArgs
         bias_lens       = {G, 1, K, 1, 1};
         bias_strides    = {K, 0, 1, 0, 0};
 
-        /*
-        // miopen filter_stride to CK filter_stride
-        auto miopen_in_strides  = problem.GetIn().GetStrides();
-        auto miopen_out_strides = problem.GetOut().GetStrides();
-        auto miopen_wei_strides = problem.GetWeights().GetStrides();
-        miopen_in_strides.insert(miopen_in_strides.begin(), C);
-        miopen_out_strides.insert(miopen_out_strides.begin(), K);
-        miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
-
-        std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-        std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
-        std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
-        */
-
-        in_strides  = { N*Hi*Wi*C,  Hi*Wi*C,  1,  Wi*C,  C};
-        out_strides = { N*Ho*Wo*K,  Ho*Wo*K,  1,  Wo*K,  K};
-        wei_strides = { K*Y*X*C,    Y*X*C,    1,  X*C,   C};
+        const std::string layout = problem.GetInLayout();
+        if (layout == "NCHW")
+        {
+            in_strides  = { Hi*Wi*C,  G*Hi*Wi*C,  1,  Wi*C,  C};
+            out_strides = { Ho*Wo*K,  G*Ho*Wo*K,  1,  Wo*K,  K};
+            wei_strides = { Y*X*C,    G*Y*X*C,    1,  X*C,   C};
+        }
 
         filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                            ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
@@ -413,15 +408,10 @@ struct CKArgs
     std::array<ck::index_t, 2> lPadding;
     std::array<ck::index_t, 2> rPadding;
 };
+}
 
 ConvQunConvBwd::ConvQunConvBwd()
 {
-    const std::string filename = ".config/miopen/dck_conv_cache.txt";
-    exp_path = filename;
-    exp_path = std::filesystem::path(std::getenv("HOME")) / filename;
-    std::filesystem::create_directories(exp_path.parent_path());
-
-    ReadCacheFile();
 }
 
 bool ConvQunConvBwd::IsApplicable(const ExecutionContext&   ctx,
@@ -484,12 +474,11 @@ uint32_t ConvQunConvBwd::GetSupportedSolutionCount(const ExecutionContext& ctx,
     uint32_t solutionCount = 0;
     const auto& ck_args    = CKArgs{problem};
 
+    auto factory_list = DeviceConvBwdWeightFactory{};
     ck::static_for<0, std::tuple_size_v<DeviceConvBwdWeightFactory>, 1>{}([&](auto i) -> void {
-        const auto device_conv_bwd_weight_instance = std::get<i>(DeviceConvBwdWeightFactory{});
-        using DeviceConvBwdWeightInstance = ck::remove_cvref_t<decltype(device_conv_bwd_weight_instance)>;
-        auto conv_ptr = std::make_shared<DeviceConvBwdWeightInstance>();
+        const auto conv_ptr = std::get<i>(factory_list);
 
-        auto argument = conv_ptr->MakeArgument(nullptr, nullptr, nullptr,
+        auto argument = conv_ptr.MakeArgument(nullptr, nullptr, nullptr,
                                                 ck_args.input_lengths,
                                                 ck_args.in_strides,
                                                 ck_args.wei_lens,
@@ -504,7 +493,7 @@ uint32_t ConvQunConvBwd::GetSupportedSolutionCount(const ExecutionContext& ctx,
                                                 WeiElementOp{},
                                                 OutElementOp{},
                                                 1);
-        if(conv_ptr->IsSupportedArgument(argument))
+        if(conv_ptr.IsSupportedArgument(argument))
         {
             solutionCount ++;
         }
@@ -538,9 +527,10 @@ bool ConvQunConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::Pro
     bool foundBest = false;
     if (found)
     {
+        auto factory_list = DeviceConvBwdWeightFactory{};
         ck::static_for<0, std::tuple_size_v<DeviceConvBwdWeightFactory>, 1>{}([&](auto i) -> void {
 
-            const auto device_conv_bwd_weight_instance = std::get<i>(DeviceConvBwdWeightFactory{});
+            const auto device_conv_bwd_weight_instance = std::get<i>(factory_list);
             using DeviceConvBwdWeightInstance = ck::remove_cvref_t<decltype(device_conv_bwd_weight_instance)>;
             auto conv_ptr = std::make_shared<DeviceConvBwdWeightInstance>();
 
@@ -577,7 +567,6 @@ bool ConvQunConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::Pro
                         DeviceMem gemm_workspace_dev(conv_ptr->GetWorkSpaceSize(&argument));
                         conv_ptr->SetWorkSpacePointer(&argument, gemm_workspace_dev.GetDeviceBuffer());
 
-                        if(conv_ptr->IsSupportedArgument(argument))
                         {
                             invoker.ShowInfo(argument);
                             WorkAroundHipEventProfiler prf(handle);
@@ -650,8 +639,9 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
     }
 
     bool found_kernel= false;
+    auto factory_list = DeviceConvBwdWeightFactory{};
     ck::static_for<0, std::tuple_size_v<DeviceConvBwdWeightFactory>, 1>{}([&](auto i) -> void {
-        const auto device_conv_bwd_weight_instance = std::get<i>(DeviceConvBwdWeightFactory{});
+        const auto device_conv_bwd_weight_instance = std::get<i>(factory_list);
         using DeviceConvBwdWeightInstance = ck::remove_cvref_t<decltype(device_conv_bwd_weight_instance)>;
         auto conv_ptr = std::make_shared<DeviceConvBwdWeightInstance>();
 
@@ -677,11 +667,11 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
                                             OutElementOp{},
                                             cur_split_k);
 
-            DeviceMem gemm_workspace_dev(conv_ptr->GetWorkSpaceSize(&argument));
-            conv_ptr->SetWorkSpacePointer(&argument, gemm_workspace_dev.GetDeviceBuffer());
-
             if(conv_ptr->IsSupportedArgument(argument))
             {
+                DeviceMem gemm_workspace_dev(conv_ptr->GetWorkSpaceSize(&argument));
+                conv_ptr->SetWorkSpacePointer(&argument, gemm_workspace_dev.GetDeviceBuffer());
+
                 found_kernel = true;
                 MIOPEN_LOG_I("Run conv : (split_K:" << cur_split_k << ") " << conv_ptr->GetTypeString());
                 invoker.ShowInfo(argument);
@@ -725,11 +715,11 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
                                                                     OutElementOp{},
                                                                     best_split_k);
 
-                                DeviceMem gemm_workspace_dev(conv_ptr->GetWorkSpaceSize(&argument));
-                                conv_ptr->SetWorkSpacePointer(&argument, gemm_workspace_dev.GetDeviceBuffer());
-
                                 if(conv_ptr->IsSupportedArgument(argument))
                                 {
+                                    DeviceMem gemm_workspace_dev(conv_ptr->GetWorkSpaceSize(&argument));
+                                    conv_ptr->SetWorkSpacePointer(&argument, gemm_workspace_dev.GetDeviceBuffer());
+
                                     invoker.ShowInfo(argument);
                                     WorkAroundHipEventProfiler prf(handle);
                                     float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
@@ -762,6 +752,7 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
 ConvSolution ConvQunConvBwd::GetSolution(const ExecutionContext& ctx,
                                          const ProblemDescription& problem) const
 {
+    ReadCacheFile();
     return GetBestSolution(ctx, problem);
 }
 

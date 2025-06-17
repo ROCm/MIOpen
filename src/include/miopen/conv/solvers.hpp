@@ -2843,13 +2843,38 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
-
 struct ConvQunConvBwd final : ConvSolver
 {
     ConvQunConvBwd();
     const std::string& SolverDbId() const override
     {
         return GetSolverDbId<ConvQunConvBwd>();
+    }
+
+    MIOPEN_INTERNALS_EXPORT bool
+    IsApplicable(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    bool IsDynamic() const override { return true; }
+    /// Use very small fixed value enough to backup GEMM for cases when
+    /// GEMM is disabled.
+    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
+    {
+        return 0.01f;
+    }
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+
+    MIOPEN_INTERNALS_EXPORT ConvSolution
+    GetBestSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+    bool FindCachedSolution(size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const;
+    uint32_t GetSupportedSolutionCount(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
+};
+
+struct ConvQunConvFwd final : ConvSolver
+{
+    ConvQunConvFwd();
+    const std::string& SolverDbId() const override
+    {
+        return GetSolverDbId<ConvQunConvFwd>();
     }
 
     MIOPEN_INTERNALS_EXPORT bool
