@@ -628,7 +628,7 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_ACTIV))
         return false;
-    if(!conv_problem.IsBfp16() && !conv_problem.IsFp16() && !conv_problem.IsFp32())
+    if(!conv_problem.IsBfp16() /*&& !conv_problem.IsFp16() && !conv_problem.IsFp32()*/)
         return false;
     if(conv_problem.IsTensorsCasted())
         return false;
@@ -644,7 +644,7 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    if(!conv_problem.IsLayoutNHWC() && !conv_problem.IsLayoutDefault())
+    if(!conv_problem.IsLayoutNHWC() /*&& !conv_problem.IsLayoutDefault()*/)
         return false;
 
     switch(conv_problem.GetInDataType())
