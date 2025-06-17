@@ -52,6 +52,25 @@ using InElementOp  = ck::tensor_operation::element_wise::PassThrough;
 using WeiElementOp = ck::tensor_operation::element_wise::PassThrough;
 using OutElementOp = ck::tensor_operation::element_wise::AddClamp;
 
+template <ck::index_t NDimSpatial>
+struct LayoutsSelector;
+
+template <>
+struct LayoutsSelector<2>
+{
+    using InLayout  = ck::tensor_layout::convolution::NHWGC;
+    using WeiLayout = ck::tensor_layout::convolution::GKYXC;
+    using OutLayout = ck::tensor_layout::convolution::NHWGK;
+};
+
+template <>
+struct LayoutsSelector<3>
+{
+    using InLayout  = ck::tensor_layout::convolution::NDHWGC;
+    using WeiLayout = ck::tensor_layout::convolution::GKZYXC;
+    using OutLayout = ck::tensor_layout::convolution::NDHWGK;
+};
+
 const auto in_element_op  = InElementOp{};
 const auto wei_element_op = WeiElementOp{};
 
@@ -576,8 +595,13 @@ size_t
 ConvCKIgemmGrpFwdBiasActivFused::GetWorkspaceSize(const FusionContext&,
                                                   const FusionDescription& fdesc_problem) const
 {
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     return GetWorkspaceSizeLayoutTransformConv(conv_problem);
+#else
+    std::ignore = fdesc_problem;
+    return 0;
+#endif
 }
 
 PerformanceConfigConvCKIgemmGrpFwdBiasActivFused
@@ -633,7 +657,7 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    if(!conv_problem.IsLayoutNHWC() && !conv_problem.IsLayoutDefault())
+    if(!conv_problem.IsLayoutNHWC())
         return false;
 
     switch(conv_problem.GetInDataType())
@@ -653,25 +677,7 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
 #endif
 }
 
-template <ck::index_t NDimSpatial>
-struct LayoutsSelector;
-
-template <>
-struct LayoutsSelector<2>
-{
-    using InLayout  = ck::tensor_layout::convolution::NHWGC;
-    using WeiLayout = ck::tensor_layout::convolution::GKYXC;
-    using OutLayout = ck::tensor_layout::convolution::NHWGK;
-};
-
-template <>
-struct LayoutsSelector<3>
-{
-    using InLayout  = ck::tensor_layout::convolution::NDHWGC;
-    using WeiLayout = ck::tensor_layout::convolution::GKZYXC;
-    using OutLayout = ck::tensor_layout::convolution::NDHWGK;
-};
-
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <ck::index_t NDimSpatial, typename DataType>
 ConvSolution
 GetSolutionForDimensionality(const FusionContext& ctx,
@@ -730,6 +736,7 @@ ConvSolution GetSolutionWithDim(const FusionContext& ctx,
     default: MIOPEN_THROW("Unsupported datatype");
     }
 }
+#endif
 
 ConvSolution ConvCKIgemmGrpFwdBiasActivFused::GetSolution(
     const FusionContext& ctx,
