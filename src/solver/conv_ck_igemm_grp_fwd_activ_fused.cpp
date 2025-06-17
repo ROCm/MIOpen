@@ -197,17 +197,17 @@ struct CKArgs
             wei_lens = {G, K, C, Z, Y, X};
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
-                               ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                               ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                             ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                             ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
             filter_dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
                                ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                                ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
             lPadding        = {ProblemInterpreter::GetInputLeftPadD(problem),
-                               ProblemInterpreter::GetInputLeftPadH(problem),
-                               ProblemInterpreter::GetInputLeftPadW(problem)};
+                        ProblemInterpreter::GetInputLeftPadH(problem),
+                        ProblemInterpreter::GetInputLeftPadW(problem)};
             rPadding        = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
-                               ProblemInterpreter::GetAdjustedInputRightPadH(problem),
-                               ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+                        ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+                        ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
         }
         else
         {
@@ -224,18 +224,18 @@ struct CKArgs
             wei_lens = {G, K, C, Y, X};
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                               ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                             ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
             filter_dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                                ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
             lPadding        = {ProblemInterpreter::GetInputLeftPadH(problem),
-                               ProblemInterpreter::GetInputLeftPadW(problem)};
+                        ProblemInterpreter::GetInputLeftPadW(problem)};
             rPadding        = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
-                               ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+                        ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
         }
     }
 
-    CKArgs(const CKArgs&)            = default;
-    CKArgs(CKArgs&&)                 = default;
+    CKArgs(const CKArgs&) = default;
+    CKArgs(CKArgs&&)      = default;
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
@@ -432,21 +432,21 @@ bool PerformanceConfigConvCKIgemmGrpFwdActivFused::CheckIsSupportCKArgs(
     {
         using Layouts = decltype(Get3DLayouts());
         supported     = IsCKArgsSupported<DeviceOpGFwdReluPtrs<3,
-                                                               DataType,
-                                                               Layouts::InLayout,
-                                                               Layouts::WeiLayout,
-                                                               Layouts::OutLayout>,
-                                          CKArgs>(problem, kernel_id);
+                                                           DataType,
+                                                           Layouts::InLayout,
+                                                           Layouts::WeiLayout,
+                                                           Layouts::OutLayout>,
+                                      CKArgs>(problem, kernel_id);
     }
     else
     {
         using Layouts = decltype(Get2DLayouts());
         supported     = IsCKArgsSupported<DeviceOpGFwdReluPtrs<2,
-                                                               DataType,
-                                                               Layouts::InLayout,
-                                                               Layouts::WeiLayout,
-                                                               Layouts::OutLayout>,
-                                          CKArgs>(problem, kernel_id);
+                                                           DataType,
+                                                           Layouts::InLayout,
+                                                           Layouts::WeiLayout,
+                                                           Layouts::OutLayout>,
+                                      CKArgs>(problem, kernel_id);
     }
     return supported;
 }
@@ -460,21 +460,21 @@ bool ConvCKIgemmGrpFwdActivFused::CheckCKApplicability(
     {
         using Layouts = decltype(Get3DLayouts());
         applicable    = IsCKApplicable<DeviceOpGFwdReluPtrs<3,
-                                                            DataType,
-                                                            Layouts::InLayout,
-                                                            Layouts::WeiLayout,
-                                                            Layouts::OutLayout>,
-                                       CKArgs>(problem);
+                                                         DataType,
+                                                         Layouts::InLayout,
+                                                         Layouts::WeiLayout,
+                                                         Layouts::OutLayout>,
+                                    CKArgs>(problem);
     }
     else
     {
         using Layouts = decltype(Get2DLayouts());
         applicable    = IsCKApplicable<DeviceOpGFwdReluPtrs<2,
-                                                            DataType,
-                                                            Layouts::InLayout,
-                                                            Layouts::WeiLayout,
-                                                            Layouts::OutLayout>,
-                                       CKArgs>(problem);
+                                                         DataType,
+                                                         Layouts::InLayout,
+                                                         Layouts::WeiLayout,
+                                                         Layouts::OutLayout>,
+                                    CKArgs>(problem);
     }
     return applicable;
 }
