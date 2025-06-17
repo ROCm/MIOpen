@@ -859,12 +859,6 @@ OutElemOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activat
     }
 }
 
-// template <typename T>
-// struct DebugDeviceOpType
-// {
-//     static_assert(sizeof(T) == 0, "DeviceOpType info:  __PRETTY_FUNCTION__");
-// };
-
 template <bool NeedsSplitK, typename DeviceOpType, typename CKArgsType, typename CastType>
 std::unique_ptr<ck::tensor_operation::device::BaseArgument>
 MakeNCHWCKArgPtr(const CKArgsType& ck_args,
