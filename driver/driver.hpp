@@ -382,7 +382,8 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
 [[noreturn]] inline void Usage(int e)
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf("Supported Base Arguments: conv[fp16|int8|bfp16], CBAInferbfp16, pool[fp16], lrn[fp16], "
+    printf("Supported Base Arguments: conv[fp16|int8|bfp16], CBAInferbfp16, CAInferbfp16 "
+           "pool[fp16], lrn[fp16], "
            "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
            "tensorop, reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
            "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
@@ -404,31 +405,96 @@ inline std::string ParseBaseArg(int argc, char* argv[])
 
     std::string arg = argv[1];
 
-    if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "convbfp16" &&
-       arg != "CBAInferbfp16" && arg != "pool" && arg != "poolfp16" && arg != "lrn" &&
-       arg != "lrnfp16" && arg != "activ" && arg != "activfp16" && arg != "softmax" &&
-       arg != "softmaxfp16" && arg != "bnorm" && arg != "bnormfp16" && arg != "bnormbfp16" &&
-       arg != "bnormfp16fp32" && arg != "bnormbfp16fp32" && arg != "rnn" && arg != "rnnfp16" &&
-       arg != "rnn_seq" && arg != "rnn_seqfp16" && arg != "gemm" && arg != "gemmfp16" &&
-       arg != "ctc" && arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" &&
-       arg != "reduce" && arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" &&
-       arg != "layernormfp16" && arg != "layernormbfp16" && arg != "sum" && arg != "sumfp16" &&
-       arg != "sumbfp16" && arg != "groupnorm" && arg != "groupnormfp16" &&
-       arg != "groupnormbfp16" && arg != "cat" && arg != "catfp16" && arg != "catbfp16" &&
-       arg != "addlayernorm" && arg != "addlayernormfp16" && arg != "addlayernormbfp16" &&
-       arg != "t5layernorm" && arg != "t5layernormfp16" && arg != "t5layernormbfp16" &&
-       arg != "adam" && arg != "adamfp16" && arg != "ampadam" && arg != "reduceextreme" &&
-       arg != "reduceextremefp16" && arg != "reduceextremebfp16" && arg != "adamw" &&
-       arg != "adamwfp16" && arg != "ampadamw" && arg != "transformersadamw" &&
-       arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "getitem" &&
-       arg != "getitemfp16" && arg != "getitembfp16" && arg != "reducecalculation" &&
-       arg != "reducecalculationfp16" && arg != "reducecalculationbfp16" && arg != "rope" &&
-       arg != "ropefp16" && arg != "ropebfp16" && arg != "prelu" && arg != "prelufp16" &&
-       arg != "prelubfp16" && arg != "kthvalue" && arg != "kthvaluefp16" &&
-       arg != "kthvaluebfp16" && arg != "glu" && arg != "glufp16" && arg != "glubfp16" &&
-       arg != "softmarginloss" && arg != "softmarginlossfp16" && arg != "softmarginlossbfp16" &&
-       arg != "multimarginloss" && arg != "multimarginlossfp16" && arg != "multimarginlossbfp16" &&
-       arg != "--version")
+    // List of valid base arguments
+    static const std::vector<std::string> valid_args = {"conv",
+                                                        "convfp16",
+                                                        "convint8",
+                                                        "convbfp16",
+                                                        "CBAInferbfp16",
+                                                        "CAInferbfp16",
+                                                        "pool",
+                                                        "poolfp16",
+                                                        "lrn",
+                                                        "lrnfp16",
+                                                        "activ",
+                                                        "activfp16",
+                                                        "softmax",
+                                                        "softmaxfp16",
+                                                        "bnorm",
+                                                        "bnormfp16",
+                                                        "bnormbfp16",
+                                                        "bnormfp16fp32",
+                                                        "bnormbfp16fp32",
+                                                        "rnn",
+                                                        "rnnfp16",
+                                                        "rnn_seq",
+                                                        "rnn_seqfp16",
+                                                        "gemm",
+                                                        "gemmfp16",
+                                                        "ctc",
+                                                        "dropout",
+                                                        "dropoutfp16",
+                                                        "tensorop",
+                                                        "reduce",
+                                                        "reducefp16",
+                                                        "reducefp64",
+                                                        "layernorm",
+                                                        "layernormfp16",
+                                                        "layernormbfp16",
+                                                        "sum",
+                                                        "sumfp16",
+                                                        "sumbfp16",
+                                                        "groupnorm",
+                                                        "groupnormfp16",
+                                                        "groupnormbfp16",
+                                                        "cat",
+                                                        "catfp16",
+                                                        "catbfp16",
+                                                        "addlayernorm",
+                                                        "addlayernormfp16",
+                                                        "addlayernormbfp16",
+                                                        "t5layernorm",
+                                                        "t5layernormfp16",
+                                                        "t5layernormbfp16",
+                                                        "adam",
+                                                        "adamfp16",
+                                                        "ampadam",
+                                                        "reduceextreme",
+                                                        "reduceextremefp16",
+                                                        "reduceextremebfp16",
+                                                        "adamw",
+                                                        "adamwfp16",
+                                                        "ampadamw",
+                                                        "transformersadamw",
+                                                        "transformersadamwfp16",
+                                                        "transformersampadamw",
+                                                        "getitem",
+                                                        "getitemfp16",
+                                                        "getitembfp16",
+                                                        "reducecalculation",
+                                                        "reducecalculationfp16",
+                                                        "reducecalculationbfp16",
+                                                        "rope",
+                                                        "ropefp16",
+                                                        "ropebfp16",
+                                                        "prelu",
+                                                        "prelufp16",
+                                                        "prelubfp16",
+                                                        "kthvalue",
+                                                        "kthvaluefp16",
+                                                        "kthvaluebfp16",
+                                                        "glu",
+                                                        "glufp16",
+                                                        "glubfp16",
+                                                        "softmarginloss",
+                                                        "softmarginlossfp16",
+                                                        "softmarginlossbfp16",
+                                                        "multimarginloss",
+                                                        "multimarginlossfp16",
+                                                        "multimarginlossbfp16",
+                                                        "--version"};
+
+    if(std::find(valid_args.begin(), valid_args.end(), arg) == valid_args.end())
     {
         printf("FAILED: Invalid Base Input Argument\n");
         Usage(EXIT_FAILURE);
