@@ -188,18 +188,20 @@ struct GridwiseGroupedConv2DFwdDlV4
                 const index_t offset            = get_offset(y, x, n);
                 p_scratch[n * AlignedPackH + i] = p_base[offset];
             });
+        });
 
-            if constexpr(AlignedPackH != PackH)
+        if constexpr(AlignedPackH != PackH)
+        {
+            if(y_offset < (TileH - NumGroup * PackH))
             {
-                if(y_offset < (TileH - NumGroup * PackH))
-                {
+                static_for<0, TilePerWave, 1>{}([&](auto n) {
                     constexpr auto i                = PackH;
                     const index_t y                 = y_offset + i * NumGroup;
                     const index_t offset            = get_offset(y, x, n);
                     p_scratch[n * AlignedPackH + i] = p_base[offset];
-                }
+                });
             }
-        });
+        }
     }
 
     template <index_t TileH,
@@ -229,17 +231,19 @@ struct GridwiseGroupedConv2DFwdDlV4
                 const index_t offset   = get_offset(y, x, n);
                 p_share_vector[offset] = p_scratch[n * AlignedPackH + i];
             });
-            if constexpr(AlignedPackH != PackH)
+        });
+        if constexpr(AlignedPackH != PackH)
+        {
+            if(y_offset < (TileH - NumGroup * PackH))
             {
-                if(y_offset < (TileH - NumGroup * PackH))
-                {
+                static_for<0, TilePerWave, 1>{}([&](auto n) {
                     constexpr auto i       = PackH;
                     const index_t y        = y_offset + i * NumGroup;
                     const index_t offset   = get_offset(y, x, n);
                     p_share_vector[offset] = p_scratch[n * AlignedPackH + i];
-                }
+                });
             }
-        });
+        }
     }
 
     static void __device__ run_conv_fwd(InShareVector* p_share_in,   // point to subtile base

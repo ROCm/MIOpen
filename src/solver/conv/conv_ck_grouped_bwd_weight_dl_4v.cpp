@@ -143,7 +143,7 @@ static void ReadCacheFile()
 static void AppendToCache(CacheData cd)
 {
     if (DirectCkMgr::GetInst()->enableConvCache == false)   return;
-    if (cd.hashcode == 0x48d7fb2d2182270c)                  return;
+    if (cd.hashcode == 0x37896c980651dd6a)                  return;
 
     std::lock_guard<std::mutex> lock(s_fileMutex);
 
