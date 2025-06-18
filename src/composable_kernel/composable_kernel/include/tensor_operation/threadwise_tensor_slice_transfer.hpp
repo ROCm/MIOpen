@@ -350,7 +350,7 @@ struct ThreadwiseTensorSliceTransfer_v1r3
         move_tensor_coordinate(dst_desc, dst_coord_, adjusted_step);
     }
 
-    private:
+private:
     DstCoord dst_coord_;
 }; // namespace ck
 
@@ -662,7 +662,7 @@ struct ThreadwiseTensorSliceTransfer_v2
         move_tensor_coordinate(src_desc, src_coord_, adjusted_step);
     }
 
-    private:
+private:
     SrcCoord src_coord_;
 }; // namespace ck
 
@@ -1234,7 +1234,7 @@ struct ThreadwiseTensorSliceTransfer_v3
         move_tensor_coordinate(dst_desc, dst_coord_, adjusted_step);
     }
 
-    private:
+private:
     static constexpr auto buffer_desc_ =
         make_naive_tensor_descriptor_packed(sequence_to_tuple_of_number(SliceLengths{}));
 
@@ -1427,7 +1427,7 @@ struct ThreadwiseTensorSliceTransfer_v4
         move_tensor_coordinate(SrcDesc{}, src_ref_coord_, src_slice_move_step_iter);
     }
 
-    private:
+private:
     SrcCoord src_ref_coord_;
 };
 
