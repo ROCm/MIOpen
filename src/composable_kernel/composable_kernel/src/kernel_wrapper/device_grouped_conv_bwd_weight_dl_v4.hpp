@@ -178,11 +178,17 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
     static constexpr index_t SubTileIn_Stride  = SubTileIn_Max_W;
     static constexpr index_t SubTileOut_Stride = SubTileOut_W;
 
+    static constexpr index_t BatchPerWave      = GetBatchPerWave();
+    static constexpr index_t BatchPerTile      = BatchPerWave * NumWavePerTile;
+    static constexpr index_t TileOut_HPerBatch = math::integer_divide_ceil(TileOut_H, BatchPerTile);
+
+    static constexpr index_t TileIn_Max_H      = TileOut_HPerBatch* BatchPerWave* NumWavePerTile * Stride_H + (Filter_Y - 1) * Dilation_Y;
+
     static constexpr index_t SubTileIn_Pack_W  = (WSplit == 1) ?  GetAlignedPackW<Tile_W, InScalarPerVector>() :  GetAlignedPackW<SubTileIn_Max_W, InScalarPerVector>();
     static constexpr index_t TileIn_Pack_Group = WaveSize / SubTileIn_Pack_W;
     static constexpr index_t TileIn_Pack_H = math::integer_divide_ceil(Tile_H, TileIn_Pack_Group);
     static constexpr index_t TileIn_Align_H =
-        math::max(TileIn_Pack_H * TileIn_Pack_Group + Pad_H, TileIn_H);
+        math::max(TileIn_Pack_H * TileIn_Pack_Group + Pad_H, math::max(TileIn_Max_H, TileIn_H));
 
     static constexpr index_t SubTileOut_Pack_W =
         GetAlignedPackW<SubTileOut_W, OutScalarPerVector>();
@@ -190,9 +196,6 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
     static constexpr index_t TileOut_Pack_H =
         math::integer_divide_ceil(TileOut_H, TileOut_Pack_Group);
 
-    static constexpr index_t BatchPerWave      = GetBatchPerWave();
-    static constexpr index_t BatchPerTile      = BatchPerWave * NumWavePerTile;
-    static constexpr index_t TileOut_HPerBatch = math::integer_divide_ceil(TileOut_H, BatchPerTile);
     static constexpr index_t TileOut_Align_H   = math::max(
         TileOut_Pack_H * TileOut_Pack_Group, TileOut_HPerBatch* BatchPerWave* NumWavePerTile);
     static constexpr index_t ShareMemInSize =
