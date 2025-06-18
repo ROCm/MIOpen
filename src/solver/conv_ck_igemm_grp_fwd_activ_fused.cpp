@@ -652,7 +652,7 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_ACTIV))
         return false;
-    if(!conv_problem.IsBfp16() /*&& !conv_problem.IsFp16() && !conv_problem.IsFp32()*/)
+    if(!conv_problem.IsBfp16() && !conv_problem.IsFp16() && !conv_problem.IsFp32())
         return false;
     if(conv_problem.IsTensorsCasted())
         return false;
@@ -737,7 +737,8 @@ ConvSolution GetSolutionWithDim(const FusionContext& ctx,
     case miopenBFloat16:
         return GetSolutionForDimensionality<NDim, ck::bhalf_t>(ctx, conv_problem, config);
     case miopenHalf:
-    case miopenFloat:
+        return GetSolutionForDimensionality<NDim, ck::half_t>(ctx, conv_problem, config);
+    case miopenFloat: return GetSolutionForDimensionality<NDim, float>(ctx, conv_problem, config);
     case miopenInt8:
     case miopenInt64:
     case miopenInt32:
