@@ -838,13 +838,9 @@ ConvTensors GetTensors(const CastType& data_ctx)
 
         return tensors;
     }
-    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
-    {
-        return ConvTensors(data_ctx.tensors);
-    }
     else
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported CastType for tensor extraction");
+        return ConvTensors(data_ctx.tensors);
     }
 }
 
@@ -919,7 +915,7 @@ MakeNCHWCKArgPtr(const CKArgsType& ck_args,
             GetOutElementOp<typename CKArgsType::OutputDataType,
                             typename CKArgsType::OutputElementOpType>(*activ_param_ptr));
     }
-    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
+    else
     {
         if constexpr(NeedsSplitK)
         {
@@ -948,6 +944,9 @@ MakeNCHWCKArgPtr(const CKArgsType& ck_args,
                                               data_ctx.beta.GetAsFloat());
         }
     }
+
+    MIOPEN_THROW_IF(argument_ptr == nullptr,
+                    "Failed to create argument pointer ck_args argument ptr.");
 
     return argument_ptr;
 }
@@ -1007,7 +1006,7 @@ MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
             GetOutElementOp<typename CKArgsType::OutputDataType,
                             typename CKArgsType::OutputElementOpType>(*activ_param_ptr));
     }
-    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
+    else
     {
         if constexpr(NeedsSplitK)
         {
@@ -1033,6 +1032,9 @@ MakeNHWCCKArgPtr(const std::shared_ptr<DeviceOpType>& sh_conv_ptr,
                                               data_ctx.beta.GetAsFloat());
         }
     }
+
+    MIOPEN_THROW_IF(argument_ptr == nullptr,
+                    "Failed to create argument pointer ck_args argument ptr.");
 
     return argument_ptr;
 }
