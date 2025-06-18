@@ -28,13 +28,10 @@
 #include <miopen/conv/invokers/impl_gemm.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/env.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/hip_build_utils.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
-#include <miopen/stringutils.hpp>
+#include <miopen/solver/implicitgemm_static_ck_util.hpp>
+#include <miopen/solver/static_ck_common.hpp>
 #include <miopen/tensor_ops.hpp>
-#include <miopen/implicitgemm_params.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4_XDLOPS)
 
@@ -385,10 +382,11 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmABlockCopyPerformanceParamete
     int ClusterLengths_GemmM      = -1;
     int ClusterLengths_GemmKPack  = -1;
     int SrcDataPerRead_GemmKPack  = problem.IsFp32()
-                                        ? amd_buffer_load_max_length<float>()
-                                        : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? amd_lds_write_max_length<float>()
-                                                     : amd_lds_write_max_length<half_float::half>();
+                                        ? static_ck::amd_buffer_load_max_length<float>()
+                                        : static_ck::amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32()
+                                        ? static_ck::amd_lds_write_max_length<float>()
+                                        : static_ck::amd_lds_write_max_length<half_float::half>();
     try
     {
         bool valid = false;
@@ -483,10 +481,11 @@ PerformanceImplicitGemmWrwV4R4Xdlops::CalculateGemmBBlockCopyPerformanceParamete
     int ClusterLengths_GemmKPack = -1;
 
     int SrcDataPerRead_GemmKPack  = problem.IsFp32()
-                                        ? amd_buffer_load_max_length<float>()
-                                        : amd_buffer_load_max_length<half_float::half>();
-    int DstDataPerWrite_GemmKPack = problem.IsFp32() ? amd_lds_write_max_length<float>()
-                                                     : amd_lds_write_max_length<half_float::half>();
+                                        ? static_ck::amd_buffer_load_max_length<float>()
+                                        : static_ck::amd_buffer_load_max_length<half_float::half>();
+    int DstDataPerWrite_GemmKPack = problem.IsFp32()
+                                        ? static_ck::amd_lds_write_max_length<float>()
+                                        : static_ck::amd_lds_write_max_length<half_float::half>();
 
     try
     {
@@ -632,13 +631,13 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ExecutionContext&
     if(!IsValidValue())
         return false;
 
-    if(!IsValidBlockwiseGemmXdlops(problem,
-                                   GemmMPerBlock,
-                                   GemmNPerBlock,
-                                   GemmKPerBlock,
-                                   GemmMPerWave,
-                                   GemmNPerWave,
-                                   GemmKPack))
+    if(!static_ck::IsValidBlockwiseGemmXdlops(problem,
+                                              GemmMPerBlock,
+                                              GemmNPerBlock,
+                                              GemmKPerBlock,
+                                              GemmMPerWave,
+                                              GemmNPerWave,
+                                              GemmKPack))
         return false;
 
     bool valid = false;
@@ -686,7 +685,7 @@ bool PerformanceImplicitGemmWrwV4R4Xdlops::IsReallyValid(const ExecutionContext&
     std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(problem);
 
-    return (valid and lds_size <= get_lds_max_number_of_byte());
+    return (valid and lds_size <= static_ck::get_lds_max_number_of_byte());
 }
 
 // Used by GenericSearch, not used by HeuristicInit
@@ -979,7 +978,7 @@ ConvSolution ConvHipImplicitGemmWrwV4R4Xdlops::GetSolution(
         std::string(" -DCK_USE_AMD_XDLOPS=") + std::to_string(IsXdlopsSupport(ctx) ? 1 : 0) +
         std::string(" -DCK_USE_AMD_XDLOPS_INLINE_ASM=") + (env::enabled(MIOPEN_DEBUG_IMPLICIT_GEMM_XDLOPS_INLINE_ASM) ? '1' : '0') +
         std::string(" -DCK_USE_AMD_XDLOPS_EMULATE=") + (env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS_EMULATE) ? '1' : '0') +
-        get_static_ck_common_compiler_flag(ctx) +
+        static_ck::get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
     // clang-format on
 
@@ -1060,8 +1059,16 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ExecutionContext& ctx,
     if(!ctx.use_hip_kernels)
         return false;
 
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
+
+    if(problem.IsBfp16())
+    {
+        // Missing intrinsic: llvm.amdgcn.mfma.f32.16x16x8bf16
+        const auto dev_name = ctx.GetStream().GetDeviceName();
+        if(dev_name == "gfx942")
+            return false;
+    }
 
     if(!IsXdlopsSupport(ctx))
         return false;
@@ -1084,7 +1091,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ExecutionContext& ctx,
     if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
-    if(!IsIndexRangeLargeEnough(problem))
+    if(!static_ck::IsIndexRangeLargeEnough(problem))
         return false;
 
     if(problem.IsTensorsCasted())
@@ -1109,7 +1116,7 @@ bool ConvHipImplicitGemmWrwV4R4Xdlops::IsApplicable(const ExecutionContext& ctx,
     std::tie(std::ignore, gemm_m, gemm_n, gemm_k_total, std::ignore, std::ignore) =
         config.CalculateGemmSizeAndGemmKBlock(ctx, problem);
 
-    return IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total);
+    return static_ck::IsValidGridGemmXdlops(gemm_m, gemm_n, gemm_k_total);
 }
 
 PerformanceImplicitGemmWrwV4R4Xdlops

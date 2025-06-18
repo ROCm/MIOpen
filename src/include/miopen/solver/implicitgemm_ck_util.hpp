@@ -1443,5 +1443,16 @@ MakeSolutionGroupConvImplicitGemmXdlops(const miopen::conv::ProblemDescription& 
 #endif
 }
 
+/// \todo This check is probably no longer needed, as it was likely related to static_ck or
+/// legacy_ck, and was copy-pasted into solvers that use the modern CK.
+static inline bool IsIndexRangeLargeEnough(const miopen::conv::ProblemDescription& problem)
+{
+    // composable kernel use int32_t for memory offset, which covers 2GB of memory maximum
+    const std::size_t max_index_range = std::size_t(2) * 1024 * 1024 * 1024;
+
+    return problem.GetInSize() < max_index_range && problem.GetWeightsSize() < max_index_range &&
+           problem.GetOutSize() < max_index_range;
+}
+
 } // namespace solver
 } // namespace miopen

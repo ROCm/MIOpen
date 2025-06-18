@@ -33,7 +33,8 @@
 #include <miopen/handle.hpp>
 #include <miopen/reducetensor.hpp>
 #include <miopen/stringutils.hpp>
-#include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/solver/legacy_ck_common.hpp>
+#include <miopen/solver/static_ck_common.hpp>
 
 #include <cassert>
 #include <cstddef>
@@ -49,8 +50,6 @@
 #include <../composable_kernel/composable_kernel/include/utility/reduction_enums.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_DYNAMIC_REDUCTION);
-
-#define WORKAROUND_MIOPEN_ISSUE_557 1
 
 namespace miopen {
 
@@ -868,6 +867,9 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         }
 #endif
 
+        if(solver::static_ck::support_amd_buffer_atomic_fadd(handle.GetDeviceName()))
+            param += " -DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1";
+
         Data_t ws_buf1_global = workspace;
 
         float time_reduce = 0.0f;
@@ -984,7 +986,7 @@ void ReduceTensorDescriptor::ReduceTensor(const Handle& handle,
         std::string param;
         std::string network_config;
 
-        param = solver::ck_utility::get_ck_common_compiler_flag(handle);
+        param = solver::legacy_ck::get_ck_common_compiler_flag(handle);
 
         param += detailDynamic::get_definition_string_from_type_enums(
                      srcDataType, compType, dstDataType) +
