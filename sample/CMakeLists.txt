@@ -27,27 +27,40 @@
 # if the number of samples grows, its likely better to organize them in subdirectories
 message(STATUS "Building MIOpen samples")
 cmake_minimum_required(VERSION 3.15)
-project(MIOpenSamples LANGUAGES CXX)
+project(MIOpenSample LANGUAGES CXX HIP)
+set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_definitions(__HIP_PLATFORM_AMD__)
 
+set(HIP_PATH "/opt/rocm/hip" CACHE PATH "Path to HIP")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${HIP_PATH}/cmake)
+
 list(
-    APPEND
-    CMAKE_PREFIX_PATH
-    ${ROCM_PATH}
-    /opt/rocm
-)
+        APPEND
+        CMAKE_PREFIX_PATH
+        ${ROCM_PATH}/llvm
+        ${ROCM_PATH}
+        ${ROCM_PATH}/hip
+        /opt/rocm/llvm
+        /opt/rocm
+        /opt/rocm/hip
+        /opt/rocm/lib
+    )
 
-find_package(MIOpen CONFIG REQUIRED)
-find_package(hip REQUIRED)
+find_package(MIOpen REQUIRED)
+find_package(HIP REQUIRED)
 
-add_executable(sample_conv_cba_fused_op sample_conv_cba_fused_op.cpp)
+add_executable(sample_cba_fused_fwd sample_cba_fused_fwd.cpp)
 
-target_include_directories(sample_conv_cba_fused_op PRIVATE
+target_include_directories(sample_cba_fused_fwd PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${HIP_INCLUDE_DIRS}
+    ${MIOPEN_INCLUDE_DIRS}
 )
 
-target_link_libraries(sample_conv_cba_fused_op PRIVATE MIOpen hip)
+target_link_libraries(sample_cba_fused_fwd PRIVATE MIOpen hip::host)
+
+# optional
+install(TARGETS sample_cba_fused_fwd DESTINATION bin)
