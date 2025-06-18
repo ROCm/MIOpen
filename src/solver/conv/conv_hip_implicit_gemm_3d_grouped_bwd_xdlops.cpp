@@ -34,11 +34,9 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data_bilinear.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data_scale.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
+#include <miopen/solver/implicitgemm_util.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS)
 
@@ -49,76 +47,6 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-
-using InLayout                             = ck::tensor_layout::convolution::NDHWGC;
-using WeiLayout                            = ck::tensor_layout::convolution::GKZYXC;
-using OutLayout                            = ck::tensor_layout::convolution::NDHWGK;
-using PassThrough                          = ck::tensor_operation::element_wise::PassThrough;
-using Bilinear                             = ck::tensor_operation::element_wise::Bilinear;
-using Scale                                = ck::tensor_operation::element_wise::Scale;
-static constexpr ck::index_t NumDimSpatial = 3;
-
-template <typename DataType>
-using DeviceOpGBwdBilinear =
-    ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<NumDimSpatial,
-                                                                    OutLayout,
-                                                                    WeiLayout,
-                                                                    ck::Tuple<InLayout>,
-                                                                    InLayout,
-                                                                    DataType,
-                                                                    DataType,
-                                                                    ck::Tuple<DataType>,
-                                                                    DataType,
-                                                                    PassThrough,
-                                                                    PassThrough,
-                                                                    Bilinear>;
-
-template <typename DataType>
-using DeviceOpGBwdScale =
-    ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<NumDimSpatial,
-                                                                    OutLayout,
-                                                                    WeiLayout,
-                                                                    ck::Tuple<>,
-                                                                    InLayout,
-                                                                    DataType,
-                                                                    DataType,
-                                                                    ck::Tuple<>,
-                                                                    DataType,
-                                                                    PassThrough,
-                                                                    PassThrough,
-                                                                    Scale>;
-
-template <typename DataType>
-using DeviceOpGBwdDefault =
-    ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<NumDimSpatial,
-                                                                    OutLayout,
-                                                                    WeiLayout,
-                                                                    ck::Tuple<>,
-                                                                    InLayout,
-                                                                    DataType,
-                                                                    DataType,
-                                                                    ck::Tuple<>,
-                                                                    DataType,
-                                                                    PassThrough,
-                                                                    PassThrough,
-                                                                    PassThrough,
-                                                                    DataType,
-                                                                    DataType>;
-
-template <typename DataType>
-using DeviceOpGBwdBilinearPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdBilinear<DataType>>;
-
-template <typename DataType>
-using DeviceOpGBwdScalePtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdScale<DataType>>;
-
-template <typename DataType>
-using DeviceOpGBwdDefaultPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdDefault<DataType>>;
 
 namespace {
 
@@ -142,6 +70,8 @@ struct CKArgs
         Di = ProblemInterpreter::GetInputDepthDi(problem);
         Do = ProblemInterpreter::GetOutputDepthDo(problem);
         Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+        data_type       = ProblemInterpreter::GetOutputDataType(problem);
+        alpha_beta_case = ProblemInterpreter::GetAlphaBetaCase(problem);
 
         in_lengths  = {G, N, C, Di, Hi, Wi};
         out_lengths = {G, N, K, Do, Ho, Wo};
@@ -203,17 +133,18 @@ struct CKArgs
                     ConstData_t w,
                     ConstData_t out,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
         using DeviceP = std::remove_pointer_t<decltype(conv_ptr.get())>;
         if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdBilinear<DataType>>)
         {
-            return MakeBilinearArgPtr(conv_ptr, in, w, out, alpha, beta);
+            return MakeBilinearArgPtr(conv_ptr, in, w, out, alpha, beta, split_k);
         }
         else if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdScale<DataType>>)
         {
             (void)beta;
-            return MakeScaleArgPtr(conv_ptr, in, w, out, alpha);
+            return MakeScaleArgPtr(conv_ptr, in, w, out, alpha, split_k);
         }
         else
         {
@@ -221,7 +152,7 @@ struct CKArgs
             (void)beta;
             static_assert(std::is_same_v<DeviceP, DeviceOpGBwdDefault<DataType>>,
                           "Default should be bwd pass through");
-            return MakeDefaultArgPtr(conv_ptr, in, w, out);
+            return MakeDefaultArgPtr(conv_ptr, in, w, out, split_k);
         }
     }
 
@@ -231,7 +162,8 @@ struct CKArgs
                             ConstData_t w,
                             ConstData_t out,
                             float alpha,
-                            float beta) const
+                            float beta,
+                            int split_k) const
     {
         return conv_ptr->MakeArgumentPointer(out,
                                              w,
@@ -251,12 +183,13 @@ struct CKArgs
                                              rPadding,
                                              PassThrough{},
                                              PassThrough{},
-                                             Bilinear{alpha, beta});
+                                             Bilinear{alpha, beta},
+                                             split_k);
     }
 
     template <typename ConvPtr>
     auto MakeScaleArgPtr(
-        const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out, float alpha) const
+        const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out, float alpha, int split_k) const
     {
         return conv_ptr->MakeArgumentPointer(out,
                                              w,
@@ -276,11 +209,12 @@ struct CKArgs
                                              rPadding,
                                              PassThrough{},
                                              PassThrough{},
-                                             Scale{alpha});
+                                             Scale{alpha},
+                                             split_k);
     }
 
     template <typename ConvPtr>
-    auto MakeDefaultArgPtr(const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out) const
+    auto MakeDefaultArgPtr(const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out, int split_k) const
     {
         return conv_ptr->MakeArgumentPointer(out,
                                              w,
@@ -300,22 +234,40 @@ struct CKArgs
                                              rPadding,
                                              PassThrough{},
                                              PassThrough{},
-                                             PassThrough{});
+                                             PassThrough{},
+                                             split_k);
     }
 
     template <typename ConvPtr>
     auto MakeArgPtr(const ConvPtr& conv_ptr,
                     const ConvDataTensors& tensors,
                     float alpha,
-                    float beta) const
+                    float beta,
+                    int split_k) const
     {
-        return MakeArgPtr(conv_ptr, tensors.out, tensors.w, tensors.in, alpha, beta);
+        return MakeArgPtr(conv_ptr, tensors.out, tensors.w, tensors.in, alpha, beta, split_k);
     }
 
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f);
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, 1);
+        int dummy_var = 1;
+        conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
+        return conv_ptr->IsSupportedArgument(arg_ptr.get());
+    }
+
+    template <typename ConvPtr>
+    bool IsSupportedBySplitK(const ConvPtr& conv_ptr, int split_k) const
+    {
+        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
+
+        if(CKWrwRequireWorkspace(G, C1, K1, data_type, alpha_beta_case))
+        {
+            // Creat dummy workspace to pass the ck IsSupportedArgument check.
+            int dummy_var = 1;
+            conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
+        }
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -334,6 +286,8 @@ struct CKArgs
     int Y;
     int X;
     int Z;
+    miopenDataType_t data_type;
+    miopenAlphaBetaCase_t alpha_beta_case;
     std::array<ck::index_t, 6> in_lengths;
     std::array<ck::index_t, 6> in_strides;
     std::array<ck::index_t, 6> out_lengths;
@@ -366,7 +320,8 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::Init(const ProblemDescrip
         break;
     }
     index     = 0;
-    kernel_id = valid_kernels[index];
+    split_k   = 1;
+    kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
 }
 
 template <typename DataType>
@@ -405,6 +360,7 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
     [[maybe_unused]] const ProblemDescription& problem)
 {
     index     = 0;
+    split_k   = 1;
     kernel_id = "";
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -426,20 +382,34 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
 bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::SetNextValue(
     const ProblemDescription& problem)
 {
-    if(valid_kernels.empty())
-    {
-        HeuristicInit(problem);
-        assert(!valid_kernels.empty());
-        return true;
-    }
-    if((index + 1) < valid_kernels.size())
-    {
-        ++index;
-        kernel_id = valid_kernels[index];
-        return true;
-    }
-    else
-        return false;
+  #if MIOPEN_USE_COMPOSABLEKERNEL
+  if(valid_kernels.empty())
+  {
+      HeuristicInit(problem);
+      if(valid_kernels.empty())
+      {
+          return false;
+      }
+  }
+  do
+  {
+      bool flag = NextTwoPower<1, 128>(split_k);
+      if(!flag)
+      {
+          kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+          break;
+      }
+
+      if(!NextLinear(0, valid_kernels.size() - 1, index))
+      {
+          kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+          break;
+      }
+      // All split_k and index values were iterated
+      return false;
+  } while(false);
+#endif
+  return true;
 }
 
 bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::IsValidValue() const
