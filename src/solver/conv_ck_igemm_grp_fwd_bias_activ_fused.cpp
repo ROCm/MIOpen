@@ -494,11 +494,11 @@ void PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::HeuristicInit(
     switch(conv_problem.GetInDataType())
     {
     case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
-    case miopenHalf:
+    case miopenHalf: Init<ck::half_t>(conv_problem); break;
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
     case miopenInt8:
-    case miopenFloat:
+    case miopenFloat: Init<float>(conv_problem); break;
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
@@ -518,8 +518,8 @@ bool PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::SetNextValue(
         switch(conv_problem.GetInDataType())
         {
         case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
-        case miopenHalf:
-        case miopenFloat:
+        case miopenHalf: Init<ck::half_t>(conv_problem); break;
+        case miopenFloat: Init<float>(conv_problem); break;
         case miopenInt8:
         case miopenInt64:
         case miopenInt32:
@@ -554,8 +554,8 @@ bool PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::IsValid(
     switch(conv_problem.GetInDataType())
     {
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(conv_problem);
-    case miopenHalf:
-    case miopenFloat:
+    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(conv_problem);
+    case miopenFloat: return CheckIsSupportCKArgs<float>(conv_problem);
     case miopenInt8:
     case miopenInt64:
     case miopenInt32:
@@ -641,7 +641,7 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_BIAS_ACTIV))
         return false;
-    if(!conv_problem.IsBfp16())
+    if(!conv_problem.IsBfp16() && !conv_problem.IsFp16() && !conv_problem.IsFp32())
         return false;
     if(conv_problem.IsTensorsCasted())
         return false;
@@ -663,11 +663,11 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     switch(conv_problem.GetInDataType())
     {
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(conv_problem);
-    case miopenHalf:
+    case miopenHalf: return CheckCKApplicability<ck::half_t>(conv_problem);
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
     case miopenInt8:
-    case miopenFloat:
+    case miopenFloat: return CheckCKApplicability<float>(conv_problem);
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
@@ -726,7 +726,8 @@ ConvSolution GetSolutionWithDim(const FusionContext& ctx,
     case miopenBFloat16:
         return GetSolutionForDimensionality<NDim, ck::bhalf_t>(ctx, conv_problem, config);
     case miopenHalf:
-    case miopenFloat:
+        return GetSolutionForDimensionality<NDim, ck::half_t>(ctx, conv_problem, config);
+    case miopenFloat: return GetSolutionForDimensionality<NDim, float>(ctx, conv_problem, config);
     case miopenInt8:
     case miopenInt64:
     case miopenInt32:
