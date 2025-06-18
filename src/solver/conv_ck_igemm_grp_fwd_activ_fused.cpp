@@ -47,6 +47,25 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
+template <ck::index_t NDimSpatial>
+struct LayoutsSelector;
+
+template <>
+struct LayoutsSelector<2>
+{
+    using InLayout  = ck::tensor_layout::convolution::NHWGC;
+    using WeiLayout = ck::tensor_layout::convolution::GKYXC;
+    using OutLayout = ck::tensor_layout::convolution::NHWGK;
+};
+
+template <>
+struct LayoutsSelector<3>
+{
+    using InLayout  = ck::tensor_layout::convolution::NDHWGC;
+    using WeiLayout = ck::tensor_layout::convolution::GKZYXC;
+    using OutLayout = ck::tensor_layout::convolution::NDHWGK;
+};
+
 inline auto Get2DLayouts()
 {
     struct Layouts
@@ -589,8 +608,13 @@ bool ConvCKIgemmGrpFwdActivFused::IsValidPerformanceConfig(
 size_t ConvCKIgemmGrpFwdActivFused::GetWorkspaceSize(const FusionContext&,
                                                      const FusionDescription& fdesc_problem) const
 {
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     return GetWorkspaceSizeLayoutTransformConv(conv_problem);
+#else
+    std::ignore = fdesc_problem;
+    return 0;
+#endif
 }
 
 PerformanceConfigConvCKIgemmGrpFwdActivFused
@@ -664,25 +688,7 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
 #endif
 }
 
-template <ck::index_t NDimSpatial>
-struct LayoutsSelector;
-
-template <>
-struct LayoutsSelector<2>
-{
-    using InLayout  = ck::tensor_layout::convolution::NHWGC;
-    using WeiLayout = ck::tensor_layout::convolution::GKYXC;
-    using OutLayout = ck::tensor_layout::convolution::NHWGK;
-};
-
-template <>
-struct LayoutsSelector<3>
-{
-    using InLayout  = ck::tensor_layout::convolution::NDHWGC;
-    using WeiLayout = ck::tensor_layout::convolution::GKZYXC;
-    using OutLayout = ck::tensor_layout::convolution::NDHWGK;
-};
-
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 template <ck::index_t NDimSpatial, typename DataType>
 ConvSolution
 GetSolutionForDimensionality(const FusionContext& ctx,
@@ -741,6 +747,7 @@ ConvSolution GetSolutionWithDim(const FusionContext& ctx,
     default: MIOPEN_THROW("Unsupported datatype");
     }
 }
+#endif
 
 ConvSolution ConvCKIgemmGrpFwdActivFused::GetSolution(
     const FusionContext& ctx,
