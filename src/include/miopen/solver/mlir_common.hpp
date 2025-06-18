@@ -24,17 +24,28 @@
  *
  *******************************************************************************/
 
-#ifndef GUARD_MLIR_COMMON_HPP_
-#define GUARD_MLIR_COMMON_HPP_
+#pragma once
 
-#include <miopen/execution_context.hpp>
 #include <miopen/conv/problem_description.hpp>
-
-#include <string>
+#include <miopen/execution_context.hpp>
+#include <miopen/stringutils.hpp>
 
 namespace miopen {
 namespace solver {
 namespace mlir {
+
+// Previously, this function was called 'IsComposableKernelSupportedHardware' (a single function was
+// used for both libraries)
+// TODO Check which devices are currently supported
+static inline bool IsMlirSupportedHardware(const ExecutionContext& c)
+{
+    return (c.GetStream().GetDeviceName() == "gfx803" &&
+            c.GetStream().GetMaxComputeUnits() == 64) ||
+           c.GetStream().GetDeviceName() == "gfx900" || c.GetStream().GetDeviceName() == "gfx906" ||
+           c.GetStream().GetDeviceName() == "gfx908" || c.GetStream().GetDeviceName() == "gfx90a" ||
+           c.GetStream().GetDeviceName() == "gfx942" ||
+           StartsWith(c.GetStream().GetDeviceName(), "gfx103");
+}
 
 std::string
 GetKernelName(const miopen::conv::ProblemDescription& problem, bool is_xdlops, int kernel_id = 0);
@@ -65,5 +76,3 @@ std::string ConstructBuildOptions(const ExecutionContext& ctx,
 } // namespace mlir
 } // namespace solver
 } // namespace miopen
-
-#endif

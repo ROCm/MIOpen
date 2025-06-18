@@ -110,7 +110,7 @@ struct TensorDescriptor
     // may be index_t or Number<>
     using ElementSize = remove_cv_t<decltype(InitializeElementSize(Transforms{}))>;
 
-    public:
+public:
     __host__ __device__ constexpr TensorDescriptor() = default;
 
     __host__ __device__ constexpr TensorDescriptor(const Transforms& transforms,
@@ -225,7 +225,7 @@ struct TensorCoordinate
     using HiddenIndex  = MultiIndex<NDimHidden>;
     using VisibleIndex = MultiIndex<ndim_visible_>;
 
-    public:
+public:
     __host__ __device__ constexpr TensorCoordinate() = default;
 
     __host__ __device__ constexpr TensorCoordinate(const HiddenIndex& idx_hidden)
@@ -257,7 +257,7 @@ struct TensorCoordinateStep
     // TODO make these private
     using VisibleIndex = MultiIndex<NDimVisible>;
 
-    public:
+public:
     __host__ __device__ constexpr TensorCoordinateStep() = default;
 
     __host__ __device__ constexpr TensorCoordinateStep(const VisibleIndex& idx_diff_visible,

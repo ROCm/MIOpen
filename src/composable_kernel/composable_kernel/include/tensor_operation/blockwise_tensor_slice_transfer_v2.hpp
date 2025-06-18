@@ -129,7 +129,7 @@ struct BlockwiseTensorSliceTransfer_v4r1
         }
     }
 
-    private:
+private:
     static constexpr auto thread_cluster_desc_ =
         make_cluster_descriptor(ThreadClusterLengths{}, ThreadClusterArrangeOrder{});
 
