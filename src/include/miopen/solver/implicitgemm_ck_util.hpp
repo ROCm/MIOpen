@@ -838,13 +838,9 @@ ConvTensors GetTensors(const CastType& data_ctx)
 
         return tensors;
     }
-    else if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams>)
-    {
-        return ConvTensors(data_ctx.tensors);
-    }
     else
     {
-        MIOPEN_THROW(miopenStatusNotImplemented, "Unsupported CastType for tensor extraction");
+        return ConvTensors(data_ctx.tensors);
     }
 }
 
