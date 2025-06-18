@@ -147,7 +147,7 @@ struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_B
     static constexpr auto b_block_desc_bk0_bn0_bn1_bk1_ =
         MakeBBlockDescriptor_BK0_BN0_BN1_BK1(BBlockDesc_BK0_BN_BK1{});
 
-    public:
+public:
     __device__ BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_BM0_2_BN0_2()
         : c_thread_origin_data_idx_{CalculateCThreadOriginOnBlock_BM0_BM1_BN0_BN1(
               get_thread_local_1d_id())},
@@ -369,7 +369,7 @@ struct BlockwiseGemmDlops_A_BK0_BM_BK1_B_BK0_BN_BK1_C_BM0_BM1_BN0_BN1_pipeline_B
                                    make_tuple(I1, I0, I1, I0));
     }
 
-    private:
+private:
     // A[BK0, BM0, BM1, BK1]
     static constexpr auto a_thread_desc_bk0_bm0_bm1_bk1_ =
         make_naive_tensor_descriptor_packed(make_tuple(

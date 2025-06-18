@@ -249,6 +249,8 @@ struct ConvCKIgemmGrpFwdActivFused final
     GetSolution(const FusionContext& ctx,
                 const FusionDescription& fdesc_problem,
                 const PerformanceConfigConvCKIgemmGrpFwdActivFused& config) const override;
+    bool MayNeedWorkspace() const override { return true; }
+    size_t GetWorkspaceSize(const FusionContext&, const FusionDescription&) const override;
 
 private:
     template <typename DataType>
@@ -319,6 +321,8 @@ struct ConvCKIgemmGrpFwdBiasActivFused final
     GetSolution(const FusionContext& ctx,
                 const FusionDescription& fdesc_problem,
                 const PerformanceConfigConvCKIgemmGrpFwdBiasActivFused& config) const override;
+    bool MayNeedWorkspace() const override { return true; }
+    size_t GetWorkspaceSize(const FusionContext&, const FusionDescription&) const override;
 
 private:
     template <typename DataType>
