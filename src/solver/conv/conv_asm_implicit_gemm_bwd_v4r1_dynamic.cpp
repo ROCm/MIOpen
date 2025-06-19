@@ -31,6 +31,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <algorithm>
 #include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_V4R1)
 

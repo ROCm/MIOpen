@@ -7,6 +7,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/batched_transpose_sol.hpp>
 #include <boost/any.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 
 namespace miopen {
 namespace conv {

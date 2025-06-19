@@ -31,6 +31,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 
 #define WORKAROUND_SWDEV_306318 1
 
