@@ -26,11 +26,10 @@
 
 #include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
-#include <cstddef>
+#include <miopen/solver/static_ck_common.hpp>
+#include <miopen/solver/implicitgemm_static_ck_util.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R4)
 
@@ -183,7 +182,7 @@ PerformanceImplicitGemmV4R4WrW::CalculateGemmABlockCopyPerformanceParameters() c
     int ClusterLengths_GemmK  = 0;
     int ClusterLengths_GemmM  = 0;
     int SrcDataPerRead_GemmK  = 1;
-    int DstDataPerWrite_GemmM = amd_lds_write_max_length<float>();
+    int DstDataPerWrite_GemmM = static_ck::amd_lds_write_max_length<float>();
 
     try
     {
@@ -230,8 +229,8 @@ PerformanceImplicitGemmV4R4WrW::CalculateGemmBBlockCopyPerformanceParameters(
 {
     int ClusterLengths_GemmK  = 0;
     int ClusterLengths_GemmN  = 0;
-    int SrcDataPerRead_GemmK  = amd_lds_write_max_length<float>();
-    int DstDataPerWrite_GemmN = amd_lds_write_max_length<float>();
+    int SrcDataPerRead_GemmK  = static_ck::amd_lds_write_max_length<float>();
+    int DstDataPerWrite_GemmN = static_ck::amd_lds_write_max_length<float>();
 
     try
     {
@@ -345,7 +344,7 @@ PerformanceImplicitGemmV4R4WrW::CalculateGemmBBlockCopyPerformanceParameters(
 std::tuple<int, bool> PerformanceImplicitGemmV4R4WrW::CalculateGemmCThreadCopyPerformanceParameters(
     const ProblemDescription& problem) const
 {
-    int DstDataPerWrite_GemmN1 = amd_buffer_store_max_length<float>();
+    int DstDataPerWrite_GemmN1 = static_ck::amd_buffer_store_max_length<float>();
     try
     {
         // GemmCThreadCopyDstDataPerWrite_GemmN1 bounded by size of threadwise GEMM
@@ -476,7 +475,7 @@ bool PerformanceImplicitGemmV4R4WrW::IsValid(const ProblemDescription& problem) 
     std::size_t lds_size      = 0;
     std::tie(lds_size, valid) = CalculateLdsNumberOfByte(problem);
 
-    return (valid and lds_size <= get_lds_max_number_of_byte());
+    return (valid and lds_size <= static_ck::get_lds_max_number_of_byte());
 }
 
 void PerformanceImplicitGemmV4R4WrW::HeuristicInit(const ExecutionContext& ctx,
@@ -601,8 +600,14 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
+    {
+        // Missing instruction: v_mac_f32
+        const auto dev_name = ctx.GetStream().GetDeviceName();
+        if(dev_name == "gfx942")
+            return false;
+    }
     if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.Is2d() && !problem.Is3d())
@@ -613,7 +618,7 @@ bool ConvHipImplicitGemmV4R4WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.GetGroupCount() != 1)
         return false;
-    if(!IsIndexRangeLargeEnough(problem))
+    if(!static_ck::IsIndexRangeLargeEnough(problem))
         return false;
 
     int gemm_m = 0;
@@ -628,7 +633,7 @@ PerformanceImplicitGemmV4R4WrW
 ConvHipImplicitGemmV4R4WrW::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemmV4R4WrW>(ctx, problem);
+    return static_ck::GetPerformanceConfigBase<PerformanceImplicitGemmV4R4WrW>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmV4R4WrW::IsValidPerformanceConfig(
@@ -769,9 +774,9 @@ ConvHipImplicitGemmV4R4WrW::GetSolution(const ExecutionContext& ctx,
         std::string(" -DCK_PARAM_TUNABLE_GEMM_B_BLOCK_COPY_DST_DATA_PER_WRITE_GEMM_N=") + std::to_string(GemmBBlockCopyDstDataPerWrite_GemmN) +
         std::string(" -DCK_PARAM_TUNABLE_GEMM_C_THREAD_COPY_DST_DATA_PER_WRITE_GEMM_N1=") + std::to_string(GemmCThreadCopyDstDataPerWrite_GemmN1) +
         std::string(" -DCK_PARAM_DEPENDENT_GRID_SIZE=") + std::to_string(grid_size) +
-        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
-        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
-        get_static_ck_common_compiler_flag(ctx) +
+        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (static_ck::use_amd_inline_asm(ctx, problem) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (static_ck::use_amd_inline_asm(ctx, problem) ? '1' : '0') +
+        static_ck::get_static_ck_common_compiler_flag(ctx) +
         ctx.general_compile_options;
 
         if (problem.Is3d()){
