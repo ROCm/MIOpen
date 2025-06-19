@@ -10,7 +10,7 @@
 #include <functional>
 #include <miopen/miopen.h>
 
-#include "utils.hpp"
+#include "../utils.hpp"
 
 size_t GetTensorElementCount(const miopenTensorDescriptor_t& tensor)
 {
