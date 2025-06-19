@@ -539,9 +539,11 @@ bool ConvQunConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::Pro
                 MIOPEN_LOG_I("Find best cached kernel " << conv_ptr->GetTypeString() << " , best split_k" <<best_split_k);
                 foundBest = true;
                 sol.invoker_factory = [
-                conv_ptr, problem, best_split_k
+                conv_ptr = std::move(conv_ptr),
+                problem, best_split_k
                 ](const std::vector<Kernel>& kernels) {
-                    return [conv_ptr, problem, best_split_k](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                    return [conv_ptr  = std::move(conv_ptr),
+                            problem, best_split_k](const Handle& handle, const AnyInvokeParams& primitive_params) {
                         const auto& data_ctx = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
                         const auto& ck_args  = CKArgs{problem};
                         auto invoker  = conv_ptr->MakeInvoker();
@@ -644,6 +646,7 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
         using DeviceConvBwdWeightInstance = ck::remove_cvref_t<decltype(device_conv_bwd_weight_instance)>;
         auto conv_ptr = std::make_shared<DeviceConvBwdWeightInstance>();
 
+        const std::string kernelName = conv_ptr->GetTypeString();
         for (ck::index_t j = 0; j < split_k_count; j++)
         {
             ck::index_t cur_split_k = split_k_array[j];
@@ -672,7 +675,7 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
                 conv_ptr->SetWorkSpacePointer(&argument, gemm_workspace_dev.GetDeviceBuffer());
 
                 found_kernel = true;
-                MIOPEN_LOG_I("Run conv : (split_K:" << cur_split_k << ") " << conv_ptr->GetTypeString());
+                MIOPEN_LOG_I("Run conv : (split_K:" << cur_split_k << ") " << kernelName);
                 invoker.ShowInfo(argument);
                 float avg_time = invoker.Run(argument, StreamConfig{nullptr, true});
                 {
@@ -681,10 +684,10 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
                     MIOPEN_LOG_I("avg_time:" << avg_time <<" , tflops:" << tflops);
                     if (avg_time < best_avg_time)
                     {
-                        best_tflops = tflops;
-                        best_avg_time = avg_time;
-                        best_split_k = cur_split_k;
-                        best_kernel = conv_ptr->GetTypeString();
+                        best_tflops     = tflops;
+                        best_avg_time   = avg_time;
+                        best_split_k    = cur_split_k;
+                        best_kernel     = kernelName;
                         MIOPEN_LOG_I("* ^best kernel so far^* ");
                         instance_idx = i;
                         cd.split_k   = static_cast<int>(cur_split_k);
@@ -734,6 +737,10 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
                         };
                     }
                 }
+            }
+            else
+            {
+                break;
             }
         }
     });

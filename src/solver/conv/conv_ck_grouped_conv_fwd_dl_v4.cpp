@@ -494,9 +494,10 @@ bool ConvQunConvFwd::FindCachedSolution(size_t hashcode, const miopen::conv::Pro
                 MIOPEN_LOG_I("Find best cached kernel " << conv_ptr->GetTypeString());
                 foundBest = true;
                 sol.invoker_factory = [
-                conv_ptr, problem
+                conv_ptr = std::move(conv_ptr), problem
                 ](const std::vector<Kernel>& kernels) {
-                    return [conv_ptr, problem](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                    return [conv_ptr = std::move(conv_ptr),
+                            problem](const Handle& handle, const AnyInvokeParams& primitive_params) {
                         const auto& fwd_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                         const auto& ck_args  = CKArgs{problem};
                         auto invoker  = conv_ptr->MakeInvoker();
@@ -624,9 +625,11 @@ ConvSolution ConvQunConvFwd::GetBestSolution(const ExecutionContext& ctx,
                         instance_idx = i;
 
                         sol.invoker_factory = [
-                        conv_ptr, problem
+                        conv_ptr = std::move(conv_ptr),
+                        problem
                         ](const std::vector<Kernel>& kernels) {
-                            return [conv_ptr, problem](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                            return [conv_ptr = std::move(conv_ptr),
+                                    problem](const Handle& handle, const AnyInvokeParams& primitive_params) {
                                 const auto& fwd_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                                 const auto& ck_args  = CKArgs{problem};
                                 auto invoker  = conv_ptr->MakeInvoker();
@@ -650,7 +653,6 @@ ConvSolution ConvQunConvFwd::GetBestSolution(const ExecutionContext& ctx,
                                                                     WeiElementOp{},
                                                                     OutElementOp{});
 
-                                if(conv_ptr->IsSupportedArgument(argument))
                                 {
                                     WorkAroundHipEventProfiler prf(handle);
                                     float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
@@ -661,7 +663,6 @@ ConvSolution ConvQunConvFwd::GetBestSolution(const ExecutionContext& ctx,
                                         handle.ResetKernelTime();
                                         handle.AccumKernelTime(avg_time);
                                     }
-
                                 }
                             };
                         };

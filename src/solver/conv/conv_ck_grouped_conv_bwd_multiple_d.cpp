@@ -615,16 +615,18 @@ ConvSolution ConvJinMDConvBwd::GetBestSolution(const ExecutionContext& ctx,
                     MIOPEN_LOG_I("avg_time:" << avg_time <<" , tflops:" << tflops);
                     if (avg_time < best_avg_time)
                     {
-                        best_tflops = tflops;
-                        best_avg_time = avg_time;
-                        best_kernel = conv_ptr->GetTypeString();
+                        best_tflops     = tflops;
+                        best_avg_time   = avg_time;
+                        best_kernel     = conv_ptr->GetTypeString();
                         MIOPEN_LOG_I("* ^best kernel so far^* ");
                         instance_idx = i;
 
                         sol.invoker_factory = [
-                        conv_ptr, problem
+                        conv_ptr = std::move(conv_ptr),
+                        problem
                         ](const std::vector<Kernel>& kernels) {
-                            return [conv_ptr, problem](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                            return [conv_ptr = std::move(conv_ptr),
+                                    problem](const Handle& handle, const AnyInvokeParams& primitive_params) {
                                 const auto& fwd_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                                 const auto& ck_args  = CKArgs{problem};
                                 auto invoker  = conv_ptr->MakeInvoker();
@@ -648,7 +650,6 @@ ConvSolution ConvJinMDConvBwd::GetBestSolution(const ExecutionContext& ctx,
                                                                     WeiElementOp{},
                                                                     OutElementOp{});
 
-                                if(conv_ptr->IsSupportedArgument(argument))
                                 {
                                     WorkAroundHipEventProfiler prf(handle);
                                     float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
