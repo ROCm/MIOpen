@@ -253,10 +253,30 @@ static void ShrinkToFind10Results(std::vector<Solution>& found)
     found = std::move(out);
 }
 
-std::vector<Solution> EvaluateDBSolutions(const ExecutionContext& ctx,
+std::vector<solver::ConvSolution> GetConvSolutions(const ExecutionContext& ctx,
+                                             const conv::ProblemDescription& problem,
+                                             const std::vector<miopenConvSolution_t> solutions)
+{
+    std::vector<solver::ConvSolution> conv_sols;
+
+    auto db = MakeConvDbGetter(ctx);
+    for(const auto& sol : solutions)
+    {
+        const auto id      = solver::Id{sol.solution_id};
+        const auto& solver = id.GetSolver();
+
+        solver::ConvSolution conv_sol =
+            solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
+
+        conv_sols.emplace_back(std::move(conv_sol));
+    }
+    return conv_sols;
+}
+
+std::vector<Solution> EvaluateConvSolutions(const ExecutionContext& ctx,
                                           const conv::ProblemDescription& problem,
                                           const AnyInvokeParams& invoke_ctx,
-                                          const std::vector<miopenConvSolution_t> solutions,
+                                          const std::vector<solver::ConvSolution> solutions,
                                           bool model_result = false)
 {
     std::vector<Solution> eval_sols;
@@ -266,24 +286,20 @@ std::vector<Solution> EvaluateDBSolutions(const ExecutionContext& ctx,
     AutoEnableProfiling enableProfiling{handle};
     bool is_optimal = true;
 
-    auto db = MakeConvDbGetter(ctx);
     // reverse solutions so that EvaluateInvokers registers the fastest solution last
     auto sol_itr = solutions.rbegin();
     auto sol_end = solutions.rend();
     if(!model_result)
         sol_itr = solutions.rend() - 1;
 
-    for(auto sol = sol_itr; sol != sol_end; ++sol)
+    for(auto conv_sol = sol_itr; conv_sol != sol_end; ++conv_sol)
     {
-        const auto id      = solver::Id{sol->solution_id};
+        const auto id      = solver::Id{conv_sol->solver_id};
         const auto& solver = id.GetSolver();
         CompileSolution(id, ctx, problem);
 
-        solver::ConvSolution conv_sol =
-            solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
-
         std::vector<solver::ConvSolution> conv_sols;
-        conv_sols.emplace_back(std::move(conv_sol));
+        conv_sols.emplace_back(std::move(*conv_sol));
 
         AlgorithmName algo{
             ConvolutionAlgoToDirectionalString(id.GetAlgo(), problem.GetDirection())};
@@ -300,7 +316,7 @@ std::vector<Solution> EvaluateDBSolutions(const ExecutionContext& ctx,
     if(model_result)
         std::reverse(eval_sols.begin(), eval_sols.end());
 
-    auto eval_slv_check_1 = solver::Id{solutions[0].solution_id};
+    auto eval_slv_check_1 = solver::Id{solutions[0].solver_id};
     assert(eval_sols[0].GetSolver() == eval_slv_check_1);
 
     return eval_sols;
@@ -316,20 +332,21 @@ bool HasGoodSolution(const std::vector<miopenConvSolution_t> solutions,
     {
         // heuristic model was used (no timing data), check vs 2nd place
         const float eval_time_2 = eval_sols[1].GetTime();
+        good_entry = eval_time_1 < eval_time_2;
         MIOPEN_LOG_I2("TrustVerify: from model "
                       << eval_sols[0].GetSolver().ToString() << "(" << eval_time_1 << ") < "
                       << eval_sols[1].GetSolver().ToString() << "(" << eval_time_2 << ")  ?");
-        good_entry = eval_time_1 < eval_time_2;
     }
     else
     {
         // test evaluated vs recorded time
         float VERIFY_TOLERANCE = 1.0 + env::value(MIOPEN_VERIFY_TOLERANCE_PCT) / 100.0f;
         const float rel_perf   = eval_time_1 / solutions[0].time;
-        MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time_1 << ") / recorded("
-                                                << solutions[0].time << ") < "
-                                                << VERIFY_TOLERANCE << " ?");
         good_entry = rel_perf < VERIFY_TOLERANCE;
+        MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time_1 << ") / recorded("
+                                                << solutions[0].time << ") = "
+						<< rel_perf << " < "
+                                                << VERIFY_TOLERANCE << " ?");
     }
 
     return good_entry;
@@ -350,7 +367,8 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
         const auto params =
             conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
 
-        std::vector<Solution> eval_sols = EvaluateDBSolutions(ctx, problem, invoke_ctx, solutions, model_result);
+        auto conv_sols = GetConvSolutions(ctx, problem, solutions);
+        auto eval_sols = EvaluateConvSolutions(ctx, problem, invoke_ctx, conv_sols, model_result);
         bool good_entry = HasGoodSolution(solutions, eval_sols, model_result);
 
         if(good_entry)
