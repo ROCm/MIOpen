@@ -24,7 +24,6 @@ size_t GetTensorElementCount(const miopenTensorDescriptor_t& tensor)
     return std::accumulate(dims.begin(), dims.end(), 1, std::multiplies<size_t>());
 }
 
-// Function to convert a float to a bfloat16 (represented as unsigned short)
 unsigned short float_to_bfloat16(float f)
 {
     unsigned int i;
@@ -32,7 +31,6 @@ unsigned short float_to_bfloat16(float f)
     return (i >> 16);
 }
 
-// Function to convert a bfloat16 (represented as unsigned short) back to a float
 float bfloat16_to_float(unsigned short b)
 {
     float f;
@@ -56,7 +54,7 @@ int main()
     MIOPEN_CHECK(miopenSetStream(handle, stream));
 
     miopenConvolutionMode_t mode     = miopenConvolution;
-    miopenActivationMode_t activMode = miopenActivationCLIPPEDRELU;
+    miopenActivationMode_t activMode = miopenActivationRELU;
 
     miopenTensorDescriptor_t inputTensor;
     miopenTensorDescriptor_t weightTensor;
@@ -128,8 +126,8 @@ int main()
         pads[i] /= 2;
     }
 
-    double activ_alpha = 1.0;
-    double activ_beta  = 1.0;
+    double activ_alpha = 0.0;
+    double activ_beta  = 0.0;
     double activ_gamma = 0.0;
 
     std::vector<int> in_len  = {in_n, in_c, in_spatial_lens[0], in_spatial_lens[1]};
@@ -155,8 +153,6 @@ int main()
     MIOPEN_CHECK(miopenSetNdTensorDescriptorWithLayout(
         inputTensor, miopenBFloat16, miopenTensorNHWC, in_len.data(), in_len.size()));
 
-    MIOPEN_CHECK(miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor));
-
     MIOPEN_CHECK(miopenSetNdTensorDescriptorWithLayout(
         weightTensor, miopenBFloat16, miopenTensorNHWC, wei_len.data(), wei_len.size()));
 
@@ -166,10 +162,10 @@ int main()
     MIOPEN_CHECK(miopenSetNdTensorDescriptorWithLayout(
         outputTensor, miopenBFloat16, miopenTensorNHWC, out_len.data(), out_len.size()));
     
-    std::vector<int> bias_len = {1, out_len[1], 1, 1};
+    std::vector<int> bias_len = {1, 1, 1, out_len[1]}; // need to check what layout for bias
 
-    MIOPEN_CHECK(miopenSetTensorDescriptor(
-        biasTensor, miopenBFloat16, bias_len.size(), bias_len.data(), nullptr));
+    MIOPEN_CHECK(miopenSetNdTensorDescriptorWithLayout(
+        biasTensor, miopenBFloat16, miopenTensorNHWC, bias_len.data(), bias_len.size()));
 
     /* BUFFER ALLLOCATION */
 
@@ -196,22 +192,39 @@ int main()
 
     for(size_t i = 0; i < in_sz_elements; i++)
     {
-        in_host[i] = static_cast<bfloat16>(rand()) / static_cast<bfloat16>(RAND_MAX);
+        float val = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        in_host[i] = float_to_bfloat16(val);
     }
     for(size_t i = 0; i < wei_sz_elements; i++)
     {
-        wei_host[i] = static_cast<bfloat16>(rand()) / static_cast<bfloat16>(RAND_MAX);
+        float val = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        wei_host[i] = float_to_bfloat16(val);
     }
     for(size_t i = 0; i < bias_sz_elements; i++)
     {
-        bias_host[i] = static_cast<bfloat16>(rand()) / static_cast<bfloat16>(RAND_MAX);
+        float val = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        bias_host[i] = float_to_bfloat16(val);
+    }
+
+    std::cout << "First 5 input values:" << std::endl;
+    for(size_t i = 0; i < 5 && i < in_host.size(); ++i)
+    {
+        std::cout << "in_host[" << i << "] = " << bfloat16_to_float(in_host[i]) << std::endl;
+    }
+    std::cout << "First 5 weight values:" << std::endl;
+    for(size_t i = 0; i < 5 && i < wei_host.size(); ++i)
+    {
+        std::cout << "wei_host[" << i << "] = " << bfloat16_to_float(wei_host[i]) << std::endl;
+    }
+    std::cout << "First 5 bias values:" << std::endl;
+    for(size_t i = 0; i < 5 && i < bias_host.size(); ++i)
+    {
+        std::cout << "bias_host[" << i << "] = " << bfloat16_to_float(bias_host[i]) << std::endl;
     }
 
     HIP_CHECK(hipMemcpy(in_dev, in_host.data(), in_sz_bytes, hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(wei_dev, wei_host.data(), wei_sz_bytes, hipMemcpyHostToDevice));
     HIP_CHECK(hipMemcpy(bias_dev, bias_host.data(), bias_sz_bytes, hipMemcpyHostToDevice));
-
-    /* END OF BUFFER ALLOCATION */
 
     /* COMPILE AND EXECUTE FUSION */
 
@@ -221,11 +234,15 @@ int main()
     MIOPEN_CHECK(miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor));
     MIOPEN_CHECK(miopenCreateOpActivationForward(fusePlanDesc, &activOp, activMode));
 
-    float alpha = 1.0f, beta = 0.0f;
-    MIOPEN_CHECK(miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev));
-    MIOPEN_CHECK(miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, bias_dev));
+    float conv_alpha = 1.0f, conv_beta = 0.0f;
+    float bias_alpha = 1.0f, bias_beta = 1.0f;
+    float activ_op_alpha = 1.0f, activ_op_beta = 0.0f;
+
+    MIOPEN_CHECK(miopenSetOpArgsConvForward(fusionArgs, convoOp, &conv_alpha, &conv_beta, wei_dev));
+    MIOPEN_CHECK(miopenSetOpArgsBiasForward(fusionArgs, biasOp, &bias_alpha, &bias_beta, bias_dev));
     MIOPEN_CHECK(miopenSetOpArgsActivForward(
-        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma));
+        fusionArgs, activOp, &activ_op_alpha, &activ_op_beta, activ_alpha, activ_beta, activ_gamma));
+
 
     MIOPEN_CHECK(miopenCompileFusionPlan(handle, fusePlanDesc));
 
@@ -240,10 +257,10 @@ int main()
     std::cout << "Execution complete. First 5 output values:" << std::endl;
     for(int i = 0; i < 5 && i < out_host.size(); ++i)
     {
-        std::cout << "out_host[" << i << "] = " << out_host[i] << std::endl;
+        std::cout << "out_host[" << i << "] = " << bfloat16_to_float(out_host[i]) << std::endl;
     }
 
-    /* END OF FUSION */
+    /* CLEANUP RESOURCES */
 
     HIP_CHECK(hipFree(in_dev));
     HIP_CHECK(hipFree(wei_dev));
