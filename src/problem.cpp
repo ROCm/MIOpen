@@ -1097,12 +1097,13 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                     const auto alpha = activ_desc.GetAlpha();
                     const auto beta  = activ_desc.GetBeta();
                     const auto gamma = activ_desc.GetGamma();
+                    const auto mode  = activ_desc.GetMode();
 
                     if(problem.GetDirection() == miopenProblemDirectionForward)
                     {
                         operator_args.params.emplace_back(
                             std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
-                                alpha, beta, gamma));
+                                alpha, beta, gamma, mode));
                     }
                     else
                     {

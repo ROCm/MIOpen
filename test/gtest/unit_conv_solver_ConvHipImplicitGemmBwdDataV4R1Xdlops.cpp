@@ -110,11 +110,16 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
     return cases;
 }
 
+template <miopenDataType_t datatype>
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        Gpu supported_gpus = Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X;
-        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
+        Gpu supported_gpus = Gpu::gfx908 | Gpu::gfx90A;
+        if constexpr(datatype != miopenBFloat16)
+        {
+            supported_gpus = supported_gpus | Gpu::gfx94X;
+        }
+        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
@@ -122,6 +127,10 @@ const auto& GetTestParams()
     }();
     return params;
 }
+
+const auto& GetTestParamsFP16() { return GetTestParams<miopenHalf>(); }
+const auto& GetTestParamsBFP16() { return GetTestParams<miopenBFloat16>(); }
+const auto& GetTestParamsFP32() { return GetTestParams<miopenFloat>(); }
 
 const auto& GetTestParamsFull()
 {
@@ -142,7 +151,9 @@ using GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsBwd_BFP16 =
     GPU_UnitTestConvSolverBwd_BFP16;
 using GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsBwd_FP32 =
     GPU_UnitTestConvSolverBwd_FP32;
-using CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd_NONE =
+using CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd_BFP16 =
+    CPU_UnitTestConvSolverDevApplicabilityBwd_NONE;
+using CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd_FP32 =
     CPU_UnitTestConvSolverDevApplicabilityBwd_NONE;
 
 TEST_P(GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsBwd_FP16, SOLVER_NAME)
@@ -166,7 +177,15 @@ TEST_P(GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsBwd_FP32, SOLVER_NA
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmBwdDataV4R1Xdlops{});
 };
 
-TEST_P(CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd_NONE, SOLVER_NAME)
+TEST_P(CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd_BFP16, SOLVER_NAME)
+{
+#if WORKAROUND_ISSUE_1206
+    SolverEnabler solver_enabler;
+#endif
+    this->RunTest(miopen::solver::conv::ConvHipImplicitGemmBwdDataV4R1Xdlops{});
+};
+
+TEST_P(CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd_FP32, SOLVER_NAME)
 {
 #if WORKAROUND_ISSUE_1206
     SolverEnabler solver_enabler;
@@ -177,27 +196,33 @@ TEST_P(CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsBwd_FP16,
-                         testing::Combine(testing::Values(GetTestParams()),
+                         testing::Combine(testing::Values(GetTestParamsFP16()),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenHalf))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsBwd_BFP16,
-                         testing::Combine(testing::Values(GetTestParams()),
+                         testing::Combine(testing::Values(GetTestParamsBFP16()),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsBwd_FP32,
-                         testing::Combine(testing::Values(GetTestParams()),
+                         testing::Combine(testing::Values(GetTestParamsFP32()),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
-    CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd_NONE,
-    testing::Combine(testing::Values(GetTestParams()),
+    CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd_BFP16,
+    testing::Combine(testing::Values(GetTestParamsBFP16()),
+                     testing::Values(GetConvTestCases(miopenBFloat16)[0])));
+
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1XdlopsDevApplicabilityBwd_FP32,
+    testing::Combine(testing::Values(GetTestParamsFP32()),
                      testing::Values(GetConvTestCases(miopenFloat)[0])));
 
 // Full tests
