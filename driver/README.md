@@ -20,6 +20,7 @@ The supported base arguments:
 
  * `conv` - Convolutions
  * `CBAInfer` - Convolution+Bias+Activation fusions for inference
+ * `CAInfer` - Convolution+Activation fusions for inference
  * `pool` - Pooling
  * `lrn` - Local Response Normalization
  * `activ` - Activations
@@ -66,7 +67,8 @@ Summary of base_args meant for different datatypes and different operations:
 | base_args            | Single-Precision (fp32) | Half-Precision (fp16) | Bfloat16 (bfp16)   |
 | :------------------- | :---------------------: | :-------------------: | :----------------: |
 | conv                 | ✓ | ✓ | ✓ |
-| CBAInfer             | ? | ? | ? |   
+| CBAInfer             | x | x | ✓ |
+| CAInfer              | x | x | ✓ | 
 | pool                 | ✓ | ✓ | x |
 | lrn                  | ✓ | ✓ | x |
 | activ                | ✓ | ✓ | x |
