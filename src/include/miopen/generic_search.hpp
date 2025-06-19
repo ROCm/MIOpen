@@ -318,7 +318,7 @@ std::chrono::milliseconds GetTuningTimeMax(const Context& ctx,
     auto tuningMs        = env::value(MIOPEN_TUNING_TIME_MS_MAX);
     if(findMode.IsTrustVerify(ctx) && !findMode.IsExhaustive(ctx))
     {
-        if(tuningMs == DEFAULT_MIOPEN_TUNING_TIME_MS_MAX)
+        if(tuningMs == MIOPEN_DEFAULT_TUNING_TIME_MS_MAX)
             tuningMs = 1000;
     }
     return std::chrono::milliseconds{tuningMs};
@@ -338,7 +338,7 @@ std::size_t GetTuningPatience(const Context& ctx, const miopen::conv::ProblemDes
     auto patience        = env::value(MIOPEN_TUNING_PATIENCE);
     if(findMode.IsTrustVerify(ctx) && !findMode.IsExhaustive(ctx))
     {
-        if(patience == DEFAULT_MIOPEN_TUNING_PATIENCE)
+        if(patience == MIOPEN_DEFAULT_TUNING_PATIENCE)
             patience = 6;
     }
     return patience;

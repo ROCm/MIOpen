@@ -331,6 +331,7 @@ bool HasGoodSolution(const std::vector<miopenConvSolution_t> solutions,
     if(model_result)
     {
         // heuristic model was used (no timing data), check vs 2nd place
+	assert(eval_sols.size() >= 2);
         const float eval_time_2 = eval_sols[1].GetTime();
         good_entry = eval_time_1 < eval_time_2;
         MIOPEN_LOG_I2("TrustVerify: from model "
