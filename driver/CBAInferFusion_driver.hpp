@@ -1025,12 +1025,19 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
 template <typename Tgpu, typename Tref>
 void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
 {
-    // TODO: 3d
     miopenError = miopenStatusSuccess;
     double activ_alpha, activ_beta, activ_gamma;
     miopenActivationMode_t activ_mode;
     miopenGetActivationDescriptor(activDesc, &activ_mode, &activ_alpha, &activ_beta, &activ_gamma);
     float alpha = static_cast<float>(1), beta = static_cast<float>(0);
+    
+    std::vector<int> pads(spatial_dim);
+    std::vector<int> strides(spatial_dim);
+    std::vector<int> dilations(spatial_dim);
+    miopenConvolutionMode_t mode;
+
+    miopenGetConvolutionNdDescriptor(
+        convDesc, spatial_dim, &spatial_dim, pads.data(), strides.data(), dilations.data(), &mode);
 
     miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor);
 
@@ -1043,13 +1050,13 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
 
     miopenSetOpArgsConvForward(fusionArgs, convoOp, &alpha, &beta, wei_dev->GetMem());
 
-    miopenSetOpArgsActivForward(
-        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
-
     if(bias_mode)
     {
         miopenSetOpArgsBiasForward(fusionArgs, biasOp, &alpha, &beta, b_dev->GetMem());
     }
+
+    miopenSetOpArgsActivForward(
+        fusionArgs, activOp, &alpha, &beta, activ_alpha, activ_beta, activ_gamma);
 
     miopenError = miopenCompileFusionPlan(GetHandle(), fusePlanDesc);
     if(miopenError != miopenStatusSuccess)
