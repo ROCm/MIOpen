@@ -173,10 +173,11 @@ struct ConvTraits<ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
     static constexpr ck::index_t NDim = NDimSpatial;
 };
 
+template <int NDimSpatial, typename DataType>
 struct CKArgs
 {
     using OutputElementOpType = OutElementOp;
-    using OutputDataType      = ck::bhalf_t;
+    using OutputDataType      = DataType;
 
     CKArgs(const ProblemDescription& problem)
     {
@@ -268,8 +269,7 @@ struct CKArgs
         (void)alpha;
         (void)beta;
         (void)bias;
-        constexpr int dim       = ConvTraits<std::remove_reference_t<decltype(*conv_ptr)>>::NDim;
-        constexpr bool is3DConv = (dim == 3);
+        constexpr bool is3DConv = (NDimSpatial == 3);
 
         if constexpr(is3DConv)
         {
@@ -363,7 +363,7 @@ struct CKArgs
                           data_ctx.out,
                           conv_param.alpha,
                           conv_param.beta,
-                          GetOutElementOp<ck::bhalf_t, OutElementOp>(activ_param));
+                          GetOutElementOp<DataType, OutElementOp>(activ_param));
     }
 
     template <typename ConvPtr>
@@ -376,7 +376,7 @@ struct CKArgs
                                   nullptr,
                                   1.0f,
                                   0.0f,
-                                  OutElementOp{0, std::numeric_limits<ck::bhalf_t>::max()});
+                                  OutElementOp{0, std::numeric_limits<DataType>::max()});
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -423,7 +423,7 @@ void PerformanceConfigConvCKIgemmGrpFwdActivFused::Init(
                                                                      Layouts::InLayout,
                                                                      Layouts::WeiLayout,
                                                                      Layouts::OutLayout>,
-                                                CKArgs>(problem);
+                                                CKArgs<3, DataType>>(problem);
         }
         else
         {
@@ -433,7 +433,7 @@ void PerformanceConfigConvCKIgemmGrpFwdActivFused::Init(
                                                                      Layouts::InLayout,
                                                                      Layouts::WeiLayout,
                                                                      Layouts::OutLayout>,
-                                                CKArgs>(problem);
+                                                CKArgs<2, DataType>>(problem);
         }
     }
     index     = 0;
@@ -453,7 +453,7 @@ bool PerformanceConfigConvCKIgemmGrpFwdActivFused::CheckIsSupportCKArgs(
                                                            Layouts::InLayout,
                                                            Layouts::WeiLayout,
                                                            Layouts::OutLayout>,
-                                      CKArgs>(problem, kernel_id);
+                                      CKArgs<3, DataType>>(problem, kernel_id);
     }
     else
     {
@@ -463,7 +463,7 @@ bool PerformanceConfigConvCKIgemmGrpFwdActivFused::CheckIsSupportCKArgs(
                                                            Layouts::InLayout,
                                                            Layouts::WeiLayout,
                                                            Layouts::OutLayout>,
-                                      CKArgs>(problem, kernel_id);
+                                      CKArgs<2, DataType>>(problem, kernel_id);
     }
     return supported;
 }
@@ -481,7 +481,7 @@ bool ConvCKIgemmGrpFwdActivFused::CheckCKApplicability(
                                                          Layouts::InLayout,
                                                          Layouts::WeiLayout,
                                                          Layouts::OutLayout>,
-                                    CKArgs>(problem);
+                                    CKArgs<3, DataType>>(problem);
     }
     else
     {
@@ -491,7 +491,7 @@ bool ConvCKIgemmGrpFwdActivFused::CheckCKApplicability(
                                                          Layouts::InLayout,
                                                          Layouts::WeiLayout,
                                                          Layouts::OutLayout>,
-                                    CKArgs>(problem);
+                                    CKArgs<2, DataType>>(problem);
     }
     return applicable;
 }
@@ -699,27 +699,27 @@ GetSolutionForDimensionality(const FusionContext& ctx,
     return MakeSolutionGroupConvImplicitGemmXdlops(
         conv_problem,
         [&](auto data_type_val) {
-            using T = decltype(data_type_val);
+            // using T = decltype(data_type_val);
             return InitInvokerFactoryFwdNCHW<NDimSpatial,
                                              false,
                                              DeviceOpGFwdReluPtrs<NDimSpatial,
-                                                                  T,
+                                                                  DataType,
                                                                   typename Layouts::InLayout,
                                                                   typename Layouts::WeiLayout,
                                                                   typename Layouts::OutLayout>,
-                                             CKArgs,
+                                             CKArgs<NDimSpatial, DataType>,
                                              miopen::fusion::FusionInvokeParams>(
                 ctx, conv_problem, config.kernel_id);
         },
         [&](auto data_type_val) {
-            using T = decltype(data_type_val);
+            // using T = decltype(data_type_val);
             return InitInvokerFactoryNHWC<false,
                                           DeviceOpGFwdReluPtrs<NDimSpatial,
-                                                               T,
+                                                               DataType,
                                                                typename Layouts::InLayout,
                                                                typename Layouts::WeiLayout,
                                                                typename Layouts::OutLayout>,
-                                          CKArgs,
+                                          CKArgs<NDimSpatial, DataType>,
                                           miopen::fusion::FusionInvokeParams>(
                 ctx, conv_problem, config.kernel_id);
         });

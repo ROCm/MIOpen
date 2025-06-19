@@ -351,7 +351,7 @@ struct CKArgs
                           data_ctx.out,
                           conv_param.alpha,
                           conv_param.beta,
-                          GetOutElementOp<ck::bhalf_t, OutElementOp>(activ_param));
+                          GetOutElementOp<DataType, OutElementOp>(activ_param));
     }
 
     template <typename ConvPtr>
@@ -364,7 +364,7 @@ struct CKArgs
                                   nullptr,
                                   1.0f,
                                   0.0f,
-                                  OutElementOp{0, std::numeric_limits<ck::bhalf_t>::max()});
+                                  OutElementOp{0, std::numeric_limits<DataType>::max()});
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -426,6 +426,13 @@ void PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::Init(
                                     CKArgs<2, DataType>>(problem);
         }
     }
+
+    std::string kernels_str;
+    for(const auto& kernel : valid_kernels)
+    {
+        kernels_str += kernel + "\n";
+    }
+    MIOPEN_LOG_WE("Valid kernels: " << kernels_str);
     index     = 0;
     kernel_id = valid_kernels[index];
 }
@@ -434,6 +441,21 @@ template <typename DataType>
 bool PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::CheckIsSupportCKArgs(
     const miopen::conv::ProblemDescription& problem) const
 {
+    std::string kernels_str;
+    for(const auto& kernel : valid_kernels)
+    {
+        kernels_str += kernel + "\n";
+    }
+    MIOPEN_LOG_WE("Valid kernels: " << kernels_str);
+    MIOPEN_LOG_WE("CURRENT KERNEL: " << kernel_id);
+
+    // if(valid_kernels.empty())
+    // {
+    //     MIOPEN_LOG_WE("No valid kernels found. loading kernels...");
+    //     const_cast<PerformanceConfigConvCKIgemmGrpFwdBiasActivFused*>(this)->Init<ck::bhalf_t>(
+    //         problem);
+    // }
+
     if(problem.Is3d())
     {
         using Layouts = decltype(Get3DLayouts());
@@ -514,19 +536,20 @@ bool PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::SetNextValue(
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
     {
-        const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
-        switch(conv_problem.GetInDataType())
-        {
-        case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
-        case miopenHalf: Init<ck::half_t>(conv_problem); break;
-        case miopenFloat: Init<float>(conv_problem); break;
-        case miopenInt8:
-        case miopenInt64:
-        case miopenInt32:
-        case miopenFloat8_fnuz:
-        case miopenBFloat8_fnuz:
-        case miopenDouble: break;
-        }
+        HeuristicInit(fdesc_problem);
+        // const auto conv_problem = fdesc_problem.GetConvProblem(0,
+        // miopen::conv::Direction::Forward); switch(conv_problem.GetInDataType())
+        // {
+        // case miopenBFloat16: HeuristicInit(fdesc_problem); break;
+        // case miopenHalf: HeuristicInit(fdesc_problem); break;
+        // case miopenFloat: HeuristicInit(fdesc_problem); break;
+        // case miopenInt8:
+        // case miopenInt64:
+        // case miopenInt32:
+        // case miopenFloat8_fnuz:
+        // case miopenBFloat8_fnuz:
+        // case miopenDouble: break;
+        // }
         assert(!valid_kernels.empty());
         return true;
     }
