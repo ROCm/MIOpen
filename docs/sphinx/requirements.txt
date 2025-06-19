@@ -307,7 +307,7 @@ typing-extensions==4.11.0
     #   pygithub
     #   referencing
     #   sqlalchemy
-urllib3==2.2.2
+urllib3==2.5.0
     # via
     #   pygithub
     #   requests
