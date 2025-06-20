@@ -7,7 +7,6 @@
 #include "tuple.hpp"
 #include "tuple_helper.hpp"
 #include "statically_indexed_array.hpp"
-#include "container_element_picker.hpp"
 
 namespace ck {
 

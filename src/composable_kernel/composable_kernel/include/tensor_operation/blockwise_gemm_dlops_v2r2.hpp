@@ -139,7 +139,7 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
     static constexpr auto a_k_m0_m1_block_desc_ = MakeAKM0M1BlockDescriptor(AKMBlockDesc{});
     static constexpr auto b_k_n0_n1_block_desc_ = MakeBKN0N1BlockDescriptor(BKNBlockDesc{});
 
-    public:
+public:
     __device__ BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2()
         : c_thread_origin_data_idx_{CalculateCM0M1N0N1ThreadOriginOnBlock(
               get_thread_local_1d_id())},
@@ -355,7 +355,7 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v2r2_pipeline_2x2
                             make_tuple(I1, I0, I1, I0));
     }
 
-    private:
+private:
     // A[K, M0, M1]
     static constexpr auto a_k_m0_m1_thread_desc_ = make_naive_tensor_descriptor_packed(
         make_tuple(Number<KPerThread>{}, Number<M0>{}, Number<M1PerThreadM11>{}));

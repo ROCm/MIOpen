@@ -90,6 +90,8 @@ include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
 
+include(cmake/ClangCheck.cmake)
+
 # Build library with Beta APIs
 add_definitions("-DMIOPEN_BETA_API=1")
 
@@ -128,7 +130,7 @@ if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.4.0)
+rocm_setup_version(VERSION 3.4.1)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
