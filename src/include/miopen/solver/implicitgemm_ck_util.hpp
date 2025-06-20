@@ -36,6 +36,7 @@
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
+#include <ck/utility/numeric_limits.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
@@ -850,7 +851,7 @@ OutElemOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activat
     auto activationMode = activationOp.activMode;
     switch(activationMode)
     {
-    case miopenActivationRELU: return OutElemOp{0, std::numeric_limits<DataType>::max()};
+    case miopenActivationRELU: return OutElemOp{0, ck::NumericLimits<DataType>::Max()};
     case miopenActivationCLIPPEDRELU: return OutElemOp{0, activationOp.activAlpha};
     case miopenActivationCLAMP: return OutElemOp{activationOp.activAlpha, activationOp.activBeta};
     default:
