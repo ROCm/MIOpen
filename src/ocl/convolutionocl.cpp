@@ -253,9 +253,10 @@ static void ShrinkToFind10Results(std::vector<Solution>& found)
     found = std::move(out);
 }
 
-std::vector<solver::ConvSolution> GetConvSolutions(const ExecutionContext& ctx,
-                                             const conv::ProblemDescription& problem,
-                                             const std::vector<miopenConvSolution_t> solutions)
+std::vector<solver::ConvSolution>
+GetConvSolutions(const ExecutionContext& ctx,
+                 const conv::ProblemDescription& problem,
+                 const std::vector<miopenConvSolution_t> solutions)
 {
     std::vector<solver::ConvSolution> conv_sols;
 
@@ -274,10 +275,10 @@ std::vector<solver::ConvSolution> GetConvSolutions(const ExecutionContext& ctx,
 }
 
 std::vector<Solution> EvaluateConvSolutions(const ExecutionContext& ctx,
-                                          const conv::ProblemDescription& problem,
-                                          const AnyInvokeParams& invoke_ctx,
-                                          const std::vector<solver::ConvSolution> solutions,
-                                          bool model_result = false)
+                                            const conv::ProblemDescription& problem,
+                                            const AnyInvokeParams& invoke_ctx,
+                                            const std::vector<solver::ConvSolution> solutions,
+                                            bool model_result = false)
 {
     std::vector<Solution> eval_sols;
 
@@ -303,13 +304,8 @@ std::vector<Solution> EvaluateConvSolutions(const ExecutionContext& ctx,
 
         AlgorithmName algo{
             ConvolutionAlgoToDirectionalString(id.GetAlgo(), problem.GetDirection())};
-        std::vector<Solution> eval_sol = EvaluateInvokers(handle,
-                                                          conv_sols,
-                                                          algo,
-                                                          problem.MakeNetworkConfig(),
-                                                          invoke_ctx,
-                                                          is_optimal,
-                                                          false);
+        std::vector<Solution> eval_sol = EvaluateInvokers(
+            handle, conv_sols, algo, problem.MakeNetworkConfig(), invoke_ctx, is_optimal, false);
 
         eval_sols.emplace_back(eval_sol.front());
     }
@@ -331,9 +327,9 @@ bool HasGoodSolution(const std::vector<miopenConvSolution_t> solutions,
     if(model_result)
     {
         // heuristic model was used (no timing data), check vs 2nd place
-	assert(eval_sols.size() >= 2);
+        assert(eval_sols.size() >= 2);
         const float eval_time_2 = eval_sols[1].GetTime();
-        good_entry = eval_time_1 < eval_time_2;
+        good_entry              = eval_time_1 < eval_time_2;
         MIOPEN_LOG_I2("TrustVerify: from model "
                       << eval_sols[0].GetSolver().ToString() << "(" << eval_time_1 << ") < "
                       << eval_sols[1].GetSolver().ToString() << "(" << eval_time_2 << ")  ?");
@@ -343,10 +339,9 @@ bool HasGoodSolution(const std::vector<miopenConvSolution_t> solutions,
         // test evaluated vs recorded time
         float VERIFY_TOLERANCE = 1.0 + env::value(MIOPEN_VERIFY_TOLERANCE_PCT) / 100.0f;
         const float rel_perf   = eval_time_1 / solutions[0].time;
-        good_entry = rel_perf < VERIFY_TOLERANCE;
+        good_entry             = rel_perf < VERIFY_TOLERANCE;
         MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time_1 << ") / recorded("
-                                                << solutions[0].time << ") = "
-						<< rel_perf << " < "
+                                                << solutions[0].time << ") = " << rel_perf << " < "
                                                 << VERIFY_TOLERANCE << " ?");
     }
 
@@ -368,8 +363,8 @@ std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
         const auto params =
             conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
 
-        auto conv_sols = GetConvSolutions(ctx, problem, solutions);
-        auto eval_sols = EvaluateConvSolutions(ctx, problem, invoke_ctx, conv_sols, model_result);
+        auto conv_sols  = GetConvSolutions(ctx, problem, solutions);
+        auto eval_sols  = EvaluateConvSolutions(ctx, problem, invoke_ctx, conv_sols, model_result);
         bool good_entry = HasGoodSolution(solutions, eval_sols, model_result);
 
         if(good_entry)

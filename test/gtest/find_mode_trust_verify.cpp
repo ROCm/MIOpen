@@ -25,39 +25,70 @@
  *******************************************************************************/
 
 #include <gtest/group_conv.hpp>
+#include <miopen/conv/solvers.hpp>
+#include <miopen/datatype.hpp>
+#include "../../driver/driver.hpp"
 
-struct FindModeTrustVerifyTestCase : AIModelTestCase
+namespace miopen {
+std::vector<solver::ConvSolution>
+GetConvSolutions(const ExecutionContext& ctx,
+                 const conv::ProblemDescription& problem,
+                 const std::vector<miopenConvSolution_t> solutions);
+
+std::vector<Solution> EvaluateConvSolutions(const ExecutionContext& ctx,
+                                            const conv::ProblemDescription& problem,
+                                            const AnyInvokeParams& invoke_ctx,
+                                            const std::vector<solver::ConvSolution> solutions,
+                                            bool model_result);
+
+bool HasGoodSolution(const std::vector<miopenConvSolution_t> solutions,
+                     const std::vector<Solution> eval_sols,
+                     const bool model_result);
+} // namespace miopen
+
+struct FindModeTrustVerifyTestCase
 {
     struct group_conv::GroupConvTestConfig<2u> conv;
     miopen::conv::Direction direction;
     miopenDataType_t data_type;
     miopenTensorLayout_t layout;
-    std::vector<miopenConvSolution_t> solutions,
+    std::vector<miopenConvSolution_t> solutions;
     std::string arch;
 };
 
 std::vector<FindModeTrustVerifyTestCase> ConvTestCases()
 {
-    return {{{1, 128, 144, 288, {14, 14}, {3, 3}, {1, 1}, {1, 1}, {1, 1}}},
-              miopen::conv::Direction::Forward,
-              miopenHalf,
-              miopenTensorNCHW,
-              {{0.125148,51323904,"ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC","miopenConvolutionFwdAlgoImplicitGEMM"}{0.166229,0,"ConvBinWinogradRxSf2x3g1","miopenConvolutionFwdAlgoWinograd"}{0.319588,0,"ConvBinWinogradRxSf3x2","miopenConvolutionFwdAlgoWinograd"}{0.353159,22422528,"ConvHipImplicitGemmGroupFwdXdlops","miopenConvolutionFwdAlgoImplicitGEMM"}},
-             "gfx1100"}};
+    return {{{1, 128, 144, 288, {14, 14}, {3, 3}, {1, 1}, {1, 1}, {1, 1}},
+             miopen::conv::Direction::Forward,
+             miopenHalf,
+             miopenTensorNCHW,
+             {{0.125148,
+               51323904,
+               miopen::solver::Id{"ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC"}.Value(),
+               miopenConvolutionAlgoImplicitGEMM},
+              {0.166229,
+               0,
+               miopen::solver::Id{"ConvBinWinogradRxSf2x3g1"}.Value(),
+               miopenConvolutionAlgoWinograd},
+              {0.319588,
+               0,
+               miopen::solver::Id{"ConvBinWinogradRxSf3x2"}.Value(),
+               miopenConvolutionAlgoWinograd},
+              {0.353159,
+               22422528,
+               miopen::solver::Id{"ConvHipImplicitGemmGroupFwdXdlops"}.Value(),
+               miopenConvolutionAlgoImplicitGEMM}},
+             "gfx942"}};
 }
 
 class FindModeTrustVerifyTest : public ::testing::TestWithParam<FindModeTrustVerifyTestCase>
 {
 protected:
-    //const std::vector<miopenConvSolution_t> solutions,
-    //std::vector<solver::ConvSolution> conv_sols;
-    //std::vector<Solution> eval_sols;
-    //const ExecutionContext& ctx,
-    //const conv::ProblemDescription& problem,
-    //const AnyInvokeParams& invoke_ctx,
-    //const bool model_result)
+    // const std::vector<miopenConvSolution_t> solutions
+    // std::vector<solver::ConvSolution> conv_sols
+    // std::vector<Solution> eval_sols
 
-    void TestGetConvSolutions()
+    void TestConvSolutions()
     {
         auto test_case = GetParam();
 
@@ -130,43 +161,38 @@ protected:
                                                        workSpaceSize,
                                                        conv_desc.attribute.gfx90aFp16alt.GetWrW()};
 
+        std::vector<miopenConvSolution_t> solutions = test_case.solutions;
 
-        auto conv_sols = GetConvSolutions(ctx, problem, test_case.solutions);
-        ASSERT_TRUE(conv_sols.size() == test_case.solutions.size());
+        auto conv_sols = miopen::GetConvSolutions(ctx, problem, solutions);
+        ASSERT_TRUE(conv_sols.size() == solutions.size());
 
-        std::vector<Solution> eval_sols1, eval_sols2;
-        eval_sols1 = EvaluateConvSolutions(ctx, problem, invoke_ctx, conv_sols, false);
+        std::vector<miopen::Solution> eval_sols1, eval_sols2;
+        eval_sols1 = miopen::EvaluateConvSolutions(ctx, problem, invoke_ctx, conv_sols, false);
         ASSERT_TRUE(eval_sols1.size() == 1);
-        eval_sols2 = EvaluateConvSolutions(ctx, problem, invoke_ctx, conv_sols, true);
-        ASSERT_TRUE(eval_sols2.size() == test_case.solutions.size());
+        eval_sols2 = miopen::EvaluateConvSolutions(ctx, problem, invoke_ctx, conv_sols, true);
+        ASSERT_TRUE(eval_sols2.size() == solutions.size());
 
-        bool good entry;
-        const float eval_time_1 = eval_sols2[0].GetTime();
-        const float eval_time_2 = eval_sols2[1].GetTime();
-        solutions[0].time
-        solutions[1].time
-        float VERIFY_TOLERANCE = 1.0 + env::value(MIOPEN_VERIFY_TOLERANCE_PCT) / 100.0f;
-        good_entry = HasGoodSolution(solutions, eval_sols1, false);
+        bool good_entry;
+        const float eval_time1 = eval_sols2[0].GetTime();
+        const float eval_time2 = eval_sols2[1].GetTime();
+        float tolerance        = 1.0 + env::value(MIOPEN_VERIFY_TOLERANCE_PCT) / 100.0f;
 
-        good_entry = HasGoodSolution(solutions, eval_sols2, true);
+        solutions[0].time = eval_time1;
+        good_entry        = miopen::HasGoodSolution(solutions, eval_sols2, false);
+        ASSERT_TRUE(good_entry);
+        solutions[0].time = eval_time1 * (tolerance + 0.01);
+        good_entry        = miopen::HasGoodSolution(solutions, eval_sols2, false);
+        ASSERT_FALSE(good_entry);
+
+        eval_sols2[0].SetTime(eval_time2 * 0.9);
+        good_entry = miopen::HasGoodSolution(solutions, eval_sols2, true);
+        ASSERT_TRUE(good_entry);
+        eval_sols2[0].SetTime(eval_time2 * 1.1);
+        good_entry = miopen::HasGoodSolution(solutions, eval_sols2, true);
+        ASSERT_FALSE(good_entry);
     }
-    //void TestEvaluateConvSolutions()
-    //{
-    //    auto test_case = GetParam();
-    //    auto eval_sols = EvaluateConvSolutions(ctx, problem, invoke_ctx, conv_sols, model_result);
-    //}
-    //void TestHasGoodSolutions()
-    //{
-    //    auto test_case = GetParam();
-    //    bool good_entry = HasGoodSolution(solutions, eval_sols, model_result);
-    //}
 };
 
-TEST_P(FindModeTrustVerifyTest, ConvAsm1x1UParameterPredictionModel)
-{
-    TestParameterPredictionModel();
-}
+TEST_P(FindModeTrustVerifyTest, TrustVerifyTest) { TestConvSolutions(); }
 
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         FindModeTrustVerifyTest,
-                         testing::ValuesIn(ConvTestCases()));
+INSTANTIATE_TEST_SUITE_P(Smoke, FindModeTrustVerifyTest, testing::ValuesIn(ConvTestCases()));
