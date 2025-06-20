@@ -440,6 +440,10 @@ bool ConvCKIgemmFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(!conv_problem.IsLayoutNHWC())
         return false;
+    if(!conv_problem.IsFp16())
+        return false;
+    if(conv_problem.GetGroupCount() > 1)
+        return false;
 
     switch(conv_problem.GetInDataType())
     {

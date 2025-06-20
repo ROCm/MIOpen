@@ -25,6 +25,7 @@
  *******************************************************************************/
 #pragma once
 
+#if HIP_PACKAGE_VERSION_FLAT < 7000000000ULL
 #ifdef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
 
 namespace std {
@@ -145,4 +146,7 @@ using conditional_t = typename conditional<predicate, X, Y>::type;
 
 #include <type_traits> // std::remove_reference, std::remove_cv, is_pointer
 
+#endif
+#else
+#include <type_traits>
 #endif

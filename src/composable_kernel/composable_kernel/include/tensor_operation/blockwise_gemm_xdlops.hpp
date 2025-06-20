@@ -189,7 +189,7 @@ struct BlockwiseGemmXdlops_km_kn_m0m1m2n_v1
         });
     }
 
-    private:
+private:
     // A[K, M]
     static constexpr auto a_thread_desc_ =
         make_naive_tensor_descriptor_packed(make_tuple(I1, Number<MRepeat>{}, I1, Number<K1>{}));
@@ -484,7 +484,7 @@ struct BlockwiseGemmXdlops_km_kn_m0m1m2n_v1_2x2pipeline
                                  1>(a_thread_buf, b_thread_buf, c_thread_buf);
     }
 
-    private:
+private:
     // A[K, M]
     static constexpr auto a_thread_desc_ =
         make_naive_tensor_descriptor_packed(make_tuple(I1, Number<MRepeat>{}, I1, Number<K1>{}));
