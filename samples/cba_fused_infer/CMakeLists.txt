@@ -2,7 +2,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2017 Advanced Micro Devices, Inc.
+# Copyright (c) 2025 Advanced Micro Devices, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -61,6 +61,3 @@ target_include_directories(sample_cba_fused_fwd PRIVATE
 )
 
 target_link_libraries(sample_cba_fused_fwd PRIVATE MIOpen hip::host)
-
-# optional
-install(TARGETS sample_cba_fused_fwd DESTINATION bin)

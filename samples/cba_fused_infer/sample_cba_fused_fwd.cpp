@@ -1,12 +1,34 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 #include <iostream>
 #include <vector>
-#include <memory>
-#include <stdexcept>
 #include <numeric>
 #include <algorithm>
 #include <cstring>
 #include <cstdlib>
-#include <ctime>
 #include <functional>
 #include <miopen/miopen.h>
 
@@ -41,9 +63,6 @@ float bfloat16_to_float(unsigned short b)
 
 int main()
 {
-
-    /* INITIALIZE VARIABLES AND CREATE DESCRIPTORS */
-
     using bfloat16 = unsigned short;
 
     miopenHandle_t handle;
@@ -82,7 +101,7 @@ int main()
     MIOPEN_CHECK(miopenCreateActivationDescriptor(&activDesc));
     MIOPEN_CHECK(miopenCreateOperatorArgs(&fusionArgs));
 
-    int spatial_dim = 2; // 2D convolution
+    const int spatial_dim = 2; // 2D convolution
 
     std::vector<int> in_spatial_lens(spatial_dim);
     std::vector<int> wei_spatial_lens(spatial_dim);
@@ -91,33 +110,28 @@ int main()
     std::vector<int> dilations(spatial_dim);
     std::vector<int> trans_output_pads(spatial_dim);
 
-    const int out_c       = 16;
-    const int in_c        = 8;
-    const int group_count = 4;
-    const int in_n        = 4;
+    const int out_c       = 16; // output channels
+    const int in_c        = 8;  // input channels
+    const int group_count = 4;  // group count
+    const int in_n        = 4;  // batch size
 
-    in_spatial_lens[0]  = 20;
-    in_spatial_lens[1]  = 20;
+    // (H, W)
+    in_spatial_lens[0] = 20;
+    in_spatial_lens[1] = 20;
+
+    // filter size
     wei_spatial_lens[0] = 3;
     wei_spatial_lens[1] = 3;
-    pads[0]             = 0;
-    pads[1]             = 0;
-    strides[0]          = 2;
-    strides[1]          = 2;
-    dilations[0]        = 1;
-    dilations[1]        = 1;
 
-    if(group_count > 1)
-    {
-        if(in_c % group_count != 0 || out_c % group_count != 0 || group_count > in_c ||
-           group_count > out_c)
-        {
-            printf("Invalid group number\n");
-            exit(0);
-        }
-    }
+    pads[0]      = 0;
+    pads[1]      = 0;
+    strides[0]   = 2;
+    strides[1]   = 2;
+    dilations[0] = 1;
+    dilations[1] = 1;
 
-    // no variability for padding mode
+    // compute "same" padding mode, ensuring output spatial dimensions are input_size /
+    // stride
     for(int i = 0; i < spatial_dim; ++i)
     {
         pads[i] = (in_spatial_lens[i] % strides[i] == 0)
@@ -126,16 +140,16 @@ int main()
         pads[i] /= 2;
     }
 
+    // parames for ReLU (alpha=0, beta=0, gamma=0), f(x) = max(0, x)
     double activ_alpha = 0.0;
     double activ_beta  = 0.0;
     double activ_gamma = 0.0;
 
-    std::vector<int> in_len  = {in_n, in_c, in_spatial_lens[0], in_spatial_lens[1]};
-    
-    std::vector<int> wei_len = {out_c,
-                                in_c / group_count,
-                                wei_spatial_lens[0],
-                                wei_spatial_lens[0]};
+    std::vector<int> in_len = {in_n, in_c, in_spatial_lens[0], in_spatial_lens[1]};
+
+    // weight dimensions: [out_channels, in_channels/groups, kernel_h, kernel_w]
+    std::vector<int> wei_len = {
+        out_c, in_c / group_count, wei_spatial_lens[0], wei_spatial_lens[0]};
 
     int ndim = in_len.size();
     std::vector<int> out_len(ndim);
@@ -150,6 +164,7 @@ int main()
     MIOPEN_CHECK(
         miopenSetActivationDescriptor(activDesc, activMode, activ_alpha, activ_beta, activ_gamma));
 
+    // set tensor descriptors with NHWC layout
     MIOPEN_CHECK(miopenSetNdTensorDescriptorWithLayout(
         inputTensor, miopenBFloat16, miopenTensorNHWC, in_len.data(), in_len.size()));
 
@@ -161,13 +176,14 @@ int main()
 
     MIOPEN_CHECK(miopenSetNdTensorDescriptorWithLayout(
         outputTensor, miopenBFloat16, miopenTensorNHWC, out_len.data(), out_len.size()));
-    
-    std::vector<int> bias_len = {1, 1, 1, out_len[1]}; // need to check what layout for bias
+
+    // bias tensor: [1, output_channels, 1, 1] across spatial dimensions
+    std::vector<int> bias_len = {1, out_len[1], 1, 1};
 
     MIOPEN_CHECK(miopenSetNdTensorDescriptorWithLayout(
         biasTensor, miopenBFloat16, miopenTensorNHWC, bias_len.data(), bias_len.size()));
 
-    /* BUFFER ALLLOCATION */
+    /* BUFFER ALLOCATION */
 
     size_t in_sz_elements   = GetTensorElementCount(inputTensor);
     size_t wei_sz_elements  = GetTensorElementCount(weightTensor);
@@ -192,17 +208,17 @@ int main()
 
     for(size_t i = 0; i < in_sz_elements; i++)
     {
-        float val = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        float val  = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
         in_host[i] = float_to_bfloat16(val);
     }
     for(size_t i = 0; i < wei_sz_elements; i++)
     {
-        float val = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        float val   = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
         wei_host[i] = float_to_bfloat16(val);
     }
     for(size_t i = 0; i < bias_sz_elements; i++)
     {
-        float val = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+        float val    = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
         bias_host[i] = float_to_bfloat16(val);
     }
 
@@ -230,23 +246,29 @@ int main()
 
     MIOPEN_CHECK(miopenCreateFusionPlan(&fusePlanDesc, miopenVerticalFusion, inputTensor));
 
+    // create fusion operations in execution order: conv -> bias -> activation
     MIOPEN_CHECK(miopenCreateOpConvForward(fusePlanDesc, &convoOp, convDesc, weightTensor));
     MIOPEN_CHECK(miopenCreateOpBiasForward(fusePlanDesc, &biasOp, biasTensor));
     MIOPEN_CHECK(miopenCreateOpActivationForward(fusePlanDesc, &activOp, activMode));
 
-    float conv_alpha = 1.0f, conv_beta = 0.0f;
-    float bias_alpha = 1.0f, bias_beta = 1.0f;
-    float activ_op_alpha = 1.0f, activ_op_beta = 0.0f;
+    float conv_alpha = 1.0f,
+          conv_beta  = 0.0f; // output = alpha * conv + beta * existing (clears output)
+    float bias_alpha = 1.0f, bias_beta = 1.0f; // output = alpha * bias + beta * existing
+    float activ_op_alpha = 1.0f,
+          activ_op_beta  = 0.0f; // output = alpha * activation + beta * existing
 
     MIOPEN_CHECK(miopenSetOpArgsConvForward(fusionArgs, convoOp, &conv_alpha, &conv_beta, wei_dev));
     MIOPEN_CHECK(miopenSetOpArgsBiasForward(fusionArgs, biasOp, &bias_alpha, &bias_beta, bias_dev));
-    MIOPEN_CHECK(miopenSetOpArgsActivForward(
-        fusionArgs, activOp, &activ_op_alpha, &activ_op_beta, activ_alpha, activ_beta, activ_gamma));
-
+    MIOPEN_CHECK(miopenSetOpArgsActivForward(fusionArgs,
+                                             activOp,
+                                             &activ_op_alpha,
+                                             &activ_op_beta,
+                                             activ_alpha,
+                                             activ_beta,
+                                             activ_gamma));
 
     MIOPEN_CHECK(miopenCompileFusionPlan(handle, fusePlanDesc));
 
-    std::cout << "Executing fusion plan..." << std::endl;
     MIOPEN_CHECK(miopenExecuteFusionPlan(
         handle, fusePlanDesc, inputTensor, in_dev, outputTensor, out_dev, fusionArgs));
 

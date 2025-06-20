@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2024 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,22 +29,24 @@
 #include <hip/hip_runtime_api.h>
 #include <iostream>
 
-#define HIP_CHECK(status)                                                   \
-    do {                                                                    \
-        if (status != hipSuccess) {                                         \
-            std::cerr << "HIP Error: " << hipGetErrorString(status)         \
-                      << " in file " << __FILE__                             \
-                      << " at line " << __LINE__ << std::endl;               \
-            exit(EXIT_FAILURE);                                             \
-        }                                                                   \
-    } while (0)
+#define HIP_CHECK(status)                                                                      \
+    do                                                                                         \
+    {                                                                                          \
+        if(status != hipSuccess)                                                               \
+        {                                                                                      \
+            std::cerr << "HIP Error: " << hipGetErrorString(status) << " in file " << __FILE__ \
+                      << " at line " << __LINE__ << std::endl;                                 \
+            exit(EXIT_FAILURE);                                                                \
+        }                                                                                      \
+    } while(0)
 
-#define MIOPEN_CHECK(status)                                                \
-    do {                                                                    \
-        if (status != miopenStatusSuccess) {                                \
-            std::cerr << "MIOpen Error: " << miopenGetErrorString(status)   \
-                      << " in file " << __FILE__                             \
-                      << " at line " << __LINE__ << std::endl;               \
-            exit(EXIT_FAILURE);                                             \
-        }                                                                   \
-    } while (0)
+#define MIOPEN_CHECK(status)                                                             \
+    do                                                                                   \
+    {                                                                                    \
+        if(status != miopenStatusSuccess)                                                \
+        {                                                                                \
+            std::cerr << "MIOpen Error: " << miopenGetErrorString(status) << " in file " \
+                      << __FILE__ << " at line " << __LINE__ << std::endl;               \
+            exit(EXIT_FAILURE);                                                          \
+        }                                                                                \
+    } while(0)
