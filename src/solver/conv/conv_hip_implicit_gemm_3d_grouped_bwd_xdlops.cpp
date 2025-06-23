@@ -55,21 +55,21 @@ struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
     {
-        G  = ProblemInterpreter::GetGroupCountG(problem);
-        N  = ProblemInterpreter::GetBatchN(problem);
-        K1 = ProblemInterpreter::GetOutputChannelK(problem);
-        C1 = ProblemInterpreter::GetInputChannelC(problem);
-        C  = C1 / G; // Number of input Channel per group
-        K  = K1 / G; // Number of output Channel per group
-        Hi = ProblemInterpreter::GetInputHeightHi(problem);
-        Wi = ProblemInterpreter::GetInputWidthWi(problem);
-        Ho = ProblemInterpreter::GetOutputHeightHo(problem);
-        Wo = ProblemInterpreter::GetOutputWidthWo(problem);
-        Y  = ProblemInterpreter::GetFilterHeightY(problem);
-        X  = ProblemInterpreter::GetFilterWidthX(problem);
-        Di = ProblemInterpreter::GetInputDepthDi(problem);
-        Do = ProblemInterpreter::GetOutputDepthDo(problem);
-        Z  = ProblemInterpreter::GetFilterDepthZ(problem);
+        G               = ProblemInterpreter::GetGroupCountG(problem);
+        N               = ProblemInterpreter::GetBatchN(problem);
+        K1              = ProblemInterpreter::GetOutputChannelK(problem);
+        C1              = ProblemInterpreter::GetInputChannelC(problem);
+        C               = C1 / G; // Number of input Channel per group
+        K               = K1 / G; // Number of output Channel per group
+        Hi              = ProblemInterpreter::GetInputHeightHi(problem);
+        Wi              = ProblemInterpreter::GetInputWidthWi(problem);
+        Ho              = ProblemInterpreter::GetOutputHeightHo(problem);
+        Wo              = ProblemInterpreter::GetOutputWidthWo(problem);
+        Y               = ProblemInterpreter::GetFilterHeightY(problem);
+        X               = ProblemInterpreter::GetFilterWidthX(problem);
+        Di              = ProblemInterpreter::GetInputDepthDi(problem);
+        Do              = ProblemInterpreter::GetOutputDepthDo(problem);
+        Z               = ProblemInterpreter::GetFilterDepthZ(problem);
         data_type       = ProblemInterpreter::GetOutputDataType(problem);
         alpha_beta_case = ProblemInterpreter::GetAlphaBetaCase(problem);
 
@@ -188,8 +188,12 @@ struct CKArgs
     }
 
     template <typename ConvPtr>
-    auto MakeScaleArgPtr(
-        const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out, float alpha, int split_k) const
+    auto MakeScaleArgPtr(const ConvPtr& conv_ptr,
+                         Data_t in,
+                         ConstData_t w,
+                         ConstData_t out,
+                         float alpha,
+                         int split_k) const
     {
         return conv_ptr->MakeArgumentPointer(out,
                                              w,
@@ -214,7 +218,8 @@ struct CKArgs
     }
 
     template <typename ConvPtr>
-    auto MakeDefaultArgPtr(const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out, int split_k) const
+    auto MakeDefaultArgPtr(
+        const ConvPtr& conv_ptr, Data_t in, ConstData_t w, ConstData_t out, int split_k) const
     {
         return conv_ptr->MakeArgumentPointer(out,
                                              w,
@@ -251,7 +256,7 @@ struct CKArgs
     template <typename ConvPtr>
     bool IsSupportedBy(const ConvPtr& conv_ptr) const
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, 1);
+        auto arg_ptr  = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, 1);
         int dummy_var = 1;
         conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
@@ -382,34 +387,34 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
 bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::SetNextValue(
     const ProblemDescription& problem)
 {
-  #if MIOPEN_USE_COMPOSABLEKERNEL
-  if(valid_kernels.empty())
-  {
-      HeuristicInit(problem);
-      if(valid_kernels.empty())
-      {
-          return false;
-      }
-  }
-  do
-  {
-      bool flag = NextTwoPower<1, 128>(split_k);
-      if(!flag)
-      {
-          kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
-          break;
-      }
+#if MIOPEN_USE_COMPOSABLEKERNEL
+    if(valid_kernels.empty())
+    {
+        HeuristicInit(problem);
+        if(valid_kernels.empty())
+        {
+            return false;
+        }
+    }
+    do
+    {
+        bool flag = NextTwoPower<1, 128>(split_k);
+        if(!flag)
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
+        }
 
-      if(!NextLinear(0, valid_kernels.size() - 1, index))
-      {
-          kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
-          break;
-      }
-      // All split_k and index values were iterated
-      return false;
-  } while(false);
+        if(!NextLinear(0, valid_kernels.size() - 1, index))
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
+        }
+        // All split_k and index values were iterated
+        return false;
+    } while(false);
 #endif
-  return true;
+    return true;
 }
 
 bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::IsValidValue() const

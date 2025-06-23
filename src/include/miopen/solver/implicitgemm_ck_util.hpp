@@ -153,7 +153,6 @@ using DeviceOpGBwdWeightScalePtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOpGBwdWeightScale<DataType>>;
 
-
 template <typename DataType>
 using DeviceOpGBwdBilinear =
     ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<3,
@@ -205,7 +204,7 @@ template <typename DataType>
 using DeviceOpGBwdBilinearPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOpGBwdBilinear<DataType>>;
-        
+
 template <typename DataType>
 using DeviceOpGBwdScalePtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
@@ -214,7 +213,7 @@ using DeviceOpGBwdScalePtrs =
 template <typename DataType>
 using DeviceOpGBwdDefaultPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-                DeviceOpGBwdDefault<DataType>>;
+        DeviceOpGBwdDefault<DataType>>;
 
 } // namespace conv
 #endif
