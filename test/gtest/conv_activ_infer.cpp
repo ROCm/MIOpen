@@ -163,8 +163,8 @@ void RunTunableSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
 
 using namespace ca_infer;
 
-#define DEFINE_GRP_CONV_ACTIV_TEST(test_fixture)                                             \
-    TEST_P(test_fixture, ConvCKIgemmGrpFwdActivFused)                                        \
+#define DEFINE_GRP_CONV_ACTIV_TEST(conv_active_fixture)                                      \
+    TEST_P(conv_active_fixture, ConvCKIgemmGrpFwdActivFused)                                 \
     {                                                                                        \
         RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdActivFused>(fusePlanDesc,  \
                                                                               params,        \
