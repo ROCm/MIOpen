@@ -25,7 +25,6 @@
  *******************************************************************************/
 
 #include <gtest/group_conv.hpp>
-#include <miopen/conv/solvers.hpp>
 #include <miopen/datatype.hpp>
 #include "../../driver/driver.hpp"
 
@@ -84,10 +83,6 @@ std::vector<FindModeTrustVerifyTestCase> ConvTestCases()
 class FindModeTrustVerifyTest : public ::testing::TestWithParam<FindModeTrustVerifyTestCase>
 {
 protected:
-    // const std::vector<miopenConvSolution_t> solutions
-    // std::vector<solver::ConvSolution> conv_sols
-    // std::vector<Solution> eval_sols
-
     void TestConvSolutions()
     {
         auto test_case = GetParam();
