@@ -98,8 +98,10 @@ struct CKArgs
         sx      = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
         dy      = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
         dx      = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
-        py      = ProblemInterpreter::GetInputLeftPadH(problem);
-        px      = ProblemInterpreter::GetInputLeftPadW(problem);
+        ply     = ProblemInterpreter::GetInputLeftPadH(problem);
+        plx     = ProblemInterpreter::GetInputLeftPadW(problem);
+        pry     = ProblemInterpreter::GetAdjustedInputRightPadH(problem);
+        prx     = ProblemInterpreter::GetAdjustedInputRightPadW(problem);
         fy      = ProblemInterpreter::GetFilterHeightY(problem);
         fx      = ProblemInterpreter::GetFilterWidthX(problem);
         g       = ProblemInterpreter::GetGroupCountG(problem);
@@ -113,9 +115,10 @@ struct CKArgs
         wei_lengths = {g,                           k_per_g,           c_per_g, fy,           fx     };
         wei_strides = {k_per_g * fy * fx * c_per_g, fy * fx * c_per_g, 1,       fx * c_per_g, c_per_g};
 
-        padding  = {py, px};
-        stride   = {sy, sx};
-        dilation = {dy, dx};
+        padding_left  = {ply, plx};
+        padding_right = {pry, prx};
+        stride        = {sy, sx};
+        dilation      = {dy, dx};
     }
 
     // size_t GetParamHash() const
@@ -169,8 +172,10 @@ struct CKArgs
         int sx;
         int dy;
         int dx;
-        int py;
-        int px;
+        int ply;
+        int plx;
+        int pry;
+        int prx;
         int fy;
         int fx;
         int g;
@@ -184,7 +189,8 @@ struct CKArgs
         ck::Array<ck::index_t, 5> wei_lengths;
         ck::Array<ck::index_t, 5> wei_strides;
 
-        ck::Array<ck::index_t, 2> padding;
+        ck::Array<ck::index_t, 2> padding_left;
+        ck::Array<ck::index_t, 2> padding_right;
         ck::Array<ck::index_t, 2> stride;
         ck::Array<ck::index_t, 2> dilation;
 };
@@ -239,9 +245,47 @@ static bool IsSupportedArgument(const PerfArgs& arg,
     {
         return false;
     }
-    if(pad_h != ck_arg.padding[0] || pad_w != ck_arg.padding[1])
+    if(pad_h != ck_arg.padding_left[0] || pad_w != ck_arg.padding_left[1])
     {
         return false;
+    }
+    if(pad_h != ck_arg.padding_right[0])
+    {
+        if(stride_h == 2 && pad_h > 0)
+        {
+            ck::index_t alter_pad_h = pad_h;
+            if((tile_h + pad_h + pad_h - ((arg.filter_size - 1) * dilation_h + 1)) % stride_h != 0)
+            {
+                alter_pad_h = pad_h - 1;
+            }
+            if(alter_pad_h != ck_arg.padding_right[0])
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
+    }
+    if(pad_w != ck_arg.padding_right[1])
+    {
+        if(stride_w == 2 && pad_w > 0)
+        {
+            ck::index_t alter_pad_w = pad_w;
+            if((tile_w + pad_w + pad_w - ((arg.filter_size - 1) * dilation_w + 1)) % stride_w != 0)
+            {
+                alter_pad_w = pad_w - 1;
+            }
+            if(alter_pad_w != ck_arg.padding_right[1])
+            {
+                return false;
+            }
+        }
+        else
+        {
+            return false;
+        }
     }
     if(stride_h != ck_arg.stride[0] || stride_w != ck_arg.stride[1])
     {
@@ -406,12 +450,12 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
             + " -DCK_PARAM_TILE_W=" + std::to_string(perf_arg[best_perf_arg_index].tile_w)
             + " -DCK_PARAM_TILE_H=" + std::to_string(perf_arg[best_perf_arg_index].tile_h)
             + " -DCK_PARAM_FILTERSIZE=" + std::to_string(perf_arg[best_perf_arg_index].filter_size)
-            + " -DCK_PARAM_PROBLEM_CONV_DILATION_W=" + std::to_string(ck_args.dx)
-            + " -DCK_PARAM_PROBLEM_CONV_DILATION_H=" + std::to_string(ck_args.dy)
-            + " -DCK_PARAM_PROBLEM_CONV_STRIDE_W=" + std::to_string(ck_args.sx)
-            + " -DCK_PARAM_PROBLEM_CONV_STRIDE_H=" + std::to_string(ck_args.sy)
-            + " -DCK_PARAM_PROBLEM_CONV_PAD_W=" + std::to_string(ck_args.px)
-            + " -DCK_PARAM_PROBLEM_CONV_PAD_H=" + std::to_string(ck_args.py)
+            + " -DCK_PARAM_PROBLEM_CONV_DILATION_W=" + std::to_string(perf_arg[best_perf_arg_index].dilation_w)
+            + " -DCK_PARAM_PROBLEM_CONV_DILATION_H=" + std::to_string(perf_arg[best_perf_arg_index].dilation_h)
+            + " -DCK_PARAM_PROBLEM_CONV_STRIDE_W=" + std::to_string(perf_arg[best_perf_arg_index].stride_w)
+            + " -DCK_PARAM_PROBLEM_CONV_STRIDE_H=" + std::to_string(perf_arg[best_perf_arg_index].stride_h)
+            + " -DCK_PARAM_PROBLEM_CONV_PAD_W=" + std::to_string(perf_arg[best_perf_arg_index].pad_w)
+            + " -DCK_PARAM_PROBLEM_CONV_PAD_H=" + std::to_string(perf_arg[best_perf_arg_index].pad_h)
             + " -DCK_PARAM_NBATCH=" + std::to_string(perf_arg[best_perf_arg_index].n_batch)
             + " -DCK_PARAM_NUMWAVEPERTILE=" + std::to_string(perf_arg[best_perf_arg_index].num_wave_per_tile)
             + " -DCK_PARAM_INSCALARPERVECTOR=" + std::to_string(perf_arg[best_perf_arg_index].in_scalar_per_vector)
