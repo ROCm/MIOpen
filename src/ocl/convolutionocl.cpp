@@ -300,7 +300,7 @@ std::vector<Solution> EvaluateConvSolutions(const ExecutionContext& ctx,
         CompileSolution(id, ctx, problem);
 
         std::vector<solver::ConvSolution> conv_sols;
-        conv_sols.emplace_back(std::move(*conv_sol));
+        conv_sols.emplace_back(*conv_sol);
 
         AlgorithmName algo{
             ConvolutionAlgoToDirectionalString(id.GetAlgo(), problem.GetDirection())};
