@@ -31,6 +31,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/problem_description_helpers.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_V4R1_1X1)
@@ -135,10 +136,10 @@ static inline int GetImplicitGemmV4R1DynamicGridSize(const ProblemDescription& p
     const auto& N1 = config.GemmNRepeat;
     const auto& N2 = config.GemmNPerThreadSubC;
 
-    const int n  = problem.GetBatchSize();
-    const int k  = problem.GetOutChannels();
-    const int ho = problem.GetOutHeight();
-    const int wo = problem.GetOutWidth();
+    const int n  = ProblemInterpreter::GetBatchN(problem);
+    const int k  = ProblemInterpreter::GetOutputChannelK(problem);
+    const int ho = ProblemInterpreter::GetOutputHeightHo(problem);
+    const int wo = ProblemInterpreter::GetOutputWidthWo(problem);
 
     const auto& b = (static_cast<std::size_t>(n) * ho * wo) / (static_cast<std::size_t>(N1) * N2);
     const auto& b_per_block = config.BPerBlock;
@@ -221,7 +222,7 @@ bool TunableImplicitGemmV4R1Dynamic::IsValid(const ExecutionContext& ctx,
         return false; // wrong! cannot divice N evenly among thread
 
     const auto KBlockWork = K / KPerBlock;
-    if(KBlockWork % problem.GetGroupCount() != 0)
+    if(KBlockWork % ProblemInterpreter::GetGroupCountG(problem) != 0)
         return false;
 
     if((N1 * N2 * BPerBlock) % (GemmNPerThreadSubC * GemmNLevel0Cluster * GemmNLevel1Cluster) != 0)
@@ -316,7 +317,7 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd::IsApplicable(const ExecutionContext& ctx
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(problem.GetGroupCount() != 1)
+    if(ProblemInterpreter::GetGroupCountG(problem) != 1)
         return false;
 
     if(!problem.IsLayoutDefault())
@@ -359,10 +360,11 @@ bool ConvAsmImplicitGemmV4R1DynamicFwd_1x1::IsApplicable(const ExecutionContext&
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(problem.GetGroupCount() != 1)
+    if(ProblemInterpreter::GetGroupCountG(problem) != 1)
         return false;
 
-    if((problem.GetWeightsHeight() != 1) || (problem.GetWeightsWidth() != 1))
+    if((ProblemInterpreter::GetFilterHeightY(problem) != 1) ||
+       (ProblemInterpreter::GetFilterWidthX(problem) != 1))
         return false;
 
     if(!problem.IsLayoutDefault())
