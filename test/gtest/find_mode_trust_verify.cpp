@@ -180,7 +180,7 @@ protected:
         solutions[0].time = eval_time1;
         good_entry        = miopen::HasGoodSolution(solutions, eval_sols2, false);
         ASSERT_TRUE(good_entry);
-        solutions[0].time = eval_time1 * (tolerance + 0.01);
+        solutions[0].time = eval_time1 / (tolerance + 0.01);
         good_entry        = miopen::HasGoodSolution(solutions, eval_sols2, false);
         ASSERT_FALSE(good_entry);
 
