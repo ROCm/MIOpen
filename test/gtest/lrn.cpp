@@ -30,7 +30,8 @@
 
 namespace {
 
-using TestCase = std::tuple<std::vector<int>, unsigned int, double, double, double, miopenLRNMode_t>;
+using TestCase =
+    std::tuple<std::vector<int>, unsigned int, double, double, double, miopenLRNMode_t>;
 
 template <class T>
 struct verify_lrn_foward
@@ -50,7 +51,8 @@ struct verify_lrn_foward
         int n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
 
-        std::cout << "sizes:" << n_batch << ", " << channels << ", " << height << ", " << width << std::endl;
+        std::cout << "sizes:" << n_batch << ", " << channels << ", " << height << ", " << width
+                  << std::endl;
 
         auto alpha       = lrn.GetAlpha();
         auto beta        = lrn.GetBeta();
@@ -266,9 +268,9 @@ struct verify_lrn_bwd
 
 inline auto GenCases(bool limit = false)
 {
-    std::set<std::vector<int> > input_dims;
+    std::set<std::vector<int>> input_dims;
 
-    if (limit)
+    if(limit)
     {
         input_dims.insert({16, 32, 8, 8});
     }
@@ -276,7 +278,7 @@ inline auto GenCases(bool limit = false)
     {
         // taken from the original test
         const int batch_factor = 0;
-        input_dims = get_inputs(batch_factor);
+        input_dims             = get_inputs(batch_factor);
     }
 
     return testing::Combine(testing::ValuesIn(input_dims),
@@ -298,7 +300,6 @@ inline auto GetCasesSmoke()
     static const auto cases = GenCases(true);
     return cases;
 }
-
 
 } // namespace
 
@@ -331,7 +332,8 @@ public:
                       << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
                       << " Bytes of memory." << std::endl;
 
-            FAIL() << "total_mem >= device_mem";;
+            FAIL() << "total_mem >= device_mem";
+            ;
         }
 
         miopen::LRNDescriptor lrn{mode, n, {alpha, beta, k}};
@@ -357,10 +359,10 @@ public:
     }
 
     void VerifyLrnBwd(const miopen::LRNDescriptor& plrn,
-                    const tensor<T>& pout,
-                    const tensor<T>& pdout,
-                    const tensor<T>& pin,
-                    const tensor<T>& pscale)
+                      const tensor<T>& pout,
+                      const tensor<T>& pdout,
+                      const tensor<T>& pin,
+                      const tensor<T>& pscale)
     {
         verify_lrn_bwd<T> verify_bwd{plrn, pout, pdout, pin, pscale};
         CompareResults(verify_bwd);
@@ -389,12 +391,12 @@ public:
                                     << "beta: " << beta << std::endl
                                     << "k: " << k << std::endl
                                     << "mode: " << mode << std::endl;
-                                    
-        if (saveCpuResults)                                    
+
+        if(saveCpuResults)
         {
             cpu_results = std::move(cpu);
         }
-    }    
+    }
 
 private:
     tensor<T> input;
