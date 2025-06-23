@@ -28,6 +28,8 @@ cmake_policy(SET CMP0057 NEW)
 
 include(CheckCXXCompilerFlag)
 
+set(GTEST_PRUNED gtest/gtest_pruned.cmake)
+
 if(MIOPEN_USE_HIPBLASLT)
   find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
 endif()
@@ -428,6 +430,11 @@ function(add_sanitize_test TEST_SOURCE)
 endfunction()
 
 file(GLOB TEST_SOURCES *.cpp)
+
+# check for the file that overwrites TEST_SOURCES with tests identified by git diff and dependencies matrix
+if(EXISTS "${GTEST_PRUNED}")
+    include(${GTEST_PRUNED})
+endif()
 
 set(LONG_TESTS
     test_dropout
