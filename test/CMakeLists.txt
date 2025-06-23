@@ -431,11 +431,6 @@ endfunction()
 
 file(GLOB TEST_SOURCES *.cpp)
 
-# check for the file that overwrites TEST_SOURCES with tests identified by git diff and dependencies matrix
-if(EXISTS "${GTEST_PRUNED}")
-    include(${GTEST_PRUNED})
-endif()
-
 set(LONG_TESTS
     test_dropout
     test_conv2d
@@ -461,6 +456,11 @@ function(rate_added_test NAME)
         set_tests_properties(${NAME} PROPERTIES COST 600)
     endif()
 endfunction()
+
+# check for the file that overwrites TEST_SOURCES with tests identified by git diff and dependencies matrix
+if(EXISTS "${GTEST_PRUNED}")
+    include(${GTEST_PRUNED})
+endif()
 
 set(EXCLUDE_TESTS)
 if(NOT MIOPEN_ENABLE_SQLITE)
