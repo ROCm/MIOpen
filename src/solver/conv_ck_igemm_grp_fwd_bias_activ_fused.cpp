@@ -139,7 +139,7 @@ using DeviceOpGFwdBiasActivPtrs =
                               OutLayout>>;
 namespace {
 
-template <int NDimSpatial = 2, typename DataType = ck::bhalf_t>
+template <int NDimSpatial, typename DataType>
 struct CKArgs
 {
     using OutputElementOpType = OutElementOp;
@@ -515,9 +515,9 @@ bool PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::SetNextValue(
         const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
         switch(conv_problem.GetInDataType())
         {
-        case miopenBFloat16: HeuristicInit(fdesc_problem); break;
-        case miopenHalf: HeuristicInit(fdesc_problem); break;
-        case miopenFloat: HeuristicInit(fdesc_problem); break;
+        case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
+        case miopenHalf: Init<ck::half_t>(conv_problem); break;
+        case miopenFloat: Init<float>(conv_problem); break;
         case miopenInt8:
         case miopenInt64:
         case miopenInt32:
