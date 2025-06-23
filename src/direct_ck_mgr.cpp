@@ -92,6 +92,7 @@ DirectCkMgr::DirectCkMgr()
 void DirectCkMgr::Init()
 {
     enableConvCache = IsEnvEnabled("DCK_CONV_FILE_CACHE");
+    enableOptConv   = IsEnvEnabled("DCK_OPT_CONV");
 
     std::string home_path = std::filesystem::path(std::getenv("HOME"));
     path_qun_wrw = home_path / std::filesystem::path(".config/miopen/dck_conv_qun_wrw.txt");
@@ -176,9 +177,12 @@ void DirectCkMgr::FlushToCacheFile(std::unordered_map<size_t, CacheData>& input,
 
 DirectCkMgr::~DirectCkMgr()
 {
-    FlushToCacheFile(s_qun_wrw, path_qun_wrw.c_str());
-    FlushToCacheFile(s_qun_fwd, path_qun_fwd.c_str());
-    FlushToCacheFile(s_jin_bwd, path_jin_bwd.c_str());
+    if (newKernelCount[ST_QUN_WRW] > 0)
+        FlushToCacheFile(s_qun_wrw, path_qun_wrw.c_str());
+    if (newKernelCount[ST_QUN_FWD] > 0)
+        FlushToCacheFile(s_qun_fwd, path_qun_fwd.c_str());
+    if (newKernelCount[ST_JIN_BWD] > 0)
+        FlushToCacheFile(s_jin_bwd, path_jin_bwd.c_str());
 
     // DEBUG LOG
     std::cout <<"Name\t hitCount\t launchCount:" << std::endl;

@@ -131,6 +131,7 @@ static void AppendToCache(CacheData cd)
     if (DirectCkMgr::GetInst()->enableConvCache == false)   return;
     std::lock_guard<std::mutex> lock(s_fileMutex);
     auto ckMgr = DirectCkMgr::GetInst();
+    ckMgr->newKernelCount[ST_QUN_FWD] ++;
     ckMgr->AppendToCache(ckMgr->s_qun_fwd, cd);
 }
 
@@ -325,6 +326,7 @@ ConvQunConvFwd::ConvQunConvFwd()
 bool ConvQunConvFwd::IsApplicable(const ExecutionContext&   ctx,
                                   const ProblemDescription& problem) const
 {
+    if (DirectCkMgr::GetInst()->enableOptConv == false)   return false;
     if(!miopen::debug::AlwaysEnableConvDirectNaive)
     {
         if(env::disabled(MIOPEN_DEBUG_CONV_QUN_CONV_FWD))

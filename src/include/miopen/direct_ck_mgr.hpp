@@ -73,6 +73,8 @@ struct DirectCkMgr
     bool FindCacheData(std::unordered_map<size_t, CacheData>& inputData, size_t hashcode, CacheData& cd);
     uint32_t launchCount[ST_COUNT] = {};
     uint32_t hitCacheCount[ST_COUNT] = {};
+    uint32_t newKernelCount[ST_COUNT] = {};
     ~DirectCkMgr();
-    bool enableConvCache;
+    bool enableConvCache = true;
+    bool enableOptConv   = true;
 };

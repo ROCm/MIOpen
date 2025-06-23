@@ -134,6 +134,7 @@ static void AppendToCache(CacheData cd)
 
     std::lock_guard<std::mutex> lock(s_fileMutex);
     auto ckMgr = DirectCkMgr::GetInst();
+    ckMgr->newKernelCount[ST_JIN_BWD] ++;
     ckMgr->AppendToCache(ckMgr->s_jin_bwd, cd);
 }
 
@@ -328,6 +329,7 @@ ConvJinMDConvBwd::ConvJinMDConvBwd()
 bool ConvJinMDConvBwd::IsApplicable(const ExecutionContext&   ctx,
                                   const ProblemDescription& problem) const
 {
+    if (DirectCkMgr::GetInst()->enableOptConv == false)   return false;
     if(!miopen::debug::AlwaysEnableConvDirectNaive)
     {
         if(env::disabled(MIOPEN_DEBUG_CONV_JIN_MD_BWD))
