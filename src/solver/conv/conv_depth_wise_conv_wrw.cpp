@@ -48,6 +48,15 @@ namespace solver {
 namespace conv {
 
 using ProblemDescription = miopen::conv::ProblemDescription;
+using F16  = ck::half_t;
+using F32  = float;
+using F64  = double;
+using BF16 = ushort;
+
+using InDataType  = F16;
+using WeiDataType = F16;
+using OutDataType = F16;
+using AccDataType = F32;
 
 struct PerfArgs
 {
@@ -71,7 +80,7 @@ struct PerfArgs
 };
 
 //                                              b_s, t_w, t_h, f_s, d_w, d_h, s_w, s_h, p_w, p_h, n_b, n_w, i_s, o_s, d_s, w_s, r_p
-static const std::vector<PerfArgs> perf_arg = {{256, 28,  28,  5,   1,   1,   1,   1,   2,   2,   2,   1,   2,   2,   2,   1,   false}, 
+static const std::vector<PerfArgs> perf_arg = {{256, 28,  28,  5,   1,   1,   1,   1,   2,   2,   2,   1,   2,   2,   2,   1,   false},
                                                {256, 14,  14,  5,   1,   1,   1,   1,   2,   2,   8,   1,   2,   2,   8,   1,   false}};
 
 struct CKArgs
@@ -364,6 +373,12 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
         // TODO: choose the best split_k !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         uint split_k = 1;
 
+        if (IsSupportedArgument(perf_arg[best_perf_arg_index], ck_args, split_k) == false)
+        {
+            MIOPEN_LOG_I("Argument is not supported!!!");
+            return result;
+        }
+
         ck::Array<ck::index_t, 5> acc_strides = {ck_args.wei_lengths[1] * ck_args.wei_lengths[2] * ck_args.wei_lengths[3] * ck_args.wei_lengths[4],
                                                  ck_args.wei_lengths[2] * ck_args.wei_lengths[3] * ck_args.wei_lengths[4],
                                                  ck_args.wei_lengths[3] * ck_args.wei_lengths[4],
@@ -374,26 +389,16 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
         new_in_lengths.At(1) /= split_k;
         new_out_lengths.At(1) /= split_k;
 
-        size_t block_size = perf_arg[best_perf_arg_index].block_size;
-        size_t grid_size  = static_cast<size_t>(ck_args.in_lengths[0]);
+        size_t block_size0 = perf_arg[best_perf_arg_index].block_size;
+        size_t grid_size0  = static_cast<size_t>(ck_args.in_lengths[0]);
 
         KernelInfo kernel0_info, kernel1_info;
 
         kernel0_info.kernel_file = "device_grouped_conv_bwd_weight_dl_v4.cpp";
-        // "depth_wise_conv_wrw.cpp";
-        // "naive_conv.cpp";
-        // "depth_wise_conv_wrw.cpp";
         kernel0_info.kernel_name = "kernel_grouped_conv_bwd_weight_dl_v4_run";
-        // ConvDirectNaiveConvKernelName(problem);
-        kernel0_info.g_wk.clear();
 
-        kernel0_info.g_wk.push_back(grid_size);
-        kernel0_info.g_wk.push_back(split_k);
-        kernel0_info.g_wk.push_back(1);
-        kernel0_info.l_wk.clear();
-        kernel0_info.l_wk.push_back(block_size);
-        kernel0_info.l_wk.push_back(1);
-        kernel0_info.l_wk.push_back(1);
+        kernel0_info.l_wk = {block_size0, 1, 1};
+        kernel0_info.g_wk = {grid_size0 * block_size0, split_k, 1};
 
         kernel0_info.comp_options = ck_utility::get_ck_common_compiler_flag(ctx.GetStream())
             + ctx.general_compile_options
@@ -415,14 +420,17 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
             + " -DCK_PARAM_REQUIREPADDING=" + std::to_string(perf_arg[best_perf_arg_index].require_padding)
             + " -DCK_PARAM_WSPLIT=" + std::to_string(perf_arg[best_perf_arg_index].w_split)
             ;
-        // ConvDirectNaiveConvCompileOption(ctx, problem);
 
         kernel1_info.kernel_file = "device_grouped_conv_bwd_weight_dl_v4.cpp";
         kernel1_info.kernel_name = "kernel_grouped_conv_bwd_weight_elementwise_run";
 
         kernel1_info.comp_options = kernel0_info.comp_options;
-        kernel1_info.l_wk = {perf_arg[best_perf_arg_index].filter_size * perf_arg[best_perf_arg_index].filter_size, 1, 1};
-        kernel1_info.g_wk = {ck_args.in_lengths[0], 1, 1};
+
+        size_t block_size1 = perf_arg[best_perf_arg_index].filter_size * perf_arg[best_perf_arg_index].filter_size;
+        size_t grid_size1  = ck_args.in_lengths[0];
+
+        kernel1_info.l_wk = {block_size1, 1, 1};
+        kernel1_info.g_wk = {grid_size1 * block_size1, 1, 1};
 
         result.workspace_sz = GetWorkspaceSize(ctx, problem);
 
@@ -436,9 +444,9 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
                     {
                         hipMemsetAsync(data_ctx.workSpace, 0, data_ctx.workSpaceSize, handle.GetStream());
                     }
-                    handle.Run(kernels[0])(tensors.x,
-                                           split_k > 1 ? nullptr : tensors.dw,
-                                           tensors.dy,
+                    handle.Run(kernels[0])(static_cast<const InDataType*>(tensors.x),
+                                           static_cast<const WeiDataType*>(split_k > 1 ? nullptr : tensors.dw),
+                                           static_cast<const OutDataType*>(tensors.dy),
                                            split_k > 1 ? data_ctx.workSpace : nullptr,
                                            split_k > 1 ? new_in_lengths : ck_args.in_lengths,
                                            ck_args.in_strides,

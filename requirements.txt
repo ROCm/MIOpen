@@ -8,4 +8,4 @@ ROCm/FunctionalPlus@v0.2.18-p0
 ROCm/eigen@3.4.0
 ROCm/frugally-deep@9683d557eb672ee2304f80f6682c51242d748a50
 # ROCm/composable_kernel@d1e6f0982d04d6b356f001da731dd5e315f78812 -DCMAKE_BUILD_TYPE=Release
-# google/googletest@v1.14.0
+google/googletest@v1.14.0

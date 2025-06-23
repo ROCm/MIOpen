@@ -47,12 +47,12 @@ extern "C" __global__
                  WeiDataType* p_wei_grid,
                  const OutDataType* p_out_grid,
                  AccDataType* p_acc_grid,
-                 const Array<index_t, 2 + 3>& in_g_n_c_wis_lengths, // input
-                 const Array<index_t, 2 + 3>& in_g_n_c_wis_strides,
-                 const Array<index_t, 2 + 3>& wei_g_k_c_xs_lengths, // weight
-                 const Array<index_t, 2 + 3>& wei_g_k_c_xs_strides,
-                 const Array<index_t, 2 + 3>& out_g_n_k_wos_lengths, // output
-                 const Array<index_t, 2 + 3>& out_g_n_k_wos_strides,
+                 const Array<index_t, 2 + 3> in_g_n_c_wis_lengths, // input
+                 const Array<index_t, 2 + 3> in_g_n_c_wis_strides,
+                 const Array<index_t, 2 + 3> wei_g_k_c_xs_lengths, // weight
+                 const Array<index_t, 2 + 3> wei_g_k_c_xs_strides,
+                 const Array<index_t, 2 + 3> out_g_n_k_wos_lengths, // output
+                 const Array<index_t, 2 + 3> out_g_n_k_wos_strides,
                  const bool enable_k_split)
 {
   constexpr index_t NDimSpatial = 2;
