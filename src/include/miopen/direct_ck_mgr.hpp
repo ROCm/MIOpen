@@ -26,13 +26,23 @@
 #pragma once
 #include <memory>
 #include <string>
-
+#include <unordered_map>
+#include <filesystem>
 
 struct CacheData
 {
     size_t hashcode;
     size_t kernelhash;
     int    split_k;
+};
+
+enum SolutionType
+{
+    ST_QUN_WRW = 0,
+    ST_QUN_FWD = 1,
+    ST_JIN_BWD = 2,
+    ST_COUNT   = 3,
+
 };
 
 struct DirectCkMgr
@@ -43,9 +53,26 @@ struct DirectCkMgr
         return instance.get();
     }
 
+    static std::unordered_map<size_t, CacheData> s_qun_wrw;
+    std::filesystem::path path_qun_wrw;
+
+    static std::unordered_map<size_t, CacheData> s_qun_fwd;
+    std::filesystem::path path_qun_fwd;
+
+    static std::unordered_map<size_t, CacheData> s_jin_bwd;
+    std::filesystem::path path_jin_bwd;
+
     DirectCkMgr();
     size_t GetStringHash(std::string str);
-
+    void FlushToCacheFile(std::unordered_map<size_t, CacheData>& input, const char* pPath);
     void Init();
+
+    void ReadCacheFile(std::unordered_map<size_t, CacheData>& outputData, std::filesystem::path filePath);
+    void AppendToCache(std::unordered_map<size_t, CacheData>& outputData, CacheData cd);
+
+    bool FindCacheData(std::unordered_map<size_t, CacheData>& inputData, size_t hashcode, CacheData& cd);
+    uint32_t launchCount[ST_COUNT] = {};
+    uint32_t hitCacheCount[ST_COUNT] = {};
+    ~DirectCkMgr();
     bool enableConvCache;
 };

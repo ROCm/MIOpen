@@ -118,65 +118,23 @@ std::size_t hash_array(const std::array<T, N>& arr) {
 
 
 static std::mutex s_fileMutex;
-static std::unordered_map<size_t, CacheData> s_cacheTable;
 static std::filesystem::path exp_path;
 
 static void ReadCacheFile()
 {
     std::lock_guard<std::mutex> lock(s_fileMutex);
-
-    const std::string filename = ".config/miopen/dck_conv_jin_md_bwd_cache.txt";
-    exp_path = filename;
-    exp_path = std::filesystem::path(std::getenv("HOME")) / filename;
-    std::filesystem::create_directories(exp_path.parent_path());
-
-    std::ifstream infile(exp_path);
-    if (infile)
-    {
-        std::string line;
-        while (std::getline(infile, line))
-        {
-            size_t hashcode, kernalHash;
-            std::istringstream iss(line);
-            if (!(iss >> std::hex >> hashcode >> std::hex >> kernalHash))
-            {
-                continue;
-            }
-
-            CacheData cd = { hashcode, kernalHash, 1 };
-            s_cacheTable[hashcode] = cd;
-        }
-
-        infile.close();
-    }
-    else
-    {
-        MIOPEN_LOG_I("Failed to open Qun conv cache file. " << exp_path);
-    }
+    auto ckMgr = DirectCkMgr::GetInst();
+    ckMgr->ReadCacheFile(ckMgr->s_jin_bwd, ckMgr->path_jin_bwd);
 }
+
 
 static void AppendToCache(CacheData cd)
 {
     if (DirectCkMgr::GetInst()->enableConvCache == false)   return;
 
     std::lock_guard<std::mutex> lock(s_fileMutex);
-
-    s_cacheTable[cd.hashcode] = cd;
-
-    std::ofstream outfile(exp_path, std::ios::app);
-    if (outfile.is_open()) {
-        MIOPEN_LOG_I("AppendToCache hash "<< std::setw(16) << std::setfill('0') << cd.hashcode << " to " << exp_path);
-    } else {
-        MIOPEN_LOG_E("Failed to create or open Qun conv cache file. " << exp_path);
-        MIOPEN_LOG_E("Error: " << std::strerror(errno));
-    }
-
-    if (outfile)
-    {
-        outfile << std::hex << std::setw(16) << std::setfill('0') << cd.hashcode << " "
-                << std::hex << std::setw(16) << std::setfill('0') << cd.kernelhash << "\n";
-        outfile.close();
-    }
+    auto ckMgr = DirectCkMgr::GetInst();
+    ckMgr->AppendToCache(ckMgr->s_jin_bwd, cd);
 }
 
 namespace miopen {
@@ -410,13 +368,11 @@ bool ConvJinMDConvBwd::IsApplicable(const ExecutionContext&   ctx,
             return false;
     }
 
-    if (GetSupportedSolutionCount(ctx, problem) == 0)
+    if (GetSupportedSolutionCount(ctx, problem) > 0)
     {
-        std::cerr << "Warning, ConvJinMDConvBwd with the specified compilation parameters does "
-                     "not support this Conv problem" << std::endl;
-
-        return false;
+        std::cout << "ConvJinConvBwd IsApplicable" << std::endl;
     }
+    else return false;
 
     return true;
 }
@@ -464,6 +420,7 @@ bool ConvJinMDConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::P
     bool found = false;
     size_t best_kernel;
     {
+        auto& s_cacheTable = DirectCkMgr::GetInst()->s_jin_bwd;
         std::lock_guard<std::mutex> lock(s_fileMutex);
         auto it = s_cacheTable.find(hashcode);
         found = it != s_cacheTable.end();
@@ -527,6 +484,10 @@ bool ConvJinMDConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::P
                                 avg_time = handle.GetKernelTime();
                                 handle.ResetKernelTime();
                                 handle.AccumKernelTime(avg_time);
+                                DirectCkMgr::GetInst()->launchCount[ST_JIN_BWD] ++;
+                                DirectCkMgr::GetInst()->hitCacheCount[ST_JIN_BWD] ++;
+                                if (DirectCkMgr::GetInst()->launchCount[ST_JIN_BWD] == 1)
+                                    std::cout << "Cached jin bwd is called" << std::endl;
                             }
                         }
                     };
@@ -659,14 +620,15 @@ ConvSolution ConvJinMDConvBwd::GetBestSolution(const ExecutionContext& ctx,
                                         avg_time = handle.GetKernelTime();
                                         handle.ResetKernelTime();
                                         handle.AccumKernelTime(avg_time);
+                                        DirectCkMgr::GetInst()->launchCount[ST_JIN_BWD] ++;
+                                        if (DirectCkMgr::GetInst()->launchCount[ST_JIN_BWD] == 1)
+                                            std::cout << "Un-cached jin bwd is called" << std::endl;
                                     }
-
                                 }
                             };
                         };
                     }
                 }
-
             }
         }
     });
