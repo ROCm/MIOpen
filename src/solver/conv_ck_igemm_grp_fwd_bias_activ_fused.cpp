@@ -426,6 +426,8 @@ void PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::Init(
                                     CKArgs<2, DataType>>(problem);
         }
     }
+    index     = 0;
+    kernel_id = valid_kernels[index];
 }
 
 template <typename DataType>
