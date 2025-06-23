@@ -923,6 +923,16 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoDirect);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
@@ -932,7 +942,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
                                 in_dev->GetMem(),
                                 outputTensor,
                                 out_dev->GetMem(),
-                                fusionArgs);
+                                fusionArgs,
+                                (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                workspace_size);
         finishTiming(it);
     }
 }
@@ -1008,6 +1020,16 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoDirect);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
@@ -1017,7 +1039,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
                                 in_dev->GetMem(),
                                 outputTensor,
                                 out_dev->GetMem(),
-                                fusionArgs);
+                                fusionArgs,
+                                (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                workspace_size);
         finishTiming(it);
     }
 }
@@ -1061,6 +1085,16 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoDirect);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
@@ -1070,7 +1104,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
                                 in_dev->GetMem(),
                                 outputTensor,
                                 out_dev->GetMem(),
-                                fusionArgs);
+                                fusionArgs,
+                                (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                workspace_size);
         finishTiming(it);
     }
 }
@@ -1173,6 +1209,16 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
         std::cerr << "ConvBiasInference plan not supported." << std::endl;
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoDirect);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
@@ -1182,7 +1228,9 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
                                 in_dev->GetMem(),
                                 outputTensor,
                                 out_dev->GetMem(),
-                                fusionArgs);
+                                fusionArgs,
+                                (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                workspace_size);
         finishTiming(it);
     }
 }

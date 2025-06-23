@@ -432,9 +432,19 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                                                   const void* input,
                                                   const miopenTensorDescriptor_t outputDesc,
                                                   void* output,
-                                                  miopenOperatorArgs_t args)
+                                                  miopenOperatorArgs_t args,
+                                                  void* workspace,
+                                                  size_t workspaceSizeInBytes)
 {
-    MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
+    MIOPEN_LOG_FUNCTION(handle,
+                        fusePlanDesc,
+                        inputDesc,
+                        input,
+                        outputDesc,
+                        output,
+                        args,
+                        workspace,
+                        workspaceSizeInBytes);
     return miopen::try_([&] {
         miopen::deref(fusePlanDesc)
             .Execute(miopen::deref(handle),
@@ -442,7 +452,9 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                      DataCast(input),
                      miopen::deref(outputDesc),
                      DataCast(output),
-                     miopen::deref(args));
+                     miopen::deref(args),
+                     DataCast(workspace),
+                     workspaceSizeInBytes);
     });
 }
 
