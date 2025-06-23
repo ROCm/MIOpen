@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,17 +24,17 @@
  *
  *******************************************************************************/
 
-#include "driver.hpp"
+#include "gtest_common.hpp"
+#include <tensor_util.hpp>
 #include "dropout_util.hpp"
-#include "get_handle.hpp"
-#include "tensor_holder.hpp"
-#include "test.hpp"
-#include "verify.hpp"
-#include "random.hpp"
 
 #define DROPOUT_DEBUG_CTEST 0
 // Workaround for issue #1128
 #define DROPOUT_SINGLE_CTEST 1
+
+namespace {
+
+using TestCase = std::tuple<std::vector<int>, float, unsigned long long, bool, int>;
 
 template <class T>
 struct verify_forward_dropout
@@ -72,7 +72,7 @@ struct verify_forward_dropout
         rsvsp_ptr    = prsvsp.begin();
     }
 
-    tensor<T> cpu() const
+    std::vector<T> cpu() const
     {
         size_t states_size = DropoutDesc.stateSizeInBytes / sizeof(rocrand_state_xorwow);
         auto states_cpu    = std::vector<rocrand_state_xorwow>(states_size);
@@ -93,10 +93,10 @@ struct verify_forward_dropout
                                 out_offset,
                                 rsvsp_offset);
 
-        return out_cpu;
+        return out_cpu.data;
     }
 
-    tensor<T> gpu() const
+    std::vector<T> gpu() const
     {
         auto&& handle  = get_handle();
         auto out_gpu   = output;
@@ -121,19 +121,13 @@ struct verify_forward_dropout
         auto rsvsp_gpu = handle.Read<unsigned char>(rsvsp_dev, rsvsp.size());
 
         std::copy(rsvsp_gpu.begin(), rsvsp_gpu.end(), rsvsp_ptr);
-        return out_gpu;
+        return out_gpu.data;
     }
 
-    void fail(int badtensor) const
+    void fail() const
     {
         std::cout << "Forward Dropout: " << std::endl;
         std::cout << "Input tensor: " << input.desc.ToString() << std::endl;
-        switch(badtensor)
-        {
-        case(0): std::cout << "Output tensor failed verification." << std::endl; break;
-        case(1): std::cout << "Reservespace failed verification." << std::endl; break;
-        default: break;
-        }
     }
 };
 
@@ -169,7 +163,7 @@ struct verify_backward_dropout
         use_rsvsp    = puse_rsvsp;
     }
 
-    tensor<T> cpu() const
+    std::vector<T> cpu() const
     {
         auto din_cpu   = din;
         auto rsvsp_cpu = rsvsp;
@@ -184,10 +178,10 @@ struct verify_backward_dropout
                                  out_offset,
                                  rsvsp_offset);
 
-        return din_cpu;
+        return din_cpu.data;
     }
 
-    tensor<T> gpu() const
+    std::vector<T> gpu() const
     {
         auto&& handle = get_handle();
         auto din_gpu  = din;
@@ -210,68 +204,74 @@ struct verify_backward_dropout
                             true /* is_backward*/);
 
         din_gpu.data = handle.Read<T>(din_dev, din.data.size());
-        return din_gpu;
+        return din_gpu.data;
     }
 
-    void fail(int = 0) const
+    void fail() const
     {
         std::cout << "Backward Dropout: " << std::endl;
         std::cout << "Doutput tensor: " << dout.desc.ToString() << std::endl;
     }
 };
 
-template <class T>
-struct dropout_driver : test_driver
+inline auto GenCases()
 {
-    std::vector<std::vector<int>> input_dims;
-    float dropout_rate{};
-    unsigned long long seed{};
-    bool mask{};
-    std::vector<int> in_dim{};
-    int rng_mode_cmd = 0;
+    auto input_dims = get_sub_tensor();
 
-    dropout_driver()
-    {
-        input_dims                                              = get_sub_tensor();
-        std::set<std::vector<int>> get_inputs_set               = get_inputs(1);
-        std::set<std::vector<int>> get_3d_conv_input_shapes_set = get_3d_conv_input_shapes(1);
-
-// Workaround for issue #1128
 #if DROPOUT_SINGLE_CTEST
-        input_dims.resize(1);
-        add(in_dim, "input-dim", generate_data(input_dims));
-        add(dropout_rate, "dropout", generate_data({float(0.5)}));
-        add(seed, "seed", generate_data({0x0ULL}));
-        add(mask, "use-mask", generate_data({false}));
-        add(rng_mode_cmd, "rng-mode", generate_data({0}));
+    input_dims.resize(1);
 #else
 #define DROPOUT_LARGE_CTEST 0
+
+    std::set<std::vector<int>> get_inputs_set               = get_inputs(1);
+
 #if DROPOUT_LARGE_CTEST
-        input_dims.insert(input_dims.end(), get_inputs_set.begin(), get_inputs_set.end());
-        input_dims.insert(input_dims.end(),
-                          get_3d_conv_input_shapes_set.begin(),
-                          get_3d_conv_input_shapes_set.end());
+    std::set<std::vector<int>> get_3d_conv_input_shapes_set = get_3d_conv_input_shapes(1);
+    input_dims.insert(input_dims.end(), get_inputs_set.begin(), get_inputs_set.end());
+    input_dims.insert(
+        input_dims.end(), get_3d_conv_input_shapes_set.begin(), get_3d_conv_input_shapes_set.end());
 #else
-        auto itr = get_inputs_set.begin();
-        for(std::size_t i = 0; i < get_inputs_set.size(); itr++, i++)
-            if(i % 6 == 0)
-                input_dims.push_back(*itr);
+    auto itr = get_inputs_set.begin();
+    for(std::size_t i = 0; i < get_inputs_set.size(); itr++, i++)
+        if(i % 6 == 0)
+            input_dims.push_back(*itr);
 
-        itr = get_3d_conv_input_shapes_set.begin();
-        for(std::size_t i = 0; i < get_3d_conv_input_shapes_set.size(); itr++, i++)
-            if(i % 3 == 0)
-                input_dims.push_back(*itr);
+    itr = get_3d_conv_input_shapes_set.begin();
+    for(std::size_t i = 0; i < get_3d_conv_input_shapes_set.size(); itr++, i++)
+        if(i % 3 == 0)
+            input_dims.push_back(*itr);
 #endif
+#endif
+    return testing::Combine(testing::ValuesIn(input_dims),
+#if DROPOUT_SINGLE_CTEST
+                            testing::Values(float(0.5)),
+                            testing::Values(0x0ULL),
+                            testing::Values(false),
+#else
+                            testing::Values(float(0.0), float(0.5), float(1.0)),
+                            testing::Values(0x0ULL, 0xFFFFFFFFFFFFFFFFULL),
+                            testing::Values(false, true),
+#endif
+                            testing::Values(0));
+}
 
-        add(in_dim, "input-dim", generate_data(input_dims));
-        add(dropout_rate, "dropout", generate_data({float(0.0), float(0.5), float(1.0)}));
-        add(seed, "seed", generate_data({0x0ULL, 0xFFFFFFFFFFFFFFFFULL}));
-        add(mask, "use-mask", generate_data({false, true}));
-        add(rng_mode_cmd, "rng-mode", generate_data({0}));
-#endif
+inline auto GetCases()
+{
+    static const auto cases = GenCases();
+    return cases;
+}
+} // namespace
+
+template <typename T>
+struct DropoutCommon : public testing::TestWithParam<TestCase>
+{
+    void SetUp() override
+    {
+        prng::reset_seed();
+        std::tie(in_dim, dropout_rate, seed, mask, rng_mode_cmd) = GetParam();
     }
 
-    void run()
+    void Run()
     {
         miopen::DropoutDescriptor DropoutDesc;
         uint64_t max_value       = miopen_type<T>{} == miopenHalf ? 5 : 17;
@@ -289,7 +289,6 @@ struct dropout_driver : test_driver
         if(total_mem >= device_mem)
         {
 #endif
-            show_command();
             std::cout << "Config requires " << total_mem
                       << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
                       << " Bytes of memory." << std::endl;
@@ -307,7 +306,7 @@ struct dropout_driver : test_driver
 #endif
         if(total_mem >= device_mem)
         {
-            return;
+            FAIL() << "total_mem >= device_mem";
         }
 
         auto reserveSpace = std::vector<unsigned char>(in.desc.GetElementSize());
@@ -341,19 +340,93 @@ struct dropout_driver : test_driver
 #endif
 
         auto out = tensor<T>{in_dim};
-        verify(verify_forward_dropout<T>{DropoutDesc, in.desc, in, out, reserveSpace, 0, 0, 0});
+
+        VerifyForwardDropout(DropoutDesc, in.desc, in, out, reserveSpace, 0, 0, 0);
 
         auto dout = tensor<T>{in_dim}.generate(tensor_elem_gen_integer{max_value});
         auto din  = tensor<T>{in_dim};
-        verify(verify_backward_dropout<T>{DropoutDesc, din, dout, reserveSpace, 0, 0, 0});
+        VerifyBackwardDropout(DropoutDesc, din, dout, reserveSpace, 0, 0, 0);
+
         if(!mask)
         {
-            verify(verify_forward_dropout<T>{
-                DropoutDesc, in.desc, in, out, reserveSpace, 0, 0, 0, false});
-            verify(
-                verify_backward_dropout<T>{DropoutDesc, din, dout, reserveSpace, 0, 0, 0, false});
+            VerifyForwardDropout(DropoutDesc, in.desc, in, out, reserveSpace, 0, 0, 0, false);
+            VerifyBackwardDropout(DropoutDesc, din, dout, reserveSpace, 0, 0, 0, false);
         }
     }
+
+private:
+    void VerifyForwardDropout(const miopen::DropoutDescriptor& pDropoutDesc,
+                              const miopen::TensorDescriptor& pNoiseShape,
+                              const tensor<T>& pinput,
+                              const tensor<T>& poutput,
+                              std::vector<unsigned char>& prsvsp,
+                              size_t pin_offset,
+                              size_t pout_offset,
+                              size_t prsvsp_offset,
+                              bool puse_rsvsp = true)
+    {
+        verify_forward_dropout<T> forward_dropout{pDropoutDesc,
+                                                  pNoiseShape,
+                                                  pinput,
+                                                  poutput,
+                                                  prsvsp,
+                                                  pin_offset,
+                                                  pout_offset,
+                                                  prsvsp_offset,
+                                                  puse_rsvsp};
+        CompareResults(forward_dropout);
+    }
+
+    void VerifyBackwardDropout(const miopen::DropoutDescriptor& pDropoutDesc,
+                               const tensor<T>& pdin,
+                               const tensor<T>& pdout,
+                               const std::vector<unsigned char>& prsvsp,
+                               size_t pin_offset,
+                               size_t pout_offset,
+                               size_t prsvsp_offset,
+                               bool puse_rsvsp = true)
+    {
+        verify_backward_dropout<T> backward_dropout(
+            pDropoutDesc, pdin, pdout, prsvsp, pin_offset, pout_offset, prsvsp_offset, puse_rsvsp);
+        CompareResults(backward_dropout);
+    }
+
+    template <class TDirection>
+    void CompareResults(const TDirection& direction)
+    {
+        const std::vector<T> cpu_data = direction.cpu();
+        const std::vector<T> gpu_data = direction.gpu();
+
+        // taken from the original test
+        double tolerance = 80;
+
+        double threshold = std::numeric_limits<T>::epsilon() * tolerance;
+        double error     = miopen::rms_range(cpu_data, gpu_data);
+
+        if(error > threshold)
+        {
+            direction.fail();
+        }
+
+        ASSERT_LE(error, threshold) << "dropout_rate: " << dropout_rate << std::endl
+                                    << "seed: " << seed << std::endl
+                                    << "mask: " << mask << std::endl
+                                    << "rng_mode_cmd: " << rng_mode_cmd << std::endl;
+    }
+
+private:
+    std::vector<int> in_dim;
+    float dropout_rate      = 0.0f;
+    unsigned long long seed = 0;
+    bool mask               = false;
+    int rng_mode_cmd        = 0;
 };
 
-int main(int argc, const char* argv[]) { test_drive<dropout_driver>(argc, argv); }
+using GPU_Dropout_FP32 = DropoutCommon<float>;
+using GPU_Dropout_FP16 = DropoutCommon<half_float::half>;
+
+TEST_P(GPU_Dropout_FP32, TestFloat) { this->Run(); }
+TEST_P(GPU_Dropout_FP16, TestFloat16) { this->Run(); }
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Dropout_FP32, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Dropout_FP16, GetCases());

@@ -137,41 +137,6 @@ using DeviceOpGFwdActPtrs = ck::tensor_operation::device::instance::DeviceOperat
                     OutLayout>>;
 
 namespace {
-template <typename T>
-struct ConvTraits;
-
-// Specialization for DeviceGroupedConvFwdMultipleABD to extract all template parameters
-template <ck::index_t NDimSpatial,
-          typename InLayout,
-          typename WeiLayout,
-          typename TupleOutLayout,
-          typename OutLayout,
-          typename InDataT,
-          typename WeiDataT,
-          typename TupleOutDataT,
-          typename OutDataT,
-          typename InElemOp,
-          typename WeiElemOp,
-          typename OutElemOp,
-          typename ACompType,
-          typename BCompType>
-struct ConvTraits<ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NDimSpatial,
-                                                                                InLayout,
-                                                                                WeiLayout,
-                                                                                TupleOutLayout,
-                                                                                OutLayout,
-                                                                                InDataT,
-                                                                                WeiDataT,
-                                                                                TupleOutDataT,
-                                                                                OutDataT,
-                                                                                InElemOp,
-                                                                                WeiElemOp,
-                                                                                OutElemOp,
-                                                                                ACompType,
-                                                                                BCompType>>
-{
-    static constexpr ck::index_t NDim = NDimSpatial;
-};
 
 template <int NDimSpatial, typename DataType>
 struct CKArgs
