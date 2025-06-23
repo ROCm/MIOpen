@@ -81,7 +81,9 @@ int main(int argc, char* argv[])
     }
 
     int fargval =
-        !miopen::StartsWith(base_arg, "CBAInfer") ? drv->GetInputFlags().GetValueInt("forw") : 1;
+        !(miopen::StartsWith(base_arg, "CBAInfer") || miopen::StartsWith(base_arg, "CAInfer"))
+            ? drv->GetInputFlags().GetValueInt("forw")
+            : 1;
     bool bnFwdInVer   = (fargval == 2 && miopen::StartsWith(base_arg, "bnorm"));
     bool verifyarg    = (drv->GetInputFlags().GetValueInt("verify") == 1);
     int cumulative_rc = 0; // Do not stop running tests in case of errors.
