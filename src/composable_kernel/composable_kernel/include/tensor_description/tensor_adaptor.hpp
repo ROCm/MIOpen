@@ -135,7 +135,7 @@ struct TensorAdaptor
     // may be index_t or Number<>
     using ElementSize = remove_cv_t<decltype(InitializeElementSize(Transforms{}))>;
 
-    public:
+public:
     __host__ __device__ constexpr TensorAdaptor() = default;
 
     __host__ __device__ constexpr TensorAdaptor(const Transforms& transforms)
@@ -217,7 +217,7 @@ struct TensorAdaptor
         printf("}");
     }
 
-    private:
+private:
     Transforms transforms_;
     ElementSize element_size_;
 };

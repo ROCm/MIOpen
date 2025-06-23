@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,21 +23,10 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#pragma once
 
-#ifndef GUARD_MIOPEN_IMPLICITGEMM_PARMS_HPP_
-#define GUARD_MIOPEN_IMPLICITGEMM_PARMS_HPP_
-
-enum struct ImplicitGemmDirection
-{
-    ForwardData,
-    BackwardData,
-    BackwardWeight
-};
-
-enum struct ImplicitGemmXdlopsKernel
-{
-    KernelFwdWrw = 0,
-    Kernel1x1    = 1,
-};
-
+#if defined(__GFX8__) || defined(__GFX9__)
+#define MIOPEN_WARP_SIZE 64
+#else
+#define MIOPEN_WARP_SIZE 32
 #endif
