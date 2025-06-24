@@ -425,25 +425,19 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t 
 }
 //---
 
-extern "C" miopenStatus_t miopenExecuteFusionPlanWithWorkspace(const miopenHandle_t handle,
-                                                  const miopenFusionPlanDescriptor_t fusePlanDesc,
-                                                  const miopenTensorDescriptor_t inputDesc,
-                                                  const void* input,
-                                                  const miopenTensorDescriptor_t outputDesc,
-                                                  void* output,
-                                                  miopenOperatorArgs_t args,
-                                                  void* workspace,
-                                                  size_t workspaceSize)
+extern "C" miopenStatus_t
+miopenExecuteFusionPlanWithWorkspace(const miopenHandle_t handle,
+                                     const miopenFusionPlanDescriptor_t fusePlanDesc,
+                                     const miopenTensorDescriptor_t inputDesc,
+                                     const void* input,
+                                     const miopenTensorDescriptor_t outputDesc,
+                                     void* output,
+                                     miopenOperatorArgs_t args,
+                                     void* workspace,
+                                     size_t workspaceSize)
 {
-    MIOPEN_LOG_FUNCTION(handle,
-                        fusePlanDesc,
-                        inputDesc,
-                        input,
-                        outputDesc,
-                        output,
-                        args,
-                        workspace,
-                        workspaceSize);
+    MIOPEN_LOG_FUNCTION(
+        handle, fusePlanDesc, inputDesc, input, outputDesc, output, args, workspace, workspaceSize);
     return miopen::try_([&] {
         miopen::deref(fusePlanDesc)
             .Execute(miopen::deref(handle),
@@ -458,34 +452,27 @@ extern "C" miopenStatus_t miopenExecuteFusionPlanWithWorkspace(const miopenHandl
 }
 
 // Return an error code that is "NotImplemented", if it exists then return success
-extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t           handle,
+extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
                                                   const miopenFusionPlanDescriptor_t fusePlanDesc,
                                                   const miopenTensorDescriptor_t inputDesc,
-                                                  const void*                    input,
+                                                  const void* input,
                                                   const miopenTensorDescriptor_t outputDesc,
-                                                  void*                          output,
-                                                  miopenOperatorArgs_t           args)
+                                                  void* output,
+                                                  miopenOperatorArgs_t args)
 {
-    MIOPEN_LOG_FUNCTION(handle,
-                        fusePlanDesc,
-                        inputDesc,
-                        input,
-                        outputDesc,
-                        output,
-                        args);
+    MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
 
     // call the workspace‐based entry with a null workspace
     return miopenExecuteFusionPlanWithWorkspace(handle,
-                                             fusePlanDesc,
-                                             inputDesc,
-                                             input,
-                                             outputDesc,
-                                             output,
-                                             args,
-                                             /*workspace=*/nullptr,
-                                             /*workspaceSize=*/0);
+                                                fusePlanDesc,
+                                                inputDesc,
+                                                input,
+                                                outputDesc,
+                                                output,
+                                                args,
+                                                /*workspace=*/nullptr,
+                                                /*workspaceSize=*/0);
 }
-
 
 extern "C" miopenStatus_t
 miopenConvolutionBiasActivationForward(miopenHandle_t handle,

@@ -937,14 +937,15 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
     {
         startTiming();
         miopenExecuteFusionPlanWithWorkspace(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs,
-                                (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
-                                workspace_size);
+                                             fusePlanDesc,
+                                             inputTensor,
+                                             in_dev->GetMem(),
+                                             outputTensor,
+                                             out_dev->GetMem(),
+                                             fusionArgs,
+                                             (workspace_fwd_dev) ? workspace_fwd_dev->GetMem()
+                                                                 : nullptr,
+                                             workspace_size);
         finishTiming(it);
     }
 }
@@ -1034,14 +1035,15 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     {
         startTiming();
         miopenExecuteFusionPlanWithWorkspace(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs,
-                                (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
-                                workspace_size);
+                                             fusePlanDesc,
+                                             inputTensor,
+                                             in_dev->GetMem(),
+                                             outputTensor,
+                                             out_dev->GetMem(),
+                                             fusionArgs,
+                                             (workspace_fwd_dev) ? workspace_fwd_dev->GetMem()
+                                                                 : nullptr,
+                                             workspace_size);
         finishTiming(it);
     }
 }
@@ -1099,14 +1101,15 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
     {
         startTiming();
         miopenExecuteFusionPlanWithWorkspace(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs,
-                                (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
-                                workspace_size);
+                                             fusePlanDesc,
+                                             inputTensor,
+                                             in_dev->GetMem(),
+                                             outputTensor,
+                                             out_dev->GetMem(),
+                                             fusionArgs,
+                                             (workspace_fwd_dev) ? workspace_fwd_dev->GetMem()
+                                                                 : nullptr,
+                                             workspace_size);
         finishTiming(it);
     }
 }
@@ -1223,14 +1226,15 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
     {
         startTiming();
         miopenExecuteFusionPlanWithWorkspace(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs,
-                                (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
-                                workspace_size);
+                                             fusePlanDesc,
+                                             inputTensor,
+                                             in_dev->GetMem(),
+                                             outputTensor,
+                                             out_dev->GetMem(),
+                                             fusionArgs,
+                                             (workspace_fwd_dev) ? workspace_fwd_dev->GetMem()
+                                                                 : nullptr,
+                                             workspace_size);
         finishTiming(it);
     }
 }
