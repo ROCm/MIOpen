@@ -686,8 +686,8 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    // if(!conv_problem.IsLayoutNHWC() /*&& !conv_problem.IsLayoutDefault()*/)
-    //     return false;
+    if(!conv_problem.IsLayoutNHWC() && !conv_problem.IsLayoutDefault())
+        return false;
 
     switch(conv_problem.GetInDataType())
     {
