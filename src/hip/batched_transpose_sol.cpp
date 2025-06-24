@@ -42,6 +42,10 @@
 #define BATCHED_TRANSPOSE_OCCUPANCY 4
 #endif
 
+// Compiler has bug for some of the kernel instances, where pack/ediv is not 1.
+// Used to be only enabled for gfx942, but now we are enabling it for all gfx.
+#define WORKAROUND_SWDEV_530382 1
+
 namespace miopen {
 namespace batched_transpose {
 
@@ -56,8 +60,7 @@ static inline std::string GetNameTrait(std::size_t type_size)
     MIOPEN_THROW("data type not supported");
 }
 
-static inline const std::vector<BatchedTransposeParam>& GetKernelList(const ExecutionContext& ctx,
-                                                                      std::size_t data_size)
+static inline const std::vector<BatchedTransposeParam>& GetKernelList(std::size_t data_size)
 {
     if(data_size == 1)
     {
@@ -80,9 +83,8 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(const Exec
     }
     if(data_size == 2)
     {
-        // TODO: gfx940 compiler has bug for some of the kernel, where pack/ediv is not 1
-        // unify this when bug is fixed
-        static const std::vector<BatchedTransposeParam> half_kernel_list_gfx942{
+#if WORKAROUND_SWDEV_530382
+        static const std::vector<BatchedTransposeParam> half_kernel_list{
             // clang-format off
             {16, 16, 1, 1, 1, 1},
             {32, 16, 1, 1, 1, 1},
@@ -97,8 +99,44 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(const Exec
             {256, 4, 1, 1, 1, 1},
             // clang-format on
         };
+#else
+        static const std::vector<BatchedTransposeParam> half_kernel_list{
+            // clang-format off
+            {16, 16, 1, 1, 1, 1},
+            {32, 16, 1, 1, 1, 1},
+            {16, 32, 1, 1, 1, 1},
+            {32, 32, 1, 1, 1, 1},
 
-        return half_kernel_list_gfx942;
+            {4, 64, 1, 1, 1, 1},
+            {64, 4, 1, 1, 1, 1},
+            {4, 128, 1, 1, 1, 1},
+            {128, 4, 1, 1, 1, 1},
+            {4, 256, 1, 1, 1, 1},
+            {256, 4, 1, 1, 1, 1},
+
+            {32, 32, 2, 2, 1, 1},
+            {32, 32, 2, 2, 1, 2},
+            {32, 32, 2, 2, 2, 1},
+            {32, 32, 2, 2, 2, 2},
+
+            {16, 64, 1, 4, 1, 2},
+            {64, 16, 4, 1, 2, 1},
+
+            {32, 64, 2, 4, 1, 2},
+            {32, 64, 2, 4, 2, 2},
+            {32, 64, 2, 4, 2, 4},
+
+            {64, 32, 4, 2, 2, 1},
+            {64, 32, 4, 2, 2, 2},
+            {64, 32, 4, 2, 4, 2},
+
+            {64, 64, 4, 4, 2, 2},
+            {64, 64, 4, 4, 4, 4},
+            // clang-format on
+        };
+#endif
+
+        return half_kernel_list;
     }
     if(data_size == 4)
     {
@@ -189,7 +227,7 @@ static inline BatchedTransposeParam HeuristicGet(const ExecutionContext& ctx,
      * samllest.
      */
 
-    const auto& kernel_list = GetKernelList(ctx, data_size);
+    const auto& kernel_list = GetKernelList(data_size);
     BatchedTransposeParam best_kernel;
     std::size_t extra_padding_size = std::numeric_limits<std::size_t>::max();
     float hw_radio                 = GetNormalizedRadio(height, width);
