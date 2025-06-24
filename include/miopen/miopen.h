@@ -957,7 +957,7 @@ MIOPEN_EXPORT miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
 // CLOSEOUT TENSOR DOXYGEN GROUP
 
 /** @addtogroup convolutions
- *
+ *  @note Testing Note functionality
  *  @{
  */
 
