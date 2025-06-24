@@ -51,9 +51,6 @@ struct verify_lrn_foward
         int n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
 
-        std::cout << "sizes:" << n_batch << ", " << channels << ", " << height << ", " << width
-                  << std::endl;
-
         auto alpha       = lrn.GetAlpha();
         auto beta        = lrn.GetBeta();
         auto K           = lrn.GetK();
@@ -320,8 +317,6 @@ public:
                    tensor_elem_gen_checkboard_sign{}(is...);
         });
 
-        std::cout << "N: " << n << std::endl;
-
         std::size_t n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
         size_t total_mem  = 5 * input.desc.GetNumBytes(); // estimate based on backward pass
@@ -333,7 +328,6 @@ public:
                       << " Bytes of memory." << std::endl;
 
             FAIL() << "total_mem >= device_mem";
-            ;
         }
 
         miopen::LRNDescriptor lrn{mode, n, {alpha, beta, k}};
@@ -384,7 +378,6 @@ public:
         {
             direction.fail();
         }
-        std::cout << "error" << error << std::endl;
 
         ASSERT_LE(error, threshold) << "n: " << n << std::endl
                                     << "alpha: " << alpha << std::endl
@@ -402,11 +395,11 @@ private:
     tensor<T> input;
 
     std::vector<int> input_dims;
-    unsigned int n = 1;
-    double alpha   = 1;
-    double beta    = 1;
-    double k       = 1;
-    miopenLRNMode_t mode;
+    unsigned int n       = 1;
+    double alpha         = 1;
+    double beta          = 1;
+    double k             = 1;
+    miopenLRNMode_t mode = miopenLRNWithinChannel;
 
     // cpu results pf forward pass to be used for backward pass
     tensor<T> cpu_results;
