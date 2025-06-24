@@ -2858,7 +2858,7 @@ struct ConvQunConvBwd final : ConvSolver
     /// GEMM is disabled.
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {
-        return 0.01f;
+        return 1000.0f;
     }
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
@@ -2884,7 +2884,7 @@ struct ConvQunConvFwd final : ConvSolver
     /// GEMM is disabled.
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {
-        return 0.01f;
+        return 1000.0f;
     }
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
@@ -2894,7 +2894,6 @@ struct ConvQunConvFwd final : ConvSolver
     bool FindCachedSolution(size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const;
     uint32_t GetSupportedSolutionCount(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
 };
-
 
 struct ConvJinMDConvBwd final : ConvSolver
 {
@@ -2911,7 +2910,7 @@ struct ConvJinMDConvBwd final : ConvSolver
     /// GEMM is disabled.
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {
-        return 0.01f;
+        return 1000.0f;
     }
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;

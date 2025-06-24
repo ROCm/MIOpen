@@ -83,7 +83,10 @@ static auto GetDirectSolvers()
                                            miopen::solver::conv::ConvOclDirectFwd,
                                            miopen::solver::conv::ConvDirectNaiveConvFwd,
                                            miopen::solver::conv::ConvDirectNaiveConvBwd,
-                                           miopen::solver::conv::ConvDirectNaiveConvWrw>{};
+                                           miopen::solver::conv::ConvDirectNaiveConvWrw,
+                                           miopen::solver::conv::ConvQunConvBwd,
+                                           miopen::solver::conv::ConvQunConvFwd,
+                                           miopen::solver::conv::ConvJinMDConvBwd>{};
 }
 
 static auto GetImplicitGemmSolvers()
@@ -117,9 +120,6 @@ static auto GetImplicitGemmSolvers()
         miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops,
         miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops,
         miopen::solver::conv::ConvHipImplicitGemm3DGroupBwdXdlops,
-        miopen::solver::conv::ConvQunConvFwd,
-        miopen::solver::conv::ConvQunConvBwd,
-        miopen::solver::conv::ConvJinMDConvBwd,
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>{};
 }
@@ -203,9 +203,7 @@ static auto GetBwdWrW2DSolvers()
                                            miopen::solver::conv::ConvDirectNaiveConvFwd,
                                            miopen::solver::conv::ConvDirectNaiveConvBwd,
                                            miopen::solver::conv::ConvDirectNaiveConvWrw,
-                                           miopen::solver::conv::ConvQunConvBwd,
-                                           miopen::solver::conv::ConvQunConvFwd,
-                                           miopen::solver::conv::ConvJinMDConvBwd>{};
+                                           miopen::solver::conv::ConvQunConvBwd>{};
 }
 
 static auto GetFFTSolvers() { return miopen::solver::SolverContainer<miopen::solver::conv::fft>{}; }

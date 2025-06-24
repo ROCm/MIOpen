@@ -260,7 +260,7 @@ struct CKArgs
 
     size_t GetParamHash() const
     {
-        size_t seed = 0;
+        size_t seed = ST_QUN_WRW;
         // Combine hashes of each parameter  
         hash_combine(seed, hash_array(input_lengths));
         hash_combine(seed, hash_array(in_strides));
@@ -418,11 +418,10 @@ bool ConvQunConvBwd::IsApplicable(const ExecutionContext&   ctx,
             return false;
     }
 
-    if (GetSupportedSolutionCount(ctx, problem) > 0)
+    if (GetSupportedSolutionCount(ctx, problem) == 0)
     {
-        std::cout << "ConvQunConvWrw IsApplicable" << std::endl;
+        return false;
     }
-    else return false;
 
     return true;
 }
@@ -534,6 +533,8 @@ bool ConvQunConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::Pro
                             WorkAroundHipEventProfiler prf(handle);
                             float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
 
+                            if (DirectCkMgr::GetInst()->enableLog)
+                                std::cout << "Cached qun wrw is called" << std::endl;
                             if(handle.IsProfilingEnabled())
                             {
                                 avg_time = handle.GetKernelTime();
@@ -542,8 +543,6 @@ bool ConvQunConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::Pro
 
                                 DirectCkMgr::GetInst()->launchCount[ST_QUN_WRW] ++;
                                 DirectCkMgr::GetInst()->hitCacheCount[ST_QUN_WRW] ++;
-                                if (DirectCkMgr::GetInst()->launchCount[ST_QUN_WRW] == 1)
-                                    std::cout << "Cached qun wrw is called" << std::endl;
                             }
                         }
                     };
@@ -698,7 +697,7 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
                                         handle.ResetKernelTime();
                                         handle.AccumKernelTime(avg_time);
                                         DirectCkMgr::GetInst()->launchCount[ST_QUN_WRW] ++;
-                                        if (DirectCkMgr::GetInst()->launchCount[ST_QUN_WRW] == 1)
+                                        if (DirectCkMgr::GetInst()->enableLog)
                                         {
                                             std::cout << "Un-cached qun wrw is called" << std::endl;
                                         }

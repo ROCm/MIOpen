@@ -77,4 +77,5 @@ struct DirectCkMgr
     ~DirectCkMgr();
     bool enableConvCache = true;
     bool enableOptConv   = true;
+    bool enableLog       = false;
 };
