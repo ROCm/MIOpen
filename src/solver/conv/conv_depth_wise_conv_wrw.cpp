@@ -79,9 +79,73 @@ struct PerfArgs
     bool require_padding;
 };
 
-//                                              b_s, t_w, t_h, f_s, d_w, d_h, s_w, s_h, p_w, p_h, n_b, n_w, i_s, o_s, d_s, w_s, r_p
-static const std::vector<PerfArgs> perf_arg = {{256, 28,  28,  5,   1,   1,   1,   1,   2,   2,   2,   1,   2,   2,   2,   1,   false},
-                                               {256, 14,  14,  5,   1,   1,   1,   1,   2,   2,   8,   1,   2,   2,   8,   1,   false}};
+//                                              b_s, t_w, t_h, f_s, d_w, d_h, s_w, s_h, p_w, p_h, n_b, n_w, i_s, o_s, d_s, w_s,   r_p
+static const std::vector<PerfArgs> perf_arg = {{256,  28,  28,   5,   1,   1,   1,   1,   2,   2,   2,   1,   2,   2,   2,   1,   false},
+                                               {256,  14,  14,   5,   1,   1,   1,   1,   2,   2,   8,   1,   2,   2,   8,   1,   false},
+                                               { 64,   7,   7,   5,   1,   1,   1,   1,   2,   2,  16,   1,   1,   1,   8,   1,   false},
+                                               {128,  56,  56,   5,   1,   1,   2,   2,   2,   2,   2,   2,   2,   2,   2,   1,   false},
+                                               {256,  14,  14,   5,   1,   1,   2,   2,   2,   2,   8,   1,   2,   1,   8,   1,   false},
+                                               {256, 112, 112,   3,   1,   1,   1,   1,   1,   1,   1,   4,   8,   8,   1,   1,   false},
+                                               {128,  56,  56,   3,   1,   1,   1,   1,   1,   1,   1,   2,   4,   4,   1,   1,   false},
+                                               {256,  28,  28,   3,   1,   1,   1,   1,   1,   1,   2,   1,   4,   4,   2,   1,   false},
+                                               { 64,  14,  14,   3,   1,   1,   1,   1,   1,   1,   4,   1,   2,   2,   4,   1,   false},
+                                               { 64,   7,   7,   3,   1,   1,   1,   1,   1,   1,  16,   1,   1,   1,   8,   1,   false},
+                                               {256, 112, 112,   3,   1,   1,   2,   2,   1,   1,   1,   4,   8,   4,   1,   1,   false},
+                                               {256,  28,  28,   3,   1,   1,   2,   2,   1,   1,   2,   1,   4,   2,   2,   1,   false},
+                                               // 28 x 5 x 1
+                                               { 64,  28,  28,   5,   1,   1,   1,   1,   2,   2,   2,   1,   2,   2,   2,   1,   false},
+                                               { 64,  28,  28,   5,   1,   1,   1,   1,   2,   2,   2,   1,   4,   4,   2,   1,   false},
+                                               {256,  28,  28,   5,   1,   1,   1,   1,   2,   2,   2,   1,   4,   4,   2,   1,   false},
+                                               // 14 x 5 x 1
+                                               {256,  14,  14,   5,   1,   1,   1,   1,   2,   2,   4,   1,   2,   2,   4,   1,   false},
+                                               {256,  14,  14,   5,   1,   1,   1,   1,   2,   2,   2,   1,   2,   2,   2,   1,   false},
+                                               { 64,  14,  14,   5,   1,   1,   1,   1,   2,   2,   4,   1,   2,   2,   4,   1,   false},
+                                               { 64,  14,  14,   5,   1,   1,   1,   1,   2,   2,   2,   1,   2,   2,   2,   1,   false},
+                                               // 7 x 5 x 1
+                                               { 64,   7,   7,   5,   1,   1,   1,   1,   2,   2,   8,   1,   1,   1,   8,   1,   false},
+                                               { 64,   7,   7,   5,   1,   1,   1,   1,   2,   2,   4,   1,   1,   1,   4,   1,   false},
+                                               { 64,   7,   7,   5,   1,   1,   1,   1,   2,   2,   2,   1,   1,   1,   2,   1,   false},
+                                               // 56 x 5 x 2
+                                               {128,  56,  56,   5,   1,   1,   2,   2,   2,   2,   2,   2,   4,   2,   2,   1,   false},
+                                               {128,  56,  56,   5,   1,   1,   2,   2,   2,   2,   2,   2,   4,   2,   2,   2,   false},
+                                               {128,  56,  56,   5,   1,   1,   2,   2,   2,   2,   2,   2,   2,   2,   2,   2,   false},
+                                               { 64,  56,  56,   5,   1,   1,   2,   2,   2,   2,   2,   1,   2,   2,   2,   2,   false},
+                                               // 14 x 5 x 2
+                                               {256,  14,  14,   5,   1,   1,   2,   2,   2,   2,   4,   1,   2,   1,   4,   1,   false},
+                                               { 64,  14,  14,   5,   1,   1,   2,   2,   2,   2,   8,   1,   2,   1,   8,   1,   false},
+                                               { 64,  14,  14,   5,   1,   1,   2,   2,   2,   2,   4,   1,   2,   1,   4,   1,   false},
+                                               // 112 x 3 x 1
+                                               {256, 112, 112,   3,   1,   1,   1,   1,   1,   1,   2,   4,   4,   4,   2,   2,   false},
+                                               {256, 112, 112,   3,   1,   1,   1,   1,   1,   1,   2,   4,   2,   2,   2,   4,   false},
+                                               {256, 112, 112,   3,   1,   1,   1,   1,   1,   1,   2,   4,   2,   2,   2,   2,   false},
+                                               // 56 x 3 x 1
+                                               {256,  56,  56,   3,   1,   1,   1,   1,   1,   1,   2,   4,   4,   4,   2,   1,   false},
+                                               {128,  56,  56,   3,   1,   1,   1,   1,   1,   1,   2,   2,   2,   2,   2,   2,   false},
+                                               {128,  56,  56,   3,   1,   1,   1,   1,   1,   1,   2,   2,   2,   2,   2,   4,   false},
+                                               {256,  56,  56,   3,   1,   1,   1,   1,   1,   1,   2,   4,   2,   2,   2,   2,   false},
+                                               // 28 x 3 x 1
+                                               {256,  28,  28,   3,   1,   1,   1,   1,   1,   1,   2,   1,   2,   2,   2,   1,   false},
+                                               {128,  28,  28,   3,   1,   1,   1,   1,   1,   1,   2,   1,   4,   4,   2,   1,   false},
+                                               { 64,  28,  28,   3,   1,   1,   1,   1,   1,   1,   2,   1,   4,   4,   2,   1,   false},
+                                               // 14 x 3 x 1
+                                               { 64,  14,  14,   3,   1,   1,   1,   1,   1,   1,   8,   1,   2,   2,   8,   1,   false},
+                                               { 64,  14,  14,   3,   1,   1,   1,   1,   1,   1,   2,   1,   2,   2,   2,   1,   false},
+                                               {128,  14,  14,   3,   1,   1,   1,   1,   1,   1,   4,   1,   2,   2,   4,   1,   false},
+                                               {256,  14,  14,   3,   1,   1,   1,   1,   1,   1,   4,   1,   2,   2,   4,   1,   false},
+                                               // 7 x 3 x 1
+                                               { 64,   7,   7,   3,   1,   1,   1,   1,   1,   1,   8,   1,   1,   1,   8,   1,   false},
+                                               { 64,   7,   7,   3,   1,   1,   1,   1,   1,   1,   4,   1,   1,   1,   4,   1,   false},
+                                               { 64,   7,   7,   3,   1,   1,   1,   1,   1,   1,   2,   1,   1,   1,   2,   1,   false},
+                                               // 112 x 3 x 2
+                                               {256, 112, 112,   3,   1,   1,   2,   2,   1,   1,   2,   4,   4,   2,   2,   2,   false},
+                                               {256, 112, 112,   3,   1,   1,   2,   2,   1,   1,   2,   4,   2,   2,   2,   2,   false},
+                                               {256, 112, 112,   3,   1,   1,   2,   2,   1,   1,   2,   4,   2,   2,   2,   4,   false},
+                                               // 28 x 3 x 3
+                                               { 64,  28,  28,   3,   1,   1,   2,   2,   1,   1,   2,   1,   4,   2,   2,   1,   false},
+                                               {128,  28,  28,   3,   1,   1,   2,   2,   1,   1,   2,   1,   4,   2,   2,   1,   false},
+                                               { 64,  28,  28,   3,   1,   1,   2,   2,   1,   1,   4,   1,   4,   2,   4,   1,   false},
+                                               {128,  28,  28,   3,   1,   1,   2,   2,   1,   1,   4,   1,   4,   2,   4,   1,   false},
+                                               {256,  28,  28,   3,   1,   1,   2,   2,   1,   1,   4,   1,   4,   2,   4,   1,   false}};
 
 struct CKArgs
 {
@@ -412,14 +476,25 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
         auto ck_args = CKArgs{problem};
 
         // TODO: choose the best perf_arg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        uint best_perf_arg_index = 0;
+        uint best_perf_arg_index = perf_arg.size();
 
         // TODO: choose the best split_k !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         uint split_k = 1;
 
-        if (IsSupportedArgument(perf_arg[best_perf_arg_index], ck_args, split_k) == false)
+        for (uint i = 0; i < perf_arg.size(); i++)
         {
-            MIOPEN_LOG_I("Argument is not supported!!!");
+            if (IsSupportedArgument(perf_arg[i], ck_args, split_k))
+            {
+                best_perf_arg_index = i;
+                std::cout << "best_perf_arg_index = " << best_perf_arg_index << std::endl;
+                std::cout << "split_k = " << split_k << std::endl;
+                break;
+            }
+        }
+
+        if (best_perf_arg_index == perf_arg.size())
+        {
+            std::cout << "Argument is not supported!!!" << std::endl;
             return result;
         }
 
@@ -491,7 +566,7 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
                     handle.Run(kernels[0])(static_cast<const InDataType*>(tensors.x),
                                            static_cast<const WeiDataType*>(split_k > 1 ? nullptr : tensors.dw),
                                            static_cast<const OutDataType*>(tensors.dy),
-                                           split_k > 1 ? data_ctx.workSpace : nullptr,
+                                           static_cast<const AccDataType*>(split_k > 1 ? data_ctx.workSpace : nullptr),
                                            split_k > 1 ? new_in_lengths : ck_args.in_lengths,
                                            ck_args.in_strides,
                                            ck_args.wei_lengths,
