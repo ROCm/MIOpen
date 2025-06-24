@@ -80,40 +80,6 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(const Exec
     }
     if(data_size == 2)
     {
-        static const std::vector<BatchedTransposeParam> half_kernel_list{
-            // clang-format off
-            {16, 16, 1, 1, 1, 1},
-            {32, 16, 1, 1, 1, 1},
-            {16, 32, 1, 1, 1, 1},
-            {32, 32, 1, 1, 1, 1},
-
-            {4, 64, 1, 1, 1, 1},
-            {64, 4, 1, 1, 1, 1},
-            {4, 128, 1, 1, 1, 1},
-            {128, 4, 1, 1, 1, 1},
-            {4, 256, 1, 1, 1, 1},
-            {256, 4, 1, 1, 1, 1},
-
-            {32, 32, 2, 2, 1, 1},
-            {32, 32, 2, 2, 1, 2},
-            {32, 32, 2, 2, 2, 1},
-            {32, 32, 2, 2, 2, 2},
-
-            {16, 64, 1, 4, 1, 2},
-            {64, 16, 4, 1, 2, 1},
-
-            {32, 64, 2, 4, 1, 2},
-            {32, 64, 2, 4, 2, 2},
-            {32, 64, 2, 4, 2, 4},
-
-            {64, 32, 4, 2, 2, 1},
-            {64, 32, 4, 2, 2, 2},
-            {64, 32, 4, 2, 4, 2},
-
-            {64, 64, 4, 4, 2, 2},
-            {64, 64, 4, 4, 4, 4},
-            // clang-format on
-        };
         // TODO: gfx940 compiler has bug for some of the kernel, where pack/ediv is not 1
         // unify this when bug is fixed
         static const std::vector<BatchedTransposeParam> half_kernel_list_gfx942{
@@ -131,11 +97,8 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(const Exec
             {256, 4, 1, 1, 1, 1},
             // clang-format on
         };
-        const auto device_name = ctx.GetStream().GetDeviceName();
-        if(device_name == "gfx942")
-            return half_kernel_list_gfx942;
-        else
-            return half_kernel_list;
+
+        return half_kernel_list_gfx942;
     }
     if(data_size == 4)
     {
