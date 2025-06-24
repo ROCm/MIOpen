@@ -3900,9 +3900,32 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
                         const void* input,
                         const miopenTensorDescriptor_t outputDesc,
                         void* output,
+                        miopenOperatorArgs_t args);
+
+/*! @brief Executes the fusion plan with a workspace buffer
+ *
+ *
+ * @param handle           MIOpen handle (input)
+ * @param fusePlanDesc     fused plan descriptor (input)
+ * @param inputDesc        Descriptor of the input tensor (input)
+ * @param input            Source data tensor  (input)
+ * @param outputDesc       Decriptor of the output tensor (input)
+ * @param output           Destination data tensor  (output)
+ * @param args             An argument object of the fused kernel (input)
+ * @param workspace        A pointer to an intermediate workspace (input)
+ * @param workspaceSize Size of the memory in bytes pointed to by workSpace above (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenExecuteFusionPlanWithWorkspace(const miopenHandle_t handle,
+                        const miopenFusionPlanDescriptor_t fusePlanDesc,
+                        const miopenTensorDescriptor_t inputDesc,
+                        const void* input,
+                        const miopenTensorDescriptor_t outputDesc,
+                        void* output,
                         miopenOperatorArgs_t args,
                         void* workspace,
-                        size_t workspaceSizeInBytes);
+                        size_t workspaceSize);
 
 /*! @brief Prepares and executes the Convlution+Bias+Activation Fusion.
  *
