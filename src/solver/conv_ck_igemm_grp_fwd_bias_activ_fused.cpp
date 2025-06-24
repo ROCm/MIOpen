@@ -688,6 +688,7 @@ GetSolutionForDimensionality(const FusionContext& ctx,
     return MakeSolutionGroupConvImplicitGemmXdlops(
         conv_problem,
         [&](auto data_type_val) {
+            (void)data_type_val;
             return InitInvokerFactoryFwdNCHW<NDimSpatial,
                                              false,
                                              DeviceOpGFwdBiasActivPtrs<NDimSpatial,
@@ -700,6 +701,7 @@ GetSolutionForDimensionality(const FusionContext& ctx,
                 ctx, conv_problem, config.kernel_id);
         },
         [&](auto data_type_val) {
+            (void)data_type_val;
             return InitInvokerFactoryNHWC<false,
                                           DeviceOpGFwdBiasActivPtrs<NDimSpatial,
                                                                     DataType,
