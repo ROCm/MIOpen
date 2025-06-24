@@ -175,7 +175,7 @@ struct BlockwiseGemmDlops_km_kn_m0m1n0n1_v3
         a_thread_copy_.MoveSrcSliceWindow(BlockMatrixA{}, a_block_slice_move_step_idx);
     }
 
-    private:
+private:
     MatrixIndex c_thread_begin_mtx_idx_;
 
     AThreadCopy a_thread_copy_;

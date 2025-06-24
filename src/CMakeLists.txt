@@ -209,17 +209,14 @@ set( MIOpen_Source
     solver/activ/fwd_1.cpp
     solver/adam/adam.cpp
     solver/adam/transformers_adam_w.cpp
-    solver/batchnorm/backward_ck.cpp
     solver/batchnorm/backward_per_activation.cpp
     solver/batchnorm/backward_per_activation_fused.cpp
     solver/batchnorm/backward_spatial.cpp
     solver/batchnorm/forward_inference.cpp
-    solver/batchnorm/forward_inference_ck.cpp
     solver/batchnorm/forward_inference_fused.cpp
     solver/batchnorm/forward_per_activation.cpp
     solver/batchnorm/forward_per_activation_fused.cpp
     solver/batchnorm/forward_spatial.cpp
-    solver/batchnorm/forward_training_ck.cpp
     solver/cat/forward_cat.cpp
     solver/conv/conv_asm_1x1u.cpp
     solver/conv/conv_asm_1x1u_stride2.cpp
@@ -294,7 +291,9 @@ set( MIOpen_Source
     solver/conv/gemm_wrw.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_bin_winoRxS_fused.cpp
+    solver/conv_ck_igemm_grp_fwd_activ_fused.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
+    solver/conv_ck_igemm_grp_fwd_bias_activ_fused.cpp
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
@@ -309,7 +308,6 @@ set( MIOpen_Source
     solver/layernorm/forward_layernorm2d_ck.cpp
     solver/layernorm/forward_layernorm4d_ck.cpp
     solver/layernorm/forward_t5layernorm.cpp
-    solver/mha/mha_ck_fa_v2_solver_forward.cpp
     solver/mha/mha_solver_backward.cpp
     solver/mha/mha_solver_forward.cpp
     solver/multimarginloss/forward_multimarginloss.cpp
@@ -388,7 +386,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${COMPOSABLE_KERNEL_INCLUDE}
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_INCLUDE}
-        include/miopen/implicitgemm_params.hpp
         kernels/activation_functions.hpp
         kernels/gpu_reference_kernel/fp8_kern_types.h
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.inc
@@ -495,6 +492,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/miopen_rocrand.hpp
         kernels/miopen_type_traits.hpp
         kernels/miopen_utility.hpp
+        kernels/miopen_warp_size.hpp
         kernels/neuron.inc
         kernels/radix.hpp
         kernels/rocm_version.inc
@@ -859,7 +857,14 @@ target_include_directories(MIOpen PUBLIC
 )
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
-set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_gemm_operations composable_kernel::device_conv_operations composable_kernel::device_reduction_operations composable_kernel::device_mha_operations hip::host)
+    if(MIOPEN_BUILD_CK )
+        # the aliased target doesnt exist when we build CK inline as part of MIOPEN.  The aliased target only is not 
+        # global when you build it so we dont have access to it. 
+        set(MIOPEN_CK_LINK_FLAGS device_other_operations device_conv_operations hip::host)
+    else()
+        # Use the aliased targets when we pull CK from /opt/rocm or other place on disc.
+        set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_conv_operations hip::host)
+    endif()
 endif()
 
 if(WIN32)

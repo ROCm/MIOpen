@@ -198,9 +198,12 @@ AllocateBuffersAndMakeFusionInvokeParams(const Handle& handle,
 
         if(activ_fwd_id != -1)
         {
-            params.SetArg(
-                activ_fwd_id,
-                std::make_unique<miopen::fusion::ActivationOpInvokeParam>(alpha, beta, gamma));
+            const auto& activ_op =
+                dynamic_cast<ActivFwdFusionOpDescriptor&>(*plan.op_map[activ_fwd_id]);
+
+            params.SetArg(activ_fwd_id,
+                          std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
+                              alpha, beta, gamma, activ_op.activMode));
         }
         else if(activ_bwd_id != -1)
         {
@@ -400,6 +403,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
                                         nullptr,
                                         nullptr,
                                         miopen::debug::BatchNormDirection_t::ForwardInference,
+                                        nullptr,
                                         false); // having false allows safe handling of nullptrs
     }
     else
@@ -581,8 +585,8 @@ miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                    double activBeta,
                                                    double activGamma)
 {
-    auto op_args =
-        std::make_unique<fusion::ActivationOpInvokeParam>(activAlpha, activBeta, activGamma);
+    auto op_args = std::make_unique<fusion::ActivationOpInvokeParam>(
+        activAlpha, activBeta, activGamma, activMode);
     args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }
@@ -763,6 +767,8 @@ static auto GetFusedDirectSolvers()
 static auto GetFusedIGemmSolvers()
 {
     return solver::SolverContainer<solver::fusion::ConvCKIgemmFwdBiasActivFused,
+                                   solver::fusion::ConvCKIgemmGrpFwdActivFused,
+                                   solver::fusion::ConvCKIgemmGrpFwdBiasActivFused,
                                    solver::fusion::ConvCKIgemmFwdBiasResAddActivFused>{};
 }
 
@@ -770,7 +776,8 @@ static auto GetFusedWinogradSolvers()
 {
     return solver::SolverContainer<solver::fusion::ConvBinWinogradRxSFused,
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
-                                   solver::fusion::ConvWinoFuryRxSFused<2, 3>>{};
+                                   solver::fusion::ConvWinoFuryRxSFused<2, 3>,
+                                   solver::fusion::ConvWinoRageRxSFused<2, 3>>{};
 }
 
 static auto GetAllFusionSolvers()
