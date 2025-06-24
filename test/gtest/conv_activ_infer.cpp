@@ -192,7 +192,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(miopenActivationRELU, miopenActivationCLIPPEDRELU),
         testing::ValuesIn(GroupConvTestConfig<2>::GetSmokeConfigs<Direction::Forward>()),
-        testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/),
+        testing::Values(miopenTensorNHWC, miopenTensorNCHW),
         testing::Values(0.5f),
         testing::Values(1.0f),
         testing::Values(0.5f)));
@@ -202,7 +202,7 @@ INSTANTIATE_TEST_SUITE_P(
     GPU_ConvGrpActivInfer_BFP16,
     testing::Combine(testing::Values(miopenActivationCLAMP),
                      testing::ValuesIn(GroupConvTestConfig<2>::GetConfigs<Direction::Forward>()),
-                     testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/),
+                     testing::Values(miopenTensorNHWC, miopenTensorNCHW),
                      testing::Values(0.5f),
                      testing::Values(1.0f),
                      testing::Values(0.5f)));
@@ -213,7 +213,7 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Combine(
         testing::Values(miopenActivationRELU, miopenActivationCLIPPEDRELU),
         testing::ValuesIn(GroupConvTestConfig<3>::GetSmokeConfigs<Direction::Forward>()),
-        testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/),
+        testing::Values(miopenTensorNDHWC, miopenTensorNCDHW),
         testing::Values(0.5f),
         testing::Values(1.0f),
         testing::Values(0.5f)));
@@ -223,7 +223,7 @@ INSTANTIATE_TEST_SUITE_P(
     GPU_ConvGrpActivInfer3D_BFP16,
     testing::Combine(testing::Values(miopenActivationCLAMP),
                      testing::ValuesIn(GroupConvTestConfig<3>::GetConfigs<Direction::Forward>()),
-                     testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/),
+                     testing::Values(miopenTensorNDHWC, miopenTensorNCDHW),
                      testing::Values(0.5f),
                      testing::Values(1.0f),
                      testing::Values(0.5f)));
