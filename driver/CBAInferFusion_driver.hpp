@@ -925,7 +925,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
 
     size_t workspace_size = 0;
     miopenFusionPlanGetWorkSpaceSize(
-        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoDirect);
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
 
     if(workspace_size > 0)
     {
@@ -1023,7 +1023,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
 
     size_t workspace_size = 0;
     miopenFusionPlanGetWorkSpaceSize(
-        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoDirect);
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
 
     if(workspace_size > 0)
     {
@@ -1089,7 +1089,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
 
     size_t workspace_size = 0;
     miopenFusionPlanGetWorkSpaceSize(
-        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoDirect);
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
 
     if(workspace_size > 0)
     {
@@ -1214,7 +1214,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
 
     size_t workspace_size = 0;
     miopenFusionPlanGetWorkSpaceSize(
-        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoDirect);
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
 
     if(workspace_size > 0)
     {
