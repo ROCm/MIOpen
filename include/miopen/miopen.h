@@ -49,8 +49,14 @@
 #include <hip/hip_runtime_api.h>
 #endif
 
+/**
+ * @defgroup convolutions Convolution Functions
+ * @brief Functions for performing convolution operations.
+ *
+ * @note Convolution APIs currently only support uniform input/output datatypes and tensor layouts.
+ */
+
 /*
- * @defgroup convolutions
  * @defgroup pooling
  * @defgroup handle
  * @defgroup layernorm
@@ -957,7 +963,7 @@ MIOPEN_EXPORT miopenStatus_t miopenTransformTensor(miopenHandle_t handle,
 // CLOSEOUT TENSOR DOXYGEN GROUP
 
 /** @addtogroup convolutions
- *  @note Testing Note functionality
+ *  
  *  @{
  */
 
