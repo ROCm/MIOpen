@@ -46,16 +46,20 @@ std::unordered_map<size_t, CacheData> DirectCkMgr::s_qun_fwd = {
 };
 
 std::unordered_map<size_t, CacheData> DirectCkMgr::s_jin_bwd = {
-    {0x20b319089592b37c, {0x20b319089592b37c, 0x473082db002e3652, 0x1}},
-    {0x25d4b080aea13376, {0x25d4b080aea13376, 0x473082db002e3652, 0x1}},
-    {0xb3c139e2635ef3a1, {0xb3c139e2635ef3a1, 0xa783d8df4049bc8e, 0x1}},
-    {0x8e3decf13e67cc3b, {0x8e3decf13e67cc3b, 0x986cef20b781a571, 0x1}},
-    {0x38971f660cb6ad37, {0x38971f660cb6ad37, 0x5b65e93e5f11971b, 0x1}},
-    {0x4c9bcaea4dd91d63, {0x4c9bcaea4dd91d63, 0x5b65e93e5f11971b, 0x1}},
-    {0xe4017519878aa942, {0xe4017519878aa942, 0x3739bad3a3a16ce0, 0x1}},
-    {0x048fdb43442ae17e, {0x048fdb43442ae17e, 0xaf6b0ec63cb6d4f6, 0x1}},
+    {0x22e622671bdb6c09, {0x22e622671bdb6c09, 0xc63a4d7d2c1ae55b, 0x1}},
     {0x41f5b2a76e864672, {0x41f5b2a76e864672, 0x923bc05ca98b2f39, 0x1}},
+    {0xe4017519878aa942, {0xe4017519878aa942, 0x3739bad3a3a16ce0, 0x1}},
     {0xcbb2b84def46d737, {0xcbb2b84def46d737, 0x923bc05ca98b2f39, 0x1}},
+    {0x8e3decf13e67cc3b, {0x8e3decf13e67cc3b, 0x986cef20b781a571, 0x1}},
+    {0xb3c139e2635ef3a1, {0xb3c139e2635ef3a1, 0xa783d8df4049bc8e, 0x1}},
+    {0x048fdb43442ae17e, {0x048fdb43442ae17e, 0xaf6b0ec63cb6d4f6, 0x1}},
+    {0x38971f660cb6ad37, {0x38971f660cb6ad37, 0x5b65e93e5f11971b, 0x1}},
+    {0x25d4b080aea13376, {0x25d4b080aea13376, 0x473082db002e3652, 0x1}},
+    {0x4c9bcaea4dd91d63, {0x4c9bcaea4dd91d63, 0x5b65e93e5f11971b, 0x1}},
+    {0x20b319089592b37c, {0x20b319089592b37c, 0x473082db002e3652, 0x1}},
+    {0x57d7d22c2a7d4e8a, {0x57d7d22c2a7d4e8a, 0x31e11a4016e48530, 0x1}},
+    {0xe1bf8dd31f895744, {0xe1bf8dd31f895744, 0xfa059fdad40b15b4, 0x1}},
+    {0x76b3bbe8d6e84721, {0x76b3bbe8d6e84721, 0xb02d7e1ce8e73e0a, 0x1}},
 };
 
 static bool IsEnvEnabled(const char* pEnv, bool defVal)
@@ -186,13 +190,17 @@ DirectCkMgr::~DirectCkMgr()
         FlushToCacheFile(s_jin_bwd, path_jin_bwd.c_str());
 
     // DEBUG LOG
-    std::cout <<"Name\t hitCount\t launchCount:" << std::endl;
-    if (launchCount[ST_QUN_WRW] != 0)
-        std::cout <<"qun wrw: " << hitCacheCount[ST_QUN_WRW] <<"\t "<< launchCount[ST_QUN_WRW] << std::endl;
-    if (launchCount[ST_QUN_FWD] != 0)
-        std::cout <<"qun fwd: " << hitCacheCount[ST_QUN_FWD] <<"\t "<< launchCount[ST_QUN_FWD] << std::endl;
-    if (launchCount[ST_JIN_BWD] != 0)
-        std::cout <<"jin bwd: " << hitCacheCount[ST_JIN_BWD] <<"\t "<< launchCount[ST_JIN_BWD] << std::endl;
+    if (enableLog)
+    {
+        std::cout <<"Name\t hitCount\t launchCount:" << std::endl;
+        if (launchCount[ST_QUN_WRW] != 0)
+            std::cout <<"qun wrw: " << hitCacheCount[ST_QUN_WRW] <<"\t "<< launchCount[ST_QUN_WRW] << std::endl;
+        if (launchCount[ST_QUN_FWD] != 0)
+            std::cout <<"qun fwd: " << hitCacheCount[ST_QUN_FWD] <<"\t "<< launchCount[ST_QUN_FWD] << std::endl;
+        if (launchCount[ST_JIN_BWD] != 0)
+            std::cout <<"jin bwd: " << hitCacheCount[ST_JIN_BWD] <<"\t "<< launchCount[ST_JIN_BWD] << std::endl;
+    }
+
 }
 
 void DirectCkMgr::ReadCacheFile(std::unordered_map<size_t, CacheData>& outputData, std::filesystem::path filePath)
