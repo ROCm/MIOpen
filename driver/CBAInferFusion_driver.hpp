@@ -52,6 +52,7 @@
 #include <memory>
 #include <numeric>
 #include <vector>
+#include <limits>
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -1358,18 +1359,27 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
 template <typename Tgpu, typename Tref>
 int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
 {
+    // Run the reference implementation on the CPU.
     RunForwardCPU();
 
+    // Use the original verification logic.
     double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
-
     int match = miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
+    
+    // --- CORRECTED LINE ---
+    // Calculate the RMS error. Pass the vectors directly, not with .GetVector().
+    const auto error = miopen::rms_range(out_host, out);
+
     if(match == 0)
     {
-        std::cout << "Forward Activation FAILED" << std::endl;
+        // On failure, print the FAILED message along with the calculated RMS error.
+        std::cout << "Forward Activation FAILED (Accuracy: " << error << ")" << std::endl;
         return EC_VerifyFwd;
     }
 
-    std::cout << "Forward Activation Verifies on CPU and GPU" << std::endl;
+    // On success, print the Verifies message along with the calculated RMS error.
+    std::cout << "Forward Activation Verifies on CPU and GPU (Accuracy: " << error << ")" << std::endl;
+
     return miopenStatusSuccess;
 }
 
