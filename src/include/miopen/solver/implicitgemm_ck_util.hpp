@@ -33,6 +33,7 @@
 #include <miopen/tensor_ops.hpp>
 #include <miopen/miopen_internal.h>
 #include <miopen/fusion/fusion_invoke_params.hpp>
+#include <iostream>
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
@@ -191,6 +192,7 @@ typename ConvPtrsType::iterator FindConvPtrByID(ConvPtrsType& conv_ptrs,
                                                 const std::string& kernel_id)
 {
     return std::find_if(conv_ptrs.begin(), conv_ptrs.end(), [&kernel_id](const auto& ptr) {
+        // std::cout << "conv_ptr=" << ptr->GetTypeString() << "  kernel_id=\"" << kernel_id << "\"\n";
         return ptr->GetTypeString() == kernel_id;
     });
 }
@@ -204,13 +206,17 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
     const auto conv_ptrs = DeviceOpType::GetInstances();
     assert(!conv_ptrs.empty());
 
+    // std::cout << "valid kernels for "
     std::vector<std::string> valid_kernels;
     valid_kernels.reserve(conv_ptrs.size());
     for(size_t idx = 0; idx < conv_ptrs.size(); ++idx)
     {
-        if(args.IsSupportedBy(conv_ptrs[idx]))
+        if(args.IsSupportedBy(conv_ptrs[idx])) {
+            std::cout << "valid kernel: " << conv_ptrs[idx]->GetTypeString() << "\n";
             valid_kernels.emplace_back(std::move(conv_ptrs[idx]->GetTypeString()));
-    }
+            }
+        }
+
     assert(!valid_kernels.empty());
     return valid_kernels;
 }
@@ -279,6 +285,7 @@ bool IsCKArgsSupported(const ProblemDescriptionType& problem, const std::string&
         }
         else
         {
+            // std::cout << "Checking kernel_id=" << kernel_id << "\n";
             auto ptr_iter = FindConvPtrByID(conv_ptrs, kernel_id);
             return (ptr_iter != conv_ptrs.end()) && CKArgsType{problem}.IsSupportedBy(*ptr_iter);
         }
@@ -1201,6 +1208,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                                     const ProblemDescriptionType& problem,
                                     const std::string& kernel_id)
 {
+    std::cout << "InitInvokerFactoryNHWC called for kernel_id: " << kernel_id << std::endl;
     auto conv_ptrs             = DeviceOpType::GetInstances();
     std::optional<int> split_k = std::nullopt;
     std::string id_string      = kernel_id;

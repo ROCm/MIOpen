@@ -37,6 +37,7 @@
 #include <miopen/search_options.hpp>
 #include <miopen/solver_id.hpp>
 #include <miopen/solver.hpp>
+#include <iostream>
 
 #include <limits>
 #include <type_traits>
@@ -132,6 +133,8 @@ auto FindSolutionImpl(rank<1>,
             {
                 auto c = s.Search(context, problem, invoke_ctx);
                 db().Update(problem, s.SolverDbId(), c);
+
+                std::cout << " c: " << c << std::endl;
                 return s.GetSolution(context, problem, c);
             }
             catch(const miopen::Exception& ex)
