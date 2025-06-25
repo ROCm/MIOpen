@@ -3882,9 +3882,10 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t arg
                                                         const void* beta,
                                                         const void* bias);
 
-/*!< Deprecated fusion plan execution without workspace, ToBe Removed */
 /*! @brief Executes the fusion plan
  *
+ *  @deprecated This function is deprecated and may be removed in a future release.
+ *             Use miopenExecuteFusionPlan_v2 instead.
  *
  * @param handle           MIOpen handle (input)
  * @param fusePlanDesc     fused plan descriptor (input)
@@ -3920,14 +3921,14 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenExecuteFusionPlan_v2(const miopenHandle_t handle,
-                                     const miopenFusionPlanDescriptor_t fusePlanDesc,
-                                     const miopenTensorDescriptor_t inputDesc,
-                                     const void* input,
-                                     const miopenTensorDescriptor_t outputDesc,
-                                     void* output,
-                                     miopenOperatorArgs_t args,
-                                     void* workspace,
-                                     size_t workspaceSize);
+                           const miopenFusionPlanDescriptor_t fusePlanDesc,
+                           const miopenTensorDescriptor_t inputDesc,
+                           const void* input,
+                           const miopenTensorDescriptor_t outputDesc,
+                           void* output,
+                           miopenOperatorArgs_t args,
+                           void* workspace,
+                           size_t workspaceSize);
 
 /*! @brief Prepares and executes the Convlution+Bias+Activation Fusion.
  *
