@@ -430,14 +430,12 @@ endfunction()
 file(GLOB TEST_SOURCES *.cpp)
 
 set(LONG_TESTS
-    test_dropout
     test_conv2d
     test_conv2d_find2
     test_conv3d
     test_conv3d_find2
     test_conv_group
     test_soft_max
-    test_lrn_test
     test_conv_for_implicit_gemm
     test_immed_conv3d
     test_conv3d_extra
