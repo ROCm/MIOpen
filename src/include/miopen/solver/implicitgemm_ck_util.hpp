@@ -212,7 +212,7 @@ std::vector<std::string> FillValidKernelsIDs(const ProblemDescriptionType& probl
     for(size_t idx = 0; idx < conv_ptrs.size(); ++idx)
     {
         if(args.IsSupportedBy(conv_ptrs[idx])) {
-            std::cout << "valid kernel: " << conv_ptrs[idx]->GetTypeString() << "\n";
+            // std::cout << "valid kernel: " << conv_ptrs[idx]->GetTypeString() << "\n";
             valid_kernels.emplace_back(std::move(conv_ptrs[idx]->GetTypeString()));
             }
         }
