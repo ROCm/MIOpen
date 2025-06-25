@@ -58,6 +58,55 @@ using WeiDataType = F16;
 using OutDataType = F16;
 using AccDataType = F32;
 
+// Hash combining utility
+template <typename T>
+inline void hash_combine(std::size_t& seed, const T& val) {
+    seed ^= std::hash<T>{}(val) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+}
+
+// Hash function for arrays
+template <typename T, ck::index_t N>
+std::size_t hash_array(const ck::Array<T, N>& arr) {
+    std::size_t seed = 0;
+    for (const auto& elem : arr) {
+        hash_combine(seed, elem);
+    }
+    return seed;
+}
+
+size_t GetStringHash(std::string str)
+{
+    std::hash<std::string> hasher;
+    size_t hashValue = hasher(str);
+
+    return hashValue;
+}
+
+struct CacheData
+{
+    size_t hashcode;
+    size_t kernelhash;
+    uint   split_k;
+};
+
+static std::unordered_map<size_t, CacheData> wrw_cache =
+{
+    {0x1d8e031b28fe3461, {0x1d8e031b28fe3461, 0x8ada6ba6c0a8262f, 0x20}},
+    {0x0e92b755dc1549cc, {0x0e92b755dc1549cc, 0x9edc399f25f4e3cf, 0x1}},
+    {0x37896c980651dd6a, {0x37896c980651dd6a, 0x3b6498916e34a84c, 0x4}},
+    {0x25d1a9f7bf77cdb1, {0x25d1a9f7bf77cdb1, 0x9edc399f25f4e3cf, 0x1}},
+    {0x2dcf0679e65a2176, {0x2dcf0679e65a2176, 0xb2b47d69d3efff96, 0x8}},
+    {0x7cda3462205873e9, {0x7cda3462205873e9, 0x8caaa26caf0cf637, 0x4}},
+    {0x4b30467a1ed12e94, {0x4b30467a1ed12e94, 0x634867055bc5ccb3, 0x10}},
+    {0xe51eab72929667c7, {0xe51eab72929667c7, 0x7cdccadfae7e4912, 0x20}},
+    {0x862a553bc1b6135f, {0x862a553bc1b6135f, 0x7cdccadfae7e4912, 0x20}},
+    {0xc6075c461b1f4387, {0xc6075c461b1f4387, 0x18c034c0dd790bc9, 0x1}},
+    {0xfcaf93b538f3b837, {0xfcaf93b538f3b837, 0x55335f15571bd2d2, 0x1}},
+    {0xce0513f63f76d7e2, {0xce0513f63f76d7e2, 0xb62b34a2c839689b, 0x1}},
+    {0x6de0f5c2e31130ad, {0x6de0f5c2e31130ad, 0x6b529345f00e682f, 0x1}},
+    {0x7fd11c3a9a196bdb, {0x7fd11c3a9a196bdb, 0xd8cef6f43ec57670, 0x20}},
+};
+
 struct PerfArgs
 {
     ck::index_t block_size;
@@ -147,6 +196,35 @@ static const std::vector<PerfArgs> perf_arg = {{256,  28,  28,   5,   1,   1,   
                                                {128,  28,  28,   3,   1,   1,   2,   2,   1,   1,   4,   1,   4,   2,   4,   1,   false},
                                                {256,  28,  28,   3,   1,   1,   2,   2,   1,   1,   4,   1,   4,   2,   4,   1,   false}};
 
+static std::string GetTypeString(const PerfArgs& arg)
+{
+    auto str = std::stringstream();
+
+    // clang-format off
+    str << "DeviceGroupedConvBwdWeightDlV4<"
+        << 2 << ", "   // NDimSpatial
+        << arg.block_size << ", "
+        << "GNHWC" << ", "
+        << "GKYXC" << ", "
+        << "GNHWK" << ", "
+        << "BlockTileSize<" << arg.tile_h << ", " << arg.tile_w << ">, "
+        << "FilterSize<" << arg.filter_size << ","<< arg.filter_size << ">, "
+        << "Dilation<" << arg.dilation_h << ", " << arg.dilation_w << ">, "
+        << "Stride<" << arg.stride_h << ", " << arg.stride_w<< ">, "
+        << "Pad<" << arg.pad_h << ", " << arg.pad_w<< ">, "
+        << "NBatch: " << arg.n_batch << ", "
+        << "NumWavePerTile: " << arg.num_wave_per_tile << ", "
+        << "InScalarPerVector: " << arg.in_scalar_per_vector << ", "
+        << "OutScalarPerVector: " << arg.out_scalar_per_vector << ", "
+        << "DstScalarPerVector: " << arg.dst_scalar_per_vector << ", "
+        << "RequirePadding: " << arg.require_padding << ", "
+        << "WSplit: " << arg.w_split << ">"
+        << std::endl;
+    // clang-format on
+
+    return str.str();
+}
+
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -169,15 +247,28 @@ struct CKArgs
         fy      = ProblemInterpreter::GetFilterHeightY(problem);
         fx      = ProblemInterpreter::GetFilterWidthX(problem);
         g       = ProblemInterpreter::GetGroupCountG(problem);
+        di      = ProblemInterpreter::GetInputDepthDi(problem);
+        dout    = ProblemInterpreter::GetOutputDepthDo(problem);
+        z       = ProblemInterpreter::GetFilterDepthZ(problem);
         c_per_g = c / g;
         k_per_g = k / g;
 
-        in_lengths  = {g,                           n,                 c_per_g, hi,           wi     };
-        in_strides  = {n * hi * wi * c_per_g,       hi * wi * c_per_g, 1,       wi * c_per_g, c_per_g};
-        out_lengths = {g,                           n,                 k_per_g, ho,           wo     };
-        out_strides = {n * ho * wo * k_per_g,       ho * wo * k_per_g, 1,       wo * k_per_g, k_per_g};
-        wei_lengths = {g,                           k_per_g,           c_per_g, fy,           fx     };
-        wei_strides = {k_per_g * fy * fx * c_per_g, fy * fx * c_per_g, 1,       fx * c_per_g, c_per_g};
+        // in_lengths  = {g,                           n,                 c_per_g, hi,           wi     };
+        // in_strides  = {n * hi * wi * c_per_g,       hi * wi * c_per_g, 1,       wi * c_per_g, c_per_g};
+        // out_lengths = {g,                           n,                 k_per_g, ho,           wo     };
+        // out_strides = {n * ho * wo * k_per_g,       ho * wo * k_per_g, 1,       wo * k_per_g, k_per_g};
+        // wei_lengths = {g,                           k_per_g,           c_per_g, fy,           fx     };
+        // wei_strides = {k_per_g * fy * fx * c_per_g, fy * fx * c_per_g, 1,       fx * c_per_g, c_per_g};
+
+        in_lengths  = {g,                 n,                     c_per_g, hi,           wi     };
+        in_strides  = {hi * wi * c_per_g, g * hi * wi * c_per_g, 1,       wi * c_per_g, c_per_g};
+        out_lengths = {g,                 n,                     k_per_g, ho,           wo     };
+        out_strides = {ho * wo * k_per_g, g * ho * wo * k_per_g, 1,       wo * k_per_g, k_per_g};
+        wei_lengths = {g,                 k_per_g,               c_per_g, fy,           fx     };
+        wei_strides = {fy * fx * c_per_g, g * fy * fx * c_per_g, 1,       fx * c_per_g, c_per_g};
+
+        bias_lengths = {g, 1, k_per_g, 1, 1};
+        bias_strides = {k_per_g, 0, 1, 0, 0};
 
         padding_left  = {ply, plx};
         padding_right = {pry, prx};
@@ -185,28 +276,28 @@ struct CKArgs
         dilation      = {dy, dx};
     }
 
-    // size_t GetParamHash() const
-    // {
-    //     size_t seed = 0;
-    //     // Combine hashes of each parameter  
-    //     hash_combine(seed, hash_array(input_lengths));
-    //     hash_combine(seed, hash_array(in_strides));
-    //     hash_combine(seed, hash_array(out_lens));
-    //     hash_combine(seed, hash_array(out_strides));
-    //     hash_combine(seed, hash_array(wei_lens));
-    //     hash_combine(seed, hash_array(wei_strides));
-    //     hash_combine(seed, hash_array(bias_lens));
-    //     hash_combine(seed, hash_array(bias_strides));
-    //     hash_combine(seed, hash_array(filter_stride));
-    //     hash_combine(seed, hash_array(filter_dilation));
-    //     hash_combine(seed, hash_array(lPadding));
-    //     hash_combine(seed, hash_array(rPadding));
+    size_t GetParamHash() const
+    {
+        size_t seed = 0;
+        // Combine hashes of each parameter
+        hash_combine(seed, hash_array(in_lengths));
+        hash_combine(seed, hash_array(in_strides));
+        hash_combine(seed, hash_array(out_lengths));
+        hash_combine(seed, hash_array(out_strides));
+        hash_combine(seed, hash_array(wei_lengths));
+        hash_combine(seed, hash_array(wei_strides));
+        hash_combine(seed, hash_array(bias_lengths));
+        hash_combine(seed, hash_array(bias_strides));
+        hash_combine(seed, hash_array(stride));
+        hash_combine(seed, hash_array(dilation));
+        hash_combine(seed, hash_array(padding_left));
+        hash_combine(seed, hash_array(padding_right));
 
-    //     ck::Array<ck::index_t, 5> others = {C1, K1, Di, Do, Z };
-    //     hash_combine(seed, hash_array(others));
+        ck::Array<ck::index_t, 5> others = {c, k, di, dout, z};
+        hash_combine(seed, hash_array(others));
 
-    //     return seed;
-    // }
+        return seed;
+    }
 
     CKArgs(const CKArgs&) = default;
     CKArgs(CKArgs&&)      = default;
@@ -243,6 +334,9 @@ struct CKArgs
         int fy;
         int fx;
         int g;
+        int di;
+        int dout;
+        int z;
         int c_per_g;
         int k_per_g;
 
@@ -252,6 +346,9 @@ struct CKArgs
         ck::Array<ck::index_t, 5> out_strides;
         ck::Array<ck::index_t, 5> wei_lengths;
         ck::Array<ck::index_t, 5> wei_strides;
+
+        ck::Array<ck::index_t, 5> bias_lengths;
+        ck::Array<ck::index_t, 5> bias_strides;
 
         ck::Array<ck::index_t, 2> padding_left;
         ck::Array<ck::index_t, 2> padding_right;
@@ -481,14 +578,39 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
         // TODO: choose the best split_k !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         uint split_k = 1;
 
-        for (uint i = 0; i < perf_arg.size(); i++)
+        const size_t argsHash = ck_args.GetParamHash();
+        const auto it = wrw_cache.find(argsHash);
+
+        if (it != wrw_cache.end())
         {
-            if (IsSupportedArgument(perf_arg[i], ck_args, split_k))
+            const CacheData cd = it->second;
+
+            split_k = cd.split_k;
+
+            std::cout << "Find cached solution " << std::hex << std::setw(16) << std::setfill('0') << cd.hashcode
+                << ", kernal hash:" << std::hex << std::setw(16) << std::setfill('0') << cd.kernelhash
+                <<", split_k:"<< split_k << std::endl;;
+
+            for (uint i = 0; i < perf_arg.size(); i++)
             {
-                best_perf_arg_index = i;
-                std::cout << "best_perf_arg_index = " << best_perf_arg_index << std::endl;
-                std::cout << "split_k = " << split_k << std::endl;
-                break;
+                if (IsSupportedArgument(perf_arg[i], ck_args, split_k) && (GetStringHash(GetTypeString(perf_arg[i])) == cd.kernelhash))
+                {
+                    best_perf_arg_index = i;
+                    std::cout << "Find best cached kernel!!!" << std::endl;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            for (uint i = 0; i < perf_arg.size(); i++)
+            {
+                if (IsSupportedArgument(perf_arg[i], ck_args, split_k))
+                {
+                    best_perf_arg_index = i;
+                    std::cout << "best_perf_arg_index = " << best_perf_arg_index << ", split_k = " << split_k << std::endl;
+                    break;
+                }
             }
         }
 
