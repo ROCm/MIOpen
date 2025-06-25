@@ -214,11 +214,8 @@ static inline std::size_t GetExtraPaddingSize(uint32_t /* batch */,
     return static_cast<std::size_t>(padded_h) * padded_w - static_cast<std::size_t>(height) * width;
 }
 
-static inline BatchedTransposeParam HeuristicGet(const ExecutionContext& ctx,
-                                                 std::size_t data_size,
-                                                 uint32_t batch,
-                                                 uint32_t height,
-                                                 uint32_t width)
+static inline BatchedTransposeParam
+HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t width)
 {
     /*
      * Iterate from big tile size to small tile size, and try match ediv first
@@ -335,7 +332,7 @@ BatchedTransposeSolution::BatchedTransposeSolution(const ExecutionContext& ctx,
         MIOPEN_THROW("These data type are not supported");
     num_cu                 = ctx.GetStream().GetMaxComputeUnits();
     std::size_t data_size  = miopen::GetTypeSize(data_type);
-    kernel_param_heuristic = batched_transpose::HeuristicGet(ctx, data_size, batch, height, width);
+    kernel_param_heuristic = batched_transpose::HeuristicGet(data_size, batch, height, width);
 }
 
 solver::KernelInfo BatchedTransposeSolution::GetKernelInfo() const
