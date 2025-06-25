@@ -73,12 +73,6 @@ miopenStatus_t ConvBiasActivFusion(const Handle& handle,
                                    const TensorDescriptor& yDesc,
                                    Data_t y)
 {
-    // assert(workspace == nullptr);
-    // assert(workspaceSizeInBytes == 0);
-    // std::ignore = workspace;
-    // std::ignore = workspaceSizeInBytes;
-    /// \todo: add workspace support in fusion
-
     /*
     if(alpha1 != nullptr)
     {

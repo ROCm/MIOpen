@@ -154,19 +154,6 @@ struct CKArgs
         C  = C1 / G; // Number of input Channel per group
         K  = K1 / G; // Number of output Channel per group
 
-        if(problem.IsLayoutNHWC())
-        {
-            auto miopen_in_strides  = problem.GetIn().GetStrides();
-            auto miopen_out_strides = problem.GetOut().GetStrides();
-            auto miopen_wei_strides = problem.GetWeights().GetStrides();
-            miopen_in_strides.insert(miopen_in_strides.begin(), C);
-            miopen_out_strides.insert(miopen_out_strides.begin(), K);
-            miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
-            std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-            std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
-            std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
-        }
-
         if(problem.Is3d())
         {
             Di = ProblemInterpreter::GetInputDepthDi(problem);
@@ -183,12 +170,9 @@ struct CKArgs
             out_lens = {G, N, K, Do, Ho, Wo};
             wei_lens = {G, K, C, Z, Y, X};
 
-            if(!problem.IsLayoutNHWC())
-            {
-                in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
-                out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
-                wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
-            }
+            in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+            out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+            wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                              ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
@@ -216,12 +200,9 @@ struct CKArgs
             out_lens = {G, N, K, Ho, Wo};
             wei_lens = {G, K, C, Y, X};
 
-            if(!problem.IsLayoutNHWC())
-            {
-                in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-                out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
-                wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-            }
+            in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
+            out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
+            wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                              ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
