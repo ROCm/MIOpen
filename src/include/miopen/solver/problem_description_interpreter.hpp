@@ -155,11 +155,6 @@ struct ProblemInterpreter
         return problem.IsDirectionForward() ? problem.GetInDataType() : problem.GetOutDataType();
     }
 
-    static auto GetWeightsDataType(const miopen::conv::ProblemDescription& problem)
-    {
-        return problem.GetWeightsDataType();
-    }
-
     static int GetFilterDepthZ(const miopen::conv::ProblemDescription& problem)
     {
         return problem.GetWeightsDepth();
