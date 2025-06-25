@@ -3918,14 +3918,14 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
  */
 MIOPEN_EXPORT miopenStatus_t
 miopenExecuteFusionPlanWithWorkspace(const miopenHandle_t handle,
-                        const miopenFusionPlanDescriptor_t fusePlanDesc,
-                        const miopenTensorDescriptor_t inputDesc,
-                        const void* input,
-                        const miopenTensorDescriptor_t outputDesc,
-                        void* output,
-                        miopenOperatorArgs_t args,
-                        void* workspace,
-                        size_t workspaceSize);
+                                     const miopenFusionPlanDescriptor_t fusePlanDesc,
+                                     const miopenTensorDescriptor_t inputDesc,
+                                     const void* input,
+                                     const miopenTensorDescriptor_t outputDesc,
+                                     void* output,
+                                     miopenOperatorArgs_t args,
+                                     void* workspace,
+                                     size_t workspaceSize);
 
 /*! @brief Prepares and executes the Convlution+Bias+Activation Fusion.
  *
