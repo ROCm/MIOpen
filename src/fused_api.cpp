@@ -426,7 +426,7 @@ extern "C" miopenStatus_t miopenSetOpArgsBatchNormBackward(miopenOperatorArgs_t 
 //---
 
 extern "C" miopenStatus_t
-miopenExecuteFusionPlanWithWorkspace(const miopenHandle_t handle,
+miopenExecuteFusionPlan_v2(const miopenHandle_t handle,
                                      const miopenFusionPlanDescriptor_t fusePlanDesc,
                                      const miopenTensorDescriptor_t inputDesc,
                                      const void* input,
@@ -462,8 +462,7 @@ extern "C" miopenStatus_t miopenExecuteFusionPlan(const miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(handle, fusePlanDesc, inputDesc, input, outputDesc, output, args);
 
-    // call the workspace‐based entry with a null workspace
-    return miopenExecuteFusionPlanWithWorkspace(handle,
+    return miopenExecuteFusionPlan_v2(handle,
                                                 fusePlanDesc,
                                                 inputDesc,
                                                 input,

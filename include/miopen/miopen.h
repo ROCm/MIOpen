@@ -3881,6 +3881,8 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t arg
                                                         const void* alpha,
                                                         const void* beta,
                                                         const void* bias);
+
+/*!< Deprecated fusion plan execution without workspace, ToBe Removed */
 /*! @brief Executes the fusion plan
  *
  *
@@ -3917,7 +3919,7 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
  * @return           miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
-miopenExecuteFusionPlanWithWorkspace(const miopenHandle_t handle,
+miopenExecuteFusionPlan_v2(const miopenHandle_t handle,
                                      const miopenFusionPlanDescriptor_t fusePlanDesc,
                                      const miopenTensorDescriptor_t inputDesc,
                                      const void* input,

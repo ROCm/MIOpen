@@ -936,7 +936,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlanWithWorkspace(GetHandle(),
+        miopenExecuteFusionPlan_v2(GetHandle(),
                                              fusePlanDesc,
                                              inputTensor,
                                              in_dev->GetMem(),
@@ -1034,7 +1034,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlanWithWorkspace(GetHandle(),
+        miopenExecuteFusionPlan_v2(GetHandle(),
                                              fusePlanDesc,
                                              inputTensor,
                                              in_dev->GetMem(),
@@ -1100,7 +1100,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlanWithWorkspace(GetHandle(),
+        miopenExecuteFusionPlan_v2(GetHandle(),
                                              fusePlanDesc,
                                              inputTensor,
                                              in_dev->GetMem(),
@@ -1225,7 +1225,7 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlanWithWorkspace(GetHandle(),
+        miopenExecuteFusionPlan_v2(GetHandle(),
                                              fusePlanDesc,
                                              inputTensor,
                                              in_dev->GetMem(),
