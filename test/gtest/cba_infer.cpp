@@ -32,6 +32,7 @@
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
 #include <miopen/conv_algo_name.hpp>
+#include <half/half.hpp>
 
 #include "tensor_util.hpp"
 #include "get_handle.hpp"
@@ -39,6 +40,8 @@
 #include "cba.hpp"
 
 namespace cba_infer {
+
+using float16 = half_float::half;
 
 struct GPU_ConvBiasActivInfer_FP32 : ConvBiasActivInferTest<float>
 {
@@ -52,13 +55,23 @@ struct GPU_ConvBiasActivInfer_FP16 : ConvBiasActivInferTest<half_float::half>
 {
 };
 
-struct GPU_ConvGrpBiasActivInfer_BFP16 : ConvBiasActivInferTest<bfloat16, GroupConvTestConfig<2u>>
+template <typename T>
+struct GPU_ConvGrpBiasActivInfer : ConvBiasActivInferTest<T, GroupConvTestConfig<2u>>
 {
 };
 
-struct GPU_ConvGrpBiasActivInfer3D_BFP16 : ConvBiasActivInferTest<bfloat16, GroupConvTestConfig<3u>>
+template <typename T>
+struct GPU_ConvGrpBiasActivInfer3D : ConvBiasActivInferTest<T, GroupConvTestConfig<3u>>
 {
 };
+
+using GPU_ConvGrpBiasActivInfer_BFP16 = GPU_ConvGrpBiasActivInfer<bfloat16>;
+using GPU_ConvGrpBiasActivInfer_FP16  = GPU_ConvGrpBiasActivInfer<float16>;
+using GPU_ConvGrpBiasActivInfer_FP32  = GPU_ConvGrpBiasActivInfer<float>;
+
+using GPU_ConvGrpBiasActivInfer3D_BFP16 = GPU_ConvGrpBiasActivInfer3D<bfloat16>;
+using GPU_ConvGrpBiasActivInfer3D_FP16  = GPU_ConvGrpBiasActivInfer3D<float16>;
+using GPU_ConvGrpBiasActivInfer3D_FP32  = GPU_ConvGrpBiasActivInfer3D<float>;
 
 template <typename Solver, typename TestCase>
 void RunSolver(miopen::FusionPlanDescriptor& fusePlanDesc,
@@ -228,31 +241,26 @@ TEST_P(GPU_ConvBiasActivInfer_FP16, ConvCKIgemmFwdBiasActivFused)
                                                                            wspace);
 }
 
-TEST_P(GPU_ConvGrpBiasActivInfer_BFP16, ConvCKIgemmGrpFwdBiasActivFused)
-{
-    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdBiasActivFused>(fusePlanDesc,
-                                                                              params,
-                                                                              conv_config,
-                                                                              test_skipped,
-                                                                              input.desc,
-                                                                              in_dev.get(),
-                                                                              output.desc,
-                                                                              out_dev.get(),
-                                                                              wspace);
-}
+#define DEFINE_GRP_CONV_BIAS_ACTIV_TEST(conv_bias_active_fixture)                                \
+    TEST_P(conv_bias_active_fixture, ConvCKIgemmGrpFwdBiasActivFused)                            \
+    {                                                                                            \
+        RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdBiasActivFused>(fusePlanDesc,  \
+                                                                                  params,        \
+                                                                                  conv_config,   \
+                                                                                  test_skipped,  \
+                                                                                  input.desc,    \
+                                                                                  in_dev.get(),  \
+                                                                                  output.desc,   \
+                                                                                  out_dev.get(), \
+                                                                                  wspace);       \
+    }
 
-TEST_P(GPU_ConvGrpBiasActivInfer3D_BFP16, ConvCKIgemmGrpFwdBiasActiv3DFused)
-{
-    RunTunableSolver<miopen::solver::fusion::ConvCKIgemmGrpFwdBiasActivFused>(fusePlanDesc,
-                                                                              params,
-                                                                              conv_config,
-                                                                              test_skipped,
-                                                                              input.desc,
-                                                                              in_dev.get(),
-                                                                              output.desc,
-                                                                              out_dev.get(),
-                                                                              wspace);
-}
+DEFINE_GRP_CONV_BIAS_ACTIV_TEST(GPU_ConvGrpBiasActivInfer_BFP16)
+DEFINE_GRP_CONV_BIAS_ACTIV_TEST(GPU_ConvGrpBiasActivInfer3D_BFP16)
+DEFINE_GRP_CONV_BIAS_ACTIV_TEST(GPU_ConvGrpBiasActivInfer_FP16)
+DEFINE_GRP_CONV_BIAS_ACTIV_TEST(GPU_ConvGrpBiasActivInfer3D_FP16)
+DEFINE_GRP_CONV_BIAS_ACTIV_TEST(GPU_ConvGrpBiasActivInfer_FP32)
+DEFINE_GRP_CONV_BIAS_ACTIV_TEST(GPU_ConvGrpBiasActivInfer3D_FP32)
 
 #if MIOPEN_BACKEND_HIP
 
@@ -303,44 +311,80 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::Values(0.75f),
                                           testing::Values(0.5f)));
 
-INSTANTIATE_TEST_SUITE_P(
-    Smoke,
+#define INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_SMOKE(test_fixture, configs, tensor_types)     \
+    INSTANTIATE_TEST_SUITE_P(                                                                \
+        Smoke,                                                                               \
+        test_fixture,                                                                        \
+        testing::Combine(testing::Values(miopenActivationRELU, miopenActivationCLIPPEDRELU), \
+                         testing::ValuesIn(configs),                                         \
+                         tensor_types,                                                       \
+                         testing::Values(0.5f),                                              \
+                         testing::Values(1.0f),                                              \
+                         testing::Values(0.5f)));
+
+#define INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_FULL(test_fixture, configs, tensor_types) \
+    INSTANTIATE_TEST_SUITE_P(Full,                                                      \
+                             test_fixture,                                              \
+                             testing::Combine(testing::Values(miopenActivationCLAMP),   \
+                                              testing::ValuesIn(configs),               \
+                                              tensor_types,                             \
+                                              testing::Values(0.5f),                    \
+                                              testing::Values(1.0f),                    \
+                                              testing::Values(0.5f)));
+
+// BFP16 tests
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_SMOKE(
     GPU_ConvGrpBiasActivInfer_BFP16,
-    testing::Combine(
-        testing::Values(miopenActivationRELU, miopenActivationCLIPPEDRELU),
-        testing::ValuesIn(GroupConvTestConfig<2u>::GetSmokeConfigs<Direction::Forward>()),
-        testing::ValuesIn({miopenTensorNHWC /*, miopenTensorNCHW*/}),
-        testing::Values(0.5f),
-        testing::Values(1.0f),
-        testing::Values(0.5f)));
+    GroupConvTestConfig<2u>::GetSmokeConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/))
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_SMOKE(
+    GPU_ConvGrpBiasActivInfer3D_BFP16,
+    GroupConvTestConfig<3u>::GetSmokeConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/))
 
-INSTANTIATE_TEST_SUITE_P(
-    Full,
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_FULL(
     GPU_ConvGrpBiasActivInfer_BFP16,
-    testing::Combine(testing::Values(miopenActivationCLAMP),
-                     testing::ValuesIn(GroupConvTestConfig<2u>::GetConfigs<Direction::Forward>()),
-                     testing::ValuesIn({miopenTensorNHWC /*, miopenTensorNCHW*/}),
-                     testing::Values(0.5f),
-                     testing::Values(1.0f),
-                     testing::Values(0.5f)));
-
-INSTANTIATE_TEST_SUITE_P(
-    Smoke,
+    GroupConvTestConfig<2u>::GetConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/))
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_FULL(
     GPU_ConvGrpBiasActivInfer3D_BFP16,
-    testing::Combine(
-        testing::Values(miopenActivationRELU, miopenActivationCLIPPEDRELU),
-        testing::ValuesIn(GroupConvTestConfig<3u>::GetSmokeConfigs<Direction::Forward>()),
-        testing::ValuesIn({miopenTensorNDHWC /*, miopenTensorNCDHW*/}),
-        testing::Values(0.5f),
-        testing::Values(1.0f),
-        testing::Values(0.5f)));
+    GroupConvTestConfig<3u>::GetConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/))
 
-INSTANTIATE_TEST_SUITE_P(
-    Full,
-    GPU_ConvGrpBiasActivInfer3D_BFP16,
-    testing::Combine(testing::Values(miopenActivationCLAMP),
-                     testing::ValuesIn(GroupConvTestConfig<3u>::GetConfigs<Direction::Forward>()),
-                     testing::ValuesIn({miopenTensorNDHWC /*, miopenTensorNCDHW*/}),
-                     testing::Values(0.5f),
-                     testing::Values(1.0f),
-                     testing::Values(0.5f)));
+// FP16 tests
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_SMOKE(
+    GPU_ConvGrpBiasActivInfer_FP16,
+    GroupConvTestConfig<2u>::GetSmokeConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/))
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_SMOKE(
+    GPU_ConvGrpBiasActivInfer3D_FP16,
+    GroupConvTestConfig<3u>::GetSmokeConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/))
+
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_FULL(
+    GPU_ConvGrpBiasActivInfer_FP16,
+    GroupConvTestConfig<2u>::GetConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/))
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_FULL(
+    GPU_ConvGrpBiasActivInfer3D_FP16,
+    GroupConvTestConfig<3u>::GetConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/))
+
+// FP32 tests
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_SMOKE(
+    GPU_ConvGrpBiasActivInfer_FP32,
+    GroupConvTestConfig<2u>::GetSmokeConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/))
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_SMOKE(
+    GPU_ConvGrpBiasActivInfer3D_FP32,
+    GroupConvTestConfig<3u>::GetSmokeConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/))
+
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_FULL(
+    GPU_ConvGrpBiasActivInfer_FP32,
+    GroupConvTestConfig<2u>::GetConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/))
+INSTANTIATE_GRP_CONV_BIAS_ACTIV_SUITE_FULL(
+    GPU_ConvGrpBiasActivInfer3D_FP32,
+    GroupConvTestConfig<3u>::GetConfigs<Direction::Forward>(),
+    testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/))
