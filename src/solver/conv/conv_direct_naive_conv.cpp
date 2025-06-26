@@ -30,7 +30,7 @@
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #include <miopen/datatype.hpp>
 #include <ostream>
 

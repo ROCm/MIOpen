@@ -174,7 +174,7 @@ bool ConvMlirIgemmFwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!mlir::IsMlirSupportedHardware(ctx))
         return false;
     if(problem.IsTensorsCasted() || problem.IsFp8() || problem.IsBfp8())
         return false;

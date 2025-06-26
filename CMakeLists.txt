@@ -130,7 +130,7 @@ if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.4.0)
+rocm_setup_version(VERSION 3.4.1)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -344,7 +344,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
             endif()
             miopen_add_dependency(composable_kernel HASH ${COMPOSABLE_KERNEL_HASH} options NO_LOCAL)
         else()
-            find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_conv_operations)
+            find_package(composable_kernel 1.0.0 COMPONENTS device_conv_operations)
         endif()
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
@@ -500,9 +500,6 @@ find_path(HALF_INCLUDE_DIR half/half.hpp)
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
-
-# FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
-option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" OFF)
 
 if(WIN32)
     set( DATA_INSTALL_DIR bin )

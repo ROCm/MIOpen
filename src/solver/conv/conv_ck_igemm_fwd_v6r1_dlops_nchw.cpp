@@ -23,16 +23,15 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include <miopen/conv/invokers/impl_gemm.hpp>
+
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/solver/ck_utility_common.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
-#include <cstddef>
+#include <miopen/solver/implicitgemm_legacy_ck_util.hpp>
+#include <miopen/solver/legacy_ck_common.hpp>
 
+#include "../composable_kernel/host/solver/include/solver_common.hpp"
 #include "../composable_kernel/host/solver/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
 
 #define WORKAROUND_SWDEV_411729 1
@@ -41,20 +40,20 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
 
 namespace miopen {
 namespace solver {
-namespace ck_utility {
+namespace conv {
 
-static inline auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
+using ProblemDescription = miopen::conv::ProblemDescription;
+
+namespace {
+
+auto get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(
     const conv::PerformanceConvCkIgemmFwdV6r1DlopsNchw& config)
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetTunableList()[config
                                                                                .ck_tunable_list_id];
 }
 
-} // namespace ck_utility
-
-namespace conv {
-
-using ProblemDescription = miopen::conv::ProblemDescription;
+} // namespace
 
 bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::SetNextValue(const ProblemDescription&)
 {
@@ -77,14 +76,14 @@ bool PerformanceConvCkIgemmFwdV6r1DlopsNchw::IsValid(const ProblemDescription& p
 
     std::tie(compile_param, found) =
         ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::CalculateCompileParameterBasedOnTunable(
-            ck_utility::get_ck_convolution_problem_descriptor(problem),
-            ck_utility::get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(*this));
+            legacy_ck::get_ck_convolution_problem_descriptor(problem),
+            get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(*this));
 
     if(!found)
         return false;
 
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsValidCompileParameter(
-        ck_utility::get_ck_convolution_problem_descriptor(problem), compile_param);
+        legacy_ck::get_ck_convolution_problem_descriptor(problem), compile_param);
 }
 
 bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
@@ -102,7 +101,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!ctx.use_hip_kernels)
         return false;
-    if(!ck_utility::is_ck_supported_hardware(ctx.GetStream()))
+    if(!legacy_ck::is_ck_supported_hardware(ctx.GetStream()))
         return false;
     if(!problem.IsLayoutDefault())
         return false;
@@ -123,11 +122,11 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
     if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
        problem.IsGfx90aFp16altRequired())
         return false;
-    if(!IsIndexRangeLargeEnough(problem))
+    if(!legacy_ck::IsIndexRangeLargeEnough(problem))
         return false;
 
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::IsApplicable(
-        ck_utility::get_ck_convolution_problem_descriptor(problem));
+        legacy_ck::get_ck_convolution_problem_descriptor(problem));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
@@ -163,14 +162,13 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ExecutionContext& ctx,
     ConvSolution sol;
     KernelInfo kernel0_info, kernel1_info;
 
-    const auto ck_conv_problem_desc = ck_utility::get_ck_convolution_problem_descriptor(problem);
+    const auto ck_conv_problem_desc = legacy_ck::get_ck_convolution_problem_descriptor(problem);
 
     auto ck_compile_param = ck::driver::CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw{};
 
     std::tie(ck_compile_param, std::ignore) =
         ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::CalculateCompileParameterBasedOnTunable(
-            ck_conv_problem_desc,
-            ck_utility::get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config));
+            ck_conv_problem_desc, get_ck_tunable_conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw(config));
 
     // kernel0: prepare
     {
@@ -184,7 +182,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ExecutionContext& ctx,
         kernel0_info.g_wk = {1, 1, 1};
 
         kernel0_info.comp_options = ck_compile_param.GetCompileParameterString() +
-                                    ck_utility::get_ck_common_compiler_flag(ctx.GetStream());
+                                    legacy_ck::get_ck_common_compiler_flag(ctx.GetStream());
     }
 
     // kernel1: compute
@@ -206,7 +204,7 @@ ConvCkIgemmFwdV6r1DlopsNchw::GetSolution(const ExecutionContext& ctx,
         kernel1_info.g_wk = {block_size * grid_size, 1, 1};
 
         kernel1_info.comp_options = ck_compile_param.GetCompileParameterString() +
-                                    ck_utility::get_ck_common_compiler_flag(ctx.GetStream());
+                                    legacy_ck::get_ck_common_compiler_flag(ctx.GetStream());
     }
 
     sol.construction_params.push_back(kernel0_info);
@@ -266,7 +264,7 @@ std::size_t ConvCkIgemmFwdV6r1DlopsNchw::GetWorkspaceSize(const ExecutionContext
                                                           const ProblemDescription& problem) const
 {
     return ck::driver::ConvIgemmFwdV6r1DlopsNchwKcyxNkhw::GetMaxWorkSpaceSize(
-        ck_utility::get_ck_convolution_problem_descriptor(problem));
+        legacy_ck::get_ck_convolution_problem_descriptor(problem));
 }
 
 PerformanceConvCkIgemmFwdV6r1DlopsNchw
