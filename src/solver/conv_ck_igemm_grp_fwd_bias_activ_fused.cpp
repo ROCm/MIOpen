@@ -105,7 +105,7 @@ template <ck::index_t NumDimSpatial,
           typename InLayout     = ck::tensor_layout::convolution::NHWGC,
           typename WeiLayout    = ck::tensor_layout::convolution::GKYXC,
           typename OutLayout    = ck::tensor_layout::convolution::NHWGK>
-using DeviceOpGFwdBiasRelu =
+using DeviceOpGFwdBiasActiv =
     ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<NumDimSpatial,
                                                                   InLayout,
                                                                   WeiLayout,
@@ -126,20 +126,20 @@ template <ck::index_t NumDimSpatial,
           typename InLayout,
           typename WeiLayout,
           typename OutLayout>
-using DeviceOpGFwdBiasReluPtrs =
+using DeviceOpGFwdBiasActivPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGFwdBiasRelu<NumDimSpatial,
-                             DataType,
-                             DataType,
-                             DataType,
-                             DataType,
-                             DataType,
-                             InLayout,
-                             WeiLayout,
-                             OutLayout>>;
+        DeviceOpGFwdBiasActiv<NumDimSpatial,
+                              DataType,
+                              DataType,
+                              DataType,
+                              DataType,
+                              DataType,
+                              InLayout,
+                              WeiLayout,
+                              OutLayout>>;
 namespace {
 
-template <int NDimSpatial = 2, typename DataType = ck::bhalf_t>
+template <int NDimSpatial, typename DataType>
 struct CKArgs
 {
     using OutputElementOpType = OutElementOp;
@@ -351,7 +351,7 @@ struct CKArgs
                           data_ctx.out,
                           conv_param.alpha,
                           conv_param.beta,
-                          GetOutElementOp<ck::bhalf_t, OutElementOp>(activ_param));
+                          GetOutElementOp<DataType, OutElementOp>(activ_param));
     }
 
     template <typename ConvPtr>
@@ -364,7 +364,7 @@ struct CKArgs
                                   nullptr,
                                   1.0f,
                                   0.0f,
-                                  OutElementOp{0, std::numeric_limits<ck::bhalf_t>::max()});
+                                  OutElementOp{0, std::numeric_limits<DataType>::max()});
         return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
 
@@ -407,22 +407,22 @@ void PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::Init(
         {
             using Layouts = decltype(Get3DLayouts());
             valid_kernels =
-                FillValidKernelsIDs<DeviceOpGFwdBiasReluPtrs<3,
-                                                             DataType,
-                                                             typename Layouts::InLayout,
-                                                             typename Layouts::WeiLayout,
-                                                             typename Layouts::OutLayout>,
+                FillValidKernelsIDs<DeviceOpGFwdBiasActivPtrs<3,
+                                                              DataType,
+                                                              typename Layouts::InLayout,
+                                                              typename Layouts::WeiLayout,
+                                                              typename Layouts::OutLayout>,
                                     CKArgs<3, DataType>>(problem);
         }
         else
         {
             using Layouts = decltype(Get2DLayouts());
             valid_kernels =
-                FillValidKernelsIDs<DeviceOpGFwdBiasReluPtrs<2,
-                                                             DataType,
-                                                             typename Layouts::InLayout,
-                                                             typename Layouts::WeiLayout,
-                                                             typename Layouts::OutLayout>,
+                FillValidKernelsIDs<DeviceOpGFwdBiasActivPtrs<2,
+                                                              DataType,
+                                                              typename Layouts::InLayout,
+                                                              typename Layouts::WeiLayout,
+                                                              typename Layouts::OutLayout>,
                                     CKArgs<2, DataType>>(problem);
         }
     }
@@ -437,21 +437,21 @@ bool PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::CheckIsSupportCKArgs(
     if(problem.Is3d())
     {
         using Layouts = decltype(Get3DLayouts());
-        return IsCKArgsSupported<DeviceOpGFwdBiasReluPtrs<3,
-                                                          DataType,
-                                                          typename Layouts::InLayout,
-                                                          typename Layouts::WeiLayout,
-                                                          typename Layouts::OutLayout>,
+        return IsCKArgsSupported<DeviceOpGFwdBiasActivPtrs<3,
+                                                           DataType,
+                                                           typename Layouts::InLayout,
+                                                           typename Layouts::WeiLayout,
+                                                           typename Layouts::OutLayout>,
                                  CKArgs<3, DataType>>(problem, kernel_id);
     }
     else
     {
         using Layouts = decltype(Get2DLayouts());
-        return IsCKArgsSupported<DeviceOpGFwdBiasReluPtrs<2,
-                                                          DataType,
-                                                          typename Layouts::InLayout,
-                                                          typename Layouts::WeiLayout,
-                                                          typename Layouts::OutLayout>,
+        return IsCKArgsSupported<DeviceOpGFwdBiasActivPtrs<2,
+                                                           DataType,
+                                                           typename Layouts::InLayout,
+                                                           typename Layouts::WeiLayout,
+                                                           typename Layouts::OutLayout>,
                                  CKArgs<2, DataType>>(problem, kernel_id);
     }
 }
@@ -463,21 +463,21 @@ bool ConvCKIgemmGrpFwdBiasActivFused::CheckCKApplicability(
     if(problem.Is3d())
     {
         using Layouts = decltype(Get3DLayouts());
-        return IsCKApplicable<DeviceOpGFwdBiasReluPtrs<3,
-                                                       DataType,
-                                                       typename Layouts::InLayout,
-                                                       typename Layouts::WeiLayout,
-                                                       typename Layouts::OutLayout>,
+        return IsCKApplicable<DeviceOpGFwdBiasActivPtrs<3,
+                                                        DataType,
+                                                        typename Layouts::InLayout,
+                                                        typename Layouts::WeiLayout,
+                                                        typename Layouts::OutLayout>,
                               CKArgs<3, DataType>>(problem);
     }
     else
     {
         using Layouts = decltype(Get2DLayouts());
-        return IsCKApplicable<DeviceOpGFwdBiasReluPtrs<2,
-                                                       DataType,
-                                                       typename Layouts::InLayout,
-                                                       typename Layouts::WeiLayout,
-                                                       typename Layouts::OutLayout>,
+        return IsCKApplicable<DeviceOpGFwdBiasActivPtrs<2,
+                                                        DataType,
+                                                        typename Layouts::InLayout,
+                                                        typename Layouts::WeiLayout,
+                                                        typename Layouts::OutLayout>,
                               CKArgs<2, DataType>>(problem);
     }
 }
@@ -494,11 +494,11 @@ void PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::HeuristicInit(
     switch(conv_problem.GetInDataType())
     {
     case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
-    case miopenHalf:
+    case miopenHalf: Init<ck::half_t>(conv_problem); break;
+    case miopenFloat: Init<float>(conv_problem); break;
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
     case miopenInt8:
-    case miopenFloat:
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
@@ -518,8 +518,8 @@ bool PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::SetNextValue(
         switch(conv_problem.GetInDataType())
         {
         case miopenBFloat16: Init<ck::bhalf_t>(conv_problem); break;
-        case miopenHalf:
-        case miopenFloat:
+        case miopenHalf: Init<ck::half_t>(conv_problem); break;
+        case miopenFloat: Init<float>(conv_problem); break;
         case miopenInt8:
         case miopenInt64:
         case miopenInt32:
@@ -554,8 +554,8 @@ bool PerformanceConfigConvCKIgemmGrpFwdBiasActivFused::IsValid(
     switch(conv_problem.GetInDataType())
     {
     case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(conv_problem);
-    case miopenHalf:
-    case miopenFloat:
+    case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(conv_problem);
+    case miopenFloat: return CheckIsSupportCKArgs<float>(conv_problem);
     case miopenInt8:
     case miopenInt64:
     case miopenInt32:
@@ -641,7 +641,7 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     const auto conv_problem = fdesc_problem.GetConvProblem(0, miopen::conv::Direction::Forward);
     if(env::disabled(MIOPEN_DEBUG_CONV_CK_IGEMM_GRP_FWD_BIAS_ACTIV))
         return false;
-    if(!conv_problem.IsBfp16())
+    if(!conv_problem.IsBfp16() && !conv_problem.IsFp16() && !conv_problem.IsFp32())
         return false;
     if(conv_problem.IsTensorsCasted())
         return false;
@@ -663,11 +663,11 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
     switch(conv_problem.GetInDataType())
     {
     case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(conv_problem);
-    case miopenHalf:
+    case miopenHalf: return CheckCKApplicability<ck::half_t>(conv_problem);
+    case miopenFloat: return CheckCKApplicability<float>(conv_problem);
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
     case miopenInt8:
-    case miopenFloat:
     case miopenInt32:
     case miopenInt64:
     case miopenDouble:
@@ -688,27 +688,27 @@ GetSolutionForDimensionality(const FusionContext& ctx,
     return MakeSolutionGroupConvImplicitGemmXdlops(
         conv_problem,
         [&](auto data_type_val) {
-            using T = decltype(data_type_val);
+            (void)data_type_val;
             return InitInvokerFactoryFwdNCHW<NDimSpatial,
                                              false,
-                                             DeviceOpGFwdBiasReluPtrs<NDimSpatial,
-                                                                      T,
-                                                                      typename Layouts::InLayout,
-                                                                      typename Layouts::WeiLayout,
-                                                                      typename Layouts::OutLayout>,
-                                             CKArgs<NDimSpatial, T>,
+                                             DeviceOpGFwdBiasActivPtrs<NDimSpatial,
+                                                                       DataType,
+                                                                       typename Layouts::InLayout,
+                                                                       typename Layouts::WeiLayout,
+                                                                       typename Layouts::OutLayout>,
+                                             CKArgs<NDimSpatial, DataType>,
                                              miopen::fusion::FusionInvokeParams>(
                 ctx, conv_problem, config.kernel_id);
         },
         [&](auto data_type_val) {
-            using T = decltype(data_type_val);
+            (void)data_type_val;
             return InitInvokerFactoryNHWC<false,
-                                          DeviceOpGFwdBiasReluPtrs<NDimSpatial,
-                                                                   T,
-                                                                   typename Layouts::InLayout,
-                                                                   typename Layouts::WeiLayout,
-                                                                   typename Layouts::OutLayout>,
-                                          CKArgs<NDimSpatial, T>,
+                                          DeviceOpGFwdBiasActivPtrs<NDimSpatial,
+                                                                    DataType,
+                                                                    typename Layouts::InLayout,
+                                                                    typename Layouts::WeiLayout,
+                                                                    typename Layouts::OutLayout>,
+                                          CKArgs<NDimSpatial, DataType>,
                                           miopen::fusion::FusionInvokeParams>(
                 ctx, conv_problem, config.kernel_id);
         });
@@ -726,7 +726,8 @@ ConvSolution GetSolutionWithDim(const FusionContext& ctx,
     case miopenBFloat16:
         return GetSolutionForDimensionality<NDim, ck::bhalf_t>(ctx, conv_problem, config);
     case miopenHalf:
-    case miopenFloat:
+        return GetSolutionForDimensionality<NDim, ck::half_t>(ctx, conv_problem, config);
+    case miopenFloat: return GetSolutionForDimensionality<NDim, float>(ctx, conv_problem, config);
     case miopenInt8:
     case miopenInt64:
     case miopenInt32:
