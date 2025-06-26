@@ -252,7 +252,7 @@ float Im2d2ColGPU(const Handle& handle,
             params += " -DUSE_LARGE_BUFFER_INDEX";
 
         handle.AddKernel(
-            "miopenIm2Col", network_config, program_name, kernel_name, vld, vgd, params)(
+            "miopenIm2d2Col", network_config, program_name, kernel_name, vld, vgd, params)(
             data_size_bound,
             im,
             im_offset,
