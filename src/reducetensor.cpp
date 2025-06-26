@@ -46,8 +46,8 @@
 #include <sstream>
 
 // headers from composable kernel, to get consistent ID mapping
-#include <../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp>
-#include <../composable_kernel/composable_kernel/include/utility/reduction_enums.hpp>
+#include <../legacy_composable_kernel/composable_kernel/include/utility/data_type_enum.hpp>
+#include <../legacy_composable_kernel/composable_kernel/include/utility/reduction_enums.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_DYNAMIC_REDUCTION);
 
