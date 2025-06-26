@@ -2899,7 +2899,7 @@ struct ConvDepthWiseConvWrw final : ConvSolver
     /// GEMM is disabled.
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {
-        return 0.01f;
+        return 1000.0f;
     }
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;

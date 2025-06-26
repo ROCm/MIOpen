@@ -431,25 +431,23 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
         }
     }
 
+    template <typename Argument>
     static void __device__
-    write_output(WeiDataType* p_wei_grid_,
-                 AccDataType* p_acc_grid_,
-                 const Array<index_t, NDimSpatial + 3>& wei_g_k_c_xs_strides_,
-                 bool enable_k_split_, index_t g, index_t y, index_t x, AccDataType acc)
+    write_output(const Argument& arg, index_t g, index_t y, index_t x, AccDataType acc)
     {
-        const index_t Wei_G_Stride = wei_g_k_c_xs_strides_[0];
-        const index_t Y_Stride     = wei_g_k_c_xs_strides_[3];
-        const index_t X_Stride     = wei_g_k_c_xs_strides_[4];
+        const index_t Wei_G_Stride = arg.wei_g_k_c_xs_strides_[0];
+        const index_t Y_Stride     = arg.wei_g_k_c_xs_strides_[3];
+        const index_t X_Stride     = arg.wei_g_k_c_xs_strides_[4];
         if(y < Filter_Y && x < Filter_X)
         {
-            if(enable_k_split_)
+            if(arg.enable_k_split_)
             {
-                auto p_acc = p_acc_grid_ + Wei_G_Stride * g + y * Y_Stride + x * X_Stride;
+                auto p_acc = arg.p_acc_grid_ + Wei_G_Stride * g + y * Y_Stride + x * X_Stride;
                 global_atomic_add(p_acc, acc);
             }
             else
             {
-                auto p_wei = p_wei_grid_ + Wei_G_Stride * g + y * Y_Stride + x * X_Stride;
+                auto p_wei = arg.p_wei_grid_ + Wei_G_Stride * g + y * Y_Stride + x * X_Stride;
                 *p_wei = static_cast<WeiDataType>(acc);
             }
         }
@@ -483,17 +481,8 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
         return (ShareMemInSize + ShareMemOutSize) * NumTilePerBlock;
     }
 
-    static void __device__ Run(const InDataType* p_in_grid_,
-                               WeiDataType* p_wei_grid_,
-                               const OutDataType* p_out_grid_,
-                               AccDataType* p_acc_grid_,
-                               const Array<index_t, NDimSpatial + 3>& in_g_n_c_wis_lengths_, // input
-                               const Array<index_t, NDimSpatial + 3>& in_g_n_c_wis_strides_,
-                               const Array<index_t, NDimSpatial + 3>& wei_g_k_c_xs_lengths_, // weight
-                               const Array<index_t, NDimSpatial + 3>& wei_g_k_c_xs_strides_,
-                               const Array<index_t, NDimSpatial + 3>& out_g_n_k_wos_lengths_, // output
-                               const Array<index_t, NDimSpatial + 3>& out_g_n_k_wos_strides_,
-                               bool enable_k_split_)
+    template <typename Argument>
+    static void __device__ Run(Argument& arg)
     {
         __shared__ char p_share_in[ShareMemInSize * NumTilePerBlock];
         __shared__ char p_share_out[ShareMemOutSize * NumTilePerBlock];
@@ -516,7 +505,7 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
         static_assert(NumTilePerBlock == 1 || NumWavePerTile == 1);
 
         static constexpr index_t spatial_offset = 3;
-        const index_t n                         = in_g_n_c_wis_lengths_[1];
+        const index_t n                         = arg.in_g_n_c_wis_lengths_[1];
         index_t num_loop                        = n / NumTilePerBlock / NBatch - 1;
         index_t n_idx                           = n / NumTilePerBlock * tile_id;
         if constexpr(NumTilePerBlock > 1)
@@ -530,26 +519,26 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
         n_idx += n * k_split_idx;
 
         // In
-        const index_t hi = in_g_n_c_wis_lengths_[spatial_offset + 0];
-        const index_t wi = in_g_n_c_wis_lengths_[spatial_offset + 1];
+        const index_t hi = arg.in_g_n_c_wis_lengths_[spatial_offset + 0];
+        const index_t wi = arg.in_g_n_c_wis_lengths_[spatial_offset + 1];
 
-        const index_t hi_stride   = in_g_n_c_wis_strides_[spatial_offset + 0];
-        const index_t wi_stride   = in_g_n_c_wis_strides_[spatial_offset + 1];
-        const index_t in_g_stride = in_g_n_c_wis_strides_[0];
-        const index_t in_n_stride = in_g_n_c_wis_strides_[1];
+        const index_t hi_stride   = arg.in_g_n_c_wis_strides_[spatial_offset + 0];
+        const index_t wi_stride   = arg.in_g_n_c_wis_strides_[spatial_offset + 1];
+        const index_t in_g_stride = arg.in_g_n_c_wis_strides_[0];
+        const index_t in_n_stride = arg.in_g_n_c_wis_strides_[1];
 
         // Out
-        const index_t ho = out_g_n_k_wos_lengths_[spatial_offset + 0];
-        const index_t wo = out_g_n_k_wos_lengths_[spatial_offset + 1];
+        const index_t ho = arg.out_g_n_k_wos_lengths_[spatial_offset + 0];
+        const index_t wo = arg.out_g_n_k_wos_lengths_[spatial_offset + 1];
 
-        const index_t ho_stride    = out_g_n_k_wos_strides_[spatial_offset + 0];
-        const index_t wo_stride    = out_g_n_k_wos_strides_[spatial_offset + 1];
-        const index_t out_g_stride = out_g_n_k_wos_strides_[0];
-        const index_t out_n_stride = out_g_n_k_wos_strides_[1];
+        const index_t ho_stride    = arg.out_g_n_k_wos_strides_[spatial_offset + 0];
+        const index_t wo_stride    = arg.out_g_n_k_wos_strides_[spatial_offset + 1];
+        const index_t out_g_stride = arg.out_g_n_k_wos_strides_[0];
+        const index_t out_n_stride = arg.out_g_n_k_wos_strides_[1];
 
         // Wei
-        auto* p_in  = p_in_grid_ + g_idx * in_g_stride + n_idx * in_n_stride;
-        auto* p_out = p_out_grid_ + g_idx * out_g_stride + n_idx * out_n_stride;
+        auto* p_in  = arg.p_in_grid_ + g_idx * in_g_stride + n_idx * in_n_stride;
+        auto* p_out = arg.p_out_grid_ + g_idx * out_g_stride + n_idx * out_n_stride;
 
         constexpr index_t Copy_Tile_H    = Tile_H / NumWavePerTile;
         constexpr index_t Copy_TileOut_H = TileOut_H / NumWavePerTile;
@@ -970,10 +959,7 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
         {
             if(hout_base == 0)
             {
-                write_output(p_wei_grid_,
-                    p_acc_grid_,
-                    wei_g_k_c_xs_strides_,
-                    enable_k_split_, g_idx, y, x, acc);
+                write_output(arg, g_idx, y, x, acc);
             }
         }
         else
@@ -988,15 +974,13 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
                 {
                     acc += __builtin_bit_cast(float, p_share_acc[i * WaveSize + lane_id]);
                 }
-                write_output(p_wei_grid_,
-                    p_acc_grid_,
-                    wei_g_k_c_xs_strides_,
-                    enable_k_split_, g_idx, y, x, acc);
+                write_output(arg, g_idx, y, x, acc);
             }
         }
     }
     struct Argument
     {
+        __device__
         Argument(const InDataType* p_in_grid,
                  WeiDataType* p_wei_grid,
                  const OutDataType* p_out_grid,

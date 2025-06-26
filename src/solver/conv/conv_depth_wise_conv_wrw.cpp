@@ -695,7 +695,7 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
                                            split_k > 1 ? acc_strides : ck_args.wei_strides,
                                            split_k > 1 ? new_out_lengths : ck_args.out_lengths,
                                            ck_args.out_strides,
-                                           split_k > 1);
+                                           split_k);
                 }
                 if(handle.IsProfilingEnabled())
                 {

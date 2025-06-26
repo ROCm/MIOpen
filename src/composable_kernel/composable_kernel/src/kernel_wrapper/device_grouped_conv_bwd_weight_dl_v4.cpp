@@ -53,11 +53,11 @@ extern "C" __global__
                  const Array<index_t, 2 + 3> wei_g_k_c_xs_strides,
                  const Array<index_t, 2 + 3> out_g_n_k_wos_lengths, // output
                  const Array<index_t, 2 + 3> out_g_n_k_wos_strides,
-                 const bool enable_k_split)
+                 const index_t split_k)
 {
   constexpr index_t NDimSpatial = 2;
 
-  constexpr auto conv2 =
+  using conv2 =
     ck::tensor_operation::device::GridwiseGroupedConv2DBwdWeightDlV4<BlockSize,
                                                                   InDataType,
                                                                   WeiDataType,
@@ -78,30 +78,21 @@ extern "C" __global__
                                                                   OutScalarPerVector,  // OutScalarPerVector
                                                                   DstScalarPerVector,  // DstScalarPerVector
                                                                   RequirePadding,
-                                                                  WSplit>{};
+                                                                  WSplit>;
 
-  conv2.Run(p_in_grid,
-            p_wei_grid,
-            p_out_grid,
-            p_acc_grid,
-            in_g_n_c_wis_lengths, // input
-            in_g_n_c_wis_strides,
-            wei_g_k_c_xs_lengths, // weight
-            wei_g_k_c_xs_strides,
-            out_g_n_k_wos_lengths, // output
-            out_g_n_k_wos_strides,
-            enable_k_split);
-  // conv2.template RunWrapper(p_in_grid,
-  //                           p_wei_grid,
-  //                           p_out_grid,
-  //                           p_acc_grid,
-  //                           in_g_n_c_wis_lengths, // input
-  //                           in_g_n_c_wis_strides,
-  //                           wei_g_k_c_xs_lengths, // weight
-  //                           wei_g_k_c_xs_strides,
-  //                           out_g_n_k_wos_lengths, // output
-  //                           out_g_n_k_wos_strides,
-  //                           enable_k_split);
+  typename conv2::Argument arg (p_in_grid,
+                                p_wei_grid,
+                                p_out_grid,
+                                p_acc_grid,
+                                in_g_n_c_wis_lengths, // input
+                                in_g_n_c_wis_strides,
+                                wei_g_k_c_xs_lengths, // weight
+                                wei_g_k_c_xs_strides,
+                                out_g_n_k_wos_lengths, // output
+                                out_g_n_k_wos_strides,
+                                split_k);
+
+  conv2::Run(arg);
 }
 
 
