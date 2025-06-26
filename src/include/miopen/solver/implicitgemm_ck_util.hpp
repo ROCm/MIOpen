@@ -41,7 +41,6 @@
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data_bilinear.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data_scale.hpp>
-#include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_data.hpp>
 #endif // MIOPEN_USE_COMPOSABLEKERNEL
 
 namespace miopen {
