@@ -226,6 +226,22 @@ public:
                 miopen::conv::Direction::Forward,
                 "NDHWC", "NDHWC", "NDHWC"
             },
+            TestCase{
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NDHWC
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NDHWC
+                {miopenHalf, miopenTensorNCDHW, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NCDHW
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCDHW", "NCDHW", "NCDHW"
+            },
+            TestCase{
+                {miopenHalf, {1, 10, 10, 10, 10}, {10000, 1, 1000, 100, 10}}, // NDHWC
+                {miopenHalf, {10, 10, 10, 10, 10}, {10000, 1, 1000, 100, 10}}, // NDHWC
+                {miopenHalf, miopenTensorNCDHW, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NCDHW
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                miopen::conv::Direction::Forward,
+                "NDHWC", "NDHWC", "NDHWC"
+            },
 #if 1
             TestCase{
                 {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
