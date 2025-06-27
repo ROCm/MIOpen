@@ -767,7 +767,6 @@ miopenTensorLayout_t TensorDescriptor::StringToLayoutType(std::string layout_str
 {
     if(vectorized)
     {
-        std::cout << layout_str << " is vectorized, vector_length = " << vector_length << std::endl;
         if(vector_length == 4)
         {
             return layout_str == "CHWNc" ? miopenTensorCHWNc4 : miopenTensorNCHWc4;
