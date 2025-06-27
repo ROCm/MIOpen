@@ -1350,7 +1350,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
         runCPUActivFwdInference();
     }
 
-    if(sizeof(Tgpu) <= sizeof(Tref))
+    if constexpr(!std::is_same_v<Tgpu, Tref>)
     {
         for(size_t i = 0; i < out_host.size(); ++i)
         {
