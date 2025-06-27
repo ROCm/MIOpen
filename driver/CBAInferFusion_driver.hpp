@@ -54,6 +54,8 @@
 #include <numeric>
 #include <vector>
 #include <iostream>
+#include <limits>
+
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -1385,14 +1387,16 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
 
     double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
 
+    const auto error = miopen::rms_range(out_host, out);
+
     int match = miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
     if(match == 0)
     {
-        std::cout << "Forward Activation FAILED" << std::endl;
+        std::cout << "Forward Activation FAILED (Accuracy: " << error << ")" << std::endl;
         return EC_VerifyFwd;
     }
 
-    std::cout << "Forward Activation Verifies on CPU and GPU" << std::endl;
+    std::cout << "Forward Activation Verifies on CPU and GPU (Accuracy: " << error << ")" << std::endl;
     return miopenStatusSuccess;
 }
 
