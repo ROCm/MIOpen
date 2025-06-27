@@ -102,10 +102,10 @@ struct WinoShaderArgsV2
 {
     // Main convolution parameters
     uint32_t N;     // batch size
-    uint32_t Cg;     // number of input channels in each filter group
+    uint32_t Cg;    // number of input channels in each filter group
     uint32_t H;     // input height
     uint32_t W;     // input width
-    uint32_t Kg;     // number of output channels in each filter group
+    uint32_t Kg;    // number of output channels in each filter group
     uint32_t R;     // filter height
     uint32_t S;     // filter width
     int32_t pad_h;  // padding in h dimension
