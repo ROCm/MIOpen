@@ -102,10 +102,10 @@ struct WinoShaderArgsV2
 {
     // Main convolution parameters
     uint32_t N;     // batch size
-    uint32_t C;     // number of input channels in each filter group
+    uint32_t Cg;     // number of input channels in each filter group
     uint32_t H;     // input height
     uint32_t W;     // input width
-    uint32_t K;     // number of output channels in each filter group
+    uint32_t Kg;     // number of output channels in each filter group
     uint32_t R;     // filter height
     uint32_t S;     // filter width
     int32_t pad_h;  // padding in h dimension
@@ -159,7 +159,7 @@ struct WinoShaderArgsV2
     {
         // clang-format off
         return N < PowOf2<16>()
-            && C < PowOf2<16>()
+            && Cg < PowOf2<16>()
             && H < PowOf2<16>()
             && W < PowOf2<16>()
             && R < PowOf2<16>()
@@ -188,8 +188,8 @@ struct WinoShaderArgsV2
     bool batchTensorSizesFit31bits() const noexcept
     {
         // clang-format off
-        return (static_cast<uint64_t>(N - 1) * C * G + 1) * H     * W     < PowOf2<31>()
-            && (static_cast<uint64_t>(N - 1) * K * G + 1) * out_h * out_w < PowOf2<31>();
+        return (static_cast<uint64_t>(N - 1) * Cg * G + 1) * H     * W     < PowOf2<31>()
+            && (static_cast<uint64_t>(N - 1) * Kg * G + 1) * out_h * out_w < PowOf2<31>();
         // clang-format on
     }
 
