@@ -548,12 +548,16 @@ const std::optional<miopenTensorLayout_t>& TensorDescriptor::GetLayoutEnum() con
                 return tensorLayout;
 
             auto layout = GetLayout_str();
-            if(IsPossibleLayout4D5D(layout))
+            
+            try
             {
                 return StringToLayoutType(layout);
             }
-
-            return std::nullopt;
+            catch(const miopen::Exception& e)
+            {
+                MIOPEN_LOG_W("Failed to convert layout string '" << layout << "' to enum: " << e.what());
+                return std::nullopt;
+            }
         }();
 
         cached_layout_enum_calculated = true;
@@ -760,7 +764,6 @@ std::string TensorDescriptor::GetLayout(std::string storage_layout) const
 
 miopenTensorLayout_t TensorDescriptor::StringToLayoutType(const std::string& layout_str)
 {
-    miopenTensorLayout_t default_layout = miopenTensorNCHW;
     if(layout_str == "NCHWc4")
         return miopenTensorNCHWc4;
     else if(layout_str == "NCHWc8")
@@ -769,6 +772,10 @@ miopenTensorLayout_t TensorDescriptor::StringToLayoutType(const std::string& lay
         return miopenTensorCHWNc4;
     else if(layout_str == "CHWNc8")
         return miopenTensorCHWNc8;
+    else if (layout_str == "CHWN")
+    {
+        return miopenTensorCHWN;
+    }
     else if(layout_str == "NCHW")
     {
         return miopenTensorNCHW;
@@ -789,7 +796,6 @@ miopenTensorLayout_t TensorDescriptor::StringToLayoutType(const std::string& lay
     {
         MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8, NCHW, NHWC, NDHWC, NCDHW "
                     "vectorized tensor layout.");
-        return default_layout;
     }
 }
 
