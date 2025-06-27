@@ -37,8 +37,8 @@
 #include <utility>
 
 // headers from composable kernel, to get consistent ID mapping
-#include <../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp>
-#include <../composable_kernel/composable_kernel/include/utility/reduction_enums.hpp>
+#include <../legacy_composable_kernel/composable_kernel/include/utility/data_type_enum.hpp>
+#include <../legacy_composable_kernel/composable_kernel/include/utility/reduction_enums.hpp>
 
 namespace miopen {
 
