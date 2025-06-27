@@ -53,9 +53,7 @@
 #include <memory>
 #include <numeric>
 #include <vector>
-#include <iostream>
 #include <limits>
-
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -861,14 +859,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
 #endif
     }
 
-    std::cout << "Input Data (first 10 elements):" << std::endl;
-    for(int i = 0; i < 10 && i < in.size(); ++i)
-    {
-        // Cast to float for consistent display
-        std::cout << static_cast<float>(in[i]) << " ";
-    }
-    std::cout << std::endl;
-
     if(fusion_mode != miopen_fusion_na)
     {
         wei = std::vector<Tgpu>(wei_sz, static_cast<Tgpu>(0));
@@ -886,15 +876,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         }
         status |= wei_dev->ToGPU(q, wei.data());
     }
-
-    // print weights
-    std::cout << "Weights (first 10 elements):" << std::endl;
-    for(int i = 0; i < 10 && i < wei.size(); ++i)
-    {
-        // Cast to float for consistent display
-        std::cout << static_cast<float>(wei[i]) << " ";
-    }
-    std::cout << std::endl;
 
     status |= in_dev->ToGPU(q, in.data());
     status |= createRunningBuffers();
@@ -1252,14 +1233,6 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
 
     out_dev->FromGPU(GetStream(), out.data());
 
-    std::cout << "Fusion Output (first 10 elements):" << std::endl;
-    for(int i = 0; i < 10 && i < out.size(); ++i)
-    {
-        // Cast to float for consistent display
-        std::cout << static_cast<float>(out[i]) << " ";
-    }
-    std::cout << std::endl;
-
     return miopenStatusSuccess;
 }
 
@@ -1377,6 +1350,15 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
         std::cout << "Running CPU fwd activation." << std::endl;
         runCPUActivFwdInference();
     }
+
+    if(sizeof(Tgpu) <= sizeof(Tref))
+    {
+        for(size_t i = 0; i < out_host.size(); ++i)
+        {
+            out_host[i] = static_cast<Tref>(static_cast<Tgpu>(out_host[i]));
+        }
+    }
+
     return miopenStatusSuccess;
 }
 
@@ -1396,7 +1378,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
         return EC_VerifyFwd;
     }
 
-    std::cout << "Forward Activation Verifies on CPU and GPU (Accuracy: " << error << ")" << std::endl;
+    std::cout << "Forward Activation Verifies on CPU and GPU (Accuracy: " << error << ")"
+              << std::endl;
     return miopenStatusSuccess;
 }
 
