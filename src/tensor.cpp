@@ -547,15 +547,10 @@ const std::optional<miopenTensorLayout_t>& TensorDescriptor::GetLayoutEnum() con
             if(tensorLayout)
                 return tensorLayout;
 
-            const auto known_layouts = {std::make_pair("NCHW", miopenTensorNCHW),
-                                        std::make_pair("NHWC", miopenTensorNHWC),
-                                        std::make_pair("NCDHW", miopenTensorNCDHW),
-                                        std::make_pair("NDHWC", miopenTensorNDHWC),
-                                        std::make_pair("CHWN", miopenTensorCHWN)};
-            for(const auto& [layout_str, layout_enum] : known_layouts)
+            auto layout = GetLayout_str();
+            if(IsPossibleLayout4D5D(layout))
             {
-                if(this->IsPossibleLayout4D5D(layout_str))
-                    return layout_enum;
+                return StringToLayoutType(layout);
             }
 
             return std::nullopt;
@@ -761,6 +756,41 @@ std::string TensorDescriptor::GetLayout(std::string storage_layout) const
         result += 'c';
 
     return result;
+}
+
+miopenTensorLayout_t TensorDescriptor::StringToLayoutType(const std::string& layout_str)
+{
+    miopenTensorLayout_t default_layout = miopenTensorNCHW;
+    if(layout_str == "NCHWc4")
+        return miopenTensorNCHWc4;
+    else if(layout_str == "NCHWc8")
+        return miopenTensorNCHWc8;
+    else if(layout_str == "CHWNc4")
+        return miopenTensorCHWNc4;
+    else if(layout_str == "CHWNc8")
+        return miopenTensorCHWNc8;
+    else if(layout_str == "NCHW")
+    {
+        return miopenTensorNCHW;
+    }
+    else if(layout_str == "NHWC")
+    {
+        return miopenTensorNHWC;
+    }
+    else if(layout_str == "NDHWC")
+    {
+        return miopenTensorNDHWC;
+    }
+    else if(layout_str == "NCDHW")
+    {
+        return miopenTensorNCDHW;
+    }
+    else
+    {
+        MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8, NCHW, NHWC, NDHWC, NCDHW "
+                    "vectorized tensor layout.");
+        return default_layout;
+    }
 }
 
 std::size_t TensorDescriptor::GetNumBytes() const
