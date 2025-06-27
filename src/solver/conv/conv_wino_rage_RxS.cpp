@@ -100,7 +100,7 @@ bool ConvWinoRageRxSCommon<Winodata, Winofilter>::IsApplicable(const ExecutionCo
     args.n_groups = getNGroups(ctx);
 
     // clang-format off
-    return args.N_C_H_W_OH_OW_fit16bit()
+    return args.dimsFit16bit()
         && args.R_S_fit16bit()
         && args.batchTensorSizesFit31bits()
         && args.paddedSizesFit16bits()
