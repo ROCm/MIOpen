@@ -2353,7 +2353,7 @@ inline __device__ void batched_transpose_64x4(T* dst,
         }
     }
 }
-
+#if 1
 #define DEFINE_BATCHED_TRANSPOSE_KERNEL(                                                       \
     tile_trait, accept_data_type, cast_data_type, lb_threads_per_block, lb_blocks_per_cu)      \
     extern "C" __global__ void __launch_bounds__(lb_threads_per_block, lb_blocks_per_cu)       \
@@ -2379,7 +2379,23 @@ inline __device__ void batched_transpose_64x4(T* dst,
                                                        magic_w,                                \
                                                        shift_w);                               \
     }
-
+#else
+#define DEFINE_BATCHED_TRANSPOSE_KERNEL(                                                       \
+    tile_trait, accept_data_type, cast_data_type, lb_threads_per_block, lb_blocks_per_cu)      \
+    extern "C" __global__ void __launch_bounds__(lb_threads_per_block, lb_blocks_per_cu)       \
+        batched_transpose_##tile_trait##_##accept_data_type(void* dst,                         \
+                                                            void* src,                         \
+                                                            uint32_t height,                   \
+                                                            uint32_t width,                    \
+                                                            uint32_t dim_stride,               \
+                                                            uint32_t dim_total,                \
+                                                            uint32_t magic_h,                  \
+                                                            uint32_t shift_h,                  \
+                                                            uint32_t magic_w,                  \
+                                                            uint32_t shift_w)                  \
+    {                                                                                          \
+    }
+#endif
 DEFINE_BATCHED_TRANSPOSE_KERNEL(16x16, dword, float, 256, BATCHED_TRANSPOSE_OCCUPANCY)
 DEFINE_BATCHED_TRANSPOSE_KERNEL(16x16, half, ushort, 256, BATCHED_TRANSPOSE_OCCUPANCY)
 DEFINE_BATCHED_TRANSPOSE_KERNEL(16x16, byte, uchar, 256, BATCHED_TRANSPOSE_OCCUPANCY)

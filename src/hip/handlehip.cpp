@@ -496,7 +496,7 @@ Invoker Handle::PrepareInvoker(const InvokerFactory& factory,
         const auto& k        = kernels[i];
         Program* program_out = programs_out != nullptr ? &(*programs_out)[i] : nullptr;
 
-        MIOPEN_LOG_I2("Preparing kernel: " << k.kernel_name);
+        MIOPEN_LOG_I2("Preparing kernel: " << k);
 
         const auto kernel = this->impl->cache.AddKernel(*this,
                                                         "",
@@ -573,7 +573,7 @@ Program Handle::LoadProgram(const fs::path& program_name,
             hsaco                = miopen::LoadBinary(this->GetTargetProperties(),
                                        this->GetMaxComputeUnits(),
                                        program_name,
-                                       orig_params + " -mcpu=" + base_arch);
+                                       orig_params + "-mcpu=" + base_arch);
         }
     }
 
