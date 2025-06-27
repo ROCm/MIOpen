@@ -43,7 +43,6 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_RNN_MS_STREAM_CNT)
 
 namespace miopen {
 
-#if 0 // Unused
 namespace {
 
 bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
@@ -253,7 +252,6 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
 }
 
 } // namespace
-#endif
 
 void RNNDescriptor::RNNForwardMS(const Handle& handle,
                                  std::vector<int>& seq_array,
