@@ -260,11 +260,11 @@ public:
     {
         const auto p = GetParam();
 
-        auto inLayoutDescriptor = p.in.GetTensorDescriptor();
+        auto inLayoutDescriptor      = p.in.GetTensorDescriptor();
         auto weightsLayoutDescriptor = p.weights.GetTensorDescriptor();
-        auto outLayoutDescriptor =  p.out.GetTensorDescriptor();
-        auto convDescriptor = p.conv.GetConvolutionDescriptor();
-        const auto pd = miopen::conv::ProblemDescription{inLayoutDescriptor,
+        auto outLayoutDescriptor     = p.out.GetTensorDescriptor();
+        auto convDescriptor          = p.conv.GetConvolutionDescriptor();
+        const auto pd                = miopen::conv::ProblemDescription{inLayoutDescriptor,
                                                          weightsLayoutDescriptor,
                                                          outLayoutDescriptor,
                                                          convDescriptor,
@@ -276,13 +276,12 @@ public:
         if(p.direction == miopen::conv::Direction::Forward)
         {
             auto output = convDescriptor.GetForwardOutputTensor(
-            inLayoutDescriptor, weightsLayoutDescriptor,
-            outLayoutDescriptor.GetType());
-        
+                inLayoutDescriptor, weightsLayoutDescriptor, outLayoutDescriptor.GetType());
+
             ASSERT_EQ(inLayoutDescriptor.GetLayout_t(), output.GetLayout_t());
             ASSERT_EQ(inLayoutDescriptor.GetLayout_str(), output.GetLayout_str());
             ASSERT_EQ(inLayoutDescriptor.GetLayoutEnum(), output.GetLayoutEnum());
-        }      
+        }
     }
 };
 

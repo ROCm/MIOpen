@@ -548,14 +548,15 @@ const std::optional<miopenTensorLayout_t>& TensorDescriptor::GetLayoutEnum() con
                 return tensorLayout;
 
             auto layout = GetLayout_str();
-            
+
             try
             {
                 return StringToLayoutType(layout, IsVectorized(), vector_length);
             }
             catch(const miopen::Exception& e)
             {
-                MIOPEN_LOG_W("Failed to convert layout string '" << layout << "' to enum: " << e.what());
+                MIOPEN_LOG_W("Failed to convert layout string '" << layout
+                                                                 << "' to enum: " << e.what());
                 return std::nullopt;
             }
         }();
@@ -762,8 +763,8 @@ std::string TensorDescriptor::GetLayout(std::string storage_layout) const
     return result;
 }
 
-
-miopenTensorLayout_t TensorDescriptor::StringToLayoutType(std::string layout_str, bool vectorized, int vector_length)
+miopenTensorLayout_t
+TensorDescriptor::StringToLayoutType(std::string layout_str, bool vectorized, int vector_length)
 {
     if(vectorized)
     {
@@ -798,7 +799,7 @@ miopenTensorLayout_t TensorDescriptor::StringToLayoutType(std::string layout_str
         {
             return miopenTensorNCDHW;
         }
-        else if (layout_str == "CHWN")
+        else if(layout_str == "CHWN")
         {
             return miopenTensorCHWN;
         }

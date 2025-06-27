@@ -363,7 +363,8 @@ ConvolutionDescriptor::GetForwardOutputTensorWithLayout(const TensorDescriptor& 
                  ? (yType)
                  : xDesc.GetType()), // TODO: This function overrides the output type with
                                      // essentially the input which is incorrect.
-            TensorDescriptor::StringToLayoutType(yLayout, xDesc.IsVectorized(), xDesc.GetVectorLength()),
+            TensorDescriptor::StringToLayoutType(
+                yLayout, xDesc.IsVectorized(), xDesc.GetVectorLength()),
             out_lens,
             out_strides};
 }
