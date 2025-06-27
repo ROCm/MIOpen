@@ -1257,6 +1257,15 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
                             miopen::deref(convDesc).GetConvStrides(),
                             miopen::deref(convDesc).GetConvDilations(),
                             miopen::deref(convDesc).GetGroupCount());
+
+    if constexpr(!std::is_same_v<Tgpu, Tref>)
+    {
+        for(size_t i = 0; i < outhost_local_host.data.size(); ++i)
+        {
+            outhost_local_host.data[i] = static_cast<Tref>(static_cast<Tgpu>(outhost_local_host.data[i]));
+        }
+    }
+
     if(bias_mode)
     {
         tensor<Tref> bias_local_host(miopen::deref(biasTensor).GetLengths(),
