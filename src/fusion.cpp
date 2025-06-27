@@ -350,16 +350,22 @@ std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanD
     const miopenConvolutionDescriptor_t& convDesc = &conv_op->base_desc;
     const miopenTensorDescriptor_t& yDesc         = &deref(fusePlanDesc).output_desc;
     std::string str;
+    std::string prefix;
 
-    if(deref(fusePlanDesc).data_type == miopenBFloat16)
+    //"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
+    switch(fusion_mode)
     {
-        str = "CBAInferfp16";
-    }
-    else
-    {
-        str = "CBAInfer";
+    case 4: prefix = "CBAInfer"; break;
+    case 5: prefix = "CAInfer"; break;
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 6:
+    default: MIOPEN_LOG_E("Unknown fusion plan : " << fusion_mode);
     }
 
+    DriverDataType(prefix, str, miopen::deref(xDesc));
     str += " -F " + std::to_string(fusion_mode);
     str += ConvArgsForMIOpenDriver(miopen::deref(xDesc),
                                    miopen::deref(wDesc),

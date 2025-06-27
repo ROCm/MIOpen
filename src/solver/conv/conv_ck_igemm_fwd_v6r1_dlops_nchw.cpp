@@ -31,8 +31,8 @@
 #include <miopen/solver/implicitgemm_legacy_ck_util.hpp>
 #include <miopen/solver/legacy_ck_common.hpp>
 
-#include "../composable_kernel/host/solver/include/solver_common.hpp"
-#include "../composable_kernel/host/solver/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
+#include "../legacy_composable_kernel/host/solver/include/solver_common.hpp"
+#include "../legacy_composable_kernel/host/solver/include/conv_igemm_fwd_v6r1_dlops_nchw_kcyx_nkhw.hpp"
 
 #define WORKAROUND_SWDEV_411729 1
 
