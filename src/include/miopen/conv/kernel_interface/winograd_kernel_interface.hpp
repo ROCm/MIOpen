@@ -188,8 +188,8 @@ struct WinoShaderArgsV2
     bool batchTensorSizesFit31bits() const noexcept
     {
         // clang-format off
-        return (static_cast<uint64_t>(N - 1) * C + 1) * H     * W     < PowOf2<31>()
-            && (static_cast<uint64_t>(N - 1) * K + 1) * out_h * out_w < PowOf2<31>();
+        return (static_cast<uint64_t>(N - 1) * C * G + 1) * H     * W     < PowOf2<31>()
+            && (static_cast<uint64_t>(N - 1) * K * G + 1) * out_h * out_w < PowOf2<31>();
         // clang-format on
     }
 
