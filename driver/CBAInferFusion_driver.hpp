@@ -34,6 +34,7 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
+#include "conv_common.hpp"
 
 #include "../test/verify.hpp"
 #include "../test/cpu_conv.hpp"
@@ -52,6 +53,7 @@
 #include <memory>
 #include <numeric>
 #include <vector>
+#include <iostream>
 
 #define MIO_BN_DEBUG 0
 #define MIO_BN_MAX_DEBUGLOOP 65536
@@ -785,6 +787,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         PadBufferSize(wei_sz, sizeof(Tgpu));
     }
 
+    const Tgpu Data_scale = static_cast<Tgpu>(0.01);
+
     if(bias_mode)
     {
         size_t b_sz = GetTensorSize(biasTensor);
@@ -849,11 +853,19 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         in_host[i] = static_cast<double>(rval);
         in[i]      = rval;
 #else
-        auto rval = prng::gen_canonical<Tgpu>();
+        auto rval = prng::gen_0_to_B(Data_scale);
         in_host[i] = static_cast<double>(rval);
         in[i] = rval;
 #endif
     }
+
+    std::cout << "Input Data (first 10 elements):" << std::endl;
+    for(int i = 0; i < 10 && i < in.size(); ++i)
+    {
+        // Cast to float for consistent display
+        std::cout << static_cast<float>(in[i]) << " ";
+    }
+    std::cout << std::endl;
 
     if(fusion_mode != miopen_fusion_na)
     {
@@ -865,13 +877,22 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             wei[i]      = static_cast<double>(rval);
             wei_host[i] = rval;
 #else
-            auto rval = prng::gen_canonical<Tgpu>();
+            auto rval = Data_scale * conv::RanGenWeights<Tgpu>();
             wei_host[i] = static_cast<double>(rval);
             wei[i] = rval;
 #endif
         }
         status |= wei_dev->ToGPU(q, wei.data());
     }
+
+    // print weights
+    std::cout << "Weights (first 10 elements):" << std::endl;
+    for(int i = 0; i < 10 && i < wei.size(); ++i)
+    {
+        // Cast to float for consistent display
+        std::cout << static_cast<float>(wei[i]) << " ";
+    }
+    std::cout << std::endl;
 
     status |= in_dev->ToGPU(q, in.data());
     status |= createRunningBuffers();
@@ -1228,6 +1249,14 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardGPU()
     }
 
     out_dev->FromGPU(GetStream(), out.data());
+
+    std::cout << "Fusion Output (first 10 elements):" << std::endl;
+    for(int i = 0; i < 10 && i < out.size(); ++i)
+    {
+        // Cast to float for consistent display
+        std::cout << static_cast<float>(out[i]) << " ";
+    }
+    std::cout << std::endl;
 
     return miopenStatusSuccess;
 }

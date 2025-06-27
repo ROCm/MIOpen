@@ -69,6 +69,7 @@
 #include <sstream>
 #include <type_traits>
 #include <vector>
+#include <iostream>
 
 // Declare hidden function for MIGraphX to smoke test it.
 extern "C" MIOPEN_EXPORT miopenStatus_t
@@ -1561,10 +1562,33 @@ int ConvDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         in.InitHostData(in_sz, is_fwd || is_wrw, gen);
     }
 
+    if(!is_gpualloc) // Host data is only available if not using --gpualloc 1
+    {
+        std::cout << "Input Data (first 10 elements):" << std::endl;
+        for(int i = 0; i < 10 && i < in.GetVectorSize(); ++i)
+        {
+            // Cast to float for consistent display
+            std::cout << static_cast<float>(in.GetVector()[i]) << " ";
+        }
+        std::cout << std::endl;
+    }
+
     if(!weiRead)
     {
         auto gen = [&]() -> auto { return Data_scale * conv::RanGenWeights<Tgpu>(); };
         wei.InitHostData(wei_sz, is_fwd || is_bwd, gen);
+    }
+
+    // print weights
+    if(!is_gpualloc)
+    {
+        std::cout << "Weights (first 10 elements):" << std::endl;
+        for(int i = 0; i < 10 && i < wei.GetVectorSize(); ++i)
+        {
+            // Cast to float for consistent display
+            std::cout << static_cast<float>(wei.GetVector()[i]) << " ";
+        }
+        std::cout << std::endl;
     }
 
     if(is_fwd || is_bwd)
@@ -1954,6 +1978,28 @@ int ConvDriver<Tgpu, Tref>::RunForwardGPU()
         out.CopyFromDeviceToHost(GetStream(), out_int8);
     else
         out.CopyFromDeviceToHost(GetStream());
+
+    std::cout << "Forward Conv Output (first 10 elements):" << std::endl;
+    if(is_int8)
+    {
+        for(int i = 0; i < 10 && i < out_int8.size(); ++i)
+        {
+            std::cout << out_int8[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+    else
+    {
+        if(!is_gpualloc) // Host data is only available if not using --gpualloc 1
+        {
+            for(int i = 0; i < 10 && i < out.GetVectorSize(); ++i)
+            {
+                // Cast to float for consistent display
+                std::cout << static_cast<float>(out.GetVector()[i]) << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
 
     if(inflags.GetValueInt("dump_output"))
     {
