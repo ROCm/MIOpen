@@ -551,7 +551,7 @@ const std::optional<miopenTensorLayout_t>& TensorDescriptor::GetLayoutEnum() con
             
             try
             {
-                return StringToLayoutType(layout);
+                return StringToLayoutType(layout, IsVectorized(), vector_length);
             }
             catch(const miopen::Exception& e)
             {
@@ -762,40 +762,51 @@ std::string TensorDescriptor::GetLayout(std::string storage_layout) const
     return result;
 }
 
-miopenTensorLayout_t TensorDescriptor::StringToLayoutType(const std::string& layout_str)
+
+miopenTensorLayout_t TensorDescriptor::StringToLayoutType(std::string layout_str, bool vectorized, int vector_length)
 {
-    if(layout_str == "NCHWc4")
-        return miopenTensorNCHWc4;
-    else if(layout_str == "NCHWc8")
-        return miopenTensorNCHWc8;
-    else if(layout_str == "CHWNc4")
-        return miopenTensorCHWNc4;
-    else if(layout_str == "CHWNc8")
-        return miopenTensorCHWNc8;
-    else if (layout_str == "CHWN")
+    if(vectorized)
     {
-        return miopenTensorCHWN;
-    }
-    else if(layout_str == "NCHW")
-    {
-        return miopenTensorNCHW;
-    }
-    else if(layout_str == "NHWC")
-    {
-        return miopenTensorNHWC;
-    }
-    else if(layout_str == "NDHWC")
-    {
-        return miopenTensorNDHWC;
-    }
-    else if(layout_str == "NCDHW")
-    {
-        return miopenTensorNCDHW;
+        std::cout << layout_str << " is vectorized, vector_length = " << vector_length << std::endl;
+        if(vector_length == 4)
+        {
+            return layout_str == "CHWNc" ? miopenTensorCHWNc4 : miopenTensorNCHWc4;
+        }
+        else if(vector_length == 8)
+        {
+            return layout_str == "CHWNc" ? miopenTensorCHWNc8 : miopenTensorNCHWc8;
+        }
+        else
+        {
+            MIOPEN_THROW("C-vectorized tensor only support vector length 4 and 8");
+        }
     }
     else
     {
-        MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8, NCHW, NHWC, NDHWC, NCDHW "
-                    "vectorized tensor layout.");
+        if(layout_str == "NCHW")
+        {
+            return miopenTensorNCHW;
+        }
+        else if(layout_str == "NHWC")
+        {
+            return miopenTensorNHWC;
+        }
+        else if(layout_str == "NDHWC")
+        {
+            return miopenTensorNDHWC;
+        }
+        else if(layout_str == "NCDHW")
+        {
+            return miopenTensorNCDHW;
+        }
+        else if (layout_str == "CHWN")
+        {
+            return miopenTensorCHWN;
+        }
+        else
+        {
+            MIOPEN_THROW("Non-vectorized tensor only support layout NCHW, NHWC, NCDHW and NDHWC");
+        }
     }
 }
 
