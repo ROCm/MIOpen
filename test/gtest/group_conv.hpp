@@ -432,7 +432,8 @@ public:
     {
         if constexpr(NDIM == 2u)
         {
-            DispatchSolver<miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops,
+            // TO-DO, handle the case when ConvHipImplicitGemmGroupFwdXdlops<false> ?
+            DispatchSolver<miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops<true>,
                            miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops,
                            miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops>();
         }

@@ -4482,8 +4482,9 @@ private:
     bool CheckCKApplicability(const miopen::conv::ProblemDescription&) const;
 };
 
+template<bool transpose>
 struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
-    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
+    : PerfConfigBaseCK<PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>>
 {
     int index             = 0;
     std::string kernel_id = "";
@@ -4510,7 +4511,7 @@ struct PerformanceConfigHipImplicitGemmGroupFwdXdlops
     }
     MIOPEN_INTERNALS_EXPORT bool IsValid(const miopen::conv::ProblemDescription&) const;
     MIOPEN_INTERNALS_EXPORT bool
-    operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const;
+    operator==(const PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>& other) const;
     MIOPEN_INTERNALS_EXPORT bool
     IsModelApplicable(const ExecutionContext& ctx,
                       const miopen::conv::ProblemDescription& problem) const;
@@ -4531,22 +4532,30 @@ private:
     bool CheckIsSupportCKArgs(const miopen::conv::ProblemDescription&) const;
 };
 
+template <bool transpose>
 struct ConvHipImplicitGemmGroupFwdXdlops final
-    : ConvTunableSolver<PerformanceConfigHipImplicitGemmGroupFwdXdlops>
+    : ConvTunableSolver<PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>>
 {
-    const std::string& SolverDbId() const override
+    MIOPEN_INTERNALS_EXPORT const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvHipImplicitGemmGroupFwdXdlops>();
+        return GetSolverDbId();
     }
 
-    MIOPEN_INTERNALS_EXPORT PerformanceConfigHipImplicitGemmGroupFwdXdlops
+    static const std::string& GetSolverDbId()
+    {
+        static const std::string dbId = std::string("ConvHipImplicitGemmGroupFwdXdlops-")
+                                            .append(transpose? "transpose" : "non-transpose");
+        return dbId;
+    }
+
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>
     GetDefaultPerformanceConfig(const ExecutionContext&,
                                 const miopen::conv::ProblemDescription&) const override;
     MIOPEN_INTERNALS_EXPORT bool
     IsValidPerformanceConfig(const ExecutionContext&,
                              const miopen::conv::ProblemDescription&,
-                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
-    MIOPEN_INTERNALS_EXPORT PerformanceConfigHipImplicitGemmGroupFwdXdlops
+                             const PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>&) const override;
+    MIOPEN_INTERNALS_EXPORT PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>
     Search(const ExecutionContext&,
            const miopen::conv::ProblemDescription&,
            const AnyInvokeParams& invoke_ctx) const override;
@@ -4556,7 +4565,7 @@ struct ConvHipImplicitGemmGroupFwdXdlops final
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&,
                 const miopen::conv::ProblemDescription&,
-                const PerformanceConfigHipImplicitGemmGroupFwdXdlops&) const override;
+                const PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>&) const override;
     /// \ref igemm_get_wti_magic_number
     float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override
     {

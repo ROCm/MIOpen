@@ -26,7 +26,6 @@
 
 #include <vector>
 #include <cstdint>
-
 #include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
@@ -48,26 +47,58 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-template <typename DataType>
+template <typename ALayout,
+          typename BLayout,
+          typename ELayout,
+          typename DataType>
 using DeviceOpGFwd = ck::tensor_operation::device::DeviceGroupedConvFwdMultipleABD<
-    2,
-    ck::tensor_layout::convolution::NHWGC,
-    ck::tensor_layout::convolution::GKYXC,
-    ck::Tuple<>,
-    ck::tensor_layout::convolution::NHWGK,
-    DataType,
-    DataType,
-    ck::Tuple<>,
-    DataType,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough,
-    ck::tensor_operation::element_wise::PassThrough>;
+    2,                                                  // NDimSpatial
+    ALayout,                                            // ALayout
+    BLayout,                                            // BLayout
+    ck::Tuple<>,                                        // DsLayout
+    ELayout,                                            // ELayout
+    DataType,                                           // ADataType
+    DataType,                                           // BDataType
+    ck::Tuple<>,                                        // DsDataType
+    DataType,                                           // EDataType
+    ck::tensor_operation::element_wise::PassThrough,    // AElementwiseOperation
+    ck::tensor_operation::element_wise::PassThrough,    // BElementwiseOperation
+    ck::tensor_operation::element_wise::PassThrough>;   // CDEElementwiseOperation
 
+// Forward declarations for the helper struct
+template <bool transpose, typename DataType>
+struct DeviceOpGFwdPtrsHelper;
+
+// Specialization for transpose = false
 template <typename DataType>
-using DeviceOpGFwdPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGFwd<DataType>>;
+struct DeviceOpGFwdPtrsHelper<false, DataType> {
+    using type = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGFwd<
+            ck::tensor_layout::convolution::NGCHW,
+            ck::tensor_layout::convolution::GKCYX,
+            ck::tensor_layout::convolution::NGKHW,
+            DataType>
+    >;
+};
+
+// Specialization for transpose = true
+template <typename DataType>
+struct DeviceOpGFwdPtrsHelper<true, DataType> {
+    using type = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGFwd<
+            ck::tensor_layout::convolution::NHWGC,
+            ck::tensor_layout::convolution::GKYXC,
+            ck::tensor_layout::convolution::NHWGK,
+            DataType>
+    >;
+};
+
+// Final type alias using the helper
+template <bool transpose, typename DataType>
+using DeviceOpGFwdPtrs = typename DeviceOpGFwdPtrsHelper<transpose, DataType>::type;
 
 namespace {
+template<bool transpose>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -88,11 +119,21 @@ struct CKArgs
         input  = {G, N, C, Hi, Wi};
         output = {G, N, K, Ho, Wo};
         weight = {G, K, C, Y, X};
+        if constexpr(transpose)
+        {
+            // strides from NHWGC to GNCHW laout
+            in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
+            out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
+            wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+        }
+        else
+        {
+            in_strides  = {G*C*Hi*Wi, C*Hi*Wi, Hi*Wi, Wi, 1};
+            out_strides = {G*K*Ho*Wo, K*Ho*Wo, Ho*Wo, Wo, 1};
+            wei_strides = {K*C*Y*X,   C*Y*X,   Y*X, X, 1};
+        }
 
-        // strides from NHWGC to GNCHW laout
-        in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-        out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
-        wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+
         strides     = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                    ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         dilation    = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
@@ -180,28 +221,31 @@ struct CKArgs
 
 } // namespace
 
+template <bool transpose>
 template <typename DataType>
-void PerformanceConfigHipImplicitGemmGroupFwdXdlops::Init(
+void PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::Init(
     const ProblemDescription& problem) // should be parameterized with execution context
 {
     if(valid_kernels.empty())
-        valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
+        valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<transpose, DataType>, CKArgs<transpose>>(problem);
     index     = 0;
     kernel_id = valid_kernels[index];
 }
 
+template <bool transpose>
 template <typename DataType>
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::CheckIsSupportCKArgs(
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGFwdPtrs<transpose, DataType>, CKArgs<transpose>>(problem, kernel_id);
 }
 
+template <bool transpose>
 template <typename DataType>
-bool ConvHipImplicitGemmGroupFwdXdlops::CheckCKApplicability(
+bool ConvHipImplicitGemmGroupFwdXdlops<transpose>::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGFwdPtrs<DataType>, CKArgs>(problem);
+    return IsCKApplicable<DeviceOpGFwdPtrs<transpose, DataType>, CKArgs<transpose>>(problem);
 }
 
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
@@ -220,7 +264,8 @@ static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
     return tokens;
 }
 
-void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs(const std::string& type)
+template <bool transpose>
+void PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::InitHeuristicKernelIDs(const std::string& type)
 {
     for(int i = 0; i < valid_kernels.size(); i++)
     {
@@ -232,7 +277,8 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::InitHeuristicKernelIDs(cons
     }
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::ModelApplyToken(int idx,
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::ModelApplyToken(int idx,
                                                                      std::string value,
                                                                      const std::string& arch)
 {
@@ -322,11 +368,12 @@ GetFeatures(const ProblemDescription& problem, std::size_t num_cu, const std::st
     return features;
 }
 
+template <bool transpose>
 template <typename DataType>
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel(
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::RunParameterPredictionModel(
     const ExecutionContext& ctx, const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<DataType>, CKArgs>(
+    valid_kernels = FillValidKernelsIDs<DeviceOpGFwdPtrs<transpose, DataType>, CKArgs<transpose>>(
         problem); // filter valid_kernel ID's
     static const std::string& arch = ctx.GetStream().GetDeviceName();
     if(arch == "gfx90a")
@@ -345,7 +392,7 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel
     {
         index     = heuristic_indexes[0];
         kernel_id = valid_kernels[index];
-        MIOPEN_LOG_I("Params set by AI: " << ToString());
+        MIOPEN_LOG_I("Params set by AI: " << this->ToString());
         return true;
     }
     return false;
@@ -353,7 +400,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::RunParameterPredictionModel
 #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsModelApplicable(
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::IsModelApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942")
@@ -366,7 +414,8 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsModelApplicable(
     return true;
 }
 
-void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
+template <bool transpose>
+void PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::HeuristicInit(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem)
 {
@@ -409,7 +458,8 @@ void PerformanceConfigHipImplicitGemmGroupFwdXdlops::HeuristicInit(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemDescription& problem)
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::SetNextValue(const ProblemDescription& problem)
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
@@ -440,12 +490,14 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::SetNextValue(const ProblemD
         return false;
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValidValue() const
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::IsValidValue() const
 {
     return index < valid_kernels.size();
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::IsValid(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -465,44 +517,50 @@ bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::IsValid(
     return false;
 }
 
-bool PerformanceConfigHipImplicitGemmGroupFwdXdlops::operator==(
-    const PerformanceConfigHipImplicitGemmGroupFwdXdlops& other) const
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>::operator==(
+    const PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>& other) const
 {
     return this->kernel_id == other.kernel_id;
 }
 
-PerformanceConfigHipImplicitGemmGroupFwdXdlops
-ConvHipImplicitGemmGroupFwdXdlops::GetDefaultPerformanceConfig(
+template <bool transpose>
+PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>
+ConvHipImplicitGemmGroupFwdXdlops<transpose>::GetDefaultPerformanceConfig(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    PerformanceConfigHipImplicitGemmGroupFwdXdlops pp;
+    PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose> pp;
     pp.HeuristicInit(ctx, problem);
     return pp;
 }
 
-bool ConvHipImplicitGemmGroupFwdXdlops::IsValidPerformanceConfig(
+template <bool transpose>
+bool ConvHipImplicitGemmGroupFwdXdlops<transpose>::IsValidPerformanceConfig(
     const ExecutionContext&,
     const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
+    const PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>& config) const
 {
     return config.IsValid(problem);
 }
 
-size_t ConvHipImplicitGemmGroupFwdXdlops::GetWorkspaceSize(const ExecutionContext&,
+template <bool transpose>
+size_t ConvHipImplicitGemmGroupFwdXdlops<transpose>::GetWorkspaceSize(const ExecutionContext&,
                                                            const ProblemDescription& problem) const
 {
     return GetWorkspaceSizeLayoutTransformConv(problem);
 }
 
-PerformanceConfigHipImplicitGemmGroupFwdXdlops
-ConvHipImplicitGemmGroupFwdXdlops::Search(const ExecutionContext& ctx,
+template <bool transpose>
+PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>
+ConvHipImplicitGemmGroupFwdXdlops<transpose>::Search(const ExecutionContext& ctx,
                                           const ProblemDescription& problem,
                                           const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
+template <bool transpose>
+bool ConvHipImplicitGemmGroupFwdXdlops<transpose>::IsApplicable(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
@@ -546,26 +604,28 @@ bool ConvHipImplicitGemmGroupFwdXdlops::IsApplicable(
     return false;
 }
 
-ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
+template <bool transpose>
+ConvSolution ConvHipImplicitGemmGroupFwdXdlops<transpose>::GetSolution(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
-    [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupFwdXdlops& config) const
+    [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupFwdXdlops<transpose>& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     return MakeSolutionGroupConvImplicitGemmXdlops(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryFwdNCHW<2,
-                                             DeviceOpGFwdPtrs<T>,
-                                             CKArgs,
+            return InitInvokerFactoryFwdNCHW<transpose,
+                                             2,
+                                             DeviceOpGFwdPtrs<transpose, T>,
+                                             CKArgs<transpose>,
                                              miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<T>,
-                                          CKArgs,
+            return InitInvokerFactoryNHWC<DeviceOpGFwdPtrs<false, T>,
+                                          CKArgs<false>,
                                           miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
@@ -573,6 +633,8 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
     return {};
 #endif
 }
+template struct ConvHipImplicitGemmGroupFwdXdlops<true>;
+template struct ConvHipImplicitGemmGroupFwdXdlops<false>;
 
 } // namespace conv
 } // namespace solver

@@ -329,12 +329,13 @@ AnySolver<miopen::ExecutionContext, miopen::conv::ProblemDescription>::AnySolver
     case 127: SetObject<miopen::solver::conv::ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC>(); break;
     case 128: SetObject<miopen::solver::conv::ConvHipImplicitGemmFwdXdlops>(); break;
     case 129: SetObject<miopen::solver::conv::ConvHipImplicitGemmBwdXdlops>(); break;
-    case 137: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops>(); break;
+    case 137: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops<true>>(); break;
     case 138: SetObject<miopen::solver::conv::ConvHipImplicitGemm3DGroupFwdXdlops>(); break;
     case 140: SetObject<miopen::solver::conv::ConvHipImplicitGemm3DGroupWrwXdlops>(); break;
     case 141: SetObject<miopen::solver::conv::ConvHipImplicitGemm3DGroupBwdXdlops>(); break;
     case 155: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops>(); break;
     case 156: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops>(); break;
+    case 184: SetObject<miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops<false>>(); break;
     // New tunable solver should be added here
     default:
         MIOPEN_THROW(miopenStatusInternalError, "Unknown solver ID (" + std::to_string(id) + ")");

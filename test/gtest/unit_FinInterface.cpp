@@ -301,7 +301,7 @@ const auto& GetSolversInfo<ConvSolverInfo>()
         {"ConvAsmImplicitGemmGTCDynamicFwdDlopsNCHWC",          {127,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         {"ConvHipImplicitGemmFwdXdlops",                        {128,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         {"ConvHipImplicitGemmBwdXdlops",                        {129,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
-        {"ConvHipImplicitGemmGroupFwdXdlops",                   {137,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
+        {"ConvHipImplicitGemmGroupFwdXdlops<false>",            {137,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         {"ConvHipImplicitGemm3DGroupFwdXdlops",                 {138,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         {"ConvWinoFuryRxS<2-3>",                                {139,   true,   false,  "miopenConvolutionFwdAlgoWinograd"}},
         {"ConvHipImplicitGemm3DGroupWrwXdlops",                 {140,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
@@ -311,6 +311,7 @@ const auto& GetSolversInfo<ConvSolverInfo>()
         {"ConvQunConvBwd",                                      {181,   true,   true,   "miopenConvolutionFwdAlgoDirect"}},
         {"ConvQunConvFwd",                                      {182,   true,   true,   "miopenConvolutionFwdAlgoDirect"}},
         {"ConvJinMDConvBwd",                                    {183,   true,   true,   "miopenConvolutionFwdAlgoDirect"}},
+        {"ConvHipImplicitGemmGroupFwdXdlops<true>",             {184,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         // clang-format on
     };
 

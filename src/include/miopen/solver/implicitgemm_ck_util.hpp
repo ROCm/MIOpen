@@ -768,7 +768,8 @@ ZeroOutTensor(const Handle& handle, const TensorDescriptor& tensorDesc, Data_t t
     }
 }
 
-template <typename DeviceOpType,
+template <bool     transpose,
+          typename DeviceOpType,
           typename CKArgsType,
           typename CastType,
           typename Input1TposeOp,
@@ -825,7 +826,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                               output_init_tr_inst = std::move(_output_init_tr_inst),
                               ck_buff_des =
                                   _ck_buff_des](const std::vector<Kernel>& kernels) mutable {
-        return [split_k = split_k,
+        return [split_k             = split_k,
                 kernels,
                 ck_args             = std::move(ck_args),
                 sh_conv_ptr         = std::move(sh_conv_ptr),
@@ -844,10 +845,13 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 MIOPEN_THROW(miopenStatusInvalidValue, "workspace pointer is null");
             }
 
-            input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-            input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-            output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
-            output_init_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            if constexpr(transpose)
+            {
+                input1_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+                input2_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+                output_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+                output_init_tr_inst.AssignBuffer(handle, data_ctx.workSpace);
+            }
 
             // conversion operator applied here to convert to ConvTensors
             auto conv_tensors = ConvTensors(data_ctx.tensors);
@@ -862,50 +866,80 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             }
 
             float elapsed = 0.0f;
+            if constexpr(transpose)
+            {
+                // ConvertFrom automatically keeps kernel time and accumulates
+                input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+                input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+                output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
 
-            // ConvertFrom automatically keeps kernel time and accumulates
-            input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-            input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-            output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-
-            /// \todo: Will need SetTensor() to properly zero out non-packed tensors
-            /// Note: Need to clear buffer memory for output since all values may not be set.
-            elapsed = handle.IsProfilingEnabled() ? handle.GetKernelTime() : 0.0f;
-            output_tr_inst.ZeroOutBuffer(handle);
-            if(handle.IsProfilingEnabled())
-                elapsed += handle.GetKernelTime();
+                /// \todo: Will need SetTensor() to properly zero out non-packed tensors
+                /// Note: Need to clear buffer memory for output since all values may not be set.
+                elapsed = handle.IsProfilingEnabled() ? handle.GetKernelTime() : 0.0f;
+                output_tr_inst.ZeroOutBuffer(handle);
+                if(handle.IsProfilingEnabled())
+                    elapsed += handle.GetKernelTime();
+            }
 
             std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
                 &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
-
-            // sort by tag in order: Input, Weights, Output
-            std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
-                return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
-            });
+            if constexpr(transpose)
+            {
+                // sort by tag in order: Input, Weights, Output
+                std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
+                    return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
+                });
+            }
 
             std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr;
             if constexpr(IsSplitKNeeded<DeviceOpType>())
             {
                 if(split_k.has_value())
                 {
-                    argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                      tr_ptrs[0]->GetBufferPtr(),
-                                                      tr_ptrs[1]->GetBufferPtr(),
-                                                      tr_ptrs[2]->GetBufferPtr(),
-                                                      data_ctx.alpha.GetAsFloat(),
-                                                      data_ctx.beta.GetAsFloat(),
-                                                      split_k.value());
+                    if constexpr(transpose)
+                    {
+                        argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                        tr_ptrs[0]->GetBufferPtr(),
+                                                        tr_ptrs[1]->GetBufferPtr(),
+                                                        tr_ptrs[2]->GetBufferPtr(),
+                                                        data_ctx.alpha.GetAsFloat(),
+                                                        data_ctx.beta.GetAsFloat(),
+                                                        split_k.value());
+                    }
+                    else
+                    {
+                        argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                                        const_cast<void*>(conv_tensors.x),
+                                                        const_cast<void*>(conv_tensors.w),
+                                                        const_cast<void*>(conv_tensors.y),
+                                                        data_ctx.alpha.GetAsFloat(),
+                                                        data_ctx.beta.GetAsFloat(),
+                                                        split_k.value());
+                    }
                 }
             }
             else
             {
                 std::ignore  = split_k;
-                argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
-                                                  tr_ptrs[0]->GetBufferPtr(),
-                                                  tr_ptrs[1]->GetBufferPtr(),
-                                                  tr_ptrs[2]->GetBufferPtr(),
-                                                  data_ctx.alpha.GetAsFloat(),
-                                                  data_ctx.beta.GetAsFloat());
+
+                if constexpr(transpose)
+                {
+                    argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                        tr_ptrs[0]->GetBufferPtr(),
+                                        tr_ptrs[1]->GetBufferPtr(),
+                                        tr_ptrs[2]->GetBufferPtr(),
+                                        data_ctx.alpha.GetAsFloat(),
+                                        data_ctx.beta.GetAsFloat());
+                }
+                else
+                {
+                    argument_ptr = ck_args.MakeArgPtr(sh_conv_ptr,
+                                    const_cast<void*>(conv_tensors.x),
+                                    const_cast<void*>(conv_tensors.w),
+                                    const_cast<void*>(conv_tensors.y),
+                                    data_ctx.alpha.GetAsFloat(),
+                                    data_ctx.beta.GetAsFloat());
+                }
             }
 
             if(ck_buff_des.has_value() && ck_buff_des->ck_size)
@@ -930,7 +964,10 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             }
 
             // ConvertTo automatically keeps kernel time and accumulates
-            output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
+            if constexpr(transpose)
+            {
+                output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
+            }
         };
     };
 
@@ -1088,7 +1125,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
     }
 }
 
-template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
+template <bool transpose, int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
                                        const miopen::conv::ProblemDescription& problem,
                                        const std::string& kernel_id)
@@ -1100,7 +1137,7 @@ ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
     using Input2 = internal::CKTransposeInputOp<ND, internal::ConvOperandTag::Weights>;
     using Output = internal::CKTransposeOutputOp<ND, internal::ConvOperandTag::Output>;
 
-    return InitInvokerFactoryNCHW<DeviceOpType, CKArgsType, CastType>(
+    return InitInvokerFactoryNCHW<transpose, DeviceOpType, CKArgsType, CastType>(
         ctx, problem, kernel_id, Input1{}, Input2{}, Output{});
 }
 
@@ -1116,7 +1153,7 @@ ConvSolution InitInvokerFactoryBwdNCHW(const ExecutionContext& ctx,
     using Input2 = internal::CKTransposeInputOp<ND, internal::ConvOperandTag::Weights>;
     using Output = internal::CKTransposeOutputOp<ND, internal::ConvOperandTag::Input>;
 
-    return InitInvokerFactoryNCHW<DeviceOpType, CKArgsType, CastType>(
+    return InitInvokerFactoryNCHW<false, DeviceOpType, CKArgsType, CastType>(
         ctx, problem, kernel_id, Input1{}, Input2{}, Output{});
 }
 
@@ -1131,7 +1168,7 @@ ConvSolution InitInvokerFactoryWrwNCHW(const ExecutionContext& ctx,
     using Input2 = internal::CKTransposeInputOp<ND, internal::ConvOperandTag::Output>;
     using Output = internal::CKTransposeOutputOp<ND, internal::ConvOperandTag::Weights>;
 
-    return InitInvokerFactoryNCHW<DeviceOpType, CKArgsType, CastType>(
+    return InitInvokerFactoryNCHW<false, DeviceOpType, CKArgsType, CastType>(
         ctx, problem, kernel_id, Input1{}, Input2{}, Output{});
 }
 
