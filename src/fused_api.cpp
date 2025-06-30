@@ -438,6 +438,12 @@ miopenExecuteFusionPlan_v2(const miopenHandle_t handle,
 {
     MIOPEN_LOG_FUNCTION(
         handle, fusePlanDesc, inputDesc, input, outputDesc, output, args, workspace, workspaceSize);
+
+    if(workspace == nullptr && workspaceSize != 0)
+    {
+        return miopenStatusBadParm;
+    }
+
     return miopen::try_([&] {
         miopen::deref(fusePlanDesc)
             .Execute(miopen::deref(handle),
