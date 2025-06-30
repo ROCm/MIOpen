@@ -102,10 +102,10 @@ struct WinoShaderArgsV2
 {
     // Main convolution parameters
     uint32_t N;     // batch size
-    uint32_t C;     // number of input channels in each filter group
+    uint32_t Cg;    // number of input channels in each filter group
     uint32_t H;     // input height
     uint32_t W;     // input width
-    uint32_t K;     // number of output channels in each filter group
+    uint32_t Kg;    // number of output channels in each filter group
     uint32_t R;     // filter height
     uint32_t S;     // filter width
     int32_t pad_h;  // padding in h dimension
@@ -155,11 +155,15 @@ struct WinoShaderArgsV2
         return static_cast<T>(1) << exp;
     }
 
-    bool N_C_H_W_OH_OW_fit16bit() const noexcept
+    bool dimsFit16bit() const noexcept
     {
         // clang-format off
         return N < PowOf2<16>()
-            && C < PowOf2<16>()
+            && G < PowOf2<16>()
+           && Cg < PowOf2<16>()
+           && Kg < PowOf2<16>()
+       && Cg * G < PowOf2<16>()
+       && Kg * G < PowOf2<16>()
             && H < PowOf2<16>()
             && W < PowOf2<16>()
             && R < PowOf2<16>()
@@ -188,8 +192,27 @@ struct WinoShaderArgsV2
     bool batchTensorSizesFit31bits() const noexcept
     {
         // clang-format off
-        return (static_cast<uint64_t>(N - 1) * C + 1) * H     * W     < PowOf2<31>()
-            && (static_cast<uint64_t>(N - 1) * K + 1) * out_h * out_w < PowOf2<31>();
+        // Convert everything to 64 bit
+        uint64_t N_  = N;
+        uint64_t Cg_ = Cg;
+        uint64_t H_  = H;
+        uint64_t W_  = W;
+        uint64_t Kg_ = Kg;
+        uint64_t R_  = R;
+        uint64_t S_  = S;
+        uint64_t OH_ = out_h;
+        uint64_t OW_ = out_w;
+        uint64_t G_  = G;
+        // proceed avoiding overflows and assuming dimsFit16bit() passes
+        uint64_t KCR =  (((Kg_ * G_ - 1) * Cg_ * G_) + 1) * R_;
+        uint64_t NCH =  (((N_       - 1) * Cg_ * G_) + 1) * H_;
+        uint64_t NKOH = (((N_       - 1) * Kg_ * G_) + 1) * OH_;
+        return KCR        < PowOf2<28>()
+            && KCR  * S_  < PowOf2<28>()
+            && NCH        < PowOf2<31>()
+            && NCH  * W_  < PowOf2<31>()
+            && NKOH       < PowOf2<31>()
+            && NKOH * OW_ < PowOf2<31>();
         // clang-format on
     }
 

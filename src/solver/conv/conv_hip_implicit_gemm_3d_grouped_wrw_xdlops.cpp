@@ -537,21 +537,21 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
             {
             case BILINEAR:
                 return InitInvokerFactoryWrwNCHW<3,
-                                                 false,
+                                                 true,
                                                  DeviceOpGBwdWeightBilinearPtrs<T>,
                                                  CKArgs<T>,
                                                  miopen::conv::WrWInvokeParams>(
                     ctx, problem, config.kernel_id);
             case SCALE:
                 return InitInvokerFactoryWrwNCHW<3,
-                                                 false,
+                                                 true,
                                                  DeviceOpGBwdWeightScalePtrs<T>,
                                                  CKArgs<T>,
                                                  miopen::conv::WrWInvokeParams>(
                     ctx, problem, config.kernel_id);
             default:
                 return InitInvokerFactoryWrwNCHW<3,
-                                                 false,
+                                                 true,
                                                  DeviceOpGBwdWeightDefaultPtrs<T>,
                                                  CKArgs<T>,
                                                  miopen::conv::WrWInvokeParams>(
@@ -563,19 +563,19 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
             switch(problem.GetAlphaBetaCase())
             {
             case BILINEAR:
-                return InitInvokerFactoryNHWC<false,
+                return InitInvokerFactoryNHWC<true,
                                               DeviceOpGBwdWeightBilinearPtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::WrWInvokeParams>(
                     ctx, problem, config.kernel_id);
             case SCALE:
-                return InitInvokerFactoryNHWC<false,
+                return InitInvokerFactoryNHWC<true,
                                               DeviceOpGBwdWeightScalePtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::WrWInvokeParams>(
                     ctx, problem, config.kernel_id);
             default:
-                return InitInvokerFactoryNHWC<false,
+                return InitInvokerFactoryNHWC<true,
                                               DeviceOpGBwdWeightDefaultPtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::WrWInvokeParams>(
