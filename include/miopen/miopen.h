@@ -3882,7 +3882,7 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t arg
                                                         const void* beta,
                                                         const void* bias);
 
-/*! @brief Executes the fusion plan
+/*! @brief Executes the fusion plan. Only compatible with NHWC/NDHWC tensor layouts.
  *
  *  @deprecated This function is deprecated and may be removed in a future release.
  *             Use miopenExecuteFusionPlan_v2 instead.
@@ -3905,7 +3905,7 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
                         void* output,
                         miopenOperatorArgs_t args);
 
-/*! @brief Executes the fusion plan with a workspace buffer
+/*! @brief Executes the fusion plan with a workspace buffer for layout transformations.
  *
  *
  * @param handle           MIOpen handle (input)
