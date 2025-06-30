@@ -40,8 +40,6 @@ IGNORE_LIST = {
     "../../test/gtest/layout_transpose.cpp",
     "../../test/gtest/reduce_custom_fp32.cpp",
     "../../test/gtest/unary_tensor_ops.cpp",
-    "../../test/gtest/cba_infer.cpp",
-    "../../test/gtest/conv_activ_infer.cpp",
     "CPU_MIOpenDriverRegressionBigTensorTest_FP32",
     "GPU_UnitTestConvSolverAsmBwdWrW3x3Wrw_FP32",
 }
