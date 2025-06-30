@@ -268,6 +268,9 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
     // layouts, NCDHW for 5D layouts
     std::string GetLayout(std::string storage_layout) const;
 
+    static miopenTensorLayout_t
+    StringToLayoutType(std::string layout_str, bool vectorized, int vector_length);
+
     friend MIOPEN_INTERNALS_EXPORT std::ostream& operator<<(std::ostream& stream,
                                                             const TensorDescriptor& t);
 
