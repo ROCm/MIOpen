@@ -848,6 +848,7 @@ ConvTensors GetTensors(const CastType& data_ctx)
 template <typename DataType, typename OutElemOp>
 OutElemOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activationOp)
 {
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     auto activationMode = activationOp.activMode;
     switch(activationMode)
     {
@@ -858,6 +859,9 @@ OutElemOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activat
         MIOPEN_THROW(miopenStatusInternalError,
                      "Unsupported activation type: " + std::to_string(activationMode));
     }
+#else
+    MIOPEN_THROW(miopenStatusNotImplemented, "Not implemented without ck enabled");
+#endif
 }
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
