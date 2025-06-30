@@ -955,7 +955,13 @@ void BuildHip(const std::string& name,
 #endif
         opts.push_back("-Wno-cuda-compat");
         opts.push_back("-fno-gpu-rdc");
+#if 1
         opts.push_back("-O3");
+#else
+        opts.push_back("-ggdb");
+        opts.push_back("-O0");
+        opts.push_back("-g");
+#endif
 #if WORKAROUND_SWDEV_413293
         opts.push_back("-fno-offload-uniform-block");
 #endif
