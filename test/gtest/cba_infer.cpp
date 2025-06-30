@@ -306,7 +306,7 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_ConvBiasActivInfer_FP16,
                          testing::Combine(testing::Values(miopenActivationRELU),
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
-                                          testing::Values(miopenTensorNHWC),
+                                          testing::Values(miopenTensorNCHW, miopenTensorNHWC),
                                           testing::Values(0.25f),
                                           testing::Values(0.75f),
                                           testing::Values(0.5f)));
