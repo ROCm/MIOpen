@@ -136,8 +136,8 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
             }
 
             // clang-format off
-            MIOPEN_LOG_I2(" N=" << args.N << " C=" << args.C << " H=" << args.H << " W=" << args.W
-                << " K=" << args.K << " R=" << args.R << " S=" << args.S
+            MIOPEN_LOG_I2(" N=" << args.N << " C=" << args.Cg << " H=" << args.H << " W=" << args.W
+                << " K=" << args.Kg << " R=" << args.R << " S=" << args.S
                 << " pad_H=" << args.pad_h << " pad_W=" << args.pad_w
                 << " out_H=" << args.out_h << " out_W=" << args.out_w
                 << " G=" << args.G
@@ -170,10 +170,10 @@ InvokerFactory MakeGcnAsmWinoV2InvokerFactory(const WinoShaderArgsV2& args,
             // clang-format off
             // Any reserved fields should be set to 0
             k(args.N,                     // uint32_t,    batch size
-                args.C,                   // uint32_t,    number of input channels in each filter group
+                args.Cg,                  // uint32_t,    number of input channels in each filter group
                 args.H,                   // uint32_t,    input height
                 args.W,                   // uint32_t,    input width
-                args.K,                   // uint32_t,    number of output channels in each filter group
+                args.Kg,                  // uint32_t,    number of output channels in each filter group
                 args.n_groups,            // uint32_t,    number of shader groups
                 args.flags64,             // uint64_t,    shader flags
                 data_addr,                // uint64_t,    address of input tensor
