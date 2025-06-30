@@ -101,10 +101,10 @@ struct AutoMiopenWarmupMode
         miopen::debug::FindEnforceDisable = true;
         miopen::debug::IsWarmupOngoing    = true;
     }
-    AutoMiopenWarmupMode(const AutoMiopenWarmupMode&)            = delete;
-    AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)                 = delete;
+    AutoMiopenWarmupMode(const AutoMiopenWarmupMode&) = delete;
+    AutoMiopenWarmupMode(AutoMiopenWarmupMode&&)      = delete;
     AutoMiopenWarmupMode& operator=(const AutoMiopenWarmupMode&) = delete;
-    AutoMiopenWarmupMode& operator=(AutoMiopenWarmupMode&&)      = delete;
+    AutoMiopenWarmupMode& operator=(AutoMiopenWarmupMode&&) = delete;
     ~AutoMiopenWarmupMode()
     {
         miopen::debug::LoggingQuiet       = debug_logging_quiet_prev;
@@ -127,10 +127,10 @@ struct AutoPrepareForGpuReference
         miopen::debug::AlwaysEnableConvDirectNaive = true;
         miopen::debug::LoggingQuiet                = true;
     }
-    AutoPrepareForGpuReference(const AutoPrepareForGpuReference&)            = delete;
-    AutoPrepareForGpuReference(AutoPrepareForGpuReference&&)                 = delete;
+    AutoPrepareForGpuReference(const AutoPrepareForGpuReference&) = delete;
+    AutoPrepareForGpuReference(AutoPrepareForGpuReference&&)      = delete;
     AutoPrepareForGpuReference& operator=(const AutoPrepareForGpuReference&) = delete;
-    AutoPrepareForGpuReference& operator=(AutoPrepareForGpuReference&&)      = delete;
+    AutoPrepareForGpuReference& operator=(AutoPrepareForGpuReference&&) = delete;
     ~AutoPrepareForGpuReference()
     {
         miopen::debug::LoggingQuiet                = quiet_prev;
@@ -1711,7 +1711,7 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
         size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
                              miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
-        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+        printf("stats: name, n, c, ho, wo, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
         printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "fwd-conv",
@@ -1755,7 +1755,7 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
         size_t outputBytes = 1.0 * out_n * out_c * out_d * out_h * out_w *
                              miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
-        printf("stats: name  , n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, "
+        printf("stats: name, n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, "
                "GFLOPs, "
                "GB/s, timeMs\n");
         printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, "
@@ -2655,7 +2655,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
         size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
                              miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
-        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+        printf("stats: name, n, c, ho, wo, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
         printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "bwdd-conv",
@@ -2700,7 +2700,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
                              miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
         printf(
-            "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+            "stats: name, n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
         printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d  %zu, %zu, %zu, %.0f, "
                "%.0f, %f\n",
@@ -2865,7 +2865,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
         size_t readBytes   = 0;
         size_t outputBytes = 0;
 
-        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+        printf("stats: name, n, c, ho, wo, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
         printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "bwdw-conv",
@@ -2904,7 +2904,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
         size_t outputBytes = 0;
 
         printf(
-            "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+            "stats: name, n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
         printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, "
                "%.0f, %f\n",
