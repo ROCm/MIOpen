@@ -368,7 +368,7 @@ bool ConvJinMDConvBwd::IsApplicable(const ExecutionContext&   ctx,
     if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))
         return false;
 
-    if(!problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsFp8() ||
@@ -479,22 +479,19 @@ bool ConvJinMDConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t ha
 #if 1
 
                 const auto is_nhwc = (problem.IsLayoutDefault() == false);
-                int ho         = problem.GetOutHeight();
-                int wo         = problem.GetOutWidth();
-                int n          = problem.GetInBatchSize();
-                int c          = problem.GetInChannels();
-                int k          = problem.GetOutChannels();
-                int hi         = problem.GetInHeight();
-                int wi         = problem.GetInWidth();
+                const int ho     = problem.GetInHeight();
+                const int wo     = problem.GetInWidth();
+                const int n       = problem.GetInBatchSize();
+                const int k      = problem.GetInChannels();
+                const int c      = problem.GetOutChannels();
+                const int hi     = problem.GetOutHeight();
+                const int wi     = problem.GetOutWidth();
 
-                size_t trans_input_offset = 0;
                 size_t trans_input_size   = 0;
-
-                size_t trans_output_offset = 0;
                 size_t trans_output_size   = 0;
 
-                bool trans_input_skippable  = false;
-                bool trans_output_skippable = false;
+                bool trans_input_skippable  = true;
+                bool trans_output_skippable = true;
 
                 int trans_input_idx  = -1;
                 int trans_output_idx = -1;
@@ -529,33 +526,21 @@ bool ConvJinMDConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t ha
                     trans_output_idx=1;
                 }
 
-                MultiBufferWorkspaceTraits wt({trans_input_size, trans_output_size});
-                trans_input_offset  = wt.GetOffset(0);
-                trans_output_offset = wt.GetOffset(1);
-
             #endif
 
                 sol.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
                     return [=](const Handle& handle, const AnyInvokeParams& primitive_params) mutable {
                         const auto& bwd_ctx     = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                         const auto& ck_args     = CKArgs{problem};
-                        const auto& workSpace   = bwd_ctx.workSpace;
 
                         float elapsed = 0;
+                        DeviceMem trans_input_workspace_dev(trans_input_size);
+                        DeviceMem trans_output_workspace_dev(trans_output_size);
 
-                        auto trans_input_buf =
-                                trans_input_size == 0
-                                    ? shared<Data_t>{}
-                                    : handle.CreateSubBuffer(workSpace, trans_input_offset, trans_input_size);
-                        auto trans_output_buf =
-                                trans_output_size == 0
-                                    ? shared<Data_t>{}
-                                    : handle.CreateSubBuffer(workSpace, trans_output_offset, trans_output_size);
-                             
-                        if(is_nhwc)
+                        if(!trans_output_skippable)
                         {
                             auto& karg_output = opArgsTrans[trans_output_idx];
-                            karg_output[0]    = OpKernelArg(trans_output_buf.get());  //dst
+                            karg_output[0]    = OpKernelArg(trans_output_workspace_dev.GetDeviceBuffer());  //dst
                             karg_output[1]    = OpKernelArg(bwd_ctx.tensors.in);   // src
                             handle.Run(kernels[trans_output_idx])(karg_output);
                             if(handle.IsProfilingEnabled())
@@ -564,10 +549,10 @@ bool ConvJinMDConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t ha
 
                         auto invoker  = conv_ptr->MakeInvoker();
                         auto argument = conv_ptr->MakeArgument(
-                                                            (is_nhwc==false)? bwd_ctx.tensors.out:trans_input_buf.get(),
+                                                            (trans_input_skippable==true)? bwd_ctx.tensors.out:trans_input_workspace_dev.GetDeviceBuffer(),
                                                             bwd_ctx.tensors.w,
                                                             std::array<const void*, 0>{},
-                                                            (is_nhwc==false)? bwd_ctx.tensors.in:trans_output_buf.get(),
+                                                            (trans_output_skippable==true)? bwd_ctx.tensors.in:trans_output_workspace_dev.GetDeviceBuffer(),
                                                             ck_args.input_lengths,
                                                             ck_args.in_strides,
                                                             ck_args.wei_lens,
@@ -583,10 +568,10 @@ bool ConvJinMDConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t ha
                                                             InElementOp{},
                                                             WeiElementOp{},
                                                             OutElementOp{});
-
-                        {
-                            WorkAroundHipEventProfiler prf(handle);
-                            float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
+                            {
+                                WorkAroundHipEventProfiler prf(handle);
+                                invoker.Run(argument, StreamConfig{nullptr, false});
+                            }
                             if (DirectCkMgr::GetInst()->enableLog)
                                     std::cout << "Cached jin bwd is called" << std::endl;
 
@@ -595,22 +580,19 @@ bool ConvJinMDConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t ha
                                 elapsed += handle.GetKernelTime();
                                 DirectCkMgr::GetInst()->launchCount[ST_JIN_BWD] ++;
                                 DirectCkMgr::GetInst()->hitCacheCount[ST_JIN_BWD] ++;
-
                             }
-                        }
 
-                        if(is_nhwc)
+                        if(!trans_input_skippable)
                         {
                             auto& karg_input = opArgsTrans[trans_input_idx];
                             karg_input[0]    = OpKernelArg(bwd_ctx.tensors.out); //dst
-                            karg_input[1]    = OpKernelArg(trans_input_buf.get());
+                            karg_input[1]    = OpKernelArg(trans_input_workspace_dev.GetDeviceBuffer());
                             handle.Run(kernels[trans_input_idx])(karg_input);
                             if(handle.IsProfilingEnabled())
                                 elapsed += handle.GetKernelTime();
                         }
                         if(handle.IsProfilingEnabled())
                         {
-                            elapsed += handle.GetKernelTime();
                             handle.ResetKernelTime();
                             handle.AccumKernelTime(elapsed);
                         }

@@ -359,7 +359,6 @@ solver::KernelInfo BatchedTransposeSolution::GetKernelInfo() const
     kernel.l_wk.push_back(block_size);
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
-    kernel.comp_options += std::string(" -ggdb -O0 -g -cl-opt-disable");
     MIOPEN_LOG_T(kernel_name);
 
     return kernel;
