@@ -1262,7 +1262,8 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
     {
         for(size_t i = 0; i < outhost_local_host.data.size(); ++i)
         {
-            outhost_local_host.data[i] = static_cast<Tref>(static_cast<Tgpu>(outhost_local_host.data[i]));
+            outhost_local_host.data[i] =
+                static_cast<Tref>(static_cast<Tgpu>(outhost_local_host.data[i]));
         }
     }
 
