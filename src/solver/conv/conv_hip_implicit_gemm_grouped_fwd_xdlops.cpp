@@ -557,7 +557,7 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryFwdNCHW<2,
-                                             false,
+                                             true,
                                              DeviceOpGFwdPtrs<T>,
                                              CKArgs,
                                              miopen::conv::DataInvokeParams>(
@@ -565,7 +565,7 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops::GetSolution(
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<false,
+            return InitInvokerFactoryNHWC<true,
                                           DeviceOpGFwdPtrs<T>,
                                           CKArgs,
                                           miopen::conv::DataInvokeParams>(

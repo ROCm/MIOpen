@@ -1045,41 +1045,43 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
     /*
      *  need to compute total output pixel: `group * n * ho * wo * k_per_group`.
      *  to distribute this workload, let one workgroup compute `wo *
-     * k_per_group` pixel,
-     *  hence need `group * n * ho` workgroups (grid_size).
+     *  group * k_per_group` pixels,
+     *  hence need `n * ho` workgroups (grid_size).
      */
+
     int k             = k_per_group * group;
     int c             = c_per_group * group;
-    int thread_length = wo * k_per_group;
+    int thread_length = wo * k;
     int bid           = blockIdx.x;
     int iho           = bid % ho;
     int in            = (bid / ho) % n;
-    int ig            = bid / (n * ho);
 
     if constexpr(ASSUME_PACKED)
     {
-        p_in += static_cast<size_t>(in) * hi * wi * c + static_cast<size_t>(ig) * c_per_group;
+        p_in += static_cast<size_t>(in) * hi * wi * c;
 
-        p_wei += static_cast<size_t>(ig) * k_per_group * fy * fx * c_per_group;
-
-        p_out += static_cast<size_t>(in) * ho * wo * k + static_cast<size_t>(iho) * wo * k +
-                 static_cast<size_t>(ig) * k_per_group;
+        p_out += static_cast<size_t>(in) * ho * wo * k + static_cast<size_t>(iho) * wo * k;
     }
     else
     {
-        p_in += static_cast<size_t>(in) * in_strides[4] + static_cast<size_t>(ig) * in_strides[1];
+        p_in += static_cast<size_t>(in) * in_strides[4];
 
-        p_wei += static_cast<size_t>(ig) * wei_strides[4];
-
-        p_out += static_cast<size_t>(in) * out_strides[4] +
-                 static_cast<size_t>(iho) * out_strides[3] +
-                 static_cast<size_t>(ig) * out_strides[1];
+        p_out +=
+            static_cast<size_t>(in) * out_strides[4] + static_cast<size_t>(iho) * out_strides[3];
     }
 
     for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
-        int iwo = tid / k_per_group;
-        int ik  = tid % k_per_group;
+        // We want to compute
+        //      iwo = tid / k
+        //      ik  = tid % k
+        // , but
+        //      tid = tid / k * k + tid % k = iwo * k + ik
+        // so we can avoid the % operation.
+        int iwo       = tid / k;
+        int global_ik = tid - iwo * k;
+        int ig        = global_ik / k_per_group;
+        int ik        = global_ik - ig * k_per_group;
 
         acc_data_t value = 0;
 
@@ -1091,24 +1093,26 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
                 valid_h &= 0;
             for(int ix = 0; ix < fx; ix++)
             {
+                int valid_w = 1;
+                int cur_w   = sx * iwo - px + dx * ix;
+                if(cur_w < 0 || cur_w >= wi)
+                    valid_w &= 0;
                 for(int ic = 0; ic < c_per_group; ic++)
                 {
-                    int valid_w = 1;
-                    int cur_w   = sx * iwo - px + dx * ix;
-                    if(cur_w < 0 || cur_w >= wi)
-                        valid_w &= 0;
-
                     if(valid_w & valid_h)
                     {
                         if constexpr(ASSUME_PACKED)
                         {
                             size_t i_idx = static_cast<size_t>(cur_h) * wi * c +
-                                           static_cast<size_t>(cur_w) * c + static_cast<size_t>(ic);
-
-                            size_t f_idx = static_cast<size_t>(ik) * fy * fx * c_per_group +
-                                           static_cast<size_t>(iy) * fx * c_per_group +
-                                           static_cast<size_t>(ix) * c_per_group +
+                                           static_cast<size_t>(cur_w) * c +
+                                           static_cast<size_t>(ig) * c_per_group +
                                            static_cast<size_t>(ic);
+
+                            size_t f_idx =
+                                static_cast<size_t>(ig) * k_per_group * fy * fx * c_per_group +
+                                static_cast<size_t>(ik) * fy * fx * c_per_group +
+                                static_cast<size_t>(iy) * fx * c_per_group +
+                                static_cast<size_t>(ix) * c_per_group + static_cast<size_t>(ic);
 
                             value += cast_to<src_data_t, acc_data_t>(p_in[i_idx]) *
                                      cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
@@ -1117,9 +1121,11 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
                         {
                             size_t i_idx = static_cast<size_t>(cur_h) * in_strides[3] +
                                            static_cast<size_t>(cur_w) * in_strides[2] +
+                                           static_cast<size_t>(ig) * in_strides[1] +
                                            static_cast<size_t>(ic) * in_strides[0];
 
-                            size_t f_idx = static_cast<size_t>(ik) * wei_strides[3] +
+                            size_t f_idx = static_cast<size_t>(ig) * wei_strides[4] +
+                                           static_cast<size_t>(ik) * wei_strides[3] +
                                            static_cast<size_t>(iy) * wei_strides[2] +
                                            static_cast<size_t>(ix) * wei_strides[1] +
                                            static_cast<size_t>(ic) * wei_strides[0];
@@ -1134,12 +1140,14 @@ inline __device__ void naive_conv_fwd_nhwc(const src_data_t* __restrict__ p_in,
 
         if constexpr(ASSUME_PACKED)
         {
-            size_t o_idx = static_cast<size_t>(iwo) * k + static_cast<size_t>(ik);
+            size_t o_idx = static_cast<size_t>(iwo) * k + static_cast<size_t>(ig) * k_per_group +
+                           static_cast<size_t>(ik);
             applyalphaBetaUpdate<dst_data_t, acc_data_t>(p_out, value, alpha, beta, o_idx);
         }
         else
         {
             size_t o_idx = static_cast<size_t>(iwo) * out_strides[2] +
+                           static_cast<size_t>(ig) * out_strides[1] +
                            static_cast<size_t>(ik) * out_strides[0];
             applyalphaBetaUpdate<dst_data_t, acc_data_t>(p_out, value, alpha, beta, o_idx);
         }
@@ -1175,41 +1183,41 @@ inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
     /*
      *  need to compute total input pixel: `group * n * hi * wi * c_per_group`.
      *  to distribute this workload, let one workgroup compute `wi *
-     * c_per_group` pixel,
-     *  hence need `group * n * hi` workgroups (grid_size).
+     *  group * c_per_group` pixel,
+     *  hence need `n * hi` workgroups (grid_size).
      */
     int k             = k_per_group * group;
     int c             = c_per_group * group;
-    int thread_length = wi * c_per_group;
+    int thread_length = wi * c;
     int bid           = blockIdx.x;
     int ihi           = bid % hi;
     int in            = (bid / hi) % n;
-    int ig            = bid / (n * hi);
 
     if constexpr(ASSUME_PACKED)
     {
-        p_in += static_cast<size_t>(in) * hi * wi * c + static_cast<size_t>(ihi) * wi * c +
-                static_cast<size_t>(ig) * c_per_group;
+        p_in += static_cast<size_t>(in) * hi * wi * c + static_cast<size_t>(ihi) * wi * c;
 
-        p_wei += static_cast<size_t>(ig) * k_per_group * fy * fx * c_per_group;
-
-        p_out += static_cast<size_t>(in) * ho * wo * k + static_cast<size_t>(ig) * k_per_group;
+        p_out += static_cast<size_t>(in) * ho * wo * k;
     }
     else
     {
-        p_in += static_cast<size_t>(in) * in_strides[4] + static_cast<size_t>(ihi) * in_strides[3] +
-                static_cast<size_t>(ig) * in_strides[1];
+        p_in += static_cast<size_t>(in) * in_strides[4] + static_cast<size_t>(ihi) * in_strides[3];
 
-        p_wei += static_cast<size_t>(ig) * wei_strides[4];
-
-        p_out +=
-            static_cast<size_t>(in) * out_strides[4] + static_cast<size_t>(ig) * out_strides[1];
+        p_out += static_cast<size_t>(in) * out_strides[4];
     }
 
     for(int tid = threadIdx.x; tid < thread_length; tid += blockDim.x)
     {
-        int iwi = tid / c_per_group;
-        int ic  = tid % c_per_group;
+        // We want to compute
+        //      iwi = tid / c
+        //      ic  = tid % c
+        // , but
+        //      tid = tid / c * c + tid % c = iwi * c + ic
+        // so we can avoid the % operation.
+        int iwi       = tid / c;
+        int global_ic = tid - iwi * c;
+        int ig        = global_ic / c_per_group;
+        int ic        = global_ic - ig * c_per_group;
 
         acc_data_t value = 0;
 
@@ -1233,19 +1241,20 @@ inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
                     valid_w &= 0;
                 for(int ik = 0; ik < k_per_group; ik++)
                 {
-
                     if(valid_h & valid_w)
                     {
                         if constexpr(ASSUME_PACKED)
                         {
                             size_t o_idx = static_cast<size_t>(cur_ho) * wo * k +
                                            static_cast<size_t>(cur_wo) * k +
+                                           static_cast<size_t>(ig) * k_per_group +
                                            static_cast<size_t>(ik);
 
-                            size_t f_idx = static_cast<size_t>(ik) * fy * fx * c_per_group +
-                                           static_cast<size_t>(iy) * fx * c_per_group +
-                                           static_cast<size_t>(ix) * c_per_group +
-                                           static_cast<size_t>(ic);
+                            size_t f_idx =
+                                static_cast<size_t>(ig) * k_per_group * fy * fx * c_per_group +
+                                static_cast<size_t>(ik) * fy * fx * c_per_group +
+                                static_cast<size_t>(iy) * fx * c_per_group +
+                                static_cast<size_t>(ix) * c_per_group + static_cast<size_t>(ic);
 
                             value += cast_to<src_data_t, acc_data_t>(p_out[o_idx]) *
                                      cast_to<src_data_t, acc_data_t>(p_wei[f_idx]);
@@ -1254,9 +1263,11 @@ inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
                         {
                             size_t o_idx = static_cast<size_t>(cur_ho) * out_strides[3] +
                                            static_cast<size_t>(cur_wo) * out_strides[2] +
+                                           static_cast<size_t>(ig) * out_strides[1] +
                                            static_cast<size_t>(ik) * out_strides[0];
 
-                            size_t f_idx = static_cast<size_t>(ik) * wei_strides[3] +
+                            size_t f_idx = static_cast<size_t>(ig) * wei_strides[4] +
+                                           static_cast<size_t>(ik) * wei_strides[3] +
                                            static_cast<size_t>(iy) * wei_strides[2] +
                                            static_cast<size_t>(ix) * wei_strides[1] +
                                            static_cast<size_t>(ic) * wei_strides[0];
@@ -1271,13 +1282,15 @@ inline __device__ void naive_conv_bwd_nhwc(dst_data_t* __restrict__ p_in,
 
         if constexpr(ASSUME_PACKED)
         {
-            size_t i_idx = static_cast<size_t>(iwi) * c + static_cast<size_t>(ic);
+            size_t i_idx = static_cast<size_t>(iwi) * c + static_cast<size_t>(ig) * c_per_group +
+                           static_cast<size_t>(ic);
             applyalphaBetaUpdate<dst_data_t, acc_data_t>(p_in, value, alpha, beta, i_idx);
         }
         else
         {
-            size_t i_idx =
-                static_cast<size_t>(iwi) * in_strides[2] + static_cast<size_t>(ic) * in_strides[0];
+            size_t i_idx = static_cast<size_t>(iwi) * in_strides[2] +
+                           static_cast<size_t>(ig) * in_strides[1] +
+                           static_cast<size_t>(ic) * in_strides[0];
             applyalphaBetaUpdate<dst_data_t, acc_data_t>(p_in, value, alpha, beta, i_idx);
         }
     }

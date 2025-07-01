@@ -36,6 +36,7 @@
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/utility/data_type.hpp>
+#include <ck/utility/numeric_limits.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_bilinear.hpp>
 #include <ck/library/tensor_operation_instance/gpu/grouped_convolution_backward_weight_scale.hpp>
@@ -847,16 +848,20 @@ ConvTensors GetTensors(const CastType& data_ctx)
 template <typename DataType, typename OutElemOp>
 OutElemOp GetOutElementOp(const miopen::fusion::ActivationOpInvokeParam& activationOp)
 {
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     auto activationMode = activationOp.activMode;
     switch(activationMode)
     {
-    case miopenActivationRELU: return OutElemOp{0, std::numeric_limits<DataType>::max()};
+    case miopenActivationRELU: return OutElemOp{0, ck::NumericLimits<DataType>::Max()};
     case miopenActivationCLIPPEDRELU: return OutElemOp{0, activationOp.activAlpha};
     case miopenActivationCLAMP: return OutElemOp{activationOp.activAlpha, activationOp.activBeta};
     default:
         MIOPEN_THROW(miopenStatusInternalError,
                      "Unsupported activation type: " + std::to_string(activationMode));
     }
+#else
+    MIOPEN_THROW(miopenStatusNotImplemented, "Not implemented without ck enabled");
+#endif
 }
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
