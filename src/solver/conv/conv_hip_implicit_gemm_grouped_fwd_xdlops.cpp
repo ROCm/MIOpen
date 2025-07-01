@@ -39,6 +39,7 @@
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_NTP)
 
 namespace miopen {
 namespace solver {
@@ -566,6 +567,8 @@ bool ConvHipImplicitGemmGroupFwdXdlops<transpose>::IsApplicable(
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS))
+        return false;
+    if ((transpose == false) && env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_NTP))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
