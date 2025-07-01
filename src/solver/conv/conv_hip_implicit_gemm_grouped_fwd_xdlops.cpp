@@ -635,6 +635,8 @@ ConvSolution ConvHipImplicitGemmGroupFwdXdlops<transpose>::GetSolution(
 }
 template struct ConvHipImplicitGemmGroupFwdXdlops<true>;
 template struct ConvHipImplicitGemmGroupFwdXdlops<false>;
+template struct PerformanceConfigHipImplicitGemmGroupFwdXdlops<true>;
+template struct PerformanceConfigHipImplicitGemmGroupFwdXdlops<false>;
 
 } // namespace conv
 } // namespace solver
