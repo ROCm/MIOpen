@@ -1713,7 +1713,7 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
 
         printf("stats: name, n, c, ho, wo, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "fwd-conv",
                wei_h,
                wei_w,
@@ -1758,7 +1758,7 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
         printf("stats: name, n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, "
                "GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, "
+        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, "
                "%.0f, %.0f, %f\n",
                "fwd-conv",
                wei_d,
@@ -2657,7 +2657,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
 
         printf("stats: name, n, c, ho, wo, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "bwdd-conv",
                wei_h,
                wei_w,
@@ -2702,7 +2702,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
         printf(
             "stats: name, n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
-        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d  %zu, %zu, %zu, %.0f, "
+        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, %.0f, "
                "%.0f, %f\n",
                "bwdd-conv",
                wei_d,
@@ -2867,7 +2867,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
 
         printf("stats: name, n, c, ho, wo, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "bwdw-conv",
                wei_h,
                wei_w,
@@ -2906,7 +2906,7 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
         printf(
             "stats: name, n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
-        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, "
+        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, %.0f, "
                "%.0f, %f\n",
                "bwdw-conv",
                wei_d,
