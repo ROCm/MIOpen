@@ -58,6 +58,13 @@ enum BatchNormDirection_t
 
 miopenProblemDirection_t CmdArgToDirection(ConvDirection direction);
 
+void DriverDataType(const std::string& prefix,
+                    std::stringstream& ss,
+                    const miopen::TensorDescriptor& desc);
+void DriverDataType(const std::string& prefix,
+                    std::string& ss,
+                    const miopen::TensorDescriptor& desc);
+
 std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
                                     const miopen::TensorDescriptor& wDesc,
                                     const miopen::ConvolutionDescriptor& convDesc,

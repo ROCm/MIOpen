@@ -40,7 +40,8 @@ subtrees:
     title: Log and debug
   - file: how-to/find-and-immediate.rst
     title: Use the find APIs and immediate mode
-
+  - file: how-to/use-nhwc-batchnorm-in-pytorch.rst
+    title: Use NHWC Batch Normalization with PyTorch
 
 - caption: Reference
   entries:
