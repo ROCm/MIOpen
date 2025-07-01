@@ -2862,6 +2862,10 @@ struct ConvQunConvBwd final : ConvSolver
     }
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+    bool MayNeedWorkspace() const override { return true; }
 
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetBestSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
@@ -2886,6 +2890,10 @@ struct ConvQunConvFwd final : ConvSolver
     {
         return 1000.0f;
     }
+    bool MayNeedWorkspace() const override { return true; }
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 
@@ -2912,6 +2920,11 @@ struct ConvJinMDConvBwd final : ConvSolver
     {
         return 1000.0f;
     }
+
+    bool MayNeedWorkspace() const override { return true; }
+    size_t GetWorkspaceSize(const ExecutionContext&,
+                            const miopen::conv::ProblemDescription&) const override;
+
     MIOPEN_INTERNALS_EXPORT ConvSolution
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 

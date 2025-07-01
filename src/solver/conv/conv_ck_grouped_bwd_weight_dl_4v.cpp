@@ -552,20 +552,27 @@ bool ConvQunConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t hash
                     trans_input_idx=0;
                     trans_output_idx=1;
                 }
-
+                sol.workspace_sz = GetWorkspaceSize(ctx, problem);
                 sol.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable{
                     return [=](const Handle& handle, const AnyInvokeParams& primitive_params) mutable {
                         const auto& data_ctx = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
                         const auto& ck_args  = CKArgs{problem};
+                        const auto& workSpace   = data_ctx.workSpace;
 
                         float elapsed = 0;
-                        DeviceMem trans_input_workspace_dev(trans_input_size);
-                        DeviceMem trans_output_workspace_dev(trans_output_size);
+                        auto trans_input_buf =
+                            trans_input_size == 0
+                            ? shared<Data_t>{}
+                            : handle.CreateSubBuffer(workSpace, 0, trans_input_size);
+                        auto trans_output_buf =
+                            trans_output_size == 0
+                            ? shared<Data_t>{}
+                            : handle.CreateSubBuffer(workSpace, trans_input_size, trans_output_size);
 
                         if(!trans_input_skippable)
                         {
                             auto& karg_input = opArgsTrans[trans_input_idx];
-                            karg_input[0]    = OpKernelArg(trans_input_workspace_dev.GetDeviceBuffer()); //dst
+                            karg_input[0]    = OpKernelArg(trans_input_buf.get()); //dst
                             karg_input[1]    = OpKernelArg(data_ctx.tensors.x);
                             handle.Run(kernels[trans_input_idx])(karg_input);
                             if(handle.IsProfilingEnabled())
@@ -575,7 +582,7 @@ bool ConvQunConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t hash
                         if(!trans_output_skippable)
                         {
                             auto& karg_output = opArgsTrans[trans_output_idx];
-                            karg_output[0]    = OpKernelArg(trans_output_workspace_dev.GetDeviceBuffer());  //dst
+                            karg_output[0]    = OpKernelArg(trans_output_buf.get());  //dst
                             karg_output[1]    = OpKernelArg(data_ctx.tensors.dy);   // src
                             handle.Run(kernels[trans_output_idx])(karg_output);
                             if(handle.IsProfilingEnabled())
@@ -586,11 +593,11 @@ bool ConvQunConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t hash
                         auto invoker  = conv_ptr->MakeInvoker();
                         auto argument = conv_ptr->MakeArgument(static_cast<const InDataType*>(
                                                                 trans_input_skippable==true ? data_ctx.tensors.x:
-                                                                trans_input_workspace_dev.GetDeviceBuffer()),
+                                                                trans_input_buf.get()),
                                                             static_cast<WeiDataType*>(data_ctx.tensors.dw),
                                                             static_cast<const OutDataType*>(
                                                                 trans_output_skippable==true ? data_ctx.tensors.dy:
-                                                                trans_output_workspace_dev.GetDeviceBuffer()),
+                                                                trans_output_buf.get()),
                                                             ck_args.input_lengths,
                                                             ck_args.in_strides,
                                                             ck_args.wei_lens,
@@ -606,9 +613,8 @@ bool ConvQunConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t hash
                                                             OutElementOp{},
                                                             best_split_k);
 
-                        DeviceMem gemm_workspace_dev(conv_ptr->GetWorkSpaceSize(&argument));
-                        conv_ptr->SetWorkSpacePointer(&argument, gemm_workspace_dev.GetDeviceBuffer());
-
+                        auto gemm_buf = handle.CreateSubBuffer(workSpace, trans_input_size+trans_output_size, conv_ptr->GetWorkSpaceSize(&argument));                                         
+                        conv_ptr->SetWorkSpacePointer(&argument, gemm_buf.get());
                         {
                             invoker.ShowInfo(argument);
                             {
@@ -721,7 +727,7 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
             {
                 DeviceMem gemm_workspace_dev(conv_ptr->GetWorkSpaceSize(&argument));
                 conv_ptr->SetWorkSpacePointer(&argument, gemm_workspace_dev.GetDeviceBuffer());
-
+               
                 found_kernel = true;
                 MIOPEN_LOG_I("Run conv : (split_K:" << cur_split_k << ") " << kernelName);
                 invoker.ShowInfo(argument);
@@ -745,6 +751,8 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
                         ](const std::vector<Kernel>& kernels) {
                             return [conv_ptr, problem, best_split_k](const Handle& handle, const AnyInvokeParams& primitive_params) {
                                 const auto& data_ctx = primitive_params.CastTo<miopen::conv::WrWInvokeParams>();
+                                const auto& workSpace   = data_ctx.workSpace;
+                                
                                 const auto& ck_args  = CKArgs{problem};
                                 auto invoker  = conv_ptr->MakeInvoker();
                                 auto argument = conv_ptr->MakeArgument(static_cast<const InDataType*>(data_ctx.tensors.x),
@@ -767,8 +775,8 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
 
                                 if(conv_ptr->IsSupportedArgument(argument))
                                 {
-                                    DeviceMem gemm_workspace_dev(conv_ptr->GetWorkSpaceSize(&argument));
-                                    conv_ptr->SetWorkSpacePointer(&argument, gemm_workspace_dev.GetDeviceBuffer());
+                                    auto gemm_buf = handle.CreateSubBuffer(workSpace, 0, conv_ptr->GetWorkSpaceSize(&argument));                                         
+                                    conv_ptr->SetWorkSpacePointer(&argument, gemm_buf.get());
 
                                     invoker.ShowInfo(argument);
                                     WorkAroundHipEventProfiler prf(handle);
@@ -814,6 +822,45 @@ ConvSolution ConvQunConvBwd::GetSolution(const ExecutionContext& ctx,
 {
     ReadCacheFile();
     return GetBestSolution(ctx, problem);
+}
+
+size_t ConvQunConvBwd::GetWorkspaceSize(const ExecutionContext& ctx,
+                                            const ProblemDescription& problem) const
+{
+    const auto is_nhwc = (problem.IsLayoutDefault() == false);
+    const int hi       = problem.GetOutHeight();
+    const int wi       = problem.GetOutWidth();
+    const int n        = problem.GetBatchSize();
+    const int k        = problem.GetInChannels();
+    const int c        = problem.GetOutChannels();
+    const int ho       = problem.GetInHeight();
+    const int wo       = problem.GetInWidth();
+    const int y        = problem.GetWeightsHeight();
+    const int x        = problem.GetWeightsWidth();
+    const auto group   = problem.GetGroupCount();
+
+    size_t workspace_size = 0;
+    if (is_nhwc)
+    {
+        size_t size_trans_input  = 0;
+        size_t size_trans_output = 0;
+
+        TransposeSolutionNhwc2Default trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
+        TransposeSolutionNhwc2Default trans_output(ctx, problem.GetOutDataType(), n, k, ho, wo);
+
+        bool trans_input_skippable  = trans_input.IsSkippable();
+        bool trans_output_skippable = trans_output.IsSkippable();
+
+        size_trans_input  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+        size_trans_output = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
+        workspace_size += size_trans_input;
+        workspace_size += size_trans_output;
+    }
+    
+    size_t size_gemm = (4* group  * x * y + 127) / 128 * 128;
+
+    workspace_size += size_gemm;
+    return workspace_size;
 }
 
 }
