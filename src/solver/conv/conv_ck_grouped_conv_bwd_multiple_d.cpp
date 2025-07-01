@@ -147,18 +147,28 @@ using DeviceConvBwdFactory = std::tuple<
 //                                                NDimSpatial BlockSize In      Wei        Acc    Out      BlockTileSize FilterSize   FilterParam (dilation, stride, padding)                                     NBatch  SubTileH W  ScalarPerVector(in out)    RequirePadding>
       ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<7, 7>,     5,           ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
     , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<14, 14>,   5,           ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       2, 2,                     false>
+ //   , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<14, 14>,   5,           ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
     , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   5,           ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       4, 4,                     false>
+  //  , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   5,           ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
      , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,     InType, WeiType, AccType, OutType,  S<14, 14>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       2, 1,                     false>
+   //  , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,     InType, WeiType, AccType, OutType,  S<14, 14>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
     , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       4, 2,                     false>
+  //  , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
     , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<56, 56>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  1,       8, 8,       8, 4,                     false>
+ //   , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<56, 56>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  1,       8, 8,       1, 1,                     false>
 
     , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<7, 7>,     3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
     , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<14, 14>,   3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       2, 2,                     false>
+ //   , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<14, 14>,   3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
     , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<56, 56>,   3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  8,       7, 8,       8, 8,                     false>
+ //   , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<56, 56>,   3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  8,       7, 8,       1, 1,                     false>
     , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<112, 112>, 3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  2,       14, 16,     8, 8,                     false>
+  //  , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<112, 112>, 3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  2,       14, 16,     1, 1,                     false>
 
     , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   3,           ck::Tuple<S<1,1>, S<2,2>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       4, 2,                     false>
+ //   , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   3,           ck::Tuple<S<1,1>, S<2,2>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
     , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<112, 112>, 3,           ck::Tuple<S<1,1>, S<2,2>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  8,       16, 16,       8, 8,                     false>
+  //  , ck::tensor_operation::device::DeviceGroupedConvBwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<112, 112>, 3,           ck::Tuple<S<1,1>, S<2,2>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  8,       16, 16,       1, 1,                     false>
 >;
 
 using ProblemDescription = miopen::conv::ProblemDescription;
@@ -198,7 +208,23 @@ struct CKArgs
             out_strides = { Ho*Wo*K,  G*Ho*Wo*K,  1,  Wo*K,  K};
             wei_strides = { Y*X*C,    G*Y*X*C,    1,  X*C,   C};
         }
+        else
+        { 
+            #if 0
+            // --in_layout NHWC --out_layout NHWC --fil_layout NHWC
+          //  in_strides  = { G*Hi*Wi*C,  G*Wi*C,  G*C,  C,  1};  // NHWGC
+           // out_strides = { Ho*Wo*G*K,  G*Wo*K,  G*K,  K,  1}; // NHWGK
+          //  wei_strides = { K*Y*X*C,    Y*X*C,    X*C,  C,   1};  // GKYXC
 
+            in_strides  = { C,  G*Hi*Wi*C,  1,  G*Wi*C,  G*C};
+            out_strides = { K, Ho*Wo*G*K, 1, G*Wo*K,  G*K}; // NHWGK
+            wei_strides = { K*Y*X*C,    Y*X*C,   1,  X*C,  C}; 
+            #else
+               in_strides  = { Hi*Wi*C,  G*Hi*Wi*C,  1,  Wi*C,  C};
+               out_strides = { Ho*Wo*K,  G*Ho*Wo*K,  1,  Wo*K,  K};
+               wei_strides = { Y*X*C,    G*Y*X*C,    1,  X*C,   C};
+            #endif
+        }
         filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                            ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         filter_dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
@@ -342,7 +368,7 @@ bool ConvJinMDConvBwd::IsApplicable(const ExecutionContext&   ctx,
     if(!ConvDirectNaiveConvIsApplicableByKernelType(ctx, problem))
         return false;
 
-    if(!problem.IsLayoutDefault())
+    if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsFp8() ||
@@ -415,7 +441,7 @@ uint32_t ConvJinMDConvBwd::GetSupportedSolutionCount(const ExecutionContext& ctx
     return solutionCount;
 }
 
-bool ConvJinMDConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const
+bool ConvJinMDConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const
 {
     if (DirectCkMgr::GetInst()->enableConvCache == false) return false;
 
@@ -449,18 +475,91 @@ bool ConvJinMDConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::P
             {
                 MIOPEN_LOG_I("Find best cached kernel " << conv_ptr->GetTypeString());
                 foundBest = true;
-                sol.invoker_factory = [
-                conv_ptr, problem
-                ](const std::vector<Kernel>& kernels) {
-                    return [conv_ptr, problem](const Handle& handle, const AnyInvokeParams& primitive_params) {
+#if 1
+#if 1
+
+                const auto is_nhwc = (problem.IsLayoutDefault() == false);
+                const int ho     = problem.GetInHeight();
+                const int wo     = problem.GetInWidth();
+                const int n       = problem.GetInBatchSize();
+                const int k      = problem.GetInChannels();
+                const int c      = problem.GetOutChannels();
+                const int hi     = problem.GetOutHeight();
+                const int wi     = problem.GetOutWidth();
+
+                size_t trans_input_size   = 0;
+                size_t trans_output_size   = 0;
+
+                bool trans_input_skippable  = true;
+                bool trans_output_skippable = true;
+
+                int trans_input_idx  = -1;
+                int trans_output_idx = -1;
+
+                std::vector<std::vector<OpKernelArg>> opArgsTrans;
+
+                if (is_nhwc)
+                {   
+                    TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
+                    TransposeSolutionNhwc2Default trans_output(ctx, problem.GetOutDataType(), n, k, ho, wo);
+
+                    trans_input_skippable  = trans_input.IsSkippable();
+                    trans_output_skippable = trans_output.IsSkippable();
+
+                    opArgsTrans.emplace_back(trans_input.GetKernelArg());
+                    opArgsTrans.emplace_back(trans_output.GetKernelArg());
+
+                
+                    trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+                    trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
+                        
+                    std::ostringstream msg;
+                    sol.construction_params.push_back(trans_input.GetKernelInfo());
+                    if(miopen::IsLogging(LoggingLevel::Info2))
+                        msg << ", inp trans:" << trans_input.GetKernelName();
+
+                    sol.construction_params.push_back(trans_output.GetKernelInfo());
+                    if(miopen::IsLogging(LoggingLevel::Info2))
+                        msg << ", out trans:" << trans_output.GetKernelName();
+
+                    trans_input_idx=0;
+                    trans_output_idx=1;
+                }
+
+            #endif
+                sol.workspace_sz = GetWorkspaceSize(ctx, problem);
+                sol.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
+                    return [=](const Handle& handle, const AnyInvokeParams& primitive_params) mutable {
                         const auto& bwd_ctx     = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                         const auto& ck_args     = CKArgs{problem};
+                        const auto& workSpace   = bwd_ctx.workSpace;
+
+                        float elapsed = 0;
+                        auto trans_input_buf =
+                            trans_input_size == 0
+                            ? shared<Data_t>{}
+                            : handle.CreateSubBuffer(workSpace, 0, trans_input_size);
+                        auto trans_output_buf =
+                            trans_output_size == 0
+                            ? shared<Data_t>{}
+                            : handle.CreateSubBuffer(workSpace, trans_input_size, trans_output_size);
+
+                        if(!trans_output_skippable)
+                        {
+                            auto& karg_output = opArgsTrans[trans_output_idx];
+                            karg_output[0]    = OpKernelArg(trans_output_buf.get());  //dst
+                            karg_output[1]    = OpKernelArg(bwd_ctx.tensors.in);   // src
+                            handle.Run(kernels[trans_output_idx])(karg_output);
+                            if(handle.IsProfilingEnabled())
+                                elapsed += handle.GetKernelTime();
+                        }
 
                         auto invoker  = conv_ptr->MakeInvoker();
-                        auto argument = conv_ptr->MakeArgument(bwd_ctx.tensors.out,
+                        auto argument = conv_ptr->MakeArgument(
+                                                            (trans_input_skippable==true)? bwd_ctx.tensors.out:trans_input_buf.get(),
                                                             bwd_ctx.tensors.w,
                                                             std::array<const void*, 0>{},
-                                                            bwd_ctx.tensors.in,
+                                                            (trans_output_skippable==true)? bwd_ctx.tensors.in:trans_output_buf.get(),
                                                             ck_args.input_lengths,
                                                             ck_args.in_strides,
                                                             ck_args.wei_lens,
@@ -476,24 +575,37 @@ bool ConvJinMDConvBwd::FindCachedSolution(size_t hashcode, const miopen::conv::P
                                                             InElementOp{},
                                                             WeiElementOp{},
                                                             OutElementOp{});
-
-                        {
-                            WorkAroundHipEventProfiler prf(handle);
-                            float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
+                            {
+                                WorkAroundHipEventProfiler prf(handle);
+                                invoker.Run(argument, StreamConfig{nullptr, false});
+                            }
                             if (DirectCkMgr::GetInst()->enableLog)
                                     std::cout << "Cached jin bwd is called" << std::endl;
+
                             if(handle.IsProfilingEnabled())
                             {
-                                avg_time = handle.GetKernelTime();
-                                handle.ResetKernelTime();
-                                handle.AccumKernelTime(avg_time);
+                                elapsed += handle.GetKernelTime();
                                 DirectCkMgr::GetInst()->launchCount[ST_JIN_BWD] ++;
                                 DirectCkMgr::GetInst()->hitCacheCount[ST_JIN_BWD] ++;
-
                             }
+
+                        if(!trans_input_skippable)
+                        {
+                            auto& karg_input = opArgsTrans[trans_input_idx];
+                            karg_input[0]    = OpKernelArg(bwd_ctx.tensors.out); //dst
+                            karg_input[1]    = OpKernelArg(trans_input_buf.get());
+                            handle.Run(kernels[trans_input_idx])(karg_input);
+                            if(handle.IsProfilingEnabled())
+                                elapsed += handle.GetKernelTime();
+                        }
+                        if(handle.IsProfilingEnabled())
+                        {
+                            handle.ResetKernelTime();
+                            handle.AccumKernelTime(elapsed);
                         }
                     };
                 };
+                #endif
             }
 
             if (foundBest) true;
@@ -513,7 +625,7 @@ ConvSolution ConvJinMDConvBwd::GetBestSolution(const ExecutionContext& ctx,
     CacheData cd;
     cd.hashcode = argsHash;
     cd.split_k  = 1;
-    if (FindCachedSolution(argsHash, problem, sol))
+    if (FindCachedSolution(ctx, argsHash, problem, sol))
     {
         return sol;
     }
@@ -651,6 +763,37 @@ ConvSolution ConvJinMDConvBwd::GetSolution(const ExecutionContext& ctx,
 {
     ReadCacheFile();
     return GetBestSolution(ctx, problem);
+}
+size_t ConvJinMDConvBwd::GetWorkspaceSize(const ExecutionContext& ctx,
+                                            const ProblemDescription& problem) const
+{
+                const auto is_nhwc = (problem.IsLayoutDefault() == false);
+                const int ho     = problem.GetInHeight();
+                const int wo     = problem.GetInWidth();
+                const int n       = problem.GetInBatchSize();
+                const int k      = problem.GetInChannels();
+                const int c      = problem.GetOutChannels();
+                const int hi     = problem.GetOutHeight();
+                const int wi     = problem.GetOutWidth();
+
+                size_t trans_input_size   = 0;
+                size_t trans_output_size   = 0;
+
+                bool trans_input_skippable  = true;
+                bool trans_output_skippable = true;
+
+                if (is_nhwc)
+                {   
+                    TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
+                    TransposeSolutionNhwc2Default trans_output(ctx, problem.GetOutDataType(), n, k, ho, wo);
+
+                    trans_input_skippable  = trans_input.IsSkippable();
+                    trans_output_skippable = trans_output.IsSkippable();
+
+                    trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+                    trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
+                }
+            return trans_input_size + trans_output_size;
 }
 
 }

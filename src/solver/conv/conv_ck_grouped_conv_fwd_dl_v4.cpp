@@ -194,7 +194,12 @@ struct CKArgs
             out_strides = { Ho*Wo*K,  G*Ho*Wo*K,  1,  Wo*K,  K};
             wei_strides = { Y*X*C,    G*Y*X*C,    1,  X*C,   C};
         }
-
+        else
+        {
+               in_strides  = { Hi*Wi*C,  G*Hi*Wi*C,  1,  Wi*C,  C};
+               out_strides = { Ho*Wo*K,  G*Ho*Wo*K,  1,  Wo*K,  K};
+               wei_strides = { Y*X*C,    G*Y*X*C,    1,  X*C,   C};
+        }
         filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                            ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         filter_dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
@@ -412,7 +417,7 @@ uint32_t ConvQunConvFwd::GetSupportedSolutionCount(const ExecutionContext& ctx,
     return solutionCount;
 }
 
-bool ConvQunConvFwd::FindCachedSolution(size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const
+bool ConvQunConvFwd::FindCachedSolution(const ExecutionContext& ctx, size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const
 {
     if (DirectCkMgr::GetInst()->enableConvCache == false) return false;
     auto & s_cacheTable = DirectCkMgr::GetInst()->s_qun_fwd;
@@ -447,18 +452,91 @@ bool ConvQunConvFwd::FindCachedSolution(size_t hashcode, const miopen::conv::Pro
             {
                 MIOPEN_LOG_I("Find best cached kernel " << conv_ptr->GetTypeString());
                 foundBest = true;
-                sol.invoker_factory = [
-                conv_ptr = std::move(conv_ptr), problem
-                ](const std::vector<Kernel>& kernels) {
-                    return [conv_ptr = std::move(conv_ptr),
-                            problem](const Handle& handle, const AnyInvokeParams& primitive_params) {
+                
+                const auto is_nhwc = (problem.IsLayoutDefault() == false);
+                int ho         = problem.GetOutHeight();
+                int wo         = problem.GetOutWidth();
+                int n          = problem.GetInBatchSize();
+                int c          = problem.GetInChannels();
+                int k          = problem.GetOutChannels();
+                int hi         = problem.GetInHeight();
+                int wi         = problem.GetInWidth();
+
+                size_t trans_input_size   = 0;
+                size_t trans_output_size   = 0;
+
+                bool trans_input_skippable  = true;
+                bool trans_output_skippable = true;
+
+                int trans_input_idx  = -1;
+                int trans_output_idx = -1;
+
+                std::vector<std::vector<OpKernelArg>> opArgsTrans;
+
+                if (is_nhwc)
+                {   
+                    TransposeSolutionNhwc2Default trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
+                    TransposeSolutionDefault2Nhwc trans_output(ctx, problem.GetOutDataType(), n, k, ho, wo);
+
+                    trans_input_skippable  = trans_input.IsSkippable();
+                    trans_output_skippable = trans_output.IsSkippable();
+
+                    opArgsTrans.emplace_back(trans_input.GetKernelArg());
+                    opArgsTrans.emplace_back(trans_output.GetKernelArg());
+
+                
+                    trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+                    trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
+                        
+                    std::ostringstream msg;
+                    sol.construction_params.push_back(trans_input.GetKernelInfo());
+                    if(miopen::IsLogging(LoggingLevel::Info2))
+                        msg << ", inp trans:" << trans_input.GetKernelName();
+
+                    sol.construction_params.push_back(trans_output.GetKernelInfo());
+                    if(miopen::IsLogging(LoggingLevel::Info2))
+                        msg << ", out trans:" << trans_output.GetKernelName();
+
+                    trans_input_idx=0;
+                    trans_output_idx=1;
+                }
+
+                sol.workspace_sz = GetWorkspaceSize(ctx, problem);
+                sol.invoker_factory = [=](const std::vector<Kernel>& kernels) mutable {
+                    return [=](const Handle& handle, const AnyInvokeParams& primitive_params) mutable {
                         const auto& fwd_ctx = primitive_params.CastTo<miopen::conv::DataInvokeParams>();
                         const auto& ck_args  = CKArgs{problem};
+                        const auto& workSpace   = fwd_ctx.workSpace;
+
+                        float elapsed = 0;
+                        auto trans_input_buf =
+                            trans_input_size == 0
+                            ? shared<Data_t>{}
+                            : handle.CreateSubBuffer(workSpace, 0, trans_input_size);
+                        auto trans_output_buf =
+                            trans_output_size == 0
+                            ? shared<Data_t>{}
+                            : handle.CreateSubBuffer(workSpace, trans_input_size, trans_output_size);
+
+                        if(!trans_input_skippable)
+                        {
+                            auto& karg_input = opArgsTrans[trans_input_idx];
+                            karg_input[0]    = OpKernelArg(trans_input_buf.get()); //dst
+                            karg_input[1]    = OpKernelArg(fwd_ctx.tensors.in);
+                            handle.Run(kernels[trans_input_idx])(karg_input);
+                            if(handle.IsProfilingEnabled())
+                                elapsed += handle.GetKernelTime();
+                        }
+
                         auto invoker  = conv_ptr->MakeInvoker();
-                        auto argument = conv_ptr->MakeArgument(static_cast<const InDataType*>(fwd_ctx.tensors.in),
+                        auto argument = conv_ptr->MakeArgument(static_cast<const InDataType*>(
+                                                                trans_input_skippable==true ? fwd_ctx.tensors.in:
+                                                                trans_input_buf.get()),
                                                             static_cast<const WeiDataType*>(fwd_ctx.tensors.w),
                                                             std::array<const void*, 0>{},
-                                                            static_cast<OutDataType*>(fwd_ctx.tensors.out),
+                                                            static_cast<OutDataType*>(
+                                                                trans_output_skippable==true ? fwd_ctx.tensors.out:
+                                                                trans_output_buf.get()),
                                                             ck_args.input_lengths,
                                                             ck_args.in_strides,
                                                             ck_args.wei_lens,
@@ -474,20 +552,36 @@ bool ConvQunConvFwd::FindCachedSolution(size_t hashcode, const miopen::conv::Pro
                                                             InElementOp{},
                                                             WeiElementOp{},
                                                             OutElementOp{});
-
+                    //    printf("bef 1: %f\n", elapsed);
+                        
                         {
                             WorkAroundHipEventProfiler prf(handle);
-                            float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
-                            if (DirectCkMgr::GetInst()->enableLog)
-                                std::cout << "Cached qun fwd is called" << std::endl;
+
+                            invoker.Run(argument, StreamConfig{nullptr, false});
+                        }
+                        if (DirectCkMgr::GetInst()->enableLog)
+                            std::cout << "Cached qun fwd is called" << std::endl;
                             if(handle.IsProfilingEnabled())
                             {
-                                avg_time = handle.GetKernelTime();
-                                handle.ResetKernelTime();
-                                handle.AccumKernelTime(avg_time);
+                                elapsed += handle.GetKernelTime();
                                 DirectCkMgr::GetInst()->launchCount[ST_QUN_FWD] ++;
                                 DirectCkMgr::GetInst()->hitCacheCount[ST_QUN_FWD] ++;
                             }
+                      //  printf("bef 2: %f\n", elapsed);
+                        
+                        if(!trans_output_skippable)
+                        {
+                            auto& karg_output = opArgsTrans[trans_output_idx];
+                            karg_output[0]    = OpKernelArg(fwd_ctx.tensors.out);  //dst
+                            karg_output[1]    = OpKernelArg(trans_output_buf.get());   // src
+                            handle.Run(kernels[trans_output_idx])(karg_output);
+                            if(handle.IsProfilingEnabled())
+                                elapsed += handle.GetKernelTime();
+                        }
+                        if(handle.IsProfilingEnabled())
+                        {
+                                handle.ResetKernelTime();
+                                handle.AccumKernelTime(elapsed);
                         }
                     };
                 };
@@ -510,7 +604,7 @@ ConvSolution ConvQunConvFwd::GetBestSolution(const ExecutionContext& ctx,
     CacheData cd;
     cd.hashcode = argsHash;
     cd.split_k  = 1;
-    if (FindCachedSolution(argsHash, problem, sol))
+    if (FindCachedSolution(ctx, argsHash, problem, sol))
     {
         return sol;
     }
@@ -654,6 +748,37 @@ ConvSolution ConvQunConvFwd::GetSolution(const ExecutionContext& ctx,
     return GetBestSolution(ctx, problem);
 }
 
+size_t ConvQunConvFwd::GetWorkspaceSize(const ExecutionContext& ctx,
+                                            const ProblemDescription& problem) const
+{
+                const auto is_nhwc = (problem.IsLayoutDefault() == false);
+                int ho         = problem.GetOutHeight();
+                int wo         = problem.GetOutWidth();
+                int n          = problem.GetInBatchSize();
+                int c          = problem.GetInChannels();
+                int k          = problem.GetOutChannels();
+                int hi         = problem.GetInHeight();
+                int wi         = problem.GetInWidth();
+
+                size_t trans_input_size   = 0;
+                size_t trans_output_size   = 0;
+
+                bool trans_input_skippable  = true;
+                bool trans_output_skippable = true;
+
+                if (is_nhwc)
+                {   
+                    TransposeSolutionNhwc2Default trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
+                    TransposeSolutionDefault2Nhwc trans_output(ctx, problem.GetOutDataType(), n, k, ho, wo);
+
+                    trans_input_skippable  = trans_input.IsSkippable();
+                    trans_output_skippable = trans_output.IsSkippable();
+
+                    trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+                    trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
+                }
+    return trans_input_size + trans_output_size;
+}
 }
 } // namespace solver
 } // namespace miopen

@@ -359,7 +359,6 @@ solver::KernelInfo BatchedTransposeSolution::GetKernelInfo() const
     kernel.l_wk.push_back(block_size);
     kernel.l_wk.push_back(1);
     kernel.l_wk.push_back(1);
-
     MIOPEN_LOG_T(kernel_name);
 
     return kernel;
