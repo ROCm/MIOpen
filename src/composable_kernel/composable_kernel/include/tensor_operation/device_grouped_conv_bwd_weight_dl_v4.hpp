@@ -59,6 +59,55 @@ void __device__ global_atomic_add<ushort2_t>(ushort2_t* p, ushort2_t v)
 #endif
 }
 
+template <typename TA, typename TB, typename TC>
+__device__ void inner_product_fdot2(const TA& a, const TB& b, TC& c);
+
+template <>
+__device__ void inner_product_fdot2<half2_t, half2_t, float>(const half2_t& a, const half2_t& b, float& c)
+{
+    c = __builtin_amdgcn_fdot2(a, b, c, false);
+}
+
+template <>
+__device__ void inner_product_fdot2<half4_t, half4_t, float>(const half4_t& a, const half4_t& b, float& c)
+{
+    constexpr auto I0 = Number<0>{};
+    constexpr auto I1 = Number<1>{};
+
+    inner_product_fdot2(vector_type<half_t, 4>{a}.AsType<half2_t>()[I0],
+                        vector_type<half_t, 4>{b}.AsType<half2_t>()[I0],
+                        c);
+
+    inner_product_fdot2(vector_type<half_t, 4>{a}.AsType<half2_t>()[I1],
+                        vector_type<half_t, 4>{b}.AsType<half2_t>()[I1],
+                        c);
+}
+
+template <>
+__device__ void inner_product_fdot2<half8_t, half8_t, float>(const half8_t& a, const half8_t& b, float& c)
+{
+    constexpr auto I0 = Number<0>{};
+    constexpr auto I1 = Number<1>{};
+    constexpr auto I2 = Number<2>{};
+    constexpr auto I3 = Number<3>{};
+
+    inner_product_fdot2(vector_type<half_t, 8>{a}.AsType<half2_t>()[I0],
+                        vector_type<half_t, 8>{b}.AsType<half2_t>()[I0],
+                        c);
+
+    inner_product_fdot2(vector_type<half_t, 8>{a}.AsType<half2_t>()[I1],
+                        vector_type<half_t, 8>{b}.AsType<half2_t>()[I1],
+                        c);
+
+    inner_product_fdot2(vector_type<half_t, 8>{a}.AsType<half2_t>()[I2],
+                        vector_type<half_t, 8>{b}.AsType<half2_t>()[I2],
+                        c);
+
+    inner_product_fdot2(vector_type<half_t, 8>{a}.AsType<half2_t>()[I3],
+                        vector_type<half_t, 8>{b}.AsType<half2_t>()[I3],
+                        c);
+}
+
 template <typename GridwiseConvBwdWeight, index_t BlockSize, index_t MinimumOccupancy = 1>
 __global__ void
 #if CK_USE_LAUNCH_BOUNDS
@@ -401,7 +450,7 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
                         v_in[1]  = get_in(ho, wo + 1, 0);
                         v_out[0] = get_out(ho, wo, 0);
                         v_out[1] = get_out(ho, wo + 1, 0);
-                        inner_product(v_in, v_out, acc);
+                        inner_product_fdot2(v_in, v_out, acc);
                     });
                 });
             }
@@ -415,7 +464,7 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
                         static_for<0, NumVectorPerPixel, 1>{}([&](auto i) {
                             auto v_in  = get_in(ho, wo, i);
                             auto v_out = get_out(ho, wo, i);
-                            inner_product(v_in, v_out, acc);
+                            inner_product_fdot2(v_in, v_out, acc);
 #if 0
                              if (x == 0 && y == 0)
                              {
