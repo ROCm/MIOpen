@@ -150,7 +150,7 @@ namespace fusion {
 bool ConvBinWinogradRxSf2x3g1Fused::IsApplicable(const FusionContext& context,
                                                  const FusionDescription& problem) const
 {
-    if (IsCKFusionSolverApplicable(context, problem))
+    if(IsCKFusionSolverApplicable(context, problem))
     {
         return false;
     }

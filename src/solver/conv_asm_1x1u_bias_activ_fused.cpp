@@ -221,7 +221,7 @@ bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
                                         const FusionDescription& problem) const
 {
 
-    if (IsCKFusionSolverApplicable(context, problem))
+    if(IsCKFusionSolverApplicable(context, problem))
     {
         return false;
     }

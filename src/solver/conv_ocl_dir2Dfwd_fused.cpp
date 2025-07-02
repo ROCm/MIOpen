@@ -68,7 +68,7 @@ ConvOclDirectFwdFused::Search(const FusionContext& context,
 bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context,
                                          const FusionDescription& problem) const
 {
-    if (IsCKFusionSolverApplicable(context, problem))
+    if(IsCKFusionSolverApplicable(context, problem))
     {
         return false;
     }
