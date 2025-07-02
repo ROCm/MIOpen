@@ -965,6 +965,14 @@ if(rocMLIR_FOUND)
     target_link_libraries(MIOpen PRIVATE rocMLIR::rockCompiler)
 endif()
 
+find_library(ckUtility
+    NAMES utility
+    PATHS /opt/rocm/lib
+    NO_DEFAULT_PATH)
+if (ckUtility)
+    target_link_libraries(MIOpen PRIVATE ${ckUtility})
+endif()
+
 target_link_libraries(MIOpen PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(MIOpen INTERFACE $<BUILD_INTERFACE:nlohmann_json::nlohmann_json>)
 
