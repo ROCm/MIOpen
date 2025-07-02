@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 
 std::unique_ptr<sqlite3, int (*)(sqlite3*)> OpenDb(const char* filename, int flags)
 {

@@ -104,18 +104,22 @@ using TestCase = decltype(GetTestCases(""))::value_type;
 
 class GPU_conv_extra_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_conv_extra_FP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_conv_extra_BFP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_conv_extra_I8 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 

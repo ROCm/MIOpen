@@ -559,18 +559,21 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
             {
             case BILINEAR:
                 return InitInvokerFactoryBwdNCHW<3,
+                                                 true,
                                                  DeviceOpGBwdBilinearPtrs<T>,
                                                  CKArgs<T>,
                                                  miopen::conv::DataInvokeParams>(
                     ctx, problem, config.kernel_id);
             case SCALE:
                 return InitInvokerFactoryBwdNCHW<3,
+                                                 true,
                                                  DeviceOpGBwdScalePtrs<T>,
                                                  CKArgs<T>,
                                                  miopen::conv::DataInvokeParams>(
                     ctx, problem, config.kernel_id);
             default:
                 return InitInvokerFactoryBwdNCHW<3,
+                                                 true,
                                                  DeviceOpGBwdDefaultPtrs<T>,
                                                  CKArgs<T>,
                                                  miopen::conv::DataInvokeParams>(
@@ -582,17 +585,20 @@ ConvSolution ConvHipImplicitGemm3DGroupBwdXdlops::GetSolution(
             switch(problem.GetAlphaBetaCase())
             {
             case BILINEAR:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdBilinearPtrs<T>,
+                return InitInvokerFactoryNHWC<true,
+                                              DeviceOpGBwdBilinearPtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::DataInvokeParams>(
                     ctx, problem, config.kernel_id);
             case SCALE:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdScalePtrs<T>,
+                return InitInvokerFactoryNHWC<true,
+                                              DeviceOpGBwdScalePtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::DataInvokeParams>(
                     ctx, problem, config.kernel_id);
             default:
-                return InitInvokerFactoryNHWC<DeviceOpGBwdDefaultPtrs<T>,
+                return InitInvokerFactoryNHWC<true,
+                                              DeviceOpGBwdDefaultPtrs<T>,
                                               CKArgs<T>,
                                               miopen::conv::DataInvokeParams>(
                     ctx, problem, config.kernel_id);

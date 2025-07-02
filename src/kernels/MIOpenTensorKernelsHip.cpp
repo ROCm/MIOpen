@@ -30,6 +30,8 @@
 #include <hip/hip_bfloat16.h>
 #endif
 
+#include "miopen_cstdint.hpp"
+
 template <typename T>
 __device__ T miopenAdd(T a, T b)
 {

@@ -28,9 +28,9 @@
 #include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
 #include "get_handle.hpp"
+#include "gtest_common.hpp"
 
 namespace regression_issue_2012 {
-void SetupEnvVar() { lib_env::update(MIOPEN_FIND_MODE, "normal"); }
 
 std::vector<std::string> GetArgs(const std::string& param)
 {
@@ -63,6 +63,7 @@ using TestCase = decltype(GetTestCases(std::string{}))::value_type;
 
 class GPU_regression_issue_2012_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 bool IsTestSupportedForDevice()
@@ -79,7 +80,8 @@ void Run2dDriver()
         GTEST_SKIP();
     }
 
-    SetupEnvVar();
+    ScopedEnvironment<std::string> find_mode_env4(MIOPEN_FIND_MODE, "normal");
+
     std::vector<std::string> params = GPU_regression_issue_2012_FP32::GetParam();
 
     for(const auto& test_value : params)

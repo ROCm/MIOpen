@@ -26,27 +26,15 @@
 
 cmake_policy(SET CMP0057 NEW)
 
-set(test_perf.py ${CMAKE_INSTALL_BINDIR}/test_perf.py)
-
-install(FILES  test_perf.py
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-    DESTINATION ${CMAKE_INSTALL_BINDIR})
-
-set(MODEL_FILES)
-file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
-foreach (src ${model_src})
-    list (APPEND MODEL_FILES ${src})
-endforeach()
-
-install(FILES
-    ${MODEL_FILES}
-    DESTINATION ${DATA_INSTALL_DIR}/perf_models)
-foreach(MODEL_FILE ${MODEL_FILES})
-   get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
-   configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
-endforeach()
-
 include(CheckCXXCompilerFlag)
+
+if(MIOPEN_USE_HIPBLASLT)
+  find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
+
+if(MIOPEN_USE_ROCBLAS)
+  find_package(rocblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+endif()
 
 option( MIOPEN_TEST_ALL "Run the full test suite" OFF )
 option( MIOPEN_TEST_HALF "Test in half mode" OFF )
@@ -62,12 +50,36 @@ option( MIOPEN_TEST_GFX103X "Test on Navi21/22 (gfx1030/31)" OFF )
 option( MIOPEN_TEST_GFX110X "Test on Navi31/32 (gfx1100/02)" OFF )
 option( MIOPEN_TEST_GFX120X "Test on gfx1200/01" OFF )
 option( MIOPEN_TEST_GPU_XNACK_ENABLED "Test as if XNACK mode is enabled" OFF )
-option( MIOPEN_TEST_CONV "" OFF)
-option( MIOPEN_TEST_DEEPBENCH "" OFF)
-option( MIOPEN_TEST_DRIVER_ITER_MODE "" OFF)
+option( MIOPEN_TEST_CONV "" OFF )
+option( MIOPEN_TEST_DEEPBENCH "" OFF )
+option( MIOPEN_TEST_DRIVER_ITER_MODE "" OFF )
 option( MIOPEN_TEST_COMPOSABLEKERNEL "Test with composable_kernel library" ${MIOPEN_USE_COMPOSABLEKERNEL} )
-option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON)
-option( MIOPEN_TEST_DBSYNC "" OFF)
+option( MIOPEN_TEST_DISCRETE "Build Discrete Test Binaries" ON )
+option( MIOPEN_TEST_DBSYNC "" OFF )
+option( MIOPEN_TEST_PERF "" OFF )
+option( MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB "Enable the SQLite Perf DB test" OFF)
+
+if(NOT ENABLE_ASAN_PACKAGING AND MIOPEN_TEST_PERF)
+    set( CMAKE_INSTALL_TESTBINDIR "${DATA_INSTALL_DIR}/bin" )
+    set(test_perf.py ${CMAKE_INSTALL_TESTBINDIR}/test_perf.py)
+    install(FILES  test_perf.py
+        PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+        DESTINATION ${CMAKE_INSTALL_TESTBINDIR})
+
+    set(MODEL_FILES)
+    file (GLOB model_src CONFIGURE_DEPENDS perf_models/*.txt)
+    foreach (src ${model_src})
+        list (APPEND MODEL_FILES ${src})
+    endforeach()
+
+    install(FILES
+        ${MODEL_FILES}
+        DESTINATION ${DATA_INSTALL_DIR}/perf_models)
+    foreach(MODEL_FILE ${MODEL_FILES})
+       get_filename_component(MODEL_FILE_FILENAME "${MODEL_FILE}" NAME)
+       configure_file("${MODEL_FILE}" "${PROJECT_BINARY_DIR}/${DATA_INSTALL_DIR}/perf_models/${MODEL_FILE_FILENAME}" COPYONLY)
+    endforeach()
+endif()
 
 set_var_to_condition(MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT MIOPEN_BUILD_DRIVER)
 option( MIOPEN_TEST_WITH_MIOPENDRIVER "Use MIOpenDriver in tests" ${MIOPEN_TEST_WITH_MIOPENDRIVER_DEFAULT})
@@ -117,19 +129,13 @@ if(NOT (MIOPEN_TEST_GFX900 OR MIOPEN_TEST_GFX906 OR MIOPEN_TEST_GFX908 OR MIOPEN
         elseif (NOT ROCMINFO_EXIT_STATUS EQUAL 0)
             message(WARNING "ROCMINFO FAILED, GPU TYPE UNKNOWN. Manually set respective MIOPEN_TEST_GFX* CMake variable to specify target GPU for testing.")
             set(MIOPEN_TEST_GPU_DETECTION_FAILED TRUE)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1030")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx103.")
             set(MIOPEN_TEST_GFX103X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1031")
-            set(MIOPEN_TEST_GFX103X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1100")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx110.")
             set(MIOPEN_TEST_GFX110X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1101")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx115.")
             set(MIOPEN_TEST_GFX110X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1102")
-            set(MIOPEN_TEST_GFX110X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1200")
-            set(MIOPEN_TEST_GFX120X ON)
-        elseif(ROCMINFO_OUTPUT MATCHES "gfx1201")
+        elseif(ROCMINFO_OUTPUT MATCHES "gfx120.")
             set(MIOPEN_TEST_GFX120X ON)
         elseif(ROCMINFO_OUTPUT MATCHES "gfx900")
             set(MIOPEN_TEST_GFX900 ON)
@@ -170,6 +176,10 @@ option( MIOPEN_LIBMLIR_SUPPORTS_GFX103X "libMLIR capability to support GFX10. En
 set_var_to_condition(MIOPEN_TEST_MLIR_DEFAULT ${MIOPEN_USE_MLIR} AND NOT (${MIOPEN_TEST_GFX103X} AND NOT ${MIOPEN_LIBMLIR_SUPPORTS_GFX103X}))
 option( MIOPEN_TEST_MLIR "Test for MLIR compilation backend" ${MIOPEN_TEST_MLIR_DEFAULT} )
 
+if((NOT MIOPEN_ENABLE_SQLITE) OR (NOT MIOPEN_EMBED_DB STREQUAL ""))
+    set(MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB OFF)
+endif()
+
 message(STATUS "MIOPEN_NO_GPU ${MIOPEN_NO_GPU}")
 message(STATUS "MIOPEN_TEST_GFX900 ${MIOPEN_TEST_GFX900}")
 message(STATUS "MIOPEN_TEST_GFX906 ${MIOPEN_TEST_GFX906}")
@@ -190,6 +200,8 @@ message(STATUS "MIOPEN_TEST_DRIVER_ITER_MODE ${MIOPEN_TEST_DRIVER_ITER_MODE}")
 message(STATUS "MIOPEN_TEST_COMPOSABLEKERNEL ${MIOPEN_TEST_COMPOSABLEKERNEL}")
 message(STATUS "MIOPEN_TEST_DISCRETE ${MIOPEN_TEST_DISCRETE}")
 message(STATUS "MIOPEN_TEST_DBSYNC ${MIOPEN_TEST_DBSYNC}")
+message(STATUS "MIOPEN_TEST_PERF ${MIOPEN_TEST_PERF}")
+message(STATUS "MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB ${MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB}")
 
 if(MIOPEN_TEST_DRIVER_ITER_MODE)
     add_definitions(-DMIOPEN_TEST_DRIVER_MODE=2)
@@ -388,6 +400,14 @@ function(add_test_executable TEST_NAME)
     if(HAS_LIB_STD_FILESYSTEM)
         target_link_libraries(${TEST_NAME} stdc++fs)
     endif()
+    # Need to add hipblaslt since static builds of MIOpen require hipBLASLt linkage
+    if(hipblaslt_FOUND)
+        target_link_libraries( ${TEST_NAME} roc::hipblaslt )
+    endif()
+    # Need to add rocBLAS since static builds of MIOpen require rocBLAS linkage
+    if(rocblas_FOUND)
+        target_link_libraries( ${TEST_NAME} $<BUILD_INTERFACE:roc::rocblas> )
+    endif()
 endfunction()
 
 set(MIOPEN_TEST_SANITIZERS)
@@ -439,8 +459,10 @@ set(EXCLUDE_TESTS)
 if(NOT MIOPEN_ENABLE_SQLITE)
     list(APPEND EXCLUDE_TESTS test_sqlite)
 endif()
-if(NOT MIOPEN_ENABLE_SQLITE OR (NOT MIOPEN_EMBED_DB STREQUAL ""))
+
+if(NOT MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB)
     list(APPEND EXCLUDE_TESTS test_sqlite_perfdb)
+    message(STATUS "Flaky test_sqlite_perfdb currently disabled (May 28 2025)")
 endif()
 
 set(EXCLUDE_TEST_SOURCES)
@@ -462,7 +484,7 @@ foreach(TEST_SOURCE ${TEST_SOURCES})
     add_test_executable(test_${BASE_NAME} ${TEST_SOURCE})
 endforeach()
 
-if(MIOPEN_ENABLE_SQLITE AND (MIOPEN_EMBED_DB STREQUAL ""))
+if(MIOPEN_TEST_ENABLE_TEST_SQLITE_PERFDB)
     set_tests_properties(test_sqlite_perfdb PROPERTIES RUN_SERIAL On)
 endif()
 set_tests_properties(test_perfdb PROPERTIES RUN_SERIAL On)
@@ -709,21 +731,6 @@ set(IMPLICITGEMM_TESTING_ENV
  MIOPEN_DEBUG_CONV_GEMM=0
  MIOPEN_DEBUG_CONV_IMPLICIT_GEMM=1
 )
-
-if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
-    SET(SAVE_IMPLICITGEMM_TESTING_ENV ${IMPLICITGEMM_TESTING_ENV})
-    LIST(APPEND IMPLICITGEMM_TESTING_ENV MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1=0 MIOPEN_FIND_MODE=normal)
-    SET(SAVE_MIOPEN_TEST_FLOAT_ARG ${MIOPEN_TEST_FLOAT_ARG})
-    LIST(APPEND MIOPEN_TEST_FLOAT_ARG --disable-forward --disable-backward-data)
-    #Afther fix need to remove '| grep -v "No suitable algorithm was found to execute the required convolution"'
-endif()
-
-
-
-if(WORKAROUND_ISSUE_936 AND MIOPEN_TEST_HALF)
-    SET(IMPLICITGEMM_TESTING_ENV ${SAVE_IMPLICITGEMM_TESTING_ENV})
-    SET(MIOPEN_TEST_FLOAT_ARG ${SAVE_MIOPEN_TEST_FLOAT_ARG})
-endif()
 
 if(MIOPEN_TEST_DEEPBENCH)
     add_custom_test(test_deepbench_rnn GFX94X_ENABLED GFX103X_ENABLED GFX110X_ENABLED

@@ -29,6 +29,7 @@
 #include <miopen/miopen.h>
 #include "get_handle.hpp"
 #include "../lib_env_var.hpp"
+#include "gtest_common.hpp"
 #include <miopen/readonlyramdb.hpp>
 #include <miopen/env.hpp>
 #include <miopen/execution_context.hpp>
@@ -532,7 +533,7 @@ TEST(CPU_DBSync_NONE, KDBTargetID)
 
     fs::path fdb_file_path, pdb_file_path, kdb_file_path;
 #if WORKAROUND_ISSUE_2492
-    lib_env::update(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492, "0");
+    ScopedEnvironment<std::string> issue_2492_env(MIOPEN_DEBUG_WORKAROUND_ISSUE_2492, "0");
 #endif
     SetupPaths(fdb_file_path, pdb_file_path, kdb_file_path, get_handle());
     std::ignore = fdb_file_path;
@@ -744,7 +745,10 @@ void CheckFDBEntry(size_t thread_index,
             }
 #endif
 
+            miopen::solver::ConvSolution sol;
+            auto db         = miopen::GetDb(ctx);
             const auto solv = id.GetSolver();
+
             // Skip MLIR
             if(miopen::StartsWith(id.ToString(), "ConvMlir"))
             {
@@ -752,15 +756,27 @@ void CheckFDBEntry(size_t thread_index,
                 ++fdb_idx;
                 continue;
             }
-            EXPECT_TRUE(solv.IsApplicable(ctx, problem)) //
-                << '[' << (++failures) << "] "           //
-                << "Solver is not applicable fdb-key:" << kinder.first
-                << " Solver: " << id.ToString();
-            miopen::solver::ConvSolution sol;
 
-            auto db                     = miopen::GetDb(ctx);
+            if(env::enabled(MIOPEN_DBSYNC_CLEAN) && not solv.IsApplicable(ctx, problem))
+            {
+                MIOPEN_LOG_W("Inapplicable solver found fdb-key:"
+                             << kinder.first << ", Solver" << val.solver_id << ":"
+                             << ", Removing entry from fdb and pdb");
+                find_db_rw.Remove(kinder.first, id.ToString());
+                db.Remove(problem, id.ToString());
+                MIOPEN_LOG_W("Removal Complete fdb-key:" << kinder.first << ": solver"
+                                                         << val.solver_id);
+                continue;
+            }
+            else
+            {
+                EXPECT_TRUE(solv.IsApplicable(ctx, problem)) //
+                    << '[' << (++failures) << "] "           //
+                    << "Solver is not applicable fdb-key:" << kinder.first
+                    << " Solver: " << id.ToString();
+            }
+
             const auto pdb_entry_exists = pdb_vals.find(val.solver_id) != pdb_vals.end();
-
             if(solv.IsTunable())
             {
                 if(env::enabled(MIOPEN_DBSYNC_CLEAN) && not pdb_entry_exists)

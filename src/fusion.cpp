@@ -198,9 +198,12 @@ AllocateBuffersAndMakeFusionInvokeParams(const Handle& handle,
 
         if(activ_fwd_id != -1)
         {
-            params.SetArg(
-                activ_fwd_id,
-                std::make_unique<miopen::fusion::ActivationOpInvokeParam>(alpha, beta, gamma));
+            const auto& activ_op =
+                dynamic_cast<ActivFwdFusionOpDescriptor&>(*plan.op_map[activ_fwd_id]);
+
+            params.SetArg(activ_fwd_id,
+                          std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
+                              alpha, beta, gamma, activ_op.activMode));
         }
         else if(activ_bwd_id != -1)
         {
@@ -347,16 +350,22 @@ std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanD
     const miopenConvolutionDescriptor_t& convDesc = &conv_op->base_desc;
     const miopenTensorDescriptor_t& yDesc         = &deref(fusePlanDesc).output_desc;
     std::string str;
+    std::string prefix;
 
-    if(deref(fusePlanDesc).data_type == miopenBFloat16)
+    //"Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
+    switch(fusion_mode)
     {
-        str = "CBAInferfp16";
-    }
-    else
-    {
-        str = "CBAInfer";
+    case 4: prefix = "CBAInfer"; break;
+    case 5: prefix = "CAInfer"; break;
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 6:
+    default: MIOPEN_LOG_E("Unknown fusion plan : " << fusion_mode);
     }
 
+    DriverDataType(prefix, str, miopen::deref(xDesc));
     str += " -F " + std::to_string(fusion_mode);
     str += ConvArgsForMIOpenDriver(miopen::deref(xDesc),
                                    miopen::deref(wDesc),
@@ -400,6 +409,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
                                         nullptr,
                                         nullptr,
                                         miopen::debug::BatchNormDirection_t::ForwardInference,
+                                        nullptr,
                                         false); // having false allows safe handling of nullptrs
     }
     else
@@ -581,8 +591,8 @@ miopenStatus_t ActivFwdFusionOpDescriptor::SetArgs(OperatorArgs& args,
                                                    double activBeta,
                                                    double activGamma)
 {
-    auto op_args =
-        std::make_unique<fusion::ActivationOpInvokeParam>(activAlpha, activBeta, activGamma);
+    auto op_args = std::make_unique<fusion::ActivationOpInvokeParam>(
+        activAlpha, activBeta, activGamma, activMode);
     args.SetArg(GetIdx(), std::move(op_args));
     return miopenStatusSuccess;
 }
@@ -763,6 +773,8 @@ static auto GetFusedDirectSolvers()
 static auto GetFusedIGemmSolvers()
 {
     return solver::SolverContainer<solver::fusion::ConvCKIgemmFwdBiasActivFused,
+                                   solver::fusion::ConvCKIgemmGrpFwdActivFused,
+                                   solver::fusion::ConvCKIgemmGrpFwdBiasActivFused,
                                    solver::fusion::ConvCKIgemmFwdBiasResAddActivFused>{};
 }
 
@@ -770,7 +782,8 @@ static auto GetFusedWinogradSolvers()
 {
     return solver::SolverContainer<solver::fusion::ConvBinWinogradRxSFused,
                                    solver::fusion::ConvBinWinogradRxSf2x3g1Fused,
-                                   solver::fusion::ConvWinoFuryRxSFused<2, 3>>{};
+                                   solver::fusion::ConvWinoFuryRxSFused<2, 3>,
+                                   solver::fusion::ConvWinoRageRxSFused<2, 3>>{};
 }
 
 static auto GetAllFusionSolvers()

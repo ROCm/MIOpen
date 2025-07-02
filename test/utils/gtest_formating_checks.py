@@ -1,3 +1,28 @@
+#*******************************************************************************
+#
+# MIT License
+#
+# Copyright (c) 2025 Advanced Micro Devices, Inc.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+#*******************************************************************************
 import os
 import re
 import logging
@@ -7,14 +32,16 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 FOLDER_PATH = "../../test/gtest"
 
 # Ignore list: Add test names or file paths you want to exclude
+#              (keep the list sorted to min. git conflicts)
 IGNORE_LIST = {
-    "CPU_MIOpenDriverRegressionBigTensorTest_FP32",
-    "../../test/gtest/reduce_custom_fp32.cpp",
     "../../test/gtest/binary_tensor_ops.cpp",
-    "../../test/gtest/layout_transpose.cpp",
     "../../test/gtest/graphapi_conv_bias_res_add_activ_fwd.cpp",
+    "../../test/gtest/graphapi_operation_rng.cpp",
+    "../../test/gtest/layout_transpose.cpp",
+    "../../test/gtest/reduce_custom_fp32.cpp",
     "../../test/gtest/unary_tensor_ops.cpp",
-    "../../test/gtest/graphapi_operation_rng.cpp"
+    "CPU_MIOpenDriverRegressionBigTensorTest_FP32",
+    "GPU_UnitTestConvSolverAsmBwdWrW3x3Wrw_FP32",
 }
 
 # Valid enums and Regex for validation
