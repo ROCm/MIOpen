@@ -130,8 +130,7 @@ void ProblemDescription::HeuristicUpdateLayouts()
         return;
     }
 
-    static const std::vector<std::string> supported_layouts = {
-        "NCHW", "NHWC", "CHWN", "NCDHW", "NDHWC"};
+    static const std::vector<std::string> supported_layouts = {"NCHW", "NHWC", "CHWN", "NCDHW"};
 
     for(const std::string& layout : supported_layouts)
     {
