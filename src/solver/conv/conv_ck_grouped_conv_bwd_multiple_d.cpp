@@ -371,9 +371,15 @@ bool ConvJinMDConvBwd::IsApplicable(const ExecutionContext&   ctx,
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
+#if 0
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsFp8() ||
          problem.IsBfp8()))
         return false;
+#else
+    // todo support more data type
+    if(!problem.IsFp16())
+        return false;
+#endif
 
     if(!problem.IsDirectionBackwardData())
         return false;

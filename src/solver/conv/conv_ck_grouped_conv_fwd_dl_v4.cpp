@@ -142,19 +142,19 @@ using DeviceConvFwdFactory = std::tuple<
 
 //                                                NDimSpatial BlockSize In      Wei        Acc    Out      BlockTileSize FilterSize   FilterParam (dilation, stride, padding)                                     NBatch  SubTileH W  ScalarPerVector(in out)    RequirePadding>
       ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<7, 7>,     5,           ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<14, 14>,   5,           ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       2, 2,                     false>
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   5,           ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       4, 4,                     false>
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<14, 14>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       2, 1,                     false>
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       4, 2,                     false>
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<56, 56>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  8,       4, 4,       8, 4,                     false>
+   // ,ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<14, 14>,   5,           ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       2, 2,                     false>
+ //   , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   5,           ck::Tuple<S<1,1>, S<1,1>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       4, 4,                     false>
+    //, ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<14, 14>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       2, 1,                     false>
+    //, ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       4, 2,                     false>
+   // , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<56, 56>,   5,           ck::Tuple<S<1,1>, S<2,2>, S<2,2>>, InElementOp, WeiElementOp, OutElementOp,  8,       4, 4,       8, 4,                     false>
 
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<7, 7>,     3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<14, 14>,   3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       2, 2,                     false>
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<56, 56>,   3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  8,       7, 8,       8, 8,                     false>
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<112, 112>, 3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  2,       14, 16,     8, 8,                     false>
+  //  , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<7, 7>,     3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       1, 1,                     false>
+  //  , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<14, 14>,   3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       2, 2,                     false>
+   // , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<56, 56>,   3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  8,       7, 8,       8, 8,                     false>
+  //  , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<112, 112>, 3,           ck::Tuple<S<1,1>, S<1,1>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  2,       14, 16,     8, 8,                     false>
 
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   3,           ck::Tuple<S<1,1>, S<2,2>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       4, 2,                     false>
-    , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<112, 112>, 3,           ck::Tuple<S<1,1>, S<2,2>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  8,       7, 8,       8, 8,                     false>
+   // , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<28, 28>,   3,           ck::Tuple<S<1,1>, S<2,2>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  32,      4, 4,       4, 2,                     false>
+   // , ck::tensor_operation::device::DeviceGroupedConvFwdDlV4<2, 64,      InType, WeiType, AccType, OutType,  S<112, 112>, 3,           ck::Tuple<S<1,1>, S<2,2>, S<1,1>>, InElementOp, WeiElementOp, OutElementOp,  8,       7, 8,       8, 8,                     false>
 >;
 
 using ProblemDescription = miopen::conv::ProblemDescription;
@@ -345,11 +345,15 @@ bool ConvQunConvFwd::IsApplicable(const ExecutionContext&   ctx,
 
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
-
+#if 0
     if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsFp8() ||
          problem.IsBfp8()))
         return false;
-
+#else
+    // todo support more data type
+    if(!problem.IsFp16())
+        return false;
+#endif
     if(!problem.IsDirectionForward())
         return false;
     if(!problem.AllTensorsLengthsFitIntoInt())

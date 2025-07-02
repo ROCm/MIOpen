@@ -3,6 +3,23 @@
 
 #include "ck/tensor_operation/gpu/device/device_grouped_conv_fwd_multiple_abd.hpp"
 #include "ck/host_utility/kernel_launch.hpp"
+
+#if 0
+#include "ck/ck.hpp"
+#include "ck/tensor_operation/gpu/device/convolution_forward_specialization.hpp"
+#include "ck/tensor_operation/gpu/device/gemm_specialization.hpp"
+#include "ck/tensor_operation/gpu/device/tensor_layout.hpp"
+#include "ck/tensor_operation/gpu/element/element_wise_operation.hpp"
+
+#include "ck/library/utility/algorithm.hpp"
+#include "ck/library/utility/check_err.hpp"
+#include "ck/library/utility/device_memory.hpp"
+#include "ck/library/utility/host_tensor.hpp"
+#include "ck/library/utility/host_tensor_generator.hpp"
+#include "ck/library/utility/convolution_parameter.hpp"
+#include "ck/library/utility/convolution_host_tensor_descriptor_helper.hpp"
+#include "ck/library/reference_tensor_operation/cpu/reference_conv_fwd.hpp"
+#endif
 namespace ck {
 template <typename GridwiseConvFwd, index_t BlockSize, index_t MinimumOccupancy = 1>
 __global__ void
@@ -11,9 +28,16 @@ __launch_bounds__(BlockSize, MinimumOccupancy)
 #endif
     kernel_grouped_conv_fwd_dl_v4(typename GridwiseConvFwd::Argument arg)
 {
+    #if 1
     __shared__ char p_share_in[GridwiseConvFwd::ShareMemInSize];
     __shared__ char p_share_out[GridwiseConvFwd::ShareMemOutSize];
-
+    #else
+    // for debug
+    __shared__ char p_share_in[65536/2 ];
+    __shared__ char p_share_out[65536/2 - GridwiseConvFwd::ShareMemOutSize];
+    for (int i =0; i < 65536/2 - GridwiseConvFwd::ShareMemOutSize; i++)
+        p_share_in[i]=0;
+    #endif
     GridwiseConvFwd::template Run<>(arg, p_share_in, p_share_out);
 }
 
@@ -884,6 +908,81 @@ struct DeviceGroupedConvFwdDlV4 : public DeviceGroupedConvFwdMultipleABD<NDimSpa
 
             ave_time += launch_and_time_kernel(
                 stream_config, conv_kernel, gdx, dim3(BlockSize), 0, conv_arg);
+            #if 0
+            {
+                using FP16  = ck::half_t;
+                using PassThrough = ck::tensor_operation::element_wise::PassThrough;
+                using InputLayout = ck::tensor_layout::convolution::GNHWC;
+                using WeightLayout = ck::tensor_layout::convolution::GKYXC;
+                using OutputLayout = ck::tensor_layout::convolution::GNHWK;
+                using HostConvFwdInstance = ck::tensor_operation::host::ReferenceConvFwd<2,
+                                                                         FP16,
+                                                                         FP16,
+                                                                         FP16,
+                                                                         PassThrough,
+                                                                         PassThrough,
+                                                                         PassThrough>;
+                
+                auto array_to_vector =[](const auto& arr) {
+                    std::vector<ck::long_index_t> vec(2);
+                    std::copy(arr.begin(), arr.end(), vec.begin());
+                    return vec;
+                };
+             
+                ck::utils::conv::ConvParam conv_param =  ck::utils::conv::ConvParam{
+                                    2,
+                                    arg.in_g_n_c_wis_lengths_[0], // g
+                                    arg.in_g_n_c_wis_lengths_[1], // n
+                                    1, // k
+                                    1, // c
+                                    {arg.wei_g_k_c_xs_lengths_[3], arg.wei_g_k_c_xs_lengths_[4]},
+                                    {arg.in_g_n_c_wis_lengths_[3], arg.in_g_n_c_wis_lengths_[4]},
+                                    array_to_vector(arg.conv_filter_strides_),
+                                    array_to_vector(arg.conv_filter_dilations_),
+                                    array_to_vector(arg.input_left_pads_),
+                                    array_to_vector(arg.input_right_pads_)};
+                const auto in_g_n_c_wis_desc =
+                ck::utils::conv::make_input_host_tensor_descriptor_g_n_c_wis_packed<
+                InputLayout>(conv_param);
+
+                const auto wei_g_k_c_xs_desc =
+                ck::utils::conv::make_weight_host_tensor_descriptor_g_k_c_xs_packed<
+                WeightLayout>(conv_param);
+
+                const auto out_g_n_k_wos_desc =
+                ck::utils::conv::make_output_host_tensor_descriptor_g_n_k_wos_packed<
+                            OutputLayout>(conv_param);
+                Tensor<FP16> in(in_g_n_c_wis_desc);
+                Tensor<FP16> wei(wei_g_k_c_xs_desc);
+                Tensor<FP16> out_host(out_g_n_k_wos_desc);
+                auto copy_fp16_to_vector = [](const FP16* src, size_t n) {
+                    return std::vector<FP16>(src, src + n);
+                };
+                in.mData = copy_fp16_to_vector(arg.p_in_grid_, in.mData.size());
+                wei.mData = copy_fp16_to_vector(arg.p_wei_grid_, wei.mData.size());
+
+                auto ref_conv     = HostConvFwdInstance{};
+                auto ref_invoker  = ref_conv.MakeInvoker();
+                auto ref_argument = ref_conv.MakeArgument(in,
+                                                        wei,
+                                                        out_host,
+                                                        conv_param.conv_filter_strides_,
+                                                        conv_param.conv_filter_dilations_,
+                                                        conv_param.input_left_pads_,
+                                                        conv_param.input_right_pads_,
+                                                        PassThrough{},
+                                                        PassThrough{},
+                                                        PassThrough{});
+                ref_invoker.Run(ref_argument);
+
+                bool res = ck::utils::check_err(
+                    copy_fp16_to_vector(arg.p_out_grid_, out_host.mData.size()), out_host.mData, "Error: incorrect results!", 1e-3f, 1e-3f);
+                if (res == true)
+                {
+                    printf("####### no error\n");
+                }
+            }
+            #endif
 
             return ave_time;
         }
