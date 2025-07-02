@@ -174,6 +174,8 @@ struct CKArgs
             out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
+            bias_strides = {K, 0, 1, 0, 0, 0};
+
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                              ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                              ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
@@ -204,6 +206,8 @@ struct CKArgs
             out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
             wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
 
+            bias_strides = {K, 0, 1, 0, 0};
+
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                              ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
             filter_dilation = {ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
@@ -213,8 +217,6 @@ struct CKArgs
             rPadding        = {ProblemInterpreter::GetAdjustedInputRightPadH(problem),
                         ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
         }
-
-        bias_strides = {K, 0, 1, 0, 0};
     }
 
     CKArgs(const CKArgs&) = default;
