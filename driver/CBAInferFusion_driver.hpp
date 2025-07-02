@@ -534,7 +534,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
 
     inflags.AddInputFlag(
         "fusion_mode",
-        'F',
+        'J',
         "0",
         "Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
         "int");
@@ -1383,12 +1383,11 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
     int match = miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
     if(match == 0)
     {
-        std::cout << "Forward Activation FAILED (Accuracy: " << error << ")" << std::endl;
+        std::cout << "Forward Activation FAILED (error: " << error << ")" << std::endl;
         return EC_VerifyFwd;
     }
 
-    std::cout << "Forward Activation Verifies on CPU and GPU (Accuracy: " << error << ")"
-              << std::endl;
+    std::cout << "Forward Activation Verifies on CPU and GPU (error: " << error << ")" << std::endl;
     return miopenStatusSuccess;
 }
 
