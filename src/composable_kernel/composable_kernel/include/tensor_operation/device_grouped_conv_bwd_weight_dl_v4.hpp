@@ -108,6 +108,12 @@ __device__ void inner_product_fdot2<half8_t, half8_t, float>(const half8_t& a, c
                         c);
 }
 
+__device__ void block_sync_lds_new()
+{
+    __builtin_amdgcn_s_waitcnt(0xc07f);
+    __builtin_amdgcn_s_barrier();
+}
+
 template <typename GridwiseConvBwdWeight, index_t BlockSize, index_t MinimumOccupancy = 1>
 __global__ void
 #if CK_USE_LAUNCH_BOUNDS
@@ -654,7 +660,7 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
 
         if constexpr(NumWavePerTile > 1)
         {
-            block_sync_lds();
+            block_sync_lds_new();
         }
 
         const index_t in_x         = lane_id % SubTileIn_Pack_W;
@@ -752,7 +758,7 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
                                       Number<Pad_W * NumVectorPerPixel>{},
                                       Number<Tile_H>{},
                                       SubTileIn_Stride * NumVectorPerPixel);
-                     //block_sync_lds();     
+                     //block_sync_lds_new();
                     // Debug<Number<ShareMemInSize>> xx2;            
                     //if (threadIdx.x == 0)
                     //{
@@ -829,7 +835,7 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
             //     dump_lds(tmp_in, sizeof(tmp_in)/sizeof(InDataVector), sizeof(tmp_in)/sizeof(InDataVector));
             //     dump_lds(tmp_out, sizeof(tmp_out)/sizeof(OutDataVector), sizeof(tmp_out)/sizeof(OutDataVector));
             }
-            //block_sync_lds();
+            //block_sync_lds_new();
             
             if (threadIdx.x == 0)
             {
@@ -837,7 +843,7 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
                dump_lds(reinterpret_cast<InDataVector*>(share_in_base), ShareMemInSize/sizeof(InDataVector), SubTileIn_Stride * NumVectorPerPixel);
                dump_lds(reinterpret_cast<OutDataVector*>(share_out_base), ShareMemOutSize/sizeof(OutDataVector), SubTileOut_Stride * NumVectorPerPixel);
             }
-            block_sync_lds();
+            block_sync_lds_new();
 #endif
 
 #if defined(ENABLE_PIPELINE_V2)
@@ -846,13 +852,13 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
                 // do conv_bwd on 0
                 if constexpr(NumWavePerTile > 1)
                 {
-                    block_sync_lds();
+                    block_sync_lds_new();
                 }
                 run_conv_bwd_weight<TileOut_H_batch, SubTileOut_W>(
                     x, y, ho, wo, hout_base, share_in_base + in_share_base_offset * NumVectorPerPixel, share_out_base, acc);
                 if constexpr(NumWavePerTile > 1)
                 {
-                    block_sync_lds();
+                    block_sync_lds_new();
                 }
                 if(in_x < (in_subtile_w / InScalarPerVector))
                 {
@@ -932,13 +938,13 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
                 // do conv_bwd on 0
                 if constexpr(NumWavePerTile > 1)
                 {
-                    block_sync_lds();
+                    block_sync_lds_new();
                 }
                 run_conv_bwd_weight<TileOut_H_batch, SubTileOut_W>(
                     x, y, ho, wo, hout_base, share_in_base + in_share_base_offset * NumVectorPerPixel, share_out_base, acc);
                 if constexpr(NumWavePerTile > 1)
                 {
-                    block_sync_lds();
+                    block_sync_lds_new();
                 }
                 // write 0
                 if(in_x < (in_subtile_w / InScalarPerVector))
@@ -964,13 +970,13 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
             {
                 if constexpr(NumWavePerTile > 1)
                 {
-                    block_sync_lds();
+                    block_sync_lds_new();
                 }
                 run_conv_bwd_weight<TileOut_H_batch, SubTileOut_W>(
                     x, y, ho, wo, hout_base, share_in_base + in_share_base_offset * NumVectorPerPixel, share_out_base, acc);
                              if constexpr(NumWavePerTile > 1)
                 {
-                    block_sync_lds();
+                    block_sync_lds_new();
                 }
             }
         });
@@ -996,7 +1002,7 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
             float acc_6 = warp_shuffle_down(acc, 5 * ThreadPerBatch);
             float acc_7 = warp_shuffle_down(acc, 6 * ThreadPerBatch);
             #if 0
-            block_sync_lds();
+            block_sync_lds_new();
             if (lane_id == 0)
             {
                 printf("acc %f %f %f %f %f %f %f \n", acc, acc_2, acc_3, acc_4, acc_5, acc_6, acc_7);
@@ -1014,9 +1020,9 @@ struct GridwiseGroupedConv2DBwdWeightDlV4
         else
         {
             uint32_t* p_share_acc = reinterpret_cast<uint32_t*>(p_share_in);
-            block_sync_lds();
+            block_sync_lds_new();
             p_share_acc[threadIdx.x] = __builtin_bit_cast(uint32_t, acc);
-            block_sync_lds();
+            block_sync_lds_new();
             if(hout_base == 0 && wave_id == 0)
             {
                 for(int i = 1; i < NumTilePerBlock * NumWavePerTile; i++)

@@ -39,10 +39,10 @@
 #include <miopen/solver/ck_utility_common.hpp>
 #include <ck/utility/data_type.hpp>
 #include <ck/utility/array.hpp>
+#include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <ck/library/utility/device_memory.hpp>
 #include <ck/library/utility/host_tensor.hpp>
 #include <ck/library/utility/host_tensor_generator.hpp>
-#include <miopen/conv/wrw_invoke_params.hpp>
 #endif
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DEPTH_WISE_CONV_WRW)
@@ -582,7 +582,15 @@ InvokerFactory MakeImplDepthWiseConvWrwInvokerFactory(const ProblemDescription& 
             {
                 if (split_k > 1)
                 {
-                    hipMemsetAsync(data_ctx.workSpace, 0, data_ctx.workSpaceSize, handle.GetStream());
+                    {
+                        WorkAroundHipEventProfiler prf(handle);
+                        hipMemsetAsync(data_ctx.workSpace, 0, data_ctx.workSpaceSize, handle.GetStream());
+                    }
+
+                    if(handle.IsProfilingEnabled())
+                    {
+                        elapsed += handle.GetKernelTime();
+                    }
                 }
                 handle.Run(kernels[0])(static_cast<const InDataType*>(tensors.x),
                                     static_cast<const WeiDataType*>(split_k > 1 ? nullptr : tensors.dw),
