@@ -220,7 +220,6 @@ float ConvBiasActivAsm1x1U::GetWti(const FusionContext&, const FusionDescription
 bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
                                         const FusionDescription& problem) const
 {
-
     if(IsCKFusionSolverApplicable(context, problem))
     {
         return false;
