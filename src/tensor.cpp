@@ -423,7 +423,8 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
 
         if(tensorLayout)
         {
-            if(!this->IsPossibleLayout4D5D(TensorDescriptor::LayoutEnumToStr(tensorLayout.value())))
+            if(!this->IsPossibleLayout4D5D(TensorDescriptor::LayoutEnumToStr(tensorLayout.value()),
+                                           true))
                 MIOPEN_THROW(miopenStatusBadParm, "Mismatch of layout and strides");
         }
     }
@@ -647,7 +648,8 @@ std::size_t TensorDescriptor::GetElementSpace() const
 
 // For vectorized layouts storage_layout must be without the ending 'c'
 bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
-                                        const std::string& layout) const
+                                        const std::string& layout,
+                                        bool allowLessRestrictive) const
 {
     if(storage_layout.size() != this->GetNumDims())
     {
@@ -686,7 +688,7 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         const auto pos = storage_layout.find(cur_char);
         if(pos == std::string::npos)
             MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
-        if(lens[pos] != 1)
+        if(lens[pos] != 1 || !allowLessRestrictive)
             layout_strides.push_back(strides[pos]);
     }
 
@@ -700,18 +702,22 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
 }
 
 // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
-bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
+bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout,
+                                            bool allowLessRestrictive) const
 {
     if(tensorLayout)
     {
         if(this->tensorLayout == miopenTensorCHWNc4 || this->tensorLayout == miopenTensorCHWNc8)
-            return this->IsPossibleLayout(GetStorageLayout4D5D(4, true), layout);
+            return this->IsPossibleLayout(
+                GetStorageLayout4D5D(4, true), layout, allowLessRestrictive);
     }
 
     switch(this->GetNumDims())
     {
     case 4:
-    case 5: return this->IsPossibleLayout(GetStorageLayout4D5D(this->GetNumDims()), layout);
+    case 5:
+        return this->IsPossibleLayout(
+            GetStorageLayout4D5D(this->GetNumDims()), layout, allowLessRestrictive);
     default: return false;
     }
 }

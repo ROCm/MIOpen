@@ -124,8 +124,8 @@ void ProblemDescription::HeuristicUpdateLayouts()
     // If we have preset layouts, and they are consistent with each other, we do not need to change
     // them.
     if(!in_layout.empty() && in_layout == out_layout && in_layout == weights_layout &&
-       in.IsPossibleLayout4D5D(in_layout) && out.IsPossibleLayout4D5D(out_layout) &&
-       weights.IsPossibleLayout4D5D(weights_layout))
+       in.IsPossibleLayout4D5D(in_layout, false) && out.IsPossibleLayout4D5D(out_layout, false) &&
+       weights.IsPossibleLayout4D5D(weights_layout, false))
     {
         return;
     }
@@ -135,8 +135,21 @@ void ProblemDescription::HeuristicUpdateLayouts()
 
     for(const std::string& layout : supported_layouts)
     {
-        if(in.IsPossibleLayout4D5D(layout) && out.IsPossibleLayout4D5D(layout) &&
-           weights.IsPossibleLayout4D5D(layout))
+        if(in.IsPossibleLayout4D5D(layout, false) && out.IsPossibleLayout4D5D(layout, false) &&
+           weights.IsPossibleLayout4D5D(layout, false))
+        {
+            in_layout      = layout;
+            weights_layout = layout;
+            out_layout     = layout;
+            return;
+        }
+    }
+
+    // fallback to less restrictive layout checks
+    for(const std::string& layout : supported_layouts)
+    {
+        if(in.IsPossibleLayout4D5D(layout, true) && out.IsPossibleLayout4D5D(layout, true) &&
+           weights.IsPossibleLayout4D5D(layout, true))
         {
             in_layout      = layout;
             weights_layout = layout;
