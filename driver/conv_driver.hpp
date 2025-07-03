@@ -1711,9 +1711,9 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
         size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
                              miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
-        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+        printf("stats: name, n, c, ho, wo, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "fwd-conv",
                wei_h,
                wei_w,
@@ -1755,10 +1755,10 @@ void ConvDriver<Tgpu, Tref>::PrintForwardTime(const float kernel_total_time,
         size_t outputBytes = 1.0 * out_n * out_c * out_d * out_h * out_w *
                              miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
-        printf("stats: name  , n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, "
+        printf("stats: name, n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, "
                "GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, "
+        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, "
                "%.0f, %.0f, %f\n",
                "fwd-conv",
                wei_d,
@@ -2655,20 +2655,20 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
         size_t outputBytes = 1.0 * out_n * out_c * out_h * out_w *
                              miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
-        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+        printf("stats: name, n, c, ho, wo, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "bwdd-conv",
                wei_h,
                wei_w,
                miopen::deref(convDesc).GetConvStrides()[0],
                in_n,
                in_c,
+               out_h,
+               out_w,
                wei_h,
                wei_w,
                out_c,
-               out_h,
-               out_w,
                flopCnt,
                readBytes,
                outputBytes,
@@ -2700,9 +2700,9 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
                              miopen::GetTypeSize(miopen::deref(outputTensor).GetType());
 
         printf(
-            "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+            "stats: name, n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
-        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d  %zu, %zu, %zu, %.0f, "
+        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, %.0f, "
                "%.0f, %f\n",
                "bwdd-conv",
                wei_d,
@@ -2711,13 +2711,13 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardDataTime(float kernel_total_time, floa
                miopen::deref(convDesc).GetConvStrides()[0],
                in_n,
                in_c,
+               out_d,
+               out_h,
+               out_w,
                wei_d,
                wei_h,
                wei_w,
                out_c,
-               out_d,
-               out_h,
-               out_w,
                flopCnt,
                readBytes,
                outputBytes,
@@ -2865,9 +2865,9 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
         size_t readBytes   = 0;
         size_t outputBytes = 0;
 
-        printf("stats: name, n, c, ho, wo, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+        printf("stats: name, n, c, ho, wo, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
                "GB/s, timeMs\n");
-        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, %.0f, %f\n",
+        printf("stats: %s%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, %.0f, %.0f, %f\n",
                "bwdw-conv",
                wei_h,
                wei_w,
@@ -2904,9 +2904,9 @@ void ConvDriver<Tgpu, Tref>::PrintBackwardWrwTime(float kernel_total_time, float
         size_t outputBytes = 0;
 
         printf(
-            "stats: name, n, c, do, ho, wo, z, x, y, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
+            "stats: name, n, c, do, ho, wo, z, y, x, k, flopCnt, bytesRead, bytesWritten, GFLOPs, "
             "GB/s, timeMs\n");
-        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d,  %zu, %zu, %zu, %.0f, "
+        printf("stats: %s%dx%dx%du%d, %d, %d, %d, %d, %d, %d, %d, %d, %d, %zu, %zu, %zu, %.0f, "
                "%.0f, %f\n",
                "bwdw-conv",
                wei_d,
