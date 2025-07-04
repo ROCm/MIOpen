@@ -43,24 +43,33 @@
 #include <ck/library/utility/device_memory.hpp>
 #include <ck/library/utility/host_tensor.hpp>
 #include <ck/library/utility/host_tensor_generator.hpp>
+#include "miopen/direct_ck_mgr.hpp"
 #endif
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DEPTH_WISE_CONV_WRW)
 
-namespace miopen {
-namespace solver {
-namespace conv {
+static std::mutex s_fileMutex;
+// Initializing the unordered map with CacheData objects
 
-using ProblemDescription = miopen::conv::ProblemDescription;
-using F16  = ck::half_t;
-using F32  = float;
-using F64  = double;
-using BF16 = ushort;
+static std::filesystem::path exp_path;
 
-using InDataType  = F16;
-using WeiDataType = F16;
-using OutDataType = F16;
-using AccDataType = F32;
+static void ReadCacheFile()
+{
+    std::lock_guard<std::mutex> lock(s_fileMutex);
+    auto ckMgr = DirectCkMgr::GetInst();
+    ckMgr->ReadCacheFile(ckMgr->s_qun_wrw, ckMgr->path_qun_wrw);
+}
+
+
+static void AppendToCache(CacheData cd)
+{
+    if (DirectCkMgr::GetInst()->enableConvCache == false)   return;
+
+    std::lock_guard<std::mutex> lock(s_fileMutex);
+    auto ckMgr = DirectCkMgr::GetInst();
+    ckMgr->newKernelCount[ST_QUN_WRW] ++;
+    ckMgr->AppendToCache(ckMgr->s_qun_wrw, cd);
+}
 
 // Hash combining utility
 template <typename T>
@@ -86,13 +95,6 @@ size_t GetStringHash(std::string str)
     return hashValue;
 }
 
-struct CacheData
-{
-    size_t hashcode;
-    size_t kernelhash;
-    uint   split_k;
-};
-
 static std::unordered_map<size_t, CacheData> wrw_cache =
 {
     {0x1d8e031b28fe3461, {0x1d8e031b28fe3461, 0x8ada6ba6c0a8262f, 0x20}},
@@ -110,6 +112,21 @@ static std::unordered_map<size_t, CacheData> wrw_cache =
     {0x6de0f5c2e31130ad, {0x6de0f5c2e31130ad, 0x6b529345f00e682f, 0x1}},
     {0x7fd11c3a9a196bdb, {0x7fd11c3a9a196bdb, 0xd8cef6f43ec57670, 0x20}},
 };
+
+namespace miopen {
+namespace solver {
+namespace conv {
+
+using ProblemDescription = miopen::conv::ProblemDescription;
+using F16  = ck::half_t;
+using F32  = float;
+using F64  = double;
+using BF16 = ushort;
+
+using InDataType  = F16;
+using WeiDataType = F16;
+using OutDataType = F16;
+using AccDataType = F32;
 
 struct PerfArgs
 {
@@ -271,6 +288,12 @@ struct CKArgs
         wei_lengths = {g,                 k_per_g,               c_per_g, fy,           fx     };
         wei_strides = {fy * fx * c_per_g, g * fy * fx * c_per_g, 1,       fx * c_per_g, c_per_g};
 
+        acc_strides = {wei_lengths[1] * wei_lengths[2] * wei_lengths[3] * wei_lengths[4],
+                       wei_lengths[2] * wei_lengths[3] * wei_lengths[4],
+                       wei_lengths[3] * wei_lengths[4],
+                       wei_lengths[4],
+                       1};
+
         bias_lengths = {g, 1, k_per_g, 1, 1};
         bias_strides = {k_per_g, 0, 1, 0, 0};
 
@@ -350,6 +373,7 @@ struct CKArgs
         ck::Array<ck::index_t, 5> out_strides;
         ck::Array<ck::index_t, 5> wei_lengths;
         ck::Array<ck::index_t, 5> wei_strides;
+        ck::Array<ck::index_t, 5> acc_strides;
 
         ck::Array<ck::index_t, 5> bias_lengths;
         ck::Array<ck::index_t, 5> bias_strides;
@@ -521,6 +545,7 @@ size_t ConvDepthWiseConvWrw::GetWorkspaceSize(const ExecutionContext&,
 bool ConvDepthWiseConvWrw::IsApplicable(const ExecutionContext& ctx,
                                         const ProblemDescription& problem) const
 {
+    if (DirectCkMgr::GetInst()->enableOptConv == false)   return false;
     if(!miopen::debug::AlwaysEnableConvDirectNaive)
     {
         if(env::disabled(MIOPEN_DEBUG_CONV_DEPTH_WISE_CONV_WRW))
@@ -567,13 +592,71 @@ bool ConvDepthWiseConvWrw::IsApplicable(const ExecutionContext& ctx,
     return true;
 }
 
+void MakeKernelInfo(const ExecutionContext& ctx,
+                    const CKArgs& ck_args,
+                    const uint perf_arg_index,
+                    const uint split_k,
+                    std::vector<KernelInfo>& params)
+{
+    size_t block_size0 = perf_arg[perf_arg_index].block_size;
+    size_t grid_size0  = static_cast<size_t>(ck_args.in_lengths[0]);
+
+    KernelInfo kernel0_info, kernel1_info;
+
+    kernel0_info.kernel_file = "device_grouped_conv_bwd_weight_dl_v4.cpp";
+    kernel0_info.kernel_name = "kernel_grouped_conv_bwd_weight_dl_v4_run";
+
+    kernel0_info.l_wk = {block_size0, 1, 1};
+    kernel0_info.g_wk = {grid_size0 * block_size0, split_k, 1};
+
+    kernel0_info.comp_options = ck_utility::get_ck_common_compiler_flag(ctx.GetStream())
+        + ctx.general_compile_options
+        + " -DCK_PARAM_BLOCKSIZE=" + std::to_string(perf_arg[perf_arg_index].block_size)
+        + " -DCK_PARAM_TILE_W=" + std::to_string(perf_arg[perf_arg_index].tile_w)
+        + " -DCK_PARAM_TILE_H=" + std::to_string(perf_arg[perf_arg_index].tile_h)
+        + " -DCK_PARAM_FILTERSIZE=" + std::to_string(perf_arg[perf_arg_index].filter_size)
+        + " -DCK_PARAM_PROBLEM_CONV_DILATION_W=" + std::to_string(perf_arg[perf_arg_index].dilation_w)
+        + " -DCK_PARAM_PROBLEM_CONV_DILATION_H=" + std::to_string(perf_arg[perf_arg_index].dilation_h)
+        + " -DCK_PARAM_PROBLEM_CONV_STRIDE_W=" + std::to_string(perf_arg[perf_arg_index].stride_w)
+        + " -DCK_PARAM_PROBLEM_CONV_STRIDE_H=" + std::to_string(perf_arg[perf_arg_index].stride_h)
+        + " -DCK_PARAM_PROBLEM_CONV_PAD_W=" + std::to_string(perf_arg[perf_arg_index].pad_w)
+        + " -DCK_PARAM_PROBLEM_CONV_PAD_H=" + std::to_string(perf_arg[perf_arg_index].pad_h)
+        + " -DCK_PARAM_NBATCH=" + std::to_string(perf_arg[perf_arg_index].n_batch)
+        + " -DCK_PARAM_NUMWAVEPERTILE=" + std::to_string(perf_arg[perf_arg_index].num_wave_per_tile)
+        + " -DCK_PARAM_INSCALARPERVECTOR=" + std::to_string(perf_arg[perf_arg_index].in_scalar_per_vector)
+        + " -DCK_PARAM_OUTSCALARPERVECTOR=" + std::to_string(perf_arg[perf_arg_index].out_scalar_per_vector)
+        + " -DCK_PARAM_DSTSCALARPERVECTOR=" + std::to_string(perf_arg[perf_arg_index].dst_scalar_per_vector)
+        + " -DCK_PARAM_REQUIREPADDING=" + std::to_string(perf_arg[perf_arg_index].require_padding)
+        + " -DCK_PARAM_WSPLIT=" + std::to_string(perf_arg[perf_arg_index].w_split)
+        ;
+
+    kernel1_info.kernel_file = "device_grouped_conv_bwd_weight_dl_v4.cpp";
+    kernel1_info.kernel_name = "kernel_grouped_conv_bwd_weight_elementwise_run";
+
+    kernel1_info.comp_options = kernel0_info.comp_options;
+
+    size_t block_size1 = perf_arg[perf_arg_index].filter_size * perf_arg[perf_arg_index].filter_size;
+    size_t grid_size1  = ck_args.in_lengths[0];
+
+    kernel1_info.l_wk = {block_size1, 1, 1};
+    kernel1_info.g_wk = {grid_size1 * block_size1, 1, 1};
+
+    params.push_back(kernel0_info);
+    if (split_k > 1)
+    {
+        params.push_back(kernel1_info);
+    }
+}
+
 InvokerFactory MakeImplDepthWiseConvWrwInvokerFactory(const ProblemDescription& problem,
                                                       const CKArgs& ck_args,
-                                                      const ck::Array<ck::index_t, 5>& new_in_lengths,
-                                                      const ck::Array<ck::index_t, 5>& new_out_lengths,
-                                                      const ck::Array<ck::index_t, 5>& acc_strides,
                                                       const uint split_k)
 {
+    ck::Array<ck::index_t, 5> new_in_lengths = ck_args.in_lengths;
+    ck::Array<ck::index_t, 5> new_out_lengths = ck_args.out_lengths;
+    new_in_lengths.At(1) /= split_k;
+    new_out_lengths.At(1) /= split_k;
+
     return [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) {
             decltype(auto) data_ctx = primitive_parameters.CastTo<miopen::conv::WrWInvokeParams>();
@@ -599,7 +682,7 @@ InvokerFactory MakeImplDepthWiseConvWrwInvokerFactory(const ProblemDescription& 
                                     split_k > 1 ? new_in_lengths : ck_args.in_lengths,
                                     ck_args.in_strides,
                                     ck_args.wei_lengths,
-                                    split_k > 1 ? acc_strides : ck_args.wei_strides,
+                                    split_k > 1 ? ck_args.acc_strides : ck_args.wei_strides,
                                     split_k > 1 ? new_out_lengths : ck_args.out_lengths,
                                     ck_args.out_strides,
                                     split_k);
@@ -614,7 +697,7 @@ InvokerFactory MakeImplDepthWiseConvWrwInvokerFactory(const ProblemDescription& 
                 handle.Run(kernels[1])(tensors.dw,
                                     data_ctx.workSpace,
                                     ck_args.wei_strides,
-                                    acc_strides);
+                                    ck_args.acc_strides);
             }
 
             if(handle.IsProfilingEnabled())
@@ -631,6 +714,58 @@ InvokerFactory MakeImplDepthWiseConvWrwInvokerFactory(const ProblemDescription& 
     };
 }
 
+bool FindCachedSolution(const ExecutionContext& ctx,
+                        const ProblemDescription& problem,
+                        const CKArgs& ck_args,
+                        size_t workspace_sz,
+                        size_t hashcode,
+                        ConvSolution& sol)
+{
+    if (DirectCkMgr::GetInst()->enableConvCache == false) return false;
+
+    bool found = false;
+    bool foundBest = false;
+    size_t best_kernel = 0;
+    int best_split_k = 0;
+    {
+        auto& s_cacheTable = DirectCkMgr::GetInst()->s_qun_wrw;
+        std::lock_guard<std::mutex> lock(s_fileMutex);
+        auto it = s_cacheTable.find(hashcode);
+        found = it != s_cacheTable.end();
+        if (found)
+        {
+            const CacheData cd = it->second;
+            best_kernel  = cd.kernelhash;
+            best_split_k = cd.split_k;
+
+            MIOPEN_LOG_I("Find cached solution " << std::hex << std::setw(16) << std::setfill('0') << cd.hashcode
+            << ", kernal hash:" << std::hex << std::setw(16) << std::setfill('0') << best_kernel
+            <<", split_k:"<< std::dec << best_split_k);
+        }
+    }
+
+    if (found)
+    {
+        for (uint i = 0; i < perf_arg.size(); i++)
+        {
+            if (IsSupportedArgument(perf_arg[i], ck_args, best_split_k) && (DirectCkMgr::GetInst()->GetStringHash(GetTypeString(perf_arg[i])) == best_kernel))
+            {
+                foundBest = true;
+                std::cout << "Find best cached kernel!!! best_perf_arg_index: " << i << ", split_k: "<< best_split_k<< std::endl;
+
+                MakeKernelInfo(ctx, ck_args, i, best_split_k, sol.construction_params);
+
+                sol.workspace_sz = workspace_sz;
+                sol.invoker_factory = MakeImplDepthWiseConvWrwInvokerFactory(problem,
+                                                                             ck_args,
+                                                                             best_split_k);
+            }
+        }
+    }
+
+    return foundBest;
+}
+
 ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
                                                const ProblemDescription& problem) const
 {
@@ -639,58 +774,45 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
     if(problem.Is2d())
     {
         auto ck_args = CKArgs{problem};
+        size_t workspace_sz = GetWorkspaceSize(ctx, problem);
+        const size_t argsHash = ck_args.GetParamHash();
 
-        // TODO: choose the best perf_arg !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        ReadCacheFile();
+        if (FindCachedSolution(ctx,
+                                problem,
+                                ck_args,
+                                workspace_sz,
+                                argsHash,
+                                result))
+        {
+            return result;
+        }
+
         uint best_perf_arg_index = perf_arg.size();
-
-        // TODO: choose the best split_k !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        uint split_k = 1;
+        uint best_split_k = 0;
         float best_avg_time = 3.4e+30;
 
-        // const size_t argsHash = ck_args.GetParamHash();
-        // const auto it = wrw_cache.find(argsHash);
-
-        // if (it != wrw_cache.end())
-        // {
-        //     const CacheData cd = it->second;
-
-        //     split_k = cd.split_k;
-
-        //     std::cout << "Find cached solution " << std::hex << std::setw(16) << std::setfill('0') << cd.hashcode
-        //         << ", kernal hash:" << std::hex << std::setw(16) << std::setfill('0') << cd.kernelhash
-        //         <<", split_k:"<< split_k << std::endl;;
-
-        //     for (uint i = 0; i < perf_arg.size(); i++)
-        //     {
-        //         if (IsSupportedArgument(perf_arg[i], ck_args, split_k) && (GetStringHash(GetTypeString(perf_arg[i])) == cd.kernelhash))
-        //         {
-        //             best_perf_arg_index = i;
-        //             std::cout << "Find best cached kernel!!!" << std::endl;
-        //             break;
-        //         }
-        //     }
-        // }
-        // else
-        // {
-        //     for (uint i = 0; i < perf_arg.size(); i++)
-        //     {
-        //         if (IsSupportedArgument(perf_arg[i], ck_args, split_k))
-        //         {
-        //             best_perf_arg_index = i;
-        //             std::cout << "best_perf_arg_index = " << best_perf_arg_index << ", split_k = " << split_k << std::endl;
-        //             break;
-        //         }
-        //     }
-        // }
-
-        // if (best_perf_arg_index == perf_arg.size())
-        // {
-        //     std::cout << "Argument is not supported!!!" << std::endl;
-        //     return result;
-        // }
         std::array<uint, 6> split_k_array = {1, 2, 4, 8, 16, 32};
         uint cold_niters = 5;
         uint n_repeat = 10;
+
+        // Start runtime tuning.
+        Tensor<InDataType> in_g_n_c_wis(std::initializer_list<ck::index_t>{ck_args.g, ck_args.n, ck_args.c_per_g, ck_args.hi, ck_args.wi});
+        Tensor<WeiDataType> wei_g_k_c_xs(std::initializer_list<ck::index_t>{ck_args.g, ck_args.k_per_g, ck_args.c_per_g, ck_args.fy, ck_args.fx});
+        Tensor<OutDataType> out_g_n_k_wos(std::initializer_list<ck::index_t>{ck_args.g, ck_args.n, ck_args.k_per_g, ck_args.ho, ck_args.wo});
+
+        in_g_n_c_wis.GenerateTensorValue(GeneratorTensor_3<InDataType>{0.0, 0.2});
+        out_g_n_k_wos.GenerateTensorValue(GeneratorTensor_3<OutDataType>{-0.1, 0.1});
+
+        DeviceMem in_device_buf(sizeof(InDataType)   * in_g_n_c_wis.mDesc.GetElementSpaceSize());
+        DeviceMem wei_device_buf(sizeof(WeiDataType) * wei_g_k_c_xs.mDesc.GetElementSpaceSize());
+        DeviceMem out_device_buf(sizeof(OutDataType) * out_g_n_k_wos.mDesc.GetElementSpaceSize());
+        DeviceMem workSpace_device_buf(workspace_sz);
+
+        in_device_buf.ToDevice(in_g_n_c_wis.mData.data());
+        out_device_buf.ToDevice(out_g_n_k_wos.mData.data());
+
+        wei_device_buf.SetZero();
 
         for (uint i = 0; i < perf_arg.size(); i++)
         {
@@ -700,89 +822,11 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
                 {
                     std::vector<KernelInfo> params;
 
-                    ck::Array<ck::index_t, 5> acc_strides = {ck_args.wei_lengths[1] * ck_args.wei_lengths[2] * ck_args.wei_lengths[3] * ck_args.wei_lengths[4],
-                                                            ck_args.wei_lengths[2] * ck_args.wei_lengths[3] * ck_args.wei_lengths[4],
-                                                            ck_args.wei_lengths[3] * ck_args.wei_lengths[4],
-                                                            ck_args.wei_lengths[4],
-                                                            1};
-                    ck::Array<ck::index_t, 5> new_in_lengths = ck_args.in_lengths;
-                    ck::Array<ck::index_t, 5> new_out_lengths = ck_args.out_lengths;
-                    new_in_lengths.At(1) /= split_k_array[j];
-                    new_out_lengths.At(1) /= split_k_array[j];
-
-                    size_t block_size0 = perf_arg[i].block_size;
-                    size_t grid_size0  = static_cast<size_t>(ck_args.in_lengths[0]);
-
-                    KernelInfo kernel0_info, kernel1_info;
-
-                    kernel0_info.kernel_file = "device_grouped_conv_bwd_weight_dl_v4.cpp";
-                    kernel0_info.kernel_name = "kernel_grouped_conv_bwd_weight_dl_v4_run";
-
-                    kernel0_info.l_wk = {block_size0, 1, 1};
-                    kernel0_info.g_wk = {grid_size0 * block_size0, split_k_array[j], 1};
-
-                    kernel0_info.comp_options = ck_utility::get_ck_common_compiler_flag(ctx.GetStream())
-                        + ctx.general_compile_options
-                        + " -DCK_PARAM_BLOCKSIZE=" + std::to_string(perf_arg[i].block_size)
-                        + " -DCK_PARAM_TILE_W=" + std::to_string(perf_arg[i].tile_w)
-                        + " -DCK_PARAM_TILE_H=" + std::to_string(perf_arg[i].tile_h)
-                        + " -DCK_PARAM_FILTERSIZE=" + std::to_string(perf_arg[i].filter_size)
-                        + " -DCK_PARAM_PROBLEM_CONV_DILATION_W=" + std::to_string(perf_arg[i].dilation_w)
-                        + " -DCK_PARAM_PROBLEM_CONV_DILATION_H=" + std::to_string(perf_arg[i].dilation_h)
-                        + " -DCK_PARAM_PROBLEM_CONV_STRIDE_W=" + std::to_string(perf_arg[i].stride_w)
-                        + " -DCK_PARAM_PROBLEM_CONV_STRIDE_H=" + std::to_string(perf_arg[i].stride_h)
-                        + " -DCK_PARAM_PROBLEM_CONV_PAD_W=" + std::to_string(perf_arg[i].pad_w)
-                        + " -DCK_PARAM_PROBLEM_CONV_PAD_H=" + std::to_string(perf_arg[i].pad_h)
-                        + " -DCK_PARAM_NBATCH=" + std::to_string(perf_arg[i].n_batch)
-                        + " -DCK_PARAM_NUMWAVEPERTILE=" + std::to_string(perf_arg[i].num_wave_per_tile)
-                        + " -DCK_PARAM_INSCALARPERVECTOR=" + std::to_string(perf_arg[i].in_scalar_per_vector)
-                        + " -DCK_PARAM_OUTSCALARPERVECTOR=" + std::to_string(perf_arg[i].out_scalar_per_vector)
-                        + " -DCK_PARAM_DSTSCALARPERVECTOR=" + std::to_string(perf_arg[i].dst_scalar_per_vector)
-                        + " -DCK_PARAM_REQUIREPADDING=" + std::to_string(perf_arg[i].require_padding)
-                        + " -DCK_PARAM_WSPLIT=" + std::to_string(perf_arg[i].w_split)
-                        ;
-
-                    kernel1_info.kernel_file = "device_grouped_conv_bwd_weight_dl_v4.cpp";
-                    kernel1_info.kernel_name = "kernel_grouped_conv_bwd_weight_elementwise_run";
-
-                    kernel1_info.comp_options = kernel0_info.comp_options;
-
-                    size_t block_size1 = perf_arg[i].filter_size * perf_arg[i].filter_size;
-                    size_t grid_size1  = ck_args.in_lengths[0];
-
-                    kernel1_info.l_wk = {block_size1, 1, 1};
-                    kernel1_info.g_wk = {grid_size1 * block_size1, 1, 1};
-
-                    size_t workspace_sz = GetWorkspaceSize(ctx, problem);
+                    MakeKernelInfo(ctx, ck_args, i, split_k_array[j], params);
 
                     InvokerFactory factory = MakeImplDepthWiseConvWrwInvokerFactory(problem,
                                                                                     ck_args,
-                                                                                    new_in_lengths,
-                                                                                    new_out_lengths,
-                                                                                    acc_strides,
                                                                                     split_k_array[j]);
-
-                    params.push_back(kernel0_info);
-                    if (split_k_array[j] > 1)
-                    {
-                        params.push_back(kernel1_info);
-                    }
-
-                    // Start runtime tuning.
-                    Tensor<InDataType> in_g_n_c_wis(std::initializer_list<ck::index_t>{ck_args.g, ck_args.n, ck_args.c_per_g, ck_args.hi, ck_args.wi});
-                    Tensor<WeiDataType> wei_g_k_c_xs(std::initializer_list<ck::index_t>{ck_args.g, ck_args.k_per_g, ck_args.c_per_g, ck_args.fy, ck_args.fx});
-                    Tensor<OutDataType> out_g_n_k_wos(std::initializer_list<ck::index_t>{ck_args.g, ck_args.n, ck_args.k_per_g, ck_args.ho, ck_args.wo});
-
-                    in_g_n_c_wis.GenerateTensorValue(GeneratorTensor_3<InDataType>{0.0, 0.2});
-                    out_g_n_k_wos.GenerateTensorValue(GeneratorTensor_3<OutDataType>{-0.1, 0.1});
-
-                    DeviceMem in_device_buf(sizeof(InDataType)   * in_g_n_c_wis.mDesc.GetElementSpaceSize());
-                    DeviceMem wei_device_buf(sizeof(WeiDataType) * wei_g_k_c_xs.mDesc.GetElementSpaceSize());
-                    DeviceMem out_device_buf(sizeof(OutDataType) * out_g_n_k_wos.mDesc.GetElementSpaceSize());
-                    DeviceMem workSpace_device_buf(workspace_sz);
-
-                    in_device_buf.ToDevice(in_g_n_c_wis.mData.data());
-                    out_device_buf.ToDevice(out_g_n_k_wos.mData.data());
 
                     auto& handle = ctx.GetStream();
                     auto invoker = handle.PrepareInvoker(factory, params);
@@ -818,26 +862,36 @@ ConvSolution ConvDepthWiseConvWrw::GetSolution(const ExecutionContext& ctx,
                     if (best_avg_time > avg_time)
                     {
                         best_perf_arg_index = i;
-                        split_k = split_k_array[j];
+                        best_split_k = split_k_array[j];
                         best_avg_time = avg_time;
                         result.construction_params.clear();
-                        result.construction_params.push_back(kernel0_info);
-                        if (split_k > 1)
+                        result.construction_params.push_back(params[0]);
+                        if (best_split_k > 1)
                         {
-                            result.construction_params.push_back(kernel1_info);
+                            result.construction_params.push_back(params[1]);
                         }
                         result.workspace_sz = workspace_sz;
                         result.invoker_factory = MakeImplDepthWiseConvWrwInvokerFactory(problem,
                                                                                         ck_args,
-                                                                                        new_in_lengths,
-                                                                                        new_out_lengths,
-                                                                                        acc_strides,
-                                                                                        split_k);
+                                                                                        best_split_k);
                     }
                 }
             }
         }
-        std::cout << "best_perf_arg_index = " << best_perf_arg_index << ", split_k = " << split_k << std::endl;
+
+        if (best_perf_arg_index < perf_arg.size())
+        {
+            CacheData cd;
+            cd.hashcode = argsHash;
+            cd.split_k  = static_cast<int>(best_split_k);
+            cd.kernelhash = DirectCkMgr::GetInst()->GetStringHash(GetTypeString(perf_arg[best_perf_arg_index]));
+            AppendToCache(cd);
+            std::cout << "best_perf_arg_index = " << best_perf_arg_index << ", best_split_k = " << best_split_k << std::endl;
+        }
+        else
+        {
+            std::cout << "Argument is not supported!!!" << std::endl;
+        }
     }
     else
     {
