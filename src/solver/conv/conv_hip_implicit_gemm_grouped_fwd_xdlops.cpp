@@ -586,6 +586,9 @@ bool ConvHipImplicitGemmGroupFwdXdlops<transpose>::IsApplicable(
         return false;
     if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
         return false;
+    if ((transpose == false) && problem.IsLayoutNHWC())
+        return false; // Solution 184 is an optimization for NCHW layout only
+
     // needed because layout transpose kernel does not support non-packed tensors
     if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
         return false;
