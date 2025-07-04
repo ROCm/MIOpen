@@ -236,7 +236,8 @@ template <uint32_t Winodata, uint32_t Winofilter>
 bool ConvWinoRageRxS<Winodata, Winofilter>::IsApplicable(const ExecutionContext& ctx,
                                                          const ProblemDescription& problem) const
 {
-    return ConvWinoRageRxSCommon<Winodata, Winofilter>::IsApplicable(ctx, problem);
+    // return ConvWinoRageRxSCommon<Winodata, Winofilter>::IsApplicable(ctx, problem);
+    return false;
 }
 
 template <uint32_t Winodata, uint32_t Winofilter>
