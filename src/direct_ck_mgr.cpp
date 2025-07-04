@@ -211,14 +211,14 @@ void DirectCkMgr::ReadCacheFile(std::unordered_map<size_t, CacheData>& outputDat
         std::string line;
         while (std::getline(infile, line))
         {
-            size_t hashcode, kernalHash, split_k;
+            size_t hashcode, kernelHash, split_k;
             std::istringstream iss(line);
-            if (!(iss >> std::hex >> hashcode >> std::hex >> kernalHash >> std::hex >> split_k))
+            if (!(iss >> std::hex >> hashcode >> std::hex >> kernelHash >> std::hex >> split_k))
             {
                 continue;
             }
 
-            CacheData cd = { hashcode, kernalHash, 1 };
+            CacheData cd = { hashcode, kernelHash, split_k };
             if (outputData.find(cd.hashcode) == outputData.end())
             {
                 outputData[hashcode] = cd;
