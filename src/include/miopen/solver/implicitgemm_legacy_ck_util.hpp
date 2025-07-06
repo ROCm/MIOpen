@@ -28,8 +28,8 @@
 
 #include <miopen/solver/problem_description_interpreter.hpp>
 
-#include "../composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
-#include "../composable_kernel/host/solver/include/convolution_problem_descriptor.hpp"
+#include "../legacy_composable_kernel/composable_kernel/include/utility/data_type_enum.hpp"
+#include "../legacy_composable_kernel/host/solver/include/convolution_problem_descriptor.hpp"
 
 namespace miopen {
 namespace solver {

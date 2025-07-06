@@ -83,13 +83,13 @@ bool WinoShaderArgsV2::SetConvParams(const conv::ProblemDescription& problem)
     {
         if(!AssignAndCheck(N, problem.GetBatchSize()))
             return false;
-        if(!AssignAndCheck(C, in_c_per_group))
+        if(!AssignAndCheck(Cg, in_c_per_group))
             return false;
         if(!AssignAndCheck(H, problem.GetInHeight()))
             return false;
         if(!AssignAndCheck(W, problem.GetInWidth()))
             return false;
-        if(!AssignAndCheck(K, out_c_per_group))
+        if(!AssignAndCheck(Kg, out_c_per_group))
             return false;
         if(!AssignAndCheck(R, problem.GetWeightsHeight()))
             return false;
@@ -104,13 +104,13 @@ bool WinoShaderArgsV2::SetConvParams(const conv::ProblemDescription& problem)
     {
         if(!AssignAndCheck(N, out_c_per_group))
             return false;
-        if(!AssignAndCheck(C, problem.GetBatchSize()))
+        if(!AssignAndCheck(Cg, problem.GetBatchSize()))
             return false;
         if(!AssignAndCheck(H, problem.GetOutHeight()))
             return false;
         if(!AssignAndCheck(W, problem.GetOutWidth()))
             return false;
-        if(!AssignAndCheck(K, in_c_per_group))
+        if(!AssignAndCheck(Kg, in_c_per_group))
             return false;
         if(!AssignAndCheck(R, problem.GetInHeight()))
             return false;
@@ -176,9 +176,9 @@ void WinoShaderArgsV2::SetStrides(const conv::ProblemDescription& problem)
     }
 
     // TODO Make a constructor that takes unsigned int
-    BuffInfo d_buf(d_layout, N, C, H, W, G, GetTypeSize(problem.GetInDataType()));
-    BuffInfo o_buf(o_layout, N, K, out_h, out_w, G, GetTypeSize(problem.GetOutDataType()));
-    BuffInfo f_buf(f_layout, K, C, R, S, G, GetTypeSize(problem.GetWeightsDataType()));
+    BuffInfo d_buf(d_layout, N, Cg, H, W, G, GetTypeSize(problem.GetInDataType()));
+    BuffInfo o_buf(o_layout, N, Kg, out_h, out_w, G, GetTypeSize(problem.GetOutDataType()));
+    BuffInfo f_buf(f_layout, Kg, Cg, R, S, G, GetTypeSize(problem.GetWeightsDataType()));
 
     const auto& d_strides = d_buf.stride;
     const auto& f_strides = f_buf.stride;

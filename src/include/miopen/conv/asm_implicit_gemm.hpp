@@ -43,6 +43,10 @@
 /// https://github.com/ROCm/MIOpen/issues/2624
 #define WORKAROUND_ISSUE_2624 1
 
+/// W/A for issue 2624: asm igemm wrw computation error with stride=2, padding=2, filter=3, h=w=1
+/// https://github.com/ROCm/MIOpen/issues/2867
+#define WORKAROUND_ISSUE_2867 1
+
 namespace miopen {
 
 namespace solver {
