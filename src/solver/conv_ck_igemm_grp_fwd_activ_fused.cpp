@@ -664,7 +664,7 @@ GetSolutionForDimensionality(const FusionContext& ctx,
         [&](auto data_type_val) {
             (void)data_type_val;
             return InitInvokerFactoryFwdNCHW<NDimSpatial,
-                                             false,
+                                             true,
                                              DeviceOpGFwdActPtrs<NDimSpatial,
                                                                  DataType,
                                                                  typename Layouts::InLayout,
@@ -676,7 +676,7 @@ GetSolutionForDimensionality(const FusionContext& ctx,
         },
         [&](auto data_type_val) {
             (void)data_type_val;
-            return InitInvokerFactoryNHWC<false,
+            return InitInvokerFactoryNHWC<true,
                                           DeviceOpGFwdActPtrs<NDimSpatial,
                                                               DataType,
                                                               typename Layouts::InLayout,
