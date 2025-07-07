@@ -59,12 +59,6 @@
 #undef EPSILON
 #define EPSILON 1e-6
 
-// #define MIO_CONV_ALGO_COUNT 4
-
-#define ERRTOL 1e-4
-#define RMSTOL_FP32 1e-4
-#define RMSTOL_FP16 0.5e-3
-
 #define CBA_DEBUG_VALUES 0
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_PAD_BUFFERS_2M)
@@ -923,16 +917,28 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs);
+        miopenExecuteFusionPlan_v2(GetHandle(),
+                                   fusePlanDesc,
+                                   inputTensor,
+                                   in_dev->GetMem(),
+                                   outputTensor,
+                                   out_dev->GetMem(),
+                                   fusionArgs,
+                                   (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                   workspace_size);
         finishTiming(it);
     }
 }
@@ -1008,16 +1014,28 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs);
+        miopenExecuteFusionPlan_v2(GetHandle(),
+                                   fusePlanDesc,
+                                   inputTensor,
+                                   in_dev->GetMem(),
+                                   outputTensor,
+                                   out_dev->GetMem(),
+                                   fusionArgs,
+                                   (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                   workspace_size);
         finishTiming(it);
     }
 }
@@ -1061,16 +1079,28 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs);
+        miopenExecuteFusionPlan_v2(GetHandle(),
+                                   fusePlanDesc,
+                                   inputTensor,
+                                   in_dev->GetMem(),
+                                   outputTensor,
+                                   out_dev->GetMem(),
+                                   fusionArgs,
+                                   (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                   workspace_size);
         finishTiming(it);
     }
 }
@@ -1173,16 +1203,28 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
         std::cerr << "ConvBiasInference plan not supported." << std::endl;
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs);
+        miopenExecuteFusionPlan_v2(GetHandle(),
+                                   fusePlanDesc,
+                                   inputTensor,
+                                   in_dev->GetMem(),
+                                   outputTensor,
+                                   out_dev->GetMem(),
+                                   fusionArgs,
+                                   (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                   workspace_size);
         finishTiming(it);
     }
 }
