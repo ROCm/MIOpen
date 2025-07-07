@@ -52,12 +52,12 @@ bool PoolingBackwardNd::IsApplicable(const ExecutionContext&,
                || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) //
            && (                                                                    //
                   (problem.GetXDesc().GetNumDims() == 5                            //
-                   && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW")             //
-                   && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW"))            //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW", false)      //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW", false))     //
                   ||                                                               //
                   (problem.GetXDesc().GetNumDims() == 4                            //
-                   && problem.GetXDesc().IsPossibleLayout4D5D("NCHW")              //
-                   && problem.GetYDesc().IsPossibleLayout4D5D("NCHW"))             //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCHW", false)       //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCHW", false))      //
                   )                                                                //
            /// \todo This solver does not support workspace index mask mode yet.
            && !(problem.GetPooling().GetMode() == miopenPoolingMax //
