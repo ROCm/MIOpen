@@ -121,17 +121,19 @@ std::string ProblemDescription::GetAlphaBetaCaseStr() const
 
 void ProblemDescription::HeuristicUpdateLayouts()
 {
-    // If we have preset layouts, and they are consistent with each other, we do not need to change
-    // them.
+    static const std::vector<std::string> supported_layouts = {
+        "NCHW", "NHWC", "CHWN", "NCDHW", "NDHWC"};
+
+    // If we have preset layouts that are valid, and they are consistent with each other, then we do
+    // not need to change them.
     if(!in_layout.empty() && in_layout == out_layout && in_layout == weights_layout &&
+       std::find(supported_layouts.begin(), supported_layouts.end(), in_layout) !=
+           supported_layouts.end() &&
        in.IsPossibleLayout4D5D(in_layout, false) && out.IsPossibleLayout4D5D(out_layout, false) &&
        weights.IsPossibleLayout4D5D(weights_layout, false))
     {
         return;
     }
-
-    static const std::vector<std::string> supported_layouts = {
-        "NCHW", "NHWC", "CHWN", "NCDHW", "NDHWC"};
 
     for(const std::string& layout : supported_layouts)
     {
@@ -157,6 +159,7 @@ void ProblemDescription::HeuristicUpdateLayouts()
             return;
         }
     }
+
     // If we did not find consistent layout, leave them as-is
 }
 

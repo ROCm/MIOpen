@@ -35,12 +35,15 @@ struct TestCasePossibleLayout
 {
     miopen::unit_tests::TensorDescriptorParams tp;
     std::vector<std::string> actual_layouts;
+    bool allowLessRestrictiveLayouts = false;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCasePossibleLayout& tc)
     {
         os << "(";
         os << "(" << tc.tp << "), ";
         miopen::LogRange(os << "{", tc.actual_layouts, ",") << "}, ";
+        os << (" {Less Restrictive: " +
+               std::string(tc.allowLessRestrictiveLayouts ? "true" : "false") + "} ");
         os << ")";
         return os;
     }
@@ -198,61 +201,72 @@ public:
             TestCase{{miopenHalf, miopenTensorNDHWC, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
             TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}}, {"NDHWC"}},
 
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1000, 100, 10, 1}}, {"NCHW"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1000, 1, 100, 10}}, {"NHWC"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1, 1000, 100, 10}}, {"CHWN"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
             TestCase{{miopenHalf, {2, 2, 2, 2}, {1000, 100, 10, 1}}, {"NCHW"}},
             TestCase{{miopenHalf, {2, 2, 2, 2}, {1000, 1, 100, 10}}, {"NHWC"}},
             TestCase{{miopenHalf, {2, 2, 2, 2}, {1, 1000, 100, 10}}, {"CHWN"}},
-            TestCase{{miopenHalf, {1, 1, 1, 1}, {1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
             TestCase{{miopenHalf, {2, 2, 2, 2}, {1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
-            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
             TestCase{{miopenHalf, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1}}, {"NCDHW", "NDHWC"}},
 
+            TestCase{{miopenHalf, miopenTensorNCHW, {1, 1, 1, 1}, {1000, 100, 10, 1}}, {"NCHW"}},
+            TestCase{{miopenHalf, miopenTensorNHWC, {1, 1, 1, 1}, {1000, 1, 100, 10}}, {"NHWC"}},
+            TestCase{{miopenHalf, miopenTensorCHWN, {1, 1, 1, 1}, {1, 1000, 100, 10}}, {"CHWN"}},
             TestCase{{miopenHalf, miopenTensorNCHW, {2, 2, 2, 2}, {1000, 100, 10, 1}}, {"NCHW"}},
             TestCase{{miopenHalf, miopenTensorNHWC, {2, 2, 2, 2}, {1000, 1, 100, 10}}, {"NHWC"}},
             TestCase{{miopenHalf, miopenTensorCHWN, {2, 2, 2, 2}, {1, 1000, 100, 10}}, {"CHWN"}},
+            TestCase{{miopenHalf, miopenTensorNCDHW, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
+            TestCase{{miopenHalf, miopenTensorNDHWC, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
             TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
             TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
 
-            // Stride is ignored when the corresponding dimension length is 1. As a result,
-            // multiple layouts have identical memory footprints. For example, NCHW == CHWN for n = 1.
-            TestCase{{miopenHalf, {1, 2, 2, 2}, {1, 100, 10, 1}}, {"NCHW", "CHWN"}},
-            TestCase{{miopenHalf, {2, 1, 2, 2}, {1000, 10000, 10, 1}}, {"NCHW", "NHWC"}},
-            TestCase{{miopenHalf, {2, 2, 1, 2}, {1000, 100, 10000, 1}}, {"NCHW"}},
-            TestCase{{miopenHalf, {2, 2, 2, 1}, {1000, 100, 10, 10000}}, {"NCHW"}},
-            TestCase{{miopenHalf, {1, 2, 2, 2}, {1, 1, 100, 10}}, {"NHWC"}},
-            TestCase{{miopenHalf, {2, 2, 1, 2}, {1000, 1, 10000, 10}}, {"NHWC"}},
-            TestCase{{miopenHalf, {2, 2, 2, 1}, {1000, 1, 100, 10000}}, {"NHWC"}},          
-            TestCase{{miopenHalf, {2, 1, 2, 2}, {1, 1, 100, 10}}, {"CHWN"}},
-            TestCase{{miopenHalf, {2, 2, 1, 2}, {1, 1000, 10000, 10}}, {"CHWN"}},
-            TestCase{{miopenHalf, {2, 2, 2, 1}, {1, 1000, 100, 10000}}, {"CHWN"}},
-            TestCase{{miopenHalf, {1, 1, 1, 1}, {1000, 100, 10, 1}}, {"NCHW", "NHWC", "CHWN"}},
-            TestCase{{miopenHalf, {1, 1, 1, 1}, {1000, 1, 100, 10}}, {"NCHW", "NHWC", "CHWN"}},
-            TestCase{{miopenHalf, {1, 1, 1, 1}, {1, 1000, 100, 10}}, {"NCHW", "NHWC", "CHWN"}},
+            // Stride is ignored when the corresponding dimension length is 1 with less restrictive checks.
+            // As a result, multiple layouts have identical memory footprints.
+            // For example, NCHW == CHWN for n = 1.
+            TestCase{{miopenHalf, {1, 2, 2, 2}, {1, 100, 10, 1}}, {"NCHW", "CHWN"}, true},
+            TestCase{{miopenHalf, {2, 1, 2, 2}, {1000, 10000, 10, 1}}, {"NCHW", "NHWC"}, true},
+            TestCase{{miopenHalf, {2, 2, 1, 2}, {1000, 100, 10000, 1}}, {"NCHW"}, true},
+            TestCase{{miopenHalf, {2, 2, 2, 1}, {1000, 100, 10, 10000}}, {"NCHW"}, true},
+            TestCase{{miopenHalf, {1, 2, 2, 2}, {1, 1, 100, 10}}, {"NHWC"}, true},
+            TestCase{{miopenHalf, {2, 2, 1, 2}, {1000, 1, 10000, 10}}, {"NHWC"}, true},
+            TestCase{{miopenHalf, {2, 2, 2, 1}, {1000, 1, 100, 10000}}, {"NHWC"}, true},          
+            TestCase{{miopenHalf, {2, 1, 2, 2}, {1, 1, 100, 10}}, {"CHWN"}, true},
+            TestCase{{miopenHalf, {2, 2, 1, 2}, {1, 1000, 10000, 10}}, {"CHWN"}, true},
+            TestCase{{miopenHalf, {2, 2, 2, 1}, {1, 1000, 100, 10000}}, {"CHWN"}, true},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1000, 100, 10, 1}}, {"NCHW", "NHWC", "CHWN"}, true},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1000, 1, 100, 10}}, {"NCHW", "NHWC", "CHWN"}, true},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1, 1000, 100, 10}}, {"NCHW", "NHWC", "CHWN"}, true},
 
-            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, {"NCDHW", "NDHWC"}},
-            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, {"NCDHW", "NDHWC"}},     
-            TestCase{{miopenHalf, {1, 2, 2, 2, 2}, {1, 1000, 100, 10, 1}}, {"NCDHW"}},
-            TestCase{{miopenHalf, {2, 1, 2, 2, 2}, {10000, 100000, 100, 10, 1}}, {"NCDHW", "NDHWC"}},
-            TestCase{{miopenHalf, {2, 2, 1, 2, 2}, {10000, 1000, 100000, 10, 1}}, {"NCDHW"}},
-            TestCase{{miopenHalf, {2, 2, 2, 1, 2}, {10000, 1000, 100, 100000, 1}}, {"NCDHW"}},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 1}, {10000, 1000, 100, 10, 100000}}, {"NCDHW"}},
-            TestCase{{miopenHalf, {1, 2, 2, 2, 2}, {1, 1, 1000, 100, 10}}, {"NDHWC"}},
-            TestCase{{miopenHalf, {2, 2, 1, 2, 2}, {10000, 1, 100000, 100, 10}}, {"NDHWC"}},
-            TestCase{{miopenHalf, {2, 2, 2, 1, 2}, {10000, 1, 1000, 100000, 10}}, {"NDHWC"}},
-            TestCase{{miopenHalf, {2, 2, 2, 2, 1}, {10000, 1, 1000, 100, 100000}}, {"NDHWC"}},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, {"NCDHW", "NDHWC"}, true},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, {"NCDHW", "NDHWC"}, true},     
+            TestCase{{miopenHalf, {1, 2, 2, 2, 2}, {1, 1000, 100, 10, 1}}, {"NCDHW"}, true},
+            TestCase{{miopenHalf, {2, 1, 2, 2, 2}, {10000, 100000, 100, 10, 1}}, {"NCDHW", "NDHWC"}, true},
+            TestCase{{miopenHalf, {2, 2, 1, 2, 2}, {10000, 1000, 100000, 10, 1}}, {"NCDHW"}, true},
+            TestCase{{miopenHalf, {2, 2, 2, 1, 2}, {10000, 1000, 100, 100000, 1}}, {"NCDHW"}, true},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 1}, {10000, 1000, 100, 10, 100000}}, {"NCDHW"}, true},
+            TestCase{{miopenHalf, {1, 2, 2, 2, 2}, {1, 1, 1000, 100, 10}}, {"NDHWC"}, true},
+            TestCase{{miopenHalf, {2, 2, 1, 2, 2}, {10000, 1, 100000, 100, 10}}, {"NDHWC"}, true},
+            TestCase{{miopenHalf, {2, 2, 2, 1, 2}, {10000, 1, 1000, 100000, 10}}, {"NDHWC"}, true},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 1}, {10000, 1, 1000, 100, 100000}}, {"NDHWC"}, true},
             // clang-format on
         };
     }
 
     void RunTest()
     {
-        const auto p  = GetParam();
-        const auto td = p.tp.GetTensorDescriptor();
-
+        const auto p                    = GetParam();
+        const auto td                   = p.tp.GetTensorDescriptor();
+        const auto allowLessRestrictive = p.allowLessRestrictiveLayouts;
         for(const auto& layout : this->GetAllLayouts())
         {
-            const auto is_possible_layout = td.IsPossibleLayout4D5D(layout, false);
+            const auto is_possible_layout = td.IsPossibleLayout4D5D(layout, allowLessRestrictive);
             const auto expected =
                 std::count(p.actual_layouts.cbegin(), p.actual_layouts.cend(), layout);
             ASSERT_EQ(is_possible_layout, expected) << "current layout: " << layout;
