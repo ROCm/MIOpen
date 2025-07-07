@@ -547,18 +547,18 @@ const std::optional<miopenTensorLayout_t>& TensorDescriptor::GetLayoutEnum() con
             if(tensorLayout)
                 return tensorLayout;
 
-            auto layout = GetLayout_str();
+            const auto known_layouts = {std::make_pair("NCHW", miopenTensorNCHW),
+                                        std::make_pair("NHWC", miopenTensorNHWC),
+                                        std::make_pair("NCDHW", miopenTensorNCDHW),
+                                        std::make_pair("NDHWC", miopenTensorNDHWC),
+                                        std::make_pair("CHWN", miopenTensorCHWN)};
+            for(const auto& [layout_str, layout_enum] : known_layouts)
+            {
+                if(this->IsPossibleLayout4D5D(layout_str))
+                    return layout_enum;
+            }
 
-            try
-            {
-                return StringToLayoutType(layout, IsVectorized(), vector_length);
-            }
-            catch(const miopen::Exception& e)
-            {
-                MIOPEN_LOG_W("Failed to convert layout string '" << layout
-                                                                 << "' to enum: " << e.what());
-                return std::nullopt;
-            }
+            return std::nullopt;
         }();
 
         cached_layout_enum_calculated = true;
@@ -674,28 +674,23 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         return true;
     }
 
-    // Build layout_strides, skipping the strides where lens[dim] == 1.
-    // We are ignoring the strides when lengths == 1, for a dimension as they are not relevant for
-    // the layout. I.E NCHW layout with lens = {5, 1, 10, 10} Is actually NHW since there is no
-    // channels dimension. Both NHWC & NCHW layouts are valid for this tensor as channels is not
-    // relevant.
-    std::vector<std::size_t> layout_strides;
-    layout_strides.reserve(base_layout.size());
-    for(const auto& cur_char : base_layout)
-    {
+    auto op = [&](char cur_char) {
         const auto pos = storage_layout.find(cur_char);
         if(pos == std::string::npos)
             MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
-        if(lens[pos] != 1)
-            layout_strides.push_back(strides[pos]);
-    }
+        return strides[pos];
+    };
+
+    std::vector<std::size_t> layout_strides(base_layout.size());
+    std::transform(base_layout.cbegin(), base_layout.cend(), layout_strides.begin(), op);
 
     // Check monotonic decreasing
-    for(size_t i = 1; i < layout_strides.size(); ++i)
+    for(unsigned i = 0; i < (layout_strides.size() - 1); i++)
     {
-        if(layout_strides[i - 1] < layout_strides[i])
+        if(layout_strides[i] < layout_strides[i + 1])
             return false;
     }
+
     return true;
 }
 
@@ -761,53 +756,6 @@ std::string TensorDescriptor::GetLayout(std::string storage_layout) const
         result += 'c';
 
     return result;
-}
-
-miopenTensorLayout_t
-TensorDescriptor::StringToLayoutType(std::string layout_str, bool vectorized, int vector_length)
-{
-    if(vectorized)
-    {
-        if(vector_length == 4)
-        {
-            return layout_str == "CHWNc" ? miopenTensorCHWNc4 : miopenTensorNCHWc4;
-        }
-        else if(vector_length == 8)
-        {
-            return layout_str == "CHWNc" ? miopenTensorCHWNc8 : miopenTensorNCHWc8;
-        }
-        else
-        {
-            MIOPEN_THROW("C-vectorized tensor only support vector length 4 and 8");
-        }
-    }
-    else
-    {
-        if(layout_str == "NCHW")
-        {
-            return miopenTensorNCHW;
-        }
-        else if(layout_str == "NHWC")
-        {
-            return miopenTensorNHWC;
-        }
-        else if(layout_str == "NDHWC")
-        {
-            return miopenTensorNDHWC;
-        }
-        else if(layout_str == "NCDHW")
-        {
-            return miopenTensorNCDHW;
-        }
-        else if(layout_str == "CHWN")
-        {
-            return miopenTensorCHWN;
-        }
-        else
-        {
-            MIOPEN_THROW("Non-vectorized tensor only support layout NCHW, NHWC, NCDHW and NDHWC");
-        }
-    }
 }
 
 std::size_t TensorDescriptor::GetNumBytes() const
