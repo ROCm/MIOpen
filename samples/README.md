@@ -1,6 +1,6 @@
 # MIOpen Samples
 
-This directory contains sample code for using [MIOpen](https://github.com/ROCmSoftwarePlatform/MIOpen).
+This directory contains sample code for using [MIOpen](https://github.com/ROCm/MIOpen).
 
 ## Available Samples
 
