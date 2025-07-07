@@ -88,8 +88,10 @@ Op4dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
 
     int max_num_wg = 4096;
 
-    auto&& [num_wg_orig, work_per_wg, incr_wg, bitmap, local_threads, global_threads] =
-        Get4dParams(problem, false);
+    size_t local_threads = 32;
+    size_t num_wg        = std::clamp(
+        (clens[0] * clens[1] * clens[2] * clens[3]) / local_threads, size_t(1), size_t(max_num_wg));
+    size_t global_threads = num_wg * local_threads;
 
     const std::array<size_t, 3> vld{local_threads, 1, 1};
     const std::array<size_t, 3> vgd{global_threads, 1, 1};
@@ -99,11 +101,10 @@ Op4dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     GetCommonParams(build_params, problem, false);
 
     build_params.Define("USE_4D_TENSOR_GENERIC");
-    build_params.Define("MAX_NUM_WG", std::to_string(max_num_wg));
     auto kernel = KernelInfo{};
 
-    kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
-    kernel.kernel_file  = "MIOpenTensorKernels.cl";
+    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
+    kernel.kernel_file  = "MIOpenTensorKernelsHip.cpp";
     kernel.kernel_name  = "Op4dTensorGeneric";
 
     using std::begin, std::end;
@@ -112,8 +113,7 @@ Op4dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
     kernel.g_wk.insert(end(kernel.g_wk), begin(vgd), end(vgd));
 
     result.invoker_factory =
-        [data_type, blens, clens, astrides, bstrides, cstrides, work_per_wg, num_wg_orig, bitmap](
-            const std::vector<Kernel> kernels) {
+        [data_type, blens, clens, astrides, bstrides, cstrides](const std::vector<Kernel> kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
                 decltype(auto) kernel = handle_.Run(kernels.front());
                 decltype(auto) params = raw_params.CastTo<miopen::tensorOp::InvokeParams>();
@@ -124,32 +124,34 @@ Op4dTensorGeneric::GetSolution([[maybe_unused]] const ExecutionContext& context,
                     auto miopen_beta   = as_float(*(static_cast<const float*>(params.beta)));
 
                     kernel(params.ATensor,
-                           static_cast<int>(astrides[0]), // a_nstride,
-                           static_cast<int>(astrides[1]), // a_cstride,
-                           static_cast<int>(astrides[2]), // a_hstride,
                            params.BTensor,
-                           static_cast<int>(blens[1]),    // b_c,
-                           static_cast<int>(blens[2]),    // b_h,
-                           static_cast<int>(blens[3]),    // b_w,
-                           static_cast<int>(bstrides[0]), // b_nstride,
-                           static_cast<int>(bstrides[1]), // b_cstride,
-                           static_cast<int>(bstrides[2]), // b_hstride,
                            params.CTensor,
-                           static_cast<int>(clens[1]),    // c_c,
-                           static_cast<int>(clens[2]),    // c_h,
-                           static_cast<int>(clens[3]),    // c_w,
-                           static_cast<int>(cstrides[0]), // c_nstride,
-                           static_cast<int>(cstrides[1]), // c_cstride,
-                           static_cast<int>(cstrides[2]), // c_hstride,
+                           static_cast<uint64_t>(params.Aoffset),
+                           static_cast<uint64_t>(params.Boffset),
+                           static_cast<uint64_t>(params.Coffset),
+                           static_cast<uint32_t>(blens[1] == 1 ? clens[1] : blens[1]),
+                           static_cast<uint32_t>(blens[2] == 1 ? clens[2] : blens[2]),
+                           static_cast<uint32_t>(blens[3] == 1 ? clens[3] : blens[3]),
+                           static_cast<uint32_t>(clens[1]),
+                           static_cast<uint32_t>(clens[2]),
+                           static_cast<uint32_t>(clens[3]),
+                           static_cast<uint32_t>(astrides[0]),
+                           static_cast<uint32_t>(astrides[1]),
+                           static_cast<uint32_t>(astrides[2]),
+                           static_cast<uint32_t>(astrides[3]),
+                           static_cast<uint32_t>(blens[0] == 1 ? 0 : bstrides[0]),
+                           static_cast<uint32_t>(blens[1] == 1 ? 0 : bstrides[1]),
+                           static_cast<uint32_t>(blens[2] == 1 ? 0 : bstrides[2]),
+                           static_cast<uint32_t>(blens[3] == 1 ? 0 : bstrides[3]),
+                           static_cast<uint32_t>(cstrides[0]),
+                           static_cast<uint32_t>(cstrides[1]),
+                           static_cast<uint32_t>(cstrides[2]),
+                           static_cast<uint32_t>(cstrides[3]),
                            miopen_alpha0,
                            miopen_alpha1,
                            miopen_beta,
-                           bitmap,
-                           work_per_wg,
-                           static_cast<int64_t>(params.Aoffset),
-                           static_cast<int64_t>(params.Boffset),
-                           static_cast<int64_t>(params.Coffset),
-                           static_cast<int>(num_wg_orig));
+                           static_cast<uint32_t>(clens[0]),
+                           !float_equal(miopen_beta, 0.0));
                 });
             };
         };
