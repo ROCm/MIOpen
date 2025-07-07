@@ -560,8 +560,7 @@ bool ConvDepthWiseConvWrw::IsApplicable(const ExecutionContext& ctx,
     if(!problem.IsLayoutDefault() && !problem.IsLayoutNHWC())
         return false;
 
-    if(!(problem.IsFp32() || problem.IsFp16() || problem.IsBfp16() || problem.IsFp8() ||
-         problem.IsBfp8()))
+    if(!problem.IsFp16())
         return false;
 
     if(!problem.IsDirectionBackwardWrW())
