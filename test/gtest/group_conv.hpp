@@ -434,7 +434,7 @@ public:
         {
             // TO-DO, handle the case when ConvHipImplicitGemmGroupFwdXdlops<false> ?
             DispatchSolver<miopen::solver::conv::ConvHipImplicitGemmGroupFwdXdlops<true>,
-                           miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops,
+                           miopen::solver::conv::ConvHipImplicitGemmGroupBwdXdlops<true>,
                            miopen::solver::conv::ConvHipImplicitGemmGroupWrwXdlops>();
         }
         else

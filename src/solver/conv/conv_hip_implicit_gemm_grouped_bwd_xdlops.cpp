@@ -48,13 +48,16 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-template <typename DataType>
+template <typename ALayout,
+          typename BLayout,
+          typename ELayout,
+          typename DataType>
 using DeviceOpGBwd = ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
     2,
-    ck::tensor_layout::convolution::NHWGK,
-    ck::tensor_layout::convolution::GKYXC,
+    ALayout, // ck::tensor_layout::convolution::NHWGK,
+    BLayout, // ck::tensor_layout::convolution::GKYXC,
     ck::Tuple<>,
-    ck::tensor_layout::convolution::NHWGC,
+    ELayout, // ck::tensor_layout::convolution::NHWGC,
     DataType,
     DataType,
     ck::Tuple<>,
@@ -63,12 +66,60 @@ using DeviceOpGBwd = ck::tensor_operation::device::DeviceGroupedConvBwdDataMulti
     ck::tensor_operation::element_wise::PassThrough,
     ck::tensor_operation::element_wise::PassThrough>;
 
+// template <typename DataType>
+// using DeviceOpGBwd = ck::tensor_operation::device::DeviceGroupedConvBwdDataMultipleD<
+//     2,
+//     ck::tensor_layout::convolution::NHWGK,
+//     ck::tensor_layout::convolution::GKYXC,
+//     ck::Tuple<>,
+//     ck::tensor_layout::convolution::NHWGC,
+//     DataType,
+//     DataType,
+//     ck::Tuple<>,
+//     DataType,
+//     ck::tensor_operation::element_wise::PassThrough,
+//     ck::tensor_operation::element_wise::PassThrough,
+//     ck::tensor_operation::element_wise::PassThrough>;
+
+// template <typename DataType>
+// using DeviceOpGBwdPtrs =
+//     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGBwd<DataType>>;
+
+
+// Forward declarations for the helper struct
+template <bool transpose, typename DataType>
+struct DeviceOpGBwdPtrsHelper;
+
+// Specialization for transpose = false
 template <typename DataType>
-using DeviceOpGBwdPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<DeviceOpGBwd<DataType>>;
+struct DeviceOpGBwdPtrsHelper<false, DataType> {
+    using type = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwd<
+            ck::tensor_layout::convolution::NGKHW,
+            ck::tensor_layout::convolution::GKCYX,
+            ck::tensor_layout::convolution::NGCHW,
+            DataType>
+    >;
+};
+
+// Specialization for transpose = true
+template <typename DataType>
+struct DeviceOpGBwdPtrsHelper<true, DataType> {
+    using type = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwd<
+            ck::tensor_layout::convolution::NHWGK,
+            ck::tensor_layout::convolution::GKYXC,
+            ck::tensor_layout::convolution::NHWGC,
+            DataType>
+    >;
+};
+
+// Final type alias using the helper
+template <bool transpose, typename DataType>
+using DeviceOpGBwdPtrs = typename DeviceOpGBwdPtrsHelper<transpose, DataType>::type;
 
 namespace {
-
+template<bool transpose>
 struct CKArgs
 {
     CKArgs(const ProblemDescription& problem)
@@ -115,11 +166,19 @@ struct CKArgs
         else
         {
             assert(problem.IsLayoutDefault()); // already checked in IsApplicable
-            // for default layout, we produce packed strides for NHWC layout
-            // because we transpose to NHWC layout before calling CK kernel
-            in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-            out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
-            wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+            if constexpr(transpose)
+            {
+                // strides from NHWGC to GNCHW laout
+                in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
+                out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
+                wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+            }
+            else
+            {
+                in_strides  = {G*C*Hi*Wi, C*Hi*Wi, Hi*Wi, Wi, 1};
+                out_strides = {G*K*Ho*Wo, K*Ho*Wo, Ho*Wo, Wo, 1};
+                wei_strides = {K*C*Y*X,   C*Y*X,   Y*X, X, 1};
+            }
         }
 
         strides  = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
@@ -208,26 +267,29 @@ struct CKArgs
 };
 } // namespace
 
+template <bool transpose>
 template <typename DataType>
-void PerformanceConfigHipImplicitGemmGroupBwdXdlops::Init(const ProblemDescription& problem)
+void PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::Init(const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem);
+    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<transpose, DataType>, CKArgs<transpose>>(problem);
     index         = 0;
     kernel_id     = valid_kernels[index];
 }
 
+template <bool transpose>
 template <typename DataType>
-bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::CheckIsSupportCKArgs(
+bool PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::CheckIsSupportCKArgs(
     const ProblemDescription& problem) const
 {
-    return IsCKArgsSupported<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem, kernel_id);
+    return IsCKArgsSupported<DeviceOpGBwdPtrs<transpose, DataType>, CKArgs<transpose>>(problem, kernel_id);
 }
 
+template <bool transpose>
 template <typename DataType>
-bool ConvHipImplicitGemmGroupBwdXdlops::CheckCKApplicability(
+bool ConvHipImplicitGemmGroupBwdXdlops<transpose>::CheckCKApplicability(
     const ProblemDescription& problem) const
 {
-    return IsCKApplicable<DeviceOpGBwdPtrs<DataType>, CKArgs>(problem);
+    return IsCKApplicable<DeviceOpGBwdPtrs<transpose, DataType>, CKArgs<transpose>>(problem);
 }
 
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
@@ -246,7 +308,8 @@ static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
     return tokens;
 }
 
-void PerformanceConfigHipImplicitGemmGroupBwdXdlops::InitHeuristicKernelIDs()
+template <bool transpose>
+void PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::InitHeuristicKernelIDs()
 {
     for(int i = 0; i < valid_kernels.size(); i++)
     {
@@ -259,7 +322,8 @@ void PerformanceConfigHipImplicitGemmGroupBwdXdlops::InitHeuristicKernelIDs()
     }
 }
 
-bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::ModelApplyToken(
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::ModelApplyToken(
     int idx, std::string value, const std::string& arch, const ProblemDescription& /*problem*/)
 {
     if(arch == "gfx90a")
@@ -349,11 +413,12 @@ GetFeatures(const ProblemDescription& problem, std::size_t /*num_cu*/, const std
     return features;
 }
 
+template <bool transpose>
 template <typename DataType>
-bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::RunParameterPredictionModel(
+bool PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::RunParameterPredictionModel(
     const ExecutionContext& ctx, const ProblemDescription& problem)
 {
-    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<DataType>, CKArgs>(
+    valid_kernels = FillValidKernelsIDs<DeviceOpGBwdPtrs<transpose, DataType>, CKArgs<transpose>>(
         problem); // filter valid_kernel ID's
     InitHeuristicKernelIDs();
     static const std::string& arch = ctx.GetStream().GetDeviceName();
@@ -368,7 +433,7 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::RunParameterPredictionModel
     {
         index     = heuristic_indexes[0];
         kernel_id = valid_kernels[index];
-        MIOPEN_LOG_I("Params set by AI: " << ToString());
+        MIOPEN_LOG_I("Params set by AI: " << this->ToString());
         return true;
     }
     return false;
@@ -376,7 +441,8 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::RunParameterPredictionModel
 #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
 #endif // MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsModelApplicable(
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::IsModelApplicable(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     if(ctx.GetStream().GetDeviceName() != "gfx90a" && ctx.GetStream().GetDeviceName() != "gfx942" &&
@@ -390,7 +456,8 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsModelApplicable(
     return true;
 }
 
-void PerformanceConfigHipImplicitGemmGroupBwdXdlops::HeuristicInit(
+template <bool transpose>
+void PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::HeuristicInit(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem)
 {
@@ -433,7 +500,8 @@ void PerformanceConfigHipImplicitGemmGroupBwdXdlops::HeuristicInit(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::SetNextValue(const ProblemDescription& problem)
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::SetNextValue(const ProblemDescription& problem)
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
@@ -464,12 +532,14 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::SetNextValue(const ProblemD
         return false;
 }
 
-bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsValidValue() const
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::IsValidValue() const
 {
     return index < valid_kernels.size();
 }
 
-bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsValid(
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::IsValid(
     [[maybe_unused]] const ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -489,44 +559,50 @@ bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::IsValid(
     return false;
 }
 
-bool PerformanceConfigHipImplicitGemmGroupBwdXdlops::operator==(
-    const PerformanceConfigHipImplicitGemmGroupBwdXdlops& other) const
+template <bool transpose>
+bool PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>::operator==(
+    const PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>& other) const
 {
     return kernel_id == other.kernel_id;
 }
 
-PerformanceConfigHipImplicitGemmGroupBwdXdlops
-ConvHipImplicitGemmGroupBwdXdlops::GetDefaultPerformanceConfig(
+template <bool transpose>
+PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>
+ConvHipImplicitGemmGroupBwdXdlops<transpose>::GetDefaultPerformanceConfig(
     const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
-    PerformanceConfigHipImplicitGemmGroupBwdXdlops pp;
+    PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose> pp;
     pp.HeuristicInit(ctx, problem);
     return pp;
 }
 
-bool ConvHipImplicitGemmGroupBwdXdlops::IsValidPerformanceConfig(
+template <bool transpose>
+bool ConvHipImplicitGemmGroupBwdXdlops<transpose>::IsValidPerformanceConfig(
     const ExecutionContext&,
     const ProblemDescription& problem,
-    const PerformanceConfigHipImplicitGemmGroupBwdXdlops& config) const
+    const PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>& config) const
 {
     return config.IsValid(problem);
 }
 
-size_t ConvHipImplicitGemmGroupBwdXdlops::GetWorkspaceSize(const ExecutionContext&,
+template <bool transpose>
+size_t ConvHipImplicitGemmGroupBwdXdlops<transpose>::GetWorkspaceSize(const ExecutionContext&,
                                                            const ProblemDescription& problem) const
 {
     return GetWorkspaceSizeLayoutTransformConv(problem);
 }
 
-PerformanceConfigHipImplicitGemmGroupBwdXdlops
-ConvHipImplicitGemmGroupBwdXdlops::Search(const ExecutionContext& ctx,
+template <bool transpose>
+PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>
+ConvHipImplicitGemmGroupBwdXdlops<transpose>::Search(const ExecutionContext& ctx,
                                           const ProblemDescription& problem,
                                           const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
 }
 
-bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
+template <bool transpose>
+bool ConvHipImplicitGemmGroupBwdXdlops<transpose>::IsApplicable(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem) const
 {
@@ -566,26 +642,28 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
     return false;
 }
 
-ConvSolution ConvHipImplicitGemmGroupBwdXdlops::GetSolution(
+template <bool transpose>
+ConvSolution ConvHipImplicitGemmGroupBwdXdlops<transpose>::GetSolution(
     [[maybe_unused]] const ExecutionContext& ctx,
     [[maybe_unused]] const ProblemDescription& problem,
-    [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupBwdXdlops& config) const
+    [[maybe_unused]] const PerformanceConfigHipImplicitGemmGroupBwdXdlops<transpose>& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     return MakeSolutionGroupConvImplicitGemmXdlops(
         problem,
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryBwdNCHW<2,
-                                             DeviceOpGBwdPtrs<T>,
-                                             CKArgs,
+            return InitInvokerFactoryBwdNCHW<transpose,
+                                             2,
+                                             DeviceOpGBwdPtrs<transpose, T>,
+                                             CKArgs<transpose>,
                                              miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<T>,
-                                          CKArgs,
+            return InitInvokerFactoryNHWC<DeviceOpGBwdPtrs<transpose, T>,
+                                          CKArgs<transpose>,
                                           miopen::conv::DataInvokeParams>(
                 ctx, problem, config.kernel_id);
         });
@@ -594,6 +672,10 @@ ConvSolution ConvHipImplicitGemmGroupBwdXdlops::GetSolution(
     return {};
 #endif
 }
+template struct ConvHipImplicitGemmGroupBwdXdlops<true>;
+template struct ConvHipImplicitGemmGroupBwdXdlops<false>;
+template struct PerformanceConfigHipImplicitGemmGroupBwdXdlops<true>;
+template struct PerformanceConfigHipImplicitGemmGroupBwdXdlops<false>;
 
 } // namespace conv
 } // namespace solver

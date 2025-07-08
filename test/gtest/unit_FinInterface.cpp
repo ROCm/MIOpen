@@ -306,12 +306,13 @@ const auto& GetSolversInfo<ConvSolverInfo>()
         {"ConvWinoFuryRxS<2-3>",                                {139,   true,   false,  "miopenConvolutionFwdAlgoWinograd"}},
         {"ConvHipImplicitGemm3DGroupWrwXdlops",                 {140,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         {"ConvHipImplicitGemm3DGroupBwdXdlops",                 {141,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
-        {"ConvHipImplicitGemmGroupBwdXdlops",                   {155,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
+        {"ConvHipImplicitGemmGroupBwdXdlops<true>",             {155,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         {"ConvHipImplicitGemmGroupWrwXdlops",                   {156,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         {"ConvQunConvBwd",                                      {181,   true,   true,   "miopenConvolutionFwdAlgoDirect"}},
         {"ConvQunConvFwd",                                      {182,   true,   true,   "miopenConvolutionFwdAlgoDirect"}},
         {"ConvJinMDConvBwd",                                    {183,   true,   true,   "miopenConvolutionFwdAlgoDirect"}},
         {"ConvHipImplicitGemmGroupFwdXdlops<false>",            {184,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
+        {"ConvHipImplicitGemmGroupBwdXdlops<false>",            {185,   true,   true,   "miopenConvolutionFwdAlgoImplicitGEMM"}},
         // clang-format on
     };
 

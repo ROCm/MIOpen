@@ -1141,7 +1141,7 @@ ConvSolution InitInvokerFactoryFwdNCHW(const ExecutionContext& ctx,
         ctx, problem, kernel_id, Input1{}, Input2{}, Output{});
 }
 
-template <int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
+template <bool transpose, int ND, typename DeviceOpType, typename CKArgsType, typename CastType>
 ConvSolution InitInvokerFactoryBwdNCHW(const ExecutionContext& ctx,
                                        const miopen::conv::ProblemDescription& problem,
                                        const std::string& kernel_id)
@@ -1153,7 +1153,7 @@ ConvSolution InitInvokerFactoryBwdNCHW(const ExecutionContext& ctx,
     using Input2 = internal::CKTransposeInputOp<ND, internal::ConvOperandTag::Weights>;
     using Output = internal::CKTransposeOutputOp<ND, internal::ConvOperandTag::Input>;
 
-    return InitInvokerFactoryNCHW<true, DeviceOpType, CKArgsType, CastType>(
+    return InitInvokerFactoryNCHW<transpose, DeviceOpType, CKArgsType, CastType>(
         ctx, problem, kernel_id, Input1{}, Input2{}, Output{});
 }
 
