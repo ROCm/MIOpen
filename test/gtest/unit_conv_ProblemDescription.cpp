@@ -258,7 +258,6 @@ public:
                 miopen::conv::Direction::Forward,
                 "NDHWC", "NDHWC", "NDHWC"
             },
-#if 1
             TestCase{
                 {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
                 {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
@@ -267,7 +266,6 @@ public:
                 miopen::conv::Direction::Forward,
                 "NCDHW", "NCDHW", "NCDHW"
             },
-#endif
             TestCase{
                 {miopenHalf, {1, 1, 1, 1}, {1000, 100, 10, 1}}, // NCHW
                 {miopenHalf, {1, 1, 1, 1}, {1000, 1, 100, 10}}, // NHWC
