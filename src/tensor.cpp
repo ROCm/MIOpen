@@ -559,13 +559,14 @@ const std::optional<miopenTensorLayout_t>& TensorDescriptor::GetLayoutEnum() con
                 // If the layout cannot be determined by the string, then we
                 // can fall back to the known layouts to check if they are applicable.
                 static const auto known_layouts = {std::make_pair("NCHW", miopenTensorNCHW),
-                                        std::make_pair("NHWC", miopenTensorNHWC),
-                                        std::make_pair("NCDHW", miopenTensorNCDHW),
-                                        std::make_pair("NDHWC", miopenTensorNDHWC),
-                                        std::make_pair("CHWN", miopenTensorCHWN)};
+                                                   std::make_pair("NHWC", miopenTensorNHWC),
+                                                   std::make_pair("NCDHW", miopenTensorNCDHW),
+                                                   std::make_pair("NDHWC", miopenTensorNDHWC),
+                                                   std::make_pair("CHWN", miopenTensorCHWN)};
                 for(const auto& [layout_str, layout_enum] : known_layouts)
                 {
-                    if(IsPossibleLayout4D5D(layout_str, LayoutValidationMode::IgnoreDegenerateStrides))
+                    if(IsPossibleLayout4D5D(layout_str,
+                                            LayoutValidationMode::IgnoreDegenerateStrides))
                     {
                         return layout_enum;
                     }
