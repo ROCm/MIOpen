@@ -188,7 +188,7 @@ def process_single_config(test_case, kernel_times_path, algs, tuning, pid, log_t
         
         # Record environment variables
         log_file.write("=== Environment Variables ===\n")
-        for key, value in os.environ.items():
+        for key, value in env_vars.items():
             log_file.write(f"{key}={value}\n")
         
         log_file.write(f"\n=== Execution completed at {datetime.now()} ===\n")
