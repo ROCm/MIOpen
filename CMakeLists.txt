@@ -501,9 +501,6 @@ message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
-# FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
-option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" OFF)
-
 if(WIN32)
     set( DATA_INSTALL_DIR bin )
     set( DATABASE_INSTALL_DIR ${DATA_INSTALL_DIR})
@@ -748,8 +745,8 @@ enable_cppcheck(
         # but cppcheck doesn't understand that as it assumes everything
         # will be compiled together in one binary.
         ctuOneDefinitionRuleViolation:*test/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/host/*/*
+        ctuOneDefinitionRuleViolation:*src/legacy_composable_kernel/composable_kernel/*/*
+        ctuOneDefinitionRuleViolation:*src/legacy_composable_kernel/host/*/*
         # There are many FPs with this, let's disable this (ditto in MIGraphX)
         ctuPointerArith:*test/*
         duplicateCondition
@@ -770,13 +767,13 @@ enable_cppcheck(
         unreadVariable:*src/kernels/static_composable_kernel/*/*
         unusedScopedObject:*src/kernels/static_composable_kernel/*/*
         wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
-        knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
-        identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
-        duplicateExpression:*src/composable_kernel/composable_kernel/*/*
-        multiCondition:*src/composable_kernel/composable_kernel/*/*
-        unreadVariable:*src/composable_kernel/composable_kernel/*/*
-        unreadVariable:*src/composable_kernel/host/*/*
-        unreadVariable:*src/composable_kernel/external/*/*
+        knownConditionTrueFalse:*src/legacy_composable_kernel/composable_kernel/*/*
+        identicalConditionAfterEarlyExit:*src/legacy_composable_kernel/composable_kernel/*/*
+        duplicateExpression:*src/legacy_composable_kernel/composable_kernel/*/*
+        multiCondition:*src/legacy_composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/legacy_composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/legacy_composable_kernel/host/*/*
+        unreadVariable:*src/legacy_composable_kernel/external/*/*
         unmatchedSuppression
         ###################################################################
         # TODO Code Quality WORKAROUND ROCm 5.3 &&

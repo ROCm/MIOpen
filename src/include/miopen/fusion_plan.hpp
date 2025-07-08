@@ -58,7 +58,9 @@ struct MIOPEN_INTERNALS_EXPORT FusionPlanDescriptor : miopenFusionPlanDescriptor
                            ConstData_t input,
                            const TensorDescriptor& outputDesc,
                            Data_t output,
-                           const OperatorArgs& op_args);
+                           const OperatorArgs& op_args,
+                           Data_t workspace,
+                           size_t workspace_size);
     miopenStatus_t Compile(const Handle& handle);
     std::vector<Solution> Find(const Handle& handle,
                                const std::function<fusion::FusionInvokeParams()>& invoke_params,
