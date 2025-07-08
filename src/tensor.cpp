@@ -424,7 +424,7 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
         if(tensorLayout)
         {
             if(!this->IsPossibleLayout4D5D(TensorDescriptor::LayoutEnumToStr(tensorLayout.value()),
-                                           true))
+                                           LayoutValidationMode::IgnoreDegenerateStrides))
                 MIOPEN_THROW(miopenStatusBadParm, "Mismatch of layout and strides");
         }
     }
@@ -649,7 +649,7 @@ std::size_t TensorDescriptor::GetElementSpace() const
 // For vectorized layouts storage_layout must be without the ending 'c'
 bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
                                         const std::string& layout,
-                                        bool allowLessRestrictive) const
+                                        LayoutValidationMode validation_mode) const
 {
     if(storage_layout.size() != this->GetNumDims())
     {
@@ -676,9 +676,9 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         return true;
     }
 
-    // Build layout_strides, skipping the strides where lens[dim] == 1.
-    // We are ignoring the strides when lengths == 1, for a dimension as they are not relevant for
-    // the layout. I.E NCHW layout with lens = {5, 1, 10, 10} Is actually NHW since there is no
+    // Build layout_strides using the provided validation mode, storage_layout, and layout.
+    // If we are using IgnoreDegenerateStrides, then we are ignoring the strides when lengths == 1.
+    // E.G NCHW layout with lens = {5, 1, 10, 10} Is actually NHW since there is no
     // channels dimension. Both NHWC & NCHW layouts are valid for this tensor as channels is not
     // relevant.
     std::vector<std::size_t> layout_strides;
@@ -688,8 +688,20 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         const auto pos = storage_layout.find(cur_char);
         if(pos == std::string::npos)
             MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
-        if(lens[pos] != 1 || !allowLessRestrictive)
-            layout_strides.push_back(strides[pos]);
+
+        switch(validation_mode)
+        {
+        case LayoutValidationMode::IgnoreDegenerateStrides:
+            if(lens[pos] == 1)
+            {
+                continue;
+            }
+            break;
+        case LayoutValidationMode::StrictDecreasingStrides: break;
+        default: MIOPEN_THROW(miopenStatusInternalError, "Unknown validation mode provided");
+        }
+
+        layout_strides.push_back(strides[pos]);
     }
 
     // Check monotonic decreasing
@@ -703,13 +715,12 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
 
 // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
 bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout,
-                                            bool allowLessRestrictive) const
+                                            LayoutValidationMode validation_mode) const
 {
     if(tensorLayout)
     {
         if(this->tensorLayout == miopenTensorCHWNc4 || this->tensorLayout == miopenTensorCHWNc8)
-            return this->IsPossibleLayout(
-                GetStorageLayout4D5D(4, true), layout, allowLessRestrictive);
+            return this->IsPossibleLayout(GetStorageLayout4D5D(4, true), layout, validation_mode);
     }
 
     switch(this->GetNumDims())
@@ -717,7 +728,7 @@ bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout,
     case 4:
     case 5:
         return this->IsPossibleLayout(
-            GetStorageLayout4D5D(this->GetNumDims()), layout, allowLessRestrictive);
+            GetStorageLayout4D5D(this->GetNumDims()), layout, validation_mode);
     default: return false;
     }
 }

@@ -121,42 +121,43 @@ std::string ProblemDescription::GetAlphaBetaCaseStr() const
 
 void ProblemDescription::HeuristicUpdateLayouts()
 {
+    using LayoutValidationMode = TensorDescriptor::LayoutValidationMode;
+
     static const std::vector<std::string> supported_layouts = {
         "NCHW", "NHWC", "CHWN", "NCDHW", "NDHWC"};
+
+    static const auto strict = TensorDescriptor::LayoutValidationMode::StrictDecreasingStrides;
+
+    // Note: The order here is important, as we want to try and find a match with strict decreasing
+    // strides first.
+    static const std::vector<LayoutValidationMode> validation_modes = {
+        strict, LayoutValidationMode::IgnoreDegenerateStrides};
 
     // If we have preset layouts that are valid, and they are consistent with each other, then we do
     // not need to change them.
     if(!in_layout.empty() && in_layout == out_layout && in_layout == weights_layout &&
        std::find(supported_layouts.begin(), supported_layouts.end(), in_layout) !=
            supported_layouts.end() &&
-       in.IsPossibleLayout4D5D(in_layout, false) && out.IsPossibleLayout4D5D(out_layout, false) &&
-       weights.IsPossibleLayout4D5D(weights_layout, false))
+       in.IsPossibleLayout4D5D(in_layout, strict) && out.IsPossibleLayout4D5D(out_layout, strict) &&
+       weights.IsPossibleLayout4D5D(weights_layout, strict))
     {
         return;
     }
 
-    for(const std::string& layout : supported_layouts)
+    // Check if we can find a consistent layout across all tensors with the strict mode first,
+    // then try ignoring degenerate strides afterwards.
+    for(auto& mode : validation_modes)
     {
-        if(in.IsPossibleLayout4D5D(layout, false) && out.IsPossibleLayout4D5D(layout, false) &&
-           weights.IsPossibleLayout4D5D(layout, false))
+        for(const std::string& layout : supported_layouts)
         {
-            in_layout      = layout;
-            weights_layout = layout;
-            out_layout     = layout;
-            return;
-        }
-    }
-
-    // fallback to less restrictive layout checks
-    for(const std::string& layout : supported_layouts)
-    {
-        if(in.IsPossibleLayout4D5D(layout, true) && out.IsPossibleLayout4D5D(layout, true) &&
-           weights.IsPossibleLayout4D5D(layout, true))
-        {
-            in_layout      = layout;
-            weights_layout = layout;
-            out_layout     = layout;
-            return;
+            if(in.IsPossibleLayout4D5D(layout, mode) && out.IsPossibleLayout4D5D(layout, mode) &&
+               weights.IsPossibleLayout4D5D(layout, mode))
+            {
+                in_layout      = layout;
+                weights_layout = layout;
+                out_layout     = layout;
+                return;
+            }
         }
     }
 
