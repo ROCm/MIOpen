@@ -28,18 +28,20 @@
 #include <tensor_util.hpp>
 #include <miopen/lrn.hpp>
 
+#include "network_data.hpp"
+
 namespace {
 
 using TestCase =
     std::tuple<std::vector<int>, unsigned int, double, double, double, miopenLRNMode_t>;
 
 template <class T>
-struct verify_lrn_foward
+struct verify_lrn_forward
 {
     miopen::LRNDescriptor lrn;
     tensor<T> input;
 
-    verify_lrn_foward(const miopen::LRNDescriptor& plrnDesc, const tensor<T>& pinput)
+    verify_lrn_forward(const miopen::LRNDescriptor& plrnDesc, const tensor<T>& pinput)
     {
         lrn   = plrnDesc;
         input = pinput;
@@ -132,7 +134,7 @@ struct verify_lrn_foward
 
     void fail() const
     {
-        std::cout << "verify_lrn_foward" << std::endl;
+        std::cout << "verify_lrn_forward" << std::endl;
         std::cout << "Input Tensor"
                   << " " << input.desc.ToString() << std::endl;
     }
@@ -332,7 +334,8 @@ public:
 
         miopen::LRNDescriptor lrn{mode, n, {alpha, beta, k}};
 
-        VerifyLrnFoward(lrn, input);
+        VerifyLrnForward(lrn, input);
+
         uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         auto scale = tensor<T>{n_batch, channels, height, width}.generate(
@@ -346,10 +349,10 @@ public:
     };
 
     // we need cpu data for backward pass later, so return it from this function
-    void VerifyLrnFoward(const miopen::LRNDescriptor& plrnDesc, const tensor<T>& pinput)
+    void VerifyLrnForward(const miopen::LRNDescriptor& plrnDesc, const tensor<T>& pinput)
     {
-        verify_lrn_foward<T> verify_fwd{plrnDesc, pinput};
-        CompareResults(verify_fwd, true);
+        verify_lrn_forward<T> verify_fwd{plrnDesc, pinput};
+        CompareResults(verify_fwd, 1.5, true);
     }
 
     void VerifyLrnBwd(const miopen::LRNDescriptor& plrn,
@@ -359,20 +362,22 @@ public:
                       const tensor<T>& pscale)
     {
         verify_lrn_bwd<T> verify_bwd{plrn, pout, pdout, pin, pscale};
-        CompareResults(verify_bwd);
+        CompareResults(verify_bwd, 6.0);
     }
 
     template <class TDirection>
-    void CompareResults(const TDirection& direction, bool saveCpuResults = false)
+    void CompareResults(const TDirection& direction, double tolerance, bool saveCpuResults = false)
     {
         const tensor<T> cpu = direction.cpu();
         const tensor<T> gpu = direction.gpu();
 
-        // taken from the original test
-        double tolerance = 80;
-
         double threshold = std::numeric_limits<T>::epsilon() * tolerance;
         double error     = miopen::rms_range(cpu, gpu);
+
+        if(saveCpuResults)
+        {
+            cpu_results = std::move(cpu);
+        }
 
         if(error > threshold)
         {
@@ -384,11 +389,6 @@ public:
                                     << "beta: " << beta << std::endl
                                     << "k: " << k << std::endl
                                     << "mode: " << mode << std::endl;
-
-        if(saveCpuResults)
-        {
-            cpu_results = std::move(cpu);
-        }
     }
 
 private:
@@ -401,7 +401,7 @@ private:
     double k             = 1;
     miopenLRNMode_t mode = miopenLRNWithinChannel;
 
-    // cpu results pf forward pass to be used for backward pass
+    // cpu results of forward pass to be used for backward pass
     tensor<T> cpu_results;
 };
 
