@@ -95,7 +95,9 @@ public:
     int RunBackwardCPU();
 
     void runGPUFwdInference(Tref epsilon, float alpha, float beta);
+    void runGPUFwdInferenceActivation(Tref epsilon, float alpha, float beta);
     void runGPUFwdTrain(Tref epsilon, Tref eAF, float alpha, float beta);
+    void runGPUFwdTrainActivation(Tref epsilon, Tref eAF, float alpha, float beta);
     void runGPUBwd(Tref epsilon, float alpha, float beta);
 
     void runCPUFwdInference(Tref epsilon);
@@ -160,6 +162,7 @@ private:
     GpumemTensor<TOut> out_bwd;
 
     GpumemTensor<TScaleBias> bnScale;
+    GpumemTensor<TScaleBias> bnBias;
     GpumemTensor<TAcc> dScale;
     GpumemTensor<TAcc> dBias;
     // savedMean declared above as TAcc as well
@@ -248,6 +251,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
         out_bwd.AllocOnHost(tensor<TOut>{bn_layout, in_len});
 
         bnScale.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
+        bnBias.AllocOnHost(tensor<TScaleBias>{bn_layout, derivedBnDesc.GetLengths()});
         dy.AllocOnHost(tensor<TOut>{bn_layout, in_len});
         // -2.0 to 2.0
         dy.InitHostData(dy.GetTensor().desc.GetElementSize(),
@@ -263,6 +267,9 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::GetandSetData()
             bnScale.GetTensor().desc.GetElementSize(),
             true,
             uniform_signed_initializer<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/));
+        bnBias.InitHostData(bnBias.GetTensor().desc.GetElementSize(),
+                            true,
+                            uniform_signed_initializer<TScaleBias>(2e-3 /*scale*/, 1000 /*range*/));
         // -2.0 to 2.0
         savedMean.InitHostData(savedMean.GetTensor().desc.GetElementSize(),
                                true,
@@ -327,6 +334,15 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AddCmdLineArgs()
         "int");
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
+    inflags.AddInputFlag("activ_mode",
+                         'f',
+                         "0",
+                         "fused activation function. It must be >=0 and <= 9 (Default=0)",
+                         "int");
+    inflags.AddInputFlag(
+        "activ_alpha", 'x', "1.0", "Activation function parameter alpha (Default=1.0)", "float");
+    inflags.AddInputFlag(
+        "activ_beta", 'y', "1.0", "Activation function parameter beta (Default=1.0)", "float");
     AddGpuBufferCheckFlag(inflags);
 
     return miopenStatusSuccess;
@@ -520,6 +536,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::SetBNParametersFromCm
         isBwd = true;
     }
 
+    activ_mode = static_cast<miopenActivationMode_t>(inflags.GetValueInt("activ_mode"));
+
     return miopenStatusSuccess;
 }
 
@@ -584,6 +602,8 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AllocateBuffersAndCop
 
         status |= bnScale.AllocOnDeviceAndInit(
             q, ctx, GetTensorSize(&bnScale.GetTensor().desc), buffer_check);
+        status |= bnBias.AllocOnDeviceAndInit(
+            q, ctx, GetTensorSize(&bnBias.GetTensor().desc), buffer_check);
         status |=
             dy.AllocOnDeviceAndInit(q, ctx, GetTensorSize(&dy.GetTensor().desc), buffer_check);
 
@@ -665,7 +685,63 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdInference(T
                                                     nullptr,
                                                     epsilon);
     }
+    return;
+}
 
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdInferenceActivation(
+    Tref epsilon, float alpha, float beta)
+{
+    miopenActivationDescriptor_t activ_desc;
+    miopenCreateActivationDescriptor(&activ_desc);
+    miopenSetActivationDescriptor(activ_desc,
+                                  activ_mode,
+                                  inflags.GetValueDouble("activ_alpha"),
+                                  inflags.GetValueDouble("activ_beta"),
+                                  static_cast<double>(0.0));
+    if(keepRunningMeanVar)
+    { // use precalculated mean and variance
+        miopenBatchNormForwardInferenceActivation(GetHandle(),
+                                                  bn_mode,
+                                                  &alpha,
+                                                  &beta,
+                                                  &in.GetTensor().desc,
+                                                  in.GetDevicePtr(),
+                                                  &out.GetTensor().desc,
+                                                  out.GetDevicePtr(),
+                                                  &scale.GetTensor().desc,
+                                                  &bias.GetTensor().desc,
+                                                  &estMean.GetTensor().desc,
+                                                  &estVariance.GetTensor().desc,
+                                                  scale.GetDevicePtr(),
+                                                  bias.GetDevicePtr(),
+                                                  estMean.GetDevicePtr(),
+                                                  estVariance.GetDevicePtr(),
+                                                  epsilon,
+                                                  activ_desc);
+    }
+    else
+    { // recalculate mean and variance
+        miopenBatchNormForwardInferenceActivation(GetHandle(),
+                                                  bn_mode,
+                                                  &alpha,
+                                                  &beta,
+                                                  &in.GetTensor().desc,
+                                                  in.GetDevicePtr(),
+                                                  &out.GetTensor().desc,
+                                                  out.GetDevicePtr(),
+                                                  &scale.GetTensor().desc,
+                                                  &bias.GetTensor().desc,
+                                                  &estMean.GetTensor().desc,
+                                                  &estVariance.GetTensor().desc,
+                                                  scale.GetDevicePtr(),
+                                                  bias.GetDevicePtr(),
+                                                  nullptr,
+                                                  nullptr,
+                                                  epsilon,
+                                                  activ_desc);
+    }
+    miopenDestroyActivationDescriptor(activ_desc);
     return;
 }
 
@@ -793,6 +869,142 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrain(Tref 
 }
 
 template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
+void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrainActivation(Tref epsilon,
+                                                                                     Tref eAF,
+                                                                                     float alpha,
+                                                                                     float beta)
+{
+    miopenActivationDescriptor_t activ_desc;
+    miopenCreateActivationDescriptor(&activ_desc);
+    miopenSetActivationDescriptor(activ_desc,
+                                  activ_mode,
+                                  inflags.GetValueDouble("activ_alpha"),
+                                  inflags.GetValueDouble("activ_beta"),
+                                  static_cast<double>(0.0));
+    if(saveMeanVar && keepRunningMeanVar)
+    {
+        miopenBatchNormForwardTrainingActivation(GetHandle(),
+                                                 bn_mode,
+                                                 &alpha,
+                                                 &beta,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 &bias.GetTensor().desc,
+                                                 &savedMean.GetTensor().desc,
+                                                 &savedVariance.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
+                                                 eAF,
+                                                 runMean.GetDevicePtr(),
+                                                 runVariance.GetDevicePtr(),
+                                                 epsilon,
+                                                 savedMean.GetDevicePtr(),
+                                                 savedVariance.GetDevicePtr(),
+                                                 activ_desc);
+    }
+    else if(saveMeanVar)
+    {
+        miopenBatchNormForwardTrainingActivation(GetHandle(),
+                                                 bn_mode,
+                                                 &alpha,
+                                                 &beta,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 &bias.GetTensor().desc,
+                                                 &savedMean.GetTensor().desc,
+                                                 &savedVariance.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
+                                                 eAF,
+                                                 nullptr,
+                                                 nullptr,
+                                                 epsilon,
+                                                 savedMean.GetDevicePtr(),
+                                                 savedVariance.GetDevicePtr(),
+                                                 activ_desc);
+    }
+    else if(keepRunningMeanVar)
+    {
+        miopenBatchNormForwardTrainingActivation(GetHandle(),
+                                                 bn_mode,
+                                                 &alpha,
+                                                 &beta,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 &bias.GetTensor().desc,
+                                                 &savedMean.GetTensor().desc,
+                                                 &savedVariance.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
+                                                 eAF,
+                                                 runMean.GetDevicePtr(),
+                                                 runVariance.GetDevicePtr(),
+                                                 epsilon,
+                                                 nullptr,
+                                                 nullptr,
+                                                 activ_desc);
+    }
+    else
+    {
+        miopenBatchNormForwardTrainingActivation(GetHandle(),
+                                                 bn_mode,
+                                                 &alpha,
+                                                 &beta,
+                                                 &in.GetTensor().desc,
+                                                 in.GetDevicePtr(),
+                                                 &out.GetTensor().desc,
+                                                 out.GetDevicePtr(),
+                                                 &scale.GetTensor().desc,
+                                                 &bias.GetTensor().desc,
+                                                 &savedMean.GetTensor().desc,
+                                                 &savedVariance.GetTensor().desc,
+                                                 scale.GetDevicePtr(),
+                                                 bias.GetDevicePtr(),
+                                                 eAF,
+                                                 nullptr,
+                                                 nullptr,
+                                                 epsilon,
+                                                 nullptr,
+                                                 nullptr,
+                                                 activ_desc);
+    }
+
+#ifdef BN_RUNFOR_PROFILER
+    miopenBatchNormForwardTrainingActivation(GetHandle(),
+                                             bn_mode,
+                                             &alpha,
+                                             &beta,
+                                             &in.GetTensor().desc,
+                                             in.GetDevicePtr(),
+                                             &out.GetTensor().desc,
+                                             out.GetDevicePtr(),
+                                             &scale.GetTensor().desc,
+                                             &bias.GetTensor().desc,
+                                             &savedMean.GetTensor().desc,
+                                             &savedVariance.GetTensor().desc,
+                                             scale.GetDevicePtr(),
+                                             bias.GetDevicePtr(),
+                                             eAF,
+                                             nullptr,
+                                             nullptr,
+                                             epsilon,
+                                             nullptr,
+                                             nullptr,
+                                             activ_desc);
+#endif
+    miopenDestroyActivationDescriptor(activ_desc);
+}
+
+template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
 int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunForwardGPU()
 {
 
@@ -815,12 +1027,25 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunForwardGPU()
         if(forw == 1)
         { // training only
             eAF = static_cast<Tref>(1.0) / (static_cast<Tref>(i) + static_cast<Tref>(1.0));
-            runGPUFwdTrain(epsilon, eAF, alpha, beta);
+            if(activ_mode == 0)
+            {
+                runGPUFwdTrain(epsilon, eAF, alpha, beta);
+            }
+            else
+            {
+                runGPUFwdTrainActivation(epsilon, eAF, alpha, beta);
+            }
         }
         else if(forw == 2)
         { // inference only
-            // printf("Running for inference.\n");
-            runGPUFwdInference(epsilon, alpha, beta);
+            if(activ_mode == 0)
+            {
+                runGPUFwdInference(epsilon, alpha, beta);
+            }
+            else
+            {
+                runGPUFwdInferenceActivation(epsilon, alpha, beta);
+            }
         }
         else if(forw == 0)
         {
@@ -931,6 +1156,15 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runCPUFwdInference(T
                                       epsilon,
                                       estMean.GetTensor(),
                                       estVariance.GetTensor());
+        if(activ_mode > 0)
+        {
+            activationHostInfer(activ_mode,
+                                static_cast<double>(0.0),
+                                inflags.GetValueDouble("activ_beta"),
+                                inflags.GetValueDouble("activ_alpha"),
+                                out_ref.data,
+                                out_ref.data);
+        }
     }
     else
     {
@@ -1001,6 +1235,15 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runCPUFwdTrain(Tref 
                                          runMean_ref,
                                          runVariance_ref);
         }
+        if(activ_mode > 0)
+        {
+            activationHostInfer(activ_mode,
+                                static_cast<double>(0.0),
+                                inflags.GetValueDouble("activ_beta"),
+                                inflags.GetValueDouble("activ_alpha"),
+                                out_ref.data,
+                                out_ref.data);
+        }
     }
     else
     {
@@ -1055,59 +1298,127 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardGPU()
     float lowtime   = 100000000.0;
     float avgtime   = 0.;
 
+    miopenActivationDescriptor_t activ_desc;
+    miopenCreateActivationDescriptor(&activ_desc);
+    miopenSetActivationDescriptor(activ_desc,
+                                  activ_mode,
+                                  inflags.GetValueDouble("activ_alpha"),
+                                  inflags.GetValueDouble("activ_beta"),
+                                  static_cast<double>(0.0));
+
     for(int i = 0; i < iters; i++)
     {
         START_TIME
 
         if(saveMeanVar)
         {
-            miopenBatchNormalizationBackward_V2(GetHandle(),
-                                                bn_mode,
-                                                &alphaDataDiff,
-                                                &betaDataDiff,
-                                                &alphaParamDiff,
-                                                &betaParamDiff,
-                                                &in.GetTensor().desc,
-                                                in.GetDevicePtr(),
-                                                &dy.GetTensor().desc,
-                                                dy.GetDevicePtr(),
-                                                &out_bwd.GetTensor().desc,
-                                                out_bwd.GetDevicePtr(),
-                                                &bnScale.GetTensor().desc,
-                                                &dBias.GetTensor().desc,
-                                                &savedMean.GetTensor().desc,
-                                                &savedInvVar.GetTensor().desc,
-                                                bnScale.GetDevicePtr(),
-                                                dScale.GetDevicePtr(),
-                                                dBias.GetDevicePtr(),
-                                                epsilon,
-                                                savedMean.GetDevicePtr(),
-                                                savedInvVar.GetDevicePtr());
+            if(activ_mode == 0)
+            {
+                miopenBatchNormalizationBackward_V2(GetHandle(),
+                                                    bn_mode,
+                                                    &alphaDataDiff,
+                                                    &betaDataDiff,
+                                                    &alphaParamDiff,
+                                                    &betaParamDiff,
+                                                    &in.GetTensor().desc,
+                                                    in.GetDevicePtr(),
+                                                    &dy.GetTensor().desc,
+                                                    dy.GetDevicePtr(),
+                                                    &out_bwd.GetTensor().desc,
+                                                    out_bwd.GetDevicePtr(),
+                                                    &bnScale.GetTensor().desc,
+                                                    &dBias.GetTensor().desc,
+                                                    &savedMean.GetTensor().desc,
+                                                    &savedInvVar.GetTensor().desc,
+                                                    bnScale.GetDevicePtr(),
+                                                    dScale.GetDevicePtr(),
+                                                    dBias.GetDevicePtr(),
+                                                    epsilon,
+                                                    savedMean.GetDevicePtr(),
+                                                    savedInvVar.GetDevicePtr());
+            }
+            else
+            {
+                miopenBatchNormBackwardActivation(GetHandle(),
+                                                  bn_mode,
+                                                  &alphaDataDiff,
+                                                  &betaDataDiff,
+                                                  &alphaParamDiff,
+                                                  &betaParamDiff,
+                                                  &in.GetTensor().desc,
+                                                  in.GetDevicePtr(),
+                                                  &dy.GetTensor().desc,
+                                                  dy.GetDevicePtr(),
+                                                  &out_bwd.GetTensor().desc,
+                                                  out_bwd.GetDevicePtr(),
+                                                  &bnScale.GetTensor().desc,
+                                                  &dBias.GetTensor().desc,
+                                                  &savedMean.GetTensor().desc,
+                                                  &savedInvVar.GetTensor().desc,
+                                                  bnScale.GetDevicePtr(),
+                                                  bnBias.GetDevicePtr(),
+                                                  dScale.GetDevicePtr(),
+                                                  dBias.GetDevicePtr(),
+                                                  epsilon,
+                                                  savedMean.GetDevicePtr(),
+                                                  savedInvVar.GetDevicePtr(),
+                                                  activ_desc);
+            }
         }
         else
         {
-            miopenBatchNormalizationBackward_V2(GetHandle(),
-                                                bn_mode,
-                                                &alphaDataDiff,
-                                                &betaDataDiff,
-                                                &alphaParamDiff,
-                                                &betaParamDiff,
-                                                &in.GetTensor().desc,
-                                                in.GetDevicePtr(),
-                                                &dy.GetTensor().desc,
-                                                dy.GetDevicePtr(),
-                                                &out_bwd.GetTensor().desc,
-                                                out_bwd.GetDevicePtr(),
-                                                &bnScale.GetTensor().desc,
-                                                &dBias.GetTensor().desc,
-                                                &savedMean.GetTensor().desc,
-                                                &savedInvVar.GetTensor().desc,
-                                                bnScale.GetDevicePtr(),
-                                                dScale.GetDevicePtr(),
-                                                dBias.GetDevicePtr(),
-                                                epsilon,
-                                                nullptr,
-                                                nullptr);
+            if(activ_mode == 0)
+            {
+                miopenBatchNormalizationBackward_V2(GetHandle(),
+                                                    bn_mode,
+                                                    &alphaDataDiff,
+                                                    &betaDataDiff,
+                                                    &alphaParamDiff,
+                                                    &betaParamDiff,
+                                                    &in.GetTensor().desc,
+                                                    in.GetDevicePtr(),
+                                                    &dy.GetTensor().desc,
+                                                    dy.GetDevicePtr(),
+                                                    &out_bwd.GetTensor().desc,
+                                                    out_bwd.GetDevicePtr(),
+                                                    &bnScale.GetTensor().desc,
+                                                    &dBias.GetTensor().desc,
+                                                    &savedMean.GetTensor().desc,
+                                                    &savedInvVar.GetTensor().desc,
+                                                    bnScale.GetDevicePtr(),
+                                                    dScale.GetDevicePtr(),
+                                                    dBias.GetDevicePtr(),
+                                                    epsilon,
+                                                    nullptr,
+                                                    nullptr);
+            }
+            else
+            {
+                miopenBatchNormBackwardActivation(GetHandle(),
+                                                  bn_mode,
+                                                  &alphaDataDiff,
+                                                  &betaDataDiff,
+                                                  &alphaParamDiff,
+                                                  &betaParamDiff,
+                                                  &in.GetTensor().desc,
+                                                  in.GetDevicePtr(),
+                                                  &dy.GetTensor().desc,
+                                                  dy.GetDevicePtr(),
+                                                  &out_bwd.GetTensor().desc,
+                                                  out_bwd.GetDevicePtr(),
+                                                  &bnScale.GetTensor().desc,
+                                                  &dBias.GetTensor().desc,
+                                                  &savedMean.GetTensor().desc,
+                                                  &savedInvVar.GetTensor().desc,
+                                                  bnScale.GetDevicePtr(),
+                                                  bnBias.GetDevicePtr(),
+                                                  dScale.GetDevicePtr(),
+                                                  dBias.GetDevicePtr(),
+                                                  epsilon,
+                                                  nullptr,
+                                                  nullptr,
+                                                  activ_desc);
+            }
         }
 
         miopen::deref(GetHandle()).Finish();
@@ -1142,6 +1453,7 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardGPU()
                    lowtime);
         }
     }
+    miopenDestroyActivationDescriptor(activ_desc);
 
     if(WALL_CLOCK)
     {
@@ -1425,10 +1737,14 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          dy.GetTensor(),
                                          out_ref,
                                          bnScale.GetTensor(),
+                                         bnBias.GetTensor(),
                                          dScale_ref,
                                          dBias_ref,
                                          savedMean.GetTensor(),
-                                         savedInvVar.GetTensor());
+                                         savedInvVar.GetTensor(),
+                                         activ_mode,
+                                         inflags.GetValueDouble("activ_beta"),
+                                         inflags.GetValueDouble("activ_alpha"));
         }
         else
         {
@@ -1437,10 +1753,14 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::RunBackwardCPU()
                                          dy.GetTensor(),
                                          out_ref,
                                          bnScale.GetTensor(),
+                                         bnBias.GetTensor(),
                                          dScale_ref,
                                          dBias_ref,
                                          empty_tensor,
-                                         empty_tensor);
+                                         empty_tensor,
+                                         activ_mode,
+                                         inflags.GetValueDouble("activ_beta"),
+                                         inflags.GetValueDouble("activ_alpha"));
         }
     }
     else

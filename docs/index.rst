@@ -41,6 +41,7 @@ The MIOpen public repository is located at `<https://github.com/ROCm/MIOpen>`_.
     * :doc:`Use the fusion API <./how-to/use-fusion-api>`
     * :doc:`Log and debug <./how-to/debug-log>`
     * :doc:`Use the find APIs and immediate mode <./how-to/find-and-immediate>`
+    * :doc:`Use NHWC Batch Normalization with PyTorch <./how-to/use-nhwc-batchnorm-in-pytorch>`
 
   ..  grid-item-card:: Reference
 

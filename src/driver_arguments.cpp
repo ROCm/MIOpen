@@ -40,24 +40,35 @@ miopenProblemDirection_t CmdArgToDirection(ConvDirection direction)
     MIOPEN_THROW(miopenStatusInternalError);
 }
 
-void ConvDataType(std::stringstream& ss, const miopen::TensorDescriptor& desc)
+void DriverDataType(const std::string& prefix,
+                    std::stringstream& ss,
+                    const miopen::TensorDescriptor& desc)
 {
     if(desc.GetType() == miopenHalf)
     {
-        ss << "convfp16";
+        ss << prefix + "fp16";
     }
     else if(desc.GetType() == miopenBFloat16)
     {
-        ss << "convbfp16";
+        ss << prefix + "bfp16";
     }
     else if(desc.GetType() == miopenInt8)
     {
-        ss << "convint8";
+        ss << prefix + "int8";
     }
     else
     {
-        ss << "conv";
+        ss << prefix;
     }
+}
+
+void DriverDataType(const std::string& prefix,
+                    std::string& str,
+                    const miopen::TensorDescriptor& desc)
+{
+    std::stringstream ss;
+    DriverDataType(prefix, ss, desc);
+    str += ss.str();
 }
 
 // test based on the input tensor and scaleMean.
@@ -186,7 +197,7 @@ std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,
 
     std::stringstream ss;
     if(print_for_conv_driver)
-        ConvDataType(ss, xDesc);
+        DriverDataType("conv", ss, xDesc);
 
     /// \todo Dimensions (N, C, H, W, K..) are always parsed as if layout is NC(D)HW.
     /// For other layouts, invalid values are printed.
@@ -289,6 +300,7 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
                                      const void* resultSaveMean,
                                      const void* resultSaveInvVariance,
                                      const BatchNormDirection_t& dir,
+                                     const miopenActivationDescriptor_t activDesc,
                                      bool print_for_bn_driver)
 {
     int size = {0};
@@ -318,6 +330,13 @@ std::string BnormArgsForMIOpenDriver(const miopenTensorDescriptor_t xDesc,
             ss << " -H " << miopen::deref(xDesc).GetLengths()[2]
             << " -W " << miopen::deref(xDesc).GetLengths()[3];
         }
+        if (activDesc != nullptr && miopen::deref(activDesc).GetMode() != miopenActivationPASTHRU)
+	{
+            ss << " -f " << miopen::deref(activDesc).GetMode()
+	    << " -x " << miopen::deref(activDesc).GetAlpha()
+	    << " -y " << miopen::deref(activDesc).GetBeta()
+	    << " -z " << miopen::deref(activDesc).GetGamma();
+	}
             ss << " -m " << bn_mode; // clang-format on
     if(print_for_bn_driver)
     {

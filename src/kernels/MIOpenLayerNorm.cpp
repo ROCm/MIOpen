@@ -27,8 +27,8 @@
 #include <hip/hip_fp16.h>
 #include <hip/hip_runtime.h>
 #endif
-
 #include "miopen_cstdint.hpp"
+
 #include "float_types.h"
 
 template <typename TI, typename TO>
