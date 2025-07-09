@@ -107,11 +107,12 @@ std::size_t sizeof_private_memory(const miopen::pooling::ProblemDescription& pro
 bool PoolingForwardNd::IsApplicable(const ExecutionContext& context,
                                     const miopen::pooling::ProblemDescription& problem) const
 {
+    static const auto strict = TensorDescriptor::LayoutValidationMode::StrictDecreasingStrides;
 
     return problem.GetDirection() == miopen::pooling::Direction::Forward                      //
            && problem.GetXDesc().GetNumDims() == 5                                            //
-           && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW")                                //
-           && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW")                                //
+           && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW", strict)                        //
+           && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW", strict)                        //
            && problem.GetXDesc().GetType() == problem.GetYDesc().GetType()                    //
            && (problem.GetXDesc().GetType() == miopenFloat                                    //
                || problem.GetXDesc().GetType() == miopenHalf)                                 //
