@@ -37,6 +37,10 @@ Type descriptions:
 * ``miopenFloat8``: 8-bit floating point (layout 1.4.3, exponent bias 7); supported by convolutions
 * ``miopenBFloat8``: 8-bit floating point (layout 1.5.2, exponent bias 15); supported by convolutions
 
+.. note::
+
+   Convolution APIs currently only support uniform input/output datatypes and tensor layouts.
+
 In addition to these standard datatypes, pooling also contains its own indexing datatypes:
 
 .. code:: cpp
