@@ -40,6 +40,7 @@
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_NTP)
 
 namespace miopen {
 namespace solver {
@@ -609,6 +610,8 @@ bool ConvHipImplicitGemmGroupBwdXdlops<transpose>::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS))
         return false;
+    if ((transpose == false) && env::disabled(MIOPEN_DEBUG_GROUP_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_NTP))
+        return false;
     if(problem.HasMixedDataTypes())
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())
@@ -621,6 +624,8 @@ bool ConvHipImplicitGemmGroupBwdXdlops<transpose>::IsApplicable(
         return false;
     if(!(problem.IsLayoutNHWC() || problem.IsLayoutDefault()))
         return false;
+    if ((transpose == false) && problem.IsLayoutNHWC())
+        return false; // Solution 185 is an optimization for NCHW layout only
     // needed because layout transpose kernel does not support non-packed tensors
     if(problem.IsLayoutDefault() && problem.HasNonPackedTensors())
         return false;
