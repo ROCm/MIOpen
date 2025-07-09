@@ -36,6 +36,10 @@
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 
+#define WORKAROUND_SWDEV_512347 \
+    1 // Workaround for gfx908: clamping stride to 1 causes memfault. Remove once gfx908 MISA kernel
+      // bug is fixed.
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_WRW_GTC_XDLOPS)
 
 namespace miopen {
@@ -454,22 +458,29 @@ ComputeDynamicIGemmWrwKernelArgs(const ProblemDescription& problem,
                                  const int nxb,
                                  const int gemm_k_per_block)
 {
-    const int hi          = ProblemInterpreter::GetInputHeightHi(problem);
-    const int wi          = ProblemInterpreter::GetInputWidthWi(problem);
-    const int n           = ProblemInterpreter::GetBatchN(problem);
-    const int k           = ProblemInterpreter::GetOutputChannelK(problem);
-    const int c           = ProblemInterpreter::GetInputChannelC(problem);
-    const int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
-    const int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    const int hi = ProblemInterpreter::GetInputHeightHi(problem);
+    const int wi = ProblemInterpreter::GetInputWidthWi(problem);
+    const int n  = ProblemInterpreter::GetBatchN(problem);
+    const int k  = ProblemInterpreter::GetOutputChannelK(problem);
+    const int c  = ProblemInterpreter::GetInputChannelC(problem);
+    const int ho = ProblemInterpreter::GetOutputHeightHo(problem);
+    const int wo = ProblemInterpreter::GetOutputWidthWo(problem);
+#ifdef WORKAROUND_SWDEV_512347
+    const auto stride_h   = problem.GetKernelStrideH();
+    const auto stride_w   = problem.GetKernelStrideW();
+    const auto dilation_h = problem.GetDilationH();
+    const auto dilation_w = problem.GetDilationW();
+#else
     const auto stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
     const auto stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
     const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
     const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
-    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
-    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
-    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
-    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
-    const auto group      = ProblemInterpreter::GetGroupCountG(problem);
+#endif
+    const auto pad_h = ProblemInterpreter::GetInputLeftPadH(problem);
+    const auto pad_w = ProblemInterpreter::GetInputLeftPadW(problem);
+    const int y      = ProblemInterpreter::GetFilterHeightY(problem);
+    const int x      = ProblemInterpreter::GetFilterWidthX(problem);
+    const auto group = ProblemInterpreter::GetGroupCountG(problem);
 
     int dim_b = (ho * wo + nxb - 1) / nxb * nxb;
 
@@ -539,20 +550,27 @@ static inline std::tuple<bool, // is valid
                          int>  // gemm_k_split
 FindImplicitGemmWrwGTCDynamicXdlopsKernel(const ProblemDescription& problem)
 {
-    const int n           = ProblemInterpreter::GetBatchN(problem);
-    const int k           = ProblemInterpreter::GetOutputChannelK(problem);
-    const int c           = ProblemInterpreter::GetInputChannelC(problem);
-    const int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
-    const int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
-    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
-    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
+    const int n  = ProblemInterpreter::GetBatchN(problem);
+    const int k  = ProblemInterpreter::GetOutputChannelK(problem);
+    const int c  = ProblemInterpreter::GetInputChannelC(problem);
+    const int ho = ProblemInterpreter::GetOutputHeightHo(problem);
+    const int wo = ProblemInterpreter::GetOutputWidthWo(problem);
+    const int y  = ProblemInterpreter::GetFilterHeightY(problem);
+    const int x  = ProblemInterpreter::GetFilterWidthX(problem);
+#ifdef WORKAROUND_SWDEV_512347
+    const auto stride_h   = problem.GetKernelStrideH();
+    const auto stride_w   = problem.GetKernelStrideW();
+    const auto dilation_h = problem.GetDilationH();
+    const auto dilation_w = problem.GetDilationW();
+#else
     const auto stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
     const auto stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
     const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
     const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
-    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
-    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
-    const auto precision  = problem.IsFp16() ? miopenHalf : miopenFloat;
+#endif
+    const auto pad_h     = ProblemInterpreter::GetInputLeftPadH(problem);
+    const auto pad_w     = ProblemInterpreter::GetInputLeftPadW(problem);
+    const auto precision = problem.IsFp16() ? miopenHalf : miopenFloat;
 
     const auto gemm_n  = c * y * x;
     const auto& gemm_m = k;

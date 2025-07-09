@@ -33,6 +33,10 @@
 #include <miopen/conv/asm_implicit_gemm.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 
+#define WORKAROUND_SWDEV_512347 \
+    1 // Workaround for gfx908: clamping stride to 1 causes memfault. Remove once gfx908 MISA kernel
+      // bug is fixed.
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS)
 
 namespace miopen {
@@ -794,22 +798,29 @@ FindImplicitGemmGtcDynamicBwdKernel(const ProblemDescription& problem)
     auto tunables = GetImplicitGemmGtcDynamicBwdTunablesList(problem);
 
     // so far, "group" is only supported by bwd fp16 kernels
-    const auto group      = problem.IsFp16() ? ProblemInterpreter::GetGroupCountG(problem) : 1;
-    const int hi          = ProblemInterpreter::GetInputHeightHi(problem);
-    const int wi          = ProblemInterpreter::GetInputWidthWi(problem);
-    const int n           = ProblemInterpreter::GetBatchN(problem);
-    const int k           = ProblemInterpreter::GetOutputChannelK(problem) / group;
-    const int c           = ProblemInterpreter::GetInputChannelC(problem) / group;
-    const int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
-    const int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    const auto group = problem.IsFp16() ? ProblemInterpreter::GetGroupCountG(problem) : 1;
+    const int hi     = ProblemInterpreter::GetInputHeightHi(problem);
+    const int wi     = ProblemInterpreter::GetInputWidthWi(problem);
+    const int n      = ProblemInterpreter::GetBatchN(problem);
+    const int k      = ProblemInterpreter::GetOutputChannelK(problem) / group;
+    const int c      = ProblemInterpreter::GetInputChannelC(problem) / group;
+    const int ho     = ProblemInterpreter::GetOutputHeightHo(problem);
+    const int wo     = ProblemInterpreter::GetOutputWidthWo(problem);
+#ifdef WORKAROUND_SWDEV_512347
+    const auto stride_h   = problem.GetKernelStrideH();
+    const auto stride_w   = problem.GetKernelStrideW();
+    const auto dilation_h = problem.GetDilationH();
+    const auto dilation_w = problem.GetDilationW();
+#else
     const auto stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
     const auto stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
     const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
     const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
-    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
-    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
-    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
-    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
+#endif
+    const auto pad_h = ProblemInterpreter::GetInputLeftPadH(problem);
+    const auto pad_w = ProblemInterpreter::GetInputLeftPadW(problem);
+    const int y      = ProblemInterpreter::GetFilterHeightY(problem);
+    const int x      = ProblemInterpreter::GetFilterWidthX(problem);
 
     const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
