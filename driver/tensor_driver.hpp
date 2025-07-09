@@ -168,7 +168,7 @@ inline int SetTensorNdVector(miopenTensorDescriptor_t t,
                              miopenDataType_t data_type = miopenFloat)
 {
     if(layout == miopenTensorNCHWc4 || layout == miopenTensorNCHWc8 || layout == miopenTensorNHWC ||
-       layout == miopenTensorNCHW || layout == miopenTensorNDHWC)
+       layout == miopenTensorNCHW || layout == miopenTensorNDHWC || layout == miopenTensorNCDHW)
     {
         // Do nothing, MIOpen implicit logic that lens are in NCHW order.
     }
@@ -178,7 +178,8 @@ inline int SetTensorNdVector(miopenTensorDescriptor_t t,
     }
     else
     {
-        MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8 vectorized tensor layout.");
+        MIOPEN_THROW("We only support NCHWc4, NCHWc8, CHWNc4, CHWNc8, NCHW, NHWC, NDHWC, NCDHW "
+                     "vectorized tensor layout.");
         return -1;
     }
     return miopenSetNdTensorDescriptorWithLayout(t, data_type, layout, len.data(), len.size());

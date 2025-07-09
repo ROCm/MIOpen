@@ -53,6 +53,92 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
         // clang-format on
     }
 
+    // clang-format off
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{1, 1}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{2, 2}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {2, 2}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{1, 1}, {2, 2}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{2, 2}, {2, 2}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {3, 3}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{1, 1}, {3, 3}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{2, 2}, {3, 3}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{1, 1}, {1, 1}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{2, 2}, {1, 1}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {2, 2}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{1, 1}, {2, 2}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{2, 2}, {2, 2}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {3, 3}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{1, 1}, {3, 3}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{2, 2}, {3, 3}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{1, 1}, {1, 1}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{2, 2}, {1, 1}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {2, 2}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{1, 1}, {2, 2}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{2, 2}, {2, 2}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {3, 3}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{1, 1}, {3, 3}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{2, 2}, {3, 3}, {3, 3}}});
+
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{1, 1}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{2, 2}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {2, 2}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{1, 1}, {2, 2}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{2, 2}, {2, 2}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {3, 3}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{1, 1}, {3, 3}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{2, 2}, {3, 3}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{1, 1}, {1, 1}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{2, 2}, {1, 1}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {2, 2}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{1, 1}, {2, 2}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{2, 2}, {2, 2}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {3, 3}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{1, 1}, {3, 3}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{2, 2}, {3, 3}, {2, 2}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{1, 1}, {1, 1}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{2, 2}, {1, 1}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {2, 2}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{1, 1}, {2, 2}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{2, 2}, {2, 2}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {3, 3}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{1, 1}, {3, 3}, {3, 3}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{2, 2}, {3, 3}, {3, 3}}});
+
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 1, 1}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 127, 127}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {1, 1, 129, 129}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 1, 1}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 127, 127}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {1, 1, 129, 129}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {64, 1, 32, 32}}, {datatype, miopenTensorNCHW, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {64, 1, 32, 32}}, {datatype, miopenTensorNCHW, {2, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {64, 1, 32, 32}}, {datatype, miopenTensorNCHW, {4, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {64, 16, 32, 32}}, {datatype, miopenTensorNCHW, {16, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}, 16}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {64, 16, 32, 32}}, {datatype, miopenTensorNCHW, {4, 4, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}, 4}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {64, 16, 32, 32}}, {datatype, miopenTensorNCHW, {1, 16, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {64, 16, 32, 32}}, {datatype, miopenTensorNCHW, {8, 4, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}, 4}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {64, 16, 32, 32}}, {datatype, miopenTensorNCHW, {8, 16, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNCHW, {64, 16, 32, 32}}, {datatype, miopenTensorNCHW, {64, 16, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {64, 1, 32, 32}}, {datatype, miopenTensorNHWC, {1, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {64, 1, 32, 32}}, {datatype, miopenTensorNHWC, {2, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {64, 1, 32, 32}}, {datatype, miopenTensorNHWC, {4, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {64, 16, 32, 32}}, {datatype, miopenTensorNHWC, {16, 1, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}, 16}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {64, 16, 32, 32}}, {datatype, miopenTensorNHWC, {4, 4, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}, 4}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {64, 16, 32, 32}}, {datatype, miopenTensorNHWC, {1, 16, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {64, 16, 32, 32}}, {datatype, miopenTensorNHWC, {8, 4, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}, 4}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {64, 16, 32, 32}}, {datatype, miopenTensorNHWC, {8, 16, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    cases.emplace_back(TestCase{{datatype, miopenTensorNHWC, {64, 16, 32, 32}}, {datatype, miopenTensorNHWC, {64, 16, 3, 3}}, datatype, {{0, 0}, {1, 1}, {1, 1}}});
+    // clang-format on
+
     return cases;
 }
 
@@ -126,3 +212,15 @@ INSTANTIATE_TEST_SUITE_P(Full,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoDirect),
                                           testing::ValuesIn(GetConvTestCasesFull(miopenHalf))));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverDirectNaiveBwd_BFP16,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenBFloat16))));
+
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_UnitTestConvSolverDirectNaiveBwd_FP32,
+                         testing::Combine(testing::Values(GetTestParams()),
+                                          testing::Values(miopenConvolutionAlgoDirect),
+                                          testing::ValuesIn(GetConvTestCasesFull(miopenFloat))));

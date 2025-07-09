@@ -423,7 +423,8 @@ void TensorDescriptor::CheckArgsAndInit(bool use_strides)
 
         if(tensorLayout)
         {
-            if(!this->IsPossibleLayout4D5D(TensorDescriptor::LayoutEnumToStr(tensorLayout.value())))
+            if(!this->IsPossibleLayout4D5D(TensorDescriptor::LayoutEnumToStr(tensorLayout.value()),
+                                           LayoutValidationMode::IgnoreDegenerateStrides))
                 MIOPEN_THROW(miopenStatusBadParm, "Mismatch of layout and strides");
         }
     }
@@ -547,18 +548,34 @@ const std::optional<miopenTensorLayout_t>& TensorDescriptor::GetLayoutEnum() con
             if(tensorLayout)
                 return tensorLayout;
 
-            const auto known_layouts = {std::make_pair("NCHW", miopenTensorNCHW),
-                                        std::make_pair("NHWC", miopenTensorNHWC),
-                                        std::make_pair("NCDHW", miopenTensorNCDHW),
-                                        std::make_pair("NDHWC", miopenTensorNDHWC),
-                                        std::make_pair("CHWN", miopenTensorCHWN)};
-            for(const auto& [layout_str, layout_enum] : known_layouts)
-            {
-                if(this->IsPossibleLayout4D5D(layout_str))
-                    return layout_enum;
-            }
+            auto layout = GetLayout_str();
 
-            return std::nullopt;
+            try
+            {
+                return StringToLayoutType(layout, IsVectorized(), vector_length);
+            }
+            catch(const miopen::Exception& e)
+            {
+                // If the layout cannot be determined by the string, then we
+                // can fall back to the known layouts to check if they are applicable.
+                static const auto known_layouts = {std::make_pair("NCHW", miopenTensorNCHW),
+                                                   std::make_pair("NHWC", miopenTensorNHWC),
+                                                   std::make_pair("NCDHW", miopenTensorNCDHW),
+                                                   std::make_pair("NDHWC", miopenTensorNDHWC),
+                                                   std::make_pair("CHWN", miopenTensorCHWN)};
+                for(const auto& [layout_str, layout_enum] : known_layouts)
+                {
+                    if(IsPossibleLayout4D5D(layout_str,
+                                            LayoutValidationMode::IgnoreDegenerateStrides))
+                    {
+                        return layout_enum;
+                    }
+                }
+
+                MIOPEN_LOG_W("Failed to convert layout string '" << layout
+                                                                 << "' to enum: " << e.what());
+                return std::nullopt;
+            }
         }();
 
         cached_layout_enum_calculated = true;
@@ -647,7 +664,8 @@ std::size_t TensorDescriptor::GetElementSpace() const
 
 // For vectorized layouts storage_layout must be without the ending 'c'
 bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
-                                        const std::string& layout) const
+                                        const std::string& layout,
+                                        LayoutValidationMode validation_mode) const
 {
     if(storage_layout.size() != this->GetNumDims())
     {
@@ -674,9 +692,9 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         return true;
     }
 
-    // Build layout_strides, skipping the strides where lens[dim] == 1.
-    // We are ignoring the strides when lengths == 1, for a dimension as they are not relevant for
-    // the layout. I.E NCHW layout with lens = {5, 1, 10, 10} Is actually NHW since there is no
+    // Build layout_strides using the provided validation mode, storage_layout, and layout.
+    // If we are using IgnoreDegenerateStrides, then we are ignoring the strides when lengths == 1.
+    // E.G NCHW layout with lens = {5, 1, 10, 10} Is actually NHW since there is no
     // channels dimension. Both NHWC & NCHW layouts are valid for this tensor as channels is not
     // relevant.
     std::vector<std::size_t> layout_strides;
@@ -686,8 +704,20 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         const auto pos = storage_layout.find(cur_char);
         if(pos == std::string::npos)
             MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
-        if(lens[pos] != 1)
-            layout_strides.push_back(strides[pos]);
+
+        switch(validation_mode)
+        {
+        case LayoutValidationMode::IgnoreDegenerateStrides:
+            if(lens[pos] == 1)
+            {
+                continue;
+            }
+            break;
+        case LayoutValidationMode::StrictDecreasingStrides: break;
+        default: MIOPEN_THROW(miopenStatusInternalError, "Unknown validation mode provided");
+        }
+
+        layout_strides.push_back(strides[pos]);
     }
 
     // Check monotonic decreasing
@@ -700,18 +730,21 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
 }
 
 // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
-bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout) const
+bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout,
+                                            LayoutValidationMode validation_mode) const
 {
     if(tensorLayout)
     {
         if(this->tensorLayout == miopenTensorCHWNc4 || this->tensorLayout == miopenTensorCHWNc8)
-            return this->IsPossibleLayout(GetStorageLayout4D5D(4, true), layout);
+            return this->IsPossibleLayout(GetStorageLayout4D5D(4, true), layout, validation_mode);
     }
 
     switch(this->GetNumDims())
     {
     case 4:
-    case 5: return this->IsPossibleLayout(GetStorageLayout4D5D(this->GetNumDims()), layout);
+    case 5:
+        return this->IsPossibleLayout(
+            GetStorageLayout4D5D(this->GetNumDims()), layout, validation_mode);
     default: return false;
     }
 }
@@ -761,6 +794,53 @@ std::string TensorDescriptor::GetLayout(std::string storage_layout) const
         result += 'c';
 
     return result;
+}
+
+miopenTensorLayout_t
+TensorDescriptor::StringToLayoutType(std::string layout_str, bool vectorized, int vector_length)
+{
+    if(vectorized)
+    {
+        if(vector_length == 4)
+        {
+            return layout_str == "CHWNc" ? miopenTensorCHWNc4 : miopenTensorNCHWc4;
+        }
+        else if(vector_length == 8)
+        {
+            return layout_str == "CHWNc" ? miopenTensorCHWNc8 : miopenTensorNCHWc8;
+        }
+        else
+        {
+            MIOPEN_THROW("C-vectorized tensor only support vector length 4 and 8");
+        }
+    }
+    else
+    {
+        if(layout_str == "NCHW")
+        {
+            return miopenTensorNCHW;
+        }
+        else if(layout_str == "NHWC")
+        {
+            return miopenTensorNHWC;
+        }
+        else if(layout_str == "NDHWC")
+        {
+            return miopenTensorNDHWC;
+        }
+        else if(layout_str == "NCDHW")
+        {
+            return miopenTensorNCDHW;
+        }
+        else if(layout_str == "CHWN")
+        {
+            return miopenTensorCHWN;
+        }
+        else
+        {
+            MIOPEN_THROW("Non-vectorized tensor only support layout NCHW, NHWC, NCDHW and NDHWC");
+        }
+    }
 }
 
 std::size_t TensorDescriptor::GetNumBytes() const
