@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,28 +23,25 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-#include "driver.hpp"
-#include "test.hpp"
-#include "verify.hpp"
-#include "get_handle.hpp"
-#include "tensor_holder.hpp"
-#include <miopen/miopen.h>
-#include <miopen/tensor.hpp>
-#include <miopen/stringutils.hpp>
+
+#include "gtest_common.hpp"
+#include <tensor_util.hpp>
 #include <miopen/lrn.hpp>
-#include <random>
-#include <algorithm>
-#include <iterator>
-#include <limits>
-#include <iostream>
+
+#include "network_data.hpp"
+
+namespace {
+
+using TestCase =
+    std::tuple<std::vector<int>, unsigned int, double, double, double, miopenLRNMode_t>;
 
 template <class T>
-struct verify_lrn_foward
+struct verify_lrn_forward
 {
     miopen::LRNDescriptor lrn;
     tensor<T> input;
 
-    verify_lrn_foward(const miopen::LRNDescriptor& plrnDesc, const tensor<T>& pinput)
+    verify_lrn_forward(const miopen::LRNDescriptor& plrnDesc, const tensor<T>& pinput)
     {
         lrn   = plrnDesc;
         input = pinput;
@@ -135,9 +132,9 @@ struct verify_lrn_foward
         return out;
     }
 
-    void fail(int) const
+    void fail() const
     {
-        std::cout << "verify_lrn_foward" << std::endl;
+        std::cout << "verify_lrn_forward" << std::endl;
         std::cout << "Input Tensor"
                   << " " << input.desc.ToString() << std::endl;
     }
@@ -146,7 +143,6 @@ struct verify_lrn_foward
 template <class T>
 struct verify_lrn_bwd
 {
-
     miopen::LRNDescriptor lrn;
     tensor<T> inputY;
     tensor<T> inputDY;
@@ -257,7 +253,7 @@ struct verify_lrn_bwd
         return routputDX;
     }
 
-    void fail(int) const
+    void fail() const
     {
         std::cout << "verify_lrn_bwd" << std::endl;
         std::cout << "Input Tensor Y"
@@ -269,53 +265,77 @@ struct verify_lrn_bwd
     }
 };
 
-template <class T>
-struct lrn_driver : test_driver
+inline auto GenCases(bool limit = false)
 {
-    tensor<T> input;
+    std::set<std::vector<int>> input_dims;
 
-    unsigned int n = 1;
-    double alpha   = 1;
-    double beta    = 1;
-    double k       = 1;
-    std::string mode;
-
-    std::unordered_map<std::string, miopenLRNMode_t> mode_lookup = {
-        {"WITHIN_CHANNEL", miopenLRNWithinChannel}, {"ACROSS_CHANNEL", miopenLRNCrossChannel}};
-
-    lrn_driver()
+    if(limit)
     {
-        auto gen_value = [](auto... is) {
-            return tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}() *
-                   tensor_elem_gen_checkboard_sign{}(is...);
-        };
-
-        add(input, "input", get_input_tensor(gen_value));
-        add(n, "N", generate_data({1, 4, 5}));
-        add(alpha, "alpha", generate_data({double(1)}));
-        add(beta, "beta", generate_data({double(1)}));
-        add(k, "K", generate_data({double(1)}));
-        add(mode, "mode", generate_data({"Within_Channel", "Across_Channel"}));
+        input_dims.insert({16, 32, 8, 8});
+    }
+    else
+    {
+        // taken from the original test
+        const int batch_factor = 0;
+        input_dims             = get_inputs(batch_factor);
     }
 
-    void run()
+    return testing::Combine(testing::ValuesIn(input_dims),
+                            testing::Values(1, 4, 5),
+                            testing::Values(double(1)),
+                            testing::Values(double(1)),
+                            testing::Values(double(1)),
+                            testing::Values(miopenLRNWithinChannel, miopenLRNCrossChannel));
+}
+
+inline auto GetCasesFull()
+{
+    static const auto cases = GenCases();
+    return cases;
+}
+
+inline auto GetCasesSmoke()
+{
+    static const auto cases = GenCases(true);
+    return cases;
+}
+
+} // namespace
+
+template <typename T>
+class LrnCommon : public testing::TestWithParam<TestCase>
+{
+public:
+    void SetUp() override
     {
+        prng::reset_seed();
+        std::tie(input_dims, n, alpha, beta, k, mode) = GetParam();
+    }
+
+    void Run()
+    {
+        input = tensor<T>{input_dims}.generate([](auto... is) {
+            return tensor_elem_gen_integer{miopen_type<T>{} == miopenHalf ? 5 : 17}() *
+                   tensor_elem_gen_checkboard_sign{}(is...);
+        });
+
         std::size_t n_batch, channels, height, width;
         std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
         size_t total_mem  = 5 * input.desc.GetNumBytes(); // estimate based on backward pass
         size_t device_mem = get_handle().GetGlobalMemorySize();
         if(total_mem >= device_mem)
         {
-            show_command();
             std::cout << "Config requires " << total_mem
                       << " Bytes to write all necessary tensors to GPU. GPU has " << device_mem
                       << " Bytes of memory." << std::endl;
-            return;
+
+            FAIL() << "total_mem >= device_mem";
         }
 
-        miopen::LRNDescriptor lrn{mode_lookup.at(miopen::ToUpper(mode)), n, {alpha, beta, k}};
+        miopen::LRNDescriptor lrn{mode, n, {alpha, beta, k}};
 
-        auto out           = verify(verify_lrn_foward<T>{lrn, input});
+        VerifyLrnForward(lrn, input);
+
         uint64_t max_value = miopen_type<T>{} == miopenHalf ? 5 : 17;
 
         auto scale = tensor<T>{n_batch, channels, height, width}.generate(
@@ -325,17 +345,74 @@ struct lrn_driver : test_driver
         par_ford(n_batch, channels, height, width)(
             [&](int b, int c, int h, int w) { scale(b, c, h, w) += 1; });
 
-        verify(verify_lrn_bwd<T>{lrn, out.first, dout, input, scale});
+        VerifyLrnBwd(lrn, cpu_results, dout, input, scale);
     };
+
+    // we need cpu data for backward pass later, so return it from this function
+    void VerifyLrnForward(const miopen::LRNDescriptor& plrnDesc, const tensor<T>& pinput)
+    {
+        verify_lrn_forward<T> verify_fwd{plrnDesc, pinput};
+        CompareResults(verify_fwd, 1.5, true);
+    }
+
+    void VerifyLrnBwd(const miopen::LRNDescriptor& plrn,
+                      const tensor<T>& pout,
+                      const tensor<T>& pdout,
+                      const tensor<T>& pin,
+                      const tensor<T>& pscale)
+    {
+        verify_lrn_bwd<T> verify_bwd{plrn, pout, pdout, pin, pscale};
+        CompareResults(verify_bwd, 6.0);
+    }
+
+    template <class TDirection>
+    void CompareResults(const TDirection& direction, double tolerance, bool saveCpuResults = false)
+    {
+        const tensor<T> cpu = direction.cpu();
+        const tensor<T> gpu = direction.gpu();
+
+        double threshold = std::numeric_limits<T>::epsilon() * tolerance;
+        double error     = miopen::rms_range(cpu, gpu);
+
+        if(saveCpuResults)
+        {
+            cpu_results = std::move(cpu);
+        }
+
+        if(error > threshold)
+        {
+            direction.fail();
+        }
+
+        ASSERT_LE(error, threshold) << "n: " << n << std::endl
+                                    << "alpha: " << alpha << std::endl
+                                    << "beta: " << beta << std::endl
+                                    << "k: " << k << std::endl
+                                    << "mode: " << mode << std::endl;
+    }
+
+private:
+    tensor<T> input;
+
+    std::vector<int> input_dims;
+    unsigned int n       = 1;
+    double alpha         = 1;
+    double beta          = 1;
+    double k             = 1;
+    miopenLRNMode_t mode = miopenLRNWithinChannel;
+
+    // cpu results of forward pass to be used for backward pass
+    tensor<T> cpu_results;
 };
 
-// To address compiler issue for bfloat1 type in SWDEV-202752
-// creating explicit instance of lrn_driver with bfloat16 with noop
-template <>
-struct lrn_driver<bfloat16> : test_driver
-{
-    lrn_driver() {}
-    void run() { std::cout << "bfloat16 is not supported in lrn" << std::endl; };
-};
+using GPU_Lrn_FP32 = LrnCommon<float>;
+using GPU_Lrn_FP16 = LrnCommon<half_float::half>;
 
-int main(int argc, const char* argv[]) { test_drive<lrn_driver>(argc, argv); };
+TEST_P(GPU_Lrn_FP32, TestFloat) { this->Run(); }
+TEST_P(GPU_Lrn_FP16, TestFloat16) { this->Run(); }
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Lrn_FP32, GetCasesSmoke());
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Lrn_FP32, GetCasesFull());
+
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Lrn_FP16, GetCasesSmoke());
+INSTANTIATE_TEST_SUITE_P(Full, GPU_Lrn_FP16, GetCasesFull());
