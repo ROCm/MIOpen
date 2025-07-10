@@ -1363,21 +1363,19 @@ FindImplicitGemmGtcDynamicFwdKernel(const ProblemDescription& problem)
     const int k   = ProblemInterpreter::GetOutputChannelK(problem);
     const int ho  = ProblemInterpreter::GetOutputHeightHo(problem);
     const int wo  = ProblemInterpreter::GetOutputWidthWo(problem);
-#ifdef WORKAROUND_SWDEV_512347
-    const auto stride_h   = problem.GetKernelStrideH();
-    const auto stride_w   = problem.GetKernelStrideW();
-    const auto dilation_h = problem.GetDilationH();
-    const auto dilation_w = problem.GetDilationW();
+#if WORKAROUND_SWDEV_512347
+    const auto stride_h = problem.GetKernelStrideH();
+    const auto stride_w = problem.GetKernelStrideW();
 #else
-    const auto stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
-    const auto stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+    const auto stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
+    const auto stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+#endif
     const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
     const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
-#endif
-    const auto pad_h = ProblemInterpreter::GetInputLeftPadH(problem);
-    const auto pad_w = ProblemInterpreter::GetInputLeftPadW(problem);
-    const int y      = ProblemInterpreter::GetFilterHeightY(problem);
-    const int x      = ProblemInterpreter::GetFilterWidthX(problem);
+    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
+    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
+    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
+    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
 
     const auto& gemm_m = k;
     const auto gemm_n  = n * ho * wo;

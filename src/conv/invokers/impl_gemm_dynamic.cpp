@@ -263,27 +263,30 @@ MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
     const int c  = ProblemInterpreter::GetInputChannelC(problem);
     const int ho = ProblemInterpreter::GetOutputHeightHo(problem);
     const int wo = ProblemInterpreter::GetOutputWidthWo(problem);
-#ifdef WORKAROUND_SWDEV_512347
-    const auto stride_h   = problem.GetKernelStrideH();
-    const auto stride_w   = problem.GetKernelStrideW();
-    const auto dilation_h = problem.GetDilationH();
-    const auto dilation_w = problem.GetDilationW();
+#if WORKAROUND_SWDEV_512347
+    const auto stride_h = problem.GetKernelStrideH();
+    const auto stride_w = problem.GetKernelStrideW();
 #else
-    const auto stride_h   = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
-    const auto stride_w   = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+    const auto stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
+    const auto stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
+#endif
     const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
     const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
-#endif
-    const auto pad_h = ProblemInterpreter::GetInputLeftPadH(problem);
-    const auto pad_w = ProblemInterpreter::GetInputLeftPadW(problem);
-    const int y      = ProblemInterpreter::GetFilterHeightY(problem);
-    const int x      = ProblemInterpreter::GetFilterWidthX(problem);
-    const auto group = ProblemInterpreter::GetGroupCountG(problem);
+    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
+    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
+    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
+    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
+    const auto group      = ProblemInterpreter::GetGroupCountG(problem);
 
     int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
+    MIOPEN_THROW_IF(gcd_stride_dilation_h == 0,
+                    "gcd_stride_dilation_h is zero, invalid stride or dilation parameters.");
     int gcd_stride_dilation_w = solver::gcd(stride_w, dilation_w);
-    int y_tilda               = stride_h / gcd_stride_dilation_h;
-    int x_tilda               = stride_w / gcd_stride_dilation_w;
+    MIOPEN_THROW_IF(gcd_stride_dilation_w == 0,
+                    "gcd_stride_dilation_w is zero, invalid stride or dilation parameters.");
+
+    int y_tilda = stride_h / gcd_stride_dilation_h;
+    int x_tilda = stride_w / gcd_stride_dilation_w;
 
     int y_dot = (y + y_tilda - 1) / y_tilda;
     int x_dot = (x + x_tilda - 1) / x_tilda;
