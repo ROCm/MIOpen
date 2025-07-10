@@ -102,7 +102,7 @@ private:
     template <class T>
     struct LibEnvVarImpl : LibEnvVarBase
     {
-        using value_type = T::value_type;
+        using value_type = typename T::value_type;
         static_assert(is_type_bool<value_type> || is_type_int<value_type> ||
                       is_type_str<value_type>);
 
