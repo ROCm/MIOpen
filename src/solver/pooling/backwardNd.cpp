@@ -43,6 +43,8 @@ namespace pooling {
 bool PoolingBackwardNd::IsApplicable(const ExecutionContext&,
                                      const miopen::pooling::ProblemDescription& problem) const
 {
+    static const auto strict = TensorDescriptor::LayoutValidationMode::StrictDecreasingStrides;
+
     return problem.GetDirection() == miopen::pooling::Direction::Backward          //
            && problem.GetXDesc().GetType() == problem.GetYDesc().GetType()         //
            && (problem.GetXDesc().GetType() == miopenFloat                         //
@@ -52,12 +54,12 @@ bool PoolingBackwardNd::IsApplicable(const ExecutionContext&,
                || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) //
            && (                                                                    //
                   (problem.GetXDesc().GetNumDims() == 5                            //
-                   && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW")             //
-                   && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW"))            //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW", strict)     //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW", strict))    //
                   ||                                                               //
                   (problem.GetXDesc().GetNumDims() == 4                            //
-                   && problem.GetXDesc().IsPossibleLayout4D5D("NCHW")              //
-                   && problem.GetYDesc().IsPossibleLayout4D5D("NCHW"))             //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCHW", strict)      //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCHW", strict))     //
                   )                                                                //
            /// \todo This solver does not support workspace index mask mode yet.
            && !(problem.GetPooling().GetMode() == miopenPoolingMax //

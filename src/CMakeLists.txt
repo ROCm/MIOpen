@@ -49,11 +49,6 @@ configure_file("${PROJECT_SOURCE_DIR}/include/miopen/config.h.in" "${PROJECT_BIN
 # configure a header file to pass the CMake version settings to the source, and package the header files in the output archive
 configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/version.h.in" "${PROJECT_BINARY_DIR}/include/miopen/version.h" )
 
-if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
-#Copy header to Build Dir for generating backward compatibility
-configure_file( "${PROJECT_SOURCE_DIR}/include/miopen/miopen.h" "${PROJECT_BINARY_DIR}/include/miopen/miopen.h" )
-endif()
-
 message( STATUS "MIOpen_VERSION= ${MIOpen_VERSION}" )
 if(NOT MIOPEN_GENERATOR_IS_MULTI_CONFIG)
     message( STATUS "CMAKE_BUILD_TYPE= ${CMAKE_BUILD_TYPE}" )
@@ -291,7 +286,9 @@ set( MIOpen_Source
     solver/conv/gemm_wrw.cpp
     solver/conv_asm_1x1u_bias_activ_fused.cpp
     solver/conv_bin_winoRxS_fused.cpp
+    solver/conv_ck_igemm_grp_fwd_activ_fused.cpp
     solver/conv_ck_igemm_fwd_bias_activ_fused.cpp
+    solver/conv_ck_igemm_grp_fwd_bias_activ_fused.cpp
     solver/conv_ck_igemm_fwd_bias_res_add_activ_fused.cpp
     solver/conv_ocl_dir2Dfwd_fused.cpp
     solver/conv_winoRxS_fused.cpp
@@ -364,11 +361,18 @@ if(MIOPEN_ENABLE_SQLITE AND MIOPEN_ENABLE_SQLITE_KERN_CACHE)
     list(APPEND MIOpen_Source kern_db.cpp bz2.cpp)
 endif()
 
+if(MIOPEN_USE_COMPOSABLEKERNEL)
+    list(APPEND MIOpen_Source kernels/ck_header_only/layernorm/fwd/device_layernorm2d_fwd_f16_instance.cpp)
+    list(APPEND MIOpen_Source kernels/ck_header_only/layernorm/fwd/device_layernorm2d_fwd_f32_instance.cpp)
+    list(APPEND MIOpen_Source kernels/ck_header_only/layernorm/fwd/device_layernorm4d_fwd_f16_instance.cpp)
+    list(APPEND MIOpen_Source kernels/ck_header_only/layernorm/fwd/device_layernorm4d_fwd_f32_instance.cpp)
+endif()
+
 if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     file(GLOB_RECURSE STATIC_COMPOSABLE_KERNEL_INCLUDE "kernels/static_composable_kernel/include/*/*.hpp")
     file(GLOB_RECURSE STATIC_COMPOSABLE_KERNEL_SOURCE "kernels/static_composable_kernel/src/*/*.cpp")
-    file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "composable_kernel/composable_kernel/include/*.hpp")
-    file(GLOB_RECURSE COMPOSABLE_KERNEL_SOURCE "composable_kernel/composable_kernel/src/*.cpp")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_INCLUDE "legacy_composable_kernel/composable_kernel/include/*.hpp")
+    file(GLOB_RECURSE COMPOSABLE_KERNEL_SOURCE "legacy_composable_kernel/composable_kernel/src/*.cpp")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_SOURCE "kernels/dynamic_igemm/*.s")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE "kernels/dynamic_igemm/*.inc")
     file(GLOB_RECURSE COMPOSABLE_KERNEL_DYNAMIC_CPP_SOURCE "kernels/dynamic_igemm/*.cpp")
@@ -384,7 +388,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${COMPOSABLE_KERNEL_INCLUDE}
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_INCLUDE}
-        include/miopen/implicitgemm_params.hpp
         kernels/activation_functions.hpp
         kernels/gpu_reference_kernel/fp8_kern_types.h
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.inc
@@ -491,6 +494,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/miopen_rocrand.hpp
         kernels/miopen_type_traits.hpp
         kernels/miopen_utility.hpp
+        kernels/miopen_warp_size.hpp
         kernels/neuron.inc
         kernels/radix.hpp
         kernels/rocm_version.inc
@@ -858,10 +862,10 @@ if(MIOPEN_USE_COMPOSABLEKERNEL)
     if(MIOPEN_BUILD_CK )
         # the aliased target doesnt exist when we build CK inline as part of MIOPEN.  The aliased target only is not 
         # global when you build it so we dont have access to it. 
-        set(MIOPEN_CK_LINK_FLAGS device_other_operations device_conv_operations hip::host)
+        set(MIOPEN_CK_LINK_FLAGS device_conv_operations hip::host)
     else()
         # Use the aliased targets when we pull CK from /opt/rocm or other place on disc.
-        set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_other_operations composable_kernel::device_conv_operations hip::host)
+        set(MIOPEN_CK_LINK_FLAGS composable_kernel::device_conv_operations hip::host)
     endif()
 endif()
 
@@ -1071,22 +1075,4 @@ if(NOT MIOPEN_EMBED_DB STREQUAL "")
     endif()
     add_embed_library(miopen_data ${CODE_OBJECTS})
     target_link_libraries(MIOpen PRIVATE $<BUILD_INTERFACE:miopen_data> )
-endif()
-
-if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY)
-  #Generating Wrapper of each headers for backward compatibility
-  rocm_wrap_header_file(
-    export.h config.h version.h miopen.h
-    HEADER_LOCATION include/miopen
-    GUARDS WRAPPER
-    WRAPPER_LOCATIONS miopen/${CMAKE_INSTALL_INCLUDEDIR}/miopen
-    ORIGINAL_FILES ${PROJECT_BINARY_DIR}/include/miopen/version.h ${PROJECT_BINARY_DIR}/include/miopen/config.h
-  )
-
-  #Installing Wrapper Headers
-  rocm_install(
-    DIRECTORY
-       "${PROJECT_BINARY_DIR}/miopen/include"
-        DESTINATION "miopen" )
-  message( STATUS "Backward Compatible Sym Link Created for include directories" )
 endif()
