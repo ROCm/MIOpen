@@ -1244,8 +1244,7 @@ void test_drive_impl_1(std::string program_name, std::vector<std::string> as)
         "--help", "-h", "--half", "--float", "--double", "--int8", "--bfloat16"};
     d.parse(keyword_set{keywords});
     auto arg_map = args::parse(as, [&](std::string x) {
-        return (keywords.contains(x)) or
-               ((x.starts_with("--")) and d.has_argument(x.substr(2)));
+        return (keywords.contains(x)) or ((x.starts_with("--")) and d.has_argument(x.substr(2)));
     });
 
     if(arg_map.count("--half") > 0)

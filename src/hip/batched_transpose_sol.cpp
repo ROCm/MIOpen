@@ -250,7 +250,7 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
         }
     }
 
-    for(const auto & it : std::ranges::reverse_view(kernel_list))
+    for(const auto& it : std::ranges::reverse_view(kernel_list))
     {
         if(it.tile_x == 4 || it.tile_y == 4)
         {
