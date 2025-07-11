@@ -68,6 +68,11 @@ ConvOclDirectFwdFused::Search(const FusionContext& context,
 bool ConvOclDirectFwdFused::IsApplicable(const FusionContext& context,
                                          const FusionDescription& problem) const
 {
+    if(IsCKFusionSolverApplicable(context, problem))
+    {
+        return false;
+    }
+
     const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
     {
