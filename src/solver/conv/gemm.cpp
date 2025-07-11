@@ -170,6 +170,13 @@ float GemmFwdBase::GetWti(const ExecutionContext&, const ProblemDescription& pro
         n_gemm_runs            = in_n;
         if(wDesc.GetType() == miopenInt8 && yDesc.GetType() != miopenInt32)
             n_CastTensor = 1;
+        if (conv.GetSpatialDimension() == 3)
+        {
+            if(in_c < 8)
+                return 1.0; //force enable
+            else 
+                return 0.00002; //force disable
+        } 
     }
 
     auto wti = 1.0;

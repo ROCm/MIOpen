@@ -40,6 +40,7 @@
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_UINT64(CONV_IDX);
 
 namespace miopen {
 namespace solver {
@@ -361,7 +362,38 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescrip
         break;
     }
     index     = 0;
+    index=env::value(CONV_IDX);
+    if (index == 0 && valid_kernels.size() > 2)
+    {
+        int G               = ProblemInterpreter::GetGroupCountG(problem);
+        int N               = ProblemInterpreter::GetBatchN(problem);
+        int K1              = ProblemInterpreter::GetOutputChannelK(problem);
+        int C1              = ProblemInterpreter::GetInputChannelC(problem);
+        int  C               = C1 / G; // Number of input Channel per group
+        int K               = K1 / G; // Number of output Channel per group
+        int Hi              = ProblemInterpreter::GetInputHeightHi(problem);
+        int Wi              = ProblemInterpreter::GetInputWidthWi(problem);
+        int Ho              = ProblemInterpreter::GetOutputHeightHo(problem);
+        int Wo              = ProblemInterpreter::GetOutputWidthWo(problem);
+        int Y               = ProblemInterpreter::GetFilterHeightY(problem);
+        int X               = ProblemInterpreter::GetFilterWidthX(problem);
+        int Di              = ProblemInterpreter::GetInputDepthDi(problem);
+        int Do              = ProblemInterpreter::GetOutputDepthDo(problem);
+        int Z               = ProblemInterpreter::GetFilterDepthZ(problem);
+        index = 1;
+       // if (C>64)
+        {
+            if (valid_kernels.size() > 31)
+                index = 30; // DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3<256, 128, 128, 64
+            if (K < 64 && valid_kernels.size() > 39)
+                index = 38;
+        }
+    }
     kernel_id = valid_kernels[index];
+    #if 0
+    std::cout <<"conv_idx:"<<index
+              << ",kernel:"<< kernel_id <<"\n";
+    #endif
 }
 
 template <typename DataType>
