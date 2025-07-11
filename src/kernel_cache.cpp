@@ -81,7 +81,7 @@ bool KernelCache::HasProgram(const fs::path& name, const std::string& params) co
     ReadLock readLock(lock);
 
     const auto key = std::make_pair(name, params);
-    return program_map.count(key) > 0;
+    return program_map.contains(key);
 }
 
 void KernelCache::ClearProgram(const fs::path& name, const std::string& params)

@@ -665,7 +665,7 @@ std::size_t TensorDescriptor::GetElementSpace() const
 // For vectorized layouts storage_layout must be without the ending 'c'
 bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
                                         const std::string& layout,
-                                        LayoutValidationMode validation_mode) const
+                                        LayoutValidationMode validationMode) const
 {
     if(storage_layout.size() != this->GetNumDims())
     {
@@ -705,7 +705,7 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
         if(pos == std::string::npos)
             MIOPEN_THROW(miopenStatusInternalError, "wrong layout format");
 
-        switch(validation_mode)
+        switch(validationMode)
         {
         case LayoutValidationMode::IgnoreDegenerateStrides:
             if(lens[pos] == 1)
@@ -731,12 +731,12 @@ bool TensorDescriptor::IsPossibleLayout(const std::string& storage_layout,
 
 // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
 bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout,
-                                            LayoutValidationMode validation_mode) const
+                                            LayoutValidationMode validationMode) const
 {
     if(tensorLayout)
     {
         if(this->tensorLayout == miopenTensorCHWNc4 || this->tensorLayout == miopenTensorCHWNc8)
-            return this->IsPossibleLayout(GetStorageLayout4D5D(4, true), layout, validation_mode);
+            return this->IsPossibleLayout(GetStorageLayout4D5D(4, true), layout, validationMode);
     }
 
     switch(this->GetNumDims())
@@ -744,7 +744,7 @@ bool TensorDescriptor::IsPossibleLayout4D5D(const std::string& layout,
     case 4:
     case 5:
         return this->IsPossibleLayout(
-            GetStorageLayout4D5D(this->GetNumDims()), layout, validation_mode);
+            GetStorageLayout4D5D(this->GetNumDims()), layout, validationMode);
     default: return false;
     }
 }

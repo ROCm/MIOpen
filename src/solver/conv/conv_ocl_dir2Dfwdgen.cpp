@@ -28,6 +28,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
+#include <numbers>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWDGEN)
 
@@ -92,7 +93,7 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
     }
     int n_proc_supertiles = n_in_stacks; // n of prosessing groups
     auto lg2n_proc_supertiles =
-        static_cast<int>(std::ceil(std::log(n_proc_supertiles) / std::log(2)));
+        static_cast<int>(std::ceil(std::log(n_proc_supertiles) / std::numbers::ln2));
     int n_out_stacks      = 1; // n of output sets
     int n_proc_supertile0 = ((n_in_stacks > 1) ? 32 : 16) /
                             problem.GetKernelStrideW(); // n  processor in process supertile
@@ -102,7 +103,7 @@ ConvSolution ConvOclDirectFwdGen::GetSolution(const ExecutionContext& ctx,
              : 16) /
         n_in_stacks;
     auto lg2n_proc_supertile1 =
-        static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::log(2)));
+        static_cast<int>(std::ceil(std::log(n_proc_supertile1) / std::numbers::ln2));
     int ocl_group_sz0 = n_proc_supertile0;
     int ocl_group_sz1 = n_proc_supertile1 * n_proc_supertiles;
     int ocl_group_sz2 = 1;
