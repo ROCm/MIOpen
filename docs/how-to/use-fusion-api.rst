@@ -291,7 +291,6 @@ Convolution-based FP32 fusion for inference
 
 The following table applies to single-precision floating point.
 
-
 .. csv-table::
    :header: "Combination","Conv algo","Stride","Filter dims","N mode","Activations","Other constraints"
    :widths: 15, 15, 15, 20, 12, 20, 20
@@ -309,9 +308,10 @@ The following table applies to single-precision floating point.
    "CBA","Winograd","2","7x7","--","Relu, Leaky Relu","12 x c >= 18"
    "CBA","Winograd","2","8x8, 9x9, 10x10, 11x11, 12x12","--","Relu, Leaky Relu","16 x c >= 18"
    "CBA","Winograd","2","larger filter sizes","--","Relu, Leaky Relu","none"
+   "CBA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
    "NA","--","--","--","All","All","padding not supported"
    "CA","Direct","--","1x1","--","All","stride and padding not supported"
-
+   "CA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
 
 .. note::
 
@@ -323,14 +323,15 @@ Convolution-based FP16 fusion for inference
 
 The following table applies to half-precision floating point.
 
-
 .. csv-table::
    :header: "Combination","Conv algo","Stride","Filter dims","N mode","Activations","Other constraints"
    :widths: 15, 15, 15, 20, 12, 20, 20
 
    "CBNA","Direct","1 and 2","3x3, 5x5, 7x7, 9x9, 11x11","All","All","stride and padding must be either 1 or 2"
    "CBA","Direct","--","1x1","--","All","stride and padding not supported"
+   "CBA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
    "CA","Direct","--","1x1","--","All","stride and padding not supported"
+   "CA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
 
 .. note::
 
@@ -342,14 +343,15 @@ Convolution-based BFP16 fusion for inference
 
 The following table applies to half-precision block floating point.
 
-
 .. csv-table::
    :header: "Combination","Conv algo","Stride","Filter dims","N mode","Activations","Other constraints"
    :widths: 15, 15, 15, 20, 12, 20, 20
 
    "CBNA","Direct","1 and 2","3x3, 5x5, 7x7, 9x9, 11x11","All","All","stride and padding must be either 1 or 2"
    "CBA","Direct","--","1x1","--","All","stride and padding not supported"
+   "CBA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
    "CA","Direct","--","1x1","--","All","stride and padding not supported"
+   "CA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
 
 .. note::
 
