@@ -190,8 +190,9 @@ float Im2d2ColGPU(const Handle& handle,
         params += " -DUSE_IM_OFF_GUARD=1"; // always one
 
         network_config += " -DLOCAL_MEM_SIZE=" +
-                  std::to_string(local_mem_sz); // needs some changes to the kernel launch
-        network_config += " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
+                          std::to_string(local_mem_sz); // needs some changes to the kernel launch
+        network_config +=
+            " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
         network_config += " -DNUM_IM_BLKS_EQ_1=" + std::to_string(static_cast<int>(num_blks == 1));
         network_config += " -DUSE_IM_OFF_GUARD=1"; // always one
 
