@@ -279,17 +279,13 @@ MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
     const auto group      = ProblemInterpreter::GetGroupCountG(problem);
 
     int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
-    MIOPEN_THROW_IF(gcd_stride_dilation_h == 0,
-                    "gcd_stride_dilation_h is zero, invalid stride or dilation parameters.");
     int gcd_stride_dilation_w = solver::gcd(stride_w, dilation_w);
-    MIOPEN_THROW_IF(gcd_stride_dilation_w == 0,
-                    "gcd_stride_dilation_w is zero, invalid stride or dilation parameters.");
 
     int y_tilda = stride_h / gcd_stride_dilation_h;
     int x_tilda = stride_w / gcd_stride_dilation_w;
 
-    int y_dot = (y + y_tilda - 1) / y_tilda;
-    int x_dot = (x + x_tilda - 1) / x_tilda;
+    int y_dot = solver::integer_divide_ceil(y, y_tilda);
+    int x_dot = solver::integer_divide_ceil(x, x_tilda);
 
     int h_tilda = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
     int w_tilda = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
