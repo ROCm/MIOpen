@@ -274,7 +274,7 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
         }
 
         MIOPEN_LOG_FUNCTION(
-            alpha_beta_case, data_type, C, K, output_tensor_size, byte_size, *buffer_size);
+            alpha_beta_case, data_type, G, C, K, output_tensor_size, byte_size, *buffer_size);
     });
 }
 
