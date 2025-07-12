@@ -223,7 +223,8 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
                                                    const miopenConvolutionDescriptor_t convDesc,
                                                    size_t* buffer_size)
 {
-    MIOPEN_LOG_FUNCTION(alpha_beta_case, outputTensorDesc);
+    MIOPEN_LOG_FUNCTION(alpha_beta_case, inputTensorDesc, outputTensorDesc);
+
     return miopen::try_([&] {
         miopenDataType_t data_type = miopen::deref(outputTensorDesc).GetType();
         size_t spatial_dims        = miopen::deref(convDesc).GetSpatialDimension();
@@ -231,7 +232,15 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
         int G    = miopen::deref(convDesc).GetGroupCount();
         size_t K = std::get<1>(
             miopen::GetNCDHW(spatial_dims, miopen::deref(inputTensorDesc).GetLengths()));
+        size_t N = std::get<0>(
+            miopen::GetNCDHW(spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
         size_t C = std::get<1>(
+            miopen::GetNCDHW(spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
+        size_t D = std::get<2>(
+            miopen::GetNCDHW(spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
+        size_t H = std::get<3>(
+            miopen::GetNCDHW(spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
+        size_t W = std::get<4>(
             miopen::GetNCDHW(spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
 
         auto CKWrwRequireWorkspace = [&](size_t G,
@@ -248,8 +257,7 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
                     (is_odd(C_per_group) || is_odd(K_per_group)));
         };
 
-        size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();
-        size_t byte_size          = 0;
+        size_t byte_size = 0;
         if(CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case))
         {
             switch(data_type)
@@ -264,7 +272,7 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             case miopenDouble:
             case miopenInt64: byte_size = 8; break;
             }
-            *buffer_size = byte_size * output_tensor_size;
+            *buffer_size = G * C * K * D * H * W * byte_size;
         }
         else
         {
@@ -272,7 +280,7 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
         }
 
         MIOPEN_LOG_FUNCTION(
-            alpha_beta_case, data_type, G, C, K, output_tensor_size, byte_size, *buffer_size);
+            alpha_beta_case, data_type, G, N, C, K, D, H, W, spatial_dims, byte_size, *buffer_size);
     });
 }
 
