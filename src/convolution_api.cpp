@@ -226,15 +226,13 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
     MIOPEN_LOG_FUNCTION(alpha_beta_case, outputTensorDesc);
     return miopen::try_([&] {
         miopenDataType_t data_type = miopen::deref(outputTensorDesc).GetType();
-        size_t in_spatial_dims     = miopen::deref(inputTensorDesc).GetNumDims();
-
-        assert(in_spatial_dims == miopen::deref(outputTensorDesc).GetNumDims());
+        size_t spatial_dims        = miopen::deref(convDesc).GetSpatialDimension();
 
         int G    = miopen::deref(convDesc).GetGroupCount();
         size_t K = std::get<1>(
-            miopen::GetNCDHW(in_spatial_dims, miopen::deref(inputTensorDesc).GetLengths()));
+            miopen::GetNCDHW(spatial_dims, miopen::deref(inputTensorDesc).GetLengths()));
         size_t C = std::get<1>(
-            miopen::GetNCDHW(in_spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
+            miopen::GetNCDHW(spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
 
         auto CKWrwRequireWorkspace = [&](size_t G,
                                          size_t C,
