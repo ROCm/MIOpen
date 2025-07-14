@@ -147,6 +147,8 @@ float Im2d2ColGPU(const Handle& handle,
         {
             params += " -DEXTREME_LARGE";
             params += " -DNUM_CH_TOTAL=" + std::to_string(c_pack);
+            network_config += " -DEXTREME_LARGE";
+            network_config += " -DNUM_CH_TOTAL=" + std::to_string(c_pack);
         }
         else
         {
@@ -186,6 +188,13 @@ float Im2d2ColGPU(const Handle& handle,
         params += " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
         params += " -DNUM_IM_BLKS_EQ_1=" + std::to_string(static_cast<int>(num_blks == 1));
         params += " -DUSE_IM_OFF_GUARD=1"; // always one
+
+        network_config += " -DLOCAL_MEM_SIZE=" +
+                          std::to_string(local_mem_sz); // needs some changes to the kernel launch
+        network_config +=
+            " -DSTRIDE_GT_1=" + std::to_string(static_cast<int>(stride_h * stride_w > 1));
+        network_config += " -DNUM_IM_BLKS_EQ_1=" + std::to_string(static_cast<int>(num_blks == 1));
+        network_config += " -DUSE_IM_OFF_GUARD=1"; // always one
 
         params += GetDataTypeKernelParams(type);
 
@@ -249,10 +258,13 @@ float Im2d2ColGPU(const Handle& handle,
         }
 
         if(use_64bit_buffer_index)
+        {
             params += " -DUSE_LARGE_BUFFER_INDEX";
+            network_config += " -DUSE_LARGE_BUFFER_INDEX";
+        }
 
         handle.AddKernel(
-            "miopenIm2Col", network_config, program_name, kernel_name, vld, vgd, params)(
+            "miopenIm2d2Col", network_config, program_name, kernel_name, vld, vgd, params)(
             data_size_bound,
             im,
             im_offset,
