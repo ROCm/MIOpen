@@ -26,24 +26,12 @@
 #include <tuple>
 #include <miopen/miopen.h>
 #include <gtest/gtest.h>
+#include <gtest/gtest_common.hpp>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
-
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-
-namespace env = miopen::env;
+#include "lib_env_var.hpp"
 
 namespace conv_igemm_dynamic_xdlops_nhwc_nchw {
-
-void SetupEnvVar()
-{
-    env::update(MIOPEN_FIND_MODE, "normal");
-    env::update(MIOPEN_DEBUG_FIND_ONLY_SOLVER,
-                "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;"
-                "ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
-                "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
-}
 
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -57,11 +45,13 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 class GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP32
     : public testing::TestWithParam<std::vector<std::string>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_Conv2d_conv_igemm_dynamic_xdlops_nhwc_nchw_FP16
     : public testing::TestWithParam<std::vector<std::string>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 void Run2dDriver(miopenDataType_t prec)
@@ -88,8 +78,11 @@ void Run2dDriver(miopenDataType_t prec)
                   "miopenDouble, miopenFloat8_fnuz, miopenBFloat8_fnuz "
                   "data type not supported by conv_igemm_dynamic_xdlops_nhwc_nchw test";
     }
-
-    SetupEnvVar();
+    ScopedEnvironment<std::string> find_mode_env2(MIOPEN_FIND_MODE, std::string("normal"));
+    ScopedEnvironment<std::string> find_only_solver_env(
+        MIOPEN_DEBUG_FIND_ONLY_SOLVER,
+        "ConvAsmImplicitGemmGTCDynamicFwdXdlopsNHWC;ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC;"
+        "ConvAsmImplicitGemmGTCDynamicWrwXdlopsNHWC");
 
     for(const auto& test_value : params)
     {
@@ -115,7 +108,7 @@ bool IsTestSupportedForDevice(const miopen::Handle& handle)
     std::string devName = handle.GetDeviceName();
     if(target.Xnack() && *target.Xnack())
         return false;
-    if(devName == "gfx908" || devName == "gfx90a" || miopen::StartsWith(devName, "gfx94"))
+    if(devName == "gfx908" || devName == "gfx90a" || devName == "gfx942")
         return true;
     else
         return false;

@@ -29,7 +29,6 @@
 #include <cassert>
 
 #include <miopen/conv/tensors.hpp>
-#include <miopen/env.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/handle.hpp>
@@ -37,6 +36,7 @@
 #include <miopen/fusion_plan.hpp>
 #include <miopen/fusion/solvers.hpp>
 #include <miopen/fusion/fusion_invoke_params.hpp>
+#include <miopen/fusion/utils.hpp>
 
 #include <half/half.hpp>
 
@@ -220,6 +220,11 @@ float ConvBiasActivAsm1x1U::GetWti(const FusionContext&, const FusionDescription
 bool ConvBiasActivAsm1x1U::IsApplicable(const FusionContext& context,
                                         const FusionDescription& problem) const
 {
+    if(IsCKFusionSolverApplicable(context, problem))
+    {
+        return false;
+    }
+
     const auto& desc = *problem.fusion_plan_desc;
     if(desc.op_map.empty())
     {

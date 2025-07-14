@@ -27,7 +27,6 @@
 #include <miopen/conv/solvers.hpp>
 
 #include <miopen/algorithm.hpp>
-#include <miopen/env.hpp>
 #include <miopen/gemm_v2.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/kernel.hpp>
@@ -62,8 +61,7 @@ bool GemmFwdBase::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
            && yDesc.GetType() != miopenInt32))
         return false;
 
-    const auto rblas_fp8_supported = miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx94") ||
-                                     miopen::StartsWith(ctx.GetStream().GetDeviceName(), "gfx95");
+    const auto rblas_fp8_supported = IsFP8Supported(ctx.GetStream().GetDeviceName());
     if(problem.IsTensorsCasted())
     {
         if(!rblas_fp8_supported)

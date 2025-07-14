@@ -562,19 +562,18 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Activation, activ::ActivBwdSolver0{}.SolverDbId());
     Register(registry, ++id, Primitive::Activation, activ::ActivBwdSolver1{}.SolverDbId());
 
-    RegisterWithSolver<batchnorm::BnFwdTrainingSpatialSingle>(registry, ++id, Primitive::Batchnorm);
+    // combine BnFwdTrainingSpatialMultiple and BnFwdTrainingSpatialSingle
+    RegisterWithSolver<batchnorm::BnFwdTrainingSpatial>(registry, ++id, Primitive::Batchnorm);
 
     RegisterWithSolver(
         registry, ++id, conv::ConvCkIgemmFwdV6r1DlopsNchw{}, miopenConvolutionAlgoImplicitGEMM);
 
-    RegisterWithSolver<batchnorm::BnFwdTrainingSpatialMultiple>(
-        registry, ++id, Primitive::Batchnorm);
-
+    ++id; // removed solver BnFwdTrainingSpatialMultiple (it is now part of BnFwdTrainingSpatial)
     RegisterWithSolver<batchnorm::BnFwdTrainingPerActivation>(registry, ++id, Primitive::Batchnorm);
 
-    RegisterWithSolver<batchnorm::BnBwdTrainingSpatialSingle>(registry, ++id, Primitive::Batchnorm);
-    RegisterWithSolver<batchnorm::BnBwdTrainingSpatialMultiple>(
-        registry, ++id, Primitive::Batchnorm);
+    // combine BnBwdTrainingSpatialMultiple and BnBwdTrainingSpatialSingle
+    RegisterWithSolver<batchnorm::BnBwdTrainingSpatial>(registry, ++id, Primitive::Batchnorm);
+    ++id; // removed solver BnBwdTrainingSpatialMultiple (it is now part of BnBwdTrainingSpatial)
     RegisterWithSolver<batchnorm::BnBwdTrainingPerActivation>(registry, ++id, Primitive::Batchnorm);
 
     RegisterWithSolver<batchnorm::BnFwdInference>(registry, ++id, Primitive::Batchnorm);
@@ -633,9 +632,9 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
                        ++id,
                        conv::ConvHipImplicitGemm3DGroupBwdXdlops{},
                        miopenConvolutionAlgoImplicitGEMM);
-    RegisterWithSolver<batchnorm::BnCKFwdInference>(registry, ++id, Primitive::Batchnorm);
-    RegisterWithSolver<batchnorm::BnCKBwdBackward>(registry, ++id, Primitive::Batchnorm);
-    RegisterWithSolver<batchnorm::BnCKFwdTraining>(registry, ++id, Primitive::Batchnorm);
+    ++id; // removed batchnorm::BnCKFwdInference
+    ++id; // removed batchnorm::BnCKBwdBackward
+    ++id; // removed batchnorm::BnCKFwdTraining
     Register(
         registry, ++id, Primitive::Normalization, layernorm::Layernorm2DCKForward{}.SolverDbId());
     Register(
@@ -705,15 +704,33 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
              ++id,
              Primitive::MultiMarginLoss,
              multimarginloss::MultiMarginLossForward{}.SolverDbId());
+    // removed CK MHA solver
+    ++id;
 
-    Register(registry, ++id, Primitive::Mha, mha::MhaCKFlashAttentionV2Forward{}.SolverDbId());
+    RegisterWithSolver(
+        registry, ++id, conv::ConvWinoRageRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvWinoRageRxSFused<2, 3>{}.SolverDbId(),
+             miopenConvolutionAlgoWinograd);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvCKIgemmGrpFwdBiasActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
+    Register(registry,
+             ++id,
+             Primitive::Fusion,
+             fusion::ConvCKIgemmGrpFwdActivFused{}.SolverDbId(),
+             miopenConvolutionAlgoImplicitGEMM);
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
 }
 
 bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
 {
-    static const bool device_is_allowed = [&]() {
+    const bool device_is_allowed = [&]() {
         if(env::enabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS))
             return true;
         const auto device = ctx.GetStream().GetTargetProperties().Name();

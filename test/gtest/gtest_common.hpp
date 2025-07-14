@@ -37,6 +37,79 @@
 #include <vector>
 
 #include "../driver.hpp"
+#include "../lib_env_var.hpp"
+
+template <typename T>
+class ScopedEnvironment
+{
+public:
+    explicit ScopedEnvironment(lib_env::LibEnvVar ename, T val) : env_name(ename)
+    {
+        restore = SetValue(val);
+    }
+    explicit ScopedEnvironment(lib_env::LibEnvVar ename) : env_name(ename)
+    {
+        restore = ClearValue();
+    }
+
+    ScopedEnvironment()                         = delete;
+    ScopedEnvironment(const ScopedEnvironment&) = delete;
+    ScopedEnvironment(ScopedEnvironment&&)      = delete;
+    ScopedEnvironment& operator=(const ScopedEnvironment&) = delete;
+    ScopedEnvironment& operator=(ScopedEnvironment&&) = delete;
+
+    ~ScopedEnvironment()
+    {
+        if(!restore)
+            return;
+
+        if(prev_env)
+        {
+            lib_env::update(env_name, prev_val);
+        }
+        else
+        {
+            lib_env::clear(env_name);
+        }
+    }
+
+private:
+    lib_env::LibEnvVar env_name;
+    std::optional<std::string> prev_env;
+    T prev_val;
+    bool restore = false;
+
+    bool ClearValue()
+    {
+        prev_env = miopen::debug::env::GetEnvVariable(env_name.name);
+
+        if(prev_env)
+        {
+            lib_env::clear(env_name);
+        }
+
+        return prev_env.has_value();
+    }
+
+    bool SetValue(T value)
+    {
+        prev_env = miopen::debug::env::GetEnvVariable(env_name.name);
+
+        if(prev_env)
+        {
+            prev_val = lib_env::value<T>(env_name);
+
+            if(prev_val == value)
+            {
+                return false;
+            }
+        }
+
+        lib_env::update(env_name, value);
+
+        return true;
+    }
+};
 
 inline void default_check(const std::string& err) { std::cout << err; }
 
@@ -62,9 +135,10 @@ enum class Gpu : int
     gfx908  = 1 << 2,
     gfx90A  = 1 << 3,
     gfx94X  = 1 << 4,
-    gfx103X = 1 << 5,
-    gfx110X = 1 << 6,
-    gfx120X = 1 << 7,
+    gfx950  = 1 << 5,
+    gfx103X = 1 << 6,
+    gfx110X = 1 << 7,
+    gfx120X = 1 << 8,
     gfxLast = Gpu::gfx120X, // \note Change the value when adding a new device
     All     = -1
 };
@@ -191,7 +265,8 @@ template <typename Case>
 std::vector<std::string> get_args(const Case& param)
 {
     const auto& [env_tuple, cmd] = param;
-    std::apply([](const auto&... env) { (env::update(env.first, env.second), ...); }, env_tuple);
+    std::apply([](const auto&... env) { (lib_env::update(env.first, env.second), ...); },
+               env_tuple);
 
     std::stringstream ss(cmd);
     std::istream_iterator<std::string> begin(ss);
@@ -227,23 +302,41 @@ void invoke_with_params(Check&& check)
     {                               \
         [&]() { FAIL() << MSG; }(); \
     } while(false);
-/// The types for env variables must be redefined, but
-/// do not mess up with the types - those variables are decalred in the library
-/// and if wrong type (STR|BOOl|UINT64) have been specified they won't be updated. Silently.
-/// There will be no compiler warnings or runtime errors.
-/// TODO: move ALL the env variables to the single header int the library to avoid such problems
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_MODE)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_WINOGRAD)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_FFT)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_GEMM)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_LOG_LEVEL)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DRIVER_USE_GPU_REFERENCE)
-MIOPEN_DECLARE_ENV_VAR_STR(MIOPEN_FIND_ENFORCE)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V1R1_XDLOPS)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1)
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1_XDLOPS)
+
+/// Env variables
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)
+MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_MODE)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_CK_IGEMM_FWD_V6R1_DLOPS_NCHW)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_WINOGRAD)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_FFT)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_GEMM)
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
+MIOPEN_LIB_ENV_VAR(MIOPEN_LOG_LEVEL)
+MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_ENFORCE)
+
+// TODO: GTests using test_drive<> disabled until gtest-aware version of test/driver.hpp is built
+#define MIOPEN_ENABLE_TEST_DRIVE_WITH_GTEST 0
+
+#if MIOPEN_ENABLE_TEST_DRIVE_WITH_GTEST
+#define MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE()
+#else
+#define MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE()                                                \
+protected:                                                                                    \
+    void SetUp() override                                                                     \
+    {                                                                                         \
+        GTEST_SKIP() << "-> GTests using test_drive<> disabled until gtest-aware version of " \
+                        "test/driver.hpp is built ";                                          \
+    }
+#endif
+
+/// \todo Remove workarounds
+namespace wa {
+
+// Workaround for redefinition of 'MIOPEN_DEBUG_TUNING_ITERATIONS_MAX'
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX)
+
+// Workaround for redefinition of 'MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL'
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONVOLUTION_ATTRIB_FP16_ALT_IMPL)
+
+} // namespace wa

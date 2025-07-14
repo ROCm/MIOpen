@@ -30,8 +30,6 @@
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
 
-namespace env = miopen::env;
-
 namespace lstm_extra {
 void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 {
@@ -88,6 +86,7 @@ using TestCase = decltype(GetTestCases({}))::value_type;
 
 class GPU_lstm_extra_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 bool IsTestSupportedForDevice()

@@ -76,10 +76,17 @@ typedef enum
 
 struct GPUMem
 {
+    enum class Check
+    {
+        None,
+        Front,
+        Back,
+    };
 
 #if MIOPEN_BACKEND_OPENCL
     GPUMem(){};
-    GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz) : sz(psz), data_sz(pdata_sz)
+    GPUMem(cl_context& ctx, size_t psz, size_t pdata_sz, Check ch = Check::None)
+        : sz(psz), data_sz(pdata_sz)
     {
         buf = clCreateBuffer(ctx, CL_MEM_READ_WRITE, data_sz * sz, nullptr, nullptr);
     }
@@ -105,12 +112,14 @@ struct GPUMem
 #elif MIOPEN_BACKEND_HIP
 
     GPUMem(){};
-    GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz) : _ctx(ctx), sz(psz), data_sz(pdata_sz)
+    GPUMem(uint32_t ctx, size_t psz, size_t pdata_sz, Check ch = Check::None)
+        : _ctx(ctx), sz(psz), data_sz(pdata_sz), check(ch)
     {
-        auto status = hipMalloc(static_cast<void**>(&buf), GetSize());
+        auto status = hipMalloc(static_cast<void**>(&buf), GetTotalSize(GetSize()));
         if(status != hipSuccess)
             MIOPEN_THROW_HIP_STATUS(status,
                                     "[MIOpenDriver] hipMalloc " + std::to_string(GetSize()));
+        buf = static_cast<char*>(buf) + GetOffsetToUserBuffer();
         MIOPEN_LOG_CUSTOM(miopen::LoggingLevel::Info2,
                           "MIOpenDriver",
                           "hipMalloc " << GetSize() << " at " << buf << " Ok");
@@ -128,11 +137,59 @@ struct GPUMem
         return static_cast<int>(hipMemcpy(p, buf, GetSize(), hipMemcpyDeviceToHost));
     }
 
+    template <typename Tgpu>
+    status_t FillBufferWithNans(miopenHandle_t handle, const miopenTensorDescriptor_t tensorDesc)
+    {
+        // In the past we have had some issues with incorrect results due to Nans in the output
+        // buffers.  In order to test the clearing of the output buffers, you can
+        // init the buffers with NaNs.
+
+        if(std::is_same<Tgpu, int8_t>::value)
+        {
+            // ints dont have Nan so use max value.
+            Tgpu max = std::numeric_limits<Tgpu>::max();
+            miopenSetTensor(handle, tensorDesc, GetMem(), &max);
+        }
+        else
+        {
+            Tgpu nan = std::numeric_limits<Tgpu>::quiet_NaN();
+            miopenSetTensor(handle, tensorDesc, GetMem(), &nan);
+        }
+
+        return STATUS_SUCCESS;
+    }
+
     void* GetMem() { return buf; }
     size_t GetSize() { return sz * data_sz; }
 
+    size_t GetTotalSize(size_t userSize)
+    {
+        if(check == Check::None)
+            return userSize;
+
+        constexpr size_t maxPadding = 2ULL * 1024 * 1024 - 1;
+
+        auto roundUpToPageAlignment = [&](size_t bytes) {
+            return (bytes + maxPadding) & ~maxPadding;
+        };
+
+        return roundUpToPageAlignment(userSize);
+    }
+
+    size_t GetOffsetToUserBuffer()
+    {
+        if(check == Check::Back)
+        {
+            auto userSize = GetSize();
+            return GetTotalSize(userSize) - userSize;
+        }
+        return 0;
+    }
+
     ~GPUMem()
     {
+        buf = static_cast<char*>(buf) - GetOffsetToUserBuffer();
+
         size_t size = 0;
         auto status = hipMemPtrGetInfo(buf, &size);
         if(status != hipSuccess)
@@ -157,6 +214,7 @@ struct GPUMem
     void* buf;
     size_t sz;
     size_t data_sz;
+    Check check;
 #endif
 };
 
@@ -165,7 +223,8 @@ class GpumemTensor
 {
     std::unique_ptr<GPUMem> dev;
     tensor<Tgpu> host;
-    bool is_gpualloc = false;
+    bool is_gpualloc         = false;
+    bool init_gpu_output_nan = false;
 
 public:
     void SetGpuallocMode(bool v) { is_gpualloc = v; }
@@ -226,15 +285,24 @@ public:
         }
     }
 
-    status_t AllocOnDevice(stream, context_t ctx, const size_t sz)
+    status_t FillGpuBufferWithNans(miopenHandle_t handle, const miopenTensorDescriptor_t tensorDesc)
     {
-        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu));
+        return dev->FillBufferWithNans<Tgpu>(handle, tensorDesc);
+    }
+
+    status_t
+    AllocOnDevice(stream, context_t ctx, const size_t sz, GPUMem::Check check = GPUMem::Check::None)
+    {
+        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(Tgpu), check);
         return STATUS_SUCCESS;
     }
 
-    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz)
+    status_t AllocOnDeviceAndInit(stream q,
+                                  context_t ctx,
+                                  const size_t sz,
+                                  GPUMem::Check check = GPUMem::Check::None)
     {
-        AllocOnDevice(q, ctx, sz);
+        AllocOnDevice(q, ctx, sz, check);
         if(is_gpualloc)
         {
             /// \anchor gpualloc_random_init
@@ -253,19 +321,27 @@ public:
     }
 
     template <typename T>
-    status_t AllocOnDevice(stream, context_t ctx, const size_t sz, std::vector<T>&)
+    status_t AllocOnDevice(stream,
+                           context_t ctx,
+                           const size_t sz,
+                           std::vector<T>&,
+                           GPUMem::Check check = GPUMem::Check::None)
     {
         static_assert(std::is_same<T, float>::value           //
                           || std::is_same<T, int32_t>::value, //
                       "Before enabling more types, check thoroughly.");
-        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(T));
+        dev = std::make_unique<GPUMem>(ctx, sz, sizeof(T), check);
         return STATUS_SUCCESS;
     }
 
     template <typename T>
-    status_t AllocOnDeviceAndInit(stream q, context_t ctx, const size_t sz, std::vector<T>& init)
+    status_t AllocOnDeviceAndInit(stream q,
+                                  context_t ctx,
+                                  const size_t sz,
+                                  std::vector<T>& init,
+                                  GPUMem::Check check = GPUMem::Check::None)
     {
-        AllocOnDevice(q, ctx, sz, init);
+        AllocOnDevice(q, ctx, sz, init, check);
         if(is_gpualloc)
         {
             /// \ref gpualloc_random_init
@@ -303,10 +379,11 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
     }
 }
 
-[[noreturn]] inline void Usage()
+[[noreturn]] inline void Usage(int e)
 {
     printf("Usage: ./driver *base_arg* *other_args*\n");
-    printf("Supported Base Arguments: conv[fp16|int8|bfp16], pool[fp16], lrn[fp16], "
+    printf("Supported Base Arguments: conv[fp16|int8|bfp16], CBAInfer[fp16|bfp16], "
+           "CAInfer[fp16|bfp16], pool[fp16], lrn[fp16], "
            "activ[fp16], softmax[fp16], bnorm[fp16], rnn[fp16], gemm[fp16], ctc, dropout[fp16], "
            "tensorop, reduce[fp16|fp64], layernorm[bfp16|fp16], sum[bfp16|fp16], "
            "groupnorm[bfp16|fp16], cat[bfp16|fp16], addlayernorm[bfp16|fp16], "
@@ -315,7 +392,7 @@ inline void PadBufferSize(size_t& sz, int datatype_sz)
            "getitem[bfp16|fp16], reducecalculation[bfp16|fp16], rope[bfp16|fp16], "
            "prelu[bfp16|fp16], kthvalue[bfp16|fp16], glu[bfp16|fp16], softmarginloss[bfp16|fp16], "
            "multimarginloss[bfp16|fp16]\n");
-    exit(0); // NOLINT (concurrency-mt-unsafe)
+    exit(e); // NOLINT (concurrency-mt-unsafe)
 }
 
 inline std::string ParseBaseArg(int argc, char* argv[])
@@ -323,42 +400,111 @@ inline std::string ParseBaseArg(int argc, char* argv[])
     if(argc < 2)
     {
         printf("FAILED: Invalid Number of Input Arguments\n");
-        Usage();
+        Usage(EXIT_FAILURE);
     }
 
     std::string arg = argv[1];
 
-    if(arg != "conv" && arg != "convfp16" && arg != "convint8" && arg != "convbfp16" &&
-       arg != "pool" && arg != "poolfp16" && arg != "lrn" && arg != "lrnfp16" && arg != "activ" &&
-       arg != "activfp16" && arg != "softmax" && arg != "softmaxfp16" && arg != "bnorm" &&
-       arg != "bnormfp16" && arg != "bnormbfp16" && arg != "bnormfp16fp32" &&
-       arg != "bnormbfp16fp32" && arg != "rnn" && arg != "rnnfp16" && arg != "rnn_seq" &&
-       arg != "rnn_seqfp16" && arg != "gemm" && arg != "gemmfp16" && arg != "ctc" &&
-       arg != "dropout" && arg != "dropoutfp16" && arg != "tensorop" && arg != "reduce" &&
-       arg != "reducefp16" && arg != "reducefp64" && arg != "layernorm" && arg != "layernormfp16" &&
-       arg != "layernormbfp16" && arg != "sum" && arg != "sumfp16" && arg != "sumbfp16" &&
-       arg != "groupnorm" && arg != "groupnormfp16" && arg != "groupnormbfp16" && arg != "cat" &&
-       arg != "catfp16" && arg != "catbfp16" && arg != "addlayernorm" &&
-       arg != "addlayernormfp16" && arg != "addlayernormbfp16" && arg != "t5layernorm" &&
-       arg != "t5layernormfp16" && arg != "t5layernormbfp16" && arg != "adam" &&
-       arg != "adamfp16" && arg != "ampadam" && arg != "reduceextreme" &&
-       arg != "reduceextremefp16" && arg != "reduceextremebfp16" && arg != "adamw" &&
-       arg != "adamwfp16" && arg != "ampadamw" && arg != "transformersadamw" &&
-       arg != "transformersadamwfp16" && arg != "transformersampadamw" && arg != "getitem" &&
-       arg != "getitemfp16" && arg != "getitembfp16" && arg != "reducecalculation" &&
-       arg != "reducecalculationfp16" && arg != "reducecalculationbfp16" && arg != "rope" &&
-       arg != "ropefp16" && arg != "ropebfp16" && arg != "prelu" && arg != "prelufp16" &&
-       arg != "prelubfp16" && arg != "kthvalue" && arg != "kthvaluefp16" &&
-       arg != "kthvaluebfp16" && arg != "glu" && arg != "glufp16" && arg != "glubfp16" &&
-       arg != "softmarginloss" && arg != "softmarginlossfp16" && arg != "softmarginlossbfp16" &&
-       arg != "multimarginloss" && arg != "multimarginlossfp16" && arg != "multimarginlossbfp16" &&
-       arg != "--version")
+    // List of valid base arguments
+    static const std::vector<std::string> valid_args = {"conv",
+                                                        "convfp16",
+                                                        "convint8",
+                                                        "convbfp16",
+                                                        "CBAInfer",
+                                                        "CBAInferfp16",
+                                                        "CBAInferbfp16",
+                                                        "CAInfer",
+                                                        "CAInferfp16",
+                                                        "CAInferbfp16",
+                                                        "pool",
+                                                        "poolfp16",
+                                                        "lrn",
+                                                        "lrnfp16",
+                                                        "activ",
+                                                        "activfp16",
+                                                        "softmax",
+                                                        "softmaxfp16",
+                                                        "bnorm",
+                                                        "bnormfp16",
+                                                        "bnormbfp16",
+                                                        "bnormfp16fp32",
+                                                        "bnormbfp16fp32",
+                                                        "rnn",
+                                                        "rnnfp16",
+                                                        "rnn_seq",
+                                                        "rnn_seqfp16",
+                                                        "gemm",
+                                                        "gemmfp16",
+                                                        "ctc",
+                                                        "dropout",
+                                                        "dropoutfp16",
+                                                        "tensorop",
+                                                        "reduce",
+                                                        "reducefp16",
+                                                        "reducefp64",
+                                                        "layernorm",
+                                                        "layernormfp16",
+                                                        "layernormbfp16",
+                                                        "sum",
+                                                        "sumfp16",
+                                                        "sumbfp16",
+                                                        "groupnorm",
+                                                        "groupnormfp16",
+                                                        "groupnormbfp16",
+                                                        "cat",
+                                                        "catfp16",
+                                                        "catbfp16",
+                                                        "addlayernorm",
+                                                        "addlayernormfp16",
+                                                        "addlayernormbfp16",
+                                                        "t5layernorm",
+                                                        "t5layernormfp16",
+                                                        "t5layernormbfp16",
+                                                        "adam",
+                                                        "adamfp16",
+                                                        "ampadam",
+                                                        "reduceextreme",
+                                                        "reduceextremefp16",
+                                                        "reduceextremebfp16",
+                                                        "adamw",
+                                                        "adamwfp16",
+                                                        "ampadamw",
+                                                        "transformersadamw",
+                                                        "transformersadamwfp16",
+                                                        "transformersampadamw",
+                                                        "getitem",
+                                                        "getitemfp16",
+                                                        "getitembfp16",
+                                                        "reducecalculation",
+                                                        "reducecalculationfp16",
+                                                        "reducecalculationbfp16",
+                                                        "rope",
+                                                        "ropefp16",
+                                                        "ropebfp16",
+                                                        "prelu",
+                                                        "prelufp16",
+                                                        "prelubfp16",
+                                                        "kthvalue",
+                                                        "kthvaluefp16",
+                                                        "kthvaluebfp16",
+                                                        "glu",
+                                                        "glufp16",
+                                                        "glubfp16",
+                                                        "softmarginloss",
+                                                        "softmarginlossfp16",
+                                                        "softmarginlossbfp16",
+                                                        "multimarginloss",
+                                                        "multimarginlossfp16",
+                                                        "multimarginlossbfp16",
+                                                        "--version"};
+
+    if(std::find(valid_args.begin(), valid_args.end(), arg) == valid_args.end())
     {
         printf("FAILED: Invalid Base Input Argument\n");
-        Usage();
+        Usage(EXIT_FAILURE);
     }
     else if(arg == "-h" || arg == "--help" || arg == "-?")
-        Usage();
+        Usage(EXIT_SUCCESS);
     else
         return arg;
 }
@@ -404,6 +550,8 @@ public:
 protected:
     template <typename Tgpu>
     void InitDataType();
+    void AddGpuBufferCheckFlag(InputFlags& inflags);
+    GPUMem::Check GetGpuBufferCheck(const InputFlags& inflags) const;
     miopenHandle_t handle;
     miopenDataType_t data_type;
 

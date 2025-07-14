@@ -28,11 +28,13 @@
 #include <cstdint>
 
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/data_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/convolution_backward_data.hpp>
+#include <miopen/solver/ck_utility_common.hpp>
 #endif
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
@@ -181,12 +183,12 @@ void PerformanceConfigHipImplicitGemmBwdXdlops::HeuristicInit(
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
+    case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
-    case miopenBFloat16:
     case miopenDouble: break;
     }
 #endif
@@ -223,12 +225,12 @@ bool PerformanceConfigHipImplicitGemmBwdXdlops::IsValid(
     {
     case miopenHalf: return CheckIsSupportCKArgs<ck::half_t>(problem);
     case miopenFloat: return CheckIsSupportCKArgs<float>(problem);
+    case miopenBFloat16: return CheckIsSupportCKArgs<ck::bhalf_t>(problem);
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
-    case miopenBFloat16:
     case miopenDouble: break;
     }
 #endif
@@ -291,7 +293,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream()))
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
     if(arch == "gfx90a" && problem.IsGfx90aFp16altRequired())
@@ -304,12 +306,12 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
     {
     case miopenHalf: return CheckCKApplicability<ck::half_t>(problem);
     case miopenFloat: return CheckCKApplicability<float>(problem);
+    case miopenBFloat16: return CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
-    case miopenBFloat16:
     case miopenDouble: break;
     }
 #endif
@@ -325,19 +327,26 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenHalf:
-        return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<ck::half_t>,
+        return InitInvokerFactoryNHWC<true,
+                                      DeviceOpBwdPtrs<ck::half_t>,
                                       CKArgs,
                                       miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<float>,
+        return InitInvokerFactoryNHWC<true,
+                                      DeviceOpBwdPtrs<float>,
+                                      CKArgs,
+                                      miopen::conv::DataInvokeParams>(
+            ctx, problem, config.kernel_id);
+    case miopenBFloat16:
+        return InitInvokerFactoryNHWC<true,
+                                      DeviceOpBwdPtrs<ck::bhalf_t>,
                                       CKArgs,
                                       miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
     case miopenInt8:
     case miopenInt32:
     case miopenInt64:
-    case miopenBFloat16:
     case miopenDouble:
     case miopenFloat8_fnuz:
     case miopenBFloat8_fnuz:

@@ -68,6 +68,8 @@ gid_z = 4
 .include "utilities.inc"
 .include "conv_common.inc"
 
+.noaltmacro
+
 default c_per_wave, 4
 default k_per_wave, 4
 default n_per_group, 1

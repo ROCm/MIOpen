@@ -1,10 +1,37 @@
+/*******************************************************************************
+ *
+ * MIT License
+ *
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *******************************************************************************/
 def miopenCheckout()
 {
     checkout([
         $class: 'GitSCM',
         branches: scm.branches,
         doGenerateSubmoduleConfigurations: true,
-        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
+        extensions: scm.extensions + [
+            [$class: 'SubmoduleOption', parentCredentials: true],
+        ],
        userRemoteConfigs: scm.userRemoteConfigs
    ])
 }
@@ -17,6 +44,20 @@ def show_node_info() {
         cat /sys/module/amdgpu/version
         ls /opt/ -la
     """
+}
+
+def check_host() {
+    if ("${env.MIOPEN_SCCACHE}" != "null"){
+        def SCCACHE_SERVER="${env.MIOPEN_SCCACHE.split(':')[0]}"
+        echo "sccache server: ${SCCACHE_SERVER}"
+        sh '''ping -c 1 -p 6379 "${SCCACHE_SERVER}" | echo $? > tmp.txt'''
+        def output = readFile(file: "tmp.txt")
+        echo "tmp.txt contents: \$output"
+        return (output != "0")
+    }
+    else{
+        return 1
+    }
 }
 
 //default
@@ -188,7 +229,6 @@ def getDockerImageName(dockerArgs)
         image = "${params.DOCKER_IMAGE_OVERRIDE}"
     }
     return image
-
 }
 
 def getDockerImage(Map conf=[:])
@@ -196,18 +236,10 @@ def getDockerImage(Map conf=[:])
     checkout scm
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
-    def gpu_arch = "gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
-    def mlir_build = conf.get("mlir_build", "ON") // always ON
+    // Note: With offload compress disabled for CK expanding the target list might cause issues with the docker build.
+    def gpu_arch = "gfx908;gfx90a;gfx942" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
 
-    def install_miopen = 'OFF'
-    def freckle = 0
-    if(params.INSTALL_MIOPEN == 'ON')
-    {
-        install_miopen = 'ON'
-        freckle = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-    }
-
-    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS='\"${gpu_arch}\"' --build-arg USE_MLIR='${mlir_build}' --build-arg INSTALL_MIOPEN=${install_miopen} --build-arg FRECKLE=${freckle}"
+    def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS=\"${gpu_arch}\""
     if(env.CCACHE_HOST)
     {
         def check_host = sh(script:"""(printf "PING\r\n";) | nc -N ${env.CCACHE_HOST} 6379 """, returnStdout: true).trim()
@@ -222,6 +254,10 @@ def getDockerImage(Map conf=[:])
         dockerArgs = dockerArgs + " --build-arg CCACHE_SECONDARY_STORAGE='redis://${env.CCACHE_HOST}' --build-arg COMPILER_LAUNCHER='ccache' "
         env.CCACHE_DIR = """/tmp/ccache_store"""
         env.CCACHE_SECONDARY_STORAGE="""redis://${env.CCACHE_HOST}"""
+    }
+    else if (params.USE_SCCACHE_DOCKER && check_host() && "${env.MIOPEN_SCCACHE}" != "null")
+    {
+        dockerArgs = dockerArgs + " --build-arg MIOPEN_SCCACHE=${env.MIOPEN_SCCACHE} --build-arg COMPILER_LAUNCHER=sccache"
     }
     echo "Docker Args: ${dockerArgs}"
 
@@ -244,6 +280,35 @@ def getDockerImage(Map conf=[:])
             dockerImage.push()
         }
     }
+
+
+    if(params.INSTALL_MIOPEN == 'ON')
+    {
+        def freckle = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+        dockerArgs = " --build-arg BASE_DOCKER=${image} --build-arg FRECKLE=${freckle} -f Dockerfile.perftests"
+
+        // Get updated image name for perf tests.
+        image = getDockerImageName(dockerArgs)
+        image = image + "_perfTest"
+
+        try{
+            echo "Pulling down perf test image: ${image}"
+            dockerImage = docker.image("${image}")
+            dockerImage.pull()
+        }
+        catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
+            echo "The job was cancelled or aborted"
+            throw e
+        }
+        catch(Exception ex)
+        {
+            dockerImage = docker.build("${image}", "${dockerArgs} .")
+            withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
+                dockerImage.push()
+            }
+        }
+    }
+
     return [dockerImage, image]
 }
 
@@ -258,6 +323,10 @@ def buildHipClangJob(Map conf=[:]){
         if (conf.get("enforce_xnack_on", false)) {
             dockerOpts = dockerOpts + " --env HSA_XNACK=1"
         }
+        def video_id = sh(returnStdout: true, script: 'getent group video | cut -d: -f3')
+        def render_id = sh(returnStdout: true, script: 'getent group render | cut -d: -f3')
+        dockerOpts = dockerOpts + " --group-add=${video_id} --group-add=${render_id} "
+        echo "Docker flags: ${dockerOpts}"
 
         def variant = env.STAGE_NAME
 
@@ -265,7 +334,7 @@ def buildHipClangJob(Map conf=[:]){
         def lfs_pull = conf.get("lfs_pull", false)
 
         def retimage
-        gitStatusWrapper(credentialsId: "${env.miopen_git_creds}", gitHubContext: "Jenkins - ${variant}", account: 'ROCm', repo: 'MIOpen') {
+        gitStatusWrapper(credentialsId: "${env.miopen_git_creds}", gitHubContext: "${variant}", account: 'ROCm', repo: 'MIOpen') {
             try {
                 (retimage, image) = getDockerImage(conf)
                 if (needs_gpu) {
@@ -299,7 +368,6 @@ def buildHipClangJob(Map conf=[:]){
                     if (lfs_pull) {
                         sh "git lfs pull --exclude="
                     }
-
                     cmake_build(conf)
                 }
             }
@@ -345,7 +413,7 @@ def RunPerfTest(Map conf=[:]){
                 ld_lib="${miopen_install_path}/lib"
                 def filename = conf.get("filename")
                 assert(filename.trim())
-                def cmd = "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
+                def cmd = "export LD_LIBRARY_PATH=${ld_lib} && ${miopen_install_path}/share/miopen/bin/test_perf.py  --filename ${filename} --install_path ${miopen_install_path} --results_path ${results_dir}/perf_results"
                 if(params.PERF_TEST_OVERRIDE != '')
                 {
                     echo "Appending MIOpenDriver cmd env vars: ${params.PERF_TEST_OVERRIDE}"
@@ -365,7 +433,7 @@ def RunPerfTest(Map conf=[:]){
                   }
 
                   try{
-                     sh "${miopen_install_path}/bin/test_perf.py --compare_results --old_results_path ${results_dir}/old_results --results_path ${results_dir}/perf_results --filename ${filename}"
+                     sh "${miopen_install_path}/share/miopen/bin/test_perf.py --compare_results --old_results_path ${results_dir}/old_results --results_path ${results_dir}/perf_results --filename ${filename}"
                   }
                   catch (Exception err){
                       currentBuild.result = 'SUCCESS'

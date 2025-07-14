@@ -1,4 +1,4 @@
-sqlite3@3.43.2 -DCMAKE_POSITION_INDEPENDENT_CODE=On
+sqlite3@3.49.1 -DCMAKE_POSITION_INDEPENDENT_CODE=On
 boost@1.83 -DCMAKE_POSITION_INDEPENDENT_CODE=On --build -DCMAKE_CXX_FLAGS=" -std=c++14 -Wno-enum-constexpr-conversion -Wno-deprecated-builtins -Wno-deprecated-declarations "
 facebook/zstd@v1.4.5 -X subdir -DCMAKE_DIR=build/cmake
 # ROCm/half@10abd99e7815f0ca5d892f58dd7d15a23b7cf92c --build
@@ -7,5 +7,5 @@ nlohmann/json@v3.11.2 -DJSON_MultipleHeaders=ON -DJSON_BuildTests=Off
 ROCm/FunctionalPlus@v0.2.18-p0
 ROCm/eigen@3.4.0
 ROCm/frugally-deep@9683d557eb672ee2304f80f6682c51242d748a50
-ROCm/composable_kernel@a8c5bd9b9ad950c3e742877e01cb784da91664e3 -DCMAKE_BUILD_TYPE=Release
+ROCm/composable_kernel@aadeffde1811b422cf0452bd874740fee94d6ed6 -DCMAKE_BUILD_TYPE=Release
 google/googletest@v1.14.0

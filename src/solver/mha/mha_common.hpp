@@ -44,7 +44,9 @@
 #include <rocblas/rocblas.h>
 /// rocblas_gemm_ex3 supports F8 datatypes.
 /// strided_batched_ex3 introduced in rocblas 4.0
-#define USE_ROCBLAS_EX3 ((MIOPEN_ROCBLAS_VERSION_FLAT >= 4000000) && ROCBLAS_BETA_FEATURES_API)
+#define USE_ROCBLAS_EX3                                                                   \
+    ((MIOPEN_ROCBLAS_VERSION_FLAT >= 4000000 && MIOPEN_ROCBLAS_VERSION_FLAT < 5000000) && \
+     ROCBLAS_BETA_FEATURES_API)
 #endif
 #endif
 
@@ -130,8 +132,10 @@ inline void gemm(const Handle& handle,
         switch(miopen)
         {
         case miopenFloat: return rocblas_datatype::rocblas_datatype_f32_r;
+#if USE_ROCBLAS_EX3
         case miopenFloat8_fnuz: return rocblas_datatype::rocblas_datatype_f8_r;
         case miopenBFloat8_fnuz: return rocblas_datatype::rocblas_datatype_bf8_r;
+#endif
         default: return rocblas_datatype::rocblas_datatype_invalid;
         }
     };
@@ -176,7 +180,7 @@ inline void gemm(const Handle& handle,
             && cvtMiopen2Rocblas(BType) != rocblas_datatype::rocblas_datatype_invalid          //
             && (AType == BType || AType == miopenBFloat8_fnuz || BType == miopenBFloat8_fnuz)) //
     {
-        assert(miopen::StartsWith(handle.GetDeviceName(), "gfx94"));
+        assert(handle.GetDeviceName() == "gfx942");
 #if USE_ROCBLAS_EX3
         rocblas_gemm_strided_batched_ex3(
             handle.rhandle().get(),
@@ -210,6 +214,8 @@ inline void gemm(const Handle& handle,
             rocblas_gemm_algo::rocblas_gemm_algo_standard,
             0,
             0);
+#else
+        MIOPEN_THROW("rocblas GEMM operations is not supported!");
 #endif
     }
     else

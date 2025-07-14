@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <miopen/handle.hpp>
 #include <miopen/conv/invokers/impl_gemm_dynamic.hpp>
 #include <miopen/generic_search.hpp>
@@ -835,6 +836,15 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
 
     auto splits_4G = igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
+
+    // limitation for loading filter using multielement instructions
+    int tb_c1     = tensor_b_thread_lengths[3];
+    int data_byte = miopen::GetTypeSize(problem.GetInDataType());
+
+    int vector_d1 = gcd(tb_c1, 4 * (4 / data_byte));
+    if((c / group) % vector_d1 != 0)
+        return false;
+
     if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
         return false;
 
@@ -848,35 +858,60 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
-    if(!(tensor_a_thread_lengths[1] == 1 && merge_e == 1))
+    bool is_gemm_k_split = gemm_k_global_split != 0;
+
+    if(is_gemm_k_split)
     {
-        // in case k split too large
-        if(gemm_k_global_split != 0 && (gemm_k_per_block << gemm_k_global_split) > (k / group))
-            return false;
-        // gemm_k need be multiply of gemm_k_per_block
-        if(((k >> gemm_k_global_split) / group) % gemm_k_per_block != 0)
+        const int max_split_num = [&]() {
+            if(merge_e == 1)
+            {
+                // this is merge_e, which indicate support padding k
+                int padded_k_num = integer_divide_ceil(k / group, gemm_k_per_block);
+                int prev_pow2    = [](int n) {
+                    n = n | (n >> 1);
+                    n = n | (n >> 2);
+                    n = n | (n >> 4);
+                    n = n | (n >> 8);
+                    n = n | (n >> 16);
+                    return n - (n >> 1);
+                }(padded_k_num);
+                int k_pow2 = (int)log2(prev_pow2);
+
+                return std::min(k_pow2, BWD_MAX_GEMM_K_SPLITS);
+            }
+            else
+                return igemm_get_max_gks(k / group, gemm_k_per_block, BWD_MAX_GEMM_K_SPLITS);
+        }();
+
+        if(gemm_k_global_split > max_split_num)
             return false;
     }
 
-    if(problem.IsFp16() && !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 &&
-                             merge_e == 1 && gemm_k_global_split == 0))
+    if(!(tensor_a_thread_lengths[1] == 1 && merge_e == 1))
     {
-        if(gemm_k_global_split != 0)
+        // in case k split too large
+        auto gemm_k_shift = gemm_k_global_split != 0 ? 1 : 0;
+
+        if(is_gemm_k_split && (gemm_k_per_block << gemm_k_shift) > (k / group))
+            return false;
+
+        auto splited_k = (k / group) >> gemm_k_shift;
+
+        // gemm_k need be multiply of gemm_k_per_block
+        if(splited_k == 0 || splited_k % gemm_k_per_block != 0)
+            return false;
+    }
+
+    if((problem.IsBfp16() || problem.IsFp16()) &&
+       !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 && merge_e == 1 &&
+         !is_gemm_k_split))
+    {
+        if(is_gemm_k_split)
         {
             if((c / group) % 2 != 0)
                 return false;
         }
         else
-        {
-            if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
-                return false;
-        }
-    }
-
-    if(problem.IsBfp16() && !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 &&
-                              merge_e == 1 && gemm_k_global_split == 0))
-    {
-        if(gemm_k_global_split == 0)
         {
             if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
                 return false;
@@ -940,8 +975,8 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
 #endif
 
     const auto device_name = ctx.GetStream().GetDeviceName();
-    if((device_name != "gfx908") && (device_name != "gfx90a") &&
-       (!StartsWith(device_name, "gfx94")) && (!StartsWith(device_name, "gfx95")))
+    if((device_name != "gfx908") && (device_name != "gfx90a") && (device_name != "gfx942") &&
+       (!StartsWith(device_name, "gfx95")))
         return false;
 
     if(!ctx.use_asm_kernels)
@@ -960,8 +995,8 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::IsApplicable(
         return false;
 
     if(!problem.IsFp32() && !problem.IsFp16() &&
-       !(problem.IsBfp16() && (device_name == "gfx90a" || StartsWith(device_name, "gfx94") ||
-                               StartsWith(device_name, "gfx95"))))
+       !(problem.IsBfp16() &&
+         (device_name == "gfx90a" || device_name == "gfx942" || StartsWith(device_name, "gfx95"))))
         return false;
 
     if(problem.IsTensorsCasted())
@@ -1093,26 +1128,12 @@ ConvSolution ConvAsmImplicitGemmGTCDynamicBwdXdlopsNHWC::GetSolution(
     std::ostringstream options;
     std::ostringstream msg;
     GenerateClangDefsym(options, "ROCM_METADATA_VERSION", ctx.rmv.UseV3() ? 5 : 4);
-    if(ctx.GetStream().GetDeviceName() == "gfx940")
-    {
-        GenerateClangDefsym(options, "force_sc0_sc1", 1);
-        GenerateClangDefsym(options, "atomic_add_using_cas", 0);
-        if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", force_sc0_sc1:1, atomic_add_using_cas:0 (gfx940)";
-    }
-    else if(ctx.GetStream().GetDeviceName() == "gfx941")
-    {
-        GenerateClangDefsym(options, "force_sc0_sc1", 1);
-        GenerateClangDefsym(options, "atomic_add_using_cas", 1);
-        if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", force_sc0_sc1:1, atomic_add_using_cas:1 (gfx941)";
-    }
-    else if(StartsWith(ctx.GetStream().GetDeviceName(), "gfx94"))
+    if(ctx.GetStream().GetDeviceName() == "gfx942")
     {
         GenerateClangDefsym(options, "force_sc0_sc1", 0);
         GenerateClangDefsym(options, "atomic_add_using_cas", 0);
         if(miopen::IsLogging(LoggingLevel::Info2))
-            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942+)";
+            msg << ", force_sc0_sc1:0, atomic_add_using_cas:0 (gfx942)";
     }
 
     std::ostringstream opts_0(options.str(), std::ios_base::ate);

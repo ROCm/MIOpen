@@ -36,6 +36,9 @@
 
 #include <algorithm>
 
+// LWPMIOPEN-1392: Disabling failing deprecated Ocl solvers for Gfx11 and Gfx12
+#define WORKAROUND_LWPMIOPEN_1392 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
+
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2_SEARCH_OPTIMIZED)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2)
 
@@ -461,6 +464,18 @@ template <int N_BATCH_LOOPS>
 bool ConvOclBwdWrW2<N_BATCH_LOOPS>::IsApplicableBase(const ExecutionContext& ctx,
                                                      const ProblemDescription& problem) const
 {
+    // Disable this solver due to random GPU memory access faults on gfx11 and gfx12
+#if WORKAROUND_LWPMIOPEN_1392
+    {
+        const auto device = ctx.GetStream().GetTargetProperties().Name();
+        if(miopen::StartsWith(device, "gfx11") || miopen::StartsWith(device, "gfx12"))
+        {
+            if(!env::enabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2))
+                return false;
+        }
+    }
+#endif
+
     if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW2))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
