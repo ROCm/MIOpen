@@ -164,6 +164,14 @@ struct FindCoreResult
     bool is_optimal;
 };
 
+std::vector<Solution> EvaluateInvokers(const Handle& handle,
+                                       const std::vector<solver::ConvSolution>& solutions,
+                                       const AlgorithmName& algorithm_name,
+                                       const NetworkConfig& network_config,
+                                       const AnyInvokeParams& invoke_ctx,
+                                       bool& is_result_optimal,
+                                       bool force_attach_binary);
+
 FindCoreResult FindCore(const AnyInvokeParams& invoke_ctx,
                         const ExecutionContext& ctx,
                         const ProblemDescriptionBase& problem,
