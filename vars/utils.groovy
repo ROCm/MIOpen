@@ -275,6 +275,7 @@ def getDockerImage(Map conf=[:])
     }
     catch(Exception ex)
     {
+        sh(script: 'pwd && ls && find . -iname Dockerfile && git remote -v')
         dockerImage = docker.build("${image}", "${dockerArgs} --build-context project=./projects/miopen .")
         withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
             dockerImage.push()
