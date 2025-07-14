@@ -723,10 +723,11 @@ inline size_t GetCKAlphaBetaWorkspace(const miopen::conv::ProblemDescription& pr
 
     TensorDescriptor input          = problem.GetIn();
     TensorDescriptor output         = problem.GetOut();
+    TensorDescriptor weights        = problem.GetWeights();
     ConvolutionDescriptor conv_desc = problem.GetConv();
 
     miopenConvolutionABBackwardWeightsGetWorkSpaceSize(
-        problem.GetAlphaBetaCase(), &input, &output, &conv_desc, &buff_size);
+        problem.GetAlphaBetaCase(), &input, &output, &weights, &conv_desc, &buff_size);
     return buff_size;
 }
 
