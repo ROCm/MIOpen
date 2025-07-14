@@ -668,7 +668,7 @@ typedef enum
     miopenConvolutionFindModeTrustVerify     = 6,
     miopenConvolutionFindModeTrustVerifyFull = 7,
     miopenConvolutionFindModeDefault =
-        miopenConvolutionFindModeTrustVerify /*!< Default FindMode >*/
+        miopenConvolutionFindModeDynamicHybrid /*!< Default FindMode >*/
 } miopenConvolutionFindMode_t;
 
 /** @addtogroup tensor
