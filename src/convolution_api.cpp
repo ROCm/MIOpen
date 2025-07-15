@@ -250,7 +250,7 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
                     (is_odd(C_per_group) || is_odd(K_per_group)));
         };
 
-        size_t byte_size = 0;
+        size_t byte_size           = 0;
         size_t weights_tensor_size = miopen::deref(weightsTensorDesc).GetElementSize();
         if(CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case))
         {
@@ -273,8 +273,15 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             *buffer_size = 0;
         }
 
-        MIOPEN_LOG_FUNCTION(
-            alpha_beta_case, data_type, G, C, K, weights_tensor_size, spatial_dims, byte_size, *buffer_size);
+        MIOPEN_LOG_FUNCTION(alpha_beta_case,
+                            data_type,
+                            G,
+                            C,
+                            K,
+                            weights_tensor_size,
+                            spatial_dims,
+                            byte_size,
+                            *buffer_size);
     });
 }
 
