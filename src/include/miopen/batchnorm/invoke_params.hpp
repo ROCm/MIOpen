@@ -46,9 +46,11 @@ struct FwdTrainInvokeParams : public miopen::InvokeParams
     double epsilon               = 0;
     Data_t resultSaveMean        = nullptr;
     Data_t resultSaveInvVariance = nullptr;
+    size_t workspace_size        = 0;
+    void* workspace              = nullptr;
 
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
 };
 
 struct BwdInvokeParams : public miopen::InvokeParams
@@ -65,8 +67,11 @@ struct BwdInvokeParams : public miopen::InvokeParams
     ConstData_t savedMean        = nullptr;
     ConstData_t savedInvVariance = nullptr;
 
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    size_t workspace_size = 0;
+    void* workspace       = nullptr;
+
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
 };
 
 struct InfInvokeParams : public miopen::InvokeParams
@@ -83,8 +88,11 @@ struct InfInvokeParams : public miopen::InvokeParams
     ConstData_t estimatedVariance = nullptr;
     double epsilon                = 0;
 
-    std::size_t GetWorkspaceSize() const { return 0; }
-    Data_t GetWorkspace() const { return nullptr; }
+    size_t workspace_size = 0;
+    void* workspace       = nullptr;
+
+    std::size_t GetWorkspaceSize() const { return workspace_size; }
+    Data_t GetWorkspace() const { return workspace; }
 };
 
 } // namespace batchnorm

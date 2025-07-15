@@ -746,6 +746,35 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrain(Tref 
                                                                            float alpha,
                                                                            float beta)
 {
+    miopenStatus_t status = miopenStatusSuccess;
+    DEFINE_CONTEXT(ctx);
+    size_t ws_size = 0;
+
+    status = miopenBatchNormalizationForwardGetWorkSpaceSize(GetHandle(),
+                                                             bn_mode,
+                                                             &alpha,
+                                                             &beta,
+                                                             &in.GetTensor().desc,
+                                                             in.GetDevicePtr(),
+                                                             &out.GetTensor().desc,
+                                                             out.GetDevicePtr(),
+                                                             &scale.GetTensor().desc,
+                                                             &bias.GetTensor().desc,
+                                                             &savedMean.GetTensor().desc,
+                                                             &savedVariance.GetTensor().desc,
+                                                             scale.GetDevicePtr(),
+                                                             bias.GetDevicePtr(),
+                                                             eAF,
+                                                             runMean.GetDevicePtr(),
+                                                             runVariance.GetDevicePtr(),
+                                                             epsilon,
+                                                             savedMean.GetDevicePtr(),
+                                                             savedVariance.GetDevicePtr(),
+                                                             &ws_size);
+    if(status != miopenStatusSuccess)
+        return;
+    auto ws =
+        std::unique_ptr<GPUMem>{ws_size > 0 ? new GPUMem{ctx, ws_size, 1, buffer_check} : nullptr};
     if(saveMeanVar && keepRunningMeanVar)
     {
         miopenBatchNormalizationForwardTraining_V2(GetHandle(),
@@ -767,7 +796,9 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrain(Tref 
                                                    runVariance.GetDevicePtr(),
                                                    epsilon,
                                                    savedMean.GetDevicePtr(),
-                                                   savedVariance.GetDevicePtr());
+                                                   savedVariance.GetDevicePtr(),
+                                                   ws_size,
+                                                   ws ? ws->GetMem() : nullptr);
     }
     else if(saveMeanVar)
     {
@@ -790,7 +821,9 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrain(Tref 
                                                    nullptr,
                                                    epsilon,
                                                    savedMean.GetDevicePtr(),
-                                                   savedVariance.GetDevicePtr());
+                                                   savedVariance.GetDevicePtr(),
+                                                   ws_size,
+                                                   ws ? ws->GetMem() : nullptr);
     }
     else if(keepRunningMeanVar)
     {
@@ -813,7 +846,9 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrain(Tref 
                                                    runVariance.GetDevicePtr(),
                                                    epsilon,
                                                    nullptr,
-                                                   nullptr);
+                                                   nullptr,
+                                                   ws_size,
+                                                   ws ? ws->GetMem() : nullptr);
     }
     else
     {
@@ -836,7 +871,9 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrain(Tref 
                                                    nullptr,
                                                    epsilon,
                                                    nullptr,
-                                                   nullptr);
+                                                   nullptr,
+                                                   ws_size,
+                                                   ws ? ws->GetMem() : nullptr);
     }
 
 #ifdef BN_RUNFOR_PROFILER
@@ -859,7 +896,9 @@ void BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::runGPUFwdTrain(Tref 
                                                nullptr,
                                                epsilon,
                                                nullptr,
-                                               nullptr);
+                                               nullptr,
+                                               ws_size,
+                                               ws ? ws->GetMem() : nullptr);
 #endif
 }
 

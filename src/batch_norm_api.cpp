@@ -32,6 +32,8 @@
 #include <miopen/activ.hpp>
 #include <miopen/driver_arguments.hpp>
 
+#include <miopen/batchnorm/problem_description.hpp>
+
 #include <array>
 #include <initializer_list>
 
@@ -134,7 +136,9 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                                         void* resultRunningVariance,
                                         double epsilon,
                                         void* resultSaveMean,
-                                        void* resultSaveInvVariance)
+                                        void* resultSaveInvVariance,
+                                        size_t workspace_size,
+                                        void* workspace)
 {
     return miopenBatchNormalizationForwardTraining_V2(handle,
                                                       bn_mode,
@@ -155,7 +159,9 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                                                       resultRunningVariance,
                                                       epsilon,
                                                       resultSaveMean,
-                                                      resultSaveInvVariance);
+                                                      resultSaveInvVariance,
+                                                      workspace_size,
+                                                      workspace);
 }
 
 extern "C" miopenStatus_t
@@ -418,7 +424,9 @@ miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
                                            void* resultRunningVariance,
                                            double epsilon,
                                            void* resultSaveMean,
-                                           void* resultSaveInvVariance)
+                                           void* resultSaveInvVariance,
+                                           size_t workspace_size,
+                                           void* workspace)
 {
     return miopenBatchNormForwardTrainingActivation(handle,
                                                     bn_mode,
@@ -440,7 +448,9 @@ miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
                                                     epsilon,
                                                     resultSaveMean,
                                                     resultSaveInvVariance,
-                                                    nullptr);
+                                                    nullptr,
+                                                    workspace_size,
+                                                    workspace);
 }
 
 extern "C" miopenStatus_t
@@ -464,7 +474,9 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
                                          double epsilon,
                                          void* resultSaveMean,
                                          void* resultSaveInvVariance,
-                                         const miopenActivationDescriptor_t activDesc)
+                                         const miopenActivationDescriptor_t activDesc,
+                                         size_t workspace_size,
+                                         void* workspace)
 {
     MIOPEN_LOG_FUNCTION(handle,
                         bn_mode,
@@ -483,7 +495,9 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
                         resultRunningVariance,
                         epsilon,
                         resultSaveMean,
-                        resultSaveInvVariance);
+                        resultSaveInvVariance,
+                        workspace_size,
+                        workspace);
 
     miopen::debug::LogCmdBNorm(xDesc,
                                yDesc,
@@ -531,7 +545,9 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
                                              epsilon,
                                              DataCast(resultSaveMean),
                                              DataCast(resultSaveInvVariance),
-                                             actDesc);
+                                             actDesc,
+                                             workspace_size,
+                                             workspace);
         });
     }
     else
@@ -559,7 +575,9 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
                                              epsilon,
                                              DataCast(resultSaveMean),
                                              DataCast(resultSaveInvVariance),
-                                             actDesc);
+                                             actDesc,
+                                             workspace_size,
+                                             workspace);
         });
     }
 }
@@ -686,4 +704,58 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                                       actDesc);
         });
     }
+}
+
+#include <miopen/batchnorm/invoke_params.hpp>
+#include <miopen/find_solution.hpp>
+#include <miopen/batchnorm/solvers.hpp>
+
+MIOPEN_EXPORT extern "C" miopenStatus_t
+miopenBatchNormalizationForwardGetWorkSpaceSize(miopenHandle_t handle,
+                                                miopenBatchNormMode_t bn_mode,
+                                                void* alpha,
+                                                void* beta,
+                                                const miopenTensorDescriptor_t xDesc,
+                                                const void* x,
+                                                const miopenTensorDescriptor_t yDesc,
+                                                void* y,
+                                                const miopenTensorDescriptor_t scaleDesc,
+                                                const miopenTensorDescriptor_t biasDesc,
+                                                const miopenTensorDescriptor_t savedMeanDesc,
+                                                const miopenTensorDescriptor_t savedVarianceDesc,
+                                                void* bnScale,
+                                                void* bnBias,
+                                                double expAvgFactor,
+                                                void* resultRunningMean,
+                                                void* resultRunningVariance,
+                                                double epsilon,
+                                                void* resultSaveMean,
+                                                void* resultSaveInvVariance,
+                                                size_t* workSpaceSize)
+{
+
+    MIOPEN_LOG_FUNCTION(handle, xDesc, yDesc);
+    return miopen::try_([&] {
+        auto ctx = miopen::ExecutionContext{};
+        ctx.SetStream(&(miopen::deref(handle)));
+        miopen::ActivationDescriptor actDesc(miopenActivationPASTHRU, 0.0f, 0.0f, 0.0f);
+        const auto resultsave    = resultSaveMean != nullptr && resultSaveInvVariance != nullptr;
+        const auto resultrunning = resultRunningMean != nullptr && resultRunningVariance != nullptr;
+        const auto problem       = miopen::batchnorm::ProblemDescription{bn_mode,
+                                                                   miopen::deref(xDesc),
+                                                                   miopen::deref(yDesc),
+                                                                   miopen::deref(scaleDesc),
+                                                                   miopen::deref(biasDesc),
+                                                                   miopen::deref(savedMeanDesc),
+                                                                   miopen::deref(savedVarianceDesc),
+                                                                   expAvgFactor,
+                                                                   epsilon,
+                                                                   resultsave,
+                                                                   resultrunning,
+                                                                   1,
+                                                                   actDesc};
+        const auto solvers       = miopen::solver::batchnorm::BnFwdTrainingSpatial{};
+        *workSpaceSize           = solvers.GetWorkspaceSize(ctx, problem);
+        return miopenStatusSuccess;
+    });
 }

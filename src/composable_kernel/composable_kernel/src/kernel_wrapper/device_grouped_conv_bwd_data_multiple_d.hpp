@@ -1357,8 +1357,8 @@ struct DeviceGroupedConvBwdDlV4 : public DeviceGroupedConvBwdDataMultipleD<NDimS
         const std::array<index_t, NDimSpatial>& input_right_pads,
         const InElementwiseOperation& in_element_op,
         const WeiElementwiseOperation& wei_element_op,
-        const OutElementwiseOperation& out_element_op,
-        const ck::index_t split_k = 1) override
+        const OutElementwiseOperation& out_element_op
+        ) override
     {
         std::array<index_t, NDimSpatial + 3> in_g_n_c_wis_lengths_i32;
         std::array<index_t, NDimSpatial + 3> in_g_n_c_wis_strides_i32;
@@ -1377,7 +1377,7 @@ struct DeviceGroupedConvBwdDlV4 : public DeviceGroupedConvBwdDataMultipleD<NDimS
         array_convert(in_g_n_c_wis_strides_i32, in_g_n_c_wis_strides);
         array_convert(wei_g_k_c_xs_lengths_i32, wei_g_k_c_xs_lengths);
         array_convert(wei_g_k_c_xs_strides_i32, wei_g_k_c_xs_strides);
-        for(index_t d = 0; d < NumDTensor * split_k; d++)
+        for(index_t d = 0; d < NumDTensor; d++)
         {
             array_convert(ds_g_n_k_wos_lengths_i32[d], ds_g_n_k_wos_lengths[d]);
             array_convert(ds_g_n_k_wos_strides_i32[d], ds_g_n_k_wos_strides[d]);
