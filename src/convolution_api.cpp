@@ -218,23 +218,21 @@ extern "C" miopenStatus_t miopenGetConvolutionFindMode(const miopenConvolutionDe
 
 MIOPEN_EXPORT extern "C" miopenStatus_t
 miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
-                                                   const miopenTensorDescriptor_t inputTensorDesc,
-                                                   const miopenTensorDescriptor_t outputTensorDesc,
                                                    const miopenTensorDescriptor_t weightsTensorDesc,
                                                    const miopenConvolutionDescriptor_t convDesc,
                                                    size_t* buffer_size)
 {
-    MIOPEN_LOG_FUNCTION(alpha_beta_case, inputTensorDesc, outputTensorDesc, weightsTensorDesc);
+    MIOPEN_LOG_FUNCTION(alpha_beta_case, weightsTensorDesc);
 
     return miopen::try_([&] {
-        miopenDataType_t data_type = miopen::deref(outputTensorDesc).GetType();
+        miopenDataType_t data_type = miopen::deref(weightsTensorDesc).GetType();
         size_t spatial_dims        = miopen::deref(convDesc).GetSpatialDimension();
 
         int G    = miopen::deref(convDesc).GetGroupCount();
-        size_t K = std::get<1>(
-            miopen::GetNCDHW(spatial_dims, miopen::deref(inputTensorDesc).GetLengths()));
+        size_t K = std::get<0>(
+            miopen::GetNCDHW(spatial_dims, miopen::deref(weightsTensorDesc).GetLengths()));
         size_t C = std::get<1>(
-            miopen::GetNCDHW(spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
+            miopen::GetNCDHW(spatial_dims, miopen::deref(weightsTensorDesc).GetLengths()));
 
         auto CKWrwRequireWorkspace = [&](size_t G,
                                          size_t C,
