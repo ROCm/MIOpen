@@ -105,7 +105,7 @@ void Col2ImCPU(std::vector<Tin> data_col,
                const int stride,
                std::vector<Tout> data_im)
 {
-    std::fill_n(data_im.begin(), height * width * channels, Tout(0));
+    memset(data_im, 0, sizeof(Tout) * height * width * channels);
     int height_col   = (height + 2 * pad - ksize) / stride + 1;
     int width_col    = (width + 2 * pad - ksize) / stride + 1;
     height_col       = (height_col < 0) ? 1 : height_col;
