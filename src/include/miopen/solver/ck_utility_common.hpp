@@ -42,7 +42,8 @@ namespace ck_utility {
 static inline bool is_ck_whitelist(const std::string& device_name)
 {
     return (StartsWith(device_name, "gfx908") || StartsWith(device_name, "gfx90a") ||
-            StartsWith(device_name, "gfx942") || StartsWith(device_name, "gfx950"));
+            StartsWith(device_name, "gfx942") || StartsWith(device_name, "gfx950") ||
+            StartsWith(device_name, "gfx110") || StartsWith(device_name, "gfx120"));
 }
 
 static inline bool is_ck_whitelist(const Handle& handle)
