@@ -827,13 +827,6 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     const auto pad_w      = problem.GetPadW();
     const int y           = problem.GetWeightsHeight();
     const int x           = problem.GetWeightsWidth();
-
-    const int hi = problem.GetOutHeight();
-    const int wi = problem.GetOutWidth();
-    const int n  = problem.GetBatchSize();
-    const int ho = problem.GetInHeight();
-    const int wo = problem.GetInWidth();
-
     // extra large size check
     {
         size_t current_block_size, current_grid_size, current_splits_4G;
@@ -842,7 +835,7 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
 
         if(current_splits_4G == 0)
             return false;
-        
+
         if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 &&
            current_splits_4G > 1)
             return false;

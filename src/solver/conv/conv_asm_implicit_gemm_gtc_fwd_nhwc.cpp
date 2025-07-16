@@ -700,12 +700,6 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     const int y           = problem.GetWeightsHeight();
     const int x           = problem.GetWeightsWidth();
 
-    const int n  = problem.GetBatchSize();
-    const int ho = problem.GetOutHeight();
-    const int wo = problem.GetOutWidth();
-    const int hi = problem.GetInHeight();
-    const int wi = problem.GetInWidth();
-
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
