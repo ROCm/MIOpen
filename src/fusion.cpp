@@ -361,7 +361,7 @@ std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanD
     }
 
     DriverDataType(prefix, str, miopen::deref(xDesc));
-    str += " -F " + std::to_string(fusion_mode);
+    str += " -J " + std::to_string(fusion_mode);
     str += ConvArgsForMIOpenDriver(miopen::deref(xDesc),
                                    miopen::deref(wDesc),
                                    miopen::deref(convDesc),
@@ -386,7 +386,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
     {
         str = "CBAInfer";
     }
-    str += " -F " + std::to_string(fusion_mode);
+    str += " -J " + std::to_string(fusion_mode);
 
     const auto& bn_op =
         dynamic_cast<BatchNormInferenceFusionOpDescriptor*>(deref(fusePlanDesc).op_map[0].get());

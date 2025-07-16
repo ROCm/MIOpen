@@ -35,12 +35,15 @@ struct TestCasePossibleLayout
 {
     miopen::unit_tests::TensorDescriptorParams tp;
     std::vector<std::string> actual_layouts;
+    miopen::TensorDescriptor::LayoutValidationMode validation_mode =
+        miopen::TensorDescriptor::LayoutValidationMode::StrictDecreasingStrides;
 
     friend std::ostream& operator<<(std::ostream& os, const TestCasePossibleLayout& tc)
     {
         os << "(";
         os << "(" << tc.tp << "), ";
         miopen::LogRange(os << "{", tc.actual_layouts, ",") << "}, ";
+        os << " {LayoutValidationMode: " << static_cast<int>(tc.validation_mode) << "} ";
         os << ")";
         return os;
     }
@@ -172,6 +175,9 @@ public:
     {
         using TestCase = TestCasePossibleLayout;
 
+        static const auto ignore_degenerate_strides =
+            miopen::TensorDescriptor::LayoutValidationMode::IgnoreDegenerateStrides;
+
         return std::vector{
             // clang-format off
             TestCase{{miopenHalf, {1, 1, 1, 1}}, {"NCHW", "NHWC", "CHWN"}},
@@ -223,18 +229,47 @@ public:
             TestCase{{miopenHalf, miopenTensorNDHWC, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
             TestCase{{miopenHalf, miopenTensorNCDHW, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, {"NCDHW"}},
             TestCase{{miopenHalf, miopenTensorNDHWC, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, {"NDHWC"}},
+
+            // Stride is ignored when the corresponding dimension length is 1 with LayoutValidationMode::IgnoreDegenerateStrides.
+            // As a result, multiple layouts have identical memory footprints.
+            // E.G, NCHW == CHWN for n = 1.
+            TestCase{{miopenHalf, {1, 2, 2, 2}, {1, 100, 10, 1}}, {"NCHW", "CHWN"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 1, 2, 2}, {1000, 10000, 10, 1}}, {"NCHW", "NHWC"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 1, 2}, {1000, 100, 10000, 1}}, {"NCHW"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 2, 1}, {1000, 100, 10, 10000}}, {"NCHW"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {1, 2, 2, 2}, {1, 1, 100, 10}}, {"NHWC"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 1, 2}, {1000, 1, 10000, 10}}, {"NHWC"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 2, 1}, {1000, 1, 100, 10000}}, {"NHWC"}, ignore_degenerate_strides},          
+            TestCase{{miopenHalf, {2, 1, 2, 2}, {1, 1, 100, 10}}, {"CHWN"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 1, 2}, {1, 1000, 10000, 10}}, {"CHWN"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 2, 1}, {1, 1000, 100, 10000}}, {"CHWN"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1000, 100, 10, 1}}, {"NCHW", "NHWC", "CHWN"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1000, 1, 100, 10}}, {"NCHW", "NHWC", "CHWN"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {1, 1, 1, 1}, {1, 1000, 100, 10}}, {"NCHW", "NHWC", "CHWN"}, ignore_degenerate_strides},
+
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, {"NCDHW", "NDHWC"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, {"NCDHW", "NDHWC"}, ignore_degenerate_strides},     
+            TestCase{{miopenHalf, {1, 2, 2, 2, 2}, {1, 1000, 100, 10, 1}}, {"NCDHW"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 1, 2, 2, 2}, {10000, 100000, 100, 10, 1}}, {"NCDHW", "NDHWC"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 1, 2, 2}, {10000, 1000, 100000, 10, 1}}, {"NCDHW"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 2, 1, 2}, {10000, 1000, 100, 100000, 1}}, {"NCDHW"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 1}, {10000, 1000, 100, 10, 100000}}, {"NCDHW"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {1, 2, 2, 2, 2}, {1, 1, 1000, 100, 10}}, {"NDHWC"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 1, 2, 2}, {10000, 1, 100000, 100, 10}}, {"NDHWC"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 2, 1, 2}, {10000, 1, 1000, 100000, 10}}, {"NDHWC"}, ignore_degenerate_strides},
+            TestCase{{miopenHalf, {2, 2, 2, 2, 1}, {10000, 1, 1000, 100, 100000}}, {"NDHWC"}, ignore_degenerate_strides},
             // clang-format on
         };
     }
 
     void RunTest()
     {
-        const auto p  = GetParam();
-        const auto td = p.tp.GetTensorDescriptor();
-
+        const auto p               = GetParam();
+        const auto td              = p.tp.GetTensorDescriptor();
+        const auto validation_mode = p.validation_mode;
         for(const auto& layout : this->GetAllLayouts())
         {
-            const auto is_possible_layout = td.IsPossibleLayout4D5D(layout);
+            const auto is_possible_layout = td.IsPossibleLayout4D5D(layout, validation_mode);
             const auto expected =
                 std::count(p.actual_layouts.cbegin(), p.actual_layouts.cend(), layout);
             ASSERT_EQ(is_possible_layout, expected) << "current layout: " << layout;
