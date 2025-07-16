@@ -132,7 +132,7 @@ static fs::path HipBuildImpl(const TmpDir& tmp_dir,
     const LcOptionTargetStrings lots(target);
 
     if(params.find("-std=") == std::string::npos)
-        params += " --std=c++20";
+        params += " --std=c++17";
 
 #if HIP_PACKAGE_VERSION_FLAT >= 6001024000ULL
     size_t pos = 0;

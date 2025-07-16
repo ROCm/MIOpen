@@ -69,7 +69,7 @@ static inline auto get_ck_common_compiler_flag(const Handle& handle)
     auto compiler_flag = std::stringstream();
 
     // C++ standard
-    compiler_flag << " --std=c++20";
+    compiler_flag << " --std=c++17";
 
     // GPU target
     static const std::string device_name = handle.GetDeviceName();

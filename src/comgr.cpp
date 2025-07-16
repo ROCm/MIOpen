@@ -959,7 +959,7 @@ void BuildHip(const std::string& name,
         if(std::none_of(opts.begin(), opts.end(), [](const std::string& s) {
                return StartsWith(s, "--std=") || StartsWith(s, "-std=");
            }))
-            opts.push_back("-std=c++20");
+            opts.push_back("-std=c++17");
 
         auto rocm_path = env::value(ROCM_PATH);
 

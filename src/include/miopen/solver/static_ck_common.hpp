@@ -161,7 +161,7 @@ constexpr std::size_t get_lds_max_number_of_byte() { return 65536; }
 
 static inline auto get_static_ck_common_compiler_flag(const ExecutionContext& ctx)
 {
-    auto compiler_flag     = std::string(" --std=c++20");
+    auto compiler_flag     = std::string(" --std=c++14");
     auto buffer_atomic_add = support_amd_buffer_atomic_fadd(ctx.GetStream().GetDeviceName());
 
     // atomic-fadd
