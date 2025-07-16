@@ -23,19 +23,6 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-def miopenCheckout()
-{
-    checkout([
-        $class: 'GitSCM',
-        branches: scm.branches,
-        doGenerateSubmoduleConfigurations: false,
-        extensions: scm.extensions + [
-            [$class: 'SubmoduleOption', parentCredentials: true],
-        ],
-       userRemoteConfigs: scm.userRemoteConfigs
-   ])
-}
-
 def show_node_info() {
     sh """
         echo "NODE_NAME = \$NODE_NAME"
@@ -314,10 +301,6 @@ def getDockerImage(Map conf=[:])
 
 def buildHipClangJob(Map conf=[:]){
         show_node_info()
-        miopenCheckout()
-        sh(script: "ls * || true")
-        sh(script: "ls fin || true")
-        sh(script: "git submodule update --init --recursive")
         checkout scm
         env.HSA_ENABLE_SDMA=0
         env.DOCKER_BUILDKIT=1
