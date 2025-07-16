@@ -28,7 +28,7 @@ def miopenCheckout()
     checkout([
         $class: 'GitSCM',
         branches: scm.branches,
-        doGenerateSubmoduleConfigurations: true,
+        doGenerateSubmoduleConfigurations: false,
         extensions: scm.extensions + [
             [$class: 'SubmoduleOption', parentCredentials: true],
         ],
