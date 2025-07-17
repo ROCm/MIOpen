@@ -38,7 +38,6 @@
 #include <miopen/mt_queue.hpp>
 #include <miopen/generic_search_controls.hpp>
 #include <miopen/utility/modified_z.hpp>
-#include <miopen/conv/problem_description.hpp>
 
 #include <algorithm>
 #include <vector>
@@ -307,48 +306,6 @@ GetAllSolutions(const Solver s, const Context& context_, const Problem& problem)
 std::size_t GetTuningIterationsMax();
 std::chrono::milliseconds GetTuningTimeMax(); // returns the max allowed time in milliseconds
 std::size_t GetTuningThreadsMax();
-std::size_t GetTuningPatience();
-
-template <typename Context>
-std::chrono::milliseconds GetTuningTimeMax(const Context& ctx,
-                                           const miopen::conv::ProblemDescription& problem)
-{
-    const auto& conv     = problem.GetConv();
-    const auto& findMode = conv.findMode;
-    auto tuningMs        = env::value(MIOPEN_TUNING_TIME_MS_MAX);
-    if(findMode.IsTrustVerify(ctx) && !findMode.IsExhaustive(ctx))
-    {
-        if(tuningMs == MIOPEN_DEFAULT_TUNING_TIME_MS_MAX)
-            tuningMs = 1000;
-    }
-    return std::chrono::milliseconds{tuningMs};
-}
-
-template <typename Context, typename Problem>
-std::chrono::milliseconds GetTuningTimeMax(const Context&, const Problem&)
-{
-    return GetTuningTimeMax();
-}
-
-template <typename Context>
-std::size_t GetTuningPatience(const Context& ctx, const miopen::conv::ProblemDescription& problem)
-{
-    const auto& conv     = problem.GetConv();
-    const auto& findMode = conv.findMode;
-    auto patience        = env::value(MIOPEN_TUNING_PATIENCE);
-    if(findMode.IsTrustVerify(ctx) && !findMode.IsExhaustive(ctx))
-    {
-        if(patience == MIOPEN_DEFAULT_TUNING_PATIENCE)
-            patience = 6;
-    }
-    return patience;
-}
-
-template <typename Context, typename Problem>
-std::size_t GetTuningPatience(const Context&, const Problem&)
-{
-    return GetTuningPatience();
-}
 
 template <typename PerformanceConfig, typename Solver, typename Context, typename Problem>
 void CompileAgent(size_t thread_index,
@@ -363,7 +320,7 @@ void CompileAgent(size_t thread_index,
     const auto start_time =
         std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now());
     const auto data_size   = data.size();
-    const auto time_budget = GetTuningTimeMax(context, problem);
+    const auto time_budget = GetTuningTimeMax();
     const auto& profile_h  = context.GetStream();
     // start the counter
     for(auto idx = thread_index; idx < data_size; idx += total_threads)
@@ -448,7 +405,7 @@ auto GenericSearch(const Solver s,
     std::shuffle(all_configs.begin(), all_configs.end(), rng);
     std::size_t n_runs_total = std::min(all_configs.size(), GetTuningIterationsMax());
     all_configs.resize(n_runs_total);
-    std::size_t patience = GetTuningPatience(context, problem);
+    std::size_t patience = env::value(MIOPEN_TUNING_PATIENCE);
 
     if(all_configs.empty())
     {
@@ -512,6 +469,7 @@ auto GenericSearch(const Solver s,
                 break;
             }
 
+            last_imprv++;
             MIOPEN_LOG_I2("Waiting for item in queue");
             const auto kinder     = solution_queue.pop();
             auto current_config   = std::get<0>(kinder);
@@ -587,7 +545,6 @@ auto GenericSearch(const Solver s,
                 // config), then gather 9 more samples, and remove positive z-score outliers. Use
                 // the mean value with outliers removed for calculating best config.
                 constexpr int N_RUNS = 10;
-                last_imprv++;
                 if(elapsed_time / worst_time < 1.10f)
                 {
                     MIOPEN_LOG_I2("Finding average for: " << elapsed_time << " / " << best_time

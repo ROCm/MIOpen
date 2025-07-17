@@ -65,16 +65,6 @@ TEST_F(CPU_ConvFindModeAPI_NONE, ConvFindModeAPI)
     EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeDynamicHybrid);
 
     MIOPEN_EXPECT_CHECK_RET(miopenSetConvolutionFindMode(
-        conv_descr, miopenConvolutionFindMode_t::miopenConvolutionFindModeTrustVerify));
-    MIOPEN_EXPECT_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
-    EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeTrustVerify);
-
-    MIOPEN_EXPECT_CHECK_RET(miopenSetConvolutionFindMode(
-        conv_descr, miopenConvolutionFindMode_t::miopenConvolutionFindModeTrustVerifyFull));
-    MIOPEN_EXPECT_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
-    EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeTrustVerifyFull);
-
-    MIOPEN_EXPECT_CHECK_RET(miopenSetConvolutionFindMode(
         conv_descr, miopenConvolutionFindMode_t::miopenConvolutionFindModeDefault));
     MIOPEN_EXPECT_CHECK_RET(miopenGetConvolutionFindMode(conv_descr, &findMode));
     EXPECT_EQ(findMode, miopenConvolutionFindMode_t::miopenConvolutionFindModeDefault);
