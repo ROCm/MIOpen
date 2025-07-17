@@ -266,7 +266,7 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             case miopenDouble:
             case miopenInt64: byte_size = 8; break;
             }
-            *buffer_size = G * weights_tensor_size * byte_size;
+            *buffer_size = weights_tensor_size * byte_size;
         }
         else
         {
