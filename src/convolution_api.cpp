@@ -250,7 +250,10 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
                     (is_odd(C_per_group) || is_odd(K_per_group)));
         };
 
-        size_t byte_size           = 0;
+        size_t byte_size = 0;
+        // CK uses at least 4 bytes per element in the workspace, even for smaller sizes like bfp16,
+        // which is why we need to use GetElementSize() and multiply by 4 or 8, and not
+        // use GetNumBytes().
         size_t weights_tensor_size = miopen::deref(weightsTensorDesc).GetElementSize();
         if(CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case))
         {
