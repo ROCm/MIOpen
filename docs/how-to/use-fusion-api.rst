@@ -386,6 +386,6 @@ non-fused version. All configurations have a batch size of 64:
 
 The following graph depicts the speedup obtained by fusing BatchNorm (in spatial mode) with activation:
 
-.. image:: ../data/how-to/na.png
+.. image:: ../data/how-to/bn_activ_fused.png
   :width: 800
   :alt: BatchNorm activation fusion
