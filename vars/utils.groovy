@@ -315,7 +315,7 @@ def getDockerImage(Map conf=[:])
 def buildHipClangJob(Map conf=[:]){
         show_node_info()
         miopenCheckout()
-        sh(script: "if [ ! -d './fin' ]; then git submodule update --init --recursive; fi")
+        sh(script: "git submodule update --init --recursive || true")
         checkout scm
         env.HSA_ENABLE_SDMA=0
         env.DOCKER_BUILDKIT=1
