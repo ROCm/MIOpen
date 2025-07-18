@@ -55,7 +55,8 @@ The MIOpen public repository is located at `<https://github.com/ROCm/MIOpen>`_.
     * :doc:`API library <reference/index>`
 
       * :doc:`Modules <./doxygen/html/modules>`
-      * :doc:`Datatypes <reference/datatypes>`
+      * :doc:`Datatypes <./reference/datatypes>`
+      * :doc:`Environment variables <./reference/env_variables>`
 
 For information on contributing to the MIOpen code base, see
 `Contributing to ROCm <https://rocm.docs.amd.com/en/latest/contribute/contributing.html>`_.

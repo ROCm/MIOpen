@@ -69,6 +69,8 @@ inline uint32_t RoundUpNearestPower2Positive(uint32_t v)
 bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
                                        const miopen::pooling::ProblemDescription& problem) const
 {
+    static const auto strict = TensorDescriptor::LayoutValidationMode::StrictDecreasingStrides;
+
     return problem.GetDirection() == miopen::pooling::Direction::Forward           //
            && problem.GetXDesc().GetType() == problem.GetYDesc().GetType()         //
            && (problem.GetXDesc().GetType() == miopenFloat                         //
@@ -78,12 +80,12 @@ bool PoolingForwardNaive::IsApplicable(const ExecutionContext&,
                || problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) //
            && (                                                                    //
                   (problem.GetXDesc().GetNumDims() == 5                            //
-                   && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW")             //
-                   && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW"))            //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCDHW", strict)     //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCDHW", strict))    //
                   ||                                                               //
                   (problem.GetXDesc().GetNumDims() == 4                            //
-                   && problem.GetXDesc().IsPossibleLayout4D5D("NCHW")              //
-                   && problem.GetYDesc().IsPossibleLayout4D5D("NCHW"))             //
+                   && problem.GetXDesc().IsPossibleLayout4D5D("NCHW", strict)      //
+                   && problem.GetYDesc().IsPossibleLayout4D5D("NCHW", strict))     //
               );
 }
 
