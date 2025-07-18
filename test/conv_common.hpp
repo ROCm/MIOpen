@@ -581,7 +581,7 @@ struct verify_forward_conv : conv_base<T, Tout>
         /// So we use one Immediate mode call during Find mode tests,
         /// to print solver name onto console.
         miopenConvSolution_t selected = {};
-        auto fallback_path_taken      = miopen::FallbackPath();
+        bool fallback_path_taken      = false;
         std::size_t count             = 0;
 
         Workspace wspace{};
@@ -962,7 +962,7 @@ struct verify_forward_conv : conv_base<T, Tout>
         {
             stats->algorithm   = selected.algorithm;
             stats->solver_name = miopen::solver::Id(selected.solution_id).ToString();
-            if(fallback_path_taken != miopen::FallbackPath::None)
+            if(fallback_path_taken)
                 stats->solver_name += "_fallback";
         }
         rout.data = handle.Read<Tout>(out_dev, rout.data.size());
@@ -1063,7 +1063,7 @@ struct verify_backward_conv : conv_base<T>
         Workspace wspace{};
 
         miopenConvSolution_t selected;
-        auto fallback_path_taken = miopen::FallbackPath();
+        bool fallback_path_taken = false;
         std::size_t count        = 0;
 
         const auto ctx     = ExecutionContext{&handle};
@@ -1317,7 +1317,7 @@ struct verify_backward_conv : conv_base<T>
         {
             stats->algorithm   = selected.algorithm;
             stats->solver_name = miopen::solver::Id(selected.solution_id).ToString();
-            if(fallback_path_taken != miopen::FallbackPath::None)
+            if(fallback_path_taken)
                 stats->solver_name += "_fallback";
         }
         rinput.data = handle.Read<T>(in_dev, rinput.data.size());
@@ -1418,7 +1418,7 @@ struct verify_backward_weights_conv : conv_base<T>
         Workspace wspace{};
 
         miopenConvSolution_t selected;
-        auto fallback_path_taken = miopen::FallbackPath();
+        bool fallback_path_taken = false;
         std::size_t count        = 0;
 
         const auto ctx = ExecutionContext{&handle};
@@ -1577,7 +1577,7 @@ struct verify_backward_weights_conv : conv_base<T>
         {
             stats->algorithm   = selected.algorithm;
             stats->solver_name = miopen::solver::Id(selected.solution_id).ToString();
-            if(fallback_path_taken != miopen::FallbackPath::None)
+            if(fallback_path_taken)
                 stats->solver_name += "_fallback";
         }
         rweights.data = handle.Read<T>(wei_dev, rweights.data.size());
@@ -1728,7 +1728,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         }
 
         // std::cout << "Forward Conv solutions available: " << count << std::endl;
-        auto fallback_path_taken = miopen::FallbackPath();
+        bool fallback_path_taken = false;
         auto solutions           = filter.GetSolutions(ctx, problem, count, &fallback_path_taken);
         count                    = solutions.size();
 
@@ -1772,7 +1772,7 @@ struct verify_forward_conv_int8 : conv_base<T>
         {
             stats->algorithm   = selected.algorithm;
             stats->solver_name = miopen::solver::Id(selected.solution_id).ToString();
-            if(fallback_path_taken != miopen::FallbackPath::None)
+            if(fallback_path_taken)
                 stats->solver_name += "_fallback";
         }
         rout.data = handle.Read<float>(out_dev, rout.data.size());
