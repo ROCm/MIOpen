@@ -67,119 +67,6 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)
 
 namespace miopen {
 
-struct SolutionTimeComparator
-{
-    bool operator()(const miopenConvSolution_t& lhs, const miopenConvSolution_t& rhs) const
-    {
-        // Negative values are very coarse estimations.
-        // The more modulus, the "worse" (slower) is solution.
-        if(lhs.time < 0 && rhs.time < 0)
-            return !(lhs.time < rhs.time);
-        // Positive values are always "better" than negative (coarse) estimations.
-        if(lhs.time > 0 && rhs.time < 0)
-            return true;
-        if(lhs.time < 0 && rhs.time > 0)
-            return false;
-        // Both values are positive. The less is the better.
-        return (lhs.time < rhs.time);
-    }
-};
-
-namespace {
-
-template <class TDb>
-std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
-                                               const conv::ProblemDescription& problem,
-                                               const size_t maxSolutionCount,
-                                               const AnyInvokeParams* const invokeParams)
-{
-    auto algo_resolver = std::function<int(const std::string&)>{};
-
-    switch(problem.GetDirection())
-    {
-    case conv::Direction::Forward: algo_resolver = &StringToConvolutionFwdAlgo; break;
-    case conv::Direction::BackwardData: algo_resolver = &StringToConvolutionBwdDataAlgo; break;
-    case conv::Direction::BackwardWeights:
-        algo_resolver = &StringToConvolutionBwdWeightsAlgo;
-        break;
-    }
-
-    FindDbRecord_t<TDb> fdb_record{ctx.GetStream(), problem};
-
-    if(fdb_record.empty())
-        return {};
-
-    auto interim = std::vector<miopenConvSolution_t>{};
-    interim.reserve(20); // Heuristic for speed.
-
-    for(const auto& pair : fdb_record)
-    {
-        const auto algo = static_cast<miopenConvAlgorithm_t>(algo_resolver(pair.second.algorithm));
-        if(conv::IsAlgorithmDisabled(algo))
-            continue;
-
-        const auto solver_id = solver::Id{pair.first};
-
-        // Wrong IDs can't be used to call IsApplicable(), so let's
-        // ignore obsolete or invalid IDs read from find-db first.
-        if(!solver_id.IsValid())
-        {
-            // Do not disturb users with warnings unless detailed log is enabled.
-            MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.first);
-            continue;
-        }
-
-        interim.emplace_back(
-            miopenConvSolution_t{pair.second.time, pair.second.workspace, solver_id.Value(), algo});
-    }
-
-    /// Non-zero InvokeParams means that this function is used in Find to optimize host-side
-    /// performance (see Hybrid Find modes). Note that maxSolutionCount is usually 1 in this case.
-    ///
-    /// The size of the provided workspace in Hybrid Find modes is often smaller than necessary for
-    /// Normal Find, because GWSS in these modes return size suitable only for the "best" solver
-    /// \ref ffind_gwss_why_not_0. If we check IsEnoughWorkspace() for all solvers, then many false
-    /// warnings may be produced. That is why we have to check IsEnoughWorkspace for the
-    /// maxSolutionCount "best" solvers only.
-    ///
-    /// It is also highly desirable to avoid IsApplicable() checks for solutions that go beyond
-    /// maxSolutionCount, i.e. those that are not needed anyway. This optimization is important, for
-    /// example, to avoid applicability checks for MLIR solvers, since these may involve running the
-    /// MIIR compiler, which is very slow.
-    ///
-    /// The loop below does all the above at once.
-    std::sort(begin(interim), end(interim), SolutionTimeComparator{});
-    auto out = std::vector<miopenConvSolution_t>{};
-    out.reserve(maxSolutionCount);
-    auto n_copied = 0;
-    for(const auto& s : interim)
-    {
-        const auto solver_id = solver::Id{s.solution_id};
-        if(!solver_id.GetSolver().IsApplicable(ctx, problem))
-            continue;
-        if(!conv::IsEnoughWorkspace("GetSolutions", solver_id, s.workspace_size, invokeParams))
-            continue;
-        out.push_back(s);
-        if(++n_copied >= maxSolutionCount)
-            break;
-    }
-
-    for(const auto& s : out)
-        MIOPEN_LOG_I2(solver::Id{s.solution_id}.ToString());
-
-    return out;
-}
-
-std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
-                                               const conv::ProblemDescription& problem,
-                                               const size_t maxSolutionCount,
-                                               const AnyInvokeParams* const invokeParams)
-{
-    return GetSolutions<FindDb>(ctx, problem, maxSolutionCount, invokeParams);
-}
-
-} // namespace
-
 static inline void ValidateWorkspace(Data_t workSpace, const size_t workSpaceSize)
 {
 
@@ -253,156 +140,6 @@ static void ShrinkToFind10Results(std::vector<Solution>& found)
     found = std::move(out);
 }
 
-std::vector<solver::ConvSolution>
-GetConvSolutions(const ExecutionContext& ctx,
-                 const conv::ProblemDescription& problem,
-                 const std::vector<miopenConvSolution_t> solutions)
-{
-    std::vector<solver::ConvSolution> conv_sols;
-
-    auto db = MakeConvDbGetter(ctx);
-    for(const auto& sol : solutions)
-    {
-        const auto id      = solver::Id{sol.solution_id};
-        const auto& solver = id.GetSolver();
-
-        solver::ConvSolution conv_sol =
-            solver.FindSolution(ctx, problem, db, {}); // auto tune is not expected here
-
-        conv_sols.emplace_back(std::move(conv_sol));
-    }
-    return conv_sols;
-}
-
-std::vector<Solution> EvaluateConvSolutions(const ExecutionContext& ctx,
-                                            const conv::ProblemDescription& problem,
-                                            const AnyInvokeParams& invoke_ctx,
-                                            const std::vector<solver::ConvSolution> solutions,
-                                            bool model_result = false)
-{
-    std::vector<Solution> eval_sols;
-
-    // test timing of solver reported by system db
-    const auto& handle = ctx.GetStream();
-    AutoEnableProfiling enableProfiling{handle};
-    bool is_optimal = true;
-
-    // reverse solutions so that EvaluateInvokers registers the fastest solution last
-    auto sol_itr = solutions.rbegin();
-    auto sol_end = solutions.rend();
-    if(!model_result)
-        sol_itr = solutions.rend() - 1;
-
-    for(auto conv_sol = sol_itr; conv_sol != sol_end; ++conv_sol)
-    {
-        const auto id      = solver::Id{conv_sol->solver_id};
-        const auto& solver = id.GetSolver();
-        CompileSolution(id, ctx, problem);
-
-        std::vector<solver::ConvSolution> conv_sols;
-        conv_sols.emplace_back(*conv_sol);
-
-        AlgorithmName algo{
-            ConvolutionAlgoToDirectionalString(id.GetAlgo(), problem.GetDirection())};
-        std::vector<Solution> eval_sol = EvaluateInvokers(
-            handle, conv_sols, algo, problem.MakeNetworkConfig(), invoke_ctx, is_optimal, false);
-
-        eval_sols.emplace_back(eval_sol.front());
-    }
-    if(model_result)
-        std::reverse(eval_sols.begin(), eval_sols.end());
-
-    auto eval_slv_check_1 = solver::Id{solutions[0].solver_id};
-    assert(eval_sols[0].GetSolver() == eval_slv_check_1);
-
-    return eval_sols;
-}
-
-bool HasGoodSolution(const std::vector<miopenConvSolution_t> solutions,
-                     const std::vector<Solution> eval_sols,
-                     const bool model_result)
-{
-    bool good_entry         = false;
-    const float eval_time_1 = eval_sols[0].GetTime();
-    if(model_result)
-    {
-        // heuristic model was used (no timing data), check vs 2nd place
-        assert(eval_sols.size() >= 2);
-        const float eval_time_2 = eval_sols[1].GetTime();
-        good_entry              = eval_time_1 < eval_time_2;
-        MIOPEN_LOG_I2("TrustVerify: from model "
-                      << eval_sols[0].GetSolver().ToString() << "(" << eval_time_1 << ") < "
-                      << eval_sols[1].GetSolver().ToString() << "(" << eval_time_2 << ")  ?");
-    }
-    else
-    {
-        // test evaluated vs recorded time
-        float VERIFY_TOLERANCE = 1.0 + env::value(MIOPEN_VERIFY_TOLERANCE_PCT) / 100.0f;
-        const float rel_perf   = eval_time_1 / solutions[0].time;
-        good_entry             = rel_perf < VERIFY_TOLERANCE;
-        MIOPEN_LOG_I2("TrustVerify: evaluated(" << eval_time_1 << ") / recorded("
-                                                << solutions[0].time << ") = " << rel_perf << " < "
-                                                << VERIFY_TOLERANCE << " ?");
-    }
-
-    return good_entry;
-}
-
-std::vector<Solution> VerifiedFDBSolution(const ExecutionContext& ctx,
-                                          const conv::ProblemDescription& problem,
-                                          const AnyInvokeParams& invoke_ctx,
-                                          bool force_attach_binary,
-                                          const std::vector<miopenConvSolution_t> solutions,
-                                          const bool model_result)
-{
-    const auto& conv     = problem.GetConv();
-    const auto& findMode = conv.findMode;
-    auto results         = UserFindDbRecord::TryLoad(ctx.GetStream(), problem, [&]() {
-        auto ctx_copy                       = ctx;
-        ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
-        const auto params =
-            conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
-
-        auto conv_sols  = GetConvSolutions(ctx, problem, solutions);
-        auto eval_sols  = EvaluateConvSolutions(ctx, problem, invoke_ctx, conv_sols, model_result);
-        bool good_entry = HasGoodSolution(solutions, eval_sols, model_result);
-
-        if(good_entry)
-        {
-            // system db result is good
-            // add to user fdb so this check is skipped next time
-            MIOPEN_LOG_I2("TrustVerify: Add system db entry to user db");
-            auto fallback  = FallbackPath();
-            auto ret       = FindCoreResult();
-            ret.is_optimal = true;
-            auto copy_sols = conv.GetSolutions(ctx, problem, 4, &fallback, &invoke_ctx);
-            for(const auto& s : copy_sols)
-            {
-                auto solution = Solution{solver::Id{s.solution_id}, s.time, s.workspace_size};
-                ret.solutions.emplace_back(std::move(solution));
-            }
-            return ret;
-        }
-        else
-        {
-            // entry considered bad, trigger tuning
-            MIOPEN_LOG_I2("TrustVerify: Regenerate entry for user db");
-            ctx_copy.do_search = true;
-            ctx_copy.db_update = true;
-
-            return FindCore(invoke_ctx,
-                            ctx_copy,
-                            problem,
-                            params,
-                            conv::GetConvSolverFinders(),
-                            std::nullopt,
-                            force_attach_binary);
-        }
-    });
-
-    return results;
-}
-
 std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
                                       const conv::ProblemDescription& problem,
                                       const AnyInvokeParams& invoke_ctx,
@@ -413,26 +150,13 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
     auto sol             = boost::optional<miopenConvSolution_t>{};
     const auto& conv     = problem.GetConv();
     const auto& findMode = conv.findMode;
-    auto fallback        = FallbackPath();
-    std::vector<miopenConvSolution_t> sols;
-    std::vector<miopenConvSolution_t> ufdb_sols;
 
     if(findMode.IsFast(ctx) || findMode.IsHybrid(ctx))
     {
-        if(findMode.IsTrustVerify(ctx))
-        {
-            ufdb_sols = miopen::GetSolutions<UserFindDb>(ctx, problem, 1, &invoke_ctx);
-            if(!ufdb_sols.empty())
-                sols = ufdb_sols;
-            else
-                sols = conv.GetSolutions(ctx, problem, 2, &fallback, &invoke_ctx);
-        }
-        else
-            sols = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
-
+        auto fallback = bool{};
+        auto sols     = conv.GetSolutions(ctx, problem, 1, &fallback, &invoke_ctx);
         // override the normal find with immed mode with env var
-        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback != FallbackPath::None) ||
-                             (findMode.IsTrustVerify(ctx) && fallback == FallbackPath::AI) ||
+        if(!sols.empty() && (!(findMode.IsHybrid(ctx) && fallback) ||
                              env::enabled(MIOPEN_DEBUG_FORCE_IMMED_MODE_FALLBACK)))
             sol = sols.front();
         // In Hybrid Find mode, we use Normal Find instead of Immediate fallback kernels.
@@ -440,34 +164,12 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
 
     if(sol.has_value())
     {
-        if(findMode.IsTrustVerify(ctx))
-        {
-            if(ufdb_sols.empty())
-            {
-                // solution is from system db, verify on current machine
-                MIOPEN_LOG_I2("TrustVerify: No user db entry");
-                results = VerifiedFDBSolution(ctx,
-                                              problem,
-                                              invoke_ctx,
-                                              force_attach_binary,
-                                              sols,
-                                              fallback == FallbackPath::AI);
-            }
-            else
-            {
-                MIOPEN_LOG_I2("TrustVerify: Found user db entry");
-            }
-        }
-
-        if(results.empty())
-        {
-            /// It is possible to measure actual execution time and return it to the caller.
-            /// \todo Consider if we need (and want to spend time) for this.
-            const auto id      = solver::Id{sol->solution_id};
-            const auto& solver = id.GetSolver();
-            CompileSolution(id, ctx, problem);
-            results.push_back({id, sol->time, solver.GetWorkspaceSize(ctx, problem)});
-        }
+        /// It is possible to measure actual execution time and return it to the caller.
+        /// \todo Consider if we need (and want to spend time) for this.
+        const auto id = solver::Id{sol->solution_id};
+        const auto& s = id.GetSolver();
+        CompileSolution(id, ctx, problem);
+        results.push_back({id, sol->time, s.GetWorkspaceSize(ctx, problem)});
     }
     else
     {
@@ -476,13 +178,6 @@ std::vector<Solution> FindConvolution(const ExecutionContext& ctx,
             ctx_copy.use_dynamic_solutions_only = findMode.IsDynamicHybrid(ctx);
             const auto params =
                 conv::ConvFindParameters{conv.IsWinograd3x3SupportedAndFast(ctx_copy, problem)};
-
-            if(findMode.IsTrustVerify(ctx))
-            {
-                MIOPEN_LOG_I2("TrustVerify: Generate entry for user db");
-                ctx_copy.do_search = true;
-                ctx_copy.db_update = true;
-            }
 
             return FindCore(invoke_ctx,
                             ctx_copy,
@@ -851,6 +546,24 @@ std::size_t ConvolutionDescriptor::GetSolutionCount(const ExecutionContext& ctx,
     return GetSolutionCountFallback(ctx, problem);
 }
 
+struct SolutionTimeComparator
+{
+    bool operator()(const miopenConvSolution_t& lhs, const miopenConvSolution_t& rhs) const
+    {
+        // Negative values are very coarse estimations.
+        // The more modulus, the "worse" (slower) is solution.
+        if(lhs.time < 0 && rhs.time < 0)
+            return !(lhs.time < rhs.time);
+        // Positive values are always "better" than negative (coarse) estimations.
+        if(lhs.time > 0 && rhs.time < 0)
+            return true;
+        if(lhs.time < 0 && rhs.time > 0)
+            return false;
+        // Both values are positive. The less is the better.
+        return (lhs.time < rhs.time);
+    }
+};
+
 namespace {
 
 std::ostream& operator<<(std::ostream& os, const miopenConvSolution_t& s)
@@ -867,7 +580,6 @@ std::vector<miopenConvSolution_t>
 ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem,
                                             const size_t maxSolutionCount,
-                                            FallbackPath* fallbackPathTaken,
                                             const AnyInvokeParams* const invokeParams) const
 {
     if(env::disabled(MIOPEN_DEBUG_CONV_IMMED_FALLBACK))
@@ -890,8 +602,6 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK
     if(!env::disabled(MIOPEN_DEBUG_ENABLE_AI_IMMED_MODE_FALLBACK))
     {
-        if(fallbackPathTaken != nullptr)
-            *fallbackPathTaken = FallbackPath::AI;
         const static std::string arch = ctx.GetStream().GetDeviceName();
         std::vector<uint64_t> solvers;
         try
@@ -937,9 +647,6 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     // if TunaNet is not enabled or produces no applicable solvers then fallback to WTI
     if(interim.empty())
     {
-        if(fallbackPathTaken != nullptr)
-            *fallbackPathTaken = FallbackPath::WTI;
-
         MIOPEN_LOG_I2("Using WTI Fallback");
         const auto wti2time = [](const float& wti) {
             assert(wti != 0.0f);
@@ -980,6 +687,92 @@ ConvolutionDescriptor::GetSolutionsFallback(const ExecutionContext& ctx,
     return interim;
 }
 
+namespace {
+
+std::vector<miopenConvSolution_t> GetSolutions(const ExecutionContext& ctx,
+                                               const conv::ProblemDescription& problem,
+                                               const size_t maxSolutionCount,
+                                               const AnyInvokeParams* const invokeParams)
+{
+    auto algo_resolver = std::function<int(const std::string&)>{};
+
+    switch(problem.GetDirection())
+    {
+    case conv::Direction::Forward: algo_resolver = &StringToConvolutionFwdAlgo; break;
+    case conv::Direction::BackwardData: algo_resolver = &StringToConvolutionBwdDataAlgo; break;
+    case conv::Direction::BackwardWeights:
+        algo_resolver = &StringToConvolutionBwdWeightsAlgo;
+        break;
+    }
+
+    const FindDbRecord fdb_record{ctx.GetStream(), problem};
+
+    if(fdb_record.empty())
+        return {};
+
+    auto interim = std::vector<miopenConvSolution_t>{};
+    interim.reserve(20); // Heuristic for speed.
+
+    for(const auto& pair : fdb_record)
+    {
+        const auto algo = static_cast<miopenConvAlgorithm_t>(algo_resolver(pair.second.algorithm));
+        if(conv::IsAlgorithmDisabled(algo))
+            continue;
+
+        const auto solver_id = solver::Id{pair.first};
+
+        // Wrong IDs can't be used to call IsApplicable(), so let's
+        // ignore obsolete or invalid IDs read from find-db first.
+        if(!solver_id.IsValid())
+        {
+            // Do not disturb users with warnings unless detailed log is enabled.
+            MIOPEN_LOG_I("[Warning] incorrect solver_id: " << pair.first);
+            continue;
+        }
+
+        interim.emplace_back(
+            miopenConvSolution_t{pair.second.time, pair.second.workspace, solver_id.Value(), algo});
+    }
+
+    /// Non-zero InvokeParams means that this function is used in Find to optimize host-side
+    /// performance (see Hybrid Find modes). Note that maxSolutionCount is usually 1 in this case.
+    ///
+    /// The size of the provided workspace in Hybrid Find modes is often smaller than necessary for
+    /// Normal Find, because GWSS in these modes return size suitable only for the "best" solver
+    /// \ref ffind_gwss_why_not_0. If we check IsEnoughWorkspace() for all solvers, then many false
+    /// warnings may be produced. That is why we have to check IsEnoughWorkspace for the
+    /// maxSolutionCount "best" solvers only.
+    ///
+    /// It is also highly desirable to avoid IsApplicable() checks for solutions that go beyond
+    /// maxSolutionCount, i.e. those that are not needed anyway. This optimization is important, for
+    /// example, to avoid applicability checks for MLIR solvers, since these may involve running the
+    /// MIIR compiler, which is very slow.
+    ///
+    /// The loop below does all the above at once.
+    std::sort(begin(interim), end(interim), SolutionTimeComparator{});
+    auto out = std::vector<miopenConvSolution_t>{};
+    out.reserve(maxSolutionCount);
+    auto n_copied = 0;
+    for(const auto& s : interim)
+    {
+        const auto solver_id = solver::Id{s.solution_id};
+        if(!solver_id.GetSolver().IsApplicable(ctx, problem))
+            continue;
+        if(!conv::IsEnoughWorkspace("GetSolutions", solver_id, s.workspace_size, invokeParams))
+            continue;
+        out.push_back(s);
+        if(++n_copied >= maxSolutionCount)
+            break;
+    }
+
+    for(const auto& s : out)
+        MIOPEN_LOG_I2(s);
+
+    return out;
+}
+
+} // namespace
+
 /// \todo Extend miopenConvSolution_t with an attribute indicating
 /// how the solution was obtained (benchmarked on the current system,
 /// taken from the System find-db, heuristically estimated, produced by
@@ -988,20 +781,19 @@ std::vector<miopenConvSolution_t>
 ConvolutionDescriptor::GetSolutions(const ExecutionContext& ctx,
                                     const conv::ProblemDescription& problem,
                                     size_t maxSolutionCount,
-                                    FallbackPath* fallbackPathTaken,
+                                    bool* fallbackPathTaken,
                                     const AnyInvokeParams* const invokeParams) const
 {
     MIOPEN_LOG_I("");
     auto solutions = miopen::GetSolutions(ctx, problem, maxSolutionCount, invokeParams);
 
-    if(!solutions.empty())
-    {
-        if(fallbackPathTaken != nullptr)
-            *fallbackPathTaken = FallbackPath::None;
-        return solutions;
-    }
+    if(fallbackPathTaken != nullptr)
+        *fallbackPathTaken = solutions.empty();
 
-    return GetSolutionsFallback(ctx, problem, maxSolutionCount, fallbackPathTaken, invokeParams);
+    if(!solutions.empty())
+        return solutions;
+
+    return GetSolutionsFallback(ctx, problem, maxSolutionCount, invokeParams);
 }
 
 std::size_t ConvolutionDescriptor::GetForwardSolutionWorkspaceSize(const Handle& handle,
