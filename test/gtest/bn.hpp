@@ -119,6 +119,12 @@ struct BNInferTest : public ::testing::TestWithParam<std::tuple<TestCase,
 protected:
     void SetUp() override
     {
+        auto&& handle = get_handle();
+        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
+        {
+            test_skipped = true;
+            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
+        }
         std::tie(bn_config, tensor_layout, bn_mode, api_type, bn_infer_test_data.activ_mode) =
             this->GetParam();
         bn_infer_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
@@ -126,12 +132,6 @@ protected:
         bn_infer_test_data.activ_alpha = static_cast<double>(0.1f);
         bn_infer_test_data.activ_beta  = static_cast<double>(0.3f);
 
-        auto&& handle = get_handle();
-        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
-        {
-            test_skipped = true;
-            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
-        }
         miopenStatus_t res = miopenStatusUnknownError;
         if(bn_infer_test_data.activ_mode > 0)
         {
@@ -270,6 +270,12 @@ struct BNBwdTest : public ::testing::TestWithParam<std::tuple<TestCase,
 protected:
     void SetUp() override
     {
+        auto&& handle = get_handle();
+        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
+        {
+            test_skipped = true;
+            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
+        }
         std::tie(bn_config, tensor_layout, bn_mode, api_type, bn_bwd_test_data.activ_mode) =
             this->GetParam();
         bn_bwd_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
@@ -279,12 +285,6 @@ protected:
                                            : static_cast<double>(0.5f);
         bn_bwd_test_data.activ_beta  = static_cast<double>(0.3f);
 
-        auto&& handle = get_handle();
-        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
-        {
-            test_skipped = true;
-            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
-        }
         miopenStatus_t res = miopenStatusUnknownError;
         if(bn_bwd_test_data.activ_mode > 0)
         {
@@ -441,6 +441,12 @@ struct BNFwdTrainTest : public ::testing::TestWithParam<std::tuple<TestCase,
 protected:
     void SetUp() override
     {
+        auto&& handle = get_handle();
+        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
+        {
+            test_skipped = true;
+            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
+        }
         std::tie(bn_config, tensor_layout, bn_mode, api_type, bn_fwd_train_test_data.activ_mode) =
             this->GetParam();
         bn_fwd_train_test_data.SetUpImpl(bn_config, bn_mode, tensor_layout);
@@ -448,12 +454,6 @@ protected:
         bn_fwd_train_test_data.activ_alpha = static_cast<double>(0.1f);
         bn_fwd_train_test_data.activ_beta  = static_cast<double>(0.3f);
 
-        auto&& handle = get_handle();
-        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
-        {
-            test_skipped = true;
-            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
-        }
         miopenStatus_t res = miopenStatusUnknownError;
         if(bn_fwd_train_test_data.activ_mode > 0)
         {
