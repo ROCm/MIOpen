@@ -442,9 +442,11 @@ bool IsEnoughWorkspace(std::string_view where,
         const auto provided_ptr  = invokeParams->GetWorkspace();
         if(provided_ptr == nullptr || provided_size < required_size)
         {
+            #if 0
             MIOPEN_LOG_W("[" << where << "] Solver <" << solver_id.ToString() << ">"
                              << ", workspace required: " << required_size
                              << ", provided ptr: " << provided_ptr << " size: " << provided_size);
+            #endif
             return false;
         }
     }
