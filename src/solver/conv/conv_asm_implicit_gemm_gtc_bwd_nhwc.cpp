@@ -827,39 +827,29 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
     const auto pad_w      = problem.GetPadW();
     const int y           = problem.GetWeightsHeight();
     const int x           = problem.GetWeightsWidth();
+    // extra large size check
+    {
+        size_t current_block_size, current_grid_size, current_splits_4G;
+        std::tie(current_block_size, current_grid_size, current_splits_4G) =
+            GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(problem, *this);
 
-    const int hi = problem.GetOutHeight();
-    const int wi = problem.GetOutWidth();
-    const int n  = problem.GetBatchSize();
-    const int ho = problem.GetInHeight();
-    const int wo = problem.GetInWidth();
+        if(current_splits_4G == 0)
+            return false;
 
-    auto splits_4G = igemm_split_batch_size(
-        hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
+        if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 &&
+           current_splits_4G > 1)
+            return false;
 
-    // limitation for loading filter using multielement instructions
-    int tb_c1     = tensor_b_thread_lengths[3];
-    int data_byte = miopen::GetTypeSize(problem.GetInDataType());
-
-    int vector_d1 = gcd(tb_c1, 4 * (4 / data_byte));
-    if((c / group) % vector_d1 != 0)
-        return false;
-
-    if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
-        return false;
-
-    size_t current_block_size, current_grid_size, current_splits_4G;
-    std::tie(current_block_size, current_grid_size, current_splits_4G) =
-        GetImplicitGemmGtcDynamicBwdXdlopsNHWCKernel(problem, *this);
-
-    if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
-        return false;
+        if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
+            return false;
+    }
 
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
     bool is_gemm_k_split = gemm_k_global_split != 0;
 
+    // gkgs check
     if(is_gemm_k_split)
     {
         const int max_split_num = [&]() {
@@ -887,35 +877,24 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
             return false;
     }
 
-    if(!(tensor_a_thread_lengths[1] == 1 && merge_e == 1))
+    // limitation for loading filter using multielement instructions
+    int tb_c1     = tensor_b_thread_lengths[3];
+    int data_byte = miopen::GetTypeSize(problem.GetInDataType());
+
+    int vector_d1 = gcd(tb_c1, 4 * (4 / data_byte));
+    if((c / group) % vector_d1 != 0)
+        return false;
+
+    if(tensor_a_thread_lengths[1] != 1)
     {
         // in case k split too large
-        auto gemm_k_shift = gemm_k_global_split != 0 ? 1 : 0;
-
-        if(is_gemm_k_split && (gemm_k_per_block << gemm_k_shift) > (k / group))
-            return false;
-
-        auto splited_k = (k / group) >> gemm_k_shift;
+        auto gemm_k_shift = is_gemm_k_split ? 1 : 0;
+        auto splited_k    = (k / group);
 
         // gemm_k need be multiply of gemm_k_per_block
-        if(splited_k == 0 || splited_k % gemm_k_per_block != 0)
+        if((splited_k >> gemm_k_shift) == 0 ||
+           (splited_k % (gemm_k_per_block << gemm_k_shift)) != 0)
             return false;
-    }
-
-    if((problem.IsBfp16() || problem.IsFp16()) &&
-       !(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 && merge_e == 1 &&
-         !is_gemm_k_split))
-    {
-        if(is_gemm_k_split)
-        {
-            if((c / group) % 2 != 0)
-                return false;
-        }
-        else
-        {
-            if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
-                return false;
-        }
     }
 
     if((nxe == 0) && !unit_conv)
@@ -923,6 +902,25 @@ bool PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC::IsValid(
         return false;
     }
 
+    if(problem.IsBfp16() || problem.IsFp16())
+    {
+        if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[3] == 1 && merge_e == 1 &&
+             !is_gemm_k_split))
+        {
+            if(is_gemm_k_split)
+            {
+                if((c / group) % 2 != 0)
+                    return false;
+            }
+            else
+            {
+                if((c / group) % gcd(gemm_n_per_block, vector_store == 0 ? 8 : vector_store) != 0)
+                    return false;
+            }
+        }
+    }
+
+    // Only in MIOpen limitations for possible options
     // add more restriction for spare
     if(use_spare_set)
     {

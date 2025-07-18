@@ -789,6 +789,18 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(
         problem.IsFp16() ? miopenHalf : (problem.IsBfp16() ? miopenBFloat16 : miopenFloat);
     const auto group = problem.GetGroupCount();
 
+    {
+        size_t current_block_size, current_grid_size, current_splits_4G;
+        std::tie(current_block_size, current_grid_size, current_splits_4G) =
+            GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(problem, *this);
+
+        if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
+            return false;
+
+        if(current_splits_4G == 0)
+            return false;
+    }
+
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
@@ -816,13 +828,6 @@ bool PerformanceConfigAsmImplicitGemmGTCWrwXdlopsNHWC::IsValid(
         if(unit_conv && nxe != 0)
             return false;
     }
-
-    size_t current_block_size, current_grid_size, current_splits_4G;
-    std::tie(current_block_size, current_grid_size, current_splits_4G) =
-        GetImplicitGemmGtcDynamicWrwXdlopsNHWCKernel(problem, *this);
-
-    if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
-        return false;
 
     return true;
 }
