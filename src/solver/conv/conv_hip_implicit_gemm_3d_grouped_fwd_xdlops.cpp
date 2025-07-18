@@ -382,11 +382,17 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescrip
         int Z               = ProblemInterpreter::GetFilterDepthZ(problem);
         index = 1;
        // if (C>64)
+        if (problem.GetInDataType() == miopenBFloat16)
         {
             if (valid_kernels.size() > 31)
                 index = 30; // DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3<256, 128, 128, 64
             if (K < 64 && valid_kernels.size() > 39)
                 index = 38;
+        }
+        else if (problem.GetInDataType() == miopenHalf)
+        {
+             if (valid_kernels.size() > 32)
+                index = 31; // DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3<256, 128, 128, 64
         }
     }
     kernel_id = valid_kernels[index];
