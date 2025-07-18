@@ -33,14 +33,12 @@
 
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX,
                               std::numeric_limits<std::size_t>::max())
-
-const size_t MIOPEN_DEFAULT_TUNING_TIME_MS_MAX = 7200000; // 2 hours
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_TUNING_TIME_MS_MAX, MIOPEN_DEFAULT_TUNING_TIME_MS_MAX)
-
-const size_t MIOPEN_DEFAULT_TUNING_PATIENCE = std::numeric_limits<std::size_t>::max();
+MIOPEN_DECLARE_ENV_VAR_UINT64(
+    MIOPEN_TUNING_TIME_MS_MAX,
+    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::hours{2}).count())
 MIOPEN_DECLARE_ENV_VAR_UINT64(
     MIOPEN_TUNING_PATIENCE,
-    MIOPEN_DEFAULT_TUNING_PATIENCE) // End tuning if no improvement in X iterations
+    std::numeric_limits<std::size_t>::max()) // End tuning if no improvement in X iterations
 
 #if MIOPEN_USE_COMGR
 MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_COMPILE_PARALLEL_LEVEL, 1) // COMGR is not parallelizable
@@ -49,6 +47,3 @@ MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_COMPILE_PARALLEL_LEVEL,
                               std::thread::hardware_concurrency() / 2)
 #endif
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_COMPILE_ONLY)
-
-const size_t MIOPEN_DEFAULT_VERIFY_TOLERANCE_PCT = 15;
-MIOPEN_DECLARE_ENV_VAR_UINT64(MIOPEN_VERIFY_TOLERANCE_PCT, MIOPEN_DEFAULT_VERIFY_TOLERANCE_PCT)
