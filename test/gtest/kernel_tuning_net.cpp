@@ -310,12 +310,12 @@ using GPU_KernelTuningNetTestConvAsm1x1U_FP32 =
 using GPU_KernelTuningNetTestConvAsm1x1U_FP16 =
     KernelTuningNetTest<miopen::solver::conv::PerformanceConfigConvAsm1x1U>;
 
-TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_FP32, DISABLE_ConvAsm1x1UParameterPredictionModel)
+TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_FP32, DISABLED_ConvAsm1x1UParameterPredictionModel)
 {
     TestParameterPredictionModel("ConvAsm1x1U");
 }
 
-TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_FP16, DISABLE_ConvAsm1x1UParameterPredictionModel)
+TEST_P(GPU_KernelTuningNetTestConvAsm1x1U_FP16, DISABLED_ConvAsm1x1UParameterPredictionModel)
 {
     TestParameterPredictionModel("ConvAsm1x1U");
 }
