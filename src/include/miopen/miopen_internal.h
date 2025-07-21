@@ -45,12 +45,14 @@ extern "C" {
  * @param  alpha_beta_case type of alpha beta case
  * @param  inputTensorDesc Input data tensor descriptor (output)
  * @param  outputTensorDesc Output data tensor descriptor (output)
+ * @param  weightsTensorDesc Weights tensor descriptor
  * @param  buffer_size buffer size for CK Backward weights work space
  */
 MIOPEN_EXPORT extern "C" miopenStatus_t
 miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
                                                    const miopenTensorDescriptor_t inputTensorDesc,
                                                    const miopenTensorDescriptor_t outputTensorDesc,
+                                                   const miopenTensorDescriptor_t weightsTensorDesc,
                                                    const miopenConvolutionDescriptor_t convDesc,
                                                    size_t* buffer_size);
 
