@@ -27,6 +27,9 @@ The MIOpen public repository is located at `<https://github.com/ROCm/MIOpen>`_.
     * :doc:`Build MIOpen for embedded systems <./install/embed>`
     * :doc:`Build MIOpen using Docker <./install/docker-build>`
 
+.. grid:: 2
+  :gutter: 3  
+
   .. grid-item-card:: Conceptual
 
     * :doc:`Find database <./conceptual/finddb>`
@@ -42,6 +45,10 @@ The MIOpen public repository is located at `<https://github.com/ROCm/MIOpen>`_.
     * :doc:`Log and debug <./how-to/debug-log>`
     * :doc:`Use the find APIs and immediate mode <./how-to/find-and-immediate>`
     * :doc:`Use NHWC Batch Normalization with PyTorch <./how-to/use-nhwc-batchnorm-in-pytorch>`
+
+  .. grid-item-card:: Samples
+
+    * `MIOpen samples <https://github.com/ROCm/MIOpen/tree/develop/samples>`_
 
   ..  grid-item-card:: Reference
 
