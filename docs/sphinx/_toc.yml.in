@@ -43,6 +43,11 @@ subtrees:
   - file: how-to/use-nhwc-batchnorm-in-pytorch.rst
     title: Use NHWC Batch Normalization with PyTorch
 
+- caption: Samples
+  entries:
+  - url: https://github.com/ROCm/MIOpen/tree/develop/samples
+    title: MIOpen samples
+
 - caption: Reference
   entries:
   - file: reference/index
