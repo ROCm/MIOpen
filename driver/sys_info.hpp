@@ -43,53 +43,52 @@
 #include <hip/hip_runtime.h>
 #endif
 
-namespace RocmPerf
-{
+namespace RocmPerf {
 
-#define HIP_CHECK(call) {           \
-    hipError_t err_ = call;         \
-    if (err_ != hipSuccess) {       \
-        std::cerr << "HIP error: " << hipGetErrorString(err_) << std::endl; \
-    }                               \
-}
+#define HIP_CHECK(call)                                                         \
+    {                                                                           \
+        hipError_t err_ = call;                                                 \
+        if(err_ != hipSuccess)                                                  \
+        {                                                                       \
+            std::cerr << "HIP error: " << hipGetErrorString(err_) << std::endl; \
+        }                                                                       \
+    }
 
 class SysInfo
 {
 public:
     SysInfo(size_t major, size_t minor, size_t patch)
-    :
-    miopMajor(major),
-    miopMinor(minor),
-    miopPatch(patch)
-    {}
+        : miopMajor(major), miopMinor(minor), miopPatch(patch)
+    {
+    }
 
     void ShowSysInfo()
     {
         // System information collection
-        const std::string timestamp     = GetTimestamp();
-        const std::string hostname      = GetHostname();
-        const std::string osInfo        = GetOsInfo();
-        const std::string hipVer        = GetHipVersion();
-        auto [cpuVendor, cpuModel]      = GetCpuInfo();
-        const std::string ramSize       = GetRamSize();
-        const std::string gpuInfo       = GetGpuInfo();
+        const std::string timestamp = GetTimestamp();
+        const std::string hostname  = GetHostname();
+        const std::string osInfo    = GetOsInfo();
+        const std::string hipVer    = GetHipVersion();
+        auto [cpuVendor, cpuModel]  = GetCpuInfo();
+        const std::string ramSize   = GetRamSize();
+        const std::string gpuInfo   = GetGpuInfo();
 
         // Format final output
-        std::cout << "TimeStamp: "          << timestamp << "; "
-                  << "Host Name: "          << hostname  << "; "
-                  << "Operating System: "   << osInfo    << "; "
-                  << "ROCm: "               << hipVer    << "; "
-                  << "OpDriver: "           << miopMajor << "." << miopMinor << "." << miopPatch << "; "
-                  << "CPU Vendor: "         << cpuVendor << "; "
-                  << "CPU Model: "          << cpuModel  << "; "
-                  << "RAM Size: "           << ramSize   << "; "
-                  << "GPU Model: "          << gpuInfo 
-                  << std::endl;
+        std::cout << "TimeStamp: " << timestamp << "; "
+                  << "Host Name: " << hostname << "; "
+                  << "Operating System: " << osInfo << "; "
+                  << "ROCm: " << hipVer << "; "
+                  << "OpDriver: " << miopMajor << "." << miopMinor << "." << miopPatch << "; "
+                  << "CPU Vendor: " << cpuVendor << "; "
+                  << "CPU Model: " << cpuModel << "; "
+                  << "RAM Size: " << ramSize << "; "
+                  << "GPU Model: " << gpuInfo << std::endl;
     }
+
 private:
     std::string GetTimestamp()
     {
-        auto now  = std::chrono::system_clock::now();
+        auto now   = std::chrono::system_clock::now();
         auto now_c = std::chrono::system_clock::to_time_t(now);
         std::stringstream ss;
 #ifdef __linux__
@@ -126,26 +125,27 @@ private:
         std::string socket_info;
 #ifdef __linux__
         std::ifstream cpuinfo("/proc/cpuinfo");
-        while (getline(cpuinfo, line))
+        while(getline(cpuinfo, line))
         {
-            if (line.find("vendor_id") == 0 && vendor_id.empty())
+            if(line.find("vendor_id") == 0 && vendor_id.empty())
             {
                 vendor_id = line.substr(line.find(": ") + 2);
             }
-            if (line.find("model name") == 0 && model_name.empty())
+            if(line.find("model name") == 0 && model_name.empty())
             {
                 model_name = line.substr(line.find(": ") + 2);
             }
-            if (line.find("physical id") == 0) {
+            if(line.find("physical id") == 0)
+            {
                 physical_ids.insert(line.substr(line.find(": ") + 2));
             }
         }
 
-        if (vendor_id.find("AuthenticAMD") != std::string::npos)
+        if(vendor_id.find("AuthenticAMD") != std::string::npos)
         {
-            vendor_id = "AMD";
+            vendor_id        = "AMD";
             size_t start_pos = model_name.find("AMD ");
-            if (start_pos != std::string::npos)
+            if(start_pos != std::string::npos)
             {
                 model_name = model_name.substr(start_pos + 4);
             }
@@ -154,7 +154,7 @@ private:
             iss >> part1 >> part2;
             model_name = part1 + " " + part2;
         }
-        else if (vendor_id.find("GenuineIntel") != std::string::npos)
+        else if(vendor_id.find("GenuineIntel") != std::string::npos)
         {
             vendor_id = "Intel";
         }
@@ -167,7 +167,7 @@ private:
         socket_info = physical_ids.empty() ? "" : std::to_string(physical_ids.size()) + " x ";
         return {vendor_id, socket_info + model_name};
 #else
-        return { "unimplemented", "unimplemented"};
+        return {"unimplemented", "unimplemented"};
 #endif
     }
 
@@ -176,13 +176,13 @@ private:
 #ifdef __linux__
         std::ifstream meminfo("/proc/meminfo");
         std::string line;
-        while (getline(meminfo, line))
+        while(getline(meminfo, line))
         {
-            if (line.find("MemTotal") == 0)
+            if(line.find("MemTotal") == 0)
             {
                 size_t start = line.find(":") + 2;
-                size_t end = line.find(" kB");
-                long kb = std::stol(line.substr(start, end - start));
+                size_t end   = line.find(" kB");
+                long kb      = std::stol(line.substr(start, end - start));
                 return std::to_string(kb / (1024 * 1024)) + " GB";
             }
         }
@@ -211,7 +211,7 @@ private:
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
         HIP_CHECK(hipGetDeviceCount(&deviceCount));
 #endif
-        if (deviceCount < 1)
+        if(deviceCount < 1)
         {
             result = "None";
         }
@@ -219,16 +219,17 @@ private:
         {
             std::map<std::string, int> gpuList;
 #ifndef MIOPEN_DONT_USE_HIP_RUNTIME_HEADERS
-            for (int i = 0; i < deviceCount; i++)
+            for(int i = 0; i < deviceCount; i++)
             {
                 hipDeviceProp_t props;
                 HIP_CHECK(hipGetDeviceProperties(&props, i));
                 gpuList[props.name]++;
             }
 #endif
-            for (const auto& [name, count] : gpuList)
+            for(const auto& [name, count] : gpuList)
             {
-                if (!result.empty()) result += ", ";
+                if(!result.empty())
+                    result += ", ";
                 result += std::to_string(count) + " x " + name;
             }
         }
@@ -237,8 +238,8 @@ private:
     }
 
 private:
-    size_t miopMajor {};
-    size_t miopMinor {};
-    size_t miopPatch {};
+    size_t miopMajor{};
+    size_t miopMinor{};
+    size_t miopPatch{};
 };
-}
+} // namespace RocmPerf

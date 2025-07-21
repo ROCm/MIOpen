@@ -81,7 +81,7 @@ int main(int argc, char* argv[])
         return rc;
     }
 
-    if (drv->GetInputFlags().GetValueInt("time") == 1)
+    if(drv->GetInputFlags().GetValueInt("time") == 1)
     {
         // Print system information for ROCmPerf analysis.
         // The ROCmPerf is a performance analysis tool based on MIOpenDirver logs.
