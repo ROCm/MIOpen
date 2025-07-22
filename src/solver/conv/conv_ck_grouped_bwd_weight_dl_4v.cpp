@@ -376,11 +376,11 @@ struct CKArgs
 };
 }
 
-ConvQunConvBwd::ConvQunConvBwd()
+ConvDepthwiseWrw::ConvDepthwiseWrw()
 {
 }
 
-bool ConvQunConvBwd::IsApplicable(const ExecutionContext&   ctx,
+bool ConvDepthwiseWrw::IsApplicable(const ExecutionContext&   ctx,
                                   const ProblemDescription& problem) const
 {
     if (DirectCkMgr::GetInst()->enableOptConv == false)   return false;
@@ -437,7 +437,7 @@ bool ConvQunConvBwd::IsApplicable(const ExecutionContext&   ctx,
     return true;
 }
 
-uint32_t ConvQunConvBwd::GetSupportedSolutionCount(const ExecutionContext& ctx,
+uint32_t ConvDepthwiseWrw::GetSupportedSolutionCount(const ExecutionContext& ctx,
                                                    const miopen::conv::ProblemDescription& problem) const
 {
     uint32_t solutionCount = 0;
@@ -471,7 +471,7 @@ uint32_t ConvQunConvBwd::GetSupportedSolutionCount(const ExecutionContext& ctx,
     return solutionCount;
 }
 
-bool ConvQunConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const
+bool ConvDepthwiseWrw::FindCachedSolution(const ExecutionContext& ctx, size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const
 {
     if (DirectCkMgr::GetInst()->enableConvCache == false) return false;
 
@@ -651,7 +651,7 @@ bool ConvQunConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t hash
     return foundBest;
 }
 
-ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
+ConvSolution ConvDepthwiseWrw::GetBestSolution(const ExecutionContext& ctx,
                                              const miopen::conv::ProblemDescription& problem) const
 {
     ConvSolution sol;
@@ -822,14 +822,14 @@ ConvSolution ConvQunConvBwd::GetBestSolution(const ExecutionContext& ctx,
     return sol;
 }
 
-ConvSolution ConvQunConvBwd::GetSolution(const ExecutionContext& ctx,
+ConvSolution ConvDepthwiseWrw::GetSolution(const ExecutionContext& ctx,
                                          const ProblemDescription& problem) const
 {
     ReadCacheFile();
     return GetBestSolution(ctx, problem);
 }
 
-size_t ConvQunConvBwd::GetWorkspaceSize(const ExecutionContext& ctx,
+size_t ConvDepthwiseWrw::GetWorkspaceSize(const ExecutionContext& ctx,
                                             const ProblemDescription& problem) const
 {
     const auto is_nhwc = (problem.IsLayoutDefault() == false);
