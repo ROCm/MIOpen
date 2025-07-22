@@ -64,6 +64,7 @@ public:
 
     void ShowSysInfo()
     {
+#ifdef __linux__
         // System information collection
         const std::string timestamp = GetTimestamp();
         const std::string hostname  = GetHostname();
@@ -74,7 +75,7 @@ public:
         const std::string gpuInfo   = GetGpuInfo();
 
         // Format final output
-        std::cout << "TimeStamp: " << timestamp << "; "
+        std::cout << "Timestamp: " << timestamp << "; "
                   << "Host Name: " << hostname << "; "
                   << "Operating System: " << osInfo << "; "
                   << "ROCm: " << hipVer << "; "
@@ -83,6 +84,7 @@ public:
                   << "CPU Model: " << cpuModel << "; "
                   << "RAM Size: " << ramSize << "; "
                   << "GPU Model: " << gpuInfo << std::endl;
+#endif
     }
 
 private:
