@@ -2,6 +2,27 @@
 # Change Log for MIOpen
 
 Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/)
+## MIOpen 3.5.0 for ROCm 7.0.0
+### Added
+* [Conv] Add misa kernels for gfx950
+* [Conv] Enable split_k support for CK backward data solvers (2D)
+* Add grouped convolution + activation fusion
+* Add grouped convolution + bias + activation fusion
+* [BatchNorm] Enable NHWC in OpenCL
+* CK can now be built inline as part of MIOpen
+* Swap to using median value with outliers removed for deciding on best solution to run
+
+### Optimized
+* [BatchNorm] Optimize NHWC OpenCL kernels and improve heuristics
+* [RNN] Dynamic algorithm optimization
+* [Conv] Eliminate redundant clearing of output buffers
+* [RNN] Updated selection heuristics
+
+### Resolved issues
+* Fix segmentation fault when user specifies workspace smaller than what is required
+* Fix layout calculation logic and enable less restrictive layout selection
+
+
 ## MIOpen 3.4.0 for ROCm 6.4.0
 ### Added
 
