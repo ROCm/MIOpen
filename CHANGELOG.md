@@ -20,8 +20,8 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 
 ### Resolved issues
 * Fix segmentation fault when user specifies workspace smaller than what is required
-* Fix layout calculation logic and enable less restrictive layout selection
 * Fix memory access faults in misa kernels due to out-of-bounds memory usage
+* Fixed a layout calculation logic error that returned incorrect results and enabled less restrictive layout selection
 
 
 ## MIOpen 3.4.0 for ROCm 6.4.0
