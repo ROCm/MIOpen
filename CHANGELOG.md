@@ -10,7 +10,7 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 * Add grouped convolution + bias + activation fusion
 * [BatchNorm] Enable NHWC in OpenCL
 * Composable Kernel (CK) can now be built inline as part of MIOpen
-* Swap to using median value with outliers removed for deciding on best solution to run
+* Change to using median value with outliers removed when deciding on the best solution to run
 
 ### Optimized
 * [BatchNorm] Optimize NHWC OpenCL kernels and improve heuristics
