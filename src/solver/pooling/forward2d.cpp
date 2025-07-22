@@ -136,13 +136,15 @@ std::size_t sizeof_private_memory(const miopen::pooling::ProblemDescription& pro
 bool PoolingForward2d::IsApplicable(const ExecutionContext& context,
                                     const miopen::pooling::ProblemDescription& problem) const
 {
+    static const auto strict = TensorDescriptor::LayoutValidationMode::StrictDecreasingStrides;
+
     return problem.GetDirection() == miopen::pooling::Direction::Forward &&
            problem.GetXDesc().GetNumDims() == 4 &&
            problem.GetXDesc().GetType() == problem.GetYDesc().GetType() &&
            (problem.GetXDesc().GetType() == miopenFloat ||
             problem.GetXDesc().GetType() == miopenHalf) &&
-           problem.GetXDesc().IsPossibleLayout4D5D("NCHW") &&
-           problem.GetYDesc().IsPossibleLayout4D5D("NCHW") &&
+           problem.GetXDesc().IsPossibleLayout4D5D("NCHW", strict) &&
+           problem.GetYDesc().IsPossibleLayout4D5D("NCHW", strict) &&
            sizeof_private_memory(problem) <=
                TargetProperties::GetMaxWaveScratchSize() / context.GetStream().GetWavefrontWidth();
 }

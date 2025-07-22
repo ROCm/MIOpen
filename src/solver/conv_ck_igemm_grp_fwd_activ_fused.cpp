@@ -153,16 +153,6 @@ struct CKArgs
         C  = C1 / G; // Number of input Channel per group
         K  = K1 / G; // Number of output Channel per group
 
-        auto miopen_in_strides  = problem.GetIn().GetStrides();
-        auto miopen_out_strides = problem.GetOut().GetStrides();
-        auto miopen_wei_strides = problem.GetWeights().GetStrides();
-        miopen_in_strides.insert(miopen_in_strides.begin(), C);
-        miopen_out_strides.insert(miopen_out_strides.begin(), K);
-        miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
-        std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-        std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
-        std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
-
         if(problem.Is3d())
         {
             Di = ProblemInterpreter::GetInputDepthDi(problem);
@@ -178,6 +168,10 @@ struct CKArgs
             in_lens  = {G, N, C, Di, Hi, Wi};
             out_lens = {G, N, K, Do, Ho, Wo};
             wei_lens = {G, K, C, Z, Y, X};
+
+            in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+            out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+            wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                              ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
@@ -205,6 +199,10 @@ struct CKArgs
             in_lens  = {G, N, C, Hi, Wi};
             out_lens = {G, N, K, Ho, Wo};
             wei_lens = {G, K, C, Y, X};
+
+            in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
+            out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
+            wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                              ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
@@ -633,7 +631,7 @@ bool ConvCKIgemmGrpFwdActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    if(!conv_problem.IsLayoutNHWC() /*&& !conv_problem.IsLayoutDefault()*/)
+    if(!conv_problem.IsLayoutNHWC() && !conv_problem.IsLayoutDefault())
         return false;
 
     switch(conv_problem.GetInDataType())
@@ -666,7 +664,7 @@ GetSolutionForDimensionality(const FusionContext& ctx,
         [&](auto data_type_val) {
             (void)data_type_val;
             return InitInvokerFactoryFwdNCHW<NDimSpatial,
-                                             true,
+                                             false,
                                              DeviceOpGFwdActPtrs<NDimSpatial,
                                                                  DataType,
                                                                  typename Layouts::InLayout,
@@ -678,7 +676,7 @@ GetSolutionForDimensionality(const FusionContext& ctx,
         },
         [&](auto data_type_val) {
             (void)data_type_val;
-            return InitInvokerFactoryNHWC<true,
+            return InitInvokerFactoryNHWC<false,
                                           DeviceOpGFwdActPtrs<NDimSpatial,
                                                               DataType,
                                                               typename Layouts::InLayout,
