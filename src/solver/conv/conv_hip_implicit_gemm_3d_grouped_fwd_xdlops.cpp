@@ -465,6 +465,11 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::SetNextValue(
     {
         HeuristicInit(problem);
         assert(!valid_kernels.empty());
+        if (index > 0)
+        {
+            index = 0;
+            kernel_id = valid_kernels[index];
+        }
         return true;
     }
     if((index + 1) < valid_kernels.size())
