@@ -386,13 +386,15 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescrip
         {
             if (valid_kernels.size() > 31)
                 index = 30; // DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3<256, 128, 128, 64
-            if (K < 64 && valid_kernels.size() > 39)
+            if (K < 64 && valid_kernels.size() > 38)
                 index = 38;
         }
         else if (problem.GetInDataType() == miopenHalf)
         {
              if (valid_kernels.size() > 32)
                 index = 31; // DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3<256, 128, 128, 64
+             if (K < 64 && valid_kernels.size() > 57)
+                index = 57;
         }
     }
     kernel_id = valid_kernels[index];
