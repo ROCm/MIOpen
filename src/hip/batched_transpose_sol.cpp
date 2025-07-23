@@ -35,6 +35,7 @@
 #include <limits>
 #include <iostream>
 #include <sstream>
+#include <ranges>
 
 #define BATCHED_TRANSPOSE_BLOCK_SIZE 256
 #define BATCHED_TRANSPOSE_PERSISTENT 0
@@ -257,17 +258,17 @@ static inline BatchedTransposeParam HeuristicGet(const ExecutionContext& ctx,
         }
     }
 
-    for(auto it = kernel_list.rbegin(); it != kernel_list.rend(); it++)
+    for(const auto& it : std::ranges::reverse_view(kernel_list))
     {
-        if(it->tile_x == 4 || it->tile_y == 4)
+        if(it.tile_x == 4 || it.tile_y == 4)
         {
             // We don't want such kernel to be selected here,
             // they should be used in above cases
             continue;
         }
-        if(!IsApplicable(batch, height, width, &(*it)))
+        if(!IsApplicable(batch, height, width, &it))
             continue;
-        std::size_t current_padding_size = GetExtraPaddingSize(batch, height, width, &(*it));
+        std::size_t current_padding_size = GetExtraPaddingSize(batch, height, width, &it);
         bool replace_current             = false;
         if(best_kernel.tile_x == 0 && best_kernel.tile_y == 0)
         {
@@ -277,12 +278,12 @@ static inline BatchedTransposeParam HeuristicGet(const ExecutionContext& ctx,
         if(hw_radio > 128)
         {
             // This is for cases that h, w have a great difference
-            if(!IsSameSide(height, width, &(*it)))
+            if(!IsSameSide(height, width, &it))
                 continue;
             float prev_radio = GetNormalizedRadio(
                 GetNormalizedRadio(best_kernel.tile_y, best_kernel.tile_x), hw_radio);
             float curr_radio =
-                GetNormalizedRadio(GetNormalizedRadio(it->tile_y, it->tile_x), hw_radio);
+                GetNormalizedRadio(GetNormalizedRadio(it.tile_y, it.tile_x), hw_radio);
 
             if(curr_radio * current_padding_size < prev_radio * extra_padding_size)
             {
@@ -295,9 +296,9 @@ static inline BatchedTransposeParam HeuristicGet(const ExecutionContext& ctx,
             {
                 // If width == height, a greate chance is that the kernel performance would be
                 // almost the same, so ignore this case
-                if((width > height && it->tile_x > it->tile_y &&
+                if((width > height && it.tile_x > it.tile_y &&
                     best_kernel.tile_x < best_kernel.tile_y) ||
-                   (width < height && it->tile_x < it->tile_y &&
+                   (width < height && it.tile_x < it.tile_y &&
                     best_kernel.tile_x > best_kernel.tile_y))
                 {
                     replace_current = true;
@@ -315,7 +316,7 @@ static inline BatchedTransposeParam HeuristicGet(const ExecutionContext& ctx,
         if(replace_current)
         {
             extra_padding_size = current_padding_size;
-            best_kernel        = *it;
+            best_kernel        = it;
         }
     }
 
