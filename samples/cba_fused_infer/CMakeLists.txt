@@ -30,7 +30,7 @@ cmake_minimum_required(VERSION 3.15)
 project(MIOpenSample LANGUAGES CXX HIP)
 set(CMAKE_INSTALL_PREFIX "/opt/rocm" CACHE PATH "")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 add_compile_definitions(__HIP_PLATFORM_AMD__)
 
