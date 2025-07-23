@@ -46,7 +46,7 @@ and is performed for each training batch.
 For more information on Batch Normalization, see `Batch Normalization: Accelerating Deep Network Training by Reducing Internal Covariate Shift <https://arxiv.org/abs/1502.03167>`_.
 
 Enabling or disabling NHWC Batch Normalization for MIOpen using PyTorch
-=============================================================
+=======================================================================
 
 The PyTorch open-source tensor library provides support for using NHWC Batch Normalization with MIOpen.
 In addition to Batch Normalization, NHWC support is also available for convolution and other MIOpen features.

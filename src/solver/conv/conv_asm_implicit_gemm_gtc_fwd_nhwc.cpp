@@ -708,35 +708,26 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     const int y           = ProblemInterpreter::GetFilterHeightY(problem);
     const int x           = ProblemInterpreter::GetFilterWidthX(problem);
 
-    const int n  = ProblemInterpreter::GetBatchN(problem);
-    const int ho = ProblemInterpreter::GetOutputHeightHo(problem);
-    const int wo = ProblemInterpreter::GetOutputWidthWo(problem);
-    const int hi = ProblemInterpreter::GetInputHeightHi(problem);
-    const int wi = ProblemInterpreter::GetInputWidthWi(problem);
-
-    auto splits_4G =
-        igemm_split_batch_size(hi,
-                               wi,
-                               ho,
-                               wo,
-                               n,
-                               k,
-                               c,
-                               miopen::GetTypeSize(ProblemInterpreter::GetInputDataType(problem)));
-
     bool unit_conv = (x == 1) && (y == 1) && (stride_h == 1) && (stride_w == 1) &&
                      (dilation_h == 1) && (dilation_w == 1) && (pad_h == 0) && (pad_w == 0);
 
-    // use_workspace = 1; ATOMIC_ADD_FP16
-    if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 && splits_4G > 1)
-        return false;
+    // extra large size check
+    {
+        size_t current_block_size, current_grid_size, current_splits_4G;
+        std::tie(current_block_size, current_grid_size, current_splits_4G) =
+            GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(problem, *this);
 
-    size_t current_block_size, current_grid_size, current_splits_4G;
-    std::tie(current_block_size, current_grid_size, current_splits_4G) =
-        GetImplicitGemmGtcDynamicFwdXdlopsNHWCKernel(problem, *this);
+        if(current_splits_4G == 0)
+            return false;
 
-    if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
-        return false;
+        if(current_block_size * current_grid_size * current_splits_4G > 0xffffffffULL)
+            return false;
+
+        // use_workspace = 1; ATOMIC_ADD_FP16
+        if(problem.IsFp16() && gemm_k_global_split != 0 && vector_store != 1 &&
+           current_splits_4G > 1)
+            return false;
+    }
 
     if(merge_e != 0)
     {
@@ -752,6 +743,7 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
     const bool is_gemm_k_split = gemm_k_global_split != 0;
     const int gemm_k_shift     = gemm_k_global_split != 0 ? 1 : 0;
 
+    // gkgs check
     if(is_gemm_k_split)
     {
         if(gemm_k_global_split >
@@ -761,10 +753,12 @@ bool PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC::IsValid(
 
     if(!(tensor_a_thread_lengths[1] == 1 && tensor_b_thread_lengths[1] == 1))
     {
-        auto splited_c = (c / group) >> gemm_k_shift;
+        auto splited_c = (c / group);
         // if both 1, indicate padded c support
-        if(splited_c == 0 || (splited_c % gemm_k_per_block != 0))
+        if((splited_c >> gemm_k_shift) == 0 ||
+           (splited_c % (gemm_k_per_block << gemm_k_shift) != 0))
             return false;
+
         // also, add this restriction to k, for vector write out
         if(problem.IsFp16() || problem.IsBfp16())
         {
