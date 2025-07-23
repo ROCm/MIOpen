@@ -73,12 +73,6 @@ miopenStatus_t ConvBiasActivFusion(const Handle& handle,
                                    const TensorDescriptor& yDesc,
                                    Data_t y)
 {
-    assert(workspace == nullptr);
-    assert(workspaceSizeInBytes == 0);
-    std::ignore = workspace;
-    std::ignore = workspaceSizeInBytes;
-    /// \todo: add workspace support in fusion
-
     /*
     if(alpha1 != nullptr)
     {
@@ -132,7 +126,8 @@ miopenStatus_t ConvBiasActivFusion(const Handle& handle,
     MIOPEN_CHECK(zOp->SetArgs(fusionArgs, falpha2, z));
     MIOPEN_CHECK(biasOp->SetArgs(fusionArgs, &alpha, &beta, bias));
     MIOPEN_CHECK(activOp->SetArgs(fusionArgs, &alpha, &beta, activ_alpha, activ_beta, activ_gamma));
-    MIOPEN_CHECK(fusePlanDesc.Execute(handle, xDesc, x, yDesc, y, fusionArgs));
+    MIOPEN_CHECK(fusePlanDesc.Execute(
+        handle, xDesc, x, yDesc, y, fusionArgs, workspace, workspaceSizeInBytes));
     return miopenStatusSuccess;
 }
 
@@ -366,7 +361,7 @@ std::string LogCmdConvolutionFusion(const miopenFusionPlanDescriptor_t fusePlanD
     }
 
     DriverDataType(prefix, str, miopen::deref(xDesc));
-    str += " -F " + std::to_string(fusion_mode);
+    str += " -J " + std::to_string(fusion_mode);
     str += ConvArgsForMIOpenDriver(miopen::deref(xDesc),
                                    miopen::deref(wDesc),
                                    miopen::deref(convDesc),
@@ -391,7 +386,7 @@ std::string LogCmdBnormFusion(const miopenFusionPlanDescriptor_t fusePlanDesc, i
     {
         str = "CBAInfer";
     }
-    str += " -F " + std::to_string(fusion_mode);
+    str += " -J " + std::to_string(fusion_mode);
 
     const auto& bn_op =
         dynamic_cast<BatchNormInferenceFusionOpDescriptor*>(deref(fusePlanDesc).op_map[0].get());
@@ -1126,7 +1121,9 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
                                              ConstData_t input,
                                              const TensorDescriptor& outputDesc,
                                              Data_t output,
-                                             const OperatorArgs& op_args)
+                                             const OperatorArgs& op_args,
+                                             Data_t workspace,
+                                             size_t workspace_size)
 {
     miopen::debug::LogCmdFusion(this);
 
@@ -1143,8 +1140,8 @@ miopenStatus_t FusionPlanDescriptor::Execute(const Handle& handle,
         MIOPEN_THROW(miopenStatusBadParm, "The Fusion Plan was not compiled successfully");
     }
 
-    const auto plan_params =
-        fusion::FusionInvokeParams{op_args, inputDesc, input, outputDesc, output, false};
+    const auto plan_params = fusion::FusionInvokeParams{
+        op_args, inputDesc, input, outputDesc, output, false, workspace, workspace_size};
     invokers[0](handle, plan_params);
 
     return miopenStatusSuccess;

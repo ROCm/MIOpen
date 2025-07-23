@@ -34,6 +34,7 @@
 #include "tensor_driver.hpp"
 #include "timer.hpp"
 #include "util_driver.hpp"
+#include "conv_common.hpp"
 
 #include "../test/verify.hpp"
 #include "../test/cpu_conv.hpp"
@@ -533,7 +534,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AddCmdLineArgs()
 
     inflags.AddInputFlag(
         "fusion_mode",
-        'F',
+        'J',
         "0",
         "Fusion mode (cbna = 0, cna = 1, na = 2, cn = 3, cba = 4, ca = 5, cb = 6) (Default=cbna)",
         "int");
@@ -785,6 +786,8 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         PadBufferSize(wei_sz, sizeof(Tgpu));
     }
 
+    const Tgpu Data_scale = static_cast<Tgpu>(0.01);
+
     if(bias_mode)
     {
         size_t b_sz = GetTensorSize(biasTensor);
@@ -849,7 +852,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
         in_host[i] = static_cast<double>(rval);
         in[i]      = rval;
 #else
-        auto rval = prng::gen_canonical<Tgpu>();
+        auto rval = prng::gen_0_to_B(Data_scale);
         in_host[i] = static_cast<double>(rval);
         in[i] = rval;
 #endif
@@ -865,7 +868,7 @@ int CBAInferFusionDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             wei[i]      = static_cast<double>(rval);
             wei_host[i] = rval;
 #else
-            auto rval = prng::gen_canonical<Tgpu>();
+            auto rval = Data_scale * conv::RanGenWeights<Tgpu>();
             wei_host[i] = static_cast<double>(rval);
             wei[i] = rval;
 #endif
@@ -917,16 +920,28 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUBatchNormActivInference()
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs);
+        miopenExecuteFusionPlan_v2(GetHandle(),
+                                   fusePlanDesc,
+                                   inputTensor,
+                                   in_dev->GetMem(),
+                                   outputTensor,
+                                   out_dev->GetMem(),
+                                   fusionArgs,
+                                   (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                   workspace_size);
         finishTiming(it);
     }
 }
@@ -1002,16 +1017,28 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvBatchNormActivInference()
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs);
+        miopenExecuteFusionPlan_v2(GetHandle(),
+                                   fusePlanDesc,
+                                   inputTensor,
+                                   in_dev->GetMem(),
+                                   outputTensor,
+                                   out_dev->GetMem(),
+                                   fusionArgs,
+                                   (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                   workspace_size);
         finishTiming(it);
     }
 }
@@ -1055,16 +1082,28 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUConvActivInference()
         exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs);
+        miopenExecuteFusionPlan_v2(GetHandle(),
+                                   fusePlanDesc,
+                                   inputTensor,
+                                   in_dev->GetMem(),
+                                   outputTensor,
+                                   out_dev->GetMem(),
+                                   fusionArgs,
+                                   (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                   workspace_size);
         finishTiming(it);
     }
 }
@@ -1167,16 +1206,28 @@ void CBAInferFusionDriver<Tgpu, Tref>::runGPUFusedConvBiasInference()
         std::cerr << "ConvBiasInference plan not supported." << std::endl;
     }
 
+    size_t workspace_size = 0;
+    miopenFusionPlanGetWorkSpaceSize(
+        GetHandle(), fusePlanDesc, &workspace_size, miopenConvolutionFwdAlgoImplicitGEMM);
+
+    if(workspace_size > 0)
+    {
+        DEFINE_CONTEXT(ctx);
+        workspace_fwd_dev = std::make_unique<GPUMem>(ctx, workspace_size, sizeof(Tgpu));
+    }
+
     for(int it = 0; it < iters; it++)
     {
         startTiming();
-        miopenExecuteFusionPlan(GetHandle(),
-                                fusePlanDesc,
-                                inputTensor,
-                                in_dev->GetMem(),
-                                outputTensor,
-                                out_dev->GetMem(),
-                                fusionArgs);
+        miopenExecuteFusionPlan_v2(GetHandle(),
+                                   fusePlanDesc,
+                                   inputTensor,
+                                   in_dev->GetMem(),
+                                   outputTensor,
+                                   out_dev->GetMem(),
+                                   fusionArgs,
+                                   (workspace_fwd_dev) ? workspace_fwd_dev->GetMem() : nullptr,
+                                   workspace_size);
         finishTiming(it);
     }
 }
@@ -1254,6 +1305,16 @@ void CBAInferFusionDriver<Tgpu, Tref>::runCPUConvFwdInference()
                             miopen::deref(convDesc).GetConvStrides(),
                             miopen::deref(convDesc).GetConvDilations(),
                             miopen::deref(convDesc).GetGroupCount());
+
+    if constexpr(!std::is_same_v<Tgpu, Tref>)
+    {
+        for(size_t i = 0; i < outhost_local_host.data.size(); ++i)
+        {
+            outhost_local_host.data[i] =
+                static_cast<Tref>(static_cast<Tgpu>(outhost_local_host.data[i]));
+        }
+    }
+
     if(bias_mode)
     {
         tensor<Tref> bias_local_host(miopen::deref(biasTensor).GetLengths(),
@@ -1346,6 +1407,15 @@ int CBAInferFusionDriver<Tgpu, Tref>::RunForwardCPU()
         std::cout << "Running CPU fwd activation." << std::endl;
         runCPUActivFwdInference();
     }
+
+    if constexpr(!std::is_same_v<Tgpu, Tref>)
+    {
+        for(size_t i = 0; i < out_host.size(); ++i)
+        {
+            out_host[i] = static_cast<Tref>(static_cast<Tgpu>(out_host[i]));
+        }
+    }
+
     return miopenStatusSuccess;
 }
 
@@ -1354,16 +1424,19 @@ int CBAInferFusionDriver<Tgpu, Tref>::VerifyForward()
 {
     RunForwardCPU();
 
-    double allowedEps = std::numeric_limits<Tgpu>::epsilon() * 80;
+    const auto error = miopen::rms_range(out_host, out);
 
-    int match = miopenInferVerify(out.size(), out_host.data(), out.data(), allowedEps);
-    if(match == 0)
+    const double tolerance = std::numeric_limits<Tgpu>::epsilon() * 80;
+
+    if(!std::isfinite(error) || error > tolerance)
     {
-        std::cout << "Forward Activation FAILED" << std::endl;
+        std::cout << "Forward Activation FAILED: " << error << " > " << tolerance << std::endl;
         return EC_VerifyFwd;
     }
 
-    std::cout << "Forward Activation Verifies on CPU and GPU" << std::endl;
+    std::cout << "Forward Activation Verifies on CPU and GPU (" << error << " < " << tolerance
+              << ')' << std::endl;
+
     return miopenStatusSuccess;
 }
 

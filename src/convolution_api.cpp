@@ -220,21 +220,21 @@ MIOPEN_EXPORT extern "C" miopenStatus_t
 miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t alpha_beta_case,
                                                    const miopenTensorDescriptor_t inputTensorDesc,
                                                    const miopenTensorDescriptor_t outputTensorDesc,
+                                                   const miopenTensorDescriptor_t weightsTensorDesc,
                                                    const miopenConvolutionDescriptor_t convDesc,
                                                    size_t* buffer_size)
 {
-    MIOPEN_LOG_FUNCTION(alpha_beta_case, outputTensorDesc);
+    MIOPEN_LOG_FUNCTION(alpha_beta_case, inputTensorDesc, outputTensorDesc, weightsTensorDesc);
+
     return miopen::try_([&] {
         miopenDataType_t data_type = miopen::deref(outputTensorDesc).GetType();
-        size_t in_spatial_dims     = miopen::deref(inputTensorDesc).GetNumDims();
-
-        assert(in_spatial_dims == miopen::deref(outputTensorDesc).GetNumDims());
+        size_t spatial_dims        = miopen::deref(convDesc).GetSpatialDimension();
 
         int G    = miopen::deref(convDesc).GetGroupCount();
-        size_t C = std::get<1>(
-            miopen::GetNCDHW(in_spatial_dims, miopen::deref(inputTensorDesc).GetLengths()));
         size_t K = std::get<1>(
-            miopen::GetNCDHW(in_spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
+            miopen::GetNCDHW(spatial_dims, miopen::deref(inputTensorDesc).GetLengths()));
+        size_t C = std::get<1>(
+            miopen::GetNCDHW(spatial_dims, miopen::deref(outputTensorDesc).GetLengths()));
 
         auto CKWrwRequireWorkspace = [&](size_t G,
                                          size_t C,
@@ -250,8 +250,11 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
                     (is_odd(C_per_group) || is_odd(K_per_group)));
         };
 
-        size_t output_tensor_size = miopen::deref(outputTensorDesc).GetElementSize();
-        size_t byte_size          = 0;
+        size_t byte_size = 0;
+        // CK uses at least 4 bytes per element in the workspace, even for smaller sizes like bfp16,
+        // which is why we need to use GetElementSize() and multiply by 4 or 8, and not
+        // use GetNumBytes().
+        size_t weights_tensor_size = miopen::deref(weightsTensorDesc).GetElementSize();
         if(CKWrwRequireWorkspace(G, C, K, data_type, alpha_beta_case))
         {
             switch(data_type)
@@ -266,15 +269,22 @@ miopenConvolutionABBackwardWeightsGetWorkSpaceSize(const miopenAlphaBetaCase_t a
             case miopenDouble:
             case miopenInt64: byte_size = 8; break;
             }
-            *buffer_size = byte_size * output_tensor_size;
+            *buffer_size = weights_tensor_size * byte_size;
         }
         else
         {
             *buffer_size = 0;
         }
 
-        MIOPEN_LOG_FUNCTION(
-            alpha_beta_case, data_type, C, K, output_tensor_size, byte_size, *buffer_size);
+        MIOPEN_LOG_FUNCTION(alpha_beta_case,
+                            data_type,
+                            G,
+                            C,
+                            K,
+                            weights_tensor_size,
+                            spatial_dims,
+                            byte_size,
+                            *buffer_size);
     });
 }
 

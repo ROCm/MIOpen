@@ -166,20 +166,15 @@ struct CKArgs
             Y  = ProblemInterpreter::GetFilterHeightY(problem);
             X  = ProblemInterpreter::GetFilterWidthX(problem);
 
-            in_lens      = {G, N, C, Di, Hi, Wi};
-            out_lens     = {G, N, K, Do, Ho, Wo};
-            wei_lens     = {G, K, C, Z, Y, X};
-            bias_strides = {K, 0, 1, 0, 0, 0};
+            in_lens  = {G, N, C, Di, Hi, Wi};
+            out_lens = {G, N, K, Do, Ho, Wo};
+            wei_lens = {G, K, C, Z, Y, X};
 
-            auto miopen_in_strides  = problem.GetIn().GetStrides();
-            auto miopen_out_strides = problem.GetOut().GetStrides();
-            auto miopen_wei_strides = problem.GetWeights().GetStrides();
-            miopen_in_strides.insert(miopen_in_strides.begin(), C);
-            miopen_out_strides.insert(miopen_out_strides.begin(), K);
-            miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
-            std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-            std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
-            std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
+            in_strides  = {C, Di * Hi * Wi * G * C, 1, Hi * Wi * G * C, Wi * G * C, G * C};
+            out_strides = {K, Do * Ho * Wo * G * K, 1, Ho * Wo * G * K, Wo * G * K, G * K};
+            wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
+
+            bias_strides = {K, 0, 1, 0, 0, 0};
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
                              ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
@@ -203,23 +198,15 @@ struct CKArgs
             Y  = ProblemInterpreter::GetFilterHeightY(problem);
             X  = ProblemInterpreter::GetFilterWidthX(problem);
 
-            in_lens      = {G, N, C, Hi, Wi};
-            out_lens     = {G, N, K, Ho, Wo};
-            wei_lens     = {G, K, C, Y, X};
-            bias_strides = {K, 0, 1, 0, 0};
+            in_lens  = {G, N, C, Hi, Wi};
+            out_lens = {G, N, K, Ho, Wo};
+            wei_lens = {G, K, C, Y, X};
 
-            // in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
-            // out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
-            // wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
-            auto miopen_in_strides  = problem.GetIn().GetStrides();
-            auto miopen_out_strides = problem.GetOut().GetStrides();
-            auto miopen_wei_strides = problem.GetWeights().GetStrides();
-            miopen_in_strides.insert(miopen_in_strides.begin(), C);
-            miopen_out_strides.insert(miopen_out_strides.begin(), K);
-            miopen_wei_strides.insert(miopen_wei_strides.begin(), K * miopen_wei_strides[0]);
-            std::copy(miopen_in_strides.begin(), miopen_in_strides.end(), in_strides.begin());
-            std::copy(miopen_out_strides.begin(), miopen_out_strides.end(), out_strides.begin());
-            std::copy(miopen_wei_strides.begin(), miopen_wei_strides.end(), wei_strides.begin());
+            in_strides  = {C, Hi * Wi * G * C, 1, Wi * G * C, G * C};
+            out_strides = {K, Ho * Wo * G * K, 1, Wo * G * K, G * K};
+            wei_strides = {K * Y * X * C, Y * X * C, 1, X * C, C};
+
+            bias_strides = {K, 0, 1, 0, 0};
 
             filter_stride   = {ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
                              ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
@@ -657,7 +644,7 @@ bool ConvCKIgemmGrpFwdBiasActivFused::IsApplicable(const FusionContext& ctx,
         return false;
     if(!ck_utility::is_ck_whitelist(ctx.GetStream().GetDeviceName()))
         return false;
-    if(!conv_problem.IsLayoutNHWC())
+    if(!conv_problem.IsLayoutNHWC() && !conv_problem.IsLayoutDefault())
         return false;
 
     switch(conv_problem.GetInDataType())

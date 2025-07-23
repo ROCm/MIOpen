@@ -3881,8 +3881,11 @@ MIOPEN_EXPORT miopenStatus_t miopenSetOpArgsBiasForward(miopenOperatorArgs_t arg
                                                         const void* alpha,
                                                         const void* beta,
                                                         const void* bias);
-/*! @brief Executes the fusion plan
+
+/*! @brief Executes the fusion plan. Only compatible with NHWC/NDHWC tensor layouts.
  *
+ *  @deprecated This function is deprecated and may be removed in a future release.
+ *             Use miopenExecuteFusionPlan_v2 instead.
  *
  * @param handle           MIOpen handle (input)
  * @param fusePlanDesc     fused plan descriptor (input)
@@ -3901,6 +3904,31 @@ miopenExecuteFusionPlan(const miopenHandle_t handle,
                         const miopenTensorDescriptor_t outputDesc,
                         void* output,
                         miopenOperatorArgs_t args);
+
+/*! @brief Executes the fusion plan with a workspace buffer for layout transformations.
+ *
+ *
+ * @param handle           MIOpen handle (input)
+ * @param fusePlanDesc     fused plan descriptor (input)
+ * @param inputDesc        Descriptor of the input tensor (input)
+ * @param input            Source data tensor  (input)
+ * @param outputDesc       Decriptor of the output tensor (input)
+ * @param output           Destination data tensor  (output)
+ * @param args             An argument object of the fused kernel (input)
+ * @param workspace        A pointer to an intermediate workspace (input)
+ * @param workspaceSize Size of the memory in bytes pointed to by workSpace above (input)
+ * @return           miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenExecuteFusionPlan_v2(const miopenHandle_t handle,
+                           const miopenFusionPlanDescriptor_t fusePlanDesc,
+                           const miopenTensorDescriptor_t inputDesc,
+                           const void* input,
+                           const miopenTensorDescriptor_t outputDesc,
+                           void* output,
+                           miopenOperatorArgs_t args,
+                           void* workspace,
+                           size_t workspaceSize);
 
 /*! @brief Prepares and executes the Convlution+Bias+Activation Fusion.
  *

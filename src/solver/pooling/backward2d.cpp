@@ -171,13 +171,15 @@ std::size_t sizeof_local_memory(const miopen::pooling::ProblemDescription& probl
 bool PoolingBackward2d::IsApplicable(const ExecutionContext&,
                                      const miopen::pooling::ProblemDescription& problem) const
 {
+    static const auto strict = TensorDescriptor::LayoutValidationMode::StrictDecreasingStrides;
+
     return problem.GetDirection() == miopen::pooling::Direction::Backward &&
            (problem.GetPooling().GetMode() == miopenPoolingMax ||
             problem.GetPooling().GetMode() == miopenPoolingAverage ||
             problem.GetPooling().GetMode() == miopenPoolingAverageInclusive) &&
            problem.GetXDesc().GetNumDims() == 4 &&
-           problem.GetXDesc().IsPossibleLayout4D5D("NCHW") &&
-           problem.GetYDesc().IsPossibleLayout4D5D("NCHW") &&
+           problem.GetXDesc().IsPossibleLayout4D5D("NCHW", strict) &&
+           problem.GetYDesc().IsPossibleLayout4D5D("NCHW", strict) &&
            sizeof_local_memory(problem) <= TargetProperties::GetMaxLocalMemorySize();
 }
 

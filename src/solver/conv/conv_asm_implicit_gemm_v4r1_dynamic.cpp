@@ -388,7 +388,7 @@ static inline ConvSolution GetSolutionBase(const ExecutionContext& ctx,
 
     int block_size     = GetImplicitGemmV4R1DynamicBlockSize(config);
     int grid_size      = GetImplicitGemmV4R1DynamicGridSize(problem, config);
-    bool kernel_is_1x1 = (kernel_name.find("igemm_v4r1_1x1_dynamic") == 0);
+    bool kernel_is_1x1 = (kernel_name.starts_with("igemm_v4r1_1x1_dynamic"));
 
     KernelInfo kernel;
     std::ostringstream options;
