@@ -98,6 +98,27 @@ inline bool WinoCommonIsApplicable(const FusionContext& context, const FusionDes
 
     return true;
 }
+
+inline bool IsCKFusionSolverApplicable(const FusionContext& context,
+                                       const FusionDescription& problem)
+{
+    const auto ck_ca_fusion_solver = miopen::solver::fusion::ConvCKIgemmGrpFwdActivFused{};
+    if(ck_ca_fusion_solver.IsApplicable(context, problem))
+    {
+        MIOPEN_LOG_I("ConvCKIgemmGrpFwdActivFused is applicable, skipping current solver.");
+        return true;
+    }
+
+    const auto ck_cba_fusion_solver = miopen::solver::fusion::ConvCKIgemmGrpFwdBiasActivFused{};
+    if(ck_cba_fusion_solver.IsApplicable(context, problem))
+    {
+        MIOPEN_LOG_I("ConvCKIgemmGrpFwdBiasActivFused is applicable, skipping current solver.");
+        return true;
+    }
+
+    return false;
+}
+
 } // namespace fusion
 } // namespace solver
 } // namespace miopen

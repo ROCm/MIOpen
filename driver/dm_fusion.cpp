@@ -34,6 +34,11 @@ static Driver* makeDriver(const std::string& base_arg)
         return new CBAInferFusionDriver<float16, double>();
     if(base_arg == "CBAInferbfp16")
         return new CBAInferFusionDriver<bfloat16, double>();
+
+    if(base_arg == "CAInfer")
+        return new CBAInferFusionDriver<float, double>();
+    if(base_arg == "CAInferfp16")
+        return new CBAInferFusionDriver<float16, double>();
     if(base_arg == "CAInferbfp16")
         return new CBAInferFusionDriver<bfloat16, double>();
     return nullptr;

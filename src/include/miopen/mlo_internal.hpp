@@ -102,10 +102,11 @@ POSSIBILITY OF SUCH DAMAGE.
 #include <numeric>
 #include <cstdint>
 #include <tuple>
+#include <numbers>
 
 inline int mloLg2(int v)
 {
-    auto ret = static_cast<int>(std::ceil(std::log(v) / std::log(2)));
+    auto ret = static_cast<int>(std::ceil(std::log(v) / std::numbers::ln2));
     return (ret);
 }
 
