@@ -108,7 +108,9 @@ def cmake_build(Map conf=[:]){
     def test_flags = conf.get("test_flags","")
 
     if (conf.get("vcache_enable","") == "true"){
-        def vcache = conf.get(vcache_path,"/var/jenkins/.cache/miopen/vcache")
+        //grab root of node workspace. not guaranteed to be /var/jenkins
+        String remote_root = env.WORKSPACE.substring(0, env.WORKSPACE.lastIndexOf("workspace/")) 
+        def vcache = conf.get(vcache_path,"${remote_root}/.cache/miopen/vcache")
         build_envs = " MIOPEN_VERIFY_CACHE_PATH='${vcache}' " + build_envs
     } else{
         test_flags = " --disable-verification-cache " + test_flags
@@ -365,7 +367,9 @@ def buildHipClangJob(Map conf=[:]){
                 }
             }
 
-            withDockerContainer(image: image, args: dockerOpts + " -v=/var/jenkins/:/var/jenkins -v=/home/jenkins:/home/jenkins") {
+            //grab root of node workspace. not guaranteed to be /var/jenkins
+            String remote_root = env.WORKSPACE.substring(0, env.WORKSPACE.lastIndexOf("workspace/")) 
+            withDockerContainer(image: image, args: dockerOpts + " -v=${remote_root}:${remote_root}") {
                 timeout(time: 420, unit:'MINUTES')
                 {
                     if (lfs_pull) {
@@ -411,7 +415,9 @@ def RunPerfTest(Map conf=[:]){
         def results_dir = conf.get("results_dir", "${env.WORKSPACE}/${env.REPO_DIR}/results")
         docker_image.pull()
         echo "docker image: ${docker_image}"
-        docker_image.inside(dockerOpts + " -v=/var/jenkins/:/var/jenkins")
+        //grab root of node workspace. not guaranteed to be /var/jenkins
+        String remote_root = env.WORKSPACE.substring(0, env.WORKSPACE.lastIndexOf("workspace/")) 
+        docker_image.inside(dockerOpts + " -v=${remote_root}:${remote_root}")
         {
             timeout(time: 100, unit: 'MINUTES')
             {
