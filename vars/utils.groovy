@@ -315,7 +315,11 @@ def getDockerImage(Map conf=[:])
 
 def buildHipClangJob(Map conf=[:]){
         show_node_info()
-        //sh(script: "git submodule update --init --recursive && pwd && find . -name fin -type d -exec ls {} +")
+        /*
+            The following is a workaround for git submodule updating for the fin module.  After Jenkins upgrade,
+            many plugins started misbehaving, and submodules wouldn't get pulled.  This ensures that we always pull
+            the fin submodule and fail silently when the submodule directory already has artifacts in it.
+        */
         sh(script: "git submodule update --init --recursive || true")
         env.HSA_ENABLE_SDMA=0
         env.DOCKER_BUILDKIT=1
