@@ -365,7 +365,7 @@ def buildHipClangJob(Map conf=[:]){
                 }
             }
 
-            withDockerContainer(image: image, args: dockerOpts + " -v=/var/jenkins/:/var/jenkins") {
+            withDockerContainer(image: image, args: dockerOpts + " -v=/var/jenkins/:/var/jenkins -v=/home/jenkins:/home/jenkins") {
                 timeout(time: 420, unit:'MINUTES')
                 {
                     if (lfs_pull) {
