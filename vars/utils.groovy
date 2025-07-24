@@ -333,7 +333,11 @@ def buildHipClangJob(Map conf=[:]){
         def lfs_pull = conf.get("lfs_pull", false)
 
         def retimage
-        gitStatusWrapper(credentialsId: "${env.monorepo_status_wrapper_creds}", gitHubContext: "${variant}", account: 'ROCm', repo: "${env.REPO_NAME}") {
+        def credentialsID = env.monorepo_status_wrapper_creds
+        if (env.REPO_NAME == "MIOpen") {
+            credentialsID = env.miopen_git_creds
+        }
+        gitStatusWrapper(credentialsId: "${credentialsID}", gitHubContext: "${variant}", account: 'ROCm', repo: "${env.REPO_NAME}") {
             try {
                 (retimage, image) = getDockerImage(conf)
                 if (needs_gpu) {
