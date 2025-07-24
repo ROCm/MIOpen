@@ -28,14 +28,12 @@ The MIOpen API library is structured as follows:
   * :doc:`Reduction <../doxygen/html/group___tensor_reduce>`
   * :doc:`Find <../doxygen/html/group__find2>`
   * :doc:`Layernorm <../doxygen/html/group__layernorm>` (experimental)
-  * :doc:`Sum <../doxygen/html/group__sum>` (experimental)
   * :doc:`GroupNorm <../doxygen/html/group__groupnorm>` (experimental)
   * :doc:`Cat <../doxygen/html/group__cat>` (experimental)
   * :doc:`SGD <../doxygen/html/group___s_g_d>` (experimental)
-  * :doc:`ReduceExtreme <../doxygen/html/group__ReduceExtreme>` (experimental)
+  * :doc:`ReduceExtreme <../doxygen/html/group___reduce_extreme>` (experimental)
   * :doc:`Getitem <../doxygen/html/group__getitem>` (experimental)
-  * :doc:`ReduceCalculation <../doxygen/html/group__ReduceCalculation>` (experimental)
-  * :doc:`RotaryPositionalEmbeddings <../doxygen/html/group__RotaryPositionalEmbeddings>` (experimental)
+  * :doc:`ReduceCalculation <../doxygen/html/group__reducecalculation>` (experimental)
+  * :doc:`RotaryPositionalEmbeddings <../doxygen/html/group___rotary_positional_embeddings>` (experimental)
   * :doc:`ReLU <../doxygen/html/group___re_l_u>` (experimental)
   * :doc:`Kthvalue <../doxygen/html/group__kthvalue>` (experimental)
-  * :doc:`GLU <../doxygen/html/group__glu>` (experimental)

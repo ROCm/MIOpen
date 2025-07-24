@@ -52,9 +52,6 @@ struct ProblemDescriptionTag
 {
 };
 
-bool is_fp16_or_bfp16(miopenDataType_t type);
-bool is_fp32_or_fp64(miopenDataType_t type);
-
 struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
                                                     ProblemDescriptionTag
 #if MIOPEN_ENABLE_SQLITE

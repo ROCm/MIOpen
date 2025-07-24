@@ -34,6 +34,7 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <ck/library/tensor_operation_instance/gpu/convolution_backward_data.hpp>
+#include <miopen/solver/ck_utility_common.hpp>
 #endif
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
@@ -292,7 +293,7 @@ bool ConvHipImplicitGemmBwdXdlops::IsApplicable(
         return false;
     if(!IsXdlopsSupport(ctx))
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!ck_utility::is_ck_whitelist(ctx.GetStream()))
         return false;
     const std::string& arch = ctx.GetStream().GetDeviceName();
     if(arch == "gfx90a" && problem.IsGfx90aFp16altRequired())
@@ -326,17 +327,20 @@ ConvSolution ConvHipImplicitGemmBwdXdlops::GetSolution(
     switch(problem.GetInDataType())
     {
     case miopenHalf:
-        return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<ck::half_t>,
+        return InitInvokerFactoryNHWC<true,
+                                      DeviceOpBwdPtrs<ck::half_t>,
                                       CKArgs,
                                       miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
     case miopenFloat:
-        return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<float>,
+        return InitInvokerFactoryNHWC<true,
+                                      DeviceOpBwdPtrs<float>,
                                       CKArgs,
                                       miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);
     case miopenBFloat16:
-        return InitInvokerFactoryNHWC<DeviceOpBwdPtrs<ck::bhalf_t>,
+        return InitInvokerFactoryNHWC<true,
+                                      DeviceOpBwdPtrs<ck::bhalf_t>,
                                       CKArgs,
                                       miopen::conv::DataInvokeParams>(
             ctx, problem, config.kernel_id);

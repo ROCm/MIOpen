@@ -44,6 +44,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 
 class GPU_Conv2d_BFP16 : public testing::TestWithParam<std::vector<std::string>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 void Run2dDriver(miopenDataType_t prec)

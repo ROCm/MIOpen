@@ -45,19 +45,19 @@ namespace miopen {
 
 namespace {
 
-#if MIOPEN_USE_ROCBLAS
+#if MIOPEN_USE_GEMM
 
 bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
                              [[maybe_unused]] bool use_dropout)
 {
-#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+#if MIOPEN_BACKEND_HIP
     if(desctiptor.rnnMode == miopenLSTM && desctiptor.algoMode == miopenRNNdefault &&
        !use_dropout && desctiptor.nLayers > 1 && desctiptor.dirMode == miopenRNNunidirection &&
        desctiptor.inputMode != miopenRNNskip)
     {
         return true;
     }
-#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+#endif // MIOPEN_BACKEND_HIP
     return false;
 }
 
@@ -211,6 +211,7 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
             }
             else
             {
+#if MIOPEN_USE_ROCBLAS
                 if(dw_desc.GetType() != miopenDataType_t::miopenFloat)
                     MIOPEN_THROW(miopenStatusInternalError, "rocblas_sgemv wrong Type");
 
@@ -232,6 +233,10 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
                               &beta,
                               static_cast<float*>(dstY_with_offset),
                               1);
+#else
+                MIOPEN_THROW(miopenStatusUnsupportedOp,
+                             "MIOpen is built with MIOPEN_USE_ROCBLAS=OFF");
+#endif // MIOPEN_USE_ROCBLAS
             }
         }
         break;
@@ -248,7 +253,7 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
     return miopenStatusSuccess;
 }
 
-#endif // MIOPEN_USE_ROCBLAS
+#endif // MIOPEN_USE_GEMM
 
 } // namespace
 

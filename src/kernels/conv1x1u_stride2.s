@@ -459,8 +459,8 @@ miopenGcnAsmConv1x1U_stride2:
         \ret = x\symb_size\()_chunks
     .endm
 
-    .macro chunk_symb_set_val symb_size, set_val
-        chunk_symb_set_val_wrapper %\symb_size, %\set_val
+    .macro chunk_symb_set_val symb_size, arg_set_val
+        chunk_symb_set_val_wrapper %\symb_size, %\arg_set_val
     .endm
 
     .macro chunk_symb_get_val symb_size, ret
@@ -541,15 +541,15 @@ miopenGcnAsmConv1x1U_stride2:
         .endif
     .endm
 
-    .macro xsload base, xx, cnt
-        .rept \xx
-            .if \cnt == 1
-                s_buffer_load_dword s[\base], s[desc_wei:desc_wei+3], s[soffset_wei]
+    .macro xsload arg_base, arg_xx, arg_cnt
+        .rept \arg_xx
+            .if \arg_cnt == 1
+                s_buffer_load_dword s[\arg_base], s[desc_wei:desc_wei+3], s[soffset_wei]
             .else
-                s_buffer_load_dwordx\cnt s[\base:\base+\cnt-1], s[desc_wei:desc_wei+3], s[soffset_wei]
+                s_buffer_load_dwordx\arg_cnt s[\arg_base:\arg_base+\arg_cnt-1], s[desc_wei:desc_wei+3], s[soffset_wei]
             .endif
-            \base = \base + \cnt
-            s_add_u32 s[soffset_wei], s[soffset_wei], 0+4*\cnt
+            \arg_base = \arg_base + \arg_cnt
+            s_add_u32 s[soffset_wei], s[soffset_wei], 0+4*\arg_cnt
         .endr
     .endm
 
@@ -670,12 +670,12 @@ miopenGcnAsmConv1x1U_stride2:
         .endif
     .endm
 
-    .macro get_acc_idx acc, k, n, h, chunk
-        static_assert(\chunk < (w_mult * active_elements))
-        static_assert(\k < (k_mult))
-        static_assert(\h < (h_mult))
-        static_assert(\n < (n_mult))
-        \acc = accums + acc_k_offset * \k + \n * acc_n_offset + \h * acc_h_offset + \chunk
+    .macro get_acc_idx arg_acc, arg_k, arg_n, arg_h, arg_chunk
+        static_assert(\arg_chunk < (w_mult * active_elements))
+        static_assert(\arg_k < (k_mult))
+        static_assert(\arg_h < (h_mult))
+        static_assert(\arg_n < (n_mult))
+        \arg_acc = accums + acc_k_offset * \arg_k + \arg_n * acc_n_offset + \arg_h * acc_h_offset + \arg_chunk
     .endm
 
     .macro conv prefetch_id
@@ -891,66 +891,66 @@ loop_end:
         .endr
     .endm
 
-     .macro m_buffer_store_dwordx size, src, off, desc, soff, ioff=0
-        .if \size == 1
-            buffer_store_dword v[\src], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
-        .elseif \size == 2
-            buffer_store_dwordx2 v[\src:\src+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
-        .elseif \size == 3
-            buffer_store_dwordx3 v[\src:\src+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
-        .elseif \size == 4
-            buffer_store_dwordx4 v[\src:\src+\size-1], v[\off], s[\desc:\desc + 3], s[\soff] offen offset:0+\ioff
-        .elseif \size == 0
+    .macro m_buffer_store_dwordx arg_size, arg_src, arg_off, arg_desc, arg_soff, arg_ioff=0
+        .if \arg_size == 1
+            buffer_store_dword v[\arg_src], v[\arg_off], s[\arg_desc:\arg_desc + 3], s[\arg_soff] offen offset:0+\arg_ioff
+        .elseif \arg_size == 2
+            buffer_store_dwordx2 v[\arg_src:\arg_src+\arg_size-1], v[\arg_off], s[\arg_desc:\arg_desc + 3], s[\arg_soff] offen offset:0+\arg_ioff
+        .elseif \arg_size == 3
+            buffer_store_dwordx3 v[\arg_src:\arg_src+\arg_size-1], v[\arg_off], s[\arg_desc:\arg_desc + 3], s[\arg_soff] offen offset:0+\arg_ioff
+        .elseif \arg_size == 4
+            buffer_store_dwordx4 v[\arg_src:\arg_src+\arg_size-1], v[\arg_off], s[\arg_desc:\arg_desc + 3], s[\arg_soff] offen offset:0+\arg_ioff
+        .elseif \arg_size == 0
 
         .else
-            .error "m_buffer_store_dwordx unknown size"
+            .error "m_buffer_store_dwordx unknown arg_size"
         .endif
     .endm
 
-    .macro buffer_stor_elements cnt, acc_ptr, v_offset, s_desc, s_offset, val_offset, s_offset_surplus=0
+    .macro buffer_stor_elements arg_cnt, arg_acc_ptr, arg_v_offset, arg_s_desc, arg_s_offset, arg_val_offset, arg_s_offset_surplus=0
         .if(buf_type == TYPE_FP32)
-            acc_ptr_\@ = \acc_ptr
-            acc_cnt_\@ = \cnt
+            acc_ptr_\@ = \arg_acc_ptr
+            acc_cnt_\@ = \arg_cnt
             it_acc\@ = 0
-            reps = (\cnt + 3) / 4
+            reps = (\arg_cnt + 3) / 4
             .rept reps
-                .if((\cnt - it_acc\@) > 4)
+                .if((\arg_cnt - it_acc\@) > 4)
                     acc_cnt_\@ = 4
                 .else
-                    acc_cnt_\@ = (\cnt - it_acc\@)
+                    acc_cnt_\@ = (\arg_cnt - it_acc\@)
                 .endif
-                acc_ptr_\@ = \acc_ptr + it_acc\@
+                acc_ptr_\@ = \arg_acc_ptr + it_acc\@
 
-                .if(idilation_w > 1 && \acc_ptr != -1)
+                .if(idilation_w > 1 && \arg_acc_ptr != -1)
                     nonzeros_cnt\@ = (acc_cnt_\@ + idilation_w - 1) / idilation_w
-                    acc_off\@ = \acc_ptr + (it_acc\@ + idilation_w - 1) / idilation_w
+                    acc_off\@ = \arg_acc_ptr + (it_acc\@ + idilation_w - 1) / idilation_w
                     fill_dil_buffer nonzeros_cnt\@, acc_off\@
                     acc_ptr_\@ = acc_dil_buff
-                .elseif (idilation_w > 1 && \acc_ptr == -1)
+                .elseif (idilation_w > 1 && \arg_acc_ptr == -1)
                     acc_ptr_\@ = acc_dil_buff
                 .endif
 
-                i_off\@ = \val_offset + it_acc\@ * 4 - \s_offset_surplus
+                i_off\@ = \arg_val_offset + it_acc\@ * 4 - \arg_s_offset_surplus
                 .if(i_off\@ >= 4096)
-                    ioffset_as_soffset_conv_2pow12 (\val_offset - \s_offset_surplus), \s_offset, \s_offset_surplus
-                    i_off\@ = \val_offset + it_acc\@ * 4 - \s_offset_surplus
+                    ioffset_as_soffset_conv_2pow12 (\arg_val_offset - \arg_s_offset_surplus), \arg_s_offset, \arg_s_offset_surplus
+                    i_off\@ = \arg_val_offset + it_acc\@ * 4 - \arg_s_offset_surplus
                 .endif
                 .if tuple_alignment && (acc_ptr_\@ % 2)
-                    m_buffer_store_dwordx 1,            acc_ptr_\@,   \v_offset, \s_desc, \s_offset, i_off\@
-                    m_buffer_store_dwordx acc_cnt_\@-1, acc_ptr_\@+1, \v_offset, \s_desc, \s_offset, i_off\@ + 4
+                    m_buffer_store_dwordx 1,            acc_ptr_\@,   \arg_v_offset, \arg_s_desc, \arg_s_offset, i_off\@
+                    m_buffer_store_dwordx acc_cnt_\@-1, acc_ptr_\@+1, \arg_v_offset, \arg_s_desc, \arg_s_offset, i_off\@ + 4
                 .else
-                    m_buffer_store_dwordx acc_cnt_\@, acc_ptr_\@, \v_offset, \s_desc, \s_offset, i_off\@
+                    m_buffer_store_dwordx acc_cnt_\@, acc_ptr_\@, \arg_v_offset, \arg_s_desc, \arg_s_offset, i_off\@
                 .endif
                 it_acc\@ = it_acc\@ + acc_cnt_\@
             .endr
         .endif
     .endm
 
-    .macro get_store_acc_idx acc, k, nb, h, chunk
-        .if(\h % idilation_h == 0)
-            get_acc_idx \acc, \k, \nb, (\h / idilation_h), \chunk
+    .macro get_store_acc_idx arg_acc, arg_k, arg_nb, arg_h, arg_chunk
+        .if(\arg_h % idilation_h == 0)
+            get_acc_idx \arg_acc, \arg_k, \arg_nb, (\arg_h / idilation_h), \arg_chunk
         .else
-            \acc = -1
+            \arg_acc = -1
         .endif
     .endm
 
@@ -968,7 +968,7 @@ loop_end:
     s_val_rem_out_range_part = desc_wei + 1
     .GPR_REUSE desc_wei, s_val_rem_out_range_sing
 
-    .macro store_result is_full_w
+    .macro store_result arg_is_full_w
         h_mult_dilated = h_mult * idilation_h
         .if(h_mult_dilated == 1)
             v_cmpx_gt_i32 vcc, 0 + out_h , v[vtid_h]
@@ -977,7 +977,7 @@ loop_end:
         s_mov_b32 s[s_save_exec], exec_lo
         s_mov_b32 s[s_save_exec + 1], exec_hi
         active_elements_dilated = active_elements * idilation_w
-        .if(\is_full_w == 0)
+        .if(\arg_is_full_w == 0)
             rem_w_out = out_w - (waves_per_xDim - 1) * w_per_wave * idilation_w
             full_w_mult\@ = (rem_w_out) / (active_elements_dilated * w_per_chunk)
             rem_w_out_part = rem_w_out - full_w_mult\@ * active_elements_dilated * w_per_chunk
@@ -1023,7 +1023,7 @@ loop_end:
                         buffer_stor_elements active_elements_dilated, acc, voffset_out, desc_out, soffset_out, ioffset, soffset_surplus
                         chunk = chunk + 1
                     .endr
-                    .if(\is_full_w == 0)
+                    .if(\arg_is_full_w == 0)
                         .if(rem_w_out_part != 0)
                             get_store_acc_idx acc, k\@, nb\@,  h_it\@, chunk * active_elements
                             ioffset = 0+4 * chunk * active_elements_dilated * w_per_chunk

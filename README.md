@@ -18,6 +18,8 @@ To build the MIOpen documentation locally, run the following code from within th
 our repository:
 
 ``` shell
+sudo apt install doxygen
+
 cd docs
 
 pip3 install -r sphinx/requirements.txt
@@ -289,10 +291,15 @@ cd ./test/utils && python3 gtest_formating_checks.py
 
 ## Formatting the code
 
+The easiest way to format the repo is to run `make format` from your build directory.  You can also
+use the methods below if you need custom formating behaviour.
+
+Formatting Wiki Page: [Code Formatting](https://github.com/ROCm/MIOpen/wiki/How-to-format-code)  
+
 All the code is formatted using `clang-format`. To format a file, use:
 
 ```shell
-clang-format-10 -style=file -i <path-to-source-file>
+clang-format -style=file -i <path-to-source-file>
 ```
 
 To format the code per commit, you can install githooks:

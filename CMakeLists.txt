@@ -73,7 +73,7 @@ endif()
 
 project ( MIOpen C CXX )
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -89,6 +89,8 @@ include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
+
+include(cmake/ClangCheck.cmake)
 
 # Build library with Beta APIs
 add_definitions("-DMIOPEN_BETA_API=1")
@@ -128,7 +130,7 @@ if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.4.0)
+rocm_setup_version(VERSION 3.5.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -175,6 +177,7 @@ set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache fi
 option(MIOPEN_EMBED_BINCACHE "Embed Binary Cache or KDB" Off)
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
+option(MIOPEN_BUILD_CK "Build own CK libs inline with MIOpen build" OFF)
 
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
@@ -328,7 +331,21 @@ add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPI
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     if(MIOPEN_USE_COMPOSABLEKERNEL)
-        find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_gemm_operations device_conv_operations device_reduction_operations)
+        if(MIOPEN_BUILD_CK)
+            include(cmake/Dependencies.cmake)
+
+            file(READ "${CMAKE_SOURCE_DIR}/requirements.txt" REQUIREMENTS_TXT_CONTENTS)
+            string(REGEX MATCH "ROCm/composable_kernel@([a-fA-F0-9]+)" _match "${REQUIREMENTS_TXT_CONTENTS}")
+            if(_match)
+                string(REGEX REPLACE "ROCm/composable_kernel@([a-fA-F0-9]+).*" "\\1" COMPOSABLE_KERNEL_HASH "${_match}")
+                message(STATUS "Parsed composable_kernel hash from requirements.txt: ${COMPOSABLE_KERNEL_HASH}")
+            else()
+                message(FATAL_ERROR "Could not find ROCm/composable_kernel@<hash> in requirements.txt")
+            endif()
+            miopen_add_dependency(composable_kernel HASH ${COMPOSABLE_KERNEL_HASH} options NO_LOCAL)
+        else()
+            find_package(composable_kernel 1.0.0 COMPONENTS device_conv_operations)
+        endif()
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
@@ -483,9 +500,6 @@ find_path(HALF_INCLUDE_DIR half/half.hpp)
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
-
-# FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
-option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" OFF)
 
 if(WIN32)
     set( DATA_INSTALL_DIR bin )
@@ -731,8 +745,8 @@ enable_cppcheck(
         # but cppcheck doesn't understand that as it assumes everything
         # will be compiled together in one binary.
         ctuOneDefinitionRuleViolation:*test/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/host/*/*
+        ctuOneDefinitionRuleViolation:*src/legacy_composable_kernel/composable_kernel/*/*
+        ctuOneDefinitionRuleViolation:*src/legacy_composable_kernel/host/*/*
         # There are many FPs with this, let's disable this (ditto in MIGraphX)
         ctuPointerArith:*test/*
         duplicateCondition
@@ -753,13 +767,13 @@ enable_cppcheck(
         unreadVariable:*src/kernels/static_composable_kernel/*/*
         unusedScopedObject:*src/kernels/static_composable_kernel/*/*
         wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
-        knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
-        identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
-        duplicateExpression:*src/composable_kernel/composable_kernel/*/*
-        multiCondition:*src/composable_kernel/composable_kernel/*/*
-        unreadVariable:*src/composable_kernel/composable_kernel/*/*
-        unreadVariable:*src/composable_kernel/host/*/*
-        unreadVariable:*src/composable_kernel/external/*/*
+        knownConditionTrueFalse:*src/legacy_composable_kernel/composable_kernel/*/*
+        identicalConditionAfterEarlyExit:*src/legacy_composable_kernel/composable_kernel/*/*
+        duplicateExpression:*src/legacy_composable_kernel/composable_kernel/*/*
+        multiCondition:*src/legacy_composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/legacy_composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/legacy_composable_kernel/host/*/*
+        unreadVariable:*src/legacy_composable_kernel/external/*/*
         unmatchedSuppression
         ###################################################################
         # TODO Code Quality WORKAROUND ROCm 5.3 &&

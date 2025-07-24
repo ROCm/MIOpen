@@ -29,6 +29,19 @@
 #include <gtest/gtest.h>
 #include "get_handle.hpp"
 
+// Recently added FP16, BFP16 and I8 test cases fail compiler staging tests
+#define WORKAROUND_ISSUE_3757 1
+
+#if WORKAROUND_ISSUE_3757
+#define HalfTestName DISABLED_HalfTest_reduce_custom_fp16
+#define BHalfTestName DISABLED_BHalfTest_reduce_custom_bfp16
+#define IntTestName DISABLED_IntTest_reduce_custom_i8
+#else
+#define HalfTestName HalfTest_reduce_custom_fp16
+#define BHalfTestName BHalfTest_reduce_custom_bfp16
+#define IntTestName IntTest_reduce_custom_i8
+#endif
+
 namespace reduce_custom_fp32 {
 std::vector<std::string> GetArgs(const std::string& param)
 {
@@ -53,18 +66,22 @@ using TestCase = decltype(GetTestCases(""))::value_type;
 
 class GPU_reduce_custom_fp32_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_reduce_custom_fp32_FP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_reduce_custom_fp32_BFP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_reduce_custom_fp32_I8 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 bool IsTestSupportedForDevice()
@@ -105,15 +122,15 @@ INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_reduce_custom_fp32_FP32,
                          testing::Values(GetTestCases("--float")));
 
-TEST_P(GPU_reduce_custom_fp32_FP16, HalfTest_reduce_custom_fp16) { Run2dDriver(); };
+TEST_P(GPU_reduce_custom_fp32_FP16, HalfTestName) { Run2dDriver(); };
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_reduce_custom_fp32_FP16,
                          testing::Values(GetTestCases("--half")));
 
-TEST_P(GPU_reduce_custom_fp32_BFP16, BHalfTest_reduce_custom_bfp16) { Run2dDriver(); };
+TEST_P(GPU_reduce_custom_fp32_BFP16, BHalfTestName) { Run2dDriver(); };
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_reduce_custom_fp32_BFP16,
                          testing::Values(GetTestCases("--bfloat16")));
 
-TEST_P(GPU_reduce_custom_fp32_I8, IntTest_reduce_custom_i8) { Run2dDriver(); };
+TEST_P(GPU_reduce_custom_fp32_I8, IntTestName) { Run2dDriver(); };
 INSTANTIATE_TEST_SUITE_P(Full, GPU_reduce_custom_fp32_I8, testing::Values(GetTestCases("--int8")));

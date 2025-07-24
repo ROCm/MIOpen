@@ -43,6 +43,8 @@
 .include "conv_common.inc"
 .include "inst_wrappers.inc"
 
+.noaltmacro
+
 // initial state:
 // s[0:1] - kernarg address
 // s2 - wg x (HW)
@@ -545,8 +547,8 @@ miopenGcnAsmConv1x1U:
 
     .endm
 
-    .macro get_acc_idx acc, k, n, chunk
-        \acc = accums + chunks_per_wave * n_mult * \k + \n * chunks_per_wave + \chunk
+    .macro get_acc_idx arg_acc, arg_k, arg_n, arg_chunk
+        \arg_acc = accums + chunks_per_wave * n_mult * \arg_k + \arg_n * chunks_per_wave + \arg_chunk
     .endm
 
     //repack imgs between two vgpr
@@ -854,10 +856,10 @@ last_wave:
 
     // Pack output
 
-    .macro set_acc_idx idx, k, nb, chunk
-        get_acc_idx acc\idx, \k, \nb, \chunk
+    .macro set_acc_idx arg_idx, arg_k, arg_nb, arg_chunk
+        get_acc_idx acc\arg_idx, \arg_k, \arg_nb, \arg_chunk
     .endm
-    .altmacro
+
     .macro set_all_acc_idx  rounded_ck_base, vec_ck, nb, chunk_base
         _idx = 1
         _ck_local = 0
@@ -880,7 +882,9 @@ last_wave:
             .rept chunks_per_wave / (output_dword_chunks_cnt)
                 hi_k = 0
                 .rept k_mult / vec_k_out
+                    .altmacro
                     set_all_acc_idx hi_k, vec_k_out, nb, hi_chunk  * output_dword_chunks_cnt
+                    .noaltmacro
                     .if acc_type == TYPE_FP32 && buf_type == TYPE_FP16
                         v_cvt_pkrtz_f16_f32 v[acc1], v[acc1], v[acc2]
                     .elseif acc_type == TYPE_INT32 && buf_type == TYPE_INT16

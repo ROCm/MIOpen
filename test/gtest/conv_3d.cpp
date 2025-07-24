@@ -70,6 +70,7 @@ using TestCase = decltype(GetTestCases(std::string{}))::value_type;
 
 class GPU_conv3d_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 bool IsTestSupportedForDevice()

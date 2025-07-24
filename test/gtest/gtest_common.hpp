@@ -315,6 +315,21 @@ MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM)
 MIOPEN_LIB_ENV_VAR(MIOPEN_LOG_LEVEL)
 MIOPEN_LIB_ENV_VAR(MIOPEN_FIND_ENFORCE)
 
+// TODO: GTests using test_drive<> disabled until gtest-aware version of test/driver.hpp is built
+#define MIOPEN_ENABLE_TEST_DRIVE_WITH_GTEST 0
+
+#if MIOPEN_ENABLE_TEST_DRIVE_WITH_GTEST
+#define MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE()
+#else
+#define MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE()                                                \
+protected:                                                                                    \
+    void SetUp() override                                                                     \
+    {                                                                                         \
+        GTEST_SKIP() << "-> GTests using test_drive<> disabled until gtest-aware version of " \
+                        "test/driver.hpp is built ";                                          \
+    }
+#endif
+
 /// \todo Remove workarounds
 namespace wa {
 

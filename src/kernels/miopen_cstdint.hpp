@@ -34,6 +34,7 @@ typedef unsigned short uint16_t;
 typedef signed int int32_t;
 typedef unsigned int uint32_t;
 typedef __hip_internal::uint64_t uint64_t;
+typedef __hip_internal::int64_t int64_t;
 #endif
 
 #else

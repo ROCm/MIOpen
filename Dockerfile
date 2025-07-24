@@ -27,13 +27,13 @@ RUN apt-get update && \
     curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
 # Get and install amdgpu-install.
-RUN wget https://repo.radeon.com/amdgpu-install/6.4/ubuntu/jammy/amdgpu-install_6.4.60400-1_all.deb --no-check-certificate && \
+RUN wget https://repo.radeon.com/amdgpu-install/6.4.1/ubuntu/jammy/amdgpu-install_6.4.60401-1_all.deb --no-check-certificate && \
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-       ./amdgpu-install_6.4.60400-1_all.deb
+       ./amdgpu-install_6.4.60401-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=6.4; \
+RUN export ROCM_APT_VER=6.4.1; \
     echo $ROCM_APT_VER &&\
     sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
     sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
@@ -150,10 +150,7 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     tar zxvf ck.tar.gz &&\
     cd composable_kernel-${CK_COMMIT} && \
     mkdir build && cd build && \
-    num_threads=$(( $(nproc) / 2 )) && \
-    if [ "$num_threads" -gt 32 ]; then \
-        num_threads=32; \
-    fi && \
+    num_threads=64 && \
     echo Building CK with ${num_threads} threads && \
     CXX=/opt/rocm/bin/amdclang++ cmake \
     -D CMAKE_PREFIX_PATH=/opt/rocm \
@@ -161,6 +158,8 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     -D CMAKE_C_COMPILER_LAUNCHER="${COMPILER_LAUNCHER}" \
     -D CMAKE_BUILD_TYPE=Release \
     -D GPU_ARCHS=${GPU_ARCHS} \
+    -D MIOPEN_REQ_LIBS_ONLY=ON \
+    -D DISABLE_OFFLOAD_COMPRESS=ON \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
     make -j ${num_threads} install && \ 
     sccache -s

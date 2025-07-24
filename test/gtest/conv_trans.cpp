@@ -28,6 +28,7 @@
 #include <miopen/miopen.h>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "gtest_common.hpp"
 
 namespace conv_trans {
 
@@ -42,6 +43,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 
 class GPU_conv_trans_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 void Run2dDriver(miopenDataType_t prec)

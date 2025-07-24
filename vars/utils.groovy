@@ -28,8 +28,10 @@ def miopenCheckout()
     checkout([
         $class: 'GitSCM',
         branches: scm.branches,
-        doGenerateSubmoduleConfigurations: true,
-        extensions: scm.extensions + [[$class: 'SubmoduleOption', parentCredentials: true]],
+        doGenerateSubmoduleConfigurations: false,
+        extensions: scm.extensions + [
+            [$class: 'SubmoduleOption', parentCredentials: true],
+        ],
        userRemoteConfigs: scm.userRemoteConfigs
    ])
 }
@@ -234,7 +236,8 @@ def getDockerImage(Map conf=[:])
     checkout scm
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
-    def gpu_arch = "gfx908;gfx90a;gfx942;gfx1100;gfx1101;gfx1102;gfx1103;gfx1200;gfx1201" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
+    // Note: With offload compress disabled for CK expanding the target list might cause issues with the docker build.
+    def gpu_arch = "gfx908;gfx90a;gfx942" // prebuilt dockers should have all the architectures enabled so one image can be used for all stages
 
     def dockerArgs = "--build-arg BUILDKIT_INLINE_CACHE=1 --build-arg PREFIX=${prefixpath} --build-arg GPU_ARCHS=\"${gpu_arch}\""
     if(env.CCACHE_HOST)
@@ -313,6 +316,12 @@ def buildHipClangJob(Map conf=[:]){
         show_node_info()
         miopenCheckout()
         checkout scm
+        /*
+            The following is a workaround for git submodule updating for the fin module.  After Jenkins upgrade,
+            many plugins started misbehaving, and submodules wouldn't get pulled.  This ensures that we always pull
+            the fin submodule and fail silently when the submodule directory already has artifacts in it.
+        */
+        sh(script: "git submodule update --init --recursive || true")
         env.HSA_ENABLE_SDMA=0
         env.DOCKER_BUILDKIT=1
         def image

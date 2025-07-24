@@ -204,7 +204,7 @@ void ActivationFunction_Clamp(const uint n,
 {
     for(uint i = 0; i < n; ++i)
     {
-        res[i] = fmax((_FLOAT_PREC)alpha, fmin((_FLOAT_PREC)_beta, (_FLOAT_PREC)data[i]));
+        res[i] = fmax((_FLOAT_PREC)alpha, fmin((_FLOAT_PREC)beta, (_FLOAT_PREC)data[i]));
     }
 }
 

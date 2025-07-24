@@ -35,11 +35,14 @@ auto GetConvTestCases(miopenDataType_t datatype)
     return std::vector{
         // clang-format off
         // rage v4.6
-        TestCase{{ 1, 16,  135,  240}, {16, 16, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype},
-        TestCase{{ 2,  4,   64,   64}, { 16, 4, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype},
+        TestCase{{1, 16, 135, 240}, {16, 16, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype},
+        TestCase{{2,  4,  64,  64}, {16,  4, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype},
         // rage v4.7
-        TestCase{{ 1, 16,  135,  240}, {16, 16, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype},
-        TestCase{{ 2,  4,   64,   64}, { 16, 4, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype},
+        TestCase{{1, 16, 135, 240}, {16, 16, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype},
+        TestCase{{2,  4,  64,  64}, {16,  4, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype},
+        // group convs
+        TestCase{{2, 15,  28,  28}, {15,  3, 3, 3}, {1, 1}, {1, 1}, {1, 1}, 5, datatype},
+        TestCase{{2, 15,  28,  28}, {15,  3, 5, 5}, {2, 2}, {1, 1}, {1, 1}, 5, datatype},
         // clang-format on
     };
 }
@@ -50,8 +53,11 @@ auto GetConvTestCasesWrw(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
-        TestCase{{ 1,  16, 5, 5}, {16,  16, 3, 3}, {0, 0}, {1, 1}, {1, 1}, datatype},
-        TestCase{{64, 128, 7, 7}, {64, 128, 7, 7}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{1, 16,  5,  5}, {16, 16, 3, 3}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        TestCase{{1, 32,  7,  7}, { 4, 32, 3, 3}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        // group convs
+        TestCase{{1, 16,  5,  5}, {16,  1, 3, 3}, {0, 0}, {1, 1}, {1, 1}, 16, datatype},
+        TestCase{{2, 16, 28, 28}, {16,  1, 5, 5}, {2, 2}, {1, 1}, {1, 1}, 16, datatype},
         // clang-format on
     };
 }
