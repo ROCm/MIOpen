@@ -400,32 +400,15 @@ void Solution::RunImpl(const Handle& handle,
         return;
     }
 
-    auto getSolution = [&](const ExecutionContext& ctx) {
-        auto solverId = GetSolver();
-        solver::mha::MhaForward mhaForward;
-        solver::mha::MhaBackward mhaBackward;
-        solver::mha::MhaCKFlashAttentionV2Forward ckMhaForward;
-
-        if(solverId == ckMhaForward.SolverDbId())
-        {
-            return ckMhaForward.GetSolution(ctx, problem_description);
-        }
-        else if(solverId == mhaForward.SolverDbId())
-        {
-            return mhaForward.GetSolution(ctx, problem_description);
-        }
-        else if(solverId == mhaBackward.SolverDbId())
-        {
-            return mhaBackward.GetSolution(ctx, problem_description);
-        }
-
-        MIOPEN_THROW("No MHA solver with matching SolverDbId of " + solverId.ToString());
-    };
+    solver::mha::MhaForward mhaForward;
+    solver::mha::MhaBackward mhaBackward;
 
     if(!kernels.empty())
     {
         const auto ctx          = ExecutionContext{&handle};
-        const auto mha_solution = getSolution(ctx);
+        const auto mha_solution = GetSolver() == mhaForward.SolverDbId()
+                                      ? mhaForward.GetSolution(ctx, problem_description)
+                                      : mhaBackward.GetSolution(ctx, problem_description);
         auto kernel_handles     = std::vector<Kernel>{std::begin(kernels), std::end(kernels)};
 
         invoker = (*mha_solution.invoker_factory)(kernel_handles);
@@ -442,8 +425,11 @@ void Solution::RunImpl(const Handle& handle,
         return;
     }
 
-    auto ctx                = ExecutionContext{&handle};
-    const auto mha_solution = getSolution(ctx);
+    auto ctx = ExecutionContext{&handle};
+
+    const auto mha_solution = GetSolver() == mhaForward.SolverDbId()
+                                  ? mhaForward.GetSolution(ctx, problem_description)
+                                  : mhaBackward.GetSolution(ctx, problem_description);
 
     invoker =
         handle.PrepareInvoker(*mha_solution.invoker_factory, mha_solution.construction_params);

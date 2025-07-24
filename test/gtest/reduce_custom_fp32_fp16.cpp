@@ -71,10 +71,12 @@ std::vector<std::string> GetTestCases(const std::string& precision)
 
 class GPU_reduce_custom_fp32_fp16_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_reduce_custom_fp32_fp16_FP16 : public testing::TestWithParam<std::vector<std::string>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 bool IsTestSupportedForDevice(void)

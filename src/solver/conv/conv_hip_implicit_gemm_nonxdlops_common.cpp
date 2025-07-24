@@ -27,7 +27,7 @@
 #include <miopen/handle.hpp>
 #include <miopen/stringutils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-#include <miopen/implicitgemm_params.hpp>
+#include <miopen/solver/problem_description_helpers.hpp>
 
 #define WORKAROUND_ISSUE_659 1
 

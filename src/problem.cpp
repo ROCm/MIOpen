@@ -613,12 +613,10 @@ Problem::FindSolutionsImpl(const Handle& handle,
 
     const auto algo = AlgorithmName{"Mha"};
 
-    static solver::mha::MhaCKFlashAttentionV2Forward mhaCKFAForwardSolver;
     static solver::mha::MhaForward mhaForwardSolver;
     static solver::mha::MhaBackward mhaBackwardSolver;
 
-    std::vector<solver::mha::MhaSolver*> solvers = {
-        &mhaCKFAForwardSolver, &mhaForwardSolver, &mhaBackwardSolver};
+    std::vector<solver::mha::MhaSolver*> solvers = {&mhaForwardSolver, &mhaBackwardSolver};
 
     for(auto solver : solvers)
     {
@@ -1099,12 +1097,13 @@ fusion::FusionInvokeParams FusedProblem::MakeInvokeParams(
                     const auto alpha = activ_desc.GetAlpha();
                     const auto beta  = activ_desc.GetBeta();
                     const auto gamma = activ_desc.GetGamma();
+                    const auto mode  = activ_desc.GetMode();
 
                     if(problem.GetDirection() == miopenProblemDirectionForward)
                     {
                         operator_args.params.emplace_back(
                             std::make_unique<miopen::fusion::ActivationOpInvokeParam>(
-                                alpha, beta, gamma));
+                                alpha, beta, gamma, mode));
                     }
                     else
                     {

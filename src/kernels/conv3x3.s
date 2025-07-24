@@ -44,6 +44,8 @@
 .include "conv_common.inc"
 .include "inst_wrappers.inc"
 
+.noaltmacro
+
 // initial state (s[0:4] are overlapped with filtersA):
 // s[0:1] - kernarg address
 // s2 - wg x (output batch)

@@ -73,7 +73,8 @@ INSTANTIATE_TEST_SUITE_P(Full,
                                           testing::ValuesIn({miopenTensorNCDHW, miopenTensorNDHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN3DTestCase>());
 // bfp16
 INSTANTIATE_TEST_SUITE_P(Full,
@@ -82,7 +83,8 @@ INSTANTIATE_TEST_SUITE_P(Full,
                                           testing::ValuesIn({miopenTensorNCDHW, miopenTensorNDHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN3DTestCase>());
 
 // fp32
@@ -92,5 +94,6 @@ INSTANTIATE_TEST_SUITE_P(Full,
                                           testing::ValuesIn({miopenTensorNCDHW, miopenTensorNDHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN3DTestCase>());

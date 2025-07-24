@@ -29,6 +29,7 @@
 #include "get_handle.hpp"
 #include <gtest/gtest_common.hpp>
 #include <gtest/gtest.h>
+#include "gtest_common.hpp"
 
 namespace deepbench_lstm {
 
@@ -79,6 +80,7 @@ using TestCase = decltype(GetTestCases({}))::value_type;
 
 class GPU_DeepBench_lstm_FP32 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 void Run2dDriverFloat(void)

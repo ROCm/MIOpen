@@ -29,7 +29,7 @@
 #include <gtest/gtest.h>
 #include <miopen/miopen.h>
 #include "get_handle.hpp"
-
+#include "gtest_common.hpp"
 #include "../conv2d.hpp"
 
 namespace conv_hip_igemm_xdlops {
@@ -45,6 +45,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 
 class GPU_ConvHipIgemmXdlops_I8 : public testing::TestWithParam<std::vector<std::string>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 void Run2dDriver(miopenDataType_t prec)

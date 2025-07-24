@@ -99,10 +99,14 @@ void ComputeCPUBNBwd(DLModule& dl_module)
                                      dl_module.dy,
                                      dl_module.out_ref,
                                      dl_module.bnScale,
+                                     dl_module.bnBias,
                                      dl_module.dScale_ref,
                                      dl_module.dBias_ref,
                                      dl_module.savedMean,
-                                     dl_module.savedInvVar);
+                                     dl_module.savedInvVar,
+                                     dl_module.activ_mode,
+                                     dl_module.activ_beta,
+                                     dl_module.activ_alpha);
     }
     else if(dl_module.bn_mode == miopenBNPerActivation)
     {

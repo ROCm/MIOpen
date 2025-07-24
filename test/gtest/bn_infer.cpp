@@ -126,7 +126,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN2DTestCase>());
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -135,7 +136,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN2DTestCase>());
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -144,7 +146,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCDHW, miopenTensorNDHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN3DTestCase>());
 // bfp16
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -153,7 +156,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN2DTestCase>());
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -162,7 +166,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN2DTestCase>());
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -171,7 +176,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCDHW, miopenTensorNDHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV1, testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN3DTestCase>());
 
 // fp32
@@ -181,7 +187,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV1})),
+                                          testing::ValuesIn({testBNAPIV1}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN2DTestCase>());
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -190,7 +197,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN2DTestCase>());
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -199,7 +207,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCDHW, miopenTensorNDHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN3DTestCase>());
 // fp64
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -208,7 +217,8 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV1})),
+                                          testing::ValuesIn({testBNAPIV1}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN2DTestCase>());
 
 INSTANTIATE_TEST_SUITE_P(Smoke,
@@ -217,5 +227,6 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                                           testing::ValuesIn({miopenTensorNCHW, miopenTensorNHWC}),
                                           testing::ValuesIn({miopenBNSpatial,
                                                              miopenBNPerActivation}),
-                                          testing::ValuesIn({testBNAPIV2})),
+                                          testing::ValuesIn({testBNAPIV2}),
+                                          testing::ValuesIn({miopenActivationPASTHRU})),
                          TestNameGenerator<BN2DTestCase>());

@@ -64,7 +64,7 @@
 #endif
 
 #if MIOPEN_USE_HIPBLASLT
-#include <hipblas/hipblas.h>
+#include <hipblas-common/hipblas-common.h>
 
 using hipblasLtHandle_t = void*;
 extern "C" hipblasStatus_t hipblasLtDestroy(hipblasLtHandle_t handle);

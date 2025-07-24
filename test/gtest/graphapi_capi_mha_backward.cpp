@@ -436,7 +436,14 @@ class GPU_MhaBackward_FP8 : public MhaBackwardTest<float8_fnuz>
 };
 
 TEST_P(GPU_MhaBackward_FP32, TestFloat) { Run(); }
-TEST_P(GPU_MhaBackward_FP8, TestFloat8) { Run(); }
+
+#if WORKAROUND_SWDEV_528878
+#define MHA_FP8_TEST_NAME DISABLED_Test_float8
+#else
+#define MHA_FP8_TEST_NAME Test_float8
+#endif
+
+TEST_P(GPU_MhaBackward_FP8, MHA_FP8_TEST_NAME) { Run(); }
 
 inline auto GetCases()
 {

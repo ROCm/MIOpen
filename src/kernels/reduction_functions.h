@@ -62,25 +62,33 @@ regLDSreduce(_FLOAT_ACCUM* value, local _FLOAT_ACCUM* data, uint localID, _FLOAT
 static inline void lds_reduce2_2d(_FLOAT_ACCUM_C* x,
                                   _FLOAT_ACCUM_C* y,
                                   _FLOAT_ACCUM scale,
-                                  local _FLOAT_ACCUM_C* lcl_data_x,
-                                  local _FLOAT_ACCUM_C* lcl_data_y,
-                                  unsigned int lid,
+                                  local _FLOAT_ACCUM_C* lcl_data,
+                                  unsigned int xstride,
+                                  unsigned int xlid,
+                                  unsigned int ylid,
                                   unsigned int size)
 {
-    lcl_data_x[lid] = (_FLOAT_ACCUM_C)*x;
-    lcl_data_y[lid] = (_FLOAT_ACCUM_C)*y;
+    unsigned int offset1 = 2 * (xlid + ylid * xstride);
+    // store the values by pairs (so the compiler will generate
+    // one instruction to read/write them)
+    lcl_data[offset1 + 0] = (_FLOAT_ACCUM_C)*x;
+    lcl_data[offset1 + 1] = (_FLOAT_ACCUM_C)*y;
     barrier(CLK_LOCAL_MEM_FENCE);
     for(unsigned int red = (size >> 1); red > 0; red >>= 1)
     {
-        if(lid < red)
+        if(ylid < red)
         {
-            lcl_data_x[lid] += lcl_data_x[lid + red];
-            lcl_data_y[lid] += lcl_data_y[lid + red];
+            unsigned int offset2 = offset1 + red * xstride * 2;
+            // make sure there is one read and one write
+            *x += lcl_data[offset2 + 0];
+            *y += lcl_data[offset2 + 1];
+            lcl_data[offset1 + 0] = *x;
+            lcl_data[offset1 + 1] = *y;
         }
         barrier(CLK_LOCAL_MEM_FENCE);
     }
-    *x = (_FLOAT_ACCUM_C)(lcl_data_x[0] * scale);
-    *y = (_FLOAT_ACCUM_C)(lcl_data_y[0] * scale);
+    *x = (_FLOAT_ACCUM_C)(lcl_data[xlid * 2 + 0] * scale);
+    *y = (_FLOAT_ACCUM_C)(lcl_data[xlid * 2 + 1] * scale);
 }
 
 #if MIOPEN_USE_AMDGCN

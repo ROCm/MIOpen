@@ -142,6 +142,11 @@ TEST_P(GPU_ConvBiasActivFind2Infer_FP16, ConvWinoFuryRxSf2x3Find2Fused)
     RunSolver<miopen::solver::fusion::ConvWinoFuryRxSFused<2, 3>>(
         fused_problem, invoke_params, conv_config, test_skipped);
 }
+TEST_P(GPU_ConvBiasActivFind2Infer_FP16, ConvWinoRageRxSf2x3Find2Fused)
+{
+    RunSolver<miopen::solver::fusion::ConvWinoRageRxSFused<2, 3>>(
+        fused_problem, invoke_params, conv_config, test_skipped);
+}
 
 TEST_P(GPU_ConvBiasActivFind2Infer_FP16, ConvCKIgemmFwdBiasActivFind2Fused)
 {
@@ -201,6 +206,10 @@ INSTANTIATE_TEST_SUITE_P(Full,
 
 INSTANTIATE_TEST_SUITE_P(Full,
                          GPU_ConvBiasActivFind2Infer_FP16,
-                         testing::Combine(testing::Values(miopenActivationRELU),
+                         testing::Combine(testing::Values(miopenActivationPASTHRU,
+                                                          miopenActivationLOGISTIC,
+                                                          miopenActivationTANH,
+                                                          miopenActivationRELU,
+                                                          miopenActivationLEAKYRELU),
                                           testing::ValuesIn(GetNetwork1<ConvTestCaseBase>()),
-                                          testing::Values(miopenTensorNHWC)));
+                                          testing::Values(miopenTensorNCHW)));

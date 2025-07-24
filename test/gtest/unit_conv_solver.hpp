@@ -57,6 +57,14 @@ struct ConvTestCase
                  std::vector<int>&& pad,
                  std::vector<int>&& stride,
                  std::vector<int>&& dilation,
+                 int groups,
+                 miopenDataType_t type);
+
+    ConvTestCase(std::vector<size_t>&& x,
+                 std::vector<size_t>&& w,
+                 std::vector<int>&& pad,
+                 std::vector<int>&& stride,
+                 std::vector<int>&& dilation,
                  miopenDataType_t type_x,
                  miopenDataType_t type_w,
                  miopenDataType_t type_y);

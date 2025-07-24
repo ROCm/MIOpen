@@ -50,6 +50,11 @@ bool BnFwdInference::IsApplicable(const ExecutionContext&,
     if(!IsOCLInferTypeValid(bn_problem))
         return false;
 
+    int activ_mode = bn_problem.GetActivationDesc().GetMode();
+    if(activ_mode != miopenActivationPASTHRU && activ_mode != miopenActivationRELU &&
+       activ_mode != miopenActivationCLIPPEDRELU && activ_mode != miopenActivationCLAMP)
+        return false;
+
     return true;
 }
 
@@ -90,24 +95,23 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
     {
         size_t xlocalsize, xgridsize, ylocalsize, ygridsize, zlocalsize, zgridsize;
         size_t max_localsize = 256;
-        bool vectorize;
+        size_t vectorsize    = problem.IsLayoutNHWC()
+                                   ? (c % 4 == 0 ? 4 : (c % 2 == 0 ? 2 : 1))
+                                   : (in_cstride % 4 == 0 ? 4 : (in_cstride % 2 == 0 ? 2 : 1));
+        ;
         if(problem.GetXDesc().GetLayout_t() == miopenTensorNHWC)
         {
-            vectorize       = c % 4 == 0;
-            int vector_size = vectorize ? 4 : 1;
-            xlocalsize      = std::min(size_t{c / vector_size}, max_localsize);
-            xgridsize       = xlocalsize * ((c / vector_size + xlocalsize - 1) / xlocalsize);
-            ylocalsize      = max_localsize / xlocalsize;
-            ygridsize       = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
+            xlocalsize = std::min(size_t{c / vectorsize}, max_localsize);
+            xgridsize  = xlocalsize * ((c / vectorsize + xlocalsize - 1) / xlocalsize);
+            ylocalsize = max_localsize / xlocalsize;
+            ygridsize  = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
         }
         else
         {
-            vectorize       = in_cstride % 4 == 0;
-            int vector_size = vectorize ? 4 : 1;
-            xlocalsize      = 1;
-            xgridsize       = c;
-            ylocalsize      = max_localsize;
-            ygridsize = ylocalsize * ((in_cstride / vector_size + ylocalsize - 1) / ylocalsize);
+            xlocalsize = 1;
+            xgridsize  = c;
+            ylocalsize = max_localsize;
+            ygridsize  = ylocalsize * ((in_cstride / vectorsize + ylocalsize - 1) / ylocalsize);
         }
         zlocalsize = 1;
         zgridsize  = 1;
@@ -139,8 +143,9 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
             {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
-            {"MIO_BN_VECTORIZE", static_cast<int>(vectorize)},
-        };
+            {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
+            {"MIO_BN_VEC_SIZE", vectorsize},
+            {"MIOPEN_NRN_OP_ID", problem.GetActivationDesc().GetMode()}};
 
         kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
 
@@ -155,7 +160,7 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
         result.construction_params.push_back(kernel);
     }
 
-    result.invoker_factory = [](const std::vector<Kernel>& kernels) {
+    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
         return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
             decltype(auto) kernel = handle_.Run(kernels.front());
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::InfInvokeParams>();
@@ -164,6 +169,9 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
             std::tie(n_, c_, h_, w_) = tien<4>(params.xDesc->GetLengths());
 
             unsigned int in_nstride_ = c_ * h_ * w_;
+
+            float alpha_activ = problem.GetActivationDesc().GetAlpha();
+            float beta_activ  = problem.GetActivationDesc().GetBeta();
 
             if(params.xDesc->GetLayout_t() == miopenTensorNHWC)
             {
@@ -177,9 +185,11 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
                        c_,
                        h_ * w_,
                        n_,
-                       1,            // cStride
-                       c_,           // hwStride
-                       in_nstride_); // batchStride
+                       1,           // cStride
+                       c_,          // hwStride
+                       in_nstride_, // batchStride
+                       alpha_activ,
+                       beta_activ);
             }
             else
             {
@@ -193,9 +203,11 @@ ConvSolution BnFwdInference::GetSolution(const ExecutionContext& context,
                        c_,
                        h_ * w_,
                        n_,
-                       h_ * w_,      // cStride
-                       1,            // hwStride
-                       in_nstride_); // batchStride
+                       h_ * w_,     // cStride
+                       1,           // hwStride
+                       in_nstride_, // batchStride
+                       alpha_activ,
+                       beta_activ);
             }
         };
     };

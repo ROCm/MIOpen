@@ -36,6 +36,8 @@
 #define FQUALIFIERS inline
 #include <miopen_rocrand.hpp>
 
+#define WORKAROUND_SWDEV_528878 1
+
 namespace test {
 namespace cpu {
 
@@ -421,33 +423,6 @@ void MultiHeadAttentionForwardfp8(const tensor<T>& q_val,
 
     // scale to fp8 version
     ScaleMult(atten_heads_fp32, o_scale, multi_head_attention_fp8);
-}
-
-template <typename T>
-void MultiHeadAttentionForwardfp16(const tensor<T>& q_val,
-                                   const tensor<T>& k_val,
-                                   const tensor<T>& v_val,
-                                   tensor<float>& softmax,
-                                   tensor<float>& attn_max,
-                                   tensor<float>& Z_sum,
-                                   tensor<T>& multi_head_attention,
-                                   const tensor<float>* optional_bias =
-                                       nullptr) // pointer to optional bias, nullptr if not provided
-{
-    auto inputLengths = q_val.desc.GetLengths();
-    inputLengths[3]   = inputLengths[2]; // NHSD converting to NHSS
-    tensor<float> q_dot_k_transpose(inputLengths);
-
-    Dot_4D_4D_T(q_val, k_val, q_dot_k_transpose);
-
-    if(optional_bias != nullptr)
-    {
-        PointWiseAdd(q_dot_k_transpose, *optional_bias, q_dot_k_transpose);
-    }
-
-    SoftMax(q_dot_k_transpose, softmax, attn_max, Z_sum);
-
-    Dot_4D_4D(softmax, v_val, multi_head_attention);
 }
 
 template <typename T>

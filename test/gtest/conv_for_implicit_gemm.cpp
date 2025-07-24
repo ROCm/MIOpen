@@ -31,6 +31,7 @@
 #include <miopen/env.hpp>
 #include "../conv2d.hpp"
 #include "get_handle.hpp"
+#include "gtest_common.hpp"
 
 using TestCase = std::tuple<std::vector<std::string>, std::string>;
 
@@ -66,10 +67,12 @@ void GetArgs(const TestCase& param, std::vector<std::string>& tokens)
 
 class GPU_ConvImplicitGemm_FP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 class GPU_ConvImplicitGemm_BFP16 : public testing::TestWithParam<std::vector<TestCase>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 void Run2dDriver(miopenDataType_t prec)

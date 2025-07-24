@@ -511,7 +511,7 @@ bool ConvAsm1x1UV2::IsApplicable(const ExecutionContext& ctx,
         return false;
 
     const std::string name = ctx.GetStream().GetDeviceName();
-    if(name.find("gfx8") == std::string::npos && name.find("gfx9") == std::string::npos)
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90")))
         return false;
     if(!problem.IsLayoutDefault())
         return false;

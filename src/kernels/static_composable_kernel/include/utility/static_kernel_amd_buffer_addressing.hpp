@@ -281,70 +281,44 @@ amd_buffer_load(const T* p_src_block, index_t src_thread_data_offset, index_t sr
 
 #if CK_USE_AMD_BUFFER_ATOMIC_FADD
 
-#if CK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT
-__device__ float
-#else
-__device__ void
-#endif
-__llvm_amdgcn_buffer_atomic_add_f32(float vdata,
-                                    int32x4_t rsrc,
-                                    index_t vindex,
-                                    index_t offset,
-                                    bool slc) __asm("llvm.amdgcn.buffer.atomic.fadd.f32");
-
-template <typename T, index_t VectorSize>
+template <typename T, index_t N>
 __device__ void amd_buffer_atomic_add(const T* p_src,
                                       T* p_dst_block,
                                       index_t dst_thread_data_offset,
-                                      index_t dst_const_data_offset);
-
-template <>
-__device__ void amd_buffer_atomic_add<float, 1>(const float* p_src,
-                                                float* p_dst_block,
-                                                index_t dst_thread_data_offset,
-                                                index_t dst_const_data_offset)
+                                      index_t dst_const_data_offset)
 {
-    BufferAddressConfig<float> dst_block_config;
+    auto dst_buffer_resource = [&]() {
+        // NFMT float = 7000 - ignored
+        // DFMT 32 = 20000 - ignored but should not be 0
+        // int32_t flag          0x00027000;
+        int32_t flag = CK_BUFFER_RESOURCE_3RD_DWORD;
+        // stride = stride[0:13] + bit( Cache swizzle)[14] + bit(Swizzle enable)[15]
+        short stride = 0;
+        int32_t num  = 0xFFFFFFFF; // max val
+        return make_raw_buffer_resourse(p_dst_block, stride, num, flag);
+    }();
 
-    // fill in byte 0 - 1
-    dst_block_config.address[0] = p_dst_block;
-    // fill in byte 2
-    dst_block_config.range[2] = -1;
-    // fill in byte 3
-    dst_block_config.range[3] = 0x00027000;
+    index_t dst_thread_addr_offset = (dst_thread_data_offset + dst_const_data_offset) * sizeof(T);
 
-    index_t dst_thread_addr_offset = dst_thread_data_offset * sizeof(float);
-    index_t dst_const_addr_offset  = dst_const_data_offset * sizeof(float);
+    constexpr index_t no_slc_glc = 0;
 
-    __llvm_amdgcn_buffer_atomic_add_f32(
-        *p_src, dst_block_config.data, 0, dst_thread_addr_offset + dst_const_addr_offset, false);
-}
-
-template <>
-__device__ void amd_buffer_atomic_add<float, 2>(const float* p_src,
-                                                float* p_dst_block,
-                                                index_t dst_thread_data_offset,
-                                                index_t dst_const_data_offset)
-{
-    for(index_t i = 0; i < 2; ++i)
+    if constexpr(is_same<T, float>::value)
     {
-        amd_buffer_atomic_add<float, 1>(
-            &p_src[i], p_dst_block, dst_thread_data_offset, dst_const_data_offset + i);
+        for(index_t i = 0; i < N; ++i)
+        {
+            __llvm_amdgcn_buffer_atomic_add_f32(p_src[i],
+                                                dst_buffer_resource,
+                                                dst_thread_addr_offset + i * sizeof(T),
+                                                0,
+                                                no_slc_glc);
+        }
+    }
+    else
+    {
+        static_assert(false, "wrong! not implemented");
     }
 }
 
-template <>
-__device__ void amd_buffer_atomic_add<float, 4>(const float* p_src,
-                                                float* p_dst_block,
-                                                index_t dst_thread_data_offset,
-                                                index_t dst_const_data_offset)
-{
-    for(index_t i = 0; i < 4; ++i)
-    {
-        amd_buffer_atomic_add<float, 1>(
-            &p_src[i], p_dst_block, dst_thread_data_offset, dst_const_data_offset + i);
-    }
-}
 #endif // CK_USE_AMD_BUFFER_ATOMIC_FADD
 
 } // namespace ck

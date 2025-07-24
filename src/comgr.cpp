@@ -34,7 +34,6 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/kernel.hpp>
 #include <miopen/logger.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/stringutils.hpp>
 
 #include <amd_comgr/amd_comgr.h>
@@ -921,7 +920,7 @@ private:
 void BuildHip(const std::string& name,
               std::string_view text,
               const std::string& options,
-              const miopen::TargetProperties& target,
+              [[maybe_unused]] const miopen::TargetProperties& target,
               std::vector<char>& binary)
 {
     PrintVersion();
@@ -934,8 +933,6 @@ void BuildHip(const std::string& name,
         opts.push_back("-D__HIP_PLATFORM_HCC__=1"); // Workaround?
 #endif
         opts.push_back("-D__HIP_PLATFORM_AMD__=1"); // Workaround?
-        if(miopen::solver::support_amd_buffer_atomic_fadd(target.Name()))
-            opts.push_back("-DCK_AMD_BUFFER_ATOMIC_FADD_RETURNS_FLOAT=1");
         opts.push_back("-DHIP_PACKAGE_VERSION_FLAT=" + std::to_string(HIP_PACKAGE_VERSION_FLAT));
         opts.push_back("-DMIOPEN_DONT_USE_HIP_RUNTIME_HEADERS");
 #if HIP_PACKAGE_VERSION_FLAT < 6001024000ULL && !defined(_WIN32)

@@ -203,6 +203,9 @@ void miopenActivationFwdHost(int neuron_type,
     case MIOPEN_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
         f = [=](Tref x) { return (x > 0) ? x : alpha * std::expm1(x); };
         break;
+    case MIOPEN_NEURON_CLAMP: // max(alpha, min(beta, x)))
+        f = [=](Tref x) { return std::max(alpha, std::min(beta, x)); };
+        break;
     default: printf("ERROR: unknown neuron type: %d\n", neuron_type); break;
     }
 

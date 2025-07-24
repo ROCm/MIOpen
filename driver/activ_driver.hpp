@@ -269,6 +269,9 @@ int ActivationDriver<Tgpu, Tref>::AllocateBuffersAndCopy()
             in[i] = i % 2 ? prng::gen_A_to_B(static_cast<Tgpu>(0.005), static_cast<Tgpu>(2.0))
                           : prng::gen_A_to_B(static_cast<Tgpu>(-2.0), static_cast<Tgpu>(-0.005));
             break;
+        case MIOPEN_NEURON_CLAMP:
+            in[i] = prng::gen_A_to_B(static_cast<Tgpu>(-2), static_cast<Tgpu>(2));
+            break;
         }
     }
 

@@ -50,10 +50,11 @@
 #define MIOPEN_NEURON_SOFTRELU 4     // log(1 + e^x)   // bonomial normal log likelihood
 #define MIOPEN_NEURON_ABS 5          // abs(x)
 #define MIOPEN_NEURON_POWER 6        // (alpha + beta * x )^gamma
-#define MIOPEN_NEURON_CLIPPED_RELU 7 // min(alpha, max(0, x))
+#define MIOPEN_NEURON_CLIPPED_RELU 7 // max(0, min(alpha, x))
 #define MIOPEN_NEURON_LEAKY_RELU 8   // alpha * x | x <= 0; x | x > 0
 #define MIOPEN_NEURON_ELU 9          // alpha * (e^x - 1) | x <= 0; x | x > 0
-#define MIOPEN_NEURON_TOTAL 10
+#define MIOPEN_NEURON_CLAMP 10       // max(alpha, min(beta, x))
+#define MIOPEN_NEURON_TOTAL 11
 #endif
 
 const float kBNLL_THRESHOLD = 50.;
@@ -120,6 +121,9 @@ int mloNeuronForwardRunHostAndVerify(int neuron_type,
         break;
     case MIOPEN_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
         f = [=](Tcheck_ x) { return (x > 0) ? x : alpha * std::expm1(x); };
+        break;
+    case MIOPEN_NEURON_CLAMP: // max(alpha, min(beta, x))
+        f = [=](Tcheck_ x) { return std::max(alpha, std::min(beta, x)); };
         break;
     default: printf("ERROR: unknown neuron type: %d\n", neuron_type); break;
     }
@@ -224,6 +228,9 @@ int mloNeuronBackwardRunHostAndVerify(int neuron_type,
         break;
     case MIOPEN_NEURON_ELU: // alpah * (exp(x)-1) | x<=0; x | x>0
         f = [=](Tcheck_ dy, Tcheck_ x, Tcheck_ y) { return dy * ((x > 0) ? 1 : y + alpha); };
+        break;
+    case MIOPEN_NEURON_CLAMP: // max(alpha, min(beta, x))
+        f = [=](Tcheck_ dy, Tcheck_ x, Tcheck_) { return (x > alpha && x <= beta) ? dy : 0; };
         break;
     default: printf("ERROR: unknown neuron type: %d\n", neuron_type); break;
     }

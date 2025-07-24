@@ -41,13 +41,10 @@ enum class ReduceThreadDim : int32_t
     Z = 1 << 2,
 };
 
-template <BinaryOp_t Op, uint64_t reduce_size, ReduceThreadDim thread_dim>
-__device__ FLOAT_ACCUM block_reduce(FLOAT_ACCUM val)
+template <uint32_t WARP_SIZE, BinaryOp_t Op, uint64_t reduce_size, ReduceThreadDim thread_dim>
+__device__ FLOAT_ACCUM block_reduce_warp(FLOAT_ACCUM val)
 {
-    if(reduce_size == warpSize)
-        return warp_reduce<Op>(val);
-
-    static __shared__ FLOAT_ACCUM shared[reduce_size / warpSize];
+    static __shared__ FLOAT_ACCUM shared[reduce_size / WARP_SIZE];
     uint64_t tid = 0;
     if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::X))
         tid += threadIdx.x;
@@ -55,18 +52,34 @@ __device__ FLOAT_ACCUM block_reduce(FLOAT_ACCUM val)
         tid = tid * blockDim.y + threadIdx.y;
     if(static_cast<int32_t>(thread_dim) & static_cast<int32_t>(ReduceThreadDim::Z))
         tid = tid * blockDim.z + threadIdx.z;
-    const uint64_t lane = tid % warpSize;
-    const uint64_t wid  = tid / warpSize;
+    const uint64_t lane = tid % WARP_SIZE;
+    const uint64_t wid  = tid / WARP_SIZE;
 
     val = warp_reduce<Op>(val);
     if(lane == 0)
         shared[wid] = val;
     __syncthreads();
 
-    val = tid < reduce_size / warpSize ? shared[lane] : 0;
+    val = tid < reduce_size / WARP_SIZE ? shared[lane] : 0;
     if(wid == 0)
         val = warp_reduce<Op>(val);
     return val;
+}
+
+template <BinaryOp_t Op, uint64_t reduce_size, ReduceThreadDim thread_dim>
+__device__ FLOAT_ACCUM block_reduce(FLOAT_ACCUM val)
+{
+    if(reduce_size == warpSize)
+        return warp_reduce<Op>(val);
+
+    if(warpSize == 32)
+    {
+        return block_reduce_warp<32, Op, reduce_size, thread_dim>(val);
+    }
+    else
+    {
+        return block_reduce_warp<64, Op, reduce_size, thread_dim>(val);
+    }
 }
 
 #endif // GUARD_BLOCK_REDUCE_HPP

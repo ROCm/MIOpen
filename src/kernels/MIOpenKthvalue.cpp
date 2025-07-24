@@ -29,6 +29,8 @@
 #include <hip/hip_bfloat16.h>
 #include <hip/hip_runtime.h>
 #endif
+#include "miopen_cstdint.hpp"
+#include "miopen_type_traits.hpp"
 
 #include "float_types.h"
 #include "tensor_view.hpp"

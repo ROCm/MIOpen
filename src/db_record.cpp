@@ -23,6 +23,7 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+#include <boost/algorithm/string.hpp>
 #include <iostream>
 #include <numeric>
 #include <ostream>
@@ -138,6 +139,7 @@ bool DbRecord::ParseContents(std::istream& contents)
 
         auto id     = id_and_values.substr(0, id_size);
         auto values = id_and_values.substr(id_size + 1);
+        boost::trim(values);
 
 #if WORKAROUND_ISSUE_1987
         // Detect legacy find-db item (v.1.0 ID:VALUES) and transform it to the current format.

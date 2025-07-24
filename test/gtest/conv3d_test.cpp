@@ -28,6 +28,7 @@
 #include <gtest/gtest.h>
 #include "../conv3d.hpp"
 #include "get_handle.hpp"
+#include "gtest_common.hpp"
 
 namespace conv3d_test {
 
@@ -42,6 +43,7 @@ void GetArgs(const std::string& param, std::vector<std::string>& tokens)
 
 class GPU_Conv3d_Test_FP32 : public testing::TestWithParam<std::vector<std::string>>
 {
+    MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
 void Run3dDriver(miopenDataType_t prec)

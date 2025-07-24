@@ -73,7 +73,7 @@ endif()
 
 project ( MIOpen C CXX )
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -89,6 +89,8 @@ include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
+
+include(cmake/ClangCheck.cmake)
 
 # Build library with Beta APIs
 add_definitions("-DMIOPEN_BETA_API=1")
@@ -128,7 +130,7 @@ if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.4.0)
+rocm_setup_version(VERSION 3.5.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -175,6 +177,7 @@ set(MIOPEN_BINCACHE_PATH "" CACHE STRING "URL or path containing binary cache fi
 option(MIOPEN_EMBED_BINCACHE "Embed Binary Cache or KDB" Off)
 option(MIOPEN_EMBED_BUILD "Build with the set of embed flags." Off)
 option(MIOPEN_DISABLE_USERDB "Disable user database access" ${MIOPEN_EMBED_BUILD})
+option(MIOPEN_BUILD_CK "Build own CK libs inline with MIOpen build" OFF)
 
 # MIOPEN_USE_HIP_KERNELS is a Workaround for COMgr issues
 if(MIOPEN_EMBED_BUILD)
@@ -328,7 +331,21 @@ add_compile_definitions($<$<COMPILE_LANGUAGE:CXX>:HIP_COMPILER_FLAGS=${HIP_COMPI
 # HIP
 if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_BACKEND STREQUAL "HIPNOGPU")
     if(MIOPEN_USE_COMPOSABLEKERNEL)
-        find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_gemm_operations device_conv_operations device_reduction_operations device_mha_operations)
+        if(MIOPEN_BUILD_CK)
+            include(cmake/Dependencies.cmake)
+
+            file(READ "${CMAKE_SOURCE_DIR}/requirements.txt" REQUIREMENTS_TXT_CONTENTS)
+            string(REGEX MATCH "ROCm/composable_kernel@([a-fA-F0-9]+)" _match "${REQUIREMENTS_TXT_CONTENTS}")
+            if(_match)
+                string(REGEX REPLACE "ROCm/composable_kernel@([a-fA-F0-9]+).*" "\\1" COMPOSABLE_KERNEL_HASH "${_match}")
+                message(STATUS "Parsed composable_kernel hash from requirements.txt: ${COMPOSABLE_KERNEL_HASH}")
+            else()
+                message(FATAL_ERROR "Could not find ROCm/composable_kernel@<hash> in requirements.txt")
+            endif()
+            miopen_add_dependency(composable_kernel HASH ${COMPOSABLE_KERNEL_HASH} options NO_LOCAL)
+        else()
+            find_package(composable_kernel 1.0.0 COMPONENTS device_conv_operations)
+        endif()
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
         set(MIOPEN_MODE_NOGPU 1)
@@ -367,10 +384,10 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
     set_var_to_condition(MIOPEN_USE_HIPBLASLT_DEFAULT NOT WIN32)
     option(MIOPEN_USE_HIPBLASLT "Use hipBlasLt" ${MIOPEN_USE_HIPBLASLT_DEFAULT})
     if(MIOPEN_USE_HIPBLASLT)
-        find_package(hipblas REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
-        message(STATUS "Build with hipbBLAS ${hipblas_VERSION} ${hipblas_DIR}")
         find_package(hipblaslt REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
-        message(STATUS "Build with hipbBLASLt ${hipblaslt_VERSION} ${hipblaslt_DIR}")
+        message(STATUS "Build with hipBLASLt ${hipblaslt_VERSION} ${hipblaslt_DIR}")
+        find_package(hipblas-common REQUIRED PATHS /opt/rocm $ENV{HIP_PATH})
+        message(STATUS "Build with hipBLAS-common ${hipblas-common_VERSION} ${hipBLAS-common_DIR}")
     else()
         message(STATUS "Build without hipbBLASLt")
     endif()
@@ -484,9 +501,6 @@ message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
 
-# FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
-option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" OFF)
-
 if(WIN32)
     set( DATA_INSTALL_DIR bin )
     set( DATABASE_INSTALL_DIR ${DATA_INSTALL_DIR})
@@ -534,9 +548,11 @@ set(MIOPEN_SYSTEM_FIND_DB_SUFFIX "${MIOPEN_BACKEND}" CACHE PATH "Filename suffix
 # Enabled via the MIOPEN_ENABLE_LOGGING_ROCTX env var.
 set(MIOPEN_USE_ROCTRACER ON CACHE BOOL "")
 if(NOT WIN32 AND MIOPEN_USE_ROCTRACER)
+    find_path(ROCTRACER_INCLUDE_DIR "roctracer/roctx.h")
     find_library(rocTracer roctx64)
-    if(rocTracer)
+    if(rocTracer AND ROCTRACER_INCLUDE_DIR)
         MESSAGE(STATUS "Build with rocTracer: " ${rocTracer})
+        MESSAGE(STATUS "rocTracer include directory: " ${ROCTRACER_INCLUDE_DIR})
         set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, roctracer")
     else()
         message(WARNING "rocTracer cannot be found! Build without rocTracer")
@@ -559,12 +575,10 @@ if(MIOPEN_OFFLINE_COMPILER_PATHS_V2)
     set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocm-core")
 endif()
 
-if(MIOPEN_BUILD_DRIVER)
-    # PR #2785 MIOpenDriver to use rocrand to init buffers
-    find_package(rocrand REQUIRED)
-    message(STATUS "Build with rocrand ${rocrand_VERSION} ${rocrand_DIR}")
-    set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocrand")
-endif()
+# PR #2785 MIOpenDriver to use rocrand to init buffers
+find_package(rocrand REQUIRED)
+message(STATUS "Build with rocrand ${rocrand_VERSION} ${rocrand_DIR}")
+set(MIOPEN_PACKAGE_REQS "${MIOPEN_PACKAGE_REQS}, rocrand")
 
 if(MIOPEN_BACKEND STREQUAL "HIP")
     set(CPACK_DEBIAN_PACKAGE_DEPENDS "${MIOPEN_PACKAGE_REQS}")
@@ -731,8 +745,8 @@ enable_cppcheck(
         # but cppcheck doesn't understand that as it assumes everything
         # will be compiled together in one binary.
         ctuOneDefinitionRuleViolation:*test/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/host/*/*
+        ctuOneDefinitionRuleViolation:*src/legacy_composable_kernel/composable_kernel/*/*
+        ctuOneDefinitionRuleViolation:*src/legacy_composable_kernel/host/*/*
         # There are many FPs with this, let's disable this (ditto in MIGraphX)
         ctuPointerArith:*test/*
         duplicateCondition
@@ -753,13 +767,13 @@ enable_cppcheck(
         unreadVariable:*src/kernels/static_composable_kernel/*/*
         unusedScopedObject:*src/kernels/static_composable_kernel/*/*
         wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
-        knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
-        identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
-        duplicateExpression:*src/composable_kernel/composable_kernel/*/*
-        multiCondition:*src/composable_kernel/composable_kernel/*/*
-        unreadVariable:*src/composable_kernel/composable_kernel/*/*
-        unreadVariable:*src/composable_kernel/host/*/*
-        unreadVariable:*src/composable_kernel/external/*/*
+        knownConditionTrueFalse:*src/legacy_composable_kernel/composable_kernel/*/*
+        identicalConditionAfterEarlyExit:*src/legacy_composable_kernel/composable_kernel/*/*
+        duplicateExpression:*src/legacy_composable_kernel/composable_kernel/*/*
+        multiCondition:*src/legacy_composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/legacy_composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/legacy_composable_kernel/host/*/*
+        unreadVariable:*src/legacy_composable_kernel/external/*/*
         unmatchedSuppression
         ###################################################################
         # TODO Code Quality WORKAROUND ROCm 5.3 &&
