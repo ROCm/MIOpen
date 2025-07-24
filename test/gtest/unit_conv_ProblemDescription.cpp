@@ -153,7 +153,7 @@ public:
             },
             TestCase{
                 {miopenHalf, miopenTensorNCHWc4, {1, 16, 4, 4}}, // NCHWc4
-                {miopenHalf, miopenTensorNCHWc4, {1, 16, 4, 4}}, // NCHWc4
+                {miopenHalf, miopenTensorNCHWc4, {4, 16, 4, 4}}, // NCHWc4
                 {miopenHalf, miopenTensorNCHWc4, {1, 16, 4, 4}}, // NCHWc4
                 {{0, 0}, {1, 1}, {1, 1}},
                 miopen::conv::Direction::Forward,
@@ -161,7 +161,7 @@ public:
             },
             TestCase{
                 {miopenHalf, miopenTensorNCHWc8, {1, 32, 4, 4}}, // NCHWc8
-                {miopenHalf, miopenTensorNCHWc8, {1, 32, 4, 4}}, // NCHWc8
+                {miopenHalf, miopenTensorNCHWc8, {8, 32, 4, 4}}, // NCHWc8
                 {miopenHalf, miopenTensorNCHWc8, {1, 32, 4, 4}}, // NCHWc8
                 {{0, 0}, {1, 1}, {1, 1}},
                 miopen::conv::Direction::Forward,
@@ -169,7 +169,7 @@ public:
             },
             TestCase{
                 {miopenHalf, miopenTensorCHWNc4, {1, 16, 4, 4}}, // CHWNc4
-                {miopenHalf, miopenTensorCHWNc4, {1, 16, 4, 4}}, // CHWNc4
+                {miopenHalf, miopenTensorCHWNc4, {4, 16, 4, 4}}, // CHWNc4
                 {miopenHalf, miopenTensorCHWNc4, {1, 16, 4, 4}}, // CHWNc4
                 {{0, 0}, {1, 1}, {1, 1}},
                 miopen::conv::Direction::Forward,
@@ -177,7 +177,7 @@ public:
             },
             TestCase{
                 {miopenHalf, miopenTensorCHWNc8, {1, 32, 4, 4}}, // CHWNc8
-                {miopenHalf, miopenTensorCHWNc8, {1, 32, 4, 4}}, // CHWNc8
+                {miopenHalf, miopenTensorCHWNc8, {8, 32, 4, 4}}, // CHWNc8
                 {miopenHalf, miopenTensorCHWNc8, {1, 32, 4, 4}}, // CHWNc8
                 {{0, 0}, {1, 1}, {1, 1}},
                 miopen::conv::Direction::Forward,
@@ -226,7 +226,38 @@ public:
                 miopen::conv::Direction::Forward,
                 "NDHWC", "NDHWC", "NDHWC"
             },
-#if 1
+            TestCase{
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, // NCDHW
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, // NCDHW
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, // NCDHW
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCDHW", "NCDHW", "NCDHW"
+            },
+            TestCase{
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, // NCDHW
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, // NCDHW
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NDHWC
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCDHW", "NCDHW", "NCDHW"
+            },
+            TestCase{
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NDHWC
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NDHWC
+                {miopenHalf, miopenTensorNCDHW, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, // NCDHW
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCDHW", "NCDHW", "NCDHW"
+            },
+            TestCase{
+                {miopenHalf, {1, 10, 10, 10, 10}, {10000, 1, 1000, 100, 10}}, // NDHWC
+                {miopenHalf, {10, 10, 10, 10, 10}, {10000, 1, 1000, 100, 10}}, // NDHWC
+                {miopenHalf, miopenTensorNCDHW, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NCDHW
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                miopen::conv::Direction::Forward,
+                "NDHWC", "NDHWC", "NDHWC"
+            },
             TestCase{
                 {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
                 {miopenHalf, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}}, // ?
@@ -235,7 +266,71 @@ public:
                 miopen::conv::Direction::Forward,
                 "NCDHW", "NCDHW", "NCDHW"
             },
-#endif
+            TestCase{
+                {miopenHalf, {1, 1, 1, 1}, {1000, 100, 10, 1}}, // NCHW
+                {miopenHalf, {1, 1, 1, 1}, {1000, 1, 100, 10}}, // NHWC
+                {miopenHalf, {1, 1, 1, 1}, {1, 1000, 100, 10}}, // CHWN
+                {{0, 0}, {1, 1}, {1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCHW", "NCHW", "NCHW"
+            },
+            TestCase{
+                {miopenHalf, {2, 1, 3, 1}, {3000, 1000, 1, 100}}, // NCWH (NCHW | NHWC allowed with less restrictive checks)
+                {miopenHalf, {2, 1, 3, 1}, {3000, 1000, 1, 100}}, // NCWH (NCHW | NHWC allowed with less restrictive checks)
+                {miopenHalf, {2, 1, 3, 1}, {3000, 1000, 1, 100}}, // NCWH (NCHW | NHWC allowed with less restrictive checks)
+                {{0, 0}, {1, 1}, {1, 1}},
+                miopen::conv::Direction::BackwardData,            // Calculating output tensor with invalid input tensor layout isn't allowed.
+                "NCHW", "NCHW", "NCHW"
+            },
+            TestCase{
+                {miopenHalf, miopenTensorNCHW, {2, 1, 3, 1}, {3000, 1000, 1, 100}}, // NCHW
+                {miopenHalf, miopenTensorNHWC, {2, 1, 3, 1}, {3000, 1000, 1, 100}}, // NHWC
+                {miopenHalf, {2, 1, 3, 1}, {3000, 1000, 1, 100}}, // NCWH (NCHW | NHWC allowed with less restrictive checks)
+                {{0, 0}, {1, 1}, {1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCHW", "NCHW", "NCHW"
+            },
+            TestCase{
+                {miopenHalf, {1, 1, 1, 1}, {500, 400, 300, 200}}, // NCHW
+                {miopenHalf, {4, 1, 3, 3}, {36, 9, 3, 1}},        // NCHW
+                {miopenHalf, {4, 4, 1, 1}, {8, 1, 1, 1}},         // NHWC | NCHW
+                {{0, 0}, {1, 1}, {1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCHW", "NCHW", "NCHW"
+            },
+            TestCase{
+                {miopenHalf, {1, 1, 2, 3, 4}, {24000, 12000, 12, 4, 1}}, // NCDHW
+                {miopenHalf, {1, 1, 2, 3, 4}, {24000, 12000, 12, 4, 1}}, // NCDHW
+                {miopenHalf, {1, 1, 2, 3, 4}, {24000, 12000, 12, 4, 1}}, // NCDHW
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCDHW", "NCDHW", "NCDHW"
+            },
+            TestCase{
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, // NCDHW strides
+                {miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, // NDHWC strides
+                {miopenHalf, {1, 1, 1, 1, 1}, {1, 10000, 1000, 100, 10}}, // CDHWN strides
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCDHW", "NCDHW", "NCDHW"
+            },
+            // Shapes all default to their stride order no matching valid layouts
+            TestCase{
+                {miopenHalf, {2, 3, 4, 5}, {60, 20, 5, 1}},      // Valid NCHW
+                {miopenHalf, {2, 3, 4, 5}, {120, 1, 6, 30}},     // Invalid/inconsistent stride pattern
+                {miopenHalf, {2, 3, 4, 5}, {60, 20, 5, 1}},      // Valid NCHW
+                {{0, 0}, {1, 1}, {1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCHW", "NWHC", "NCHW"
+            },
+            TestCase{
+                {miopenHalf, {2, 2, 2, 2, 2}, {10000, 1000, 100, 10, 1}}, // NCDHW strides
+                {miopenHalf, {2, 2, 2, 2, 2}, {10000, 1, 1000, 100, 10}}, // NDHWC strides
+                {miopenHalf, {2, 2, 2, 2, 2}, {1, 10000, 1000, 100, 10}}, // CDHWN strides
+                {{0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                miopen::conv::Direction::Forward,
+                "NCDHW", "NDHWC", "CDHWN"
+            },
             // clang-format on
         };
     }
@@ -244,14 +339,28 @@ public:
     {
         const auto p = GetParam();
 
-        const auto pd = miopen::conv::ProblemDescription{p.in.GetTensorDescriptor(),
-                                                         p.weights.GetTensorDescriptor(),
-                                                         p.out.GetTensorDescriptor(),
-                                                         p.conv.GetConvolutionDescriptor(),
+        auto inLayoutDescriptor      = p.in.GetTensorDescriptor();
+        auto weightsLayoutDescriptor = p.weights.GetTensorDescriptor();
+        auto outLayoutDescriptor     = p.out.GetTensorDescriptor();
+        auto convDescriptor          = p.conv.GetConvolutionDescriptor();
+        const auto pd                = miopen::conv::ProblemDescription{inLayoutDescriptor,
+                                                         weightsLayoutDescriptor,
+                                                         outLayoutDescriptor,
+                                                         convDescriptor,
                                                          p.direction};
         ASSERT_EQ(pd.GetInLayout(), p.layout_in);
         ASSERT_EQ(pd.GetWeightsLayout(), p.layout_weights);
         ASSERT_EQ(pd.GetOutLayout(), p.layout_out);
+
+        if(p.direction == miopen::conv::Direction::Forward)
+        {
+            auto output = convDescriptor.GetForwardOutputTensor(
+                inLayoutDescriptor, weightsLayoutDescriptor, outLayoutDescriptor.GetType());
+
+            ASSERT_EQ(inLayoutDescriptor.GetLayout_t(), output.GetLayout_t());
+            ASSERT_EQ(inLayoutDescriptor.GetLayout_str(), output.GetLayout_str());
+            ASSERT_EQ(inLayoutDescriptor.GetLayoutEnum(), output.GetLayoutEnum());
+        }
     }
 };
 

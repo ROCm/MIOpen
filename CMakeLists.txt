@@ -73,7 +73,7 @@ endif()
 
 project ( MIOpen C CXX )
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -89,6 +89,8 @@ include(ROCMInstallSymlinks)
 include(ROCMCreatePackage)
 include(CheckCXXCompilerFlag)
 include(ROCMHeaderWrapper)
+
+include(cmake/ClangCheck.cmake)
 
 # Build library with Beta APIs
 add_definitions("-DMIOPEN_BETA_API=1")
@@ -128,7 +130,7 @@ if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.4.0)
+rocm_setup_version(VERSION 3.5.0)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -342,7 +344,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
             endif()
             miopen_add_dependency(composable_kernel HASH ${COMPOSABLE_KERNEL_HASH} options NO_LOCAL)
         else()
-            find_package(composable_kernel 1.0.0 COMPONENTS device_other_operations device_conv_operations)
+            find_package(composable_kernel 1.0.0 COMPONENTS device_conv_operations)
         endif()
     endif()
     if( MIOPEN_BACKEND STREQUAL "HIPNOGPU")
@@ -498,9 +500,6 @@ find_path(HALF_INCLUDE_DIR half/half.hpp)
 message(STATUS "HALF_INCLUDE_DIR: ${HALF_INCLUDE_DIR}")
 
 option( MIOPEN_DEBUG_FIND_DB_CACHING "Use system find-db caching" ON)
-
-# FOR HANDLING ENABLE/DISABLE OPTIONAL BACKWARD COMPATIBILITY for FILE/FOLDER REORG
-option(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY "Build with file/folder reorg with backward compatibility enabled" OFF)
 
 if(WIN32)
     set( DATA_INSTALL_DIR bin )
@@ -746,8 +745,8 @@ enable_cppcheck(
         # but cppcheck doesn't understand that as it assumes everything
         # will be compiled together in one binary.
         ctuOneDefinitionRuleViolation:*test/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/composable_kernel/*/*
-        ctuOneDefinitionRuleViolation:*src/composable_kernel/host/*/*
+        ctuOneDefinitionRuleViolation:*src/legacy_composable_kernel/composable_kernel/*/*
+        ctuOneDefinitionRuleViolation:*src/legacy_composable_kernel/host/*/*
         # There are many FPs with this, let's disable this (ditto in MIGraphX)
         ctuPointerArith:*test/*
         duplicateCondition
@@ -768,13 +767,13 @@ enable_cppcheck(
         unreadVariable:*src/kernels/static_composable_kernel/*/*
         unusedScopedObject:*src/kernels/static_composable_kernel/*/*
         wrongPrintfScanfArgNum:*src/kernels/static_composable_kernel/*/*
-        knownConditionTrueFalse:*src/composable_kernel/composable_kernel/*/*
-        identicalConditionAfterEarlyExit:*src/composable_kernel/composable_kernel/*/*
-        duplicateExpression:*src/composable_kernel/composable_kernel/*/*
-        multiCondition:*src/composable_kernel/composable_kernel/*/*
-        unreadVariable:*src/composable_kernel/composable_kernel/*/*
-        unreadVariable:*src/composable_kernel/host/*/*
-        unreadVariable:*src/composable_kernel/external/*/*
+        knownConditionTrueFalse:*src/legacy_composable_kernel/composable_kernel/*/*
+        identicalConditionAfterEarlyExit:*src/legacy_composable_kernel/composable_kernel/*/*
+        duplicateExpression:*src/legacy_composable_kernel/composable_kernel/*/*
+        multiCondition:*src/legacy_composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/legacy_composable_kernel/composable_kernel/*/*
+        unreadVariable:*src/legacy_composable_kernel/host/*/*
+        unreadVariable:*src/legacy_composable_kernel/external/*/*
         unmatchedSuppression
         ###################################################################
         # TODO Code Quality WORKAROUND ROCm 5.3 &&

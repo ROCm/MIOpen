@@ -30,7 +30,7 @@
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/stringutils.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 #include <miopen/datatype.hpp>
 #include <ostream>
 
@@ -365,7 +365,7 @@ GetConv2DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
     }
     else if(problem.IsLayoutNHWC())
     {
-        grid_size = static_cast<size_t>(group) * n * ho;
+        grid_size = static_cast<size_t>(n) * ho;
     }
     else
         MIOPEN_THROW("Unsupported layout");
@@ -871,7 +871,7 @@ GetConv2DBWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
     }
     else if(problem.IsLayoutNHWC())
     {
-        grid_size = static_cast<size_t>(group) * n * hi;
+        grid_size = static_cast<size_t>(n) * hi;
     }
     else
     {

@@ -27,8 +27,8 @@
 #include <miopen/miopen.h>
 #include <miopen/errors.hpp>
 #include <miopen/hip_build_utils.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/solver/mlir_common.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 
 #include <sstream>
 #include <string>

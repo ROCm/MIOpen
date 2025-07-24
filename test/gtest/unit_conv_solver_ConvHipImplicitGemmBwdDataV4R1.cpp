@@ -35,14 +35,7 @@
 // still want to check that the solver is not broken.
 #define WORKAROUND_SWDEV_229277_227616_229195 1
 
-// LLVM buffer intrinsics llvm.amdgcn.buffer.* have been removed in HIP 6.4
-#define WORKAROUND_SWDEV_498660 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
-
-#if WORKAROUND_SWDEV_498660
-#define SOLVER_NAME DISABLED_ConvHipImplicitGemmBwdDataV4R1
-#else
 #define SOLVER_NAME ConvHipImplicitGemmBwdDataV4R1
-#endif
 
 #if WORKAROUND_SWDEV_229277_227616_229195
 MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1)
@@ -91,11 +84,15 @@ auto GetConvTestCases(miopenDataType_t datatype)
     };
 }
 
+template <miopenDataType_t datatype>
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        Gpu supported_gpus =
-            Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx94X | Gpu::gfx103X;
+        Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx103X;
+        if constexpr(datatype != miopenFloat)
+        {
+            supported_gpus = supported_gpus | Gpu::gfx94X;
+        }
         auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();
         p.Tunable(5);
@@ -103,6 +100,8 @@ const auto& GetTestParams()
     }();
     return params;
 }
+
+const auto& GetTestParamsFP32() { return GetTestParams<miopenFloat>(); }
 
 } // namespace
 
@@ -129,12 +128,12 @@ TEST_P(CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1DevApplicabilityBwd_NONE,
 // Smoke tests
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          GPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1Bwd_FP32,
-                         testing::Combine(testing::Values(GetTestParams()),
+                         testing::Combine(testing::Values(GetTestParamsFP32()),
                                           testing::Values(miopenConvolutionAlgoImplicitGEMM),
                                           testing::ValuesIn(GetConvTestCases(miopenFloat))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverHipImplicitGemmBwdDataV4R1DevApplicabilityBwd_NONE,
-                         testing::Combine(testing::Values(GetTestParams()),
+                         testing::Combine(testing::Values(GetTestParamsFP32()),
                                           testing::Values(GetConvTestCases(miopenFloat)[0])));

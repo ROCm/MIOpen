@@ -611,7 +611,8 @@ bool ConvHipImplicitGemmGroupWrwXdlops::IsApplicable(
     case miopenFloat: return CheckCKApplicability<float>(problem);
     case miopenInt8: return CheckCKApplicability<int8_t>(problem);
     case miopenBFloat16:
-        return ctx.GetStream().GetDeviceName() == "gfx942" &&
+        return (ctx.GetStream().GetDeviceName() == "gfx942" ||
+                StartsWith(ctx.GetStream().GetDeviceName(), "gfx95")) &&
                CheckCKApplicability<ck::bhalf_t>(problem);
     case miopenInt64:
     case miopenInt32:
@@ -634,6 +635,7 @@ ConvSolution ConvHipImplicitGemmGroupWrwXdlops::GetSolution(
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
             return InitInvokerFactoryWrwNCHW<2,
+                                             false,
                                              DeviceOpGWrwPtrs<T>,
                                              CKArgs,
                                              miopen::conv::WrWInvokeParams>(
@@ -641,7 +643,8 @@ ConvSolution ConvHipImplicitGemmGroupWrwXdlops::GetSolution(
         },
         [&](auto data_type_val) {
             using T = decltype(data_type_val);
-            return InitInvokerFactoryNHWC<DeviceOpGWrwPtrs<T>,
+            return InitInvokerFactoryNHWC<false,
+                                          DeviceOpGWrwPtrs<T>,
                                           CKArgs,
                                           miopen::conv::WrWInvokeParams>(
                 ctx, problem, config.kernel_id);
