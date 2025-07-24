@@ -365,7 +365,7 @@ def buildHipClangJob(Map conf=[:]){
                 }
             }
 
-            withDockerContainer(image: image, args: dockerOpts + " -v=/var/jenkins/:/var/jenkins -v=${env.WORKSPACE}:${env.WORKSPACE}") {
+            withDockerContainer(image: image, args: dockerOpts + " -v=/var/jenkins/:/var/jenkins") {
                 timeout(time: 420, unit:'MINUTES')
                 {
                     if (lfs_pull) {
@@ -411,7 +411,7 @@ def RunPerfTest(Map conf=[:]){
         def results_dir = conf.get("results_dir", "${env.WORKSPACE}/${env.REPO_DIR}/results")
         docker_image.pull()
         echo "docker image: ${docker_image}"
-        docker_image.inside(dockerOpts + " -v=/var/jenkins/:/var/jenkins -v=${env.WORKSPACE}:${env.WORKSPACE}")
+        docker_image.inside(dockerOpts + " -v=/var/jenkins/:/var/jenkins")
         {
             timeout(time: 100, unit: 'MINUTES')
             {
