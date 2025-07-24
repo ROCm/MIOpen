@@ -126,12 +126,7 @@ protected:
         bn_infer_test_data.activ_alpha = static_cast<double>(0.1f);
         bn_infer_test_data.activ_beta  = static_cast<double>(0.3f);
 
-        auto&& handle = get_handle();
-        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
-        {
-            test_skipped = true;
-            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
-        }
+        auto&& handle      = get_handle();
         miopenStatus_t res = miopenStatusUnknownError;
         if(bn_infer_test_data.activ_mode > 0)
         {
@@ -279,12 +274,7 @@ protected:
                                            : static_cast<double>(0.5f);
         bn_bwd_test_data.activ_beta  = static_cast<double>(0.3f);
 
-        auto&& handle = get_handle();
-        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
-        {
-            test_skipped = true;
-            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
-        }
+        auto&& handle      = get_handle();
         miopenStatus_t res = miopenStatusUnknownError;
         if(bn_bwd_test_data.activ_mode > 0)
         {
@@ -448,12 +438,7 @@ protected:
         bn_fwd_train_test_data.activ_alpha = static_cast<double>(0.1f);
         bn_fwd_train_test_data.activ_beta  = static_cast<double>(0.3f);
 
-        auto&& handle = get_handle();
-        if(!miopen::solver::ck_utility::is_ck_whitelist(handle.GetStream()))
-        {
-            test_skipped = true;
-            GTEST_SKIP() << "Not Applicable on " << handle.GetDeviceName() << " Architecture";
-        }
+        auto&& handle      = get_handle();
         miopenStatus_t res = miopenStatusUnknownError;
         if(bn_fwd_train_test_data.activ_mode > 0)
         {

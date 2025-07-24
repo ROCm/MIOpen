@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/batched_transpose_sol.hpp>
+#include <miopen/env.hpp>
 #include <miopen/invoke_params.hpp>
 #include <miopen/tensor.hpp>
 #include <miopen/magic_div.hpp>
@@ -34,6 +35,7 @@
 #include <limits>
 #include <iostream>
 #include <sstream>
+#include <ranges>
 
 #define BATCHED_TRANSPOSE_BLOCK_SIZE 256
 #define BATCHED_TRANSPOSE_PERSISTENT 0
@@ -43,8 +45,9 @@
 #endif
 
 // Compiler has bug for some of the kernel instances, where pack/ediv is not 1.
-// Used to be only enabled for gfx942, but now we are enabling it for all gfx.
-#define WORKAROUND_SWDEV_530382 1
+// By default we'll use a smaller list for gfx942 right now but can also force
+// it by using this env var.
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_FORCE_HALF_TRANSPOSE_SHORTLIST)
 
 namespace miopen {
 namespace batched_transpose {
@@ -60,7 +63,8 @@ static inline std::string GetNameTrait(std::size_t type_size)
     MIOPEN_THROW("data type not supported");
 }
 
-static inline const std::vector<BatchedTransposeParam>& GetKernelList(std::size_t data_size)
+static inline const std::vector<BatchedTransposeParam>& GetKernelList(const ExecutionContext& ctx,
+                                                                      std::size_t data_size)
 {
     if(data_size == 1)
     {
@@ -83,8 +87,7 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(std::size_
     }
     if(data_size == 2)
     {
-#if WORKAROUND_SWDEV_530382
-        static const std::vector<BatchedTransposeParam> half_kernel_list{
+        static const std::vector<BatchedTransposeParam> half_kernel_list_short{
             // clang-format off
             {16, 16, 1, 1, 1, 1},
             {32, 16, 1, 1, 1, 1},
@@ -99,8 +102,7 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(std::size_
             {256, 4, 1, 1, 1, 1},
             // clang-format on
         };
-#else
-        static const std::vector<BatchedTransposeParam> half_kernel_list{
+        static const std::vector<BatchedTransposeParam> half_kernel_list_long{
             // clang-format off
             {16, 16, 1, 1, 1, 1},
             {32, 16, 1, 1, 1, 1},
@@ -134,9 +136,13 @@ static inline const std::vector<BatchedTransposeParam>& GetKernelList(std::size_
             {64, 64, 4, 4, 4, 4},
             // clang-format on
         };
-#endif
 
-        return half_kernel_list;
+        bool force_shortlist   = env::enabled(MIOPEN_FORCE_HALF_TRANSPOSE_SHORTLIST);
+        const auto device_name = ctx.GetStream().GetDeviceName();
+        if(device_name == "gfx942" || force_shortlist)
+            return half_kernel_list_short;
+
+        return half_kernel_list_long;
     }
     if(data_size == 4)
     {
@@ -214,8 +220,11 @@ static inline std::size_t GetExtraPaddingSize(uint32_t /* batch */,
     return static_cast<std::size_t>(padded_h) * padded_w - static_cast<std::size_t>(height) * width;
 }
 
-static inline BatchedTransposeParam
-HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t width)
+static inline BatchedTransposeParam HeuristicGet(const ExecutionContext& ctx,
+                                                 std::size_t data_size,
+                                                 uint32_t batch,
+                                                 uint32_t height,
+                                                 uint32_t width)
 {
     /*
      * Iterate from big tile size to small tile size, and try match ediv first
@@ -224,7 +233,7 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
      * samllest.
      */
 
-    const auto& kernel_list = GetKernelList(data_size);
+    const auto& kernel_list = GetKernelList(ctx, data_size);
     BatchedTransposeParam best_kernel;
     std::size_t extra_padding_size = std::numeric_limits<std::size_t>::max();
     float hw_radio                 = GetNormalizedRadio(height, width);
@@ -249,17 +258,17 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
         }
     }
 
-    for(auto it = kernel_list.rbegin(); it != kernel_list.rend(); it++)
+    for(const auto& it : std::ranges::reverse_view(kernel_list))
     {
-        if(it->tile_x == 4 || it->tile_y == 4)
+        if(it.tile_x == 4 || it.tile_y == 4)
         {
             // We don't want such kernel to be selected here,
             // they should be used in above cases
             continue;
         }
-        if(!IsApplicable(batch, height, width, &(*it)))
+        if(!IsApplicable(batch, height, width, &it))
             continue;
-        std::size_t current_padding_size = GetExtraPaddingSize(batch, height, width, &(*it));
+        std::size_t current_padding_size = GetExtraPaddingSize(batch, height, width, &it);
         bool replace_current             = false;
         if(best_kernel.tile_x == 0 && best_kernel.tile_y == 0)
         {
@@ -269,12 +278,12 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
         if(hw_radio > 128)
         {
             // This is for cases that h, w have a great difference
-            if(!IsSameSide(height, width, &(*it)))
+            if(!IsSameSide(height, width, &it))
                 continue;
             float prev_radio = GetNormalizedRadio(
                 GetNormalizedRadio(best_kernel.tile_y, best_kernel.tile_x), hw_radio);
             float curr_radio =
-                GetNormalizedRadio(GetNormalizedRadio(it->tile_y, it->tile_x), hw_radio);
+                GetNormalizedRadio(GetNormalizedRadio(it.tile_y, it.tile_x), hw_radio);
 
             if(curr_radio * current_padding_size < prev_radio * extra_padding_size)
             {
@@ -287,9 +296,9 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
             {
                 // If width == height, a greate chance is that the kernel performance would be
                 // almost the same, so ignore this case
-                if((width > height && it->tile_x > it->tile_y &&
+                if((width > height && it.tile_x > it.tile_y &&
                     best_kernel.tile_x < best_kernel.tile_y) ||
-                   (width < height && it->tile_x < it->tile_y &&
+                   (width < height && it.tile_x < it.tile_y &&
                     best_kernel.tile_x > best_kernel.tile_y))
                 {
                     replace_current = true;
@@ -307,7 +316,7 @@ HeuristicGet(std::size_t data_size, uint32_t batch, uint32_t height, uint32_t wi
         if(replace_current)
         {
             extra_padding_size = current_padding_size;
-            best_kernel        = *it;
+            best_kernel        = it;
         }
     }
 
@@ -332,7 +341,7 @@ BatchedTransposeSolution::BatchedTransposeSolution(const ExecutionContext& ctx,
         MIOPEN_THROW("These data type are not supported");
     num_cu                 = ctx.GetStream().GetMaxComputeUnits();
     std::size_t data_size  = miopen::GetTypeSize(data_type);
-    kernel_param_heuristic = batched_transpose::HeuristicGet(data_size, batch, height, width);
+    kernel_param_heuristic = batched_transpose::HeuristicGet(ctx, data_size, batch, height, width);
 }
 
 solver::KernelInfo BatchedTransposeSolution::GetKernelInfo() const
