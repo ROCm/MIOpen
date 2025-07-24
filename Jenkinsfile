@@ -30,7 +30,7 @@ library "jenkins-shared@${get_branch_name()}"
 ///   * "All" corresponds to "cmake -DMIOPEN_TEST_ALL=On".
 ///   * "Smoke" (-DMIOPEN_TEST_ALL=Off) is the default and usually not specified.
 ///   * "Performance Dataset" is a performance test with a specified dataset.
-/// Target := { gfx908 | gfx90a | gfx94x } [ Xnack+ ]
+/// Target := { gfx908 | gfx90a | gfx942 } [ Xnack+ ]
 
 
 def runDbSyncJob()
@@ -47,7 +47,7 @@ def runDbSyncJob()
 }
 
 //launch develop branch nightly jobs
-CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 0 * * * % RUN_NIGHTLY_TESTS=true;BUILD_PACKAGE_AND_CHECKS=false;BUILD_FULL_TESTS=false;TARGET_GFX908=true;TARGET_GFX90A=true;TARGET_GFX94X=true''' : ""
+CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 0 * * * % RUN_NIGHTLY_TESTS=true;BUILD_PACKAGE_AND_CHECKS=false;BUILD_FULL_TESTS=false;TARGET_GFX908=true;TARGET_GFX90A=true;TARGET_GFX942=true''' : ""
 
 pipeline {
     agent none
@@ -97,7 +97,7 @@ pipeline {
             defaultValue: true,
             description: "")
         booleanParam(
-            name: "TARGET_GFX94X",
+            name: "TARGET_GFX942",
             defaultValue: env.BRANCH_NAME == "develop" ? true : false,
             description: "")
         booleanParam(
@@ -136,7 +136,7 @@ pipeline {
             defaultValue: '',
             description: "")
         booleanParam(
-            name: "WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE",
+            name: "WORKAROUND__TARGET_GFX942_MINIMUM_TEST_ENABLE",
             defaultValue: false,
             description: "")
         booleanParam(
@@ -291,7 +291,7 @@ pipeline {
                 stage('Dbsync gfx942') {
                     when {
                         beforeAgent true
-                        expression { params.DBSYNC_TEST && (params.TARGET_GFX94X || params.WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE) }
+                        expression { params.DBSYNC_TEST && (params.TARGET_GFX942 || params.WORKAROUND__TARGET_GFX942_MINIMUM_TEST_ENABLE) }
                     }
                     options {
                         retry(2)
@@ -331,15 +331,15 @@ pipeline {
                         }
                     }
                 }
-                stage('Bf16 Hip Install All gfx94X') {
+                stage('Bf16 Hip Install All gfx942') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X && params.DATATYPE_BF16 }
+                        expression { params.TARGET_GFX942 && params.DATATYPE_BF16 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx942") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Bf16_flags + Full_test, build_install: true, needs_reboot:false)
@@ -376,15 +376,15 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp16 Hip All Install gfx94X') {
+                stage('Fp16 Hip All Install gfx942') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X && params.DATATYPE_FP16 }
+                        expression { params.TARGET_GFX942 && params.DATATYPE_FP16 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx942") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Full_test + Fp16_flags, build_install: true, needs_reboot:false)
@@ -436,15 +436,15 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip All gfx94X') {
+                stage('Fp32 Hip All gfx942') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X && params.DATATYPE_FP32 }
+                        expression { params.TARGET_GFX942 && params.DATATYPE_FP32 }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx942") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(setup_flags: Full_test, needs_reboot:false)
@@ -631,15 +631,15 @@ pipeline {
                         }
                     }
                 }
-                stage('Fp32 Hip Debug gfx94X') {
+                stage('Fp32 Hip Debug gfx942') {
                     when {
                         beforeAgent true
-                        expression { params.TARGET_GFX94X || params.WORKAROUND__TARGET_GFX94X_MINIMUM_TEST_ENABLE }
+                        expression { params.TARGET_GFX942 || params.WORKAROUND__TARGET_GFX942_MINIMUM_TEST_ENABLE }
                     }
                     options {
                         retry(2)
                     }
-                    agent{ label rocmnode("gfx94X") }
+                    agent{ label rocmnode("gfx942") }
                     steps{
                         script {
                             utils.buildHipClangJobAndReboot(build_type: 'debug', make_targets: Smoke_targets, needs_reboot:false, build_install: true)
