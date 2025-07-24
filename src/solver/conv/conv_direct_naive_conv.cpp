@@ -365,7 +365,7 @@ GetConv2DFWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
     }
     else if(problem.IsLayoutNHWC())
     {
-        grid_size = static_cast<size_t>(group) * n * ho;
+        grid_size = static_cast<size_t>(n) * ho;
     }
     else
         MIOPEN_THROW("Unsupported layout");
@@ -871,7 +871,7 @@ GetConv2DBWDSolution(const ExecutionContext& ctx, const ::miopen::conv::ProblemD
     }
     else if(problem.IsLayoutNHWC())
     {
-        grid_size = static_cast<size_t>(group) * n * hi;
+        grid_size = static_cast<size_t>(n) * hi;
     }
     else
     {

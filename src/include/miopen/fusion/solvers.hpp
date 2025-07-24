@@ -186,7 +186,7 @@ private:
 };
 
 struct PerformanceConfigConvCKIgemmGrpFwdActivFused
-    : PerfConfigBase<PerformanceConfigConvCKIgemmGrpFwdActivFused>
+    : PerfConfigBaseCK<PerformanceConfigConvCKIgemmGrpFwdActivFused>
 {
     int index;
     std::string kernel_id;
@@ -258,7 +258,7 @@ private:
 };
 
 struct PerformanceConfigConvCKIgemmGrpFwdBiasActivFused
-    : PerfConfigBase<PerformanceConfigConvCKIgemmGrpFwdBiasActivFused>
+    : PerfConfigBaseCK<PerformanceConfigConvCKIgemmGrpFwdBiasActivFused>
 {
     int index;
     std::string kernel_id;
