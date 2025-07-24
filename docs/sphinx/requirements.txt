@@ -161,7 +161,6 @@ packaging==24.0
     # via
     #   ipykernel
     #   matplotlib
-    #   pydata-sphinx-theme
     #   sphinx
 parso==0.8.4
     # via jedi
@@ -181,7 +180,7 @@ pure-eval==0.2.3
     # via stack-data
 pycparser==2.22
     # via cffi
-pydata-sphinx-theme==0.15.2
+pydata-sphinx-theme==0.16.1
     # via
     #   rocm-docs-core
     #   sphinx-book-theme
@@ -227,7 +226,7 @@ requests==2.32.2
     # via
     #   pygithub
     #   sphinx
-rocm-docs-core[api-reference]==1.18.2
+rocm-docs-core[api-reference]==1.21.1
     # via -r requirements.in
 rpds-py==0.22.3
     # via
