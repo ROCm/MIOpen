@@ -25,15 +25,14 @@
  *******************************************************************************/
 def miopenCheckout()
 {
+    // checkout project
     checkout([
         $class: 'GitSCM',
         branches: scm.branches,
-        doGenerateSubmoduleConfigurations: false,
-        extensions: scm.extensions + [
-            [$class: 'SubmoduleOption', parentCredentials: true],
-        ],
-       userRemoteConfigs: scm.userRemoteConfigs
-   ])
+        doGenerateSubmoduleConfigurations: scm.doGenerateSubmoduleConfigurations,
+        extensions: scm.extensions + [[$class: 'CleanCheckout']] + [[$class: 'SubmoduleOption', disableSubmodules: false, parentCredentials: true, recursiveSubmodules: true, ]],
+        userRemoteConfigs: scm.userRemoteConfigs
+    ])
 }
 
 def show_node_info() {
@@ -71,7 +70,7 @@ def cmake_build(Map conf=[:]){
     def build_envs = "CTEST_PARALLEL_LEVEL=4 " + conf.get("build_env","")
     def prefixpath = conf.get("prefixpath","/opt/rocm")
     def build_type_debug = (conf.get("build_type",'release') == 'debug')
-    def miopen_install_path = conf.get("miopen_install_path", "${env.WORKSPACE}/install")
+    def miopen_install_path = conf.get("miopen_install_path", "${env.WORKSPACE}/${env.REPO_DIR}/install")
 
     def mlir_args = " -DMIOPEN_USE_MLIR=" + conf.get("mlir_build", "ON")
     // WORKAROUND_ISSUE_3192 Disabling MLIR for debug builds since MLIR generates sanitizer errors.
@@ -143,6 +142,7 @@ def cmake_build(Map conf=[:]){
     def pre_setup_cmd = """
             echo \$HSA_ENABLE_SDMA
             ulimit -c unlimited
+            cd ${env.WORKSPACE}/${env.REPO_DIR}
             rm -rf build
             mkdir build
             rm -rf install
@@ -168,7 +168,7 @@ def cmake_build(Map conf=[:]){
         def fin_build_cmd = cmake_fin_build_cmd(miopen_install_path)
         cmd += """
             export RETDIR=\$PWD
-            cd ${env.WORKSPACE}/fin
+            cd ${env.WORKSPACE}/${env.REPO_DIR}/fin
             ${fin_build_cmd}
             cd \$RETDIR
         """
@@ -215,12 +215,11 @@ def cmake_fin_build_cmd(prefixpath){
 
 def getDockerImageName(dockerArgs)
 {
-    checkout scm
-    sh "echo ${dockerArgs} > factors.txt"
+    sh "echo ${dockerArgs} > ${env.WORKSPACE}/factors.txt"
     def image = "${env.MIOPEN_DOCKER_IMAGE_URL}"
-    sh "md5sum Dockerfile requirements.txt dev-requirements.txt >> factors.txt"
-    def docker_hash = sh(script: "md5sum factors.txt | awk '{print \$1}' | head -c 6", returnStdout: true)
-    sh "rm factors.txt"
+    sh "cd ${env.WORKSPACE}/${env.REPO_DIR}/ && md5sum Dockerfile requirements.txt dev-requirements.txt >> ${env.WORKSPACE}/factors.txt"
+    def docker_hash = sh(script: "cd ${env.WORKSPACE} && md5sum factors.txt | awk '{print \$1}' | head -c 6", returnStdout: true)
+    sh "rm ${env.WORKSPACE}/factors.txt"
     echo "Docker tag hash: ${docker_hash}"
     image = "${image}:ci_${docker_hash}"
     if(params.DOCKER_IMAGE_OVERRIDE && !params.DOCKER_IMAGE_OVERRIDE.empty)
@@ -233,7 +232,6 @@ def getDockerImageName(dockerArgs)
 
 def getDockerImage(Map conf=[:])
 {
-    checkout scm
     env.DOCKER_BUILDKIT=1
     def prefixpath = conf.get("prefixpath", "/opt/rocm") // one image for each prefix 1: /usr/local 2:/opt/rocm
     // Note: With offload compress disabled for CK expanding the target list might cause issues with the docker build.
@@ -275,7 +273,8 @@ def getDockerImage(Map conf=[:])
     }
     catch(Exception ex)
     {
-        dockerImage = docker.build("${image}", "${dockerArgs} .")
+        echo "Building image..."
+        dockerImage = docker.build("${image}", "${dockerArgs} ${env.WORKSPACE}/${env.REPO_DIR}/.")
         withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
             dockerImage.push()
         }
@@ -285,7 +284,7 @@ def getDockerImage(Map conf=[:])
     if(params.INSTALL_MIOPEN == 'ON')
     {
         def freckle = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-        dockerArgs = " --build-arg BASE_DOCKER=${image} --build-arg FRECKLE=${freckle} -f Dockerfile.perftests"
+        dockerArgs = " --build-arg BASE_DOCKER=${image} --build-arg FRECKLE=${freckle} -f ${env.WORKSPACE}/${env.REPO_DIR}/Dockerfile.perftests"
 
         // Get updated image name for perf tests.
         image = getDockerImageName(dockerArgs)
@@ -302,7 +301,7 @@ def getDockerImage(Map conf=[:])
         }
         catch(Exception ex)
         {
-            dockerImage = docker.build("${image}", "${dockerArgs} .")
+            dockerImage = docker.build("${image}", "${dockerArgs} -f ${env.WORKSPACE}/${env.REPO_DIR}/.")
             withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
                 dockerImage.push()
             }
@@ -314,13 +313,7 @@ def getDockerImage(Map conf=[:])
 
 def buildHipClangJob(Map conf=[:]){
         show_node_info()
-        miopenCheckout()
-        checkout scm
-        /*
-            The following is a workaround for git submodule updating for the fin module.  After Jenkins upgrade,
-            many plugins started misbehaving, and submodules wouldn't get pulled.  This ensures that we always pull
-            the fin submodule and fail silently when the submodule directory already has artifacts in it.
-        */
+        //sh(script: "git submodule update --init --recursive && pwd && find . -name fin -type d -exec ls {} +")
         sh(script: "git submodule update --init --recursive || true")
         env.HSA_ENABLE_SDMA=0
         env.DOCKER_BUILDKIT=1
@@ -340,7 +333,7 @@ def buildHipClangJob(Map conf=[:]){
         def lfs_pull = conf.get("lfs_pull", false)
 
         def retimage
-        gitStatusWrapper(credentialsId: "${env.miopen_git_creds}", gitHubContext: "${variant}", account: 'ROCm', repo: 'MIOpen') {
+        gitStatusWrapper(credentialsId: "${env.monorepo_status_wrapper_creds}", gitHubContext: "${variant}", account: 'ROCm', repo: "${env.REPO_NAME}") {
             try {
                 (retimage, image) = getDockerImage(conf)
                 if (needs_gpu) {
@@ -368,11 +361,14 @@ def buildHipClangJob(Map conf=[:]){
                 }
             }
 
-            withDockerContainer(image: image, args: dockerOpts + ' -v=/var/jenkins/:/var/jenkins') {
+            withDockerContainer(image: image, args: dockerOpts + " -v=/var/jenkins/:/var/jenkins -v=${env.WORKSPACE}:${env.WORKSPACE}") {
                 timeout(time: 420, unit:'MINUTES')
                 {
                     if (lfs_pull) {
-                        sh "git lfs pull --exclude="
+                        sh """
+                            cd ${env.WORKSPACE}/${env.REPO_DIR}
+                            git lfs pull --exclude=
+                           """.stripIndent()
                     }
                     cmake_build(conf)
                 }
@@ -404,15 +400,14 @@ def buildHipClangJobAndReboot(Map conf=[:]){
 
 
 def RunPerfTest(Map conf=[:]){
-    checkout scm
     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
     try {
         def docker_image = conf.get("docker_image")
         def miopen_install_path = conf.get("miopen_install_path", "/opt/rocm")
-        def results_dir = conf.get("results_dir", "${env.WORKSPACE}/results")
+        def results_dir = conf.get("results_dir", "${env.WORKSPACE}/${env.REPO_DIR}/results")
         docker_image.pull()
         echo "docker image: ${docker_image}"
-        docker_image.inside(dockerOpts + ' -v=/var/jenkins/:/var/jenkins')
+        docker_image.inside(dockerOpts + " -v=/var/jenkins/:/var/jenkins -v=${env.WORKSPACE}:${env.WORKSPACE}")
         {
             timeout(time: 100, unit: 'MINUTES')
             {
