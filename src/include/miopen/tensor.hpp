@@ -255,11 +255,19 @@ struct MIOPEN_INTERNALS_EXPORT TensorDescriptor : miopenTensorDescriptor
 
     std::string ToString() const;
 
+    enum class LayoutValidationMode
+    {
+        StrictDecreasingStrides = 0, // Layout matches require all strides to be strictly decreasing
+        IgnoreDegenerateStrides = 1, // Layout matches skip decreasing check if dim == 1
+    };
+
     // For vectorized layouts storage_layout must be without the ending 'c'
     // \todo make private
-    bool IsPossibleLayout(const std::string& storage_layout, const std::string& layout) const;
+    bool IsPossibleLayout(const std::string& storage_layout,
+                          const std::string& layout,
+                          LayoutValidationMode validationMode) const;
     // Layout could be NCHW, NHWC, NCDHW, NDHWC, NCHWc, ...
-    bool IsPossibleLayout4D5D(const std::string& layout) const;
+    bool IsPossibleLayout4D5D(const std::string& layout, LayoutValidationMode validationMode) const;
 
     static std::vector<int64_t> find_permutation(const std::vector<std::size_t>& lens,
                                                  const std::vector<std::size_t>& strides);

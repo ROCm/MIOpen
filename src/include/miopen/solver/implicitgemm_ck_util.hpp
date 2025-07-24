@@ -723,10 +723,11 @@ inline size_t GetCKAlphaBetaWorkspace(const miopen::conv::ProblemDescription& pr
 
     TensorDescriptor input          = problem.GetIn();
     TensorDescriptor output         = problem.GetOut();
+    TensorDescriptor weights        = problem.GetWeights();
     ConvolutionDescriptor conv_desc = problem.GetConv();
 
     miopenConvolutionABBackwardWeightsGetWorkSpaceSize(
-        problem.GetAlphaBetaCase(), &input, &output, &conv_desc, &buff_size);
+        problem.GetAlphaBetaCase(), &input, &output, &weights, &conv_desc, &buff_size);
     return buff_size;
 }
 
@@ -1094,7 +1095,8 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
         internal::MakeTaggedTransposeInstances<CKArgsType>(
             result, ctx, problem, ck_args, input1_op, input2_op, output_op, _ck_buff_des);
 
-    result.invoker_factory = [split_k             = split_k,
+    result.invoker_factory = [kernel_id           = kernel_id,
+                              split_k             = split_k,
                               ck_args             = std::move(ck_args),
                               sh_conv_ptr         = std::shared_ptr{std::move(*ptr_iter)},
                               input1_tr_inst      = std::move(_input1_tr_inst),
@@ -1103,7 +1105,8 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                               output_init_tr_inst = std::move(_output_init_tr_inst),
                               ck_buff_des =
                                   _ck_buff_des](const std::vector<Kernel>& kernels) mutable {
-        return [split_k = split_k,
+        return [kernel_id = kernel_id,
+                split_k   = split_k,
                 kernels,
                 ck_args             = std::move(ck_args),
                 sh_conv_ptr         = std::move(sh_conv_ptr),
@@ -1167,9 +1170,11 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                                  CKArgsType,
                                  CastType>(ck_args, sh_conv_ptr, tr_ptrs, data_ctx, split_k);
 
+            shared<Data_t> buf_handle{};
             if(ck_buff_des.has_value() && ck_buff_des->ck_size && workspace_ptr)
             {
-                auto buf_handle = handle.CreateSubBuffer(workspace_ptr, ck_buff_des->ck_offset, 0);
+                buf_handle = handle.CreateSubBuffer(
+                    workspace_ptr, ck_buff_des->ck_offset, ck_buff_des->ck_size);
                 assert(buf_handle.get());
                 sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
             }
@@ -1177,6 +1182,7 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
             auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
             {
                 WorkAroundHipEventProfiler prf(handle);
+                MIOPEN_LOG_I2("kernel_name = " << kernel_id);
                 invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
             }
 
@@ -1232,13 +1238,15 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
         [[maybe_unused]] bool should_allocated_wrw_buffer =
             ShouldAllocateWorkSpaceBufferForWRW(problem);
 
-        result.invoker_factory = [split_k                     = split_k,
+        result.invoker_factory = [kernel_id                   = kernel_id,
+                                  split_k                     = split_k,
                                   ck_args                     = CKArgsType{problem},
                                   alpha_beta_case             = alpha_beta_case,
                                   should_allocated_wrw_buffer = should_allocated_wrw_buffer,
                                   sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
                                      const std::vector<Kernel>&) mutable {
-            return [split_k                     = split_k,
+            return [kernel_id                   = kernel_id,
+                    split_k                     = split_k,
                     ck_args                     = std::move(ck_args),
                     alpha_beta_case             = alpha_beta_case,
                     should_allocated_wrw_buffer = should_allocated_wrw_buffer,
@@ -1277,6 +1285,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                 auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
                 {
                     WorkAroundHipEventProfiler prf(handle);
+                    MIOPEN_LOG_I2("kernel_name = " << kernel_id);
                     invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
                 }
 
@@ -1296,11 +1305,13 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
     {
         ConvSolution result;
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
-        result.invoker_factory = [split_k     = split_k,
+        result.invoker_factory = [kernel_id   = kernel_id,
+                                  split_k     = split_k,
                                   ck_args     = CKArgsType{problem},
                                   sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](
                                      const std::vector<Kernel>&) mutable {
-            return [split_k     = split_k,
+            return [kernel_id   = kernel_id,
+                    split_k     = split_k,
                     ck_args     = std::move(ck_args),
                     sh_conv_ptr = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
@@ -1330,6 +1341,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
 
                 {
                     WorkAroundHipEventProfiler prf(handle);
+                    MIOPEN_LOG_I2("kernel_name = " << kernel_id);
                     invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
                 }
 

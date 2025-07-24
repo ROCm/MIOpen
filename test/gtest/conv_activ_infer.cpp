@@ -195,66 +195,66 @@ INSTANTIATE_TEST_SUITE_P(
     Smoke,
     GPU_ConvGrpActivInfer_BFP16,
     gcaInferParamGenSmoke(GroupConvTestConfig<2>::GetSmokeConfigs<Direction::Forward>(),
-                          testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/)));
+                          testing::Values(miopenTensorNHWC, miopenTensorNCHW)));
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
     GPU_ConvGrpActivInfer3D_BFP16,
     gcaInferParamGenSmoke(GroupConvTestConfig<3>::GetSmokeConfigs<Direction::Forward>(),
-                          testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/)));
+                          testing::Values(miopenTensorNDHWC, miopenTensorNCDHW)));
 
 INSTANTIATE_TEST_SUITE_P(
     Full,
     GPU_ConvGrpActivInfer_BFP16,
     gcaInferParamGenFull(GroupConvTestConfig<2>::GetConfigs<Direction::Forward>(),
-                         testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/)));
+                         testing::Values(miopenTensorNHWC, miopenTensorNCHW)));
 INSTANTIATE_TEST_SUITE_P(
     Full,
     GPU_ConvGrpActivInfer3D_BFP16,
     gcaInferParamGenFull(GroupConvTestConfig<3>::GetConfigs<Direction::Forward>(),
-                         testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/)));
+                         testing::Values(miopenTensorNDHWC, miopenTensorNCDHW)));
 
 // Instantiate test suites for FP16
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
     GPU_ConvGrpActivInfer_FP16,
     gcaInferParamGenSmoke(GroupConvTestConfig<2>::GetSmokeConfigs<Direction::Forward>(),
-                          testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/)));
+                          testing::Values(miopenTensorNHWC, miopenTensorNCHW)));
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
     GPU_ConvGrpActivInfer3D_FP16,
     gcaInferParamGenSmoke(GroupConvTestConfig<3>::GetSmokeConfigs<Direction::Forward>(),
-                          testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/)));
+                          testing::Values(miopenTensorNDHWC, miopenTensorNCDHW)));
 
 INSTANTIATE_TEST_SUITE_P(
     Full,
     GPU_ConvGrpActivInfer_FP16,
     gcaInferParamGenFull(GroupConvTestConfig<2>::GetConfigs<Direction::Forward>(),
-                         testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/)));
+                         testing::Values(miopenTensorNHWC, miopenTensorNCHW)));
 INSTANTIATE_TEST_SUITE_P(
     Full,
     GPU_ConvGrpActivInfer3D_FP16,
     gcaInferParamGenFull(GroupConvTestConfig<3>::GetConfigs<Direction::Forward>(),
-                         testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/)));
+                         testing::Values(miopenTensorNDHWC, miopenTensorNCDHW)));
 
 // Instantiate test suites for FP32
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
     GPU_ConvGrpActivInfer_FP32,
     gcaInferParamGenSmoke(GroupConvTestConfig<2>::GetSmokeConfigs<Direction::Forward>(),
-                          testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/)));
+                          testing::Values(miopenTensorNHWC, miopenTensorNCHW)));
 INSTANTIATE_TEST_SUITE_P(
     Smoke,
     GPU_ConvGrpActivInfer3D_FP32,
     gcaInferParamGenSmoke(GroupConvTestConfig<3>::GetSmokeConfigs<Direction::Forward>(),
-                          testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/)));
+                          testing::Values(miopenTensorNDHWC, miopenTensorNCDHW)));
 
 INSTANTIATE_TEST_SUITE_P(
     Full,
     GPU_ConvGrpActivInfer_FP32,
     gcaInferParamGenFull(GroupConvTestConfig<2>::GetConfigs<Direction::Forward>(),
-                         testing::Values(miopenTensorNHWC /*, miopenTensorNCHW*/)));
+                         testing::Values(miopenTensorNHWC, miopenTensorNCHW)));
 INSTANTIATE_TEST_SUITE_P(
     Full,
     GPU_ConvGrpActivInfer3D_FP32,
     gcaInferParamGenFull(GroupConvTestConfig<3>::GetConfigs<Direction::Forward>(),
-                         testing::Values(miopenTensorNDHWC /*, miopenTensorNCDHW*/)));
+                         testing::Values(miopenTensorNDHWC, miopenTensorNCDHW)));
