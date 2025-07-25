@@ -28,6 +28,7 @@
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK || MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <fdeep/fdeep.hpp>
 #include <miopen/filesystem.hpp>
+#include <numeric> // For std::inner_product
 
 namespace miopen {
 namespace ai {
@@ -811,9 +812,7 @@ public:
           input_encoder(
               fdeep::load_model(InputEncoderPath(arch, solver), true, fdeep::dev_null_logger)),
           kernel_config_encoder(fdeep::load_model(
-              KernelConfigEncoderPath(arch, solver), true, fdeep::dev_null_logger)),
-          candidate_selector(
-              fdeep::load_model(CandidateSelectorPath(arch, solver), true, fdeep::dev_null_logger))
+              KernelConfigEncoderPath(arch, solver), true, fdeep::dev_null_logger))
     {
     }
     virtual ~CandidateSelectionModel() = default;
@@ -864,16 +863,21 @@ public:
     int SelectBestCandidate(const fdeep::tensors& encoded_features,
                             const fdeep::tensors& encoded_configs) const
     {
-        // Combine encoded features and configs for final prediction
-        fdeep::tensors combined_input;
-        combined_input.insert(
-            combined_input.end(), encoded_features.begin(), encoded_features.end());
-        combined_input.insert(combined_input.end(), encoded_configs.begin(), encoded_configs.end());
+        const auto& feature_vec   = encoded_features[0].to_vector();
+        const auto& config_mat    = encoded_configs[0].to_vector();
+        const auto num_candidates = encoded_configs[0].shape().size_dim_0();
+        const auto feature_dim    = feature_vec.size();
 
-        fdeep::tensors output = candidate_selector.predict(combined_input);
-        auto selection_scores = output[0].to_vector();
+        std::vector<float> selection_scores(num_candidates, 0.0f);
 
-        // Return index of best candidate
+        for(std::size_t i = 0; i < num_candidates; ++i)
+        {
+            selection_scores[i] = std::inner_product(config_mat.begin() + i * feature_dim,
+                                                     config_mat.begin() + (i + 1) * feature_dim,
+                                                     feature_vec.begin(),
+                                                     0.0f);
+        }
+
         return std::max_element(selection_scores.begin(), selection_scores.end()) -
                selection_scores.begin();
     }
@@ -881,11 +885,10 @@ public:
 private:
     const fdeep::model input_encoder;
     const fdeep::model kernel_config_encoder;
-    const fdeep::model candidate_selector;
 
     static std::string InputEncoderPath(const std::string& arch, const std::string& solver)
     {
-        const auto path = GetSystemDbPath() / (arch + "_" + solver + "_input_encoder.ktn.model");
+        const auto path = GetSystemDbPath() / (arch + "_" + solver + "_input_encoder.tn.model");
         if(!fs::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load input encoder file: " + path);
         return path.string();
@@ -894,20 +897,10 @@ private:
     static std::string KernelConfigEncoderPath(const std::string& arch, const std::string& solver)
     {
         const auto path =
-            GetSystemDbPath() / (arch + "_" + solver + "_kernel_config_encoder.ktn.model");
+            GetSystemDbPath() / (arch + "_" + solver + "_kernel_config_encoder.tn.model");
         if(!fs::exists(path))
             MIOPEN_THROW(miopenStatusInternalError,
                          "Unable to load kernel config encoder file: " + path);
-        return path.string();
-    }
-
-    static std::string CandidateSelectorPath(const std::string& arch, const std::string& solver)
-    {
-        const auto path =
-            GetSystemDbPath() / (arch + "_" + solver + "_candidate_selector.ktn.model");
-        if(!fs::exists(path))
-            MIOPEN_THROW(miopenStatusInternalError,
-                         "Unable to load candidate selector file: " + path);
         return path.string();
     }
 };
