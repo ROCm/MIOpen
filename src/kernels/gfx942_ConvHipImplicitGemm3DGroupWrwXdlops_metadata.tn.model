@@ -1,0 +1,151 @@
+{
+    "generated_on": "23 Jul 2025, 07:23:48",
+    "gpu": {
+        "device_name": "AMD Instinct MI300X",
+        "arch": "gfx942",
+        "num_cu": 304
+    },
+    "version_info": {
+        "rocm_md_version": "AMDHSA_COv3",
+        "hip_version": "6.3.42134",
+        "miopen_version": "3.4.0.eee082fc68-dirty",
+        "ck_version": "1.1.0@29574f05f7188709493909447543b7954038f899"
+    },
+    "solver_name": "ConvHipImplicitGemm3DGroupWrwXdlops",
+    "output_params": [
+        "kernel_name",
+        "BlockSize",
+        "MPerBlock",
+        "NPerBlock",
+        "K0PerBlock",
+        "ConvBackwardWeightSpecialization",
+        "K1",
+        "MXdlPerWave",
+        "NXdlPerWave",
+        "ABlockTransferSrcScalarPerVector",
+        "ABlockTransferDstScalarPerVector_K1",
+        "BBlockTransferSrcScalarPerVector",
+        "BBlockTransferDstScalarPerVector_K1",
+        "CBlockTransferScalarPerVector_NWaveNPerXdl",
+        "SplitK",
+        "BlkGemmPipelineVersion"
+    ],
+    "num_output_params": 21,
+    "input_params": [
+        "in_channels",
+        "in_d",
+        "in_h",
+        "in_w",
+        "out_channels",
+        "out_d",
+        "out_h",
+        "out_w",
+        "fil_d",
+        "fil_h",
+        "fil_w",
+        "pad_d",
+        "pad_h",
+        "pad_w",
+        "conv_stride_d",
+        "conv_stride_h",
+        "conv_stride_w",
+        "batchsize",
+        "in_layout",
+        "fil_layout",
+        "out_layout",
+        "precision"
+    ],
+    "num_input_params": 22,
+    "encodings": {
+        "inputs": {
+            "in_layout": {
+                "NCDHW": 0,
+                "NDHWC": 1
+            },
+            "fil_layout": {
+                "NCDHW": 0,
+                "NDHWC": 1
+            },
+            "out_layout": {
+                "NCDHW": 0,
+                "NDHWC": 1
+            },
+            "precision": {
+                "BF16": 0,
+                "FP16": 1,
+                "FP32": 2
+            }
+        },
+        "outputs": {
+            "kernel_name": {
+                "DeviceGroupedConvBwdWeight_Xdl_CShuffleV3": 0,
+                "DeviceGroupedConvBwdWeight_Xdl_CShuffle": 1,
+                "DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle": 2
+            },
+            "ConvBackwardWeightSpecialization": {
+                "Filter1x1Stride1Pad0": 0,
+                "Default": 1
+            },
+            "BlkGemmPipelineVersion": {
+                "BlkGemmPipelineVersion: v1": 0,
+                "BlkGemmPipelineVersion: v5": 1,
+                "BlkGemmPipelineVersion: v2": 2
+            }
+        }
+    },
+    "decodings": {
+        "inputs": {
+            "in_layout": {
+                "0": "NCDHW",
+                "1": "NDHWC"
+            },
+            "fil_layout": {
+                "0": "NCDHW",
+                "1": "NDHWC"
+            },
+            "out_layout": {
+                "0": "NCDHW",
+                "1": "NDHWC"
+            },
+            "precision": {
+                "0": "BF16",
+                "1": "FP16",
+                "2": "FP32"
+            }
+        },
+        "outputs": {
+            "kernel_name": {
+                "0": "DeviceGroupedConvBwdWeight_Xdl_CShuffleV3",
+                "1": "DeviceGroupedConvBwdWeight_Xdl_CShuffle",
+                "2": "DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle"
+            },
+            "ConvBackwardWeightSpecialization": {
+                "0": "Filter1x1Stride1Pad0",
+                "1": "Default"
+            },
+            "BlkGemmPipelineVersion": {
+                "0": "BlkGemmPipelineVersion: v1",
+                "1": "BlkGemmPipelineVersion: v5",
+                "2": "BlkGemmPipelineVersion: v2"
+            }
+        }
+    },
+    "constants": {
+        "inputs": {
+            "spatial_dim": 3,
+            "dilation_d": 1,
+            "dilation_h": 1,
+            "dilation_w": 1,
+            "bias": 0,
+            "direction": "W",
+            "group_count": 1
+        },
+        "outputs": {
+            "CShuffleMXdlPerWavePerShuffle": 1,
+            "CShuffleNXdlPerWavePerShuffle": 1,
+            "KPerBlock": 32,
+            "BlkGemmPipelineScheduler": "BlkGemmPipelineScheduler: Intrawave",
+            "NumGroupsToMerge": 1
+        }
+    }
+}
