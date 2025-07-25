@@ -269,22 +269,110 @@ need to worry about additional cleanup.
 Supported fusions
 =================================================
 
-The following tables outline the supported fusions for ``FP32`` and ``FP16``, including any applicable
+The following tables outline the supported fusions for ``FP32``, ``FP16``, and ``BFP16``, including any applicable
 constraints.
 
 .. note::
 
-  Fusion Plans with grouped convolutions are not supported.
+   Fusion Plans with grouped convolutions are supported in the inference direction for
+   convolution, bias, and activation.
 
-**C = convolution, B = bias, N = batch normalization, A = activation**
+The following abbreviations apply to the combination column in the following tables:
 
-.. image:: ../data/how-to/fp32fusions.png
-  :width: 800
-  :alt: Convolution based fp32 fusion
+*  **C**: Convolution
+*  **B**: Bias
+*  **N**: Batch Normalization
+*  **A**: Activation
+ 
+For example, CBA refers to convolution plus bias plus activation.
 
-.. image:: ../data/how-to/fp16fusions.png
-  :width: 800
-  :alt: Convolution based fp16 fusion
+Convolution-based FP32 fusion for inference
+-------------------------------------------
+
+The following table applies to single-precision floating point.
+
+.. csv-table::
+   :header: "Combination","Conv algo","Stride","Filter dims","N mode","Activations","Other constraints"
+   :widths: 15, 15, 15, 20, 12, 20, 20
+
+   "CBNA","Direct","1 and 2","3x3, 5x5, 7x7, 9x9, 11x11","All","All","stride and padding must be either 1 or 2"
+   "CBA","Direct","--","1x1","--","All","stride and padding not supported"
+   "CBA","Winograd","1","1x1, 2x2","N/A","Relu, Leaky Relu","c >= 18"
+   "CBA","Winograd","1","3x3","--","Relu, Leaky Relu","c >= 18 and c is even"
+   "CBA","Winograd","1","4x4, 5x5, 6x6","--","Relu, Leaky Relu","4 x c >= 18"
+   "CBA","Winograd","1","7x7, 8x8, 9x9","--","Relu, Leaky Relu","12 x c >= 18"
+   "CBA","Winograd","1","10x10, 11x11, 12x12","--","Relu, Leaky Relu","16 x c >= 18"
+   "CBA","Winograd","1","larger filter sizes","--","Relu, Leaky Relu","none"
+   "CBA","Winograd","2","1x1","--","Relu, Leaky Relu","2 x c >= 18"
+   "CBA","Winograd","2","2x2, 3x3, 4x4, 5x5, 6x6","--","Relu, Leaky Relu","4 x c >= 18"
+   "CBA","Winograd","2","7x7","--","Relu, Leaky Relu","12 x c >= 18"
+   "CBA","Winograd","2","8x8, 9x9, 10x10, 11x11, 12x12","--","Relu, Leaky Relu","16 x c >= 18"
+   "CBA","Winograd","2","larger filter sizes","--","Relu, Leaky Relu","none"
+   "CBA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
+   "NA","--","--","--","All","All","padding not supported"
+   "CA","Direct","--","1x1","--","All","stride and padding not supported"
+   "CA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
+
+.. note::
+
+   N mode is either spatial or per activation. For CBA, other asymmetric kernels are supported but for brevity are not enumerated here.
+
+
+Convolution-based FP16 fusion for inference
+-------------------------------------------
+
+The following table applies to half-precision floating point.
+
+.. csv-table::
+   :header: "Combination","Conv algo","Stride","Filter dims","N mode","Activations","Other constraints"
+   :widths: 15, 15, 15, 20, 12, 20, 20
+
+   "CBNA","Direct","1 and 2","3x3, 5x5, 7x7, 9x9, 11x11","All","All","stride and padding must be either 1 or 2"
+   "CBA","Direct","--","1x1","--","All","stride and padding not supported"
+   "CBA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
+   "CA","Direct","--","1x1","--","All","stride and padding not supported"
+   "CA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
+
+.. note::
+
+   N mode is either spatial or per activation.
+
+
+Convolution-based BFP16 fusion for inference
+--------------------------------------------
+
+The following table applies to half-precision block floating point.
+
+.. csv-table::
+   :header: "Combination","Conv algo","Stride","Filter dims","N mode","Activations","Other constraints"
+   :widths: 15, 15, 15, 20, 12, 20, 20
+
+   "CBNA","Direct","1 and 2","3x3, 5x5, 7x7, 9x9, 11x11","All","All","stride and padding must be either 1 or 2"
+   "CBA","Direct","--","1x1","--","All","stride and padding not supported"
+   "CBA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
+   "CA","Direct","--","1x1","--","All","stride and padding not supported"
+   "CA","CK","--","--","--","Relu, Clipped Relu, CLAMP","none"
+
+.. note::
+
+   N mode is either spatial or per activation.
+
+Batch Normalization-based fusion for FP32, BFP16, and FP16 for inference and training
+-------------------------------------------------------------------------------------
+
+The following table applies to both full-precision and half-precision floating point.
+
+.. csv-table::
+   :header: "Combination","N mode","Activations","Constraints"
+   :widths: 30, 15, 15, 15
+
+   "NA for inference","All","All","None"
+   "NA forward training","All","All","None"
+   "NA backward training","All","All","None"
+
+.. note::
+
+   N mode is either spatial or per activation.
 
 Comparing performance with non-fused kernels
 =================================================
@@ -298,6 +386,6 @@ non-fused version. All configurations have a batch size of 64:
 
 The following graph depicts the speedup obtained by fusing BatchNorm (in spatial mode) with activation:
 
-.. image:: ../data/how-to/na.png
+.. image:: ../data/how-to/bn_activ_fused.png
   :width: 800
   :alt: BatchNorm activation fusion
