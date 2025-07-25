@@ -35,13 +35,18 @@
 
 using Direction = miopen::conv::Direction;
 
+struct GroupConvTestConfigBase
+{
+    virtual ~GroupConvTestConfigBase() = default;
+};
+
 template <unsigned NDIM>
-struct GroupConvTestConfig
+struct GroupConvTestConfig : GroupConvTestConfigBase
 {
 };
 
 template <>
-struct GroupConvTestConfig<2u>
+struct GroupConvTestConfig<2u> : GroupConvTestConfigBase
 {
 
     struct Size2D
@@ -114,23 +119,30 @@ struct GroupConvTestConfig<2u>
             1.0};
     }
 
+    template <Direction DIR>
     static std::vector<GroupConvTestConfig> GetSmokeConfigs()
     {
-        return {
-            // clang-format off
+        if constexpr(DIR == Direction::Forward)
+        {
+
+            return {
+                // clang-format off
             // g   n    C    K    img         filter    pad     stride  dilation
             {1,   32,   64,  128, {28, 28},   {3, 3},   {0, 1}, {1, 2}, {2, 1}},
             {32,  16,   32,   64,  {7, 7},    {3, 3},   {1, 1}, {1, 1}, {1, 1}},
             {1,   16,   32,   64, {16, 16},   {2, 2},   {0, 0}, {3, 3}, {1, 1}},
             {4,    8,   16,   32, {32, 4},    {3, 1},   {1, 0}, {1, 1}, {1, 1}},
-            // clang-format on
-        };
+                // clang-format on
+            };
+        }
     }
 
+    template <Direction DIR>
     static std::vector<GroupConvTestConfig> GetConfigs()
     {
-
-        // clang-format off
+        if constexpr(DIR == Direction::Forward)
+        {
+            // clang-format off
         return {
             // g   n     C     K      img       filter   pad    stride  dilation
               {1,  64,  1024, 2048, {14, 14},   {1, 1}, {0, 0}, {2, 2}, {1, 1}},
@@ -148,7 +160,111 @@ struct GroupConvTestConfig<2u>
               {1,  6,   448,  896,  {118, 182}, {1, 1}, {0, 0}, {2, 2}, {1, 1}},
               {4,  16,  224,  224,  {469, 724}, {3, 3}, {1, 1}, {2, 2}, {1, 1}},
         };
-        // clang-format on
+            // clang-format on
+        }
+    }
+};
+
+template <>
+struct GroupConvTestConfig<3u>
+{
+
+    struct Size3D
+    {
+        size_t z;
+        size_t y;
+        size_t x;
+    };
+
+    size_t G;
+    size_t N;
+    size_t C;
+    size_t k;
+
+    Size3D img;
+    Size3D filter;
+    Size3D pad;
+    Size3D stride;
+    Size3D dilation;
+
+    friend std::ostream& operator<<(std::ostream& os, const GroupConvTestConfig<3u>& tc)
+    {
+        return os << " G:" << tc.G << " N:" << tc.N << " C:" << tc.C << " K:" << tc.k
+                  << " D:" << tc.img.z << " H:" << tc.img.y << " W:" << tc.img.x
+                  << " z:" << tc.filter.z << " y:" << tc.filter.y << " x:" << tc.filter.x
+                  << " pad.z:" << tc.pad.z << " pad.y:" << tc.pad.y << " pad.x:" << tc.pad.x
+                  << " stride.z:" << tc.stride.z << " stride.y:" << tc.stride.y
+                  << " stride.x:" << tc.stride.x << " dilation.z:" << tc.dilation.z
+                  << " dilation.y:" << tc.dilation.y << " dilation.x:" << tc.dilation.x;
+    }
+
+    std::vector<size_t> GetInput() { return {N, C, img.z, img.y, img.x}; }
+    std::vector<size_t> GetWeights()
+    {
+        EXPECT_EQUAL(C % G, 0);
+        return {k, C / G, filter.z, filter.y, filter.x};
+    }
+
+    miopen::ConvolutionDescriptor GetConv()
+    {
+        return miopen::ConvolutionDescriptor{
+            3,
+            miopenConvolution,
+            miopenPaddingDefault,
+            {static_cast<int>(pad.z), static_cast<int>(pad.y), static_cast<int>(pad.x)},
+            {static_cast<int>(stride.z), static_cast<int>(stride.y), static_cast<int>(stride.x)},
+            {static_cast<int>(dilation.z),
+             static_cast<int>(dilation.y),
+             static_cast<int>(dilation.x)},
+            {0, 0, 0},
+            static_cast<int>(G),
+            1.0};
+    }
+
+    template <Direction DIR>
+    static std::vector<GroupConvTestConfig> GetSmokeConfigs()
+    {
+        if constexpr(DIR == Direction::Forward)
+        {
+
+            return {
+                // clang-format off
+            // g   n    C    K    img         filter    pad     stride  dilation
+            {1,   32,   64,  128, {28, 28, 28},   {3, 3, 3},   {0, 1, 1}, {1, 2, 2}, {2, 1, 1}},
+            {32,  16,   32,   64,  {7, 7, 7},    {3, 3, 3},   {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+            {1,   16,   32,   64, {16, 16, 16},   {2, 2, 2},   {0, 0, 0}, {3, 3, 3}, {1, 1, 1}},
+            {4,    8,   16,   32, {32, 4, 4},    {3, 1, 1},   {1, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                // clang-format on
+            };
+        }
+    }
+
+    template <Direction DIR>
+    static std::vector<GroupConvTestConfig> GetConfigs()
+    {
+
+        if constexpr(DIR == Direction::Forward)
+        {
+            // clang-format off
+            return {
+              // g   n   C    K      img         filter      pad        stride    dilation
+                {1 , 128, 64 , 64 , {14, 28, 28} , {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+                {1 , 64 , 32 , 32 , {28, 28, 28} , {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+                {2 , 128, 32 , 32 , {28, 28, 28} , {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+                {8 , 128, 32 , 32 , {28, 28, 28} , {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+                {2 , 128, 32 , 32 , {28, 28, 28} , {3, 3, 3}, {0, 0, 0}, {1, 1, 1}, {1, 1, 1}},
+                {8 , 64 , 32 , 32 , {28, 28, 28} , {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+                {16, 64 , 32 , 32 , {28, 28, 28} , {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+                {2 , 128, 32 , 32 , {28, 28, 28} , {3, 3, 3}, {0, 0, 0}, {2, 2, 2}, {1, 1, 1}},
+                {8 , 64 , 32 , 32 , {28, 28, 28} , {3, 3, 3}, {1, 1, 1}, {2, 2, 2}, {1, 1, 1}},
+                {16, 64 , 32 , 32 , {28, 28, 28} , {3, 3, 3}, {1, 1, 1}, {2, 2, 2}, {1, 1, 1}},
+                {3 , 48 , 48 , 48 , {28, 28, 28} , {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+                {3 , 48 , 39 , 39 , {28, 28, 28} , {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+                {5 , 120, 60 , 60 , {28, 28, 28} , {3, 3, 3}, {1, 1, 1}, {1, 1, 1}, {1, 1, 1}},
+                {1 , 6  , 448, 896, {3, 118, 182}, {1, 1, 1}, {0, 0, 0}, {1, 2, 2}, {1, 1, 1}},
+            };
+            // clang-format on
+        }
     }
 };
 

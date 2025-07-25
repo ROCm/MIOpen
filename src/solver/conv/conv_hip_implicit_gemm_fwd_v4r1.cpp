@@ -24,16 +24,14 @@
  *
  *******************************************************************************/
 
-#include <miopen/conv/solvers.hpp>
-
 #include <miopen/conv/invokers/impl_gemm.hpp>
+#include <miopen/conv/solvers.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/env.hpp>
-#include <miopen/handle.hpp>
 #include <miopen/generic_search.hpp>
-#include <miopen/solver/implicitgemm_util.hpp>
-
-#include <cstddef>
+#include <miopen/solver/implicitgemm_static_ck_util.hpp>
+#include <miopen/solver/problem_description_helpers.hpp>
+#include <miopen/solver/static_ck_common.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1)
@@ -47,16 +45,19 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
-#if WORKAROUND_SWDEV_498660
-    if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1))
-        return false;
-#endif
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
+    if(problem.IsFp32())
+    {
+        // Missing instruction: v_mac_f32
+        const auto dev_name = ctx.GetStream().GetDeviceName();
+        if(dev_name == "gfx942")
+            return false;
+    }
     if(problem.GetConv().attribute.deterministic)
         return false;
     if(!problem.IsDirectionForward())
@@ -71,7 +72,7 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsFp32() && !problem.IsFp16() && !problem.IsBfp16())
         return false;
-    if(!IsIndexRangeLargeEnough(problem))
+    if(!static_ck::IsIndexRangeLargeEnough(problem))
         return false;
     if(!problem.IsLayoutDefault())
         return false;
@@ -101,16 +102,19 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
 bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
                                               const ProblemDescription& problem) const
 {
-#if WORKAROUND_SWDEV_498660
-    if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1))
-        return false;
-#endif
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1))
         return false;
     if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
         return false;
-    if(!IsComposableKernelSupportedHardware(ctx))
+    if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
+    if(problem.IsFp32())
+    {
+        // Missing instruction: v_mac_f32
+        const auto dev_name = ctx.GetStream().GetDeviceName();
+        if(dev_name == "gfx942")
+            return false;
+    }
     if(!problem.IsDirectionBackwardWrW())
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())
@@ -121,7 +125,7 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsFp32() && !problem.IsFp16() && !problem.IsBfp16())
         return false;
-    if(!IsIndexRangeLargeEnough(problem))
+    if(!static_ck::IsIndexRangeLargeEnough(problem))
         return false;
     if(!problem.IsLayoutDefault())
         return false;
@@ -164,14 +168,14 @@ PerformanceImplicitGemmV4R1
 ConvHipImplicitGemmV4R1Fwd::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx, problem);
+    return static_ck::GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx, problem);
 }
 
 PerformanceImplicitGemmV4R1
 ConvHipImplicitGemmV4R1WrW::GetDefaultPerformanceConfig(const ExecutionContext& ctx,
                                                         const ProblemDescription& problem) const
 {
-    return GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx, problem);
+    return static_ck::GetPerformanceConfigBase<PerformanceImplicitGemmV4R1>(ctx, problem);
 }
 
 bool ConvHipImplicitGemmV4R1Fwd::IsValidPerformanceConfig(
@@ -385,10 +389,13 @@ ConvHipImplicitGemmV4R1Fwd::GetSolution(const ExecutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, problem, false)) +
-        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
-        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
-        get_static_ck_common_compiler_flag(ctx) +
-        ctx.general_compile_options;
+        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (static_ck::use_amd_inline_asm(ctx, problem) ? '1' : '0') +
+        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (static_ck::use_amd_inline_asm(ctx, problem) ? '1' : '0') +
+#if HIP_PACKAGE_VERSION_FLAT >= 6004000000
+        std::string(" -DCK_USE_AMD_BUFFER_PTR_TYPE=1") +
+#endif
+        static_ck::get_static_ck_common_compiler_flag(ctx) +
+        ctx.general_compile_options  + " --std=c++17";
     // clang-format on
 
     if(problem.IsFp32())
@@ -591,10 +598,13 @@ ConvHipImplicitGemmV4R1WrW::GetSolution(const ExecutionContext& ctx,
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_CLUSTER_LENGTHS_K=") + std::to_string(config.WeiBlockCopyClusterLengths_K) +
         std::string(" -DCK_PARAM_WEI_BLOCK_COPY_SRC_DATA_PER_READ_E=") + std::to_string(WeiBlockCopySrcDataPerRead_E) +
         std::string(" -DCK_PARAM_EPACK_LENGTH=") + std::to_string(GetEPackLength(ctx, problem, false)) +
-        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem)? '1' : '0') +
-        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (use_amd_inline_asm(ctx, problem) ? '1' : '0') +
-        get_static_ck_common_compiler_flag(ctx) +
-        ctx.general_compile_options;
+        std::string(" -DCK_THREADWISE_GEMM_USE_AMD_INLINE_ASM=") + (static_ck::use_amd_inline_asm(ctx, problem)? '1' : '0') +
+        std::string(" -DCK_USE_AMD_INLINE_ASM=") + (static_ck::use_amd_inline_asm(ctx, problem) ? '1' : '0') +
+#if HIP_PACKAGE_VERSION_FLAT >= 6004000000
+        std::string(" -DCK_USE_AMD_BUFFER_PTR_TYPE=1") +
+#endif
+        static_ck::get_static_ck_common_compiler_flag(ctx) +
+        ctx.general_compile_options  + " --std=c++17";
     // clang-format on
 
     if(problem.IsFp32())

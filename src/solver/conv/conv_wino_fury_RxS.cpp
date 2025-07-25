@@ -83,7 +83,7 @@ bool IsShaderConstraintsMetV2(const WinoShaderArgsV2& args, uint32_t n_groups)
     // Current limitations:
     // clang-format off
     return args.N < PowOf2<16>()
-        && args.C < PowOf2<16>()
+        && args.Cg < PowOf2<16>()
         && args.H < PowOf2<16>()
         && args.W < PowOf2<16>()
         && args.pad_h >= std::numeric_limits<int16_t>::min() && args.pad_h <= std::numeric_limits<int16_t>::max()
@@ -92,9 +92,9 @@ bool IsShaderConstraintsMetV2(const WinoShaderArgsV2& args, uint32_t n_groups)
         && args.out_w < PowOf2<16>() - 3
         && args.R <= 3
         && args.S <= 3
-        && (static_cast<uint64_t>(args.N - 1) * args.C + 1) * args.H * args.W < PowOf2<31>()
-        && (static_cast<uint64_t>(args.N - 1) * args.K + 1) * args.out_h * args.out_w < PowOf2<31>()
-        && DivCeil(args.K, 16) <= n_groups
+        && (static_cast<uint64_t>(args.N - 1) * args.Cg + 1) * args.H * args.W < PowOf2<31>()
+        && (static_cast<uint64_t>(args.N - 1) * args.Kg + 1) * args.out_h * args.out_w < PowOf2<31>()
+        && DivCeil(args.Kg, 16) <= n_groups
         && args.G == 1;
     // clang-format on
 }
@@ -131,8 +131,8 @@ public:
                 uint32_t n_grp,
                 bool reduced_vgpr_mem)
         : N(args.N),
-          C(args.C),
-          K(args.K),
+          C(args.Cg),
+          K(args.Kg),
           R(args.R),
           S(args.S),
           oH(args.out_h),
@@ -254,6 +254,15 @@ bool ConvWinoFuryRxSCommon<Winodata, Winofilter>::IsApplicable(const ExecutionCo
     // All gfx11 ASICs are supported
     if(!StartsWith(dev_name, "gfx11"))
         return false;
+
+    if(StartsWith(dev_name, "gfx115"))
+    {
+        // Triggers this error on gfx1151
+        // kernel: [drm:gfx_v11_0_bad_op_irq [amdgpu]] *ERROR* Illegal opcode in command stream
+        // stderr: HSA_STATUS_ERROR_INVALID_ISA: The instruction set architecture is invalid. code:
+        // 0x100f
+        return false;
+    }
 
     if(!(problem.GetKernelStrideH() == 1 && problem.GetKernelStrideW() == 1))
         return false;

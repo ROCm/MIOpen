@@ -58,7 +58,11 @@ protected:
 
         cfsb::SetUpImpl(conv_config, tensor_layout);
         activ_desc = {activ_mode, activ_alpha, activ_beta, activ_gamma};
-        bias       = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
+        int dim    = cfsb::output.desc.GetNumDims() - 2;
+        if(dim == 3)
+            bias = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1, 1};
+        else
+            bias = tensor<T>{1, static_cast<size_t>(conv_config.k), 1, 1};
         bias.generate(tensor_elem_gen_integer{3});
         auto&& handle = get_handle();
         std::fill(
@@ -109,4 +113,5 @@ protected:
     float activ_gamma = static_cast<double>(0.5f);
     miopenTensorLayout_t tensor_layout;
     using cfsb = ConvFwdSolverTestBase<T, T, TestCaseType>;
+    Workspace wspace{};
 };

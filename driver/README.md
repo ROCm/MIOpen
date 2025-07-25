@@ -20,6 +20,7 @@ The supported base arguments:
 
  * `conv` - Convolutions
  * `CBAInfer` - Convolution+Bias+Activation fusions for inference
+ * `CAInfer` - Convolution+Activation fusions for inference
  * `pool` - Pooling
  * `lrn` - Local Response Normalization
  * `activ` - Activations
@@ -28,20 +29,77 @@ The supported base arguments:
  * `rnn` - Recurrent Neural Networks (including LSTM and GRU)
  * `gemm` - General Matrix Multiplication
  * `ctc` - CTC Loss Function
+ * `dropout` - Dropout
+ * `tensorop` - Ternary Tensor Operation
+ * `reduce` - Reduce
+ * `layernorm` - Layer Normalization
+ * `groupnorm` - Group Normalization
+ * `cat` - Cat Forward Operation
+ * `addlayernorm` - Add and Layer Normalization
+ * `t5layernorm` - T5 Layer Normalization
+ * `adam` - Adam Optimizer
+ * `ampadam` - AMP Adam Optimizer
+ * `adamw` - AdamW Optimizer
+ * `ampadamw` - AMP AdamW Optimizer
+ * `transformersadamw` - Hugging Face Transformer AdamW Optimizer
+ * `transformersampaadamw` - Hugging Face Transformer AMP AdamW Optimizer
+ * `getitem` - Getitem Operation
+ * `reducecalculation` - Reduce Calculation
+ * `rope` - Rotary Position Embedding
+ * `prelu` - Parametric ReLU
+ * `kthvalue` - Kthvalue Operation
+ * `glu` - Gated Linear Unit
+ * `softmarginloss` - Softmarginloss
+ * `multimarginloss` - Multimarginloss
 
  These base arguments support fp32 float type, but some of the drivers suport further datatypes -- specifically, half precision (fp16), brain float16 (bfp16), and 8-bit integers (int8).
  To toggle half precision simpily add the suffix `fp16` to end of the base argument; e.g., `convfp16`.
  Likewise, to toggle brain float16 just add the suffix `bfp16`, and to use 8-bit integers add `int8`.
 
  Notes for this release:
-  * Only convolutions support bfp16 and int8
+  * Only convolutions support int8
+  * Only reduce supports double-precision fp64
   * RNN's support fp16 but only on the HIP backend
   * CTC loss function only supports fp32
 
 Summary of base_args meant for different datatypes and different operations:
 
-![DatatypeSupport](../docs/data/how-to/driverTableCrop.png)
-
+| base_args            | Single-Precision (fp32) | Half-Precision (fp16) | Bfloat16 (bfp16)   |
+| :------------------- | :---------------------: | :-------------------: | :----------------: |
+| conv                 | ✓ | ✓ | ✓ |
+| CBAInfer             | x | x | ✓ |
+| CAInfer              | x | x | ✓ | 
+| pool                 | ✓ | ✓ | x |
+| lrn                  | ✓ | ✓ | x |
+| activ                | ✓ | ✓ | x |
+| softmax              | ✓ | ✓ | x |
+| bnorm                | ✓ | ✓ | ✓ |
+| rnn                  | ✓ | ✓ | x |
+| gemm                 | ✓ | ✓ | x |
+| ctc                  | ✓ | x | x |   
+| dropout              | ✓ | ✓ | x |
+| tensorop             | ✓ | x | x |
+| reduce               | ✓ | ✓ | x |
+| layernorm            | ✓ | ✓ | ✓ |
+| groupnorm            | ✓ | ✓ | ✓ |
+| cat                  | ✓ | ✓ | ✓ |
+| addlayernorm         | ✓ | ✓ | ✓ |
+| t5layernorm          | ✓ | ✓ | ✓ |
+| adam                 | ✓ | ✓ | x |
+| ampadam              | ✓ | x | x |
+| reduceextreme        | ✓ | ✓ | ✓ |
+| adamw                | ✓ | ✓ | x |
+| ampadamw             | ✓ | x | x |
+| transformersadamw    | ✓ | ✓ | x |
+| transformersampadamw | ✓ | x | x  |
+| getitem              | ✓ | ✓ | ✓ |
+| reducecalculation    | ✓ | ✓ | ✓ |
+| rope                 | ✓ | ✓ | ✓ |
+| prelu                | ✓ | ✓ | ✓ |
+| kthvalue             | ✓ | ✓ | ✓ |
+| glu                  | ✓ | ✓ | ✓ |
+| softmarginloss       | ✓ | ✓ | ✓ |
+| multimarginloss      | ✓ | ✓ | ✓ |
 
 ## Executing MIOpenDriver
 
