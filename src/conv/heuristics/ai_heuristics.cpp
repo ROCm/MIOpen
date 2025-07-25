@@ -586,6 +586,13 @@ Metadata::Metadata(const std::string& arch, const std::string& solver)
         metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
     tuning_decodings =
         metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
+
+    // Add tuning_encodings for the new model if it exists in metadata
+    if(metadata.contains("encodings") && metadata["encodings"].contains("tunings"))
+    {
+        tuning_encodings =
+            metadata["encodings"]["tunings"].get<std::unordered_map<std::string, std::size_t>>();
+    }
 }
 
 class Model
@@ -785,6 +792,242 @@ bool ModelSetParams(const std::string& arch,
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
     MIOPEN_LOG_I2("KTN ran for " << duration.count() << " micro-seconds");
     return true;
+}
+
+// code for new-style AI heuristics for kernel tuning
+
+/**
+ * New Model class for candidate selection approach
+ *
+ * This model takes features and valid kernel candidates as input and directly
+ * selects the best candidate rather than generating parameters sequentially.
+ */
+class CandidateSelectionModel
+{
+public:
+    Metadata metadata;
+    CandidateSelectionModel(const std::string& arch, const std::string& solver)
+        : metadata(Metadata(arch, solver)),
+          input_encoder(
+              fdeep::load_model(InputEncoderPath(arch, solver), true, fdeep::dev_null_logger)),
+          kernel_config_encoder(fdeep::load_model(
+              KernelConfigEncoderPath(arch, solver), true, fdeep::dev_null_logger)),
+          candidate_selector(
+              fdeep::load_model(CandidateSelectorPath(arch, solver), true, fdeep::dev_null_logger))
+    {
+    }
+    virtual ~CandidateSelectionModel() = default;
+
+    /**
+     * Encode input features into a context vector
+     * @param features Input problem features
+     */
+    fdeep::tensors EncodeInputFeatures(const std::vector<float>& features) const
+    {
+        fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(features.size()), features);
+        return input_encoder.predict({input_tensor});
+    }
+
+    /**
+     * Encode kernel configuration candidates
+     * @param encoded_candidates Encoded kernel parameter candidates
+     */
+    fdeep::tensors
+    EncodeKernelConfigs(const std::vector<std::vector<float>>& encoded_candidates) const
+    {
+        // Flatten candidates matrix for tensor input
+        std::vector<float> flattened_candidates;
+        for(const auto& candidate : encoded_candidates)
+        {
+            flattened_candidates.insert(
+                flattened_candidates.end(), candidate.begin(), candidate.end());
+        }
+
+        if(encoded_candidates.empty() || encoded_candidates[0].empty())
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Empty candidates provided to kernel config encoder");
+        }
+
+        fdeep::tensor candidates_tensor = fdeep::tensor(
+            fdeep::tensor_shape(encoded_candidates.size(), encoded_candidates[0].size()),
+            flattened_candidates);
+
+        return kernel_config_encoder.predict({candidates_tensor});
+    }
+
+    /**
+     * Select best candidate from encoded features and kernel configs
+     * @param encoded_features Encoded input features
+     * @param encoded_configs Encoded kernel configurations
+     */
+    int SelectBestCandidate(const fdeep::tensors& encoded_features,
+                            const fdeep::tensors& encoded_configs) const
+    {
+        // Combine encoded features and configs for final prediction
+        fdeep::tensors combined_input;
+        combined_input.insert(
+            combined_input.end(), encoded_features.begin(), encoded_features.end());
+        combined_input.insert(combined_input.end(), encoded_configs.begin(), encoded_configs.end());
+
+        fdeep::tensors output = candidate_selector.predict(combined_input);
+        auto selection_scores = output[0].to_vector();
+
+        // Return index of best candidate
+        return std::max_element(selection_scores.begin(), selection_scores.end()) -
+               selection_scores.begin();
+    }
+
+private:
+    const fdeep::model input_encoder;
+    const fdeep::model kernel_config_encoder;
+    const fdeep::model candidate_selector;
+
+    static std::string InputEncoderPath(const std::string& arch, const std::string& solver)
+    {
+        const auto path = GetSystemDbPath() / (arch + "_" + solver + "_input_encoder.ktn.model");
+        if(!fs::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load input encoder file: " + path);
+        return path.string();
+    }
+
+    static std::string KernelConfigEncoderPath(const std::string& arch, const std::string& solver)
+    {
+        const auto path =
+            GetSystemDbPath() / (arch + "_" + solver + "_kernel_config_encoder.ktn.model");
+        if(!fs::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Unable to load kernel config encoder file: " + path);
+        return path.string();
+    }
+
+    static std::string CandidateSelectorPath(const std::string& arch, const std::string& solver)
+    {
+        const auto path =
+            GetSystemDbPath() / (arch + "_" + solver + "_candidate_selector.ktn.model");
+        if(!fs::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Unable to load candidate selector file: " + path);
+        return path.string();
+    }
+};
+
+/**
+ * Get the candidate selection model for given architecture and solver
+ */
+std::shared_ptr<CandidateSelectionModel> GetCandidateSelectionModel(const std::string& arch,
+                                                                    const std::string& solver)
+{
+    static std::map<std::string, std::shared_ptr<CandidateSelectionModel>> models;
+    std::string key = arch + "_" + solver;
+    auto it         = models.find(key);
+    if(it == models.end())
+    {
+        std::shared_ptr<CandidateSelectionModel> model =
+            std::make_shared<CandidateSelectionModel>(arch, solver);
+        models[key] = model;
+        return model;
+    }
+    else
+    {
+        return it->second;
+    }
+}
+
+/**
+ * Select the best candidate kernel parameters using the new candidate selection approach
+ *
+ * This function takes in a set of valid kernel parameters and features, encodes them,
+ * and runs inference on the KernelTuningNet model to select the best candidate.
+ *
+ * @param arch GPU Architecture
+ * @param solver Solver
+ * @param direction Convolution Direction
+ * @param features Input features for KernelTuningNet model
+ * @param valid_kernel_params Valid kernel parameters to choose from
+ */
+
+int ModelSelectBestCandidate(const std::string& arch,
+                             const std::string& solver,
+                             miopen::conv::Direction direction,
+                             const std::vector<float>& features,
+                             const std::vector<std::vector<std::string>>& valid_kernel_params)
+{
+    try
+    {
+        auto model = GetCandidateSelectionModel(arch, solver);
+
+        // Encode string parameters to floats
+        auto encoded_candidates =
+            EncodeKernelParams(valid_kernel_params, std::static_pointer_cast<Model>(model));
+
+        if(encoded_candidates.empty())
+        {
+            MIOPEN_LOG_W("No valid encoded candidates available");
+            return -1;
+        }
+
+        // Encode input features
+        auto encoded_features = model->EncodeInputFeatures(features);
+
+        // Encode kernel configurations
+        auto encoded_configs = model->EncodeKernelConfigs(encoded_candidates);
+
+        // Select best candidate
+        int best_idx = model->SelectBestCandidate(encoded_features, encoded_configs);
+
+        if(best_idx >= 0 && best_idx < static_cast<int>(valid_kernel_params.size()))
+        {
+            return best_idx;
+        }
+        else
+        {
+            MIOPEN_LOG_W("Invalid candidate index returned: " << best_idx);
+            return -1;
+        }
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_I2("[Warning] Candidate selection model failed: " << ex.what());
+        return -1;
+    }
+    catch(const std::exception& ex)
+    {
+        MIOPEN_LOG_I2(
+            "[Warning] Candidate selection model failed with std exception: " << ex.what());
+        return -1;
+    }
+}
+
+// Helper function to encode kernel parameters
+std::vector<std::vector<float>>
+EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_params,
+                   const std::shared_ptr<Model>& model)
+{
+    std::vector<std::vector<float>> encoded_candidates;
+
+    for(const auto& kernel_params : valid_kernel_params)
+    {
+        std::vector<float> encoded_kernel;
+        for(const std::string& param : kernel_params)
+        {
+            // Look up string in model's encoding dictionary
+            auto token_it = model->metadata.tuning_encodings.find(param);
+            if(token_it != model->metadata.tuning_encodings.end())
+            {
+                encoded_kernel.push_back(static_cast<float>(token_it->second));
+            }
+            else
+            {
+                // Unknown parameter - use sentinel value
+                MIOPEN_LOG_W("Unknown kernel parameter: " << param);
+                encoded_kernel.push_back(-1.0f);
+            }
+        }
+        encoded_candidates.push_back(encoded_kernel);
+    }
+
+    return encoded_candidates;
 }
 
 } // namespace tuning
