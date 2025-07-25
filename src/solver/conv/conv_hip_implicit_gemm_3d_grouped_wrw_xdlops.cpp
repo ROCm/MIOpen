@@ -521,14 +521,52 @@ static bool RunParameterPredictionModel(const ExecutionContext& ctx,
             valid_kernel_params.push_back(heuristic_kernels[i]);
         }
 
+        // Example: Generate powers of two up to max_split_k
+        static std::vector<int> GetPossibleSplitK(int max_split_k)
+        {
+            std::vector<int> split_ks;
+            for(int k = 1; k <= max_split_k; k *= 2)
+                split_ks.push_back(k);
+            return split_ks;
+        }
+
+        // Returns a tuple of (expanded_params, mapping_pairs)
+        // mapping_pairs: vector of std::pair<original_kernel_idx, split_k>
+        static std::pair<std::vector<std::vector<std::string>>, std::vector<std::pair<int, int>>>
+        ExpandKernelParamsWithSplitKAndMapping(
+            const std::vector<std::vector<std::string>>& heuristic_kernels,
+            const std::vector<int>& heuristic_indexes,
+            const std::vector<int>& split_ks)
+        {
+            std::vector<std::vector<std::string>> expanded_params;
+            std::vector<std::pair<int, int>> mapping_pairs;
+            for(size_t kernel_idx = 0; kernel_idx < heuristic_kernels.size(); ++kernel_idx)
+            {
+                for(int split_k : split_ks)
+                {
+                    auto candidate = heuristic_kernels[kernel_idx];
+                    candidate.push_back(std::to_string(split_k));
+                    expanded_params.push_back(candidate);
+                    mapping_pairs.emplace_back(heuristic_indexes[kernel_idx], split_k);
+                }
+            }
+            return {expanded_params, mapping_pairs};
+        }
+
+        // Generate split_k values based on a maximum value TODO: can we load this value from
+        // somewhere instead of hardcoding?
+        std::vector<int> split_ks = GetPossibleSplitK(/*max_split_k*/ 128); // or another max
+        auto [valid_kernel_params, mapping_pairs] =
+            ExpandKernelParamsWithSplitKAndMapping(heuristic_kernels, heuristic_indexes, split_ks);
+
         // Get best candidate index directly using the new candidate selection model
         int best_idx = ai::tuning::ModelSelectBestCandidate(
             arch, solver, problem.GetDirection(), features, valid_kernel_params);
 
-        if(best_idx >= 0 && best_idx < static_cast<int>(heuristic_indexes.size()))
+        if(best_idx >= 0 && best_idx < static_cast<int>(mapping_pairs.size()))
         {
-            index     = heuristic_indexes[best_idx];
-            split_k   = 1; // Default split_k, can be made configurable
+            index     = mapping_pairs[best_idx].first;  // maps to heuristic_indexes
+            split_k   = mapping_pairs[best_idx].second; // deduced split_k
             kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
             return true;
         }
