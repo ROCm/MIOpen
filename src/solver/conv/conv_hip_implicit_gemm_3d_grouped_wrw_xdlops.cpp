@@ -475,6 +475,70 @@ GetFeatures3D(const ProblemDescription& problem, int max_cu, const std::string& 
     return features;
 }
 
+// Helper: Tokenize kernel string
+static std::vector<std::string> TokenizeKernel(const std::string& kernel)
+{
+    std::vector<std::string> tokens;
+    std::stringstream ss(kernel);
+    std::string token;
+    while(std::getline(ss, token, '_'))
+    {
+        if(!token.empty())
+            tokens.push_back(token);
+    }
+    return tokens;
+}
+
+// Helper: Filter kernels by type and collect indexes/tokens
+static void FilterHeuristicKernels(const std::string& type,
+                                   const std::vector<std::string>& valid_kernels,
+                                   std::vector<int>& indexes,
+                                   std::vector<std::vector<std::string>>& kernels)
+{
+    indexes.clear();
+    kernels.clear();
+    for(std::size_t i = 0; i < valid_kernels.size(); ++i)
+    {
+        auto tokens = TokenizeKernel(valid_kernels[i]);
+        if(!tokens.empty() && tokens[0] == type)
+        {
+            indexes.push_back(i);
+            kernels.push_back(tokens);
+        }
+    }
+}
+
+// Helper: Generate split_k values (powers of two)
+static std::vector<int> GenerateSplitK(int max_split_k)
+{
+    std::vector<int> split_ks;
+    for(int k = 1; k <= max_split_k; k *= 2)
+        split_ks.push_back(k);
+    return split_ks;
+}
+
+// Helper: Expand kernel params with split_k and keep mapping
+static std::pair<std::vector<std::vector<std::string>>, std::vector<std::pair<int, int>>>
+ExpandKernelParamsWithSplitK(const std::vector<std::vector<std::string>>& kernels,
+                             const std::vector<int>& indexes,
+                             const std::vector<int>& split_ks)
+{
+    std::vector<std::vector<std::string>> expanded;
+    std::vector<std::pair<int, int>> mapping;
+    for(size_t i = 0; i < kernels.size(); ++i)
+    {
+        for(int split_k : split_ks)
+        {
+            auto candidate = kernels[i];
+            candidate.push_back(std::to_string(split_k));
+            expanded.push_back(candidate);
+            mapping.emplace_back(indexes[i], split_k);
+        }
+    }
+    return {expanded, mapping};
+}
+
+// Main: Run AI parameter prediction model
 template <typename DataType>
 static bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                         const ProblemDescription& problem,
@@ -483,7 +547,7 @@ static bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                         int& split_k,
                                         std::string& kernel_id)
 {
-    // Initialize valid kernels based on alpha/beta case
+    // Select valid kernels based on alpha/beta case
     switch(problem.GetAlphaBetaCase())
     {
     case BILINEAR:
@@ -499,80 +563,38 @@ static bool RunParameterPredictionModel(const ExecutionContext& ctx,
         break;
     }
 
+    // Filter kernels by type
     std::vector<int> heuristic_indexes;
     std::vector<std::vector<std::string>> heuristic_kernels;
-    InitHeuristicKernelIDs(
+    FilterHeuristicKernels(
         "DeviceGroupedConvBwdWeight", valid_kernels, heuristic_indexes, heuristic_kernels);
 
-    static const std::string& arch = ctx.GetStream().GetDeviceName();
-    static std::string solver      = "ConvHipIgemmGroup3DWrwXdlops";
-    if(arch == "gfx90a")
-        solver = "ConvHipIgemm3DGroupXdlops";
-
+    // Prepare features and split_k values
+    const std::string& arch = ctx.GetStream().GetDeviceName();
+    std::string solver =
+        (arch == "gfx90a") ? "ConvHipIgemm3DGroupXdlops" : "ConvHipIgemmGroup3DWrwXdlops";
     std::vector<float> features =
         GetFeatures3D(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
+    std::vector<int> split_ks = GenerateSplitK(128); // TODO: make configurable
 
+    // Expand kernel params with split_k and keep mapping
+    auto [expanded_params, mapping_pairs] =
+        ExpandKernelParamsWithSplitK(heuristic_kernels, heuristic_indexes, split_ks);
+
+    // Use AI model to select best candidate
     try
     {
-        // Prepare valid kernel parameters for the model
-        std::vector<std::vector<std::string>> valid_kernel_params;
-        for(int i : heuristic_indexes)
-        {
-            valid_kernel_params.push_back(heuristic_kernels[i]);
-        }
-
-        // Example: Generate powers of two up to max_split_k
-        static std::vector<int> GetPossibleSplitK(int max_split_k)
-        {
-            std::vector<int> split_ks;
-            for(int k = 1; k <= max_split_k; k *= 2)
-                split_ks.push_back(k);
-            return split_ks;
-        }
-
-        // Returns a tuple of (expanded_params, mapping_pairs)
-        // mapping_pairs: vector of std::pair<original_kernel_idx, split_k>
-        static std::pair<std::vector<std::vector<std::string>>, std::vector<std::pair<int, int>>>
-        ExpandKernelParamsWithSplitKAndMapping(
-            const std::vector<std::vector<std::string>>& heuristic_kernels,
-            const std::vector<int>& heuristic_indexes,
-            const std::vector<int>& split_ks)
-        {
-            std::vector<std::vector<std::string>> expanded_params;
-            std::vector<std::pair<int, int>> mapping_pairs;
-            for(size_t kernel_idx = 0; kernel_idx < heuristic_kernels.size(); ++kernel_idx)
-            {
-                for(int split_k : split_ks)
-                {
-                    auto candidate = heuristic_kernels[kernel_idx];
-                    candidate.push_back(std::to_string(split_k));
-                    expanded_params.push_back(candidate);
-                    mapping_pairs.emplace_back(heuristic_indexes[kernel_idx], split_k);
-                }
-            }
-            return {expanded_params, mapping_pairs};
-        }
-
-        // Generate split_k values based on a maximum value TODO: can we load this value from
-        // somewhere instead of hardcoding?
-        std::vector<int> split_ks = GetPossibleSplitK(/*max_split_k*/ 128); // or another max
-        auto [valid_kernel_params, mapping_pairs] =
-            ExpandKernelParamsWithSplitKAndMapping(heuristic_kernels, heuristic_indexes, split_ks);
-
-        // Get best candidate index directly using the new candidate selection model
         int best_idx = ai::tuning::ModelSelectBestCandidate(
-            arch, solver, problem.GetDirection(), features, valid_kernel_params);
+            arch, solver, problem.GetDirection(), features, expanded_params);
 
         if(best_idx >= 0 && best_idx < static_cast<int>(mapping_pairs.size()))
         {
-            index     = mapping_pairs[best_idx].first;  // maps to heuristic_indexes
-            split_k   = mapping_pairs[best_idx].second; // deduced split_k
+            index     = mapping_pairs[best_idx].first;
+            split_k   = mapping_pairs[best_idx].second;
             kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
             return true;
         }
-
-        MIOPEN_LOG_I("AI prediction of parameter combination returned an invalid kernel index, "
-                     "falling back");
+        MIOPEN_LOG_I("AI prediction returned invalid kernel index, falling back");
         return false;
     }
     catch(const miopen::Exception& ex)
