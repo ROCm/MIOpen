@@ -84,16 +84,21 @@ public:
                   << "CPU Model: " << cpuModel << "; "
                   << "RAM Size: " << ramSize << "; "
                   << "GPU Model: " << gpuInfo << std::endl;
+#else
+        miopMajor;
+        miopMinor;
+        miopPatch;
 #endif
     }
 
 private:
     std::string GetTimestamp()
     {
-        auto now   = std::chrono::system_clock::now();
-        auto now_c = std::chrono::system_clock::to_time_t(now);
         std::stringstream ss;
 #ifdef __linux__
+        auto now   = std::chrono::system_clock::now();
+        auto now_c = std::chrono::system_clock::to_time_t(now);
+
         ss << std::put_time(std::gmtime(&now_c), "%Y-%m-%d %H:%M:%S UTC");
 #endif
         return ss.str();
