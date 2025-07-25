@@ -712,14 +712,14 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
         registry, ++id, conv::ConvWinoRageRxS<2, 3>{}, miopenConvolutionAlgoWinograd);
 
     RegisterWithSolver(
-        registry, ++id, conv::ConvQunConvBwd{}, miopenConvolutionAlgoDirect);
+        registry, ++id, conv::ConvDepthwiseWrw{}, miopenConvolutionAlgoDirect);
 
     RegisterWithSolver(
-        registry, ++id, conv::ConvQunConvFwd{}, miopenConvolutionAlgoDirect);
+        registry, ++id, conv::ConvDepthwiseFwd{}, miopenConvolutionAlgoDirect);
 
-    // ConvJinMDConvBwd
+    // ConvDepthwiseBwd
     RegisterWithSolver(
-        registry, ++id, conv::ConvJinMDConvBwd{}, miopenConvolutionAlgoDirect);
+        registry, ++id, conv::ConvDepthwiseBwd{}, miopenConvolutionAlgoDirect);
 
     RegisterWithSolver(registry,
                     ++id,

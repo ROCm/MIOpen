@@ -349,11 +349,11 @@ struct CKArgs
 };
 }
 
-ConvJinMDConvBwd::ConvJinMDConvBwd()
+ConvDepthwiseBwd::ConvDepthwiseBwd()
 {
 }
 
-bool ConvJinMDConvBwd::IsApplicable(const ExecutionContext&   ctx,
+bool ConvDepthwiseBwd::IsApplicable(const ExecutionContext&   ctx,
                                   const ProblemDescription& problem) const
 {
     if (DirectCkMgr::GetInst()->enableOptConv == false)   return false;
@@ -411,7 +411,7 @@ bool ConvJinMDConvBwd::IsApplicable(const ExecutionContext&   ctx,
     return true;
 }
 
-uint32_t ConvJinMDConvBwd::GetSupportedSolutionCount(const ExecutionContext& ctx,
+uint32_t ConvDepthwiseBwd::GetSupportedSolutionCount(const ExecutionContext& ctx,
                                                    const miopen::conv::ProblemDescription& problem) const
 {
     uint32_t solutionCount = 0;
@@ -447,7 +447,7 @@ uint32_t ConvJinMDConvBwd::GetSupportedSolutionCount(const ExecutionContext& ctx
     return solutionCount;
 }
 
-bool ConvJinMDConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const
+bool ConvDepthwiseBwd::FindCachedSolution(const ExecutionContext& ctx, size_t hashcode, const miopen::conv::ProblemDescription& problem, ConvSolution& sol) const
 {
     if (DirectCkMgr::GetInst()->enableConvCache == false) return false;
 
@@ -622,7 +622,7 @@ bool ConvJinMDConvBwd::FindCachedSolution(const ExecutionContext& ctx, size_t ha
     return foundBest;
 }
 
-ConvSolution ConvJinMDConvBwd::GetBestSolution(const ExecutionContext& ctx,
+ConvSolution ConvDepthwiseBwd::GetBestSolution(const ExecutionContext& ctx,
                                              const miopen::conv::ProblemDescription& problem) const
 {
     ConvSolution sol;
@@ -764,42 +764,43 @@ ConvSolution ConvJinMDConvBwd::GetBestSolution(const ExecutionContext& ctx,
     return sol;
 }
 
-ConvSolution ConvJinMDConvBwd::GetSolution(const ExecutionContext& ctx,
+ConvSolution ConvDepthwiseBwd::GetSolution(const ExecutionContext& ctx,
                                          const ProblemDescription& problem) const
 {
     ReadCacheFile();
     return GetBestSolution(ctx, problem);
 }
-size_t ConvJinMDConvBwd::GetWorkspaceSize(const ExecutionContext& ctx,
-                                            const ProblemDescription& problem) const
+size_t ConvDepthwiseBwd::GetWorkspaceSize(const ExecutionContext& ctx,
+                                          const ProblemDescription& problem) const
 {
-                const auto is_nhwc = (problem.IsLayoutDefault() == false);
-                const int ho     = problem.GetInHeight();
-                const int wo     = problem.GetInWidth();
-                const int n       = problem.GetInBatchSize();
-                const int k      = problem.GetInChannels();
-                const int c      = problem.GetOutChannels();
-                const int hi     = problem.GetOutHeight();
-                const int wi     = problem.GetOutWidth();
+    const auto is_nhwc = (problem.IsLayoutDefault() == false);
+    const int ho     = problem.GetInHeight();
+    const int wo     = problem.GetInWidth();
+    const int n       = problem.GetInBatchSize();
+    const int k      = problem.GetInChannels();
+    const int c      = problem.GetOutChannels();
+    const int hi     = problem.GetOutHeight();
+    const int wi     = problem.GetOutWidth();
 
-                size_t trans_input_size   = 0;
-                size_t trans_output_size   = 0;
+    size_t trans_input_size   = 0;
+    size_t trans_output_size   = 0;
 
-                bool trans_input_skippable  = true;
-                bool trans_output_skippable = true;
+    bool trans_input_skippable  = true;
+    bool trans_output_skippable = true;
 
-                if (is_nhwc)
-                {   
-                    TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
-                    TransposeSolutionNhwc2Default trans_output(ctx, problem.GetOutDataType(), n, k, ho, wo);
+    if (is_nhwc)
+    {   
+        TransposeSolutionDefault2Nhwc trans_input(ctx, problem.GetInDataType(), n, c, hi, wi);
+        TransposeSolutionNhwc2Default trans_output(ctx, problem.GetOutDataType(), n, k, ho, wo);
 
-                    trans_input_skippable  = trans_input.IsSkippable();
-                    trans_output_skippable = trans_output.IsSkippable();
+        trans_input_skippable  = trans_input.IsSkippable();
+        trans_output_skippable = trans_output.IsSkippable();
 
-                    trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
-                    trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
-                }
-            return trans_input_size + trans_output_size;
+        trans_input_size  = trans_input_skippable ? 0 : trans_input.GetOutputTensorSize();
+        trans_output_size = trans_output_skippable ? 0 : trans_output.GetOutputTensorSize();
+    }
+
+    return trans_input_size + trans_output_size;
 }
 
 }

@@ -2843,12 +2843,12 @@ struct ConvDirectNaiveConvFwd final : ConvSolver
     GetSolution(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
 };
 
-struct ConvQunConvBwd final : ConvSolver
+struct ConvDepthwiseWrw final : ConvSolver
 {
-    ConvQunConvBwd();
+    ConvDepthwiseWrw();
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvQunConvBwd>();
+        return GetSolverDbId<ConvDepthwiseWrw>();
     }
 
     MIOPEN_INTERNALS_EXPORT bool
@@ -2873,12 +2873,12 @@ struct ConvQunConvBwd final : ConvSolver
     uint32_t GetSupportedSolutionCount(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
 };
 
-struct ConvQunConvFwd final : ConvSolver
+struct ConvDepthwiseFwd final : ConvSolver
 {
-    ConvQunConvFwd();
+    ConvDepthwiseFwd();
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvQunConvFwd>();
+        return GetSolverDbId<ConvDepthwiseFwd>();
     }
 
     MIOPEN_INTERNALS_EXPORT bool
@@ -2903,12 +2903,12 @@ struct ConvQunConvFwd final : ConvSolver
     uint32_t GetSupportedSolutionCount(const ExecutionContext&, const miopen::conv::ProblemDescription&) const;
 };
 
-struct ConvJinMDConvBwd final : ConvSolver
+struct ConvDepthwiseBwd final : ConvSolver
 {
-    ConvJinMDConvBwd();
+    ConvDepthwiseBwd();
     const std::string& SolverDbId() const override
     {
-        return GetSolverDbId<ConvJinMDConvBwd>();
+        return GetSolverDbId<ConvDepthwiseBwd>();
     }
 
     MIOPEN_INTERNALS_EXPORT bool
