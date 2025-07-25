@@ -34,10 +34,12 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)
 
 namespace miopen {
 namespace solver {
@@ -46,6 +48,21 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+
+template <typename DataType>
+using DeviceOpGWrwPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    DeviceOpGBwdWeightDefault<DataType>>;
+
+// Add these new template specializations for different alpha/beta cases
+template <typename DataType>
+using DeviceOpGWrwBilinearPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightBilinear<DataType>>;
+
+template <typename DataType>
+using DeviceOpGWrwScalePtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightScale<DataType>>;
 
 namespace {
 
@@ -109,20 +126,20 @@ struct CKArgs
         }
 
         filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
-                          ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                          ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                            ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                            ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         filter_dilations = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
                             ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                             ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
         lPadding         = {ProblemInterpreter::GetInputLeftPadD(problem),
-                    ProblemInterpreter::GetInputLeftPadH(problem),
-                    ProblemInterpreter::GetInputLeftPadW(problem)};
+                            ProblemInterpreter::GetInputLeftPadH(problem),
+                            ProblemInterpreter::GetInputLeftPadW(problem)};
         rPadding         = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
-                    ProblemInterpreter::GetAdjustedInputRightPadH(problem),
-                    ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+                            ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+                            ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
-    CKArgs(const CKArgs&) = default;
-    CKArgs(CKArgs&&)      = default;
+    CKArgs(const CKArgs&)            = default;
+    CKArgs(CKArgs&&)                 = default;
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
@@ -361,6 +378,174 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
 }
 #endif
 
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+namespace {
+static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
+{
+    std::vector<std::string> tokens;
+    std::stringstream ss(kernel);
+    std::string token;
+
+    while(std::getline(ss, token, '_'))
+    {
+        if(!token.empty())
+        {
+            tokens.push_back(token);
+        }
+    }
+    return tokens;
+}
+
+/**
+ * @param type is the kernel type predicted by the parameter prediction model
+ */
+static void InitHeuristicKernelIDs(const std::string& type,
+                                   const std::vector<std::string>& valid_kernels,
+                                   std::vector<int>& heuristic_indexes,
+                                   std::vector<std::vector<std::string>>& heuristic_kernels)
+{
+    heuristic_indexes.clear();
+    heuristic_kernels.clear();
+
+    for(std::size_t i = 0; i < valid_kernels.size(); i++)
+    {
+        const auto tokens = GetKernelAsTokens(valid_kernels[i]);
+        if(!tokens.empty() && tokens[0] == type)
+        {
+            heuristic_indexes.push_back(i);
+            heuristic_kernels.push_back(tokens);
+        }
+    }
+}
+
+// Helper function to get 3D convolution features (adapt from existing GetFeatures if available)
+static std::vector<float>
+GetFeatures3D(const ProblemDescription& problem, int max_cu, const std::string& arch)
+{
+    // Extract 3D-specific features
+    std::vector<float> features;
+
+    // Basic problem dimensions
+    features.push_back(static_cast<float>(ProblemInterpreter::GetBatchN(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetInputChannelC(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputChannelK(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetGroupCountG(problem)));
+
+    // 3D spatial dimensions
+    features.push_back(static_cast<float>(ProblemInterpreter::GetInputDepthDi(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetInputHeightHi(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetInputWidthWi(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputDepthDo(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputHeightHo(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputWidthWo(problem)));
+
+    // Filter dimensions
+    features.push_back(static_cast<float>(ProblemInterpreter::GetFilterDepthZ(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetFilterHeightY(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetFilterWidthX(problem)));
+
+    // Strides and dilations
+    features.push_back(
+        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideD(problem)));
+    features.push_back(
+        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideH(problem)));
+    features.push_back(
+        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)));
+    features.push_back(
+        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionDilationD(problem)));
+    features.push_back(
+        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionDilationH(problem)));
+    features.push_back(
+        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)));
+
+    // Padding
+    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadD(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadH(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadW(problem)));
+
+    // Device features
+    features.push_back(static_cast<float>(max_cu));
+
+    // Data type encoding
+    features.push_back(static_cast<float>(problem.GetInDataType()));
+
+    // Layout encoding
+    features.push_back(problem.IsLayoutNHWC() ? 1.0f : 0.0f);
+
+    return features;
+}
+
+template <typename DataType>
+static bool RunParameterPredictionModel(const ExecutionContext& ctx,
+                                        const ProblemDescription& problem,
+                                        std::vector<std::string>& valid_kernels,
+                                        int& index,
+                                        int& split_k,
+                                        std::string& kernel_id)
+{
+    // Initialize valid kernels based on alpha/beta case
+    switch(problem.GetAlphaBetaCase())
+    {
+    case BILINEAR:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGWrwBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    case SCALE:
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGWrwScalePtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    default:
+        valid_kernels = FillValidKernelsIDs<DeviceOpGWrwPtrs<DataType>, CKArgs<DataType>>(problem);
+        break;
+    }
+
+    std::vector<int> heuristic_indexes;
+    std::vector<std::vector<std::string>> heuristic_kernels;
+    InitHeuristicKernelIDs(
+        "DeviceGroupedConvBwdWeight", valid_kernels, heuristic_indexes, heuristic_kernels);
+
+    static const std::string& arch = ctx.GetStream().GetDeviceName();
+    static std::string solver      = "ConvHipIgemmGroup3DWrwXdlops";
+    if(arch == "gfx90a")
+        solver = "ConvHipIgemm3DGroupXdlops";
+
+    std::vector<float> features =
+        GetFeatures3D(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
+
+    try
+    {
+        // Prepare valid kernel parameters for the model
+        std::vector<std::vector<std::string>> valid_kernel_params;
+        for(int i : heuristic_indexes)
+        {
+            valid_kernel_params.push_back(heuristic_kernels[i]);
+        }
+
+        // Get best candidate index directly using the new candidate selection model
+        int best_idx = ai::tuning::ModelSelectBestCandidate(
+            arch, solver, problem.GetDirection(), features, valid_kernel_params);
+
+        if(best_idx >= 0 && best_idx < static_cast<int>(heuristic_indexes.size()))
+        {
+            index     = heuristic_indexes[best_idx];
+            split_k   = 1; // Default split_k, can be made configurable
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            return true;
+        }
+
+        MIOPEN_LOG_I("AI prediction of parameter combination returned an invalid kernel index, "
+                     "falling back");
+        return false;
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_I2("[Warning] AI model failed: " << ex.what());
+        return false;
+    }
+}
+} // namespace
+#endif
+
 void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     [[maybe_unused]] const ProblemDescription& problem)
 {
@@ -369,6 +554,49 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     kernel_id = "";
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    // Try AI heuristics first if enabled
+    if(!env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
+    {
+        bool ai_success = false;
+        switch(problem.GetInDataType())
+        {
+        case miopenHalf:
+            ai_success = RunParameterPredictionModel<ck::half_t>(
+                ExecutionContext{}, problem, valid_kernels, index, split_k, kernel_id);
+            break;
+        case miopenFloat:
+            ai_success = RunParameterPredictionModel<float>(
+                ExecutionContext{}, problem, valid_kernels, index, split_k, kernel_id);
+            break;
+        case miopenInt8:
+            ai_success = RunParameterPredictionModel<int8_t>(
+                ExecutionContext{}, problem, valid_kernels, index, split_k, kernel_id);
+            break;
+        case miopenBFloat16:
+            ai_success = RunParameterPredictionModel<ck::bhalf_t>(
+                ExecutionContext{}, problem, valid_kernels, index, split_k, kernel_id);
+            break;
+        case miopenInt64:
+        case miopenInt32:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
+        case miopenDouble: break;
+        }
+
+        if(ai_success)
+        {
+            MIOPEN_LOG_I("AI heuristics successfully selected kernel: " << kernel_id);
+            return;
+        }
+        else
+        {
+            MIOPEN_LOG_I("AI heuristics failed, falling back to default initialization");
+        }
+    }
+#endif
+
+    // Fallback to original initialization
     switch(problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
