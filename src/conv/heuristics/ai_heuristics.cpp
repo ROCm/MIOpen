@@ -880,6 +880,34 @@ public:
             return it->second;
         return std::nullopt;
     }
+
+    // Return indices of input parameters that are constant and should be dropped from features
+    std::vector<size_t> GetConstantInputIndices() const
+    {
+        std::vector<size_t> indices;
+        for(const auto& [name, value] : constants_features)
+        {
+            auto it = input_param_indices.find(name);
+            if(it != input_param_indices.end())
+                indices.push_back(it->second);
+        }
+        std::sort(indices.begin(), indices.end());
+        return indices;
+    }
+
+    // Return indices of output parameters that are constant and should be dropped from configs
+    std::vector<size_t> GetConstantOutputIndices() const
+    {
+        std::vector<size_t> indices;
+        for(const auto& [name, value] : constants_sequence)
+        {
+            auto it = output_param_indices.find(name);
+            if(it != output_param_indices.end())
+                indices.push_back(it->second);
+        }
+        std::sort(indices.begin(), indices.end());
+        return indices;
+    }
 };
 
 /**
@@ -900,13 +928,6 @@ public:
     {
     }
     virtual ~CandidateSelectionModel() = default;
-    // ...
-private:
-    const fdeep::model input_encoder;
-    const fdeep::model kernel_config_encoder;
-    // static paths remain unchanged
-};
-    virtual ~CandidateSelectionModel() = default;
 
     /**
      * Encode input features into a context vector
@@ -914,7 +935,22 @@ private:
      */
     fdeep::tensors EncodeInputFeatures(const std::vector<float>& features) const
     {
-        fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(features.size()), features);
+        // Remove constant parameters from features
+        std::vector<size_t> drop_indices = metadata.GetConstantInputIndices();
+        std::vector<float> filtered_features;
+        filtered_features.reserve(features.size() - drop_indices.size());
+
+        for(size_t i = 0, j = 0; i < features.size(); ++i)
+        {
+            if(j < drop_indices.size() && i == drop_indices[j])
+            {
+                ++j; // skip this index
+                continue;
+            }
+            filtered_features.push_back(features[i]);
+        }
+
+        fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(filtered_features.size()), filtered_features);
         return input_encoder.predict({input_tensor});
     }
 
@@ -925,15 +961,37 @@ private:
     fdeep::tensors
     EncodeKernelConfigs(const std::vector<std::vector<float>>& encoded_candidates) const
     {
+        // Drop columns corresponding to constant output parameters
+        std::vector<size_t> drop_indices = metadata.GetConstantOutputIndices();
+
+        std::vector<std::vector<float>> filtered_candidates;
+        filtered_candidates.reserve(encoded_candidates.size());
+
+        for(const auto& candidate : encoded_candidates)
+        {
+            std::vector<float> filtered;
+            filtered.reserve(candidate.size() - drop_indices.size());
+            for(size_t i = 0, j = 0; i < candidate.size(); ++i)
+            {
+                if(j < drop_indices.size() && i == drop_indices[j])
+                {
+                    ++j; // skip this index
+                    continue;
+                }
+                filtered.push_back(candidate[i]);
+            }
+            filtered_candidates.push_back(filtered);
+        }
+
         // Flatten candidates matrix for tensor input
         std::vector<float> flattened_candidates;
-        for(const auto& candidate : encoded_candidates)
+        for(const auto& candidate : filtered_candidates)
         {
             flattened_candidates.insert(
                 flattened_candidates.end(), candidate.begin(), candidate.end());
         }
 
-        if(encoded_candidates.empty() || encoded_candidates[0].empty())
+        if(filtered_candidates.empty() || filtered_candidates[0].empty())
         {
             MIOPEN_THROW(miopenStatusInternalError,
                          "Empty candidates provided to kernel config encoder");
@@ -1086,29 +1144,45 @@ int ModelSelectBestCandidate(const std::string& arch,
 // Helper function to encode kernel parameters
 std::vector<std::vector<float>>
 EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_params,
-                   const std::shared_ptr<Model>& model)
+                   const CandidateSelectionMetadata& metadata)
 {
     std::vector<std::vector<float>> encoded_candidates;
+    const auto& output_params = metadata.output_params;
+    const auto& sequence_encodings = metadata.sequence_encodings;
 
-    for(const auto& kernel_params : valid_kernel_params)
+    for(const auto& candidate : valid_kernel_params)
     {
-        std::vector<float> encoded_kernel;
-        for(const std::string& param : kernel_params)
+        std::vector<float> encoded;
+        for(size_t i = 0; i < candidate.size(); ++i)
         {
-            // Look up string in model's encoding dictionary
-            auto token_it = model->metadata.feature_encodings.find(param);
-            if(token_it != model->metadata.feature_encodings.end())
+            const std::string& param_name = output_params[i];
+            const std::string& param_value = candidate[i];
+
+            // Try to encode using the encoding map if available
+            auto enc_it = sequence_encodings.find(param_name);
+            if(enc_it != sequence_encodings.end())
             {
-                encoded_kernel.push_back(static_cast<float>(token_it->second));
+                const auto& value_map = enc_it->second;
+                auto val_it = value_map.find(param_value);
+                if(val_it != value_map.end())
+                {
+                    encoded.push_back(static_cast<float>(val_it->second));
+                    continue;
+                }
             }
-            else
+
+            // If not found in encoding map, try to convert to float directly
+            try
             {
-                // Unknown parameter - use sentinel value
-                MIOPEN_LOG_W("Unknown kernel parameter: " << param);
-                encoded_kernel.push_back(-1.0f);
+                encoded.push_back(std::stof(param_value));
+            }
+            catch(const std::exception&)
+            {
+                // Unknown parameter value, use sentinel
+                encoded.push_back(-1.0f);
             }
         }
-        encoded_candidates.push_back(encoded_kernel);
+        encoded_candidates.push_back(encoded);
     }
 
     return encoded_candidates;
