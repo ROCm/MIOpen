@@ -45,17 +45,19 @@ namespace miopen {
 
 namespace {
 
+#if MIOPEN_USE_GEMM
+
 bool RNNForwardMSIsSupported([[maybe_unused]] const RNNDescriptor& desctiptor,
                              [[maybe_unused]] bool use_dropout)
 {
-#if MIOPEN_USE_GEMM && MIOPEN_BACKEND_HIP
+#if MIOPEN_BACKEND_HIP
     if(desctiptor.rnnMode == miopenLSTM && desctiptor.algoMode == miopenRNNdefault &&
        !use_dropout && desctiptor.nLayers > 1 && desctiptor.dirMode == miopenRNNunidirection &&
        desctiptor.inputMode != miopenRNNskip)
     {
         return true;
     }
-#endif // MIOPEN_USE_GEMM&& MIOPEN_BACKEND_HIP
+#endif // MIOPEN_BACKEND_HIP
     return false;
 }
 
@@ -250,6 +252,8 @@ miopenStatus_t ReducAddBias(const miopen::Handle& handle,
 
     return miopenStatusSuccess;
 }
+
+#endif // MIOPEN_USE_GEMM
 
 } // namespace
 

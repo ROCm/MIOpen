@@ -62,7 +62,7 @@ void DriverDataType(const std::string& prefix,
                     std::stringstream& ss,
                     const miopen::TensorDescriptor& desc);
 void DriverDataType(const std::string& prefix,
-                    std::string& ss,
+                    std::string& str,
                     const miopen::TensorDescriptor& desc);
 
 std::string ConvArgsForMIOpenDriver(const miopen::TensorDescriptor& xDesc,

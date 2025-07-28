@@ -291,6 +291,11 @@ cd ./test/utils && python3 gtest_formating_checks.py
 
 ## Formatting the code
 
+The easiest way to format the repo is to run `make format` from your build directory.  You can also
+use the methods below if you need custom formating behaviour.
+
+Formatting Wiki Page: [Code Formatting](https://github.com/ROCm/MIOpen/wiki/How-to-format-code)  
+
 All the code is formatted using `clang-format`. To format a file, use:
 
 ```shell
