@@ -585,50 +585,8 @@ Metadata::Metadata(const std::string& arch, const std::string& solver)
     predict_type = metadata["predict_type"].get<std::size_t>();
     num_tuning_params =
         metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
-
-    if(metadata.contains("decodings") && metadata["decodings"].contains("tunings"))
-    {
-        // Add tunings for the new model if it exists in metadata
-        // tunings is a map of string to string, where the key is the token and the value is the
-        // kernel parameter value
-        tuning_decodings =
-            metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
-    }
-    else if(metadata.contains("decodings") && metadata["decodings"].contains("outputs"))
-    {
-        // Load per-parameter decoding maps from metadata["decodings"]["outputs"]
-        sequence_decodings =
-            metadata["decodings"]["outputs"]
-                .get<std::unordered_map<std::string,
-                                        std::unordered_map<std::string, std::string>>>();
-    }
-    else
-    {
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "No decoding information found in metadata for " + arch + "_" + solver);
-    }
-
-    // Add feature_encodings for the new model if it exists in metadata
-    if(metadata.contains("encodings"))
-    {
-        feature_encodings =
-            metadata["encodings"]["inputs"]
-                .get<std::unordered_map<std::string,
-                                        std::unordered_map<std::string, std::size_t>>>();
-        sequence_encodings =
-            metadata["encodings"]["outputs"]
-                .get<std::unordered_map<std::string,
-                                        std::unordered_map<std::string, std::size_t>>>();
-    }
-
-    // Add constants
-    if(metadata.contains("constants"))
-    {
-        constants_features =
-            metadata["constants"]["inputs"].get<std::unordered_map<std::string, std::string>>();
-        constants_sequence =
-            metadata["constants"]["outputs"].get<std::unordered_map<std::string, std::string>>();
-    }
+    tuning_decodings =
+        metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
 }
 
 class Model
@@ -832,24 +790,122 @@ bool ModelSetParams(const std::string& arch,
 
 // code for new-style AI heuristics for kernel tuning
 
+// define metadata specifically for candidate selection
+class CandidateSelectionMetadata
+{
+public:
+    // Parameter order and index maps
+    std::vector<std::string> input_params;
+    std::vector<std::string> output_params;
+    std::unordered_map<std::string, size_t> input_param_indices;
+    std::unordered_map<std::string, size_t> output_param_indices;
+
+    // Encodings and decodings
+    std::unordered_map<std::string, std::unordered_map<std::string, size_t>> feature_encodings;
+    std::unordered_map<std::string, std::unordered_map<std::string, size_t>> sequence_encodings;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> sequence_decodings;
+    std::unordered_map<std::string, std::string> constants_features;
+    std::unordered_map<std::string, std::string> constants_sequence;
+
+    // Constructor
+    Metadata(const std::string& arch, const std::string& solver)
+    {
+        const nlohmann::json metadata =
+            common::LoadJSON(GetSystemDbPath() / (arch + "_" + solver + "_metadata.tn.model"));
+
+        // Input/output parameter order
+        input_params = metadata.value("input_params", std::vector<std::string>{});
+        output_params = metadata.value("output_params", std::vector<std::string>{});
+
+        // Build index maps for fast lookup
+        for(size_t i = 0; i < input_params.size(); ++i)
+            input_param_indices[input_params[i]] = i;
+        for(size_t i = 0; i < output_params.size(); ++i)
+            output_param_indices[output_params[i]] = i;
+
+        // Encodings
+        if(metadata.contains("encodings"))
+        {
+            feature_encodings = metadata["encodings"].value("inputs", decltype(feature_encodings){});
+            sequence_encodings = metadata["encodings"].value("outputs", decltype(sequence_encodings){});
+        }
+
+        // Decodings
+        if(metadata.contains("decodings") && metadata["decodings"].contains("outputs"))
+        {
+            sequence_decodings = metadata["decodings"]["outputs"]
+                .get<std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>();
+        }
+
+        // Constants
+        if(metadata.contains("constants"))
+        {
+            constants_features = metadata["constants"].value("inputs", decltype(constants_features){});
+            constants_sequence = metadata["constants"].value("outputs", decltype(constants_sequence){});
+        }
+    }
+
+    // Get index of an input parameter
+    size_t GetInputParamIndex(const std::string& name) const
+    {
+        auto it = input_param_indices.find(name);
+        if(it == input_param_indices.end())
+            MIOPEN_THROW("Input parameter not found: " + name);
+        return it->second;
+    }
+
+    // Get index of an output parameter
+    size_t GetOutputParamIndex(const std::string& name) const
+    {
+        auto it = output_param_indices.find(name);
+        if(it == output_param_indices.end())
+            MIOPEN_THROW("Output parameter not found: " + name);
+        return it->second;
+    }
+
+    // Get constant value for an input parameter, if present
+    std::optional<std::string> GetInputConstant(const std::string& name) const
+    {
+        auto it = constants_features.find(name);
+        if(it != constants_features.end())
+            return it->second;
+        return std::nullopt;
+    }
+
+    // Get constant value for an output parameter, if present
+    std::optional<std::string> GetOutputConstant(const std::string& name) const
+    {
+        auto it = constants_sequence.find(name);
+        if(it != constants_sequence.end())
+            return it->second;
+        return std::nullopt;
+    }
+};
+
 /**
  * New Model class for candidate selection approach
- *
- * This model takes features and valid kernel candidates as input and directly
- * selects the best candidate rather than generating parameters sequentially.
+ * Uses its own CandidateSelectionMetadata rather than the sequential-prediction Metadata
  */
 class CandidateSelectionModel
 {
 public:
-    Metadata metadata;
+    CandidateSelectionMetadata metadata;
+
     CandidateSelectionModel(const std::string& arch, const std::string& solver)
-        : metadata(Metadata(arch, solver)),
-          input_encoder(
-              fdeep::load_model(InputEncoderPath(arch, solver), true, fdeep::dev_null_logger)),
+        : metadata(arch, solver),
+          input_encoder(fdeep::load_model(
+              InputEncoderPath(arch, solver), true, fdeep::dev_null_logger)),
           kernel_config_encoder(fdeep::load_model(
               KernelConfigEncoderPath(arch, solver), true, fdeep::dev_null_logger))
     {
     }
+    virtual ~CandidateSelectionModel() = default;
+    // ...
+private:
+    const fdeep::model input_encoder;
+    const fdeep::model kernel_config_encoder;
+    // static paths remain unchanged
+};
     virtual ~CandidateSelectionModel() = default;
 
     /**
