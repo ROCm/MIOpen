@@ -1,5 +1,5 @@
 {
-    "generated_on": "23 Jul 2025, 07:23:00",
+    "generated_on": "28 Jul 2025, 07:19:46",
     "gpu": {
         "device_name": "AMD Instinct MI300X",
         "arch": "gfx942",
@@ -105,22 +105,22 @@
     },
     "constants": {
         "inputs": {
-            "spatial_dim": 3,
-            "dilation_d": 1,
-            "dilation_h": 1,
-            "dilation_w": 1,
-            "bias": 0,
+            "spatial_dim": "3",
+            "dilation_d": "1",
+            "dilation_h": "1",
+            "dilation_w": "1",
+            "bias": "0",
             "direction": "B",
-            "group_count": 1
+            "group_count": "1"
         },
         "outputs": {
             "kernel_name": "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1",
-            "KPerBlock": 32,
-            "AK1": 8,
-            "MPerXDL": 32,
-            "NPerXDL": 32,
-            "CShuffleMXdlPerWavePerShuffle": 1,
-            "CShuffleNXdlPerWavePerShuffle": 1
+            "KPerBlock": "32",
+            "AK1": "8",
+            "MPerXDL": "32",
+            "NPerXDL": "32",
+            "CShuffleMXdlPerWavePerShuffle": "1",
+            "CShuffleNXdlPerWavePerShuffle": "1"
         }
     }
 }

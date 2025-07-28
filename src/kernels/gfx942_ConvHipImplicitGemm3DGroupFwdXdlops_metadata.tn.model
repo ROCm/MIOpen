@@ -1,5 +1,5 @@
 {
-    "generated_on": "23 Jul 2025, 07:21:50",
+    "generated_on": "28 Jul 2025, 07:19:37",
     "gpu": {
         "device_name": "AMD Instinct MI300X",
         "arch": "gfx942",
@@ -79,24 +79,24 @@
         },
         "outputs": {
             "kernel_name": {
-                "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3": 0,
-                "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle": 1,
+                "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle": 0,
+                "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3": 1,
                 "DeviceGroupedConvFwdMultipleD_Xdl_CShuffle_Large_Tensor": 2
             },
             "ConvForwardSpecialization": {
                 "Default": 0,
-                "Filter1x1Stride1Pad0": 1,
-                "Filter1x1Pad0": 2
+                "Filter1x1Pad0": 1,
+                "Filter1x1Stride1Pad0": 2
             },
             "BlkGemmPipelineScheduler": {
-                "BlkGemmPipelineScheduler: Intrawave": 0,
-                "BlkGemmPipelineScheduler: Interwave": 1
+                "BlkGemmPipelineScheduler: Interwave": 0,
+                "BlkGemmPipelineScheduler: Intrawave": 1
             },
             "BlkGemmPipelineVersion": {
-                "BlkGemmPipelineVersion: v2": 0,
-                "BlkGemmPipelineVersion: v3": 1,
-                "BlkGemmPipelineVersion: v4": 2,
-                "BlkGemmPipelineVersion: v1": 3,
+                "BlkGemmPipelineVersion: v1": 0,
+                "BlkGemmPipelineVersion: v2": 1,
+                "BlkGemmPipelineVersion: v3": 2,
+                "BlkGemmPipelineVersion: v4": 3,
                 "BlkGemmPipelineVersion: v5": 4
             }
         }
@@ -123,40 +123,40 @@
         },
         "outputs": {
             "kernel_name": {
-                "0": "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3",
-                "1": "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle",
+                "0": "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle",
+                "1": "DeviceGroupedConvFwdMultipleABD_Xdl_CShuffle_V3",
                 "2": "DeviceGroupedConvFwdMultipleD_Xdl_CShuffle_Large_Tensor"
             },
             "ConvForwardSpecialization": {
                 "0": "Default",
-                "1": "Filter1x1Stride1Pad0",
-                "2": "Filter1x1Pad0"
+                "1": "Filter1x1Pad0",
+                "2": "Filter1x1Stride1Pad0"
             },
             "BlkGemmPipelineScheduler": {
-                "0": "BlkGemmPipelineScheduler: Intrawave",
-                "1": "BlkGemmPipelineScheduler: Interwave"
+                "0": "BlkGemmPipelineScheduler: Interwave",
+                "1": "BlkGemmPipelineScheduler: Intrawave"
             },
             "BlkGemmPipelineVersion": {
-                "0": "BlkGemmPipelineVersion: v2",
-                "1": "BlkGemmPipelineVersion: v3",
-                "2": "BlkGemmPipelineVersion: v4",
-                "3": "BlkGemmPipelineVersion: v1",
+                "0": "BlkGemmPipelineVersion: v1",
+                "1": "BlkGemmPipelineVersion: v2",
+                "2": "BlkGemmPipelineVersion: v3",
+                "3": "BlkGemmPipelineVersion: v4",
                 "4": "BlkGemmPipelineVersion: v5"
             }
         }
     },
     "constants": {
         "inputs": {
-            "spatial_dim": 3,
-            "dilation_d": 1,
-            "dilation_h": 1,
-            "dilation_w": 1,
-            "bias": 0,
+            "spatial_dim": "3",
+            "dilation_d": "1",
+            "dilation_h": "1",
+            "dilation_w": "1",
+            "bias": "0",
             "direction": "F",
-            "group_count": 1
+            "group_count": "1"
         },
         "outputs": {
-            "NumGroupsToMerge": 1
+            "NumGroupsToMerge": "1"
         }
     }
 }
