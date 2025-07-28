@@ -1084,7 +1084,6 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
 
 int ModelSelectBestCandidate(const std::string& arch,
                              const std::string& solver,
-                             miopen::conv::Direction direction,
                              const std::vector<float>& features,
                              const std::vector<std::vector<std::string>>& valid_kernel_params)
 {

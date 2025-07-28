@@ -118,7 +118,6 @@ bool ModelSetParams(const std::string& arch,
 
 int ModelSelectBestCandidate(const std::string& arch,
                              const std::string& solver,
-                             conv::Direction direction,
                              const std::vector<float>& features,
                              const std::vector<std::vector<std::string>>& valid_kernel_params);
 

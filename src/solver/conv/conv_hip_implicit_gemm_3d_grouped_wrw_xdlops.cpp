@@ -381,7 +381,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 namespace {
 // Helper function to get 3D convolution features (adapt from existing GetFeatures if available)
-static std::vector<float>
+std::vector<float>
 GetFeatures3D(const ProblemDescription& problem, int max_cu, const std::string& arch)
 {
     // Extract 3D-specific features
@@ -438,7 +438,7 @@ GetFeatures3D(const ProblemDescription& problem, int max_cu, const std::string& 
 }
 
 // Helper: Tokenize kernel string
-static std::vector<std::string> TokenizeKernel(const std::string& kernel)
+std::vector<std::string> TokenizeKernel(const std::string& kernel)
 {
     std::vector<std::string> tokens;
     std::stringstream ss(kernel);
@@ -452,7 +452,7 @@ static std::vector<std::string> TokenizeKernel(const std::string& kernel)
 }
 
 // Helper: Filter kernels by type and collect indexes/tokens
-static void FilterHeuristicKernels(const std::string& type,
+void FilterHeuristicKernels(const std::string& type,
                                    const std::vector<std::string>& valid_kernels,
                                    std::vector<int>& indexes,
                                    std::vector<std::vector<std::string>>& kernels)
@@ -471,7 +471,7 @@ static void FilterHeuristicKernels(const std::string& type,
 }
 
 // Helper: Generate split_k values (powers of two)
-static std::vector<int> GenerateSplitK(int max_split_k)
+std::vector<int> GenerateSplitK(int max_split_k)
 {
     std::vector<int> split_ks;
     for(int k = 1; k <= max_split_k; k *= 2)
@@ -480,7 +480,7 @@ static std::vector<int> GenerateSplitK(int max_split_k)
 }
 
 // Helper: Expand kernel params with split_k and keep mapping
-static std::pair<std::vector<std::vector<std::string>>, std::vector<std::pair<int, int>>>
+std::pair<std::vector<std::vector<std::string>>, std::vector<std::pair<int, int>>>
 ExpandKernelParamsWithSplitK(const std::vector<std::vector<std::string>>& kernels,
                              const std::vector<int>& indexes,
                              const std::vector<int>& split_ks)
@@ -502,7 +502,7 @@ ExpandKernelParamsWithSplitK(const std::vector<std::vector<std::string>>& kernel
 
 // Main: Run AI parameter prediction model
 template <typename DataType>
-static bool RunParameterPredictionModel(const ExecutionContext& ctx,
+bool RunParameterPredictionModel(const ExecutionContext& ctx,
                                         const ProblemDescription& problem,
                                         std::vector<std::string>& valid_kernels,
                                         int& index,
@@ -547,7 +547,7 @@ static bool RunParameterPredictionModel(const ExecutionContext& ctx,
     try
     {
         int best_idx = ai::tuning::ModelSelectBestCandidate(
-            arch, solver, problem.GetDirection(), features, expanded_params);
+            arch, solver, features, expanded_params);
 
         if(best_idx >= 0 && best_idx < static_cast<int>(mapping_pairs.size()))
         {
