@@ -790,130 +790,103 @@ bool ModelSetParams(const std::string& arch,
 
 // code for new-style AI heuristics for kernel tuning
 
-// define metadata specifically for candidate selection
-class CandidateSelectionMetadata
+// Implement the constructor as a separate method
+CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch, const std::string& solver)
 {
-public:
-    // Parameter order and index maps
-    std::vector<std::string> input_params;
-    std::vector<std::string> output_params;
-    std::unordered_map<std::string, size_t> input_param_indices;
-    std::unordered_map<std::string, size_t> output_param_indices;
+    const nlohmann::json metadata =
+        common::LoadJSON(GetSystemDbPath() / (arch + "_" + solver + "_metadata.tn.model"));
 
-    // Encodings and decodings
-    std::unordered_map<std::string, std::unordered_map<std::string, size_t>> feature_encodings;
-    std::unordered_map<std::string, std::unordered_map<std::string, size_t>> sequence_encodings;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> sequence_decodings;
-    std::unordered_map<std::string, std::string> constants_features;
-    std::unordered_map<std::string, std::string> constants_sequence;
+    // Input/output parameter order
+    input_params = metadata.value("input_params", std::vector<std::string>{});
+    output_params = metadata.value("output_params", std::vector<std::string>{});
 
-    // Constructor
-    CandidateSelectionMetadata(const std::string& arch, const std::string& solver)
+    // Build index maps for fast lookup
+    for(size_t i = 0; i < input_params.size(); ++i)
+        input_param_indices[input_params[i]] = i;
+    for(size_t i = 0; i < output_params.size(); ++i)
+        output_param_indices[output_params[i]] = i;
+
+    // Encodings
+    if(metadata.contains("encodings"))
     {
-        const nlohmann::json metadata =
-            common::LoadJSON(GetSystemDbPath() / (arch + "_" + solver + "_metadata.tn.model"));
-
-        // Input/output parameter order
-        input_params = metadata.value("input_params", std::vector<std::string>{});
-        output_params = metadata.value("output_params", std::vector<std::string>{});
-
-        // Build index maps for fast lookup
-        for(size_t i = 0; i < input_params.size(); ++i)
-            input_param_indices[input_params[i]] = i;
-        for(size_t i = 0; i < output_params.size(); ++i)
-            output_param_indices[output_params[i]] = i;
-
-        // Encodings
-        if(metadata.contains("encodings"))
-        {
-            feature_encodings = metadata["encodings"].value("inputs", decltype(feature_encodings){});
-            sequence_encodings = metadata["encodings"].value("outputs", decltype(sequence_encodings){});
-        }
-
-        // Decodings
-        if(metadata.contains("decodings") && metadata["decodings"].contains("outputs"))
-        {
-            sequence_decodings = metadata["decodings"]["outputs"]
-                .get<std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>();
-        }
-
-        // Constants
-        if(metadata.contains("constants"))
-        {
-            constants_features = metadata["constants"].value("inputs", decltype(constants_features){});
-            constants_sequence = metadata["constants"].value("outputs", decltype(constants_sequence){});
-        }
+        feature_encodings = metadata["encodings"].value("inputs", decltype(feature_encodings){});
+        sequence_encodings = metadata["encodings"].value("outputs", decltype(sequence_encodings){});
     }
 
-    // Get index of an input parameter
-    size_t GetInputParamIndex(const std::string& name) const
+    // Decodings
+    if(metadata.contains("decodings") && metadata["decodings"].contains("outputs"))
+    {
+        sequence_decodings = metadata["decodings"]["outputs"]
+            .get<std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>();
+    }
+
+    // Constants
+    if(metadata.contains("constants"))
+    {
+        constants_features = metadata["constants"].value("inputs", decltype(constants_features){});
+        constants_sequence = metadata["constants"].value("outputs", decltype(constants_sequence){});
+    }
+}
+
+// Implement the member functions as separate methods
+size_t CandidateSelectionMetadata::GetInputParamIndex(const std::string& name) const
+{
+    auto it = input_param_indices.find(name);
+    if(it == input_param_indices.end())
+        MIOPEN_THROW("Input parameter not found: " + name);
+    return it->second;
+}
+
+size_t CandidateSelectionMetadata::GetOutputParamIndex(const std::string& name) const
+{
+    auto it = output_param_indices.find(name);
+    if(it == output_param_indices.end())
+        MIOPEN_THROW("Output parameter not found: " + name);
+    return it->second;
+}
+
+std::optional<std::string> CandidateSelectionMetadata::GetInputConstant(const std::string& name) const
+{
+    auto it = constants_features.find(name);
+    if(it != constants_features.end())
+        return it->second;
+    return std::nullopt;
+}
+
+std::optional<std::string> CandidateSelectionMetadata::GetOutputConstant(const std::string& name) const
+{
+    auto it = constants_sequence.find(name);
+    if(it != constants_sequence.end())
+        return it->second;
+    return std::nullopt;
+}
+
+std::vector<size_t> CandidateSelectionMetadata::GetConstantInputIndices() const
+{
+    std::vector<size_t> indices;
+    for(const auto& [name, value] : constants_features)
     {
         auto it = input_param_indices.find(name);
-        if(it == input_param_indices.end())
-            MIOPEN_THROW("Input parameter not found: " + name);
-        return it->second;
+        if(it != input_param_indices.end())
+            indices.push_back(it->second);
     }
+    std::sort(indices.begin(), indices.end());
+    return indices;
+}
 
-    // Get index of an output parameter
-    size_t GetOutputParamIndex(const std::string& name) const
+std::vector<size_t> CandidateSelectionMetadata::GetConstantOutputIndices() const
+{
+    std::vector<size_t> indices;
+    for(const auto& [name, value] : constants_sequence)
     {
         auto it = output_param_indices.find(name);
-        if(it == output_param_indices.end())
-            MIOPEN_THROW("Output parameter not found: " + name);
-        return it->second;
+        if(it != output_param_indices.end())
+            indices.push_back(it->second);
     }
+    std::sort(indices.begin(), indices.end());
+    return indices;
+}
 
-    // Get constant value for an input parameter, if present
-    std::optional<std::string> GetInputConstant(const std::string& name) const
-    {
-        auto it = constants_features.find(name);
-        if(it != constants_features.end())
-            return it->second;
-        return std::nullopt;
-    }
-
-    // Get constant value for an output parameter, if present
-    std::optional<std::string> GetOutputConstant(const std::string& name) const
-    {
-        auto it = constants_sequence.find(name);
-        if(it != constants_sequence.end())
-            return it->second;
-        return std::nullopt;
-    }
-
-    // Return indices of input parameters that are constant and should be dropped from features
-    std::vector<size_t> GetConstantInputIndices() const
-    {
-        std::vector<size_t> indices;
-        for(const auto& [name, value] : constants_features)
-        {
-            auto it = input_param_indices.find(name);
-            if(it != input_param_indices.end())
-                indices.push_back(it->second);
-        }
-        std::sort(indices.begin(), indices.end());
-        return indices;
-    }
-
-    // Return indices of output parameters that are constant and should be dropped from configs
-    std::vector<size_t> GetConstantOutputIndices() const
-    {
-        std::vector<size_t> indices;
-        for(const auto& [name, value] : constants_sequence)
-        {
-            auto it = output_param_indices.find(name);
-            if(it != output_param_indices.end())
-                indices.push_back(it->second);
-        }
-        std::sort(indices.begin(), indices.end());
-        return indices;
-    }
-};
-
-/**
- * New Model class for candidate selection approach
- * Uses its own CandidateSelectionMetadata rather than the sequential-prediction Metadata
- */
 class CandidateSelectionModel
 {
 public:
@@ -1101,7 +1074,7 @@ int ModelSelectBestCandidate(const std::string& arch,
 
         // Encode string parameters to floats
         auto encoded_candidates =
-            EncodeKernelParams(valid_kernel_params, std::static_pointer_cast<Model>(model));
+            EncodeKernelParams(valid_kernel_params, model->metadata);
 
         if(encoded_candidates.empty())
         {
