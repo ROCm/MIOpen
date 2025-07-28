@@ -162,6 +162,8 @@ struct BnFwdTrainingSpatial final : BatchNormTunableSolver<PerformanceConfigBnFw
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::batchnorm::ProblemDescription& problem,
                              const PerformanceConfigBnFwdTraining& config) const override;
+    size_t GetWorkspaceSize(const ExecutionContext& context,
+                            const miopen::batchnorm::ProblemDescription& problem) const override;
 };
 
 struct BnBwdTrainingPerActivation final : BatchnormSolver

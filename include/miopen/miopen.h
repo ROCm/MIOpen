@@ -2784,7 +2784,9 @@ miopenBatchNormalizationForwardTraining(miopenHandle_t handle,
                                         void* resultRunningVariance,
                                         double epsilon,
                                         void* resultSaveMean,
-                                        void* resultSaveInvVariance);
+                                        void* resultSaveInvVariance,
+                                        size_t workspace_size = 0,
+                                        void* workspace       = nullptr);
 /*! @brief Execute forward training layer for batch normalization
  *
  * Batch normalization pass for forward training pass.
@@ -2845,7 +2847,9 @@ miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
                                            void* resultRunningVariance,
                                            double epsilon,
                                            void* resultSaveMean,
-                                           void* resultSaveInvVariance);
+                                           void* resultSaveInvVariance,
+                                           size_t workspace_size = 0,
+                                           void* workspace       = nullptr);
 /*! @brief Execute forward training layer for batch normalization with fused activation
  *
  * Batch normalization pass for forward training pass.
@@ -2885,6 +2889,8 @@ miopenBatchNormalizationForwardTraining_V2(miopenHandle_t handle,
  * @param resultSaveMean            Saved mini-batch mean for backwards pass (output)
  * @param resultSaveInvVariance     Saved mini-batch inverse variance for backwards pass (output)
  * @param activDesc                 Activation descriptor
+ * @param workspace_size            workspace size in bytes
+ * @param worksapce                 pointer of workspace with workspace_size bytes
  * @return                          miopenStatus_t
  */
 MIOPEN_EXPORT miopenStatus_t
@@ -2908,7 +2914,9 @@ miopenBatchNormForwardTrainingActivation(miopenHandle_t handle,
                                          double epsilon,
                                          void* resultSaveMean,
                                          void* resultSaveInvVariance,
-                                         const miopenActivationDescriptor_t activDesc);
+                                         const miopenActivationDescriptor_t activDesc,
+                                         size_t workspace_size = 0,
+                                         void* workspace       = nullptr);
 
 /*! @brief Execute forward inference layer for batch normalization
  *
@@ -3237,6 +3245,30 @@ miopenBatchNormBackwardActivation(miopenHandle_t handle,
                                   const void* savedMean,
                                   const void* savedInvVariance,
                                   const miopenActivationDescriptor_t activDesc);
+
+MIOPEN_EXPORT miopenStatus_t
+miopenBatchNormalizationForwardGetWorkSpaceSize(miopenHandle_t handle,
+                                                miopenBatchNormMode_t bn_mode,
+                                                void* alpha,
+                                                void* beta,
+                                                const miopenTensorDescriptor_t xDesc,
+                                                const void* x,
+                                                const miopenTensorDescriptor_t yDesc,
+                                                void* y,
+                                                const miopenTensorDescriptor_t scaleDesc,
+                                                const miopenTensorDescriptor_t biasDesc,
+                                                const miopenTensorDescriptor_t savedMeanDesc,
+                                                const miopenTensorDescriptor_t savedVarianceDesc,
+                                                void* bnScale,
+                                                void* bnBias,
+                                                double expAvgFactor,
+                                                void* resultRunningMean,
+                                                void* resultRunningVariance,
+                                                double epsilon,
+                                                void* resultSaveMean,
+                                                void* resultSaveInvVariance,
+                                                size_t* workSpaceSize);
+
 /** @} */
 // CLOSEOUT BATCHNORM DOXYGEN GROUP
 

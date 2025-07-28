@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include "miopen/op_kernel_args.hpp"
 #include <miopen/batchnorm/common_spatial.hpp>
 #include <miopen/batchnorm/solvers.hpp>
 
@@ -33,6 +34,7 @@
 #include <miopen/stringutils.hpp>
 #include <miopen/visit_float.hpp>
 #include <miopen/kernel_build_params.hpp>
+#include <miopen/batched_transpose_sol.hpp>
 
 namespace miopen {
 
@@ -70,26 +72,54 @@ bool PerformanceConfigBnFwdTraining::IsValid(
 void PerformanceConfigBnFwdTraining::HeuristicInit(
     const miopen::batchnorm::ProblemDescription& problem)
 {
+
+    const bool is_nchw = problem.IsLayoutNCHW(); // TODO: add more constrains
+    auto x_desc_orig   = problem.GetXDesc();
+    auto y_desc_orig   = problem.GetYDesc();
+    auto x_desc_new    = is_nchw ? TensorDescriptor(x_desc_orig.GetType(),
+                                                 miopenTensorLayout_t::miopenTensorNHWC,
+                                                 x_desc_orig.GetLengths())
+                                 : x_desc_orig;
+    auto y_desc_new    = is_nchw ? TensorDescriptor(y_desc_orig.GetType(),
+                                                 miopenTensorLayout_t::miopenTensorNHWC,
+                                                 y_desc_orig.GetLengths())
+                                 : y_desc_orig;
+    // TODO: only working with ForwardTraining no activation
+    auto problem_new = is_nchw ? miopen::batchnorm::ProblemDescription(problem.GetMode(),
+                                                                       x_desc_new,
+                                                                       y_desc_new,
+                                                                       problem.GetBnScale(),
+                                                                       problem.GetBnBias(),
+                                                                       problem.GetBnSMean(),
+                                                                       problem.GetBnSVar(),
+                                                                       problem.GetExpAvgFactor(),
+                                                                       problem.GetEpsilon(),
+                                                                       problem.GetResultSave(),
+                                                                       problem.GetResultRunning(),
+                                                                       problem.GetMinWorkgroups())
+                               : problem;
+
     // Define default configuration based on heuristics and
     // add all other valid configurations for the given problem
-    if(UseMultiple(problem))
+    if(UseMultiple(problem_new))
     {
-        DefaultConfigSpatialMultiple(problem, stash_values_fwd, this->valid_kernels);
+        DefaultConfigSpatialMultiple(problem_new, stash_values_fwd, this->valid_kernels);
         // if more than 2 instances are present, it means that variant 1 will be slower
-        if((this->valid_kernels.size() < 2 && problem.IsLayoutNHWC()) || !problem.IsLayoutNHWC())
+        if((this->valid_kernels.size() < 2 && problem_new.IsLayoutNHWC()) ||
+           !problem_new.IsLayoutNHWC())
         {
-            DefaultConfigSpatialSingle(problem, this->valid_kernels);
+            DefaultConfigSpatialSingle(problem_new, this->valid_kernels);
         }
     }
     else
     {
-        DefaultConfigSpatialSingle(problem, this->valid_kernels);
+        DefaultConfigSpatialSingle(problem_new, this->valid_kernels);
         // if valid_kernels is 2, it means that variant 0 or variant 3 were added and in
         // this case it doesn't make sense to add instances for variant 2 because it is
         // very unlikely that they will be faster than those variants
         if(this->valid_kernels.size() < 2)
         {
-            DefaultConfigSpatialMultiple(problem, stash_values_fwd, this->valid_kernels);
+            DefaultConfigSpatialMultiple(problem_new, stash_values_fwd, this->valid_kernels);
         }
     }
 
@@ -224,6 +254,10 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
     int stash_method = 0;
     size_t nelements;
 
+    const bool is_nhwc        = true;
+    const bool need_transpose = problem.IsLayoutNCHW();
+    std::cout << "problem is NCHW: " << need_transpose << std::endl;
+
     GetVariantFromKernelId(
         config.kernel_id, variant, vectorsize, xlocalsize, ylocalsize, zlocalsize, nelements);
 
@@ -239,7 +273,7 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
         xgridsize = c * xlocalsize;
         ldsgcn    = xlocalsize / 64;
         ldsnogcn  = xlocalsize;
-#if(WORKAROUND_SWDEV_253606 == 0)
+#if (WORKAROUND_SWDEV_253606 == 0)
         if(variant == 4)
         {
             xlocalsize = 256;
@@ -254,7 +288,7 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
     else
     {
         // Compute grid size
-        if(problem.IsLayoutNHWC())
+        if(is_nhwc)
         {
             xgridsize = xlocalsize * ((c / vectorsize + xlocalsize - 1) / xlocalsize);
             ygridsize = ylocalsize * ((in_cstride + ylocalsize - 1) / ylocalsize);
@@ -267,7 +301,7 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
         zgridsize = zlocalsize * ((n / nelements + zlocalsize - 1) / zlocalsize);
 
         // Get the stash method based on problem size and WG size
-        stash_method = GetStashMethod(problem.IsLayoutNHWC(),
+        stash_method = GetStashMethod(is_nhwc,
                                       problem.GetXDesc().GetType(),
                                       stash_values_fwd,
                                       c,
@@ -278,7 +312,7 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                                       nelements);
 
         // WG size for Final kernels (NHWC)
-        if(problem.IsLayoutNHWC() && c % 2 == 0 && xlocalsize % 2 == 0)
+        if(is_nhwc && c % 2 == 0 && xlocalsize % 2 == 0)
         {
             // increase number of blocks (xgridsize does not change for final kernels)
             // 2 is the lower bound because of stashing
@@ -293,7 +327,12 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
         ldsgcn   = xlocalsize * ylocalsize * zlocalsize / 64;
     }
 
-    auto result = ConvSolution{miopenStatusSuccess};
+    auto result        = ConvSolution{miopenStatusSuccess};
+    int trans_pre_idx  = -1;
+    int trans_post_idx = -1;
+    size_t trans_input_size  = 0;
+    size_t trans_output_size = 0;
+    std::vector<std::vector<OpKernelArg>> trans_args;
 
     {
         auto kernel = KernelInfo{};
@@ -321,7 +360,7 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
             {"MIO_BN_GFX103X", (StartsWith(handle.GetDeviceName(), "gfx103") ? "1" : "0")},
             {"MIO_BN_GFX110X", (StartsWith(handle.GetDeviceName(), "gfx110") ? "1" : "0")},
             {"MIO_BN_GFX120X", (StartsWith(handle.GetDeviceName(), "gfx120") ? "1" : "0")},
-            {"MIO_LAYOUT_NHWC", static_cast<int>(problem.IsLayoutNHWC())},
+            {"MIO_LAYOUT_NHWC", static_cast<int>(is_nhwc)},
             {"MIO_BN_VECTORIZE", static_cast<int>(vectorsize > 1)},
             {"MIO_BN_VEC_SIZE", vectorsize},
             {"MIO_BN_STASH_METHOD", stash_method},
@@ -372,13 +411,47 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
             kernel.kernel_name = kernel_name + "Norm";
             result.construction_params.push_back(kernel);
         }
+        if(need_transpose)
+        {
+
+            TransposeSolutionDefault2Nhwc trans_input(
+                context, problem.GetXDesc().GetType(), n, c, h, w);
+            TransposeSolutionNhwc2Default trans_output(
+                context, problem.GetYDesc().GetType(), n, c, h, w);
+            const bool has_trans_pre  = !trans_input.IsSkippable();
+            const bool has_trans_post = !trans_output.IsSkippable();
+            std::cout << "need trans: " << has_trans_pre << ", " << has_trans_post << std::endl;
+            std::ostringstream msg;
+            if(has_trans_pre)
+            {
+                trans_input_size = trans_input.GetOutputTensorSize();
+                result.construction_params.emplace_back(trans_input.GetKernelInfo());
+                trans_args.emplace_back(trans_input.GetKernelArg());
+                trans_pre_idx = result.construction_params.size() - 1;
+                if(miopen::IsLogging(LoggingLevel::Info2))
+                    msg << ", in trans:" << trans_input.GetKernelName();
+            }
+            if(has_trans_post)
+            {
+                trans_output_size = trans_input.GetOutputTensorSize();
+                result.construction_params.emplace_back(trans_output.GetKernelInfo());
+                trans_args.emplace_back(trans_output.GetKernelArg());
+                trans_post_idx = result.construction_params.size() - 1;
+                if(miopen::IsLogging(LoggingLevel::Info2))
+                    msg << ", out trans:" << trans_output.GetKernelName();
+            }
+            result.workspace_sz += (trans_input_size + trans_output_size);
+            std::cout << "trans idx: " << trans_pre_idx << ", " << trans_post_idx
+                      << "; size: " << trans_input_size << ", " << trans_output_size << ", "
+                      << result.workspace_sz << std::endl;
+        }
     }
 
     const auto dtype = problem.GetBnScale().GetType();
     const auto vn4   = (variant != 4);
 
-    result.invoker_factory = [=](const std::vector<Kernel>& kernels) {
-        return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
+    result.invoker_factory = [=, &handle](const std::vector<Kernel>& kernels) mutable {
+        return [=, &handle](const Handle& handle_, const AnyInvokeParams& raw_params) mutable {
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::FwdTrainInvokeParams>();
             const auto resultsave =
                 params.resultSaveMean != nullptr && params.resultSaveInvVariance != nullptr;
@@ -388,6 +461,15 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
             float alpha_activ = problem.GetActivationDesc().GetAlpha();
             float beta_activ  = problem.GetActivationDesc().GetBeta();
             float gamma_activ = problem.GetActivationDesc().GetGamma();
+
+            const auto& workSpace = params.GetWorkspace();
+            auto trans_input_buf  = trans_input_size == 0
+                                        ? shared<Data_t>{}
+                                        : handle.CreateSubBuffer(workSpace, 0, trans_input_size);
+            auto trans_output_buf =
+                trans_output_size == 0
+                    ? shared<Data_t>{}
+                    : handle.CreateSubBuffer(workSpace, trans_input_size, trans_output_size);
 
             float ctime = 0.;
             visit_float(dtype, [&](auto as_float) {
@@ -533,12 +615,29 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                 }
                 else
                 {
-                    handle_.Run(kernels[0])(params.x, params.y);
-                    profileSequence(handle_, 0, &ctime);
+                    int kernel_sequence = 0;
+                    if(trans_pre_idx != -1)
+                    {
+                        std::cout << "#### invoke pre trans kernel " << kernel_sequence
+                                  << std::endl;
+                        auto& trans_in_args = trans_args.front();
+                        trans_in_args[0]    = OpKernelArg(trans_input_buf.get()); // dst
+                        trans_in_args[1]    = OpKernelArg(params.x);              // src
+                        handle_.Run(kernels[trans_pre_idx])(trans_in_args);
+                        profileSequence(handle_, kernel_sequence++, &ctime);
+                    }
+                    std::cout << "ctime 0: " << ctime << std::endl;
+                    const void* in_ptr_real =
+                        (trans_pre_idx != -1) ? trans_input_buf.get() : params.x;
+                    const void* out_ptr_real =
+                        (trans_post_idx != -1) ? trans_output_buf.get() : params.y;
+                    handle_.Run(kernels[0])(in_ptr_real, out_ptr_real);
+                    profileSequence(handle_, kernel_sequence, &ctime);
+                    std::cout << "ctime 1: " << ctime << std::endl;
 
                     if(resultsave && resultrunning)
                     {
-                        handle_.Run(kernels[1])(params.y,
+                        handle_.Run(kernels[1])(out_ptr_real,
                                                 as_float(inhw),
                                                 params.expAvgFactor,
                                                 params.resultRunningMean,
@@ -549,7 +648,7 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                     }
                     else if(resultsave)
                     {
-                        handle_.Run(kernels[1])(params.y,
+                        handle_.Run(kernels[1])(out_ptr_real,
                                                 as_float(inhw),
                                                 params.epsilon,
                                                 params.resultSaveMean,
@@ -557,7 +656,7 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                     }
                     else if(resultrunning)
                     {
-                        handle_.Run(kernels[1])(params.y,
+                        handle_.Run(kernels[1])(out_ptr_real,
                                                 as_float(inhw),
                                                 params.expAvgFactor,
                                                 params.resultRunningMean,
@@ -566,25 +665,66 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
                     }
                     else
                     {
-                        handle_.Run(kernels[1])(params.y, as_float(inhw), params.epsilon);
+                        handle_.Run(kernels[1])(out_ptr_real, as_float(inhw), params.epsilon);
                     }
 
-                    profileSequence(handle_, 1, &ctime);
+                    profileSequence(handle_, kernel_sequence, &ctime);
+                    kernel_sequence += (trans_post_idx == -1) ? 1 : 0;
+                    std::cout << "ctime 2: " << ctime << std::endl;
 
-                    handle_.Run(kernels[2])(params.x,
-                                            params.y,
+                    handle_.Run(kernels[2])(in_ptr_real,
+                                            out_ptr_real,
                                             params.bnScale,
                                             params.bnBias,
                                             alpha_activ,
                                             beta_activ,
                                             gamma_activ);
-                    profileSequence(handle_, 2, &ctime);
+                    profileSequence(handle_, kernel_sequence++, &ctime);
+                    std::cout << "ctime 3: " << ctime << std::endl;
+                    if(trans_post_idx != -1)
+                    {
+                        std::cout << "#### invoke post trans kernel " << kernel_sequence
+                                  << std::endl;
+                        auto& trans_out_args = trans_args.back();
+                        trans_out_args[0]    = OpKernelArg(params.y);               // dst
+                        trans_out_args[1]    = OpKernelArg(trans_output_buf.get()); // src
+                        handle_.Run(kernels[trans_post_idx])(trans_out_args);
+                        profileSequence(handle_, kernel_sequence, &ctime);
+                    }
+                    std::cout << "ctime 4: " << ctime << std::endl;
                 }
             });
         };
     };
 
     return result;
+}
+
+size_t
+BnFwdTrainingSpatial::GetWorkspaceSize(const ExecutionContext& context,
+                                       const miopen::batchnorm::ProblemDescription& problem) const
+{
+    int n, c, h, w;
+    std::tie(n, c, h, w) = tien<4>(problem.GetXDesc().GetLengths());
+    if(!problem.IsLayoutNCHW())
+    {
+        return 0;
+    }
+    TransposeSolutionDefault2Nhwc trans_input(context, problem.GetXDesc().GetType(), n, c, h, w);
+    TransposeSolutionNhwc2Default trans_output(context, problem.GetYDesc().GetType(), n, c, h, w);
+    size_t trans_input_size  = 0;
+    size_t trans_output_size = 0;
+    if(!trans_input.IsSkippable())
+    {
+        trans_input_size = trans_input.GetOutputTensorSize();
+    }
+    if(!trans_output.IsSkippable())
+    {
+        trans_output_size = trans_input.GetOutputTensorSize();
+    }
+    std::cout << __func__ << ": workspace size: " << trans_input_size << ", " << trans_output_size
+              << std::endl;
+    return (trans_input_size + trans_output_size);
 }
 
 } // namespace batchnorm

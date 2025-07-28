@@ -77,7 +77,9 @@ void BatchNormForwardTraining(const Handle& handle,
                               double epsilon,
                               Data_t resultSaveMean,
                               Data_t resultSaveInvVariance,
-                              const ActivationDescriptor& activDesc)
+                              const ActivationDescriptor& activDesc,
+                              size_t workspace_size,
+                              void* workspace)
 {
     if(x == nullptr || y == nullptr || bnScale == nullptr || bnBias == nullptr)
     {
@@ -151,6 +153,8 @@ void BatchNormForwardTraining(const Handle& handle,
         tmp.epsilon               = epsilon;
         tmp.resultSaveMean        = resultSaveMean;
         tmp.resultSaveInvVariance = resultSaveInvVariance;
+        tmp.workspace_size        = workspace_size;
+        tmp.workspace             = workspace;
         return tmp;
     }();
 

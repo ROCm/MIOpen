@@ -301,6 +301,9 @@ struct MIOPEN_INTERNALS_EXPORT ProblemDescription : ProblemDescriptionBase,
         return min_workgroups;
     }
 
+    double GetExpAvgFactor() const { return expAvgFactor; }
+    double GetEpsilon() const { return epsilon; }
+
     bool UseSaved() const
     {
         assert(direction == Direction::Backward);
