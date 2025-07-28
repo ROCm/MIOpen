@@ -50,17 +50,17 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
 template <typename DataType>
-using DeviceOpGWrwPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+using DeviceOpGWrw3DPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
     DeviceOpGBwdWeightDefault<DataType>>;
 
 // Add these new template specializations for different alpha/beta cases
 template <typename DataType>
-using DeviceOpGWrwBilinearPtrs =
+using DeviceOpGWrw3DBilinearPtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOpGBwdWeightBilinear<DataType>>;
 
 template <typename DataType>
-using DeviceOpGWrwScalePtrs =
+using DeviceOpGWrw3DScalePtrs =
     ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
         DeviceOpGBwdWeightScale<DataType>>;
 
@@ -552,14 +552,14 @@ static bool RunParameterPredictionModel(const ExecutionContext& ctx,
     {
     case BILINEAR:
         valid_kernels =
-            FillValidKernelsIDs<DeviceOpGWrwBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
+            FillValidKernelsIDs<DeviceOpGWrw3DBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
         break;
     case SCALE:
         valid_kernels =
-            FillValidKernelsIDs<DeviceOpGWrwScalePtrs<DataType>, CKArgs<DataType>>(problem);
+            FillValidKernelsIDs<DeviceOpGWrw3DScalePtrs<DataType>, CKArgs<DataType>>(problem);
         break;
     default:
-        valid_kernels = FillValidKernelsIDs<DeviceOpGWrwPtrs<DataType>, CKArgs<DataType>>(problem);
+        valid_kernels = FillValidKernelsIDs<DeviceOpGWrw3DPtrs<DataType>, CKArgs<DataType>>(problem);
         break;
     }
 

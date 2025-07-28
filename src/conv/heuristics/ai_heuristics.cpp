@@ -808,7 +808,7 @@ public:
     std::unordered_map<std::string, std::string> constants_sequence;
 
     // Constructor
-    Metadata(const std::string& arch, const std::string& solver)
+    CandidateSelectionMetadata(const std::string& arch, const std::string& solver)
     {
         const nlohmann::json metadata =
             common::LoadJSON(GetSystemDbPath() / (arch + "_" + solver + "_metadata.tn.model"));
