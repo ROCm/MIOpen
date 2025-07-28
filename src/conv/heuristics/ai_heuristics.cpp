@@ -585,14 +585,49 @@ Metadata::Metadata(const std::string& arch, const std::string& solver)
     predict_type = metadata["predict_type"].get<std::size_t>();
     num_tuning_params =
         metadata["num_tuning_params"].get<std::unordered_map<std::string, std::size_t>>();
-    tuning_decodings =
-        metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
 
-    // Add tuning_encodings for the new model if it exists in metadata
-    if(metadata.contains("encodings") && metadata["encodings"].contains("tunings"))
+    if(metadata.contains("decodings") && metadata["decodings"].contains("tunings"))
     {
-        tuning_encodings =
-            metadata["encodings"]["tunings"].get<std::unordered_map<std::string, std::size_t>>();
+        // Add tunings for the new model if it exists in metadata
+        // tunings is a map of string to string, where the key is the token and the value is the
+        // kernel parameter value
+        tuning_decodings =
+            metadata["decodings"]["tunings"].get<std::unordered_map<std::string, std::string>>();
+    }
+    else if(metadata.contains("decodings") && metadata["decodings"].contains("outputs"))
+    {
+        // Load per-parameter decoding maps from metadata["decodings"]["outputs"]
+        sequence_decodings =
+            metadata["decodings"]["outputs"]
+                .get<std::unordered_map<std::string,
+                                        std::unordered_map<std::string, std::string>>>();
+    }
+    else
+    {
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "No decoding information found in metadata for " + arch + "_" + solver);
+    }
+
+    // Add feature_encodings for the new model if it exists in metadata
+    if(metadata.contains("encodings"))
+    {
+        feature_encodings =
+            metadata["encodings"]["inputs"]
+                .get<std::unordered_map<std::string,
+                                        std::unordered_map<std::string, std::size_t>>>();
+        sequence_encodings =
+            metadata["encodings"]["outputs"]
+                .get<std::unordered_map<std::string,
+                                        std::unordered_map<std::string, std::size_t>>>();
+    }
+
+    // Add constants
+    if(metadata.contains("constants"))
+    {
+        constants_features =
+            metadata["constants"]["inputs"].get<std::unordered_map<std::string, std::string>>();
+        constants_sequence =
+            metadata["constants"]["outputs"].get<std::unordered_map<std::string, std::string>>();
     }
 }
 
@@ -1005,8 +1040,8 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
         for(const std::string& param : kernel_params)
         {
             // Look up string in model's encoding dictionary
-            auto token_it = model->metadata.tuning_encodings.find(param);
-            if(token_it != model->metadata.tuning_encodings.end())
+            auto token_it = model->metadata.feature_encodings.find(param);
+            if(token_it != model->metadata.feature_encodings.end())
             {
                 encoded_kernel.push_back(static_cast<float>(token_it->second));
             }
