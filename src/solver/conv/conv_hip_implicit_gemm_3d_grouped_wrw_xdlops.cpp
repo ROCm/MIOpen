@@ -396,28 +396,6 @@ static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
     return tokens;
 }
 
-/**
- * @param type is the kernel type predicted by the parameter prediction model
- */
-static void InitHeuristicKernelIDs(const std::string& type,
-                                   const std::vector<std::string>& valid_kernels,
-                                   std::vector<int>& heuristic_indexes,
-                                   std::vector<std::vector<std::string>>& heuristic_kernels)
-{
-    heuristic_indexes.clear();
-    heuristic_kernels.clear();
-
-    for(std::size_t i = 0; i < valid_kernels.size(); i++)
-    {
-        const auto tokens = GetKernelAsTokens(valid_kernels[i]);
-        if(!tokens.empty() && tokens[0] == type)
-        {
-            heuristic_indexes.push_back(i);
-            heuristic_kernels.push_back(tokens);
-        }
-    }
-}
-
 // Helper function to get 3D convolution features (adapt from existing GetFeatures if available)
 static std::vector<float>
 GetFeatures3D(const ProblemDescription& problem, int max_cu, const std::string& arch)
