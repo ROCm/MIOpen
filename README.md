@@ -1,5 +1,8 @@
 # MIOpen
 
+> [!CAUTION]
+> The MIOpen repository is retired, please use the [ROCm/rocm-libraries](https://github.com/ROCm/rocm-libraries) repository
+
 MIOpen is AMD's library for high-performance machine learning primitives.
 
 You can find sources and binaries in our [GitHub repository](https://github.com/ROCm/MIOpen).
