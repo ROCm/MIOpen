@@ -380,22 +380,6 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
 
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 namespace {
-static std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
-{
-    std::vector<std::string> tokens;
-    std::stringstream ss(kernel);
-    std::string token;
-
-    while(std::getline(ss, token, '_'))
-    {
-        if(!token.empty())
-        {
-            tokens.push_back(token);
-        }
-    }
-    return tokens;
-}
-
 // Helper function to get 3D convolution features (adapt from existing GetFeatures if available)
 static std::vector<float>
 GetFeatures3D(const ProblemDescription& problem, int max_cu, const std::string& arch)
