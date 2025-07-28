@@ -979,29 +979,44 @@ public:
 
     /**
      * Select best candidate from encoded features and kernel configs
-     * @param encoded_features Encoded input features
-     * @param encoded_configs Encoded kernel configurations
+     * @param encoded_features Encoded input features (1D tensor)
+     * @param encoded_configs Encoded kernel configurations (2D tensor)
      */
     int SelectBestCandidate(const fdeep::tensors& encoded_features,
                             const fdeep::tensors& encoded_configs) const
     {
-        const auto& feature_vec   = encoded_features[0].to_vector();
-        const auto& config_mat    = encoded_configs[0].to_vector();
-        const auto num_candidates = encoded_configs[0].shape().size_dim_0();
-        const auto feature_dim    = feature_vec.size();
+        const auto& feature_vec = encoded_features[0].to_vector();
+        const auto& config_mat = encoded_configs[0].to_vector();
+        const auto config_tensor  = encoded_configs[0];
+        
+        // Get dimensions from the 2D tensor shape
+        // For a 2D tensor, we need the first dimension (number of candidates)
+        // and second dimension (feature dimension)
+        const auto num_candidates = config_tensor.shape().volume() / feature_vec.size();
+        const auto feature_dim = feature_vec.size();
+        
+        // Verify dimensions are consistent
+        if(config_mat.size() != num_candidates * feature_dim)
+        {
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Inconsistent tensor dimensions in SelectBestCandidate");
+        }
 
         std::vector<float> selection_scores(num_candidates, 0.0f);
 
+        // Calculate dot product between each candidate config and the feature vector
         for(std::size_t i = 0; i < num_candidates; ++i)
         {
-            selection_scores[i] = std::inner_product(config_mat.begin() + i * feature_dim,
-                                                     config_mat.begin() + (i + 1) * feature_dim,
-                                                     feature_vec.begin(),
-                                                     0.0f);
+            selection_scores[i] = std::inner_product(
+                config_mat.begin() + i * feature_dim,
+                config_mat.begin() + (i + 1) * feature_dim,
+                feature_vec.begin(),
+                0.0f);
         }
 
-        return std::max_element(selection_scores.begin(), selection_scores.end()) -
-               selection_scores.begin();
+        // Return index of candidate with highest score
+        return static_cast<int>(std::max_element(selection_scores.begin(), selection_scores.end()) -
+                               selection_scores.begin());
     }
 
 private:
@@ -1048,6 +1063,11 @@ std::shared_ptr<CandidateSelectionModel> GetCandidateSelectionModel(const std::s
         return it->second;
     }
 }
+
+// Forward declaration
+std::vector<std::vector<float>>
+EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_params,
+                   const CandidateSelectionMetadata& metadata);
 
 /**
  * Select the best candidate kernel parameters using the new candidate selection approach
