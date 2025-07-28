@@ -80,7 +80,7 @@ public:
                   << "Host Name: " << hostname << "; "
                   << "Operating System: " << osInfo << "; "
                   << "ROCm: " << hipVer << "; "
-                  << "MIOpenDriver: " << miopMajor << "." << miopMinor << "." << miopPatch << "; "
+                  << "MIOpen Driver: " << miopMajor << "." << miopMinor << "." << miopPatch << "; "
                   << "CPU Vendor: " << cpuVendor << "; "
                   << "CPU Model: " << cpuModel << "; "
                   << "RAM Size: " << ramSize << "; "
