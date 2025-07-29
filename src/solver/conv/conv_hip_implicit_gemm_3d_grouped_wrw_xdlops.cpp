@@ -34,6 +34,7 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/conv/heuristics/ai_kernel_tuning_utils.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #include <miopen/conv/heuristics/ai_candidate_selection.hpp>
 #endif
@@ -379,197 +380,6 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
 }
 #endif
 
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
-namespace {
-// Helper function to get 3D convolution features (adapt from existing GetFeatures if available)
-std::vector<float>
-GetFeatures3D(const ProblemDescription& problem, int max_cu, const std::string& arch)
-{
-    // Extract 3D-specific features
-    std::vector<float> features;
-
-    // Basic problem dimensions
-    features.push_back(static_cast<float>(ProblemInterpreter::GetBatchN(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputChannelC(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputChannelK(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetGroupCountG(problem)));
-
-    // 3D spatial dimensions
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputDepthDi(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputHeightHi(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputWidthWi(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputDepthDo(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputHeightHo(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputWidthWo(problem)));
-
-    // Filter dimensions
-    features.push_back(static_cast<float>(ProblemInterpreter::GetFilterDepthZ(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetFilterHeightY(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetFilterWidthX(problem)));
-
-    // Strides and dilations
-    features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideD(problem)));
-    features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideH(problem)));
-    features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)));
-    features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionDilationD(problem)));
-    features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionDilationH(problem)));
-    features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)));
-
-    // Padding
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadD(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadH(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadW(problem)));
-
-    // Device features
-    features.push_back(static_cast<float>(max_cu));
-
-    // Data type encoding
-    features.push_back(static_cast<float>(problem.GetInDataType()));
-
-    // Layout encoding
-    features.push_back(problem.IsLayoutNHWC() ? 1.0f : 0.0f);
-
-    return features;
-}
-
-// Helper: Tokenize kernel string
-std::vector<std::string> TokenizeKernel(const std::string& kernel)
-{
-    std::vector<std::string> tokens;
-    std::stringstream ss(kernel);
-    std::string token;
-    while(std::getline(ss, token, '_'))
-    {
-        if(!token.empty())
-            tokens.push_back(token);
-    }
-    return tokens;
-}
-
-// Helper: Filter kernels by type and collect indexes/tokens
-void FilterHeuristicKernels(const std::string& type,
-                            const std::vector<std::string>& valid_kernels,
-                            std::vector<int>& indexes,
-                            std::vector<std::vector<std::string>>& kernels)
-{
-    indexes.clear();
-    kernels.clear();
-    for(std::size_t i = 0; i < valid_kernels.size(); ++i)
-    {
-        auto tokens = TokenizeKernel(valid_kernels[i]);
-        if(!tokens.empty() && tokens[0] == type)
-        {
-            indexes.push_back(i);
-            kernels.push_back(tokens);
-        }
-    }
-}
-
-// Helper: Generate split_k values (powers of two)
-std::vector<int> GenerateSplitK(int max_split_k)
-{
-    std::vector<int> split_ks;
-    for(int k = 1; k <= max_split_k; k *= 2)
-        split_ks.push_back(k);
-    return split_ks;
-}
-
-// Helper: Expand kernel params with split_k and keep mapping
-std::pair<std::vector<std::vector<std::string>>, std::vector<std::pair<int, int>>>
-ExpandKernelParamsWithSplitK(const std::vector<std::vector<std::string>>& kernels,
-                             const std::vector<int>& indexes,
-                             const std::vector<int>& split_ks)
-{
-    std::vector<std::vector<std::string>> expanded;
-    std::vector<std::pair<int, int>> mapping;
-    for(size_t i = 0; i < kernels.size(); ++i)
-    {
-        for(int split_k : split_ks)
-        {
-            auto candidate = kernels[i];
-            candidate.push_back(std::to_string(split_k));
-            expanded.push_back(candidate);
-            mapping.emplace_back(indexes[i], split_k);
-        }
-    }
-    return {expanded, mapping};
-}
-
-// Main: Run AI parameter prediction model
-template <typename DataType>
-bool RunParameterPredictionModel(const ExecutionContext& ctx,
-                                 const ProblemDescription& problem,
-                                 std::vector<std::string>& valid_kernels,
-                                 int& index,
-                                 int& split_k,
-                                 std::string& kernel_id)
-{
-    // Select valid kernels based on alpha/beta case
-    switch(problem.GetAlphaBetaCase())
-    {
-    case BILINEAR:
-        valid_kernels =
-            FillValidKernelsIDs<DeviceOpGWrw3DBilinearPtrs<DataType>, CKArgs<DataType>>(problem);
-        break;
-    case SCALE:
-        valid_kernels =
-            FillValidKernelsIDs<DeviceOpGWrw3DScalePtrs<DataType>, CKArgs<DataType>>(problem);
-        break;
-    default:
-        valid_kernels =
-            FillValidKernelsIDs<DeviceOpGWrw3DPtrs<DataType>, CKArgs<DataType>>(problem);
-        break;
-    }
-
-    // Filter kernels by type
-    std::vector<int> heuristic_indexes;
-    std::vector<std::vector<std::string>> heuristic_kernels;
-    FilterHeuristicKernels(
-        "DeviceGroupedConvBwdWeight", valid_kernels, heuristic_indexes, heuristic_kernels);
-
-    // Prepare features and split_k values
-    const std::string& arch = ctx.GetStream().GetDeviceName();
-    std::string solver =
-        (arch == "gfx90a") ? "ConvHipIgemm3DGroupXdlops" : "ConvHipIgemmGroup3DWrwXdlops";
-    std::vector<float> features =
-        GetFeatures3D(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
-    std::vector<int> split_ks = GenerateSplitK(128); // TODO: make configurable
-
-    // Expand kernel params with split_k and keep mapping
-    auto [expanded_params, mapping_pairs] =
-        ExpandKernelParamsWithSplitK(heuristic_kernels, heuristic_indexes, split_ks);
-
-    // Use AI model to select best candidate
-    try
-    {
-        int best_idx = ai::tuning::candidate_selection::ModelSelectBestCandidate(
-            arch, solver, features, expanded_params);
-
-        if(best_idx >= 0 && best_idx < static_cast<int>(mapping_pairs.size()))
-        {
-            index     = mapping_pairs[best_idx].first;
-            split_k   = mapping_pairs[best_idx].second;
-            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
-            return true;
-        }
-        MIOPEN_LOG_I("AI prediction returned invalid kernel index, falling back");
-        return false;
-    }
-    catch(const miopen::Exception& ex)
-    {
-        MIOPEN_LOG_I2("[Warning] AI model failed: " << ex.what());
-        return false;
-    }
-}
-} // namespace
-#endif
-
 void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     [[maybe_unused]] const ProblemDescription& problem)
 {
@@ -583,28 +393,56 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     if(!env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
     {
         bool ai_success = false;
+        // force DataType to float: TODO: figure out how to properly handle this.
+        using DataType = float;
+
+        // now capture it and use it in the FillValidKernelsIDs call
+        auto fill_valid_kernels =
+            [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
+            return miopen::solver::FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>,
+                                                       CKArgs<DataType>>(problem);
+        };
+        std::string solver_name = "DeviceGroupedConvBwdWeight";
         switch(problem.GetInDataType())
         {
         case miopenHalf:
-            ai_success = RunParameterPredictionModel<ck::half_t>(
-                ExecutionContext{}, problem, valid_kernels, index, split_k, kernel_id);
+            ai_success =
+                miopen::solver::conv::RunParameterPredictionModel<ck::half_t>(ExecutionContext{},
+                                                                              problem,
+                                                                              valid_kernels,
+                                                                              index,
+                                                                              split_k,
+                                                                              kernel_id,
+                                                                              fill_valid_kernels,
+                                                                              solver_name);
             break;
         case miopenFloat:
-            ai_success = RunParameterPredictionModel<float>(
-                ExecutionContext{}, problem, valid_kernels, index, split_k, kernel_id);
-            break;
-        case miopenInt8:
-            ai_success = RunParameterPredictionModel<int8_t>(
-                ExecutionContext{}, problem, valid_kernels, index, split_k, kernel_id);
+            ai_success =
+                miopen::solver::conv::RunParameterPredictionModel<float>(ExecutionContext{},
+                                                                         problem,
+                                                                         valid_kernels,
+                                                                         index,
+                                                                         split_k,
+                                                                         kernel_id,
+                                                                         fill_valid_kernels,
+                                                                         solver_name);
             break;
         case miopenBFloat16:
-            ai_success = RunParameterPredictionModel<ck::bhalf_t>(
-                ExecutionContext{}, problem, valid_kernels, index, split_k, kernel_id);
+            ai_success =
+                miopen::solver::conv::RunParameterPredictionModel<ck::bhalf_t>(ExecutionContext{},
+                                                                               problem,
+                                                                               valid_kernels,
+                                                                               index,
+                                                                               split_k,
+                                                                               kernel_id,
+                                                                               fill_valid_kernels,
+                                                                               solver_name);
             break;
         case miopenInt64:
         case miopenInt32:
         case miopenFloat8_fnuz:
         case miopenBFloat8_fnuz:
+        case miopenInt8:
         case miopenDouble: break;
         }
 

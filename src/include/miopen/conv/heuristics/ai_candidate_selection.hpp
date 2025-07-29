@@ -58,7 +58,8 @@ public:
     // ...add other public methods as needed...
 };
 
-std::shared_ptr<CandidateSelectionModel> GetCandidateSelectionModel(const std::string& arch, const std::string& solver);
+std::shared_ptr<CandidateSelectionModel> GetCandidateSelectionModel(const std::string& arch,
+                                                                    const std::string& solver);
 
 std::vector<std::vector<float>>
 EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_params,
