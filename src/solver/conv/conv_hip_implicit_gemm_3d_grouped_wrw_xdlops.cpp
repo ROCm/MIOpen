@@ -405,6 +405,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
         std::string solver_name = "DeviceGroupedConvBwdWeight";
         switch(problem.GetInDataType())
         {
+        // 3D conv heuristics are only valid for FP32, FP16, and BF16
         case miopenHalf:
             ai_success =
                 miopen::solver::conv::RunParameterPredictionModel<ck::half_t>(ExecutionContext{},
