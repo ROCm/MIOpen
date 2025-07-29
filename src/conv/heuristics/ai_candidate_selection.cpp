@@ -34,6 +34,7 @@
 #include <nlohmann/json.hpp>
 #include <miopen/filesystem.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
+#include <miopen/conv/heuristics/ai_candidate_selection.hpp>
 #include <algorithm>
 #include <vector>
 #include <string>
@@ -178,7 +179,7 @@ public:
     }
     virtual ~CandidateSelectionModel() = default;
 
-    fdeep::tensors EncodeInputFeatures(const std::vector<float>& features) const
+    std::vector<float> EncodeInputFeatures(const std::vector<float>& features) const
     {
         std::vector<size_t> drop_indices = metadata.GetConstantInputIndices();
         std::vector<float> filtered_features;
@@ -196,10 +197,13 @@ public:
 
         fdeep::tensor input_tensor =
             fdeep::tensor(fdeep::tensor_shape(filtered_features.size()), filtered_features);
-        return input_encoder.predict({input_tensor});
+        auto tensors = input_encoder.predict({input_tensor});
+        if(tensors.empty())
+            MIOPEN_THROW(miopenStatusInternalError, "Input encoder returned empty tensor list");
+        return tensors[0].to_vector();
     }
 
-    fdeep::tensors
+    std::vector<std::vector<float>>
     EncodeKernelConfigs(const std::vector<std::vector<float>>& encoded_candidates) const
     {
         std::vector<size_t> drop_indices = metadata.GetConstantOutputIndices();
@@ -240,32 +244,49 @@ public:
             fdeep::tensor_shape(encoded_candidates.size(), encoded_candidates[0].size()),
             flattened_candidates);
 
-        return kernel_config_encoder.predict({candidates_tensor});
+        auto tensors = kernel_config_encoder.predict({candidates_tensor});
+        if(tensors.empty())
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Kernel config encoder returned empty tensor list");
+
+        // Each candidate is a row in the output tensor
+        const auto& output_tensor = tensors[0];
+        const auto& shape         = output_tensor.shape();
+        std::vector<std::vector<float>> result;
+        auto flat             = output_tensor.to_vector();
+        size_t num_candidates = shape.size_dim() > 0 ? shape.dimensions()[0] : 0;
+        size_t candidate_dim  = shape.size_dim() > 1 ? shape.dimensions()[1] : flat.size();
+
+        for(size_t i = 0; i < num_candidates; ++i)
+        {
+            result.emplace_back(flat.begin() + i * candidate_dim,
+                                flat.begin() + (i + 1) * candidate_dim);
+        }
+        return result;
     }
 
-    int SelectBestCandidate(const fdeep::tensors& encoded_features,
-                            const fdeep::tensors& encoded_configs) const
+    int SelectBestCandidate(const std::vector<float>& encoded_features,
+                            const std::vector<std::vector<float>>& encoded_configs) const
     {
-        const auto& feature_vec  = encoded_features[0].to_vector();
-        const auto& config_mat   = encoded_configs[0].to_vector();
-        const auto config_tensor = encoded_configs[0];
-
-        const auto num_candidates = config_tensor.shape().volume() / feature_vec.size();
-        const auto feature_dim    = feature_vec.size();
-
-        if(config_mat.size() != num_candidates * feature_dim)
+        if(encoded_configs.empty() || encoded_features.empty())
         {
             MIOPEN_THROW(miopenStatusInternalError,
-                         "Inconsistent tensor dimensions in SelectBestCandidate");
+                         "Empty features or configs in SelectBestCandidate");
         }
+
+        size_t feature_dim    = encoded_features.size();
+        size_t num_candidates = encoded_configs.size();
 
         std::vector<float> selection_scores(num_candidates, 0.0f);
 
-        for(std::size_t i = 0; i < num_candidates; ++i)
+        for(size_t i = 0; i < num_candidates; ++i)
         {
-            selection_scores[i] = std::inner_product(config_mat.begin() + i * feature_dim,
-                                                     config_mat.begin() + (i + 1) * feature_dim,
-                                                     feature_vec.begin(),
+            if(encoded_configs[i].size() != feature_dim)
+                MIOPEN_THROW(miopenStatusInternalError,
+                             "Config dimension mismatch in SelectBestCandidate");
+            selection_scores[i] = std::inner_product(encoded_configs[i].begin(),
+                                                     encoded_configs[i].end(),
+                                                     encoded_features.begin(),
                                                      0.0f);
         }
 

@@ -55,7 +55,11 @@ public:
     CandidateSelectionMetadata metadata;
     CandidateSelectionModel(const std::string& arch, const std::string& solver);
     ~CandidateSelectionModel();
-    // ...add other public methods as needed...
+    std::vector<float> EncodeInputFeatures(const std::vector<float>& features) const;
+    std::vector<std::vector<float>>
+    EncodeKernelConfigs(const std::vector<std::vector<float>>& encoded_candidates) const;
+    int SelectBestCandidate(const std::vector<float>& encoded_features,
+                            const std::vector<std::vector<float>>& encoded_configs) const;
 };
 
 std::shared_ptr<CandidateSelectionModel> GetCandidateSelectionModel(const std::string& arch,
