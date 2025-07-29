@@ -24,7 +24,8 @@
  *
  *******************************************************************************
  *
- * AI Candidate Selection Models for Kernel Tuning
+ * AI Candidate Selection Models for Kernel Tuning using a candidate selection approach.
+ * Also known as a "Two Towers" model.
  * Contains: CandidateSelectionMetadata, CandidateSelectionModel, and helpers.
  *
  *******************************************************************************/
@@ -41,10 +42,6 @@
 #include <map>
 #include <memory>
 #include <stdexcept>
-#include <sstream>
-#include <cmath>
-#include <chrono>
-#include <queue>
 
 namespace miopen {
 namespace ai {
@@ -62,16 +59,17 @@ public:
     std::unordered_map<std::string, size_t> output_param_indices;
     std::unordered_map<std::string, std::unordered_map<std::string, int>> feature_encodings;
     std::unordered_map<std::string, std::unordered_map<std::string, int>> sequence_encodings;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> sequence_decodings;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>>
+        sequence_decodings;
     std::unordered_map<std::string, std::string> constants_features;
     std::unordered_map<std::string, std::string> constants_sequence;
 
     CandidateSelectionMetadata(const std::string& arch, const std::string& solver)
     {
-        const nlohmann::json metadata =
-            miopen::ai::common::LoadJSON(GetSystemDbPath() / (arch + "_" + solver + "_metadata.tn.model"));
+        const nlohmann::json metadata = miopen::ai::common::LoadJSON(
+            GetSystemDbPath() / (arch + "_" + solver + "_metadata.tn.model"));
 
-        input_params = metadata.value("input_params", std::vector<std::string>{});
+        input_params  = metadata.value("input_params", std::vector<std::string>{});
         output_params = metadata.value("output_params", std::vector<std::string>{});
 
         for(size_t i = 0; i < input_params.size(); ++i)
@@ -81,20 +79,26 @@ public:
 
         if(metadata.contains("encodings"))
         {
-            feature_encodings = metadata["encodings"].value("inputs", decltype(feature_encodings){});
-            sequence_encodings = metadata["encodings"].value("outputs", decltype(sequence_encodings){});
+            feature_encodings =
+                metadata["encodings"].value("inputs", decltype(feature_encodings){});
+            sequence_encodings =
+                metadata["encodings"].value("outputs", decltype(sequence_encodings){});
         }
 
         if(metadata.contains("decodings") && metadata["decodings"].contains("outputs"))
         {
-            sequence_decodings = metadata["decodings"]["outputs"]
-                .get<std::unordered_map<std::string, std::unordered_map<std::string, std::string>>>();
+            sequence_decodings =
+                metadata["decodings"]["outputs"]
+                    .get<std::unordered_map<std::string,
+                                            std::unordered_map<std::string, std::string>>>();
         }
 
         if(metadata.contains("constants"))
         {
-            constants_features = metadata["constants"].value("inputs", decltype(constants_features){});
-            constants_sequence = metadata["constants"].value("outputs", decltype(constants_sequence){});
+            constants_features =
+                metadata["constants"].value("inputs", decltype(constants_features){});
+            constants_sequence =
+                metadata["constants"].value("outputs", decltype(constants_sequence){});
         }
     }
 
@@ -166,8 +170,10 @@ public:
 
     CandidateSelectionModel(const std::string& arch, const std::string& solver)
         : metadata(arch, solver),
-          input_encoder(fdeep::load_model(InputEncoderPath(arch, solver), true, fdeep::dev_null_logger)),
-          kernel_config_encoder(fdeep::load_model(KernelConfigEncoderPath(arch, solver), true, fdeep::dev_null_logger))
+          input_encoder(
+              fdeep::load_model(InputEncoderPath(arch, solver), true, fdeep::dev_null_logger)),
+          kernel_config_encoder(fdeep::load_model(
+              KernelConfigEncoderPath(arch, solver), true, fdeep::dev_null_logger))
     {
     }
     virtual ~CandidateSelectionModel() = default;
@@ -188,11 +194,13 @@ public:
             filtered_features.push_back(features[i]);
         }
 
-        fdeep::tensor input_tensor = fdeep::tensor(fdeep::tensor_shape(filtered_features.size()), filtered_features);
+        fdeep::tensor input_tensor =
+            fdeep::tensor(fdeep::tensor_shape(filtered_features.size()), filtered_features);
         return input_encoder.predict({input_tensor});
     }
 
-    fdeep::tensors EncodeKernelConfigs(const std::vector<std::vector<float>>& encoded_candidates) const
+    fdeep::tensors
+    EncodeKernelConfigs(const std::vector<std::vector<float>>& encoded_candidates) const
     {
         std::vector<size_t> drop_indices = metadata.GetConstantOutputIndices();
 
@@ -218,12 +226,14 @@ public:
         std::vector<float> flattened_candidates;
         for(const auto& candidate : filtered_candidates)
         {
-            flattened_candidates.insert(flattened_candidates.end(), candidate.begin(), candidate.end());
+            flattened_candidates.insert(
+                flattened_candidates.end(), candidate.begin(), candidate.end());
         }
 
         if(filtered_candidates.empty() || filtered_candidates[0].empty())
         {
-            MIOPEN_THROW(miopenStatusInternalError, "Empty candidates provided to kernel config encoder");
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Empty candidates provided to kernel config encoder");
         }
 
         fdeep::tensor candidates_tensor = fdeep::tensor(
@@ -233,33 +243,34 @@ public:
         return kernel_config_encoder.predict({candidates_tensor});
     }
 
-    int SelectBestCandidate(const fdeep::tensors& encoded_features, const fdeep::tensors& encoded_configs) const
+    int SelectBestCandidate(const fdeep::tensors& encoded_features,
+                            const fdeep::tensors& encoded_configs) const
     {
-        const auto& feature_vec = encoded_features[0].to_vector();
-        const auto& config_mat = encoded_configs[0].to_vector();
-        const auto config_tensor  = encoded_configs[0];
+        const auto& feature_vec  = encoded_features[0].to_vector();
+        const auto& config_mat   = encoded_configs[0].to_vector();
+        const auto config_tensor = encoded_configs[0];
 
         const auto num_candidates = config_tensor.shape().volume() / feature_vec.size();
-        const auto feature_dim = feature_vec.size();
+        const auto feature_dim    = feature_vec.size();
 
         if(config_mat.size() != num_candidates * feature_dim)
         {
-            MIOPEN_THROW(miopenStatusInternalError, "Inconsistent tensor dimensions in SelectBestCandidate");
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Inconsistent tensor dimensions in SelectBestCandidate");
         }
 
         std::vector<float> selection_scores(num_candidates, 0.0f);
 
         for(std::size_t i = 0; i < num_candidates; ++i)
         {
-            selection_scores[i] = std::inner_product(
-                config_mat.begin() + i * feature_dim,
-                config_mat.begin() + (i + 1) * feature_dim,
-                feature_vec.begin(),
-                0.0f);
+            selection_scores[i] = std::inner_product(config_mat.begin() + i * feature_dim,
+                                                     config_mat.begin() + (i + 1) * feature_dim,
+                                                     feature_vec.begin(),
+                                                     0.0f);
         }
 
         return static_cast<int>(std::max_element(selection_scores.begin(), selection_scores.end()) -
-                               selection_scores.begin());
+                                selection_scores.begin());
     }
 
 private:
@@ -276,23 +287,27 @@ private:
 
     static std::string KernelConfigEncoderPath(const std::string& arch, const std::string& solver)
     {
-        const auto path = GetSystemDbPath() / (arch + "_" + solver + "_kernel_config_encoder.tn.model");
+        const auto path =
+            GetSystemDbPath() / (arch + "_" + solver + "_kernel_config_encoder.tn.model");
         if(!fs::exists(path))
-            MIOPEN_THROW(miopenStatusInternalError, "Unable to load kernel config encoder file: " + path);
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Unable to load kernel config encoder file: " + path);
         return path.string();
     }
 };
 
 // --- Factory and Helper Functions -------------------------------------------
 
-std::shared_ptr<CandidateSelectionModel> GetCandidateSelectionModel(const std::string& arch, const std::string& solver)
+std::shared_ptr<CandidateSelectionModel> GetCandidateSelectionModel(const std::string& arch,
+                                                                    const std::string& solver)
 {
     static std::map<std::string, std::shared_ptr<CandidateSelectionModel>> models;
     std::string key = arch + "_" + solver;
-    auto it = models.find(key);
+    auto it         = models.find(key);
     if(it == models.end())
     {
-        std::shared_ptr<CandidateSelectionModel> model = std::make_shared<CandidateSelectionModel>(arch, solver);
+        std::shared_ptr<CandidateSelectionModel> model =
+            std::make_shared<CandidateSelectionModel>(arch, solver);
         models[key] = model;
         return model;
     }
@@ -307,7 +322,7 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
                    const CandidateSelectionMetadata& metadata)
 {
     std::vector<std::vector<float>> encoded_candidates;
-    const auto& output_params = metadata.output_params;
+    const auto& output_params      = metadata.output_params;
     const auto& sequence_encodings = metadata.sequence_encodings;
 
     for(const auto& candidate : valid_kernel_params)
@@ -315,14 +330,14 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
         std::vector<float> encoded;
         for(size_t i = 0; i < candidate.size(); ++i)
         {
-            const std::string& param_name = output_params[i];
+            const std::string& param_name  = output_params[i];
             const std::string& param_value = candidate[i];
 
             auto enc_it = sequence_encodings.find(param_name);
             if(enc_it != sequence_encodings.end())
             {
                 const auto& value_map = enc_it->second;
-                auto val_it = value_map.find(param_value);
+                auto val_it           = value_map.find(param_value);
                 if(val_it != value_map.end())
                 {
                     encoded.push_back(static_cast<float>(val_it->second));
@@ -363,7 +378,7 @@ int ModelSelectBestCandidate(const std::string& arch,
         }
 
         auto encoded_features = model->EncodeInputFeatures(features);
-        auto encoded_configs = model->EncodeKernelConfigs(encoded_candidates);
+        auto encoded_configs  = model->EncodeKernelConfigs(encoded_candidates);
 
         int best_idx = model->SelectBestCandidate(encoded_features, encoded_configs);
 
@@ -384,7 +399,8 @@ int ModelSelectBestCandidate(const std::string& arch,
     }
     catch(const std::exception& ex)
     {
-        MIOPEN_LOG_I2("[Warning] Candidate selection model failed with std exception: " << ex.what());
+        MIOPEN_LOG_I2(
+            "[Warning] Candidate selection model failed with std exception: " << ex.what());
         return -1;
     }
 }
