@@ -35,6 +35,7 @@
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
+#include <miopen/conv/heuristics/ai_candidate_selection.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
@@ -453,9 +454,9 @@ std::vector<std::string> TokenizeKernel(const std::string& kernel)
 
 // Helper: Filter kernels by type and collect indexes/tokens
 void FilterHeuristicKernels(const std::string& type,
-                                   const std::vector<std::string>& valid_kernels,
-                                   std::vector<int>& indexes,
-                                   std::vector<std::vector<std::string>>& kernels)
+                            const std::vector<std::string>& valid_kernels,
+                            std::vector<int>& indexes,
+                            std::vector<std::vector<std::string>>& kernels)
 {
     indexes.clear();
     kernels.clear();
@@ -503,11 +504,11 @@ ExpandKernelParamsWithSplitK(const std::vector<std::vector<std::string>>& kernel
 // Main: Run AI parameter prediction model
 template <typename DataType>
 bool RunParameterPredictionModel(const ExecutionContext& ctx,
-                                        const ProblemDescription& problem,
-                                        std::vector<std::string>& valid_kernels,
-                                        int& index,
-                                        int& split_k,
-                                        std::string& kernel_id)
+                                 const ProblemDescription& problem,
+                                 std::vector<std::string>& valid_kernels,
+                                 int& index,
+                                 int& split_k,
+                                 std::string& kernel_id)
 {
     // Select valid kernels based on alpha/beta case
     switch(problem.GetAlphaBetaCase())
@@ -521,7 +522,8 @@ bool RunParameterPredictionModel(const ExecutionContext& ctx,
             FillValidKernelsIDs<DeviceOpGWrw3DScalePtrs<DataType>, CKArgs<DataType>>(problem);
         break;
     default:
-        valid_kernels = FillValidKernelsIDs<DeviceOpGWrw3DPtrs<DataType>, CKArgs<DataType>>(problem);
+        valid_kernels =
+            FillValidKernelsIDs<DeviceOpGWrw3DPtrs<DataType>, CKArgs<DataType>>(problem);
         break;
     }
 
@@ -546,7 +548,7 @@ bool RunParameterPredictionModel(const ExecutionContext& ctx,
     // Use AI model to select best candidate
     try
     {
-        int best_idx = ai::tuning::ModelSelectBestCandidate(
+        int best_idx = ai::tuning::candidate_selection::ModelSelectBestCandidate(
             arch, solver, features, expanded_params);
 
         if(best_idx >= 0 && best_idx < static_cast<int>(mapping_pairs.size()))

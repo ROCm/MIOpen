@@ -87,40 +87,12 @@ struct Metadata
     Metadata(const std::string& arch, const std::string& solver);
 };
 
-// Forward declaration for CandidateSelectionMetadata
-class CandidateSelectionMetadata
-{
-public:
-    CandidateSelectionMetadata(const std::string& arch, const std::string& solver);
-    size_t GetInputParamIndex(const std::string& name) const;
-    size_t GetOutputParamIndex(const std::string& name) const;
-    std::optional<std::string> GetInputConstant(const std::string& name) const;
-    std::optional<std::string> GetOutputConstant(const std::string& name) const;
-    std::vector<size_t> GetConstantInputIndices() const;
-    std::vector<size_t> GetConstantOutputIndices() const;
-    std::vector<std::string> input_params;
-    std::vector<std::string> output_params;
-    std::unordered_map<std::string, size_t> input_param_indices;
-    std::unordered_map<std::string, size_t> output_param_indices;
-    std::unordered_map<std::string, std::unordered_map<std::string, size_t>> feature_encodings;
-    std::unordered_map<std::string, std::unordered_map<std::string, size_t>> sequence_encodings;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>> sequence_decodings;
-    std::unordered_map<std::string, std::string> constants_features;
-    std::unordered_map<std::string, std::string> constants_sequence;
-};
-
 bool ModelSetParams(const std::string& arch,
                     const std::string& solver,
                     conv::Direction direction,
                     const std::vector<float>& features,
                     bool transform_features,
                     std::function<bool(std::size_t, std::string)> validator);
-
-int ModelSelectBestCandidate(const std::string& arch,
-                             const std::string& solver,
-                             const std::vector<float>& features,
-                             const std::vector<std::vector<std::string>>& valid_kernel_params);
-
 } // namespace tuning
 #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
 } // namespace ai
