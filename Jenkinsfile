@@ -40,6 +40,7 @@ def get_branch_name(){
 def utils
 
 def withWorkingDir(Closure body) {
+    checkout scm
     dir("${env.WORKSPACE}/${env.REPO_DIR}") {
         body()
     }
@@ -66,6 +67,7 @@ CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 0 * * * % RUN_NIGHTLY_TESTS=true
 pipeline {
     agent none
     options {
+        skipDefaultCheckout()
         parallelsAlwaysFailFast()
         // disable stage-wise timeout due to long wait with queue (limited resources)
         // timeout(time: 90, unit:'MINUTES')
