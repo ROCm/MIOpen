@@ -24,6 +24,13 @@
  *
  *******************************************************************************/
 
+// This file implements AI-based heuristics for convolution solver and kernel tuning.
+// Sections:
+//   1. Includes
+//   2. Common utilities
+//   3. Immediate mode AI models
+//   4. Kernel tuning AI models (sequential prediction of kernel parameters)
+
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK || MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <fdeep/fdeep.hpp>

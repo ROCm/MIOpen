@@ -34,10 +34,14 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
+#include <miopen/conv/heuristics/ai_kernel_tuning_utils.hpp>
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
+#include <miopen/conv/heuristics/ai_candidate_selection.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)
 
 namespace miopen {
 namespace solver {
@@ -46,6 +50,21 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+
+template <typename DataType>
+using DeviceOpGWrw3DPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    DeviceOpGBwdWeightDefault<DataType>>;
+
+// Add these new template specializations for different alpha/beta cases
+template <typename DataType>
+using DeviceOpGWrw3DBilinearPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightBilinear<DataType>>;
+
+template <typename DataType>
+using DeviceOpGWrw3DScalePtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightScale<DataType>>;
 
 namespace {
 
@@ -109,20 +128,20 @@ struct CKArgs
         }
 
         filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
-                          ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                          ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+                            ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                            ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
         filter_dilations = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
                             ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
                             ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
         lPadding         = {ProblemInterpreter::GetInputLeftPadD(problem),
-                    ProblemInterpreter::GetInputLeftPadH(problem),
-                    ProblemInterpreter::GetInputLeftPadW(problem)};
+                            ProblemInterpreter::GetInputLeftPadH(problem),
+                            ProblemInterpreter::GetInputLeftPadW(problem)};
         rPadding         = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
-                    ProblemInterpreter::GetAdjustedInputRightPadH(problem),
-                    ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+                            ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+                            ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
     }
-    CKArgs(const CKArgs&) = default;
-    CKArgs(CKArgs&&)      = default;
+    CKArgs(const CKArgs&)            = default;
+    CKArgs(CKArgs&&)                 = default;
     CKArgs& operator=(const CKArgs&) = default;
 
     template <typename ConvPtr>
@@ -369,6 +388,78 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     kernel_id = "";
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    // Try AI heuristics first if enabled
+    if(!env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
+    {
+        bool ai_success = false;
+        // force DataType to float: TODO: figure out how to properly handle this.
+        using DataType = float;
+
+        // now capture it and use it in the FillValidKernelsIDs call
+        auto fill_valid_kernels =
+            [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
+            return miopen::solver::FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>,
+                                                       CKArgs<DataType>>(problem);
+        };
+        std::string solver_name = "DeviceGroupedConvBwdWeight";
+        switch(problem.GetInDataType())
+        {
+        // 3D conv heuristics are only valid for FP32, FP16, and BF16
+        case miopenHalf:
+            ai_success =
+                miopen::solver::conv::RunParameterPredictionModel<ck::half_t>(ExecutionContext{},
+                                                                              problem,
+                                                                              valid_kernels,
+                                                                              index,
+                                                                              split_k,
+                                                                              kernel_id,
+                                                                              fill_valid_kernels,
+                                                                              solver_name);
+            break;
+        case miopenFloat:
+            ai_success =
+                miopen::solver::conv::RunParameterPredictionModel<float>(ExecutionContext{},
+                                                                         problem,
+                                                                         valid_kernels,
+                                                                         index,
+                                                                         split_k,
+                                                                         kernel_id,
+                                                                         fill_valid_kernels,
+                                                                         solver_name);
+            break;
+        case miopenBFloat16:
+            ai_success =
+                miopen::solver::conv::RunParameterPredictionModel<ck::bhalf_t>(ExecutionContext{},
+                                                                               problem,
+                                                                               valid_kernels,
+                                                                               index,
+                                                                               split_k,
+                                                                               kernel_id,
+                                                                               fill_valid_kernels,
+                                                                               solver_name);
+            break;
+        case miopenInt64:
+        case miopenInt32:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
+        case miopenInt8:
+        case miopenDouble: break;
+        }
+
+        if(ai_success)
+        {
+            MIOPEN_LOG_I("AI heuristics successfully selected kernel: " << kernel_id);
+            return;
+        }
+        else
+        {
+            MIOPEN_LOG_I("AI heuristics failed, falling back to default initialization");
+        }
+    }
+#endif
+
+    // Fallback to original initialization
     switch(problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
