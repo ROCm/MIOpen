@@ -141,6 +141,276 @@ void TestEncodeKernelConfigs(const std::string& arch, const std::string& solver)
     }
 }
 
+void TestEncodeInputFeaturesEdgeCases(const std::string& arch, const std::string& solver)
+{
+    CandidateSelectionModel model(arch, solver);
+    CandidateSelectionMetadata meta(arch, solver);
+
+    // Edge case: empty input
+    try
+    {
+        std::vector<float> empty_features;
+        auto encoded = model.EncodeInputFeatures(empty_features);
+        std::cerr << "EncodeInputFeatures (empty input) did not throw!" << std::endl;
+        std::abort();
+    }
+    catch(const std::exception& ex)
+    {
+        std::cout << "EncodeInputFeatures (empty input) correctly threw: " << ex.what()
+                  << std::endl;
+    }
+
+    // Edge case: input smaller than expected
+    try
+    {
+        std::vector<float> short_features(
+            meta.input_params.size() > 0 ? meta.input_params.size() - 1 : 0, 1.0f);
+        auto encoded = model.EncodeInputFeatures(short_features);
+        std::cerr << "EncodeInputFeatures (short input) did not throw!" << std::endl;
+        std::abort();
+    }
+    catch(const std::exception& ex)
+    {
+        std::cout << "EncodeInputFeatures (short input) correctly threw: " << ex.what()
+                  << std::endl;
+    }
+
+    // Edge case: input larger than expected
+    try
+    {
+        std::vector<float> long_features(meta.input_params.size() + 1, 1.0f);
+        auto encoded = model.EncodeInputFeatures(long_features);
+        std::cerr << "EncodeInputFeatures (long input) did not throw!" << std::endl;
+        std::abort();
+    }
+    catch(const std::exception& ex)
+    {
+        std::cout << "EncodeInputFeatures (long input) correctly threw: " << ex.what() << std::endl;
+    }
+
+    // Input containing constants (if any constants are defined)
+    if(!meta.GetConstantInputIndices().empty())
+    {
+        std::vector<float> features(meta.input_params.size(), 1.0f);
+        for(auto idx : meta.GetConstantInputIndices())
+        {
+            if(idx < features.size())
+                features[idx] = 42.0f; // arbitrary constant value
+        }
+        try
+        {
+            auto encoded = model.EncodeInputFeatures(features);
+            std::cout << "EncodeInputFeatures (with constants) ran. Output size: " << encoded.size()
+                      << std::endl;
+            if(encoded.empty())
+            {
+                std::cerr << "EncodeInputFeatures (with constants) returned empty vector!"
+                          << std::endl;
+                std::abort();
+            }
+        }
+        catch(const std::exception& ex)
+        {
+            std::cerr << "EncodeInputFeatures (with constants) failed: " << ex.what() << std::endl;
+            std::abort();
+        }
+    }
+    else
+    {
+        std::cout << "No constants defined in metadata, skipping constant input test." << std::endl;
+    }
+}
+
+void TestEncodeKernelConfigsEdgeCases(const std::string& arch, const std::string& solver)
+{
+    CandidateSelectionModel model(arch, solver);
+    CandidateSelectionMetadata meta(arch, solver);
+
+    // Edge case: empty input
+    try
+    {
+        std::vector<std::vector<float>> empty_candidates;
+        auto encoded = model.EncodeKernelConfigs(empty_candidates);
+        std::cerr << "EncodeKernelConfigs (empty input) did not throw!" << std::endl;
+        std::abort();
+    }
+    catch(const std::exception& ex)
+    {
+        std::cout << "EncodeKernelConfigs (empty input) correctly threw: " << ex.what()
+                  << std::endl;
+    }
+
+    // Edge case: candidate with wrong size (too short)
+    try
+    {
+        std::vector<std::vector<float>> candidates(
+            1,
+            std::vector<float>(meta.output_params.size() > 0 ? meta.output_params.size() - 1 : 0,
+                               2.0f));
+        auto encoded = model.EncodeKernelConfigs(candidates);
+        std::cerr << "EncodeKernelConfigs (short candidate) did not throw!" << std::endl;
+        std::abort();
+    }
+    catch(const std::exception& ex)
+    {
+        std::cout << "EncodeKernelConfigs (short candidate) correctly threw: " << ex.what()
+                  << std::endl;
+    }
+
+    // Edge case: candidate with wrong size (too long)
+    try
+    {
+        std::vector<std::vector<float>> candidates(
+            1, std::vector<float>(meta.output_params.size() + 1, 2.0f));
+        auto encoded = model.EncodeKernelConfigs(candidates);
+        std::cerr << "EncodeKernelConfigs (long candidate) did not throw!" << std::endl;
+        std::abort();
+    }
+    catch(const std::exception& ex)
+    {
+        std::cout << "EncodeKernelConfigs (long candidate) correctly threw: " << ex.what()
+                  << std::endl;
+    }
+
+    // Candidates containing constants (if any constants are defined)
+    if(!meta.GetConstantOutputIndices().empty())
+    {
+        std::vector<std::vector<float>> candidates(
+            2, std::vector<float>(meta.output_params.size(), 2.0f));
+        for(auto idx : meta.GetConstantOutputIndices())
+        {
+            for(auto& candidate : candidates)
+            {
+                if(idx < candidate.size())
+                    candidate[idx] = 99.0f; // arbitrary constant value
+            }
+        }
+        try
+        {
+            auto encoded = model.EncodeKernelConfigs(candidates);
+            std::cout << "EncodeKernelConfigs (with constants) ran. Output count: "
+                      << encoded.size() << std::endl;
+            if(encoded.empty())
+            {
+                std::cerr << "EncodeKernelConfigs (with constants) returned empty vector!"
+                          << std::endl;
+                std::abort();
+            }
+        }
+        catch(const std::exception& ex)
+        {
+            std::cerr << "EncodeKernelConfigs (with constants) failed: " << ex.what() << std::endl;
+            std::abort();
+        }
+    }
+    else
+    {
+        std::cout << "No constants defined in metadata, skipping constant candidate test."
+                  << std::endl;
+    }
+}
+
+void TestSelectBestCandidateValid(const std::string& arch, const std::string& solver)
+{
+    try
+    {
+        CandidateSelectionModel model(arch, solver);
+
+        // Prepare dummy encoded features and configs
+        CandidateSelectionMetadata meta(arch, solver);
+        std::vector<float> features(meta.input_params.size(), 1.0f);
+        auto encoded_features = model.EncodeInputFeatures(features);
+
+        // Prepare 3 dummy configs, each with the correct size
+        std::vector<std::vector<float>> encoded_candidates(
+            3, std::vector<float>(meta.output_params.size(), 2.0f));
+        auto encoded_configs = model.EncodeKernelConfigs(encoded_candidates);
+
+        int idx = model.SelectBestCandidate(encoded_features, encoded_configs);
+        std::cout << "SelectBestCandidate (valid) returned: " << idx << std::endl;
+        if(idx < 0 || idx >= static_cast<int>(encoded_candidates.size()))
+        {
+            std::cerr << "SelectBestCandidate returned invalid index!" << std::endl;
+            std::abort();
+        }
+    }
+    catch(const std::exception& ex)
+    {
+        std::cerr << "SelectBestCandidate (valid) failed: " << ex.what() << std::endl;
+        std::abort();
+    }
+}
+
+void TestSelectBestCandidateMismatchedDims(const std::string& arch, const std::string& solver)
+{
+    try
+    {
+        CandidateSelectionModel model(arch, solver);
+
+        CandidateSelectionMetadata meta(arch, solver);
+        std::vector<float> features(meta.input_params.size(), 1.0f);
+        auto encoded_features = model.EncodeInputFeatures(features);
+
+        // Prepare configs with mismatched size
+        std::vector<std::vector<float>> encoded_candidates(
+            3, std::vector<float>(meta.output_params.size() + 1, 2.0f));
+        auto encoded_configs = encoded_candidates; // skip encoding for this test
+
+        // Should throw or abort
+        int idx = model.SelectBestCandidate(encoded_features, encoded_configs);
+        std::cerr << "SelectBestCandidate (mismatched dims) did not throw, returned: " << idx
+                  << std::endl;
+        std::abort();
+    }
+    catch(const std::exception& ex)
+    {
+        std::cout << "SelectBestCandidate (mismatched dims) correctly threw: " << ex.what()
+                  << std::endl;
+    }
+}
+
+void TestSelectBestCandidateEmptyInput(const std::string& arch, const std::string& solver)
+{
+    try
+    {
+        CandidateSelectionModel model(arch, solver);
+
+        std::vector<float> encoded_features;             // empty
+        std::vector<std::vector<float>> encoded_configs; // empty
+
+        int idx = model.SelectBestCandidate(encoded_features, encoded_configs);
+        std::cerr << "SelectBestCandidate (empty input) did not throw, returned: " << idx
+                  << std::endl;
+        std::abort();
+    }
+    catch(const std::exception& ex)
+    {
+        std::cout << "SelectBestCandidate (empty input) correctly threw: " << ex.what()
+                  << std::endl;
+    }
+}
+
+void TestModelCaching(const std::string& arch, const std::string& solver)
+{
+    try
+    {
+        auto model1 = GetCandidateSelectionModel(arch, solver);
+        auto model2 = GetCandidateSelectionModel(arch, solver);
+        if(model1.get() != model2.get())
+        {
+            std::cerr << "GetCandidateSelectionModel did not return the same cached object!"
+                      << std::endl;
+            std::abort();
+        }
+        std::cout << "GetCandidateSelectionModel caching test passed." << std::endl;
+    }
+    catch(const std::exception& ex)
+    {
+        std::cerr << "GetCandidateSelectionModel caching test failed: " << ex.what() << std::endl;
+        std::abort();
+    }
+}
+
 int main()
 {
     std::string arch   = "gfx942";
@@ -148,8 +418,16 @@ int main()
 
     TestFilesExist(arch, solver);
     TestMetadataAndModelInit(arch, solver);
+
     TestEncodeInputFeatures(arch, solver);
     TestEncodeKernelConfigs(arch, solver);
+    TestEncodeInputFeaturesEdgeCases(arch, solver);
+    TestEncodeKernelConfigsEdgeCases(arch, solver);
+
+    TestSelectBestCandidateValid(arch, solver);
+    TestSelectBestCandidateMismatchedDims(arch, solver);
+    TestSelectBestCandidateEmptyInput(arch, solver);
+    TestModelCaching(arch, solver);
 
     std::cout << "All tests passed.\n";
     return 0;
