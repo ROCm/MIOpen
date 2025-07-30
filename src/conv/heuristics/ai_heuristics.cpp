@@ -871,18 +871,30 @@ EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_cand
     std::string path =
         (GetSystemDbPath() / (arch + "_" + solver + "_kernel_config_encoder.tn.model")).string();
 
-    std::vector<std::vector<float>> result;
     const auto& model = GetFdeepModel(path, key);
 
-    // fdeep does not support batch processing, so process each candidate individually
+    // By default, use predict_multi (multi-threaded); use single-threaded loop only if env var is
+    // set
+    const char* use_single_env = std::getenv("MIOPEN_AI_FDEEP_USE_SINGLE_PREDICT");
+    bool use_single            = use_single_env && std::string(use_single_env) == "1";
+
+    std::vector<std::vector<float>> result;
+    std::vector<fdeep::tensors> inputs_vec;
+    inputs_vec.reserve(filtered_candidates.size());
     for(const auto& candidate : filtered_candidates)
     {
-        fdeep::tensor candidate_tensor(fdeep::tensor_shape(candidate.size()), candidate);
-        auto tensors = model.predict({candidate_tensor});
-        if(tensors.empty())
+        fdeep::tensor t(fdeep::tensor_shape(candidate.size()), candidate);
+        inputs_vec.push_back(fdeep::tensors{t}); // wrap tensor in a vector
+    }
+    auto outputs = model.predict_multi(inputs_vec, !use_single); // parallelly = !use_single
+    if(outputs.size() != inputs_vec.size())
+        MIOPEN_THROW(miopenStatusInternalError, "predict_multi returned wrong number of outputs");
+    for(const auto& out : outputs)
+    {
+        if(out.empty())
             MIOPEN_THROW(miopenStatusInternalError,
                          "Kernel config encoder returned empty tensor list");
-        result.push_back(tensors[0].to_vector());
+        result.push_back(out[0].to_vector());
     }
     return result;
 }
