@@ -31,12 +31,15 @@
 #include <algorithm>
 #include <miopen/conv/heuristics/ai_candidate_selection.hpp>
 #include <miopen/logger.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
+#include <miopen/conv/problem_description.hpp>
 
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 namespace miopen {
 namespace solver {
 namespace conv {
-
+using ProblemInterpreter = miopen::solver::ProblemInterpreter;
+using ProblemDescription = miopen::conv::ProblemDescription;
 // Helper: Extract 3D convolution features
 std::vector<float>
 GetFeatures3D(const ProblemDescription& problem, int max_cu, const std::string& arch)
