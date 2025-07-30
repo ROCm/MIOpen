@@ -40,42 +40,61 @@ namespace solver {
 namespace conv {
 using ProblemInterpreter = miopen::solver::ProblemInterpreter;
 using ProblemDescription = miopen::conv::ProblemDescription;
+
+int LayoutStringToCode(const std::string& layout)
+{
+    if(layout == "NCDHW")
+        return 0.0;
+    if(layout == "NDHWC")
+        return 1.0;
+    // Add more as needed
+    return -1.0; // Unknown
+}
+
 // Helper: Extract 3D convolution features
 std::vector<float>
-GetFeatures3D(const ProblemDescription& problem, int max_cu, const std::string& arch)
+GetFeatures3D(const ProblemDescription& problem, int /*max_cu*/, const std::string& /*arch*/)
 {
+    // TODO: take metadata as input to look up encoding of string features (e.g., layout)
+    // TODO: consider dynamically generating the features vector based on the values required by
+    // metadata.
     std::vector<float> features;
-    features.push_back(static_cast<float>(ProblemInterpreter::GetBatchN(problem)));
+    // 1–4: in_channels, in_d, in_h, in_w
     features.push_back(static_cast<float>(ProblemInterpreter::GetInputChannelC(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputChannelK(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetGroupCountG(problem)));
     features.push_back(static_cast<float>(ProblemInterpreter::GetInputDepthDi(problem)));
     features.push_back(static_cast<float>(ProblemInterpreter::GetInputHeightHi(problem)));
     features.push_back(static_cast<float>(ProblemInterpreter::GetInputWidthWi(problem)));
+    // 5–8: out_channels, out_d, out_h, out_w
+    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputChannelK(problem)));
     features.push_back(static_cast<float>(ProblemInterpreter::GetOutputDepthDo(problem)));
     features.push_back(static_cast<float>(ProblemInterpreter::GetOutputHeightHo(problem)));
     features.push_back(static_cast<float>(ProblemInterpreter::GetOutputWidthWo(problem)));
+    // 9–11: fil_d, fil_h, fil_w
     features.push_back(static_cast<float>(ProblemInterpreter::GetFilterDepthZ(problem)));
     features.push_back(static_cast<float>(ProblemInterpreter::GetFilterHeightY(problem)));
     features.push_back(static_cast<float>(ProblemInterpreter::GetFilterWidthX(problem)));
+    // 12–14: pad_d, pad_h, pad_w
+    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadD(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadH(problem)));
+    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadW(problem)));
+    // 15–17: conv_stride_d, conv_stride_h, conv_stride_w
     features.push_back(
         static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideD(problem)));
     features.push_back(
         static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideH(problem)));
     features.push_back(
         static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)));
+    // 18: batchsize
+    features.push_back(static_cast<float>(ProblemInterpreter::GetBatchN(problem)));
+    // 19–21: in_layout, fil_layout, out_layout
     features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionDilationD(problem)));
+        static_cast<float>(LayoutStringToCode(ProblemInterpreter::GetInputLayout(problem))));
     features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionDilationH(problem)));
+        static_cast<float>(LayoutStringToCode(ProblemInterpreter::GetFilterLayout(problem))));
     features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadD(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadH(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadW(problem)));
-    features.push_back(static_cast<float>(max_cu));
+        static_cast<float>(LayoutStringToCode(ProblemInterpreter::GetOutputLayout(problem))));
+    // 22: precision
     features.push_back(static_cast<float>(problem.GetInDataType()));
-    features.push_back(problem.IsLayoutNHWC() ? 1.0f : 0.0f);
     return features;
 }
 
