@@ -45,9 +45,21 @@ void TestFilesExist(const std::string& arch, const std::string& solver)
               << "  " << kernel_config_encoder << "\n"
               << "  " << metadata << std::endl;
 
-    assert(miopen::fs::exists(input_encoder) && "Input encoder file missing!");
-    assert(miopen::fs::exists(kernel_config_encoder) && "Kernel config encoder file missing!");
-    assert(miopen::fs::exists(metadata) && "Metadata file missing!");
+    if(!miopen::fs::exists(input_encoder))
+    {
+        std::cerr << "Input encoder file missing!" << std::endl;
+        std::abort();
+    }
+    if(!miopen::fs::exists(kernel_config_encoder))
+    {
+        std::cerr << "Kernel config encoder file missing!" << std::endl;
+        std::abort();
+    }
+    if(!miopen::fs::exists(metadata))
+    {
+        std::cerr << "Metadata file missing!" << std::endl;
+        std::abort();
+    }
 }
 
 void TestMetadataAndModelInit(const std::string& arch, const std::string& solver)
@@ -62,7 +74,7 @@ void TestMetadataAndModelInit(const std::string& arch, const std::string& solver
     catch(const std::exception& ex)
     {
         std::cerr << "Initialization failed: " << ex.what() << std::endl;
-        assert(false && "Initialization of metadata/model failed!");
+        std::abort();
     }
 }
 
@@ -79,23 +91,65 @@ void TestEncodeInputFeatures(const std::string& arch, const std::string& solver)
         auto encoded = model.EncodeInputFeatures(features);
         std::cout << "EncodeInputFeatures ran successfully. Output vector size: " << encoded.size()
                   << "\n";
-        assert(!encoded.empty() && "EncodeInputFeatures returned empty vector!");
+        if(encoded.empty())
+        {
+            std::cerr << "EncodeInputFeatures returned empty vector!" << std::endl;
+            std::abort();
+        }
     }
     catch(const std::exception& ex)
     {
         std::cerr << "EncodeInputFeatures failed: " << ex.what() << std::endl;
-        assert(false && "EncodeInputFeatures failed!");
+        std::abort();
+    }
+}
+
+void TestEncodeKernelConfigs(const std::string& arch, const std::string& solver)
+{
+    try
+    {
+        CandidateSelectionModel model(arch, solver);
+
+        // Prepare dummy encoded candidates: 100 candidates, each with the correct feature size
+        CandidateSelectionMetadata meta(arch, solver);
+        size_t feature_size = meta.output_params.size();
+        std::vector<std::vector<float>> encoded_candidates(100,
+                                                           std::vector<float>(feature_size, 2.0f));
+
+        auto encoded = model.EncodeKernelConfigs(encoded_candidates);
+        std::cout << "EncodeKernelConfigs ran successfully. Output vector count: " << encoded.size()
+                  << ", each of size: " << (encoded.empty() ? 0 : encoded[0].size()) << "\n";
+        if(encoded.empty())
+        {
+            std::cerr << "EncodeKernelConfigs returned empty vector!" << std::endl;
+            std::abort();
+        }
+        for(const auto& vec : encoded)
+        {
+            if(vec.empty())
+            {
+                std::cerr << "EncodeKernelConfigs returned a candidate with empty vector!"
+                          << std::endl;
+                std::abort();
+            }
+        }
+    }
+    catch(const std::exception& ex)
+    {
+        std::cerr << "EncodeKernelConfigs failed: " << ex.what() << std::endl;
+        std::abort();
     }
 }
 
 int main()
 {
     std::string arch   = "gfx942";
-    std::string solver = "conv_hip_implicit_gemm_3d_grouped_wrw_xdlops";
+    std::string solver = "ConvHipImplicitGemm3DGroupWrwXdlops";
 
     TestFilesExist(arch, solver);
     TestMetadataAndModelInit(arch, solver);
     TestEncodeInputFeatures(arch, solver);
+    TestEncodeKernelConfigs(arch, solver);
 
     std::cout << "All tests passed.\n";
     return 0;
