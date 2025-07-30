@@ -73,14 +73,13 @@ void TestEncodeInputFeatures(const std::string& arch, const std::string& solver)
         CandidateSelectionModel model(arch, solver);
 
         // Prepare a dummy feature vector of the correct size
-        // Use the number of input_params from metadata as a guide
         CandidateSelectionMetadata meta(arch, solver);
         std::vector<float> features(meta.input_params.size(), 1.0f);
 
         auto encoded = model.EncodeInputFeatures(features);
-        std::cout << "EncodeInputFeatures ran successfully. Output tensor count: " << encoded.size()
+        std::cout << "EncodeInputFeatures ran successfully. Output vector size: " << encoded.size()
                   << "\n";
-        assert(!encoded.empty() && "EncodeInputFeatures returned empty tensor list!");
+        assert(!encoded.empty() && "EncodeInputFeatures returned empty vector!");
     }
     catch(const std::exception& ex)
     {

@@ -794,6 +794,102 @@ bool ModelSetParams(const std::string& arch,
     return true;
 }
 
+namespace candidate_selection {
+
+// Helper to load and cache fdeep models
+const fdeep::model& GetFdeepModel(const std::string& path, const std::string& key)
+{
+    static std::map<std::string, std::shared_ptr<fdeep::model>> models;
+    auto it = models.find(key);
+    if(it == models.end())
+    {
+        if(!fs::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load model file: " + path);
+        auto model =
+            std::make_shared<fdeep::model>(fdeep::load_model(path, true, fdeep::dev_null_logger));
+        models[key] = model;
+        return *model;
+    }
+    return *(it->second);
+}
+
+std::vector<float> EncodeInputFeaturesWithFdeep(const std::vector<float>& features,
+                                                const std::string& arch,
+                                                const std::string& solver,
+                                                const std::vector<size_t>& drop_indices)
+{
+    std::vector<float> filtered_features;
+    filtered_features.reserve(features.size() - drop_indices.size());
+    for(size_t i = 0, j = 0; i < features.size(); ++i)
+    {
+        if(j < drop_indices.size() && i == drop_indices[j])
+        {
+            ++j;
+            continue;
+        }
+        filtered_features.push_back(features[i]);
+    }
+    fdeep::tensor input_tensor(fdeep::tensor_shape(filtered_features.size()), filtered_features);
+    std::string key = arch + "_" + solver + "_input_encoder";
+    std::string path =
+        (GetSystemDbPath() / (arch + "_" + solver + "_input_encoder.tn.model")).string();
+    auto tensors = GetFdeepModel(path, key).predict({input_tensor});
+    if(tensors.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "Input encoder returned empty tensor list");
+    return tensors[0].to_vector();
+}
+
+std::vector<std::vector<float>>
+EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_candidates,
+                             const std::string& arch,
+                             const std::string& solver,
+                             const std::vector<size_t>& drop_indices)
+{
+    std::vector<std::vector<float>> filtered_candidates;
+    filtered_candidates.reserve(encoded_candidates.size());
+    for(const auto& candidate : encoded_candidates)
+    {
+        std::vector<float> filtered;
+        filtered.reserve(candidate.size() - drop_indices.size());
+        for(size_t i = 0, j = 0; i < candidate.size(); ++i)
+        {
+            if(j < drop_indices.size() && i == drop_indices[j])
+            {
+                ++j;
+                continue;
+            }
+            filtered.push_back(candidate[i]);
+        }
+        filtered_candidates.push_back(filtered);
+    }
+    std::vector<float> flattened_candidates;
+    for(const auto& candidate : filtered_candidates)
+        flattened_candidates.insert(flattened_candidates.end(), candidate.begin(), candidate.end());
+    if(filtered_candidates.empty() || filtered_candidates[0].empty())
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Empty candidates provided to kernel config encoder");
+    fdeep::tensor candidates_tensor(
+        fdeep::tensor_shape(encoded_candidates.size(), encoded_candidates[0].size()),
+        flattened_candidates);
+    std::string key = arch + "_" + solver + "_kernel_config_encoder";
+    std::string path =
+        (GetSystemDbPath() / (arch + "_" + solver + "_kernel_config_encoder.tn.model")).string();
+    auto tensors = GetFdeepModel(path, key).predict({candidates_tensor});
+    if(tensors.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "Kernel config encoder returned empty tensor list");
+    const auto& output_tensor = tensors[0];
+    const auto& shape         = output_tensor.shape();
+    std::vector<std::vector<float>> result;
+    auto flat             = output_tensor.to_vector();
+    size_t num_candidates = shape.rank() > 0 ? shape.dimensions()[0] : 0;
+    size_t candidate_dim  = shape.rank() > 1 ? shape.dimensions()[1] : flat.size();
+    for(size_t i = 0; i < num_candidates; ++i)
+        result.emplace_back(flat.begin() + i * candidate_dim,
+                            flat.begin() + (i + 1) * candidate_dim);
+    return result;
+}
+} // namespace candidate_selection
+
 } // namespace tuning
 #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
 } // namespace ai

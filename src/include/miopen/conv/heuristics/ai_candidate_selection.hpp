@@ -29,11 +29,24 @@
 #include <string>
 #include <memory>
 #include <optional>
+#include <unordered_map>
 
 namespace miopen {
 namespace ai {
 namespace tuning {
 namespace candidate_selection {
+
+// Forward declarations for the helpers implemented in ai_heuristics.cpp
+std::vector<float> EncodeInputFeaturesWithFdeep(const std::vector<float>& features,
+                                                const std::string& arch,
+                                                const std::string& solver,
+                                                const std::vector<size_t>& drop_indices);
+
+std::vector<std::vector<float>>
+EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_candidates,
+                             const std::string& arch,
+                             const std::string& solver,
+                             const std::vector<size_t>& drop_indices);
 
 class CandidateSelectionMetadata
 {
@@ -47,6 +60,16 @@ public:
     std::vector<size_t> GetConstantOutputIndices() const;
     std::vector<std::string> input_params;
     std::vector<std::string> output_params;
+
+    // Internal mappings and encodings
+    std::unordered_map<std::string, size_t> input_param_indices;
+    std::unordered_map<std::string, size_t> output_param_indices;
+    std::unordered_map<std::string, std::unordered_map<std::string, int>> feature_encodings;
+    std::unordered_map<std::string, std::unordered_map<std::string, int>> sequence_encodings;
+    std::unordered_map<std::string, std::unordered_map<std::string, std::string>>
+        sequence_decodings;
+    std::unordered_map<std::string, std::string> constants_features;
+    std::unordered_map<std::string, std::string> constants_sequence;
 };
 
 class CandidateSelectionModel
@@ -55,11 +78,16 @@ public:
     CandidateSelectionMetadata metadata;
     CandidateSelectionModel(const std::string& arch, const std::string& solver);
     ~CandidateSelectionModel();
+
     std::vector<float> EncodeInputFeatures(const std::vector<float>& features) const;
     std::vector<std::vector<float>>
     EncodeKernelConfigs(const std::vector<std::vector<float>>& encoded_candidates) const;
     int SelectBestCandidate(const std::vector<float>& encoded_features,
                             const std::vector<std::vector<float>>& encoded_configs) const;
+
+private:
+    std::string arch_;
+    std::string solver_;
 };
 
 std::shared_ptr<CandidateSelectionModel> GetCandidateSelectionModel(const std::string& arch,
