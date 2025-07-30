@@ -26,7 +26,7 @@
  * general AI-related code for kernel tuning and heuristics. To be called in the
  * solver-specific code.
  *******************************************************************************/
-#include <miopen/conv/heuristics/ai_kernel_tuning_utils.hpp>
+#include <miopen/conv/heuristics/ai_conv_3d_kernel_tuning_utils.hpp>
 #include <sstream>
 #include <algorithm>
 #include <miopen/conv/heuristics/ai_candidate_selection.hpp>

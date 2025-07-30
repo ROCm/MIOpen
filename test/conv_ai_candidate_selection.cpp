@@ -32,6 +32,7 @@
 
 using namespace miopen::ai::tuning::candidate_selection;
 
+// basic test functions for candidate selection model and metadata
 void TestFilesExist(const std::string& arch, const std::string& solver)
 {
     auto db_path       = miopen::GetSystemDbPath();
@@ -77,6 +78,47 @@ void TestMetadataAndModelInit(const std::string& arch, const std::string& solver
         std::abort();
     }
 }
+
+// tests specific to the metadata class
+// void TestMetadataConstants(const std::string& arch, const std::string& solver)
+// {
+//     CandidateSelectionMetadata meta(arch, solver);
+
+//     std::cout << "Testing metadata constants for arch=" << arch << ", solver=" << solver
+//               << std::endl;
+
+//     // Print loaded constants
+//     std::cout << "constants_features.size(): " << meta.constants_features.size() << std::endl;
+//     std::cout << "constants_sequence.size(): " << meta.constants_sequence.size() << std::endl;
+
+//     // Print indices
+//     auto input_indices  = meta.GetConstantInputIndices();
+//     auto output_indices = meta.GetConstantOutputIndices();
+
+//     std::cout << "GetConstantInputIndices(): ";
+//     for(auto idx : input_indices)
+//         std::cout << idx << " ";
+//     std::cout << std::endl;
+
+//     std::cout << "GetConstantOutputIndices(): ";
+//     for(auto idx : output_indices)
+//         std::cout << idx << " ";
+//     std::cout << std::endl;
+
+//     // Fail if constants exist but indices are empty
+//     if(!meta.constants_features.empty() && input_indices.empty())
+//     {
+//         std::cerr << "constants_features present but GetConstantInputIndices() is empty!"
+//                   << std::endl;
+//         std::abort();
+//     }
+//     if(!meta.constants_sequence.empty() && output_indices.empty())
+//     {
+//         std::cerr << "constants_sequence present but GetConstantOutputIndices() is empty!"
+//                   << std::endl;
+//         std::abort();
+//     }
+// }
 
 void TestEncodeInputFeatures(const std::string& arch, const std::string& solver)
 {
@@ -416,18 +458,24 @@ int main()
     std::string arch   = "gfx942";
     std::string solver = "ConvHipImplicitGemm3DGroupWrwXdlops";
 
+    // general setup and metadata tests
     TestFilesExist(arch, solver);
     TestMetadataAndModelInit(arch, solver);
 
+    // specific tests for metadata
+
+    // model caching test
+    TestModelCaching(arch, solver);
+    // specific tests for model encoding
     TestEncodeInputFeatures(arch, solver);
     TestEncodeKernelConfigs(arch, solver);
     TestEncodeInputFeaturesEdgeCases(arch, solver);
     TestEncodeKernelConfigsEdgeCases(arch, solver);
 
+    // specific tests for candidate selection
     TestSelectBestCandidateValid(arch, solver);
     TestSelectBestCandidateMismatchedDims(arch, solver);
     TestSelectBestCandidateEmptyInput(arch, solver);
-    TestModelCaching(arch, solver);
 
     std::cout << "All tests passed.\n";
     return 0;
