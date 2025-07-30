@@ -862,30 +862,28 @@ EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_cand
         }
         filtered_candidates.push_back(filtered);
     }
-    std::vector<float> flattened_candidates;
-    for(const auto& candidate : filtered_candidates)
-        flattened_candidates.insert(flattened_candidates.end(), candidate.begin(), candidate.end());
+
     if(filtered_candidates.empty() || filtered_candidates[0].empty())
         MIOPEN_THROW(miopenStatusInternalError,
                      "Empty candidates provided to kernel config encoder");
-    fdeep::tensor candidates_tensor(
-        fdeep::tensor_shape(encoded_candidates.size(), encoded_candidates[0].size()),
-        flattened_candidates);
+
     std::string key = arch + "_" + solver + "_kernel_config_encoder";
     std::string path =
         (GetSystemDbPath() / (arch + "_" + solver + "_kernel_config_encoder.tn.model")).string();
-    auto tensors = GetFdeepModel(path, key).predict({candidates_tensor});
-    if(tensors.empty())
-        MIOPEN_THROW(miopenStatusInternalError, "Kernel config encoder returned empty tensor list");
-    const auto& output_tensor = tensors[0];
-    const auto& shape         = output_tensor.shape();
+
     std::vector<std::vector<float>> result;
-    auto flat             = output_tensor.to_vector();
-    size_t num_candidates = shape.rank() > 0 ? shape.dimensions()[0] : 0;
-    size_t candidate_dim  = shape.rank() > 1 ? shape.dimensions()[1] : flat.size();
-    for(size_t i = 0; i < num_candidates; ++i)
-        result.emplace_back(flat.begin() + i * candidate_dim,
-                            flat.begin() + (i + 1) * candidate_dim);
+    const auto& model = GetFdeepModel(path, key);
+
+    // fdeep does not support batch processing, so process each candidate individually
+    for(const auto& candidate : filtered_candidates)
+    {
+        fdeep::tensor candidate_tensor(fdeep::tensor_shape(candidate.size()), candidate);
+        auto tensors = model.predict({candidate_tensor});
+        if(tensors.empty())
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Kernel config encoder returned empty tensor list");
+        result.push_back(tensors[0].to_vector());
+    }
     return result;
 }
 } // namespace candidate_selection
