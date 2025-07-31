@@ -368,17 +368,17 @@ void TestSelectBestCandidateValid(const std::string& arch, const std::string& so
             3, std::vector<float>(meta.output_params().size(), 2.0f));
         auto encoded_configs = model.EncodeKernelConfigs(encoded_candidates);
 
-        int idx = model.SelectBestCandidate(encoded_features, encoded_configs);
-        std::cout << "SelectBestCandidate (valid) returned: " << idx << std::endl;
+        int idx = model.SelectBestCandidateIdx(encoded_features, encoded_configs);
+        std::cout << "SelectBestCandidateIdx (valid) returned: " << idx << std::endl;
         if(idx < 0 || idx >= static_cast<int>(encoded_candidates.size()))
         {
-            std::cerr << "SelectBestCandidate returned invalid index!" << std::endl;
+            std::cerr << "SelectBestCandidateIdx returned invalid index!" << std::endl;
             std::abort();
         }
     }
     catch(const std::exception& ex)
     {
-        std::cerr << "SelectBestCandidate (valid) failed: " << ex.what() << std::endl;
+        std::cerr << "SelectBestCandidateIdx (valid) failed: " << ex.what() << std::endl;
         std::abort();
     }
 }
@@ -399,14 +399,14 @@ void TestSelectBestCandidateMismatchedDims(const std::string& arch, const std::s
         auto encoded_configs = encoded_candidates; // skip encoding for this test
 
         // Should throw or abort
-        int idx = model.SelectBestCandidate(encoded_features, encoded_configs);
-        std::cerr << "SelectBestCandidate (mismatched dims) did not throw, returned: " << idx
+        int idx = model.SelectBestCandidateIdx(encoded_features, encoded_configs);
+        std::cerr << "SelectBestCandidateIdx (mismatched dims) did not throw, returned: " << idx
                   << std::endl;
         std::abort();
     }
     catch(const std::exception& ex)
     {
-        std::cout << "SelectBestCandidate (mismatched dims) correctly threw: " << ex.what()
+        std::cout << "SelectBestCandidateIdx (mismatched dims) correctly threw: " << ex.what()
                   << std::endl;
     }
 }
@@ -420,14 +420,14 @@ void TestSelectBestCandidateEmptyInput(const std::string& arch, const std::strin
         std::vector<float> encoded_features;             // empty
         std::vector<std::vector<float>> encoded_configs; // empty
 
-        int idx = model.SelectBestCandidate(encoded_features, encoded_configs);
-        std::cerr << "SelectBestCandidate (empty input) did not throw, returned: " << idx
+        int idx = model.SelectBestCandidateIdx(encoded_features, encoded_configs);
+        std::cerr << "SelectBestCandidateIdx (empty input) did not throw, returned: " << idx
                   << std::endl;
         std::abort();
     }
     catch(const std::exception& ex)
     {
-        std::cout << "SelectBestCandidate (empty input) correctly threw: " << ex.what()
+        std::cout << "SelectBestCandidateIdx (empty input) correctly threw: " << ex.what()
                   << std::endl;
     }
 }
@@ -436,9 +436,9 @@ void TestModelCaching(const std::string& arch, const std::string& solver)
 {
     try
     {
-        auto model1 = GetCandidateSelectionModel(arch, solver);
-        auto model2 = GetCandidateSelectionModel(arch, solver);
-        if(model1.get() != model2.get())
+        auto& model1 = GetCandidateSelectionModel(arch, solver);
+        auto& model2 = GetCandidateSelectionModel(arch, solver);
+        if(&model1 != &model2)
         {
             std::cerr << "GetCandidateSelectionModel did not return the same cached object!"
                       << std::endl;

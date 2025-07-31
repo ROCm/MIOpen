@@ -41,6 +41,7 @@
 #include <optional>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <stdexcept>
 
 namespace miopen {
@@ -76,11 +77,19 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
         sequence_encodings_ =
             metadata["encodings"].value("outputs", decltype(sequence_encodings_){});
     }
+    else
+    {
+        MIOPEN_THROW("Metadata file does not contain 'encodings' section");
+    }
 
     if(metadata.contains("decodings") && metadata["decodings"].contains("outputs"))
     {
         sequence_decodings_ = metadata["decodings"]["outputs"]
                                   .get<std::map<std::string, std::map<std::string, std::string>>>();
+    }
+    else
+    {
+        MIOPEN_THROW("Metadata file does not contain 'decodings' section for outputs");
     }
 
     if(metadata.contains("constants"))
@@ -89,6 +98,10 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
             metadata["constants"].value("inputs", decltype(constants_features_){});
         constants_sequence_ =
             metadata["constants"].value("outputs", decltype(constants_sequence_){});
+    }
+    else
+    {
+        MIOPEN_THROW("Metadata file does not contain 'constants' section");
     }
 }
 
@@ -155,7 +168,7 @@ std::vector<size_t> CandidateSelectionMetadata::GetConstantOutputIndices() const
 // --- CandidateSelectionModel ------------------------------------------------
 
 CandidateSelectionModel::CandidateSelectionModel(const std::string& arch, const std::string& solver)
-    : metadata(arch, solver), arch_(arch), solver_(solver)
+    : metadata_(arch, solver), arch_(arch), solver_(solver)
 {
 }
 
@@ -165,23 +178,24 @@ std::vector<float>
 CandidateSelectionModel::EncodeInputFeatures(const std::vector<float>& features) const
 {
     return EncodeInputFeaturesWithFdeep(
-        features, arch_, solver_, metadata.GetConstantInputIndices());
+        features, arch_, solver_, std::move(metadata_.GetConstantInputIndices()));
 }
 
 std::vector<std::vector<float>> CandidateSelectionModel::EncodeKernelConfigs(
     const std::vector<std::vector<float>>& encoded_candidates) const
 {
     return EncodeKernelConfigsWithFdeep(
-        encoded_candidates, arch_, solver_, metadata.GetConstantOutputIndices());
+        encoded_candidates, arch_, solver_, std::move(metadata_.GetConstantOutputIndices()));
 }
 
-int CandidateSelectionModel::SelectBestCandidate(
+int CandidateSelectionModel::SelectBestCandidateIdx(
     const std::vector<float>& encoded_features,
     const std::vector<std::vector<float>>& encoded_configs) const
 {
     if(encoded_configs.empty() || encoded_features.empty())
     {
-        MIOPEN_THROW(miopenStatusInternalError, "Empty features or configs in SelectBestCandidate");
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Empty features or configs in SelectBestCandidateIdx");
     }
 
     size_t feature_dim    = encoded_features.size();
@@ -193,7 +207,7 @@ int CandidateSelectionModel::SelectBestCandidate(
     {
         if(encoded_configs[i].size() != feature_dim)
             MIOPEN_THROW(miopenStatusInternalError,
-                         "Config dimension mismatch in SelectBestCandidate");
+                         "Config dimension mismatch in SelectBestCandidateIdx");
         selection_scores[i] = std::inner_product(
             encoded_configs[i].begin(), encoded_configs[i].end(), encoded_features.begin(), 0.0f);
     }
@@ -204,23 +218,17 @@ int CandidateSelectionModel::SelectBestCandidate(
 
 // --- Factory and Helper Functions -------------------------------------------
 
-std::shared_ptr<CandidateSelectionModel> GetCandidateSelectionModel(const std::string& arch,
-                                                                    const std::string& solver)
+const CandidateSelectionModel& GetCandidateSelectionModel(const std::string& arch,
+                                                          const std::string& solver)
 {
-    static std::map<std::string, std::shared_ptr<CandidateSelectionModel>> models;
+    static std::map<std::string, std::unique_ptr<CandidateSelectionModel>> models;
+    static std::mutex models_mutex;
     std::string key = arch + "_" + solver;
-    auto it         = models.find(key);
-    if(it == models.end())
-    {
-        std::shared_ptr<CandidateSelectionModel> model =
-            std::make_shared<CandidateSelectionModel>(arch, solver);
-        models[key] = model;
-        return model;
-    }
-    else
-    {
-        return it->second;
-    }
+
+    std::lock_guard<std::mutex> lock(models_mutex);
+    auto [it, inserted] =
+        models.try_emplace(key, std::make_unique<CandidateSelectionModel>(arch, solver));
+    return *(it->second);
 }
 
 std::vector<std::vector<float>>
@@ -275,7 +283,7 @@ int ModelSelectBestCandidate(const std::string& arch,
     {
         auto model = GetCandidateSelectionModel(arch, solver);
 
-        auto encoded_candidates = EncodeKernelParams(valid_kernel_params, model->metadata);
+        auto encoded_candidates = EncodeKernelParams(valid_kernel_params, model.metadata());
 
         if(encoded_candidates.empty())
         {
@@ -283,10 +291,10 @@ int ModelSelectBestCandidate(const std::string& arch,
             return -1;
         }
 
-        auto encoded_features = model->EncodeInputFeatures(features);
-        auto encoded_configs  = model->EncodeKernelConfigs(encoded_candidates);
+        auto encoded_features = model.EncodeInputFeatures(features);
+        auto encoded_configs  = model.EncodeKernelConfigs(encoded_candidates);
 
-        int best_idx = model->SelectBestCandidate(encoded_features, encoded_configs);
+        int best_idx = model.SelectBestCandidateIdx(encoded_features, encoded_configs);
 
         if(best_idx >= 0 && best_idx < static_cast<int>(valid_kernel_params.size()))
         {

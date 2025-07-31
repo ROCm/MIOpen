@@ -40,13 +40,13 @@ namespace candidate_selection {
 std::vector<float> EncodeInputFeaturesWithFdeep(const std::vector<float>& features,
                                                 const std::string& arch,
                                                 const std::string& solver,
-                                                const std::vector<size_t>& drop_indices);
+                                                const std::vector<size_t>&& drop_indices);
 
 std::vector<std::vector<float>>
 EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_candidates,
                              const std::string& arch,
                              const std::string& solver,
-                             const std::vector<size_t>& drop_indices);
+                             const std::vector<size_t>&& drop_indices);
 
 class CandidateSelectionMetadata
 {
@@ -82,23 +82,24 @@ private:
 class CandidateSelectionModel
 {
 public:
-    CandidateSelectionMetadata metadata;
     CandidateSelectionModel(const std::string& arch, const std::string& solver);
     ~CandidateSelectionModel();
 
     std::vector<float> EncodeInputFeatures(const std::vector<float>& features) const;
     std::vector<std::vector<float>>
     EncodeKernelConfigs(const std::vector<std::vector<float>>& encoded_candidates) const;
-    int SelectBestCandidate(const std::vector<float>& encoded_features,
-                            const std::vector<std::vector<float>>& encoded_configs) const;
+    int SelectBestCandidateIdx(const std::vector<float>& encoded_features,
+                               const std::vector<std::vector<float>>& encoded_configs) const;
+    const CandidateSelectionMetadata& metadata() const { return metadata_; }
 
 private:
+    CandidateSelectionMetadata metadata_;
     std::string arch_;
     std::string solver_;
 };
 
-std::shared_ptr<CandidateSelectionModel> GetCandidateSelectionModel(const std::string& arch,
-                                                                    const std::string& solver);
+const CandidateSelectionModel& GetCandidateSelectionModel(const std::string& arch,
+                                                          const std::string& solver);
 
 std::vector<std::vector<float>>
 EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_params,

@@ -816,7 +816,7 @@ const fdeep::model& GetFdeepModel(const std::string& path, const std::string& ke
 std::vector<float> EncodeInputFeaturesWithFdeep(const std::vector<float>& features,
                                                 const std::string& arch,
                                                 const std::string& solver,
-                                                const std::vector<size_t>& drop_indices)
+                                                const std::vector<size_t>&& drop_indices)
 {
     std::vector<float> filtered_features;
     filtered_features.reserve(features.size() - drop_indices.size());
@@ -843,7 +843,7 @@ std::vector<std::vector<float>>
 EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_candidates,
                              const std::string& arch,
                              const std::string& solver,
-                             const std::vector<size_t>& drop_indices)
+                             const std::vector<size_t>&& drop_indices)
 {
     std::vector<std::vector<float>> filtered_candidates;
     filtered_candidates.reserve(encoded_candidates.size());
