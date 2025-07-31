@@ -453,6 +453,33 @@ void TestModelCaching(const std::string& arch, const std::string& solver)
     }
 }
 
+void TestModelSelectBestCandidate(const std::string& arch, const std::string& solver)
+{
+    try
+    {
+        CandidateSelectionMetadata meta(arch, solver);
+        // Prepare dummy features and kernel params
+        std::vector<float> features(meta.input_params().size(), 1.0f);
+
+        // Prepare 3 dummy kernel param sets, each with the correct number of output params
+        std::vector<std::vector<std::string>> valid_kernel_params(
+            3, std::vector<std::string>(meta.output_params().size(), "2"));
+
+        int idx = ModelSelectBestCandidate(arch, solver, features, valid_kernel_params);
+        std::cout << "ModelSelectBestCandidate returned: " << idx << std::endl;
+        if(idx < 0 || idx >= static_cast<int>(valid_kernel_params.size()))
+        {
+            std::cerr << "ModelSelectBestCandidate returned invalid index!" << std::endl;
+            std::abort();
+        }
+    }
+    catch(const std::exception& ex)
+    {
+        std::cerr << "ModelSelectBestCandidate test failed: " << ex.what() << std::endl;
+        std::abort();
+    }
+}
+
 int main()
 {
     std::string arch   = "gfx942";
@@ -476,6 +503,9 @@ int main()
     TestSelectBestCandidateValid(arch, solver);
     TestSelectBestCandidateMismatchedDims(arch, solver);
     TestSelectBestCandidateEmptyInput(arch, solver);
+
+    // test the full model selection function
+    TestModelSelectBestCandidate(arch, solver);
 
     std::cout << "All tests passed.\n";
     return 0;
