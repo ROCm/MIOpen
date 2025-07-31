@@ -247,11 +247,11 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
             const std::string& param_name  = output_params[i];
             const std::string& param_value = candidate[i];
 
-            auto enc_it = sequence_encodings.find(param_name);
+            const auto enc_it = sequence_encodings.find(param_name);
             if(enc_it != sequence_encodings.end())
             {
                 const auto& value_map = enc_it->second;
-                auto val_it           = value_map.find(param_value);
+                const auto val_it     = value_map.find(param_value);
                 if(val_it != value_map.end())
                 {
                     encoded.push_back(static_cast<float>(val_it->second));
@@ -281,9 +281,9 @@ int ModelSelectBestCandidate(const std::string& arch,
 {
     try
     {
-        auto model = GetCandidateSelectionModel(arch, solver);
+        const auto& model = GetCandidateSelectionModel(arch, solver);
 
-        auto encoded_candidates = EncodeKernelParams(valid_kernel_params, model.metadata());
+        const auto& encoded_candidates = EncodeKernelParams(valid_kernel_params, model.metadata());
 
         if(encoded_candidates.empty())
         {
@@ -291,10 +291,10 @@ int ModelSelectBestCandidate(const std::string& arch,
             return -1;
         }
 
-        auto encoded_features = model.EncodeInputFeatures(features);
-        auto encoded_configs  = model.EncodeKernelConfigs(encoded_candidates);
+        const auto& encoded_features = model.EncodeInputFeatures(features);
+        const auto& encoded_configs  = model.EncodeKernelConfigs(encoded_candidates);
 
-        int best_idx = model.SelectBestCandidateIdx(encoded_features, encoded_configs);
+        const int best_idx = model.SelectBestCandidateIdx(encoded_features, encoded_configs);
 
         if(best_idx >= 0 && best_idx < static_cast<int>(valid_kernel_params.size()))
         {
