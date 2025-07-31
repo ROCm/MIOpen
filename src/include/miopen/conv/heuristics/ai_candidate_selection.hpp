@@ -29,7 +29,7 @@
 #include <string>
 #include <memory>
 #include <optional>
-#include <unordered_map>
+#include <map>
 
 namespace miopen {
 namespace ai {
@@ -58,18 +58,25 @@ public:
     std::optional<std::string> GetOutputConstant(const std::string& name) const;
     std::vector<size_t> GetConstantInputIndices() const;
     std::vector<size_t> GetConstantOutputIndices() const;
-    std::vector<std::string> input_params;
-    std::vector<std::string> output_params;
+    // Getter functions for private members
+    const std::vector<std::string>& input_params() const { return input_params_; }
+    const std::vector<std::string>& output_params() const { return output_params_; }
+    const std::map<std::string, std::map<std::string, int>>& sequence_encodings() const
+    {
+        return sequence_encodings_;
+    }
 
+private:
     // Internal mappings and encodings
-    std::unordered_map<std::string, size_t> input_param_indices;
-    std::unordered_map<std::string, size_t> output_param_indices;
-    std::unordered_map<std::string, std::unordered_map<std::string, int>> feature_encodings;
-    std::unordered_map<std::string, std::unordered_map<std::string, int>> sequence_encodings;
-    std::unordered_map<std::string, std::unordered_map<std::string, std::string>>
-        sequence_decodings;
-    std::unordered_map<std::string, std::string> constants_features;
-    std::unordered_map<std::string, std::string> constants_sequence;
+    std::vector<std::string> input_params_;
+    std::vector<std::string> output_params_;
+    std::map<std::string, std::map<std::string, int>> sequence_encodings_;
+    std::map<std::string, size_t> input_param_indices_;
+    std::map<std::string, size_t> output_param_indices_;
+    std::map<std::string, std::map<std::string, int>> feature_encodings_;
+    std::map<std::string, std::map<std::string, std::string>> sequence_decodings_;
+    std::map<std::string, std::string> constants_features_;
+    std::map<std::string, std::string> constants_sequence_;
 };
 
 class CandidateSelectionModel

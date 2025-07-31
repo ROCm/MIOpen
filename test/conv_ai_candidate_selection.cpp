@@ -88,8 +88,8 @@ void TestMetadataAndModelInit(const std::string& arch, const std::string& solver
 //               << std::endl;
 
 //     // Print loaded constants
-//     std::cout << "constants_features.size(): " << meta.constants_features.size() << std::endl;
-//     std::cout << "constants_sequence.size(): " << meta.constants_sequence.size() << std::endl;
+//     std::cout << "constants_features_.size(): " << meta.constants_features_.size() << std::endl;
+//     std::cout << "constants_sequence_.size(): " << meta.constants_sequence_.size() << std::endl;
 
 //     // Print indices
 //     auto input_indices  = meta.GetConstantInputIndices();
@@ -106,15 +106,15 @@ void TestMetadataAndModelInit(const std::string& arch, const std::string& solver
 //     std::cout << std::endl;
 
 //     // Fail if constants exist but indices are empty
-//     if(!meta.constants_features.empty() && input_indices.empty())
+//     if(!meta.constants_features_.empty() && input_indices.empty())
 //     {
-//         std::cerr << "constants_features present but GetConstantInputIndices() is empty!"
+//         std::cerr << "constants_features_ present but GetConstantInputIndices() is empty!"
 //                   << std::endl;
 //         std::abort();
 //     }
-//     if(!meta.constants_sequence.empty() && output_indices.empty())
+//     if(!meta.constants_sequence_.empty() && output_indices.empty())
 //     {
-//         std::cerr << "constants_sequence present but GetConstantOutputIndices() is empty!"
+//         std::cerr << "constants_sequence_ present but GetConstantOutputIndices() is empty!"
 //                   << std::endl;
 //         std::abort();
 //     }
@@ -128,7 +128,7 @@ void TestEncodeInputFeatures(const std::string& arch, const std::string& solver)
 
         // Prepare a dummy feature vector of the correct size
         CandidateSelectionMetadata meta(arch, solver);
-        std::vector<float> features(meta.input_params.size(), 1.0f);
+        std::vector<float> features(meta.input_params().size(), 1.0f);
 
         auto encoded = model.EncodeInputFeatures(features);
         std::cout << "EncodeInputFeatures ran successfully. Output vector size: " << encoded.size()
@@ -154,7 +154,7 @@ void TestEncodeKernelConfigs(const std::string& arch, const std::string& solver)
 
         // Prepare dummy encoded candidates: 100 candidates, each with the correct feature size
         CandidateSelectionMetadata meta(arch, solver);
-        size_t feature_size = meta.output_params.size();
+        size_t feature_size = meta.output_params().size();
         std::vector<std::vector<float>> encoded_candidates(100,
                                                            std::vector<float>(feature_size, 2.0f));
 
@@ -206,7 +206,7 @@ void TestEncodeInputFeaturesEdgeCases(const std::string& arch, const std::string
     try
     {
         std::vector<float> short_features(
-            meta.input_params.size() > 0 ? meta.input_params.size() - 1 : 0, 1.0f);
+            meta.input_params().size() > 0 ? meta.input_params().size() - 1 : 0, 1.0f);
         auto encoded = model.EncodeInputFeatures(short_features);
         std::cerr << "EncodeInputFeatures (short input) did not throw!" << std::endl;
         std::abort();
@@ -220,7 +220,7 @@ void TestEncodeInputFeaturesEdgeCases(const std::string& arch, const std::string
     // Edge case: input larger than expected
     try
     {
-        std::vector<float> long_features(meta.input_params.size() + 1, 1.0f);
+        std::vector<float> long_features(meta.input_params().size() + 1, 1.0f);
         auto encoded = model.EncodeInputFeatures(long_features);
         std::cerr << "EncodeInputFeatures (long input) did not throw!" << std::endl;
         std::abort();
@@ -233,7 +233,7 @@ void TestEncodeInputFeaturesEdgeCases(const std::string& arch, const std::string
     // Input containing constants (if any constants are defined)
     if(!meta.GetConstantInputIndices().empty())
     {
-        std::vector<float> features(meta.input_params.size(), 1.0f);
+        std::vector<float> features(meta.input_params().size(), 1.0f);
         for(auto idx : meta.GetConstantInputIndices())
         {
             if(idx < features.size())
@@ -287,8 +287,8 @@ void TestEncodeKernelConfigsEdgeCases(const std::string& arch, const std::string
     {
         std::vector<std::vector<float>> candidates(
             1,
-            std::vector<float>(meta.output_params.size() > 0 ? meta.output_params.size() - 1 : 0,
-                               2.0f));
+            std::vector<float>(
+                meta.output_params().size() > 0 ? meta.output_params().size() - 1 : 0, 2.0f));
         auto encoded = model.EncodeKernelConfigs(candidates);
         std::cerr << "EncodeKernelConfigs (short candidate) did not throw!" << std::endl;
         std::abort();
@@ -303,7 +303,7 @@ void TestEncodeKernelConfigsEdgeCases(const std::string& arch, const std::string
     try
     {
         std::vector<std::vector<float>> candidates(
-            1, std::vector<float>(meta.output_params.size() + 1, 2.0f));
+            1, std::vector<float>(meta.output_params().size() + 1, 2.0f));
         auto encoded = model.EncodeKernelConfigs(candidates);
         std::cerr << "EncodeKernelConfigs (long candidate) did not throw!" << std::endl;
         std::abort();
@@ -318,7 +318,7 @@ void TestEncodeKernelConfigsEdgeCases(const std::string& arch, const std::string
     if(!meta.GetConstantOutputIndices().empty())
     {
         std::vector<std::vector<float>> candidates(
-            2, std::vector<float>(meta.output_params.size(), 2.0f));
+            2, std::vector<float>(meta.output_params().size(), 2.0f));
         for(auto idx : meta.GetConstantOutputIndices())
         {
             for(auto& candidate : candidates)
@@ -360,12 +360,12 @@ void TestSelectBestCandidateValid(const std::string& arch, const std::string& so
 
         // Prepare dummy encoded features and configs
         CandidateSelectionMetadata meta(arch, solver);
-        std::vector<float> features(meta.input_params.size(), 1.0f);
+        std::vector<float> features(meta.input_params().size(), 1.0f);
         auto encoded_features = model.EncodeInputFeatures(features);
 
         // Prepare 3 dummy configs, each with the correct size
         std::vector<std::vector<float>> encoded_candidates(
-            3, std::vector<float>(meta.output_params.size(), 2.0f));
+            3, std::vector<float>(meta.output_params().size(), 2.0f));
         auto encoded_configs = model.EncodeKernelConfigs(encoded_candidates);
 
         int idx = model.SelectBestCandidate(encoded_features, encoded_configs);
@@ -390,12 +390,12 @@ void TestSelectBestCandidateMismatchedDims(const std::string& arch, const std::s
         CandidateSelectionModel model(arch, solver);
 
         CandidateSelectionMetadata meta(arch, solver);
-        std::vector<float> features(meta.input_params.size(), 1.0f);
+        std::vector<float> features(meta.input_params().size(), 1.0f);
         auto encoded_features = model.EncodeInputFeatures(features);
 
         // Prepare configs with mismatched size
         std::vector<std::vector<float>> encoded_candidates(
-            3, std::vector<float>(meta.output_params.size() + 1, 2.0f));
+            3, std::vector<float>(meta.output_params().size() + 1, 2.0f));
         auto encoded_configs = encoded_candidates; // skip encoding for this test
 
         // Should throw or abort

@@ -55,52 +55,55 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 {
     const auto path = GetSystemDbPath() / (arch + "_" + solver + "_metadata.tn.model");
     std::ifstream file(path);
-    if(!file)
+    if(!file.is_open())
+    {
         MIOPEN_THROW("Could not open metadata file: " + path.string());
+    }
     nlohmann::json metadata;
     file >> metadata;
 
-    input_params  = metadata.value("input_params", std::vector<std::string>{});
-    output_params = metadata.value("output_params", std::vector<std::string>{});
+    input_params_  = metadata.value("input_params", std::vector<std::string>{});
+    output_params_ = metadata.value("output_params", std::vector<std::string>{});
 
-    for(size_t i = 0; i < input_params.size(); ++i)
-        input_param_indices[input_params[i]] = i;
-    for(size_t i = 0; i < output_params.size(); ++i)
-        output_param_indices[output_params[i]] = i;
+    for(size_t i = 0; i < input_params_.size(); ++i)
+        input_param_indices_[input_params_[i]] = i;
+    for(size_t i = 0; i < output_params_.size(); ++i)
+        output_param_indices_[output_params_[i]] = i;
 
     if(metadata.contains("encodings"))
     {
-        feature_encodings  = metadata["encodings"].value("inputs", decltype(feature_encodings){});
-        sequence_encodings = metadata["encodings"].value("outputs", decltype(sequence_encodings){});
+        feature_encodings_ = metadata["encodings"].value("inputs", decltype(feature_encodings_){});
+        sequence_encodings_ =
+            metadata["encodings"].value("outputs", decltype(sequence_encodings_){});
     }
 
     if(metadata.contains("decodings") && metadata["decodings"].contains("outputs"))
     {
-        sequence_decodings =
-            metadata["decodings"]["outputs"]
-                .get<std::unordered_map<std::string,
-                                        std::unordered_map<std::string, std::string>>>();
+        sequence_decodings_ = metadata["decodings"]["outputs"]
+                                  .get<std::map<std::string, std::map<std::string, std::string>>>();
     }
 
     if(metadata.contains("constants"))
     {
-        constants_features = metadata["constants"].value("inputs", decltype(constants_features){});
-        constants_sequence = metadata["constants"].value("outputs", decltype(constants_sequence){});
+        constants_features_ =
+            metadata["constants"].value("inputs", decltype(constants_features_){});
+        constants_sequence_ =
+            metadata["constants"].value("outputs", decltype(constants_sequence_){});
     }
 }
 
 size_t CandidateSelectionMetadata::GetInputParamIndex(const std::string& name) const
 {
-    auto it = input_param_indices.find(name);
-    if(it == input_param_indices.end())
+    auto it = input_param_indices_.find(name);
+    if(it == input_param_indices_.end())
         MIOPEN_THROW("Input parameter not found: " + name);
     return it->second;
 }
 
 size_t CandidateSelectionMetadata::GetOutputParamIndex(const std::string& name) const
 {
-    auto it = output_param_indices.find(name);
-    if(it == output_param_indices.end())
+    auto it = output_param_indices_.find(name);
+    if(it == output_param_indices_.end())
         MIOPEN_THROW("Output parameter not found: " + name);
     return it->second;
 }
@@ -108,8 +111,8 @@ size_t CandidateSelectionMetadata::GetOutputParamIndex(const std::string& name) 
 std::optional<std::string>
 CandidateSelectionMetadata::GetInputConstant(const std::string& name) const
 {
-    auto it = constants_features.find(name);
-    if(it != constants_features.end())
+    auto it = constants_features_.find(name);
+    if(it != constants_features_.end())
         return it->second;
     return std::nullopt;
 }
@@ -117,8 +120,8 @@ CandidateSelectionMetadata::GetInputConstant(const std::string& name) const
 std::optional<std::string>
 CandidateSelectionMetadata::GetOutputConstant(const std::string& name) const
 {
-    auto it = constants_sequence.find(name);
-    if(it != constants_sequence.end())
+    auto it = constants_sequence_.find(name);
+    if(it != constants_sequence_.end())
         return it->second;
     return std::nullopt;
 }
@@ -126,10 +129,10 @@ CandidateSelectionMetadata::GetOutputConstant(const std::string& name) const
 std::vector<size_t> CandidateSelectionMetadata::GetConstantInputIndices() const
 {
     std::vector<size_t> indices;
-    for(const auto& [name, value] : constants_features)
+    for(const auto& [name, value] : constants_features_)
     {
-        auto it = input_param_indices.find(name);
-        if(it != input_param_indices.end())
+        auto it = input_param_indices_.find(name);
+        if(it != input_param_indices_.end())
             indices.push_back(it->second);
     }
     std::sort(indices.begin(), indices.end());
@@ -139,10 +142,10 @@ std::vector<size_t> CandidateSelectionMetadata::GetConstantInputIndices() const
 std::vector<size_t> CandidateSelectionMetadata::GetConstantOutputIndices() const
 {
     std::vector<size_t> indices;
-    for(const auto& [name, value] : constants_sequence)
+    for(const auto& [name, value] : constants_sequence_)
     {
-        auto it = output_param_indices.find(name);
-        if(it != output_param_indices.end())
+        auto it = output_param_indices_.find(name);
+        if(it != output_param_indices_.end())
             indices.push_back(it->second);
     }
     std::sort(indices.begin(), indices.end());
@@ -225,8 +228,8 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
                    const CandidateSelectionMetadata& metadata)
 {
     std::vector<std::vector<float>> encoded_candidates;
-    const auto& output_params      = metadata.output_params;
-    const auto& sequence_encodings = metadata.sequence_encodings;
+    const auto& output_params      = metadata.output_params();
+    const auto& sequence_encodings = metadata.sequence_encodings();
 
     for(const auto& candidate : valid_kernel_params)
     {
