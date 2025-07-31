@@ -799,18 +799,19 @@ namespace candidate_selection {
 // Helper to load and cache fdeep models
 const fdeep::model& GetFdeepModel(const std::string& path, const std::string& key)
 {
-    static std::map<std::string, std::shared_ptr<fdeep::model>> models;
+    static std::map<std::string, std::unique_ptr<fdeep::model>> models;
     auto it = models.find(key);
     if(it == models.end())
     {
         if(!fs::exists(path))
             MIOPEN_THROW(miopenStatusInternalError, "Unable to load model file: " + path);
         auto model =
-            std::make_shared<fdeep::model>(fdeep::load_model(path, true, fdeep::dev_null_logger));
-        models[key] = model;
-        return *model;
+            std::make_unique<fdeep::model>(fdeep::load_model(path, true, fdeep::dev_null_logger));
+        auto& ref   = *model;
+        models[key] = std::move(model);
+        return ref;
     }
-    return *(it->second);
+    return *it->second;
 }
 
 std::vector<float> EncodeInputFeaturesWithFdeep(const std::vector<float>& features,
