@@ -132,6 +132,9 @@ void FilterHeuristicKernels(const std::string& type,
 }
 
 // Helper: Generate split_k values (powers of two)
+// TODO: new CK functionality will use -1 for autodeduction, so we could add -1 to the list.
+// Note that the current models have not been trained with -1 in mind, so it may not work as
+// expected.
 std::vector<int> GenerateSplitK(int max_split_k)
 {
     std::vector<int> split_ks;
@@ -161,7 +164,59 @@ ExpandKernelParamsWithSplitK(const std::vector<std::vector<std::string>>& kernel
     return {expanded, mapping};
 }
 
-// Main: Run AI parameter prediction model
+// Main template implementation
+template <typename DataType>
+bool RunParameterPredictionModel(
+    const miopen::ExecutionContext& ctx,
+    const miopen::conv::ProblemDescription& problem,
+    std::vector<std::string>& valid_kernels,
+    int& index,
+    int& split_k,
+    std::string& kernel_id,
+    std::function<std::vector<std::string>(const miopen::conv::ProblemDescription&)>
+        fill_valid_kernels,
+    std::string solver_name)
+{
+    valid_kernels = fill_valid_kernels(problem);
+
+    // Filter kernels by type
+    std::vector<int> heuristic_indexes;
+    std::vector<std::vector<std::string>> heuristic_kernels;
+    FilterHeuristicKernels(
+        "DeviceGroupedConvBwdWeight", valid_kernels, heuristic_indexes, heuristic_kernels);
+
+    // Prepare features and split_k values
+    const std::string& arch = ctx.GetStream().GetDeviceName();
+    std::vector<float> features =
+        GetFeatures3D(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
+    std::vector<int> split_ks = GenerateSplitK(128); // TODO: make configurable
+
+    // Expand kernel params with split_k and keep mapping
+    auto [expanded_params, mapping_pairs] =
+        ExpandKernelParamsWithSplitK(heuristic_kernels, heuristic_indexes, split_ks);
+
+    // Use AI model to select best candidate
+    try
+    {
+        int best_idx = ai::tuning::candidate_selection::ModelSelectBestCandidate(
+            arch, solver_name, features, expanded_params);
+
+        if(best_idx >= 0 && best_idx < static_cast<int>(mapping_pairs.size()))
+        {
+            index     = mapping_pairs[best_idx].first;
+            split_k   = mapping_pairs[best_idx].second;
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            return true;
+        }
+        MIOPEN_LOG_I("AI prediction returned invalid kernel index, falling back");
+        return false;
+    }
+    catch(const miopen::Exception& ex)
+    {
+        MIOPEN_LOG_I2("[Warning] AI model failed: " << ex.what());
+        return false;
+    }
+}
 
 // Explicit template instantiations for common types
 template bool RunParameterPredictionModel<float>(
