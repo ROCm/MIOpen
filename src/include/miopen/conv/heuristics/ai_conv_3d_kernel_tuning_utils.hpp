@@ -62,48 +62,37 @@ bool RunParameterPredictionModel(
     std::string& kernel_id,
     std::function<std::vector<std::string>(const miopen::conv::ProblemDescription&)>
         fill_valid_kernels,
-    std::string solver_name)
-{
-    valid_kernels = fill_valid_kernels(problem);
+    std::string solver_name);
 
-    // Filter kernels by type
-    std::vector<int> heuristic_indexes;
-    std::vector<std::vector<std::string>> heuristic_kernels;
-    FilterHeuristicKernels(
-        "DeviceGroupedConvBwdWeight", valid_kernels, heuristic_indexes, heuristic_kernels);
+extern template bool RunParameterPredictionModel<float>(
+    const miopen::ExecutionContext&,
+    const miopen::conv::ProblemDescription&,
+    std::vector<std::string>&,
+    int&,
+    int&,
+    std::string&,
+    std::function<std::vector<std::string>(const miopen::conv::ProblemDescription&)>,
+    std::string);
 
-    // Prepare features and split_k values
-    const std::string& arch = ctx.GetStream().GetDeviceName();
-    std::vector<float> features =
-        GetFeatures3D(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
-    std::vector<int> split_ks = GenerateSplitK(128); // TODO: make configurable
+extern template bool RunParameterPredictionModel<ck::half_t>(
+    const miopen::ExecutionContext&,
+    const miopen::conv::ProblemDescription&,
+    std::vector<std::string>&,
+    int&,
+    int&,
+    std::string&,
+    std::function<std::vector<std::string>(const miopen::conv::ProblemDescription&)>,
+    std::string);
 
-    // Expand kernel params with split_k and keep mapping
-    auto [expanded_params, mapping_pairs] =
-        ExpandKernelParamsWithSplitK(heuristic_kernels, heuristic_indexes, split_ks);
-
-    // Use AI model to select best candidate
-    try
-    {
-        int best_idx = ai::tuning::candidate_selection::ModelSelectBestCandidate(
-            arch, solver_name, features, expanded_params);
-
-        if(best_idx >= 0 && best_idx < static_cast<int>(mapping_pairs.size()))
-        {
-            index     = mapping_pairs[best_idx].first;
-            split_k   = mapping_pairs[best_idx].second;
-            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
-            return true;
-        }
-        MIOPEN_LOG_I("AI prediction returned invalid kernel index, falling back");
-        return false;
-    }
-    catch(const miopen::Exception& ex)
-    {
-        MIOPEN_LOG_I2("[Warning] AI model failed: " << ex.what());
-        return false;
-    }
-}
+extern template bool RunParameterPredictionModel<ck::bhalf_t>(
+    const miopen::ExecutionContext&,
+    const miopen::conv::ProblemDescription&,
+    std::vector<std::string>&,
+    int&,
+    int&,
+    std::string&,
+    std::function<std::vector<std::string>(const miopen::conv::ProblemDescription&)>,
+    std::string);
 } // namespace conv
 } // namespace solver
 } // namespace miopen
