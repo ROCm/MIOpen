@@ -794,6 +794,113 @@ bool ModelSetParams(const std::string& arch,
     return true;
 }
 
+namespace candidate_selection {
+
+// Helper to load and cache fdeep models
+const fdeep::model& GetFdeepModel(const std::string& path, const std::string& key)
+{
+    static std::map<std::string, std::unique_ptr<fdeep::model>> models;
+    auto it = models.find(key);
+    if(it == models.end())
+    {
+        if(!fs::exists(path))
+            MIOPEN_THROW(miopenStatusInternalError, "Unable to load model file: " + path);
+        auto model =
+            std::make_unique<fdeep::model>(fdeep::load_model(path, true, fdeep::dev_null_logger));
+        auto& ref   = *model;
+        models[key] = std::move(model);
+        return ref;
+    }
+    return *it->second;
+}
+
+std::vector<float> EncodeInputFeaturesWithFdeep(const std::vector<float>& features,
+                                                const std::string& arch,
+                                                const std::string& solver,
+                                                const std::vector<size_t>&& drop_indices)
+{
+    std::vector<float> filtered_features;
+    filtered_features.reserve(features.size() - drop_indices.size());
+    for(size_t i = 0, j = 0; i < features.size(); ++i)
+    {
+        if(j < drop_indices.size() && i == drop_indices[j])
+        {
+            ++j;
+            continue;
+        }
+        filtered_features.push_back(features[i]);
+    }
+    fdeep::tensor input_tensor(fdeep::tensor_shape(filtered_features.size()), filtered_features);
+    std::string key = arch + "_" + solver + "_input_encoder";
+    std::string path =
+        (GetSystemDbPath() / (arch + "_" + solver + "_input_encoder.tn.model")).string();
+    auto tensors = GetFdeepModel(path, key).predict({input_tensor});
+    if(tensors.empty())
+        MIOPEN_THROW(miopenStatusInternalError, "Input encoder returned empty tensor list");
+    return tensors[0].to_vector();
+}
+
+std::vector<std::vector<float>>
+EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_candidates,
+                             const std::string& arch,
+                             const std::string& solver,
+                             const std::vector<size_t>&& drop_indices)
+{
+    std::vector<std::vector<float>> filtered_candidates;
+    filtered_candidates.reserve(encoded_candidates.size());
+    for(const auto& candidate : encoded_candidates)
+    {
+        std::vector<float> filtered;
+        filtered.reserve(candidate.size() - drop_indices.size());
+        for(size_t i = 0, j = 0; i < candidate.size(); ++i)
+        {
+            if(j < drop_indices.size() && i == drop_indices[j])
+            {
+                ++j;
+                continue;
+            }
+            filtered.push_back(candidate[i]);
+        }
+        filtered_candidates.push_back(filtered);
+    }
+
+    if(filtered_candidates.empty() || filtered_candidates[0].empty())
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Empty candidates provided to kernel config encoder");
+
+    std::string key = arch + "_" + solver + "_kernel_config_encoder";
+    std::string path =
+        (GetSystemDbPath() / (arch + "_" + solver + "_kernel_config_encoder.tn.model")).string();
+
+    const auto& model = GetFdeepModel(path, key);
+
+    // By default, use predict_multi (multi-threaded); use single-threaded loop only if env var is
+    // set
+    const char* use_single_env = std::getenv("MIOPEN_AI_FDEEP_USE_SINGLE_PREDICT");
+    bool use_single            = use_single_env && std::string(use_single_env) == "1";
+
+    std::vector<std::vector<float>> result;
+    std::vector<fdeep::tensors> inputs_vec;
+    inputs_vec.reserve(filtered_candidates.size());
+    for(const auto& candidate : filtered_candidates)
+    {
+        fdeep::tensor t(fdeep::tensor_shape(candidate.size()), candidate);
+        inputs_vec.push_back(fdeep::tensors{t}); // wrap tensor in a vector
+    }
+    auto outputs = model.predict_multi(inputs_vec, !use_single); // parallelly = !use_single
+    if(outputs.size() != inputs_vec.size())
+        MIOPEN_THROW(miopenStatusInternalError, "predict_multi returned wrong number of outputs");
+    for(const auto& out : outputs)
+    {
+        if(out.empty())
+            MIOPEN_THROW(miopenStatusInternalError,
+                         "Kernel config encoder returned empty tensor list");
+        result.push_back(out[0].to_vector());
+    }
+    return result;
+}
+} // namespace candidate_selection
+
 } // namespace tuning
 #endif // MIOPEN_ENABLE_AI_KERNEL_TUNING
 } // namespace ai
