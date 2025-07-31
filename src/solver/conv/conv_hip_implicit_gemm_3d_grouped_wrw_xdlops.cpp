@@ -42,6 +42,7 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)
 
 namespace miopen {
 namespace solver {
@@ -50,6 +51,21 @@ namespace conv {
 using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+
+template <typename DataType>
+using DeviceOpGWrw3DPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+    DeviceOpGBwdWeightDefault<DataType>>;
+
+// Add these new template specializations for different alpha/beta cases
+template <typename DataType>
+using DeviceOpGWrw3DBilinearPtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightBilinear<DataType>>;
+
+template <typename DataType>
+using DeviceOpGWrw3DScalePtrs =
+    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
+        DeviceOpGBwdWeightScale<DataType>>;
 
 template <typename DataType>
 using DeviceOpGWrw3DPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
@@ -127,198 +143,208 @@ struct CKArgs
             wei_strides = {K * Z * Y * X * C, Z * Y * X * C, 1, Y * X * C, X * C, C};
         }
 
-        filter_strides   = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
-                            ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
-                            ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
-        filter_dilations = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
-                            ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
-                            ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
-        lPadding         = {ProblemInterpreter::GetInputLeftPadD(problem),
-                            ProblemInterpreter::GetInputLeftPadH(problem),
-                            ProblemInterpreter::GetInputLeftPadW(problem)};
-        rPadding         = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
-                            ProblemInterpreter::GetAdjustedInputRightPadH(problem),
-                            ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
-    }
-    CKArgs(const CKArgs&)            = default;
-    CKArgs(CKArgs&&)                 = default;
-    CKArgs& operator=(const CKArgs&) = default;
+        filter_strides = {ProblemInterpreter::GetAdjustedConvolutionStrideD(problem),
+                          ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+                          ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)};
+        ProblemInterpreter::GetAdjustedConvolutionStrideH(problem),
+            ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)
+    };
+    filter_dilations = {ProblemInterpreter::GetAdjustedConvolutionDilationD(problem),
+                        ProblemInterpreter::GetAdjustedConvolutionDilationH(problem),
+                        ProblemInterpreter::GetAdjustedConvolutionDilationW(problem)};
+    lPadding         = {ProblemInterpreter::GetInputLeftPadD(problem),
+                        ProblemInterpreter::GetInputLeftPadH(problem),
+                        ProblemInterpreter::GetInputLeftPadW(problem)};
+    ProblemInterpreter::GetInputLeftPadH(problem), ProblemInterpreter::GetInputLeftPadW(problem)
+};
+rPadding = {ProblemInterpreter::GetAdjustedInputRightPadD(problem),
+            ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+            ProblemInterpreter::GetAdjustedInputRightPadW(problem)};
+ProblemInterpreter::GetAdjustedInputRightPadH(problem),
+    ProblemInterpreter::GetAdjustedInputRightPadW(problem)
+};
+}
+CKArgs(const CKArgs&)            = default;
+CKArgs(CKArgs&&)                 = default;
+CKArgs(const CKArgs&)            = default;
+CKArgs(CKArgs&&)                 = default;
+CKArgs& operator=(const CKArgs&) = default;
 
-    template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr,
-                    ConstData_t x,
-                    Data_t dw,
-                    ConstData_t dy,
-                    float alpha,
-                    float beta,
-                    int split_k) const
+template <typename ConvPtr>
+auto MakeArgPtr(const ConvPtr& conv_ptr,
+                ConstData_t x,
+                Data_t dw,
+                ConstData_t dy,
+                float alpha,
+                float beta,
+                int split_k) const
+{
+    using DeviceP = std::remove_pointer_t<decltype(conv_ptr.get())>;
+    if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightBilinear<DataType>>)
     {
-        using DeviceP = std::remove_pointer_t<decltype(conv_ptr.get())>;
-        if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightBilinear<DataType>>)
-        {
-            return MakeBilinearArgPtr(conv_ptr, x, dw, dy, alpha, beta, split_k);
-        }
-        else if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightScale<DataType>>)
-        {
-            (void)beta;
-            return MakeScaleArgPtr(conv_ptr, x, dw, dy, alpha, split_k);
-        }
-        else
-        {
-            (void)alpha;
-            (void)beta;
-            static_assert(std::is_same_v<DeviceP, DeviceOpGBwdWeightDefault<DataType>>,
-                          "Default should be wrw pass through");
-            return MakeDefaultArgPtr(conv_ptr, x, dw, dy, split_k);
-        }
+        return MakeBilinearArgPtr(conv_ptr, x, dw, dy, alpha, beta, split_k);
     }
-    template <typename ConvPtr>
-    auto MakeBilinearArgPtr(const ConvPtr& conv_ptr,
-                            ConstData_t x,
-                            Data_t dw,
-                            ConstData_t dy,
-                            float alpha,
-                            float beta,
-                            int split_k) const
+    else if constexpr(std::is_same_v<DeviceP, DeviceOpGBwdWeightScale<DataType>>)
     {
-        return conv_ptr->MakeArgumentPointer(x,
-                                             dw,
-                                             dy,
-                                             {dw},
-                                             in_lengths,
-                                             in_strides,
-                                             wei_lengths,
-                                             wei_strides,
-                                             out_lengths,
-                                             out_strides,
-                                             {wei_lengths},
-                                             {wei_strides},
-                                             filter_strides,
-                                             filter_dilations,
-                                             lPadding,
-                                             rPadding,
-                                             PassThrough{},
-                                             Bilinear{alpha, beta},
-                                             PassThrough{},
-                                             split_k);
+        (void)beta;
+        return MakeScaleArgPtr(conv_ptr, x, dw, dy, alpha, split_k);
     }
+    else
+    {
+        (void)alpha;
+        (void)beta;
+        static_assert(std::is_same_v<DeviceP, DeviceOpGBwdWeightDefault<DataType>>,
+                      "Default should be wrw pass through");
+        return MakeDefaultArgPtr(conv_ptr, x, dw, dy, split_k);
+    }
+}
+template <typename ConvPtr>
+auto MakeBilinearArgPtr(const ConvPtr& conv_ptr,
+                        ConstData_t x,
+                        Data_t dw,
+                        ConstData_t dy,
+                        float alpha,
+                        float beta,
+                        int split_k) const
+{
+    return conv_ptr->MakeArgumentPointer(x,
+                                         dw,
+                                         dy,
+                                         {dw},
+                                         in_lengths,
+                                         in_strides,
+                                         wei_lengths,
+                                         wei_strides,
+                                         out_lengths,
+                                         out_strides,
+                                         {wei_lengths},
+                                         {wei_strides},
+                                         filter_strides,
+                                         filter_dilations,
+                                         lPadding,
+                                         rPadding,
+                                         PassThrough{},
+                                         Bilinear{alpha, beta},
+                                         PassThrough{},
+                                         split_k);
+}
 
-    template <typename ConvPtr>
-    auto MakeScaleArgPtr(const ConvPtr& conv_ptr,
-                         ConstData_t x,
-                         Data_t dw,
-                         ConstData_t dy,
-                         float alpha,
-                         int split_k) const
-    {
-        return conv_ptr->MakeArgumentPointer(x,
-                                             dw,
-                                             dy,
-                                             {},
-                                             in_lengths,
-                                             in_strides,
-                                             wei_lengths,
-                                             wei_strides,
-                                             out_lengths,
-                                             out_strides,
-                                             {},
-                                             {},
-                                             filter_strides,
-                                             filter_dilations,
-                                             lPadding,
-                                             rPadding,
-                                             PassThrough{},
-                                             Scale{alpha},
-                                             PassThrough{},
-                                             split_k);
-    }
+template <typename ConvPtr>
+auto MakeScaleArgPtr(const ConvPtr& conv_ptr,
+                     ConstData_t x,
+                     Data_t dw,
+                     ConstData_t dy,
+                     float alpha,
+                     int split_k) const
+{
+    return conv_ptr->MakeArgumentPointer(x,
+                                         dw,
+                                         dy,
+                                         {},
+                                         in_lengths,
+                                         in_strides,
+                                         wei_lengths,
+                                         wei_strides,
+                                         out_lengths,
+                                         out_strides,
+                                         {},
+                                         {},
+                                         filter_strides,
+                                         filter_dilations,
+                                         lPadding,
+                                         rPadding,
+                                         PassThrough{},
+                                         Scale{alpha},
+                                         PassThrough{},
+                                         split_k);
+}
 
-    template <typename ConvPtr>
-    auto MakeDefaultArgPtr(
-        const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy, int split_k) const
-    {
-        return conv_ptr->MakeArgumentPointer(x,
-                                             dw,
-                                             dy,
-                                             in_lengths,
-                                             in_strides,
-                                             wei_lengths,
-                                             wei_strides,
-                                             out_lengths,
-                                             out_strides,
-                                             filter_strides,
-                                             filter_dilations,
-                                             lPadding,
-                                             rPadding,
-                                             PassThrough{},
-                                             PassThrough{},
-                                             PassThrough{},
-                                             split_k);
-    }
+template <typename ConvPtr>
+auto MakeDefaultArgPtr(
+    const ConvPtr& conv_ptr, ConstData_t x, Data_t dw, ConstData_t dy, int split_k) const
+{
+    return conv_ptr->MakeArgumentPointer(x,
+                                         dw,
+                                         dy,
+                                         in_lengths,
+                                         in_strides,
+                                         wei_lengths,
+                                         wei_strides,
+                                         out_lengths,
+                                         out_strides,
+                                         filter_strides,
+                                         filter_dilations,
+                                         lPadding,
+                                         rPadding,
+                                         PassThrough{},
+                                         PassThrough{},
+                                         PassThrough{},
+                                         split_k);
+}
 
-    template <typename ConvPtr>
-    auto MakeArgPtr(const ConvPtr& conv_ptr,
-                    const ConvWrwTensors& tensors,
-                    float alpha,
-                    float beta,
-                    int split_k) const
-    {
-        return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta, split_k);
-    }
+template <typename ConvPtr>
+auto MakeArgPtr(const ConvPtr& conv_ptr,
+                const ConvWrwTensors& tensors,
+                float alpha,
+                float beta,
+                int split_k) const
+{
+    return MakeArgPtr(conv_ptr, tensors.x, tensors.dw, tensors.dy, alpha, beta, split_k);
+}
 
-    template <typename ConvPtr>
-    bool IsSupportedBy(const ConvPtr& conv_ptr) const
+template <typename ConvPtr>
+bool IsSupportedBy(const ConvPtr& conv_ptr) const
+{
+    auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, 1);
+    // Creat dummy workspace to pass the ck IsSupportedArgument check.
+
+    int dummy_var = 1;
+    conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
+
+    return conv_ptr->IsSupportedArgument(arg_ptr.get());
+}
+
+template <typename ConvPtr>
+bool IsSupportedBySplitK(const ConvPtr& conv_ptr, int split_k) const
+{
+    auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
+
+    if(CKWrwRequireWorkspace(G, C1, K1, data_type, alpha_beta_case))
     {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, 1);
         // Creat dummy workspace to pass the ck IsSupportedArgument check.
-
         int dummy_var = 1;
         conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
-
-        return conv_ptr->IsSupportedArgument(arg_ptr.get());
     }
+    return conv_ptr->IsSupportedArgument(arg_ptr.get());
+}
 
-    template <typename ConvPtr>
-    bool IsSupportedBySplitK(const ConvPtr& conv_ptr, int split_k) const
-    {
-        auto arg_ptr = MakeArgPtr(conv_ptr, nullptr, nullptr, nullptr, 1.0f, 0.0f, split_k);
-
-        if(CKWrwRequireWorkspace(G, C1, K1, data_type, alpha_beta_case))
-        {
-            // Creat dummy workspace to pass the ck IsSupportedArgument check.
-            int dummy_var = 1;
-            conv_ptr->SetWorkSpacePointer(arg_ptr.get(), &dummy_var);
-        }
-        return conv_ptr->IsSupportedArgument(arg_ptr.get());
-    }
-
-    int G;
-    int N;
-    int K;
-    int C;
-    int C1;
-    int K1;
-    int Hi;
-    int Wi;
-    int Di;
-    int Ho;
-    int Wo;
-    int Do;
-    int Y;
-    int X;
-    int Z;
-    miopenAlphaBetaCase_t alpha_beta_case;
-    miopenDataType_t data_type;
-    std::array<ck::index_t, 6> in_lengths;
-    std::array<ck::index_t, 6> in_strides;
-    std::array<ck::index_t, 6> out_lengths;
-    std::array<ck::index_t, 6> out_strides;
-    std::array<ck::index_t, 6> wei_lengths;
-    std::array<ck::index_t, 6> wei_strides;
-    std::array<ck::index_t, 3> filter_strides;
-    std::array<ck::index_t, 3> filter_dilations;
-    std::array<ck::index_t, 3> lPadding;
-    std::array<ck::index_t, 3> rPadding;
+int G;
+int N;
+int K;
+int C;
+int C1;
+int K1;
+int Hi;
+int Wi;
+int Di;
+int Ho;
+int Wo;
+int Do;
+int Y;
+int X;
+int Z;
+miopenAlphaBetaCase_t alpha_beta_case;
+miopenDataType_t data_type;
+std::array<ck::index_t, 6> in_lengths;
+std::array<ck::index_t, 6> in_strides;
+std::array<ck::index_t, 6> out_lengths;
+std::array<ck::index_t, 6> out_strides;
+std::array<ck::index_t, 6> wei_lengths;
+std::array<ck::index_t, 6> wei_strides;
+std::array<ck::index_t, 3> filter_strides;
+std::array<ck::index_t, 3> filter_dilations;
+std::array<ck::index_t, 3> lPadding;
+std::array<ck::index_t, 3> rPadding;
 };
 } // namespace
 
@@ -388,6 +414,78 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     kernel_id = "";
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+    // Try AI heuristics first if enabled
+    if(!env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
+    {
+        bool ai_success = false;
+        // force DataType to float: TODO: figure out how to properly handle this.
+        using DataType = float;
+
+        // now capture it and use it in the FillValidKernelsIDs call
+        auto fill_valid_kernels =
+            [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
+            return miopen::solver::FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>,
+                                                       CKArgs<DataType>>(problem);
+        };
+        std::string solver_name = "DeviceGroupedConvBwdWeight";
+        switch(problem.GetInDataType())
+        {
+        // 3D conv heuristics are only valid for FP32, FP16, and BF16
+        case miopenHalf:
+            ai_success =
+                miopen::solver::conv::RunParameterPredictionModel<ck::half_t>(ExecutionContext{},
+                                                                              problem,
+                                                                              valid_kernels,
+                                                                              index,
+                                                                              split_k,
+                                                                              kernel_id,
+                                                                              fill_valid_kernels,
+                                                                              solver_name);
+            break;
+        case miopenFloat:
+            ai_success =
+                miopen::solver::conv::RunParameterPredictionModel<float>(ExecutionContext{},
+                                                                         problem,
+                                                                         valid_kernels,
+                                                                         index,
+                                                                         split_k,
+                                                                         kernel_id,
+                                                                         fill_valid_kernels,
+                                                                         solver_name);
+            break;
+        case miopenBFloat16:
+            ai_success =
+                miopen::solver::conv::RunParameterPredictionModel<ck::bhalf_t>(ExecutionContext{},
+                                                                               problem,
+                                                                               valid_kernels,
+                                                                               index,
+                                                                               split_k,
+                                                                               kernel_id,
+                                                                               fill_valid_kernels,
+                                                                               solver_name);
+            break;
+        case miopenInt64:
+        case miopenInt32:
+        case miopenFloat8_fnuz:
+        case miopenBFloat8_fnuz:
+        case miopenInt8:
+        case miopenDouble: break;
+        }
+
+        if(ai_success)
+        {
+            MIOPEN_LOG_I("AI heuristics successfully selected kernel: " << kernel_id);
+            return;
+        }
+        else
+        {
+            MIOPEN_LOG_I("AI heuristics failed, falling back to default initialization");
+        }
+    }
+#endif
+
+    // Fallback to original initialization
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     // Try AI heuristics first if enabled
     if(!env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
