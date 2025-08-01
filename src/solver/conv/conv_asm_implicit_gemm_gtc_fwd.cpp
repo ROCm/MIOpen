@@ -31,12 +31,8 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
-#include <miopen/solver/problem_description_interpreter.hpp>
 
 #define WORKAROUND_SWDEV_306318 1
-#define WORKAROUND_SWDEV_512347 \
-    1 // Workaround for gfx908: clamping stride to 1 causes memfault. Remove once gfx908 MISA kernel
-      // bug is fixed.
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS)
 
@@ -1357,25 +1353,20 @@ static std::tuple<bool, // is suitable kernel found
                   int>         // grid_size
 FindImplicitGemmGtcDynamicFwdKernel(const ProblemDescription& problem)
 {
-    auto tunables = GetImplicitGemmGtcDynamicFwdXdlopsTunablesList();
-    const int n   = ProblemInterpreter::GetBatchN(problem);
-    const int c   = ProblemInterpreter::GetInputChannelC(problem);
-    const int k   = ProblemInterpreter::GetOutputChannelK(problem);
-    const int ho  = ProblemInterpreter::GetOutputHeightHo(problem);
-    const int wo  = ProblemInterpreter::GetOutputWidthWo(problem);
-#if WORKAROUND_SWDEV_512347
-    const auto stride_h = problem.GetKernelStrideH();
-    const auto stride_w = problem.GetKernelStrideW();
-#else
-    const auto stride_h = ProblemInterpreter::GetAdjustedConvolutionStrideH(problem);
-    const auto stride_w = ProblemInterpreter::GetAdjustedConvolutionStrideW(problem);
-#endif
-    const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
-    const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
-    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
-    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
-    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
-    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
+    auto tunables         = GetImplicitGemmGtcDynamicFwdXdlopsTunablesList();
+    const int n           = problem.GetBatchSize();
+    const int c           = problem.GetInChannels();
+    const int k           = problem.GetOutChannels();
+    const int ho          = problem.GetOutHeight();
+    const int wo          = problem.GetOutWidth();
+    const auto stride_h   = problem.GetInHeight() > 1 ? problem.GetKernelStrideH() : 1;
+    const auto stride_w   = problem.GetInWidth() > 1 ? problem.GetKernelStrideW() : 1;
+    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
+    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
+    const auto pad_h      = problem.GetPadH();
+    const auto pad_w      = problem.GetPadW();
+    const int y           = problem.GetWeightsHeight();
+    const int x           = problem.GetWeightsWidth();
 
     const auto& gemm_m = k;
     const auto gemm_n  = n * ho * wo;
@@ -1545,16 +1536,15 @@ bool ConvAsmImplicitGemmGTCDynamicFwdXdlops::IsApplicable(const ExecutionContext
     if(!ctx.rmv.IsV3())
         return false;
 
-    if(ProblemInterpreter::GetGroupCountG(problem) != 1)
+    if(problem.GetGroupCount() != 1)
         return false;
 
     if(!problem.IsLayoutDefault())
         return false;
 
 #if WORKAROUND_SWDEV_306318
-    if((ProblemInterpreter::GetFilterHeightY(problem) == 1) &&
-       (ProblemInterpreter::GetFilterWidthX(problem) == 1) &&
-       (ProblemInterpreter::GetInputChannelC(problem) % 8 != 0))
+    if((problem.GetWeightsHeight() == 1) && (problem.GetWeightsWidth() == 1) &&
+       (problem.GetInChannels() % 8 != 0))
     {
         if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_FWD_GTC_XDLOPS))
             return false;
