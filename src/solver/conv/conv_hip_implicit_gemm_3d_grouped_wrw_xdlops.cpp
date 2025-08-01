@@ -384,7 +384,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
 #endif
 
 void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
-    [[maybe_unused]] const ProblemDescription& problem)
+    const miopen::ExecutionContext& ctx, const ProblemDescription& problem)
 {
     index     = 0;
     split_k   = 1;
@@ -393,8 +393,10 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     // Try AI heuristics first if enabled
+    std::cerr << "HeuristicInit: AI heuristics enabled" << std::endl;
     if(!env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
     {
+        std::cerr << "HeuristicInit: AI heuristics block entered" << std::endl;
         bool ai_success = false;
         // force DataType to float: TODO: figure out how to properly handle this.
         using DataType = float;
@@ -402,16 +404,24 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
         // now capture it and use it in the FillValidKernelsIDs call
         auto fill_valid_kernels =
             [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
-            return miopen::solver::FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>,
-                                                       CKArgs<DataType>>(problem);
+            std::cerr << "HeuristicInit: fill_valid_kernels called" << std::endl;
+            auto result =
+                miopen::solver::FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>,
+                                                    CKArgs<DataType>>(problem);
+            std::cerr << "HeuristicInit: fill_valid_kernels returning, result.size() = "
+                      << result.size() << std::endl;
+            return result;
         };
         std::string solver_name = "DeviceGroupedConvBwdWeight";
+        std::cerr << "Valid kernels before AI heuristics: " << valid_kernels.size() << std::endl;
+        std::cerr << "HeuristicInit: problem.GetInDataType() = " << problem.GetInDataType()
+                  << std::endl;
         switch(problem.GetInDataType())
         {
         // 3D conv heuristics are only valid for FP32, FP16, and BF16
         case miopenHalf:
             ai_success =
-                miopen::solver::conv::RunParameterPredictionModel<ck::half_t>(ExecutionContext{},
+                miopen::solver::conv::RunParameterPredictionModel<ck::half_t>(ctx,
                                                                               problem,
                                                                               valid_kernels,
                                                                               index,
@@ -422,7 +432,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
             break;
         case miopenFloat:
             ai_success =
-                miopen::solver::conv::RunParameterPredictionModel<float>(ExecutionContext{},
+                miopen::solver::conv::RunParameterPredictionModel<float>(ctx,
                                                                          problem,
                                                                          valid_kernels,
                                                                          index,
@@ -433,7 +443,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
             break;
         case miopenBFloat16:
             ai_success =
-                miopen::solver::conv::RunParameterPredictionModel<ck::bhalf_t>(ExecutionContext{},
+                miopen::solver::conv::RunParameterPredictionModel<ck::bhalf_t>(ctx,
                                                                                problem,
                                                                                valid_kernels,
                                                                                index,
@@ -484,7 +494,8 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::SetNextValue(
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
     {
-        HeuristicInit(problem);
+        // HeuristicInit(ctx, problem);
+        // commented because ctx is not in scope here
         if(valid_kernels.empty())
         {
             return false;
@@ -544,10 +555,10 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::operator==(
 
 PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
 ConvHipImplicitGemm3DGroupWrwXdlops::GetDefaultPerformanceConfig(
-    const ExecutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemm3DGroupWrwXdlops pp;
-    pp.HeuristicInit(problem);
+    pp.HeuristicInit(ctx, problem);
     return pp;
 }
 
