@@ -99,16 +99,52 @@ GetFeatures3D(const ProblemDescription& problem, int /*max_cu*/, const std::stri
 }
 
 // Helper: Tokenize kernel string
-std::vector<std::string> TokenizeKernel(const std::string& kernel)
+std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
 {
     std::vector<std::string> tokens;
-    std::stringstream ss(kernel);
-    std::string token;
-    while(std::getline(ss, token, '_'))
+
+    // Split on '<' to separate prefix from parameters
+    auto lt_pos = kernel.find('<');
+    if(lt_pos != std::string::npos)
     {
-        if(!token.empty())
-            tokens.push_back(token);
+        // Split prefix (before '<') by underscores
+        std::string prefix = kernel.substr(0, lt_pos);
+        std::stringstream ss(prefix);
+        std::string token;
+        while(std::getline(ss, token, '_'))
+        {
+            token.erase(remove_if(token.begin(), token.end(), isspace), token.end());
+            if(!token.empty())
+                tokens.push_back(token);
+        }
+
+        // Split parameters (inside '<...>') by commas
+        auto gt_pos = kernel.find('>', lt_pos);
+        if(gt_pos != std::string::npos && gt_pos > lt_pos + 1)
+        {
+            std::string params = kernel.substr(lt_pos + 1, gt_pos - lt_pos - 1);
+            std::stringstream ps(params);
+            while(std::getline(ps, token, ','))
+            {
+                token.erase(remove_if(token.begin(), token.end(), isspace), token.end());
+                if(!token.empty())
+                    tokens.push_back(token);
+            }
+        }
     }
+    else
+    {
+        // No '<', just split by underscores
+        std::stringstream ss(kernel);
+        std::string token;
+        while(std::getline(ss, token, '_'))
+        {
+            token.erase(remove_if(token.begin(), token.end(), isspace), token.end());
+            if(!token.empty())
+                tokens.push_back(token);
+        }
+    }
+
     return tokens;
 }
 
@@ -122,11 +158,16 @@ void FilterHeuristicKernels(const std::string& type,
     kernels.clear();
     for(std::size_t i = 0; i < valid_kernels.size(); ++i)
     {
-        auto tokens = TokenizeKernel(valid_kernels[i]);
+        auto tokens = GetKernelAsTokens(valid_kernels[i]);
         if(!tokens.empty() && tokens[0] == type)
         {
             indexes.push_back(i);
             kernels.push_back(tokens);
+        }
+        else
+        {
+            MIOPEN_LOG_I2("Skipping kernel: " << valid_kernels[i] << " as " << tokens[0]
+                                              << " does not match type: " << type);
         }
     }
 }
@@ -190,6 +231,24 @@ bool RunParameterPredictionModel(
         "DeviceGroupedConvBwdWeight", valid_kernels, heuristic_indexes, heuristic_kernels);
     std::cerr << "RunParameterPredictionModel: heuristic_kernels.size() = "
               << heuristic_kernels.size() << std::endl;
+
+    // print out valid kernels
+    std::cerr << "RunParameterPredictionModel: valid_kernels = " << std::endl;
+    for(const auto& kernel : valid_kernels)
+    {
+        std::cerr << kernel << std::endl;
+    }
+    // print out heuristic kernels
+    std::cerr << "RunParameterPredictionModel: heuristic_kernels = " << std::endl;
+    for(const auto& kernel : heuristic_kernels)
+    {
+        std::cerr << "  ";
+        for(const auto& token : kernel)
+        {
+            std::cerr << token << "; ";
+        }
+        std::cerr << std::endl;
+    }
     // Prepare features and split_k values
     const std::string& arch = ctx.GetStream().GetDeviceName();
     std::cerr << "RunParameterPredictionModel: arch = " << arch << std::endl;

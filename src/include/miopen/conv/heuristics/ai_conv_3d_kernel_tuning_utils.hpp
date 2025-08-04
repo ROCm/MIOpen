@@ -41,7 +41,7 @@ namespace conv {
 
 std::vector<float>
 GetFeatures3D(const miopen::conv::ProblemDescription&, int max_cu, const std::string& arch);
-std::vector<std::string> TokenizeKernel(const std::string& kernel);
+std::vector<std::string> GetKernelAsTokens(const std::string& kernel);
 void FilterHeuristicKernels(const std::string& type,
                             const std::vector<std::string>& valid_kernels,
                             std::vector<int>& indexes,

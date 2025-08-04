@@ -183,21 +183,21 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_DataTypes)
     ASSERT_EQ(features_b[21], static_cast<float>(miopenBFloat16));
 }
 
-TEST_F(Conv3DKernelTuningUtilsTest, TokenizeKernel)
+TEST_F(Conv3DKernelTuningUtilsTest, GetKernelAsTokens)
 {
-    auto tokens = miopen::solver::conv::TokenizeKernel("type_param1_param2");
+    auto tokens = miopen::solver::conv::GetKernelAsTokens("type_param1_param2");
     ASSERT_EQ(tokens.size(), 3u);
     EXPECT_EQ(tokens[0], "type");
     EXPECT_EQ(tokens[1], "param1");
     EXPECT_EQ(tokens[2], "param2");
 
-    auto empty = miopen::solver::conv::TokenizeKernel("");
+    auto empty = miopen::solver::conv::GetKernelAsTokens("");
     ASSERT_TRUE(empty.empty());
 }
 
 TEST_F(Conv3DKernelTuningUtilsTest, FilterHeuristicKernels)
 {
-    std::vector<std::string> kernels = {"typeA_param1", "typeB_param2", "typeA_param3"};
+    std::vector<std::string> kernels = {"typeA<param1>", "typeB<param2>", "typeA<param3>"};
     std::vector<int> indexes;
     std::vector<std::vector<std::string>> tokens;
     miopen::solver::conv::FilterHeuristicKernels("typeA", kernels, indexes, tokens);
