@@ -37,6 +37,7 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/conv/solvers.hpp>
+#include <miopen/filesystem.hpp>
 
 using namespace miopen::solver::conv;
 
@@ -245,15 +246,37 @@ TEST_F(Conv3DKernelTuningUtilsTest, ExpandKernelParamsWithSplitK)
     }
 }
 
+TEST_F(Conv3DKernelTuningUtilsTest, CandidateSelectionFilesExist)
+{
+    std::string db_path     = miopen::GetSystemDbPath();
+    std::string solver_name = "ConvHipImplicitGemm3DGroupWrwXdlops";
+    std::string arch        = "gfx942";
+
+    auto metadata      = db_path + "/" + arch + "_" + solver_name + "_metadata.tn.model";
+    auto input_encoder = db_path + "/" + arch + "_" + solver_name + "_input_encoder.tn.model";
+    auto kernel_config_encoder =
+        db_path + "/" + arch + "_" + solver_name + "_kernel_config_encoder.tn.model";
+
+    ASSERT_TRUE(miopen::fs::exists(metadata)) << "Missing metadata file: " << metadata;
+    ASSERT_TRUE(miopen::fs::exists(input_encoder))
+        << "Missing input encoder file: " << input_encoder;
+    ASSERT_TRUE(miopen::fs::exists(kernel_config_encoder))
+        << "Missing kernel config encoder file: " << kernel_config_encoder;
+}
+
 TEST_F(Conv3DKernelTuningUtilsTest, RunParameterPredictionModel)
 {
     miopen::Handle handle;
     miopen::ExecutionContext ctx(&handle);
 
-    std::string device_name = handle.GetDeviceName();
-    int max_cu              = handle.GetMaxComputeUnits();
-    std::cout << "Device name: " << device_name << std::endl;
+    std::string arch = handle.GetDeviceName();
+    int max_cu       = handle.GetMaxComputeUnits();
+    std::cout << "Device name: " << arch << std::endl;
     std::cout << "Max compute units: " << max_cu << std::endl;
+
+    std::cerr << "Conv3DKernelTuningUtilsTest: Handle address in test: " << &handle << std::endl;
+    std::cerr << "Conv3DKernelTuningUtilsTest: Handle address in ExecutionContext: "
+              << (ctx.HasValidStream() ? &ctx.GetStream() : nullptr) << std::endl;
 
     auto problem =
         GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::BackwardWeights);
@@ -265,9 +288,17 @@ TEST_F(Conv3DKernelTuningUtilsTest, RunParameterPredictionModel)
                 return std::vector<std::string>{};
             auto perf_cfg = solver.GetDefaultPerformanceConfig(ctx, problem);
             auto solution = solver.GetSolution(ctx, problem, perf_cfg);
+            // Defensive: check solution validity
+            if(solution.construction_params.empty())
+            {
+                std::cout << "Warning: solution.construction_params is empty!" << std::endl;
+            }
             std::vector<std::string> kernel_names;
             for(const auto& cp : solution.construction_params)
+            {
                 kernel_names.push_back(cp.kernel_name);
+                std::cout << "Kernel name: " << cp.kernel_name << std::endl;
+            }
             return kernel_names;
         };
 
@@ -276,6 +307,33 @@ TEST_F(Conv3DKernelTuningUtilsTest, RunParameterPredictionModel)
     std::string kernel_id;
     std::string solver_name = "ConvHipImplicitGemm3DGroupWrwXdlops";
 
+    // std::cout << "Filling valid_kernels" << std::endl;
+    // // Fill valid_kernels using the fill_valid_kernels function
+    // valid_kernels = fill_valid_kernels(problem);
+
+    // ASSERT_FALSE(valid_kernels.empty()) << "No valid kernels found! Solver may not be
+    // applicable.";
+
+    // Ensure the candidate selection model is initialized
+    EXPECT_NO_THROW({
+        miopen::ai::tuning::candidate_selection::CandidateSelectionModel model(arch, solver_name);
+    });
+
+    try
+    {
+        miopen::ai::tuning::candidate_selection::GetCandidateSelectionModel(arch, solver_name);
+    }
+    catch(const std::exception& ex)
+    {
+        EXPECT_TRUE(false) << "Exception during model construction: " << ex.what();
+    }
+    auto& model =
+        miopen::ai::tuning::candidate_selection::GetCandidateSelectionModel(arch, solver_name);
+    // Add a check to ensure model is valid if possible
+    const auto& meta = model.metadata();
+    ASSERT_FALSE(meta.input_params().empty()) << "Model metadata input_params is empty!";
+    ASSERT_FALSE(meta.output_params().empty()) << "Model metadata output_params is empty!";
+
     bool result = miopen::solver::conv::RunParameterPredictionModel<float>(
         ctx, problem, valid_kernels, index, split_k, kernel_id, fill_valid_kernels, solver_name);
 
@@ -283,8 +341,8 @@ TEST_F(Conv3DKernelTuningUtilsTest, RunParameterPredictionModel)
     ASSERT_GE(index, 0);
     ASSERT_GE(split_k, 1);
     ASSERT_FALSE(kernel_id.empty());
-    std::cout << "RunParameterPredictionModel: index=" << index << ", split_k=" << split_k
-              << ", kernel_id=" << kernel_id << std::endl;
+    // std::cout << "RunParameterPredictionModel: index=" << index << ", split_k=" << split_k
+    //           << ", kernel_id=" << kernel_id << std::endl;
 }
 
 int main(int argc, char** argv)
