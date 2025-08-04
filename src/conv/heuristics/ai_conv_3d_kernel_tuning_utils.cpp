@@ -107,16 +107,11 @@ std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
     auto lt_pos = kernel.find('<');
     if(lt_pos != std::string::npos)
     {
-        // Split prefix (before '<') by underscores
+        // Add the entire prefix (before '<') as a single token
         std::string prefix = kernel.substr(0, lt_pos);
-        std::stringstream ss(prefix);
-        std::string token;
-        while(std::getline(ss, token, '_'))
-        {
-            token.erase(remove_if(token.begin(), token.end(), isspace), token.end());
-            if(!token.empty())
-                tokens.push_back(token);
-        }
+        prefix.erase(remove_if(prefix.begin(), prefix.end(), isspace), prefix.end());
+        if(!prefix.empty())
+            tokens.push_back(prefix);
 
         // Split parameters (inside '<...>') by commas
         auto gt_pos = kernel.find('>', lt_pos);
@@ -124,6 +119,7 @@ std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
         {
             std::string params = kernel.substr(lt_pos + 1, gt_pos - lt_pos - 1);
             std::stringstream ps(params);
+            std::string token;
             while(std::getline(ps, token, ','))
             {
                 token.erase(remove_if(token.begin(), token.end(), isspace), token.end());
@@ -134,15 +130,11 @@ std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
     }
     else
     {
-        // No '<', just split by underscores
-        std::stringstream ss(kernel);
-        std::string token;
-        while(std::getline(ss, token, '_'))
-        {
-            token.erase(remove_if(token.begin(), token.end(), isspace), token.end());
-            if(!token.empty())
-                tokens.push_back(token);
-        }
+        // No '<', just add the whole string as a single token
+        std::string trimmed = kernel;
+        trimmed.erase(remove_if(trimmed.begin(), trimmed.end(), isspace), trimmed.end());
+        if(!trimmed.empty())
+            tokens.push_back(trimmed);
     }
 
     return tokens;
@@ -159,7 +151,7 @@ void FilterHeuristicKernels(const std::string& type,
     for(std::size_t i = 0; i < valid_kernels.size(); ++i)
     {
         auto tokens = GetKernelAsTokens(valid_kernels[i]);
-        if(!tokens.empty() && tokens[0] == type)
+        if(!tokens.empty() && tokens[0].find(type) == 0) // Check if tokens[0] starts with type
         {
             indexes.push_back(i);
             kernels.push_back(tokens);
