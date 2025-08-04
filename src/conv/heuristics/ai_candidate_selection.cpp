@@ -61,7 +61,16 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
         MIOPEN_THROW("Could not open metadata file: " + path.string());
     }
     nlohmann::json metadata;
-    file >> metadata;
+    try
+    {
+        file >> metadata;
+    }
+    catch(const std::exception& ex)
+    {
+        std::cerr << "JSON parse error: " << ex.what() << std::endl;
+        std::cerr.flush();
+        throw;
+    }
 
     input_params_  = metadata.value("input_params", std::vector<std::string>{});
     output_params_ = metadata.value("output_params", std::vector<std::string>{});
@@ -226,9 +235,20 @@ const CandidateSelectionModel& GetCandidateSelectionModel(const std::string& arc
     std::string key = arch + "_" + solver;
 
     std::lock_guard<std::mutex> lock(models_mutex);
-    auto [it, inserted] =
-        models.try_emplace(key, std::make_unique<CandidateSelectionModel>(arch, solver));
-    return *(it->second);
+    try
+    {
+        auto [it, inserted] =
+            models.try_emplace(key, std::make_unique<CandidateSelectionModel>(arch, solver));
+        MIOPEN_LOG_I2("CandidateSelectionModel created for arch: " << arch
+                                                                   << ", solver: " << solver);
+        return *(it->second);
+    }
+    catch(const std::exception& ex)
+    {
+        MIOPEN_THROW(miopenStatusInternalError,
+                     "Failed to construct CandidateSelectionModel for arch: " + arch +
+                         ", solver: " + solver + ". Exception: " + ex.what());
+    }
 }
 
 std::vector<std::vector<float>>
