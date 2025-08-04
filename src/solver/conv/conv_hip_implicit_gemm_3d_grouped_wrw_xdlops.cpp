@@ -412,7 +412,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
                       << result.size() << std::endl;
             return result;
         };
-        std::string solver_name = "DeviceGroupedConvBwdWeight";
+        std::string solver_name = "ConvHipImplicitGemm3DGroupWrwXdlops";
         std::cerr << "Valid kernels before AI heuristics: " << valid_kernels.size() << std::endl;
         std::cerr << "HeuristicInit: problem.GetInDataType() = " << problem.GetInDataType()
                   << std::endl;
