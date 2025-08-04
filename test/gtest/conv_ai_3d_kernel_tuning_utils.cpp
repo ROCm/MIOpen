@@ -275,8 +275,6 @@ TEST_F(Conv3DKernelTuningUtilsTest, RunParameterPredictionModel)
     std::cout << "Max compute units: " << max_cu << std::endl;
 
     std::cerr << "Conv3DKernelTuningUtilsTest: Handle address in test: " << &handle << std::endl;
-    std::cerr << "Conv3DKernelTuningUtilsTest: Handle address in ExecutionContext: "
-              << (ctx.HasValidStream() ? &ctx.GetStream() : nullptr) << std::endl;
 
     auto problem =
         GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::BackwardWeights);
