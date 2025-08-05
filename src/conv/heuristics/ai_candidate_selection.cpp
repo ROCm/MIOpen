@@ -281,34 +281,51 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
     const auto& output_params      = metadata.output_params();
     const auto& sequence_encodings = metadata.sequence_encodings();
 
+    // NOTE: If candidate.size() < output_params.size(), extra output_params are ignored.
+    // The order of candidate elements is assumed to match output_params.
+
     for(const auto& candidate : valid_kernel_params)
     {
         std::vector<float> encoded;
         for(size_t i = 0; i < candidate.size(); ++i)
         {
+            if(i >= output_params.size())
+                break; // Ignore extra candidate elements
+
             const std::string& param_name  = output_params[i];
             const std::string& param_value = candidate[i];
 
+            // Skip constant parameters
+            if(metadata.GetOutputConstant(param_name).has_value())
+                continue;
+
+            // Encode using sequence_encodings
             const auto enc_it = sequence_encodings.find(param_name);
-            if(enc_it != sequence_encodings.end())
+            if(enc_it == sequence_encodings.end())
             {
-                const auto& value_map = enc_it->second;
-                const auto val_it     = value_map.find(param_value);
-                if(val_it != value_map.end())
+                // Try to cast param_value to float if no encoding is found
+                try
                 {
-                    encoded.push_back(static_cast<float>(val_it->second));
+                    float float_val = std::stof(param_value);
+                    encoded.push_back(float_val);
                     continue;
+                }
+                catch(const std::exception&)
+                {
+                    MIOPEN_THROW("No sequence encoding found for output parameter: " + param_name +
+                                 " and value '" + param_value + "' is not a valid float.");
                 }
             }
 
-            try
+            const auto& value_map = enc_it->second;
+            const auto val_it     = value_map.find(param_value);
+            if(val_it == value_map.end())
             {
-                encoded.push_back(std::stof(param_value));
+                MIOPEN_THROW("No encoding found for value '" + param_value +
+                             "' of output parameter: " + param_name);
             }
-            catch(const std::exception&)
-            {
-                encoded.push_back(-1.0f);
-            }
+
+            encoded.push_back(static_cast<float>(val_it->second));
         }
         encoded_candidates.push_back(encoded);
     }
