@@ -1,5 +1,5 @@
 {
-    "generated_on": "04 Aug 2025, 14:14:31",
+    "generated_on": "05 Aug 2025, 12:52:20",
     "gpu": {
         "device_name": "AMD Instinct MI300X",
         "arch": "gfx942",
@@ -13,24 +13,44 @@
     },
     "solver_name": "ConvHipImplicitGemm3DGroupBwdXdlops",
     "output_params": [
-        "kernel_name",
-        "BlockSize",
-        "MPerBlock",
-        "NPerBlock",
-        "KPerBlock",
-        "AK1",
-        "BK1",
-        "ConvBackwardDataSpecialization",
-        "MPerXDL",
-        "NPerXDL",
-        "MXdlPerWave",
-        "NXdlPerWave",
-        "ABlockTransferSrcScalarPerVector",
-        "BBlockTransferSrcScalarPerVector",
-        "CShuffleMXdlPerWavePerShuffle",
-        "CShuffleNXdlPerWavePerShuffle"
+        "000_kernel_name",
+        "001_BlockSize",
+        "002_MPerBlock",
+        "003_NPerBlock",
+        "004_KPerBlock",
+        "005_AK1",
+        "006_BK1",
+        "007_ConvBackwardDataSpecialization",
+        "008_MPerXDL",
+        "009_NPerXDL",
+        "010_MXdlPerWave",
+        "011_NXdlPerWave",
+        "012_ABlockTransferSrcScalarPerVector",
+        "013_BBlockTransferSrcScalarPerVector",
+        "014_CShuffleMXdlPerWavePerShuffle",
+        "015_CShuffleNXdlPerWavePerShuffle"
     ],
     "num_output_params": 16,
+    "kernel_str_mapping": {
+        "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1": {
+            "0": "kernel_name",
+            "1": "BlockSize",
+            "2": "MPerBlock",
+            "3": "NPerBlock",
+            "4": "KPerBlock",
+            "5": "AK1",
+            "6": "BK1",
+            "7": "ConvBackwardDataSpecialization",
+            "8": "MPerXDL",
+            "9": "NPerXDL",
+            "10": "MXdlPerWave",
+            "11": "NXdlPerWave",
+            "12": "ABlockTransferSrcScalarPerVector",
+            "13": "BBlockTransferSrcScalarPerVector",
+            "14": "CShuffleMXdlPerWavePerShuffle",
+            "15": "CShuffleNXdlPerWavePerShuffle"
+        }
+    },
     "input_params": [
         "spatial_dim",
         "in_channels",
@@ -84,7 +104,7 @@
             }
         },
         "outputs": {
-            "ConvBackwardDataSpecialization": {
+            "007_ConvBackwardDataSpecialization": {
                 "Default": 0,
                 "Filter1x1Stride1Pad0": 1
             }
@@ -111,7 +131,7 @@
             }
         },
         "outputs": {
-            "ConvBackwardDataSpecialization": {
+            "007_ConvBackwardDataSpecialization": {
                 "0": "Default",
                 "1": "Filter1x1Stride1Pad0"
             }
@@ -128,13 +148,13 @@
             "group_count": "1"
         },
         "outputs": {
-            "kernel_name": "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1",
-            "KPerBlock": "32",
-            "AK1": "8",
-            "MPerXDL": "32",
-            "NPerXDL": "32",
-            "CShuffleMXdlPerWavePerShuffle": "1",
-            "CShuffleNXdlPerWavePerShuffle": "1"
+            "000_kernel_name": "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1",
+            "004_KPerBlock": "32",
+            "005_AK1": "8",
+            "008_MPerXDL": "32",
+            "009_NPerXDL": "32",
+            "014_CShuffleMXdlPerWavePerShuffle": "1",
+            "015_CShuffleNXdlPerWavePerShuffle": "1"
         }
     }
 }
