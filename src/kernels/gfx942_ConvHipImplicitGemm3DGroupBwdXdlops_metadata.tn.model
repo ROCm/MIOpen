@@ -1,5 +1,5 @@
 {
-    "generated_on": "05 Aug 2025, 12:52:20",
+    "generated_on": "05 Aug 2025, 14:29:04",
     "gpu": {
         "device_name": "AMD Instinct MI300X",
         "arch": "gfx942",
@@ -33,22 +33,22 @@
     "num_output_params": 16,
     "kernel_str_mapping": {
         "DeviceGroupedConvBwdDataMultipleD_Xdl_CShuffle_v1": {
-            "0": "kernel_name",
-            "1": "BlockSize",
-            "2": "MPerBlock",
-            "3": "NPerBlock",
-            "4": "KPerBlock",
-            "5": "AK1",
-            "6": "BK1",
-            "7": "ConvBackwardDataSpecialization",
-            "8": "MPerXDL",
-            "9": "NPerXDL",
-            "10": "MXdlPerWave",
-            "11": "NXdlPerWave",
-            "12": "ABlockTransferSrcScalarPerVector",
-            "13": "BBlockTransferSrcScalarPerVector",
-            "14": "CShuffleMXdlPerWavePerShuffle",
-            "15": "CShuffleNXdlPerWavePerShuffle"
+            "0": "000_kernel_name",
+            "1": "001_BlockSize",
+            "2": "002_MPerBlock",
+            "3": "003_NPerBlock",
+            "4": "004_KPerBlock",
+            "5": "005_AK1",
+            "6": "006_BK1",
+            "7": "007_ConvBackwardDataSpecialization",
+            "8": "008_MPerXDL",
+            "9": "009_NPerXDL",
+            "10": "010_MXdlPerWave",
+            "11": "011_NXdlPerWave",
+            "12": "012_ABlockTransferSrcScalarPerVector",
+            "13": "013_BBlockTransferSrcScalarPerVector",
+            "14": "014_CShuffleMXdlPerWavePerShuffle",
+            "15": "015_CShuffleNXdlPerWavePerShuffle"
         }
     },
     "input_params": [
