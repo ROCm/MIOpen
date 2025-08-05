@@ -56,6 +56,7 @@ public:
     std::optional<std::string> GetOutputConstant(const std::string& name) const;
     std::vector<size_t> GetConstantInputIndices() const;
     std::vector<size_t> GetConstantOutputIndices() const;
+    std::map<std::string, std::string> GetKernelStrMapping(const std::string& kernel_name) const;
     // Getter functions for private members
     const std::vector<std::string>& input_params() const { return input_params_; }
     const std::vector<std::string>& output_params() const { return output_params_; }
@@ -75,6 +76,7 @@ private:
     std::map<std::string, std::map<std::string, std::string>> sequence_decodings_;
     std::map<std::string, std::string> constants_features_;
     std::map<std::string, std::string> constants_sequence_;
+    std::map<std::string, std::map<std::string, std::string>> kernel_str_mapping_;
 };
 
 class CandidateSelectionModel

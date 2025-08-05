@@ -112,6 +112,16 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
     {
         MIOPEN_THROW("Metadata file does not contain 'constants' section");
     }
+
+    if(metadata.contains("kernel_str_mapping"))
+    {
+        kernel_str_mapping_ = metadata["kernel_str_mapping"]
+                                  .get<std::map<std::string, std::map<std::string, std::string>>>();
+    }
+    else
+    {
+        MIOPEN_THROW("Metadata file does not contain 'kernel_str_mapping' section");
+    }
 }
 
 size_t CandidateSelectionMetadata::GetInputParamIndex(const std::string& name) const
@@ -172,6 +182,20 @@ std::vector<size_t> CandidateSelectionMetadata::GetConstantOutputIndices() const
     }
     std::sort(indices.begin(), indices.end());
     return indices;
+}
+
+std::map<std::string, std::string>
+CandidateSelectionMetadata::GetKernelStrMapping(const std::string& kernel_name) const
+{
+    auto it = kernel_str_mapping_.find(kernel_name);
+    if(it != kernel_str_mapping_.end())
+    {
+        return it->second;
+    }
+    else
+    {
+        MIOPEN_THROW("Kernel string mapping not found for kernel: " + kernel_name);
+    }
 }
 
 // --- CandidateSelectionModel ------------------------------------------------
@@ -289,6 +313,12 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
         {
             if(i >= output_params.size())
                 break; // Ignore extra candidate elements
+
+            if(i == 0 && !candidate[i].empty())
+            {
+                // this is the kernel_name, we use it to get the kernel_str_mapping
+                const auto& kernel_str_mapping = metadata.GetKernelStrMapping(candidate[i]);
+            }
 
             const std::string& param_name  = output_params[i];
             const std::string& param_value = candidate[i];
