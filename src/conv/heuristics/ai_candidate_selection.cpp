@@ -184,10 +184,32 @@ CandidateSelectionModel::CandidateSelectionModel(const std::string& arch, const 
 CandidateSelectionModel::~CandidateSelectionModel() = default;
 
 std::vector<float>
-CandidateSelectionModel::EncodeInputFeatures(const std::vector<float>& features) const
+CandidateSelectionModel::EncodeInputFeatures(const std::map<std::string, float>& features) const
 {
+    std::vector<float> filtered_features;
+    const auto& input_params = metadata_.input_params();
+
+    for(const auto& name : input_params)
+    {
+        // Skip constant features
+        if(metadata_.GetInputConstant(name) != std::nullopt)
+            continue;
+
+        // Only add if present in the input map
+        auto it = features.find(name);
+        if(it != features.end())
+        {
+            filtered_features.push_back(it->second);
+        }
+        else
+        {
+            MIOPEN_THROW("Input feature not found in provided map: " + name);
+        }
+    }
+
+    // Pass the filtered vector to the encoding function
     return EncodeInputFeaturesWithFdeep(
-        features, arch_, solver_, std::move(metadata_.GetConstantInputIndices()));
+        filtered_features, arch_, solver_, metadata_.GetConstantInputIndices());
 }
 
 std::vector<std::vector<float>> CandidateSelectionModel::EncodeKernelConfigs(
@@ -296,7 +318,7 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
 
 int ModelSelectBestCandidate(const std::string& arch,
                              const std::string& solver,
-                             const std::vector<float>& features,
+                             const std::map<std::string, float>& features,
                              const std::vector<std::vector<std::string>>& valid_kernel_params)
 {
     try

@@ -33,6 +33,8 @@
 #include <miopen/logger.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #include <miopen/conv/problem_description.hpp>
+#include <map>
+#include <string>
 
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 namespace miopen {
@@ -52,52 +54,78 @@ int LayoutStringToCode(const std::string& layout)
 }
 
 // Helper: Extract 3D convolution features
-std::vector<float>
+std::map<std::string, float>
 GetFeatures3D(const ProblemDescription& problem, int /*max_cu*/, const std::string& /*arch*/)
 {
-    // TODO: take metadata as input to look up encoding of string features (e.g., layout)
-    // TODO: consider dynamically generating the features vector based on the values required by
-    // metadata.
-    std::vector<float> features;
-    // 1–4: in_channels, in_d, in_h, in_w
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputChannelC(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputDepthDi(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputHeightHi(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputWidthWi(problem)));
-    // 5–8: out_channels, out_d, out_h, out_w
-    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputChannelK(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputDepthDo(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputHeightHo(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetOutputWidthWo(problem)));
-    // 9–11: fil_d, fil_h, fil_w
-    features.push_back(static_cast<float>(ProblemInterpreter::GetFilterDepthZ(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetFilterHeightY(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetFilterWidthX(problem)));
-    // 12–14: pad_d, pad_h, pad_w
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadD(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadH(problem)));
-    features.push_back(static_cast<float>(ProblemInterpreter::GetInputLeftPadW(problem)));
-    // 15–17: conv_stride_d, conv_stride_h, conv_stride_w
-    features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideD(problem)));
-    features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideH(problem)));
-    features.push_back(
-        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideW(problem)));
-    // 18: batchsize
-    features.push_back(static_cast<float>(ProblemInterpreter::GetBatchN(problem)));
-    // 19–21: in_layout, fil_layout, out_layout
-    features.push_back(
-        static_cast<float>(LayoutStringToCode(ProblemInterpreter::GetInputLayout(problem))));
-    features.push_back(
-        static_cast<float>(LayoutStringToCode(ProblemInterpreter::GetFilterLayout(problem))));
-    features.push_back(
-        static_cast<float>(LayoutStringToCode(ProblemInterpreter::GetOutputLayout(problem))));
-    // 22: precision
-    features.push_back(static_cast<float>(problem.GetInDataType()));
+    std::map<std::string, float> features;
+
+    // 1: spatial_dim
+    features["spatial_dim"] = 3.0f;
+
+    // 2–5: in_channels, in_d, in_h, in_w
+    features["in_channels"] = static_cast<float>(ProblemInterpreter::GetInputChannelC(problem));
+    features["in_d"]        = static_cast<float>(ProblemInterpreter::GetInputDepthDi(problem));
+    features["in_h"]        = static_cast<float>(ProblemInterpreter::GetInputHeightHi(problem));
+    features["in_w"]        = static_cast<float>(ProblemInterpreter::GetInputWidthWi(problem));
+
+    // 6–9: out_channels, out_d, out_h, out_w
+    features["out_channels"] = static_cast<float>(ProblemInterpreter::GetOutputChannelK(problem));
+    features["out_d"]        = static_cast<float>(ProblemInterpreter::GetOutputDepthDo(problem));
+    features["out_h"]        = static_cast<float>(ProblemInterpreter::GetOutputHeightHo(problem));
+    features["out_w"]        = static_cast<float>(ProblemInterpreter::GetOutputWidthWo(problem));
+
+    // 10–12: fil_d, fil_h, fil_w
+    features["fil_d"] = static_cast<float>(ProblemInterpreter::GetFilterDepthZ(problem));
+    features["fil_h"] = static_cast<float>(ProblemInterpreter::GetFilterHeightY(problem));
+    features["fil_w"] = static_cast<float>(ProblemInterpreter::GetFilterWidthX(problem));
+
+    // 13–15: pad_d, pad_h, pad_w
+    features["pad_d"] = static_cast<float>(ProblemInterpreter::GetInputLeftPadD(problem));
+    features["pad_h"] = static_cast<float>(ProblemInterpreter::GetInputLeftPadH(problem));
+    features["pad_w"] = static_cast<float>(ProblemInterpreter::GetInputLeftPadW(problem));
+
+    // 16–18: conv_stride_d, conv_stride_h, conv_stride_w
+    features["conv_stride_d"] =
+        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideD(problem));
+    features["conv_stride_h"] =
+        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideH(problem));
+    features["conv_stride_w"] =
+        static_cast<float>(ProblemInterpreter::GetAdjustedConvolutionStrideW(problem));
+
+    // 19–21: dilation_d, dilation_h, dilation_w
+    features["dilation_d"] = static_cast<float>(problem.GetDilationD());
+    features["dilation_h"] = static_cast<float>(problem.GetDilationH());
+    features["dilation_w"] = static_cast<float>(problem.GetDilationW());
+
+    // 22: batchsize
+    features["batchsize"] = static_cast<float>(ProblemInterpreter::GetBatchN(problem));
+
+    // 23: bias
+    features["bias"] = static_cast<float>(problem.GetBias());
+
+    // 24–26: in_layout, fil_layout, out_layout (as codes)
+    features["in_layout"] =
+        static_cast<float>(LayoutStringToCode(ProblemInterpreter::GetInputLayout(problem)));
+    features["fil_layout"] =
+        static_cast<float>(LayoutStringToCode(ProblemInterpreter::GetFilterLayout(problem)));
+    features["out_layout"] =
+        static_cast<float>(LayoutStringToCode(ProblemInterpreter::GetOutputLayout(problem)));
+
+    // 27: precision
+    features["precision"] = static_cast<float>(problem.GetInDataType());
+
+    // 28: direction
+    features["direction"] = static_cast<float>(
+        problem.GetDirection() == miopen::conv::Direction::Forward           ? 0.0f
+        : problem.GetDirection() == miopen::conv::Direction::BackwardData    ? 1.0f
+        : problem.GetDirection() == miopen::conv::Direction::BackwardWeights ? 2.0f
+                                                                             : -1.0f);
+
+    // 29: group_count
+    features["group_count"] = static_cast<float>(problem.GetGroupCount());
+
     return features;
 }
-
 // Helper: Tokenize kernel string
 std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
 {
@@ -244,7 +272,7 @@ bool RunParameterPredictionModel(
     // Prepare features and split_k values
     const std::string& arch = ctx.GetStream().GetDeviceName();
     std::cerr << "RunParameterPredictionModel: arch = " << arch << std::endl;
-    std::vector<float> features =
+    std::map<std::string, float> features =
         GetFeatures3D(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
     std::vector<int> split_ks = GenerateSplitK(128); // TODO: make configurable
     std::cerr << "RunParameterPredictionModel: split_ks.size() = " << split_ks.size() << std::endl;

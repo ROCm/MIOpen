@@ -85,7 +85,7 @@ public:
     CandidateSelectionModel(const std::string& arch, const std::string& solver);
     ~CandidateSelectionModel();
 
-    std::vector<float> EncodeInputFeatures(const std::vector<float>& features) const;
+    std::vector<float> EncodeInputFeatures(const std::map<std::string, float>& features) const;
     std::vector<std::vector<float>>
     EncodeKernelConfigs(const std::vector<std::vector<float>>& encoded_candidates) const;
     int SelectBestCandidateIdx(const std::vector<float>& encoded_features,
@@ -107,7 +107,7 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
 
 int ModelSelectBestCandidate(const std::string& arch,
                              const std::string& solver,
-                             const std::vector<float>& features,
+                             const std::map<std::string, float>& features,
                              const std::vector<std::vector<std::string>>& valid_kernel_params);
 
 } // namespace candidate_selection

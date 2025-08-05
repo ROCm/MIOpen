@@ -54,9 +54,9 @@ protected:
         // 256-11-130-130-3x3x3-256-9-128-128-1-0x0x0-1x1x1-1x1x1-0-NCDHW-FP16-F
         // 512-7-20-18-3x3x3-512-5-18-16-1-0x0x0-1x1x1-1x1x1-0-NCDHW-BF16-F
 
-        std::vector<int> in_lengths      = {2, 3, 8, 8, 8};
-        std::vector<int> weights_lengths = {4, 3, 3, 3, 3};
-        std::vector<int> out_lengths     = {2, 4, 6, 6, 6};
+        std::vector<int> in_lengths      = {1, 512, 11, 130, 66};
+        std::vector<int> weights_lengths = {256, 512, 3, 3, 3};
+        std::vector<int> out_lengths     = {1, 256, 9, 128, 64};
 
         miopen::TensorDescriptor in_desc(dataType, in_lengths);
         miopen::TensorDescriptor weights_desc(dataType, weights_lengths);
@@ -89,69 +89,6 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_Size)
     ASSERT_EQ(features.size(), 22u) << "Unexpected feature vector size";
 }
 
-void CheckGetFeatures3D_Values(const std::vector<float>& features,
-                               miopen::conv::Direction direction)
-{
-    int expected_in_c = 3, expected_in_d = 8, expected_in_h = 8, expected_in_w = 8;
-    int expected_out_k = 4, expected_out_d = 6, expected_out_h = 6, expected_out_w = 6;
-    int expected_batch_n       = 2;
-    int expected_in_left_pad_d = 0, expected_in_left_pad_h = 0, expected_in_left_pad_w = 0;
-    int expected_stride_d = 1, expected_stride_h = 1, expected_stride_w = 1;
-    int expected_fil_d = 3, expected_fil_h = 3, expected_fil_w = 3;
-
-    bool is_forward = (direction == miopen::conv::Direction::Forward);
-
-    int in_c    = is_forward ? expected_in_c : expected_out_k;
-    int in_d    = is_forward ? expected_in_d : expected_out_d;
-    int in_h    = is_forward ? expected_in_h : expected_out_h;
-    int in_w    = is_forward ? expected_in_w : expected_out_w;
-    int out_k   = is_forward ? expected_out_k : expected_in_c;
-    int out_d   = is_forward ? expected_out_d : expected_in_d;
-    int out_h   = is_forward ? expected_out_h : expected_in_h;
-    int out_w   = is_forward ? expected_out_w : expected_in_w;
-    int batch_n = expected_batch_n;
-
-    ASSERT_EQ(features[0], in_c);
-    ASSERT_EQ(features[1], in_d);
-    ASSERT_EQ(features[2], in_h);
-    ASSERT_EQ(features[3], in_w);
-    ASSERT_EQ(features[4], out_k);
-    ASSERT_EQ(features[5], out_d);
-    ASSERT_EQ(features[6], out_h);
-    ASSERT_EQ(features[7], out_w);
-    ASSERT_EQ(features[8], expected_fil_d);
-    ASSERT_EQ(features[9], expected_fil_h);
-    ASSERT_EQ(features[10], expected_fil_w);
-    ASSERT_EQ(features[11], expected_in_left_pad_d);
-    ASSERT_EQ(features[12], expected_in_left_pad_h);
-    ASSERT_EQ(features[13], expected_in_left_pad_w);
-    ASSERT_EQ(features[14], expected_stride_d);
-    ASSERT_EQ(features[15], expected_stride_h);
-    ASSERT_EQ(features[16], expected_stride_w);
-    ASSERT_EQ(features[17], batch_n);
-    ASSERT_EQ(features[18], 0.0f);                            // InputLayout
-    ASSERT_EQ(features[19], 0.0f);                            // FilterLayout
-    ASSERT_EQ(features[20], 0.0f);                            // OutputLayout
-    ASSERT_EQ(features[21], static_cast<float>(miopenFloat)); // DataType
-}
-
-TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_ValueChecks)
-{
-    int max_cu                                            = 304;
-    std::string arch                                      = "gfx942";
-    const std::vector<miopen::conv::Direction> directions = {
-        miopen::conv::Direction::Forward,
-        miopen::conv::Direction::BackwardData,
-        miopen::conv::Direction::BackwardWeights};
-    for(const auto direction : directions)
-    {
-        auto problem  = GetReusableProblemDescription(miopenFloat, direction);
-        auto features = miopen::solver::conv::GetFeatures3D(problem, max_cu, arch);
-        ASSERT_EQ(features.size(), 22u);
-        CheckGetFeatures3D_Values(features, direction);
-    }
-}
-
 TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_Directions)
 {
     int max_cu       = 304;
@@ -169,24 +106,6 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_Directions)
 
     ASSERT_EQ(features_fwd.size(), features_bwd.size());
     ASSERT_EQ(features_fwd.size(), features_wrw.size());
-}
-
-TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_DataTypes)
-{
-    int max_cu       = 304;
-    std::string arch = "gfx942";
-
-    auto problem_f  = GetReusableProblemDescription(miopenFloat);
-    auto features_f = miopen::solver::conv::GetFeatures3D(problem_f, max_cu, arch);
-    ASSERT_EQ(features_f[21], static_cast<float>(miopenFloat));
-
-    auto problem_h  = GetReusableProblemDescription(miopenHalf);
-    auto features_h = miopen::solver::conv::GetFeatures3D(problem_h, max_cu, arch);
-    ASSERT_EQ(features_h[21], static_cast<float>(miopenHalf));
-
-    auto problem_b  = GetReusableProblemDescription(miopenBFloat16);
-    auto features_b = miopen::solver::conv::GetFeatures3D(problem_b, max_cu, arch);
-    ASSERT_EQ(features_b[21], static_cast<float>(miopenBFloat16));
 }
 
 TEST_F(Conv3DKernelTuningUtilsTest, GetKernelAsTokens)
@@ -347,6 +266,118 @@ TEST_F(Conv3DKernelTuningUtilsTest, RunParameterPredictionModel)
     ASSERT_FALSE(kernel_id.empty());
     // std::cout << "RunParameterPredictionModel: index=" << index << ", split_k=" << split_k
     //           << ", kernel_id=" << kernel_id << std::endl;
+}
+
+// Helper function for layout string to code (must match GetFeatures3D)
+int LayoutStringToCode(const std::string& layout)
+{
+    if(layout == "NCDHW")
+        return 0.0;
+    if(layout == "NDHWC")
+        return 1.0;
+    return -1.0; // Unknown
+}
+
+void CheckGetFeatures3D_MapValues(const std::map<std::string, float>& features,
+                                  const miopen::conv::ProblemDescription& problem,
+                                  miopen::conv::Direction direction)
+{
+    std::map<std::string, float> expected;
+    expected["spatial_dim"] = 3.0f;
+    expected["in_channels"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetInputChannelC(problem));
+    expected["in_d"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetInputDepthDi(problem));
+    expected["in_h"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetInputHeightHi(problem));
+    expected["in_w"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetInputWidthWi(problem));
+    expected["out_channels"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetOutputChannelK(problem));
+    expected["out_d"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetOutputDepthDo(problem));
+    expected["out_h"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetOutputHeightHo(problem));
+    expected["out_w"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetOutputWidthWo(problem));
+    expected["fil_d"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetFilterDepthZ(problem));
+    expected["fil_h"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetFilterHeightY(problem));
+    expected["fil_w"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetFilterWidthX(problem));
+    expected["pad_d"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetInputLeftPadD(problem));
+    expected["pad_h"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetInputLeftPadH(problem));
+    expected["pad_w"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetInputLeftPadW(problem));
+    expected["conv_stride_d"] = static_cast<float>(
+        miopen::solver::ProblemInterpreter::GetAdjustedConvolutionStrideD(problem));
+    expected["conv_stride_h"] = static_cast<float>(
+        miopen::solver::ProblemInterpreter::GetAdjustedConvolutionStrideH(problem));
+    expected["conv_stride_w"] = static_cast<float>(
+        miopen::solver::ProblemInterpreter::GetAdjustedConvolutionStrideW(problem));
+    expected["dilation_d"] = static_cast<float>(problem.GetDilationD());
+    expected["dilation_h"] = static_cast<float>(problem.GetDilationH());
+    expected["dilation_w"] = static_cast<float>(problem.GetDilationW());
+    expected["batchsize"] =
+        static_cast<float>(miopen::solver::ProblemInterpreter::GetBatchN(problem));
+    expected["bias"]      = static_cast<float>(problem.GetBias());
+    expected["in_layout"] = static_cast<float>(
+        LayoutStringToCode(miopen::solver::ProblemInterpreter::GetInputLayout(problem)));
+    expected["fil_layout"] = static_cast<float>(
+        LayoutStringToCode(miopen::solver::ProblemInterpreter::GetFilterLayout(problem)));
+    expected["out_layout"] = static_cast<float>(
+        LayoutStringToCode(miopen::solver::ProblemInterpreter::GetOutputLayout(problem)));
+    expected["precision"] = static_cast<float>(problem.GetInDataType());
+    expected["direction"] =
+        static_cast<float>(direction == miopen::conv::Direction::Forward           ? 0.0f
+                           : direction == miopen::conv::Direction::BackwardData    ? 1.0f
+                           : direction == miopen::conv::Direction::BackwardWeights ? 2.0f
+                                                                                   : -1.0f);
+    expected["group_count"] = static_cast<float>(problem.GetGroupCount());
+
+    for(const auto& kv : expected)
+    {
+        ASSERT_TRUE(features.count(kv.first)) << "Missing key: " << kv.first;
+        EXPECT_FLOAT_EQ(features.at(kv.first), kv.second) << "Mismatch for key: " << kv.first;
+    }
+}
+
+TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_MapValueChecks)
+{
+    int max_cu                                            = 304;
+    std::string arch                                      = "gfx942";
+    const std::vector<miopen::conv::Direction> directions = {
+        miopen::conv::Direction::Forward,
+        miopen::conv::Direction::BackwardData,
+        miopen::conv::Direction::BackwardWeights};
+    for(const auto direction : directions)
+    {
+        auto problem  = GetReusableProblemDescription(miopenFloat, direction);
+        auto features = miopen::solver::conv::GetFeatures3D(problem, max_cu, arch);
+        ASSERT_EQ(features.size(), 29u);
+        CheckGetFeatures3D_MapValues(features, problem, direction);
+    }
+}
+
+TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_DataTypes)
+{
+    int max_cu       = 304;
+    std::string arch = "gfx942";
+
+    auto problem_f  = GetReusableProblemDescription(miopenFloat);
+    auto features_f = miopen::solver::conv::GetFeatures3D(problem_f, max_cu, arch);
+    ASSERT_EQ(features_f.at("precision"), static_cast<float>(miopenFloat));
+
+    auto problem_h  = GetReusableProblemDescription(miopenHalf);
+    auto features_h = miopen::solver::conv::GetFeatures3D(problem_h, max_cu, arch);
+    ASSERT_EQ(features_h.at("precision"), static_cast<float>(miopenHalf));
+
+    auto problem_b  = GetReusableProblemDescription(miopenBFloat16);
+    auto features_b = miopen::solver::conv::GetFeatures3D(problem_b, max_cu, arch);
+    ASSERT_EQ(features_b.at("precision"), static_cast<float>(miopenBFloat16));
 }
 
 int main(int argc, char** argv)
