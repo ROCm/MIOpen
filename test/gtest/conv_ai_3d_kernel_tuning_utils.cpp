@@ -86,7 +86,7 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_Size)
     int max_cu       = 304;
     std::string arch = "gfx942";
     auto features    = miopen::solver::conv::GetFeatures3D(problem, max_cu, arch);
-    ASSERT_EQ(features.size(), 22u) << "Unexpected feature vector size";
+    ASSERT_EQ(features.size(), 29u) << "Unexpected feature vector size";
 }
 
 TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_Directions)
@@ -110,7 +110,7 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_Directions)
 
 TEST_F(Conv3DKernelTuningUtilsTest, GetKernelAsTokens)
 {
-    auto tokens = miopen::solver::conv::GetKernelAsTokens("type_param1_param2");
+    auto tokens = miopen::solver::conv::GetKernelAsTokens("type<param1,param2>");
     ASSERT_EQ(tokens.size(), 3u);
     EXPECT_EQ(tokens[0], "type");
     EXPECT_EQ(tokens[1], "param1");
