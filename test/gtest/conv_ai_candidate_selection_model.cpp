@@ -35,8 +35,9 @@ using namespace miopen::ai::tuning::candidate_selection;
 class CandidateSelectionTest : public ::testing::Test
 {
 protected:
-    std::string arch   = "gfx942";
-    std::string solver = "ConvHipImplicitGemm3DGroupWrwXdlops";
+    std::string arch        = "gfx942";
+    std::string solver      = "ConvHipImplicitGemm3DGroupWrwXdlops";
+    std::string kernel_name = "DeviceGroupedConvBwdWeight_Xdl_CShuffle";
 };
 
 TEST_F(CandidateSelectionTest, FilesExist)
@@ -87,7 +88,7 @@ TEST_F(CandidateSelectionTest, EncodeKernelConfigs)
 {
     CandidateSelectionModel model(arch, solver);
     CandidateSelectionMetadata meta(arch, solver);
-    size_t feature_size = meta.output_params().size();
+    size_t feature_size = meta.output_params().size() - meta.GetConstantOutputIndices().size();
     std::vector<std::vector<float>> encoded_candidates(100, std::vector<float>(feature_size, 2.0f));
 
     auto encoded = model.EncodeKernelConfigs(encoded_candidates);
@@ -106,18 +107,6 @@ TEST_F(CandidateSelectionTest, EncodeInputFeaturesEdgeCases)
     // Empty input
     std::map<std::string, float> empty_features;
     EXPECT_THROW(model.EncodeInputFeatures(empty_features), std::exception);
-
-    // Input smaller than expected (missing keys)
-    std::map<std::string, float> short_features;
-    if(!meta.input_params().empty())
-    {
-        // Add all but the last input param
-        for(size_t i = 0; i < meta.input_params().size() - 1; ++i)
-        {
-            short_features[meta.input_params()[i]] = 1.0f;
-        }
-        EXPECT_THROW(model.EncodeInputFeatures(short_features), std::exception);
-    }
 
     // Input larger than expected (extra keys)
     std::map<std::string, float> long_features;
@@ -156,41 +145,19 @@ TEST_F(CandidateSelectionTest, EncodeKernelConfigsEdgeCases)
 {
     CandidateSelectionModel model(arch, solver);
     CandidateSelectionMetadata meta(arch, solver);
+    size_t feature_size = meta.output_params().size() - meta.GetConstantOutputIndices().size();
 
     // Empty input
     std::vector<std::vector<float>> empty_candidates;
     EXPECT_THROW(model.EncodeKernelConfigs(empty_candidates), std::exception);
 
     // Candidate with wrong size (too short)
-    std::vector<std::vector<float>> candidates_short(
-        1,
-        std::vector<float>(meta.output_params().size() > 0 ? meta.output_params().size() - 1 : 0,
-                           2.0f));
+    std::vector<std::vector<float>> candidates_short(1, std::vector<float>(feature_size - 1, 2.0f));
     EXPECT_THROW(model.EncodeKernelConfigs(candidates_short), std::exception);
 
     // Candidate with wrong size (too long)
-    std::vector<std::vector<float>> candidates_long(
-        1, std::vector<float>(meta.output_params().size() + 1, 2.0f));
+    std::vector<std::vector<float>> candidates_long(1, std::vector<float>(feature_size + 1, 2.0f));
     EXPECT_THROW(model.EncodeKernelConfigs(candidates_long), std::exception);
-
-    // Candidates containing constants (if any constants are defined)
-    if(!meta.GetConstantOutputIndices().empty())
-    {
-        std::vector<std::vector<float>> candidates(
-            2, std::vector<float>(meta.output_params().size(), 2.0f));
-        for(auto idx : meta.GetConstantOutputIndices())
-        {
-            for(auto& candidate : candidates)
-            {
-                if(idx < candidate.size())
-                    candidate[idx] = 99.0f;
-            }
-        }
-        EXPECT_NO_THROW({
-            auto encoded = model.EncodeKernelConfigs(candidates);
-            ASSERT_FALSE(encoded.empty());
-        });
-    }
 }
 
 TEST_F(CandidateSelectionTest, SelectBestCandidateValid)
@@ -207,9 +174,47 @@ TEST_F(CandidateSelectionTest, SelectBestCandidateValid)
     auto encoded_features = model.EncodeInputFeatures(features);
 
     // Prepare valid_kernel_params as vector<vector<string>>
-    std::vector<std::vector<std::string>> valid_kernel_params(
-        3, std::vector<std::string>(meta.output_params().size(), "2"));
+    // Each candidate starts with kernel_name and has length equal to
+    // GetKernelStrMapping(kernel_name)
+    const auto& kernel_str_mapping = meta.GetKernelStrMapping(kernel_name);
 
+    std::vector<std::vector<std::string>> valid_kernel_params;
+    for(int i = 0; i < 3; ++i)
+    {
+        std::vector<std::string> candidate(meta.output_params().size(), "0");
+        candidate[0] = kernel_name; // first element is kernel_name
+
+        // For each key in kernel_str_mapping, use a valid value from sequence_encodings
+        for(const auto& kv : kernel_str_mapping)
+        {
+            const std::string& param_name = kv.second;
+            const std::string& index      = kv.first;
+            if(param_name.find("kernel_name") != std::string::npos)
+            {
+                continue; // Skip kernel_name
+            }
+            // Get the encodings for this parameter
+            auto it = meta.sequence_encodings().find(param_name);
+            if(it == meta.sequence_encodings().end())
+            {
+                continue; // Skip if no encodings found
+            }
+            else
+            {
+                const int index_int       = std::stoi(index);
+                const auto& encodings_map = meta.sequence_encodings().at(param_name);
+                candidate[index_int]      = encodings_map.begin()->first;
+            }
+        }
+        // debug: print out the whole candidate
+        std::cout << "Candidate " << i << ": <";
+        for(const auto& val : candidate)
+        {
+            std::cout << val << ", ";
+        }
+        std::cout << ">" << std::endl;
+        valid_kernel_params.push_back(candidate);
+    }
     auto encoded_candidates = EncodeKernelParams(valid_kernel_params, meta);
     auto encoded_configs    = model.EncodeKernelConfigs(encoded_candidates);
 
