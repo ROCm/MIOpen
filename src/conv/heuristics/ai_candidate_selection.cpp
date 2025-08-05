@@ -350,16 +350,6 @@ int ModelSelectBestCandidate(const std::string& arch,
             return -1;
         }
 
-        // log the shape of features and encoded_candidates
-        MIOPEN_LOG_I2("Feature vector size: " << features.size());
-        MIOPEN_LOG_I2("Number of encoded candidates: " << encoded_candidates.size());
-        // log size of each encoded candidate
-        for(size_t i = 0; i < encoded_candidates.size(); ++i)
-        {
-            MIOPEN_LOG_I2("valid_kernel_params size:" << valid_kernel_params[i].size());
-            MIOPEN_LOG_I2("Encoded candidate " << i << " size: " << encoded_candidates[i].size());
-        }
-
         const auto& encoded_features = model.EncodeInputFeatures(features);
         const auto& encoded_configs  = model.EncodeKernelConfigs(encoded_candidates);
 

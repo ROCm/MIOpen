@@ -251,24 +251,6 @@ bool RunParameterPredictionModel(
         "DeviceGroupedConvBwdWeight", valid_kernels, heuristic_indexes, heuristic_kernels);
     std::cerr << "RunParameterPredictionModel: heuristic_kernels.size() = "
               << heuristic_kernels.size() << std::endl;
-
-    // print out valid kernels
-    std::cerr << "RunParameterPredictionModel: valid_kernels = " << std::endl;
-    for(const auto& kernel : valid_kernels)
-    {
-        std::cerr << kernel << std::endl;
-    }
-    // print out heuristic kernels
-    std::cerr << "RunParameterPredictionModel: heuristic_kernels = " << std::endl;
-    for(const auto& kernel : heuristic_kernels)
-    {
-        std::cerr << "  ";
-        for(const auto& token : kernel)
-        {
-            std::cerr << token << "; ";
-        }
-        std::cerr << std::endl;
-    }
     // Prepare features and split_k values
     const std::string& arch = ctx.GetStream().GetDeviceName();
     std::cerr << "RunParameterPredictionModel: arch = " << arch << std::endl;
