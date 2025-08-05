@@ -151,7 +151,7 @@ void FilterHeuristicKernels(const std::string& type,
     for(std::size_t i = 0; i < valid_kernels.size(); ++i)
     {
         auto tokens = GetKernelAsTokens(valid_kernels[i]);
-        if(!tokens.empty() && tokens[0].find(type) == 0) // Check if tokens[0] starts with type
+        if(!tokens.empty() && tokens[0].starts_with(type)) // Check if tokens[0] starts with type
         {
             indexes.push_back(i);
             kernels.push_back(tokens);

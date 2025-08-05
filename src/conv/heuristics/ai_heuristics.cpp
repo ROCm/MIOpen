@@ -584,6 +584,12 @@ std::vector<uint64_t> PredictSolver(const conv::ProblemDescription& problem,
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 namespace tuning {
 
+inline bool GetUseSinglePredictEnv()
+{
+    const char* env = std::getenv("MIOPEN_AI_FDEEP_USE_SINGLE_PREDICT");
+    return env != nullptr && std::string(env) == "1";
+}
+
 Metadata::Metadata(const std::string& arch, const std::string& solver)
 {
     const nlohmann::json metadata =
@@ -876,8 +882,7 @@ EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_cand
 
     // By default, use predict_multi (multi-threaded); use single-threaded loop only if env var is
     // set
-    const char* use_single_env = std::getenv("MIOPEN_AI_FDEEP_USE_SINGLE_PREDICT");
-    bool use_single            = use_single_env && std::string(use_single_env) == "1";
+    bool use_single = GetUseSinglePredictEnv();
 
     std::vector<std::vector<float>> result;
     std::vector<fdeep::tensors> inputs_vec;
