@@ -23,7 +23,7 @@ beautifulsoup4==4.13.4
     # via pydata-sphinx-theme
 breathe==4.36.0
     # via rocm-docs-core
-certifi==2025.7.14
+certifi==2025.8.3
     # via requests
 cffi==1.17.1
     # via
@@ -82,7 +82,7 @@ importlib-metadata==8.7.0
     # via
     #   jupyter-cache
     #   myst-nb
-ipykernel==6.30.0
+ipykernel==6.30.1
     # via myst-nb
 ipython==8.37.0
     # via
@@ -211,7 +211,7 @@ pyyaml==6.0.2
     #   myst-parser
     #   rocm-docs-core
     #   sphinx-external-toc
-pyzmq==27.0.0
+pyzmq==27.0.1
     # via
     #   ipykernel
     #   jupyter-client
