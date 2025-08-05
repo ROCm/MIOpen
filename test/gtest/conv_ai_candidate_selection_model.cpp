@@ -72,12 +72,17 @@ TEST_F(CandidateSelectionTest, EncodeInputFeatures)
 {
     CandidateSelectionModel model(arch, solver);
     CandidateSelectionMetadata meta(arch, solver);
-    std::vector<float> features(meta.input_params().size(), 1.0f);
+
+    // Initialize features as a map with all input_params set to 1.0f
+    std::map<std::string, float> features;
+    for(const auto& name : meta.input_params())
+    {
+        features[name] = 1.0f;
+    }
 
     auto encoded = model.EncodeInputFeatures(features);
     ASSERT_FALSE(encoded.empty()) << "EncodeInputFeatures returned empty vector!";
 }
-
 TEST_F(CandidateSelectionTest, EncodeKernelConfigs)
 {
     CandidateSelectionModel model(arch, solver);
@@ -99,26 +104,46 @@ TEST_F(CandidateSelectionTest, EncodeInputFeaturesEdgeCases)
     CandidateSelectionMetadata meta(arch, solver);
 
     // Empty input
-    std::vector<float> empty_features;
+    std::map<std::string, float> empty_features;
     EXPECT_THROW(model.EncodeInputFeatures(empty_features), std::exception);
 
-    // Input smaller than expected
-    std::vector<float> short_features(
-        meta.input_params().size() > 0 ? meta.input_params().size() - 1 : 0, 1.0f);
-    EXPECT_THROW(model.EncodeInputFeatures(short_features), std::exception);
+    // Input smaller than expected (missing keys)
+    std::map<std::string, float> short_features;
+    if(!meta.input_params().empty())
+    {
+        // Add all but the last input param
+        for(size_t i = 0; i < meta.input_params().size() - 1; ++i)
+        {
+            short_features[meta.input_params()[i]] = 1.0f;
+        }
+        EXPECT_THROW(model.EncodeInputFeatures(short_features), std::exception);
+    }
 
-    // Input larger than expected
-    std::vector<float> long_features(meta.input_params().size() + 1, 1.0f);
-    EXPECT_THROW(model.EncodeInputFeatures(long_features), std::exception);
+    // Input larger than expected (extra keys)
+    std::map<std::string, float> long_features;
+    for(const auto& name : meta.input_params())
+    {
+        long_features[name] = 1.0f;
+    }
+    long_features["extra_param"] = 2.0f; // Add an extra key
+    // Should not throw, extra keys are ignored
+    EXPECT_NO_THROW({
+        auto encoded = model.EncodeInputFeatures(long_features);
+        ASSERT_FALSE(encoded.empty());
+    });
 
     // Input containing constants (if any constants are defined)
     if(!meta.GetConstantInputIndices().empty())
     {
-        std::vector<float> features(meta.input_params().size(), 1.0f);
+        std::map<std::string, float> features;
+        for(const auto& name : meta.input_params())
+        {
+            features[name] = 1.0f;
+        }
         for(auto idx : meta.GetConstantInputIndices())
         {
-            if(idx < features.size())
-                features[idx] = 42.0f;
+            if(idx < meta.input_params().size())
+                features[meta.input_params()[idx]] = 42.0f;
         }
         EXPECT_NO_THROW({
             auto encoded = model.EncodeInputFeatures(features);
@@ -172,28 +197,46 @@ TEST_F(CandidateSelectionTest, SelectBestCandidateValid)
 {
     CandidateSelectionModel model(arch, solver);
     CandidateSelectionMetadata meta(arch, solver);
-    std::vector<float> features(meta.input_params().size(), 1.0f);
+
+    // Initialize features as a map with all input_params set to 1.0f
+    std::map<std::string, float> features;
+    for(const auto& name : meta.input_params())
+    {
+        features[name] = 1.0f;
+    }
     auto encoded_features = model.EncodeInputFeatures(features);
 
-    std::vector<std::vector<float>> encoded_candidates(
-        3, std::vector<float>(meta.output_params().size(), 2.0f));
-    auto encoded_configs = model.EncodeKernelConfigs(encoded_candidates);
+    // Prepare valid_kernel_params as vector<vector<string>>
+    std::vector<std::vector<std::string>> valid_kernel_params(
+        3, std::vector<std::string>(meta.output_params().size(), "2"));
+
+    auto encoded_candidates = EncodeKernelParams(valid_kernel_params, meta);
+    auto encoded_configs    = model.EncodeKernelConfigs(encoded_candidates);
 
     int idx = model.SelectBestCandidateIdx(encoded_features, encoded_configs);
     ASSERT_GE(idx, 0);
-    ASSERT_LT(idx, static_cast<int>(encoded_candidates.size()));
+    ASSERT_LT(idx, static_cast<int>(valid_kernel_params.size()));
 }
 
 TEST_F(CandidateSelectionTest, SelectBestCandidateMismatchedDims)
 {
     CandidateSelectionModel model(arch, solver);
     CandidateSelectionMetadata meta(arch, solver);
-    std::vector<float> features(meta.input_params().size(), 1.0f);
+
+    // Initialize features as a map with all input_params set to 1.0f
+    std::map<std::string, float> features;
+    for(const auto& name : meta.input_params())
+    {
+        features[name] = 1.0f;
+    }
     auto encoded_features = model.EncodeInputFeatures(features);
 
-    std::vector<std::vector<float>> encoded_candidates(
-        3, std::vector<float>(meta.output_params().size() + 1, 2.0f));
-    auto encoded_configs = encoded_candidates;
+    // Prepare mismatched kernel params (output_params.size() + 1)
+    std::vector<std::vector<std::string>> valid_kernel_params(
+        3, std::vector<std::string>(meta.output_params().size() + 1, "2"));
+
+    auto encoded_candidates = EncodeKernelParams(valid_kernel_params, meta);
+    auto encoded_configs    = encoded_candidates;
 
     EXPECT_THROW(model.SelectBestCandidateIdx(encoded_features, encoded_configs), std::exception);
 }
@@ -209,7 +252,12 @@ TEST_F(CandidateSelectionTest, SelectBestCandidateEmptyInput)
 TEST_F(CandidateSelectionTest, ModelSelectBestCandidate)
 {
     CandidateSelectionMetadata meta(arch, solver);
-    std::vector<float> features(meta.input_params().size(), 1.0f);
+    // Initialize features as a map with all input_params set to 1.0f
+    std::map<std::string, float> features;
+    for(const auto& name : meta.input_params())
+    {
+        features[name] = 1.0f;
+    }
     std::vector<std::vector<std::string>> valid_kernel_params(
         3, std::vector<std::string>(meta.output_params().size(), "2"));
 
