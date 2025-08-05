@@ -822,21 +822,10 @@ const fdeep::model& GetFdeepModel(const std::string& path, const std::string& ke
 
 std::vector<float> EncodeInputFeaturesWithFdeep(const std::vector<float>& features,
                                                 const std::string& arch,
-                                                const std::string& solver,
-                                                const std::vector<size_t>&& drop_indices)
+                                                const std::string& solver)
 {
-    std::vector<float> filtered_features;
-    filtered_features.reserve(features.size() - drop_indices.size());
-    for(size_t i = 0, j = 0; i < features.size(); ++i)
-    {
-        if(j < drop_indices.size() && i == drop_indices[j])
-        {
-            ++j;
-            continue;
-        }
-        filtered_features.push_back(features[i]);
-    }
-    fdeep::tensor input_tensor(fdeep::tensor_shape(filtered_features.size()), filtered_features);
+
+    fdeep::tensor input_tensor(fdeep::tensor_shape(features.size()), features);
     std::string key = arch + "_" + solver + "_input_encoder";
     std::string path =
         (GetSystemDbPath() / (arch + "_" + solver + "_input_encoder.tn.model")).string();
@@ -849,28 +838,10 @@ std::vector<float> EncodeInputFeaturesWithFdeep(const std::vector<float>& featur
 std::vector<std::vector<float>>
 EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_candidates,
                              const std::string& arch,
-                             const std::string& solver,
-                             const std::vector<size_t>&& drop_indices)
+                             const std::string& solver)
 {
-    std::vector<std::vector<float>> filtered_candidates;
-    filtered_candidates.reserve(encoded_candidates.size());
-    for(const auto& candidate : encoded_candidates)
-    {
-        std::vector<float> filtered;
-        filtered.reserve(candidate.size() - drop_indices.size());
-        for(size_t i = 0, j = 0; i < candidate.size(); ++i)
-        {
-            if(j < drop_indices.size() && i == drop_indices[j])
-            {
-                ++j;
-                continue;
-            }
-            filtered.push_back(candidate[i]);
-        }
-        filtered_candidates.push_back(filtered);
-    }
 
-    if(filtered_candidates.empty() || filtered_candidates[0].empty())
+    if(encoded_candidates.empty() || encoded_candidates[0].empty())
         MIOPEN_THROW(miopenStatusInternalError,
                      "Empty candidates provided to kernel config encoder");
 
@@ -886,8 +857,8 @@ EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_cand
 
     std::vector<std::vector<float>> result;
     std::vector<fdeep::tensors> inputs_vec;
-    inputs_vec.reserve(filtered_candidates.size());
-    for(const auto& candidate : filtered_candidates)
+    inputs_vec.reserve(encoded_candidates.size());
+    for(const auto& candidate : encoded_candidates)
     {
         fdeep::tensor t(fdeep::tensor_shape(candidate.size()), candidate);
         inputs_vec.push_back(fdeep::tensors{t}); // wrap tensor in a vector

@@ -39,14 +39,12 @@ namespace candidate_selection {
 // Forward declarations for the helpers implemented in ai_heuristics.cpp
 std::vector<float> EncodeInputFeaturesWithFdeep(const std::vector<float>& features,
                                                 const std::string& arch,
-                                                const std::string& solver,
-                                                const std::vector<size_t>&& drop_indices);
+                                                const std::string& solver);
 
 std::vector<std::vector<float>>
 EncodeKernelConfigsWithFdeep(const std::vector<std::vector<float>>& encoded_candidates,
                              const std::string& arch,
-                             const std::string& solver,
-                             const std::vector<size_t>&& drop_indices);
+                             const std::string& solver);
 
 class CandidateSelectionMetadata
 {

@@ -208,15 +208,13 @@ CandidateSelectionModel::EncodeInputFeatures(const std::map<std::string, float>&
     }
 
     // Pass the filtered vector to the encoding function
-    return EncodeInputFeaturesWithFdeep(
-        filtered_features, arch_, solver_, metadata_.GetConstantInputIndices());
+    return EncodeInputFeaturesWithFdeep(filtered_features, arch_, solver_);
 }
 
 std::vector<std::vector<float>> CandidateSelectionModel::EncodeKernelConfigs(
     const std::vector<std::vector<float>>& encoded_candidates) const
 {
-    return EncodeKernelConfigsWithFdeep(
-        encoded_candidates, arch_, solver_, std::move(metadata_.GetConstantOutputIndices()));
+    return EncodeKernelConfigsWithFdeep(encoded_candidates, arch_, solver_);
 }
 
 int CandidateSelectionModel::SelectBestCandidateIdx(
