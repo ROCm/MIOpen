@@ -1,5 +1,5 @@
 {
-    "generated_on": "28 Jul 2025, 07:19:46",
+    "generated_on": "04 Aug 2025, 14:14:31",
     "gpu": {
         "device_name": "AMD Instinct MI300X",
         "arch": "gfx942",
@@ -13,18 +13,26 @@
     },
     "solver_name": "ConvHipImplicitGemm3DGroupBwdXdlops",
     "output_params": [
+        "kernel_name",
         "BlockSize",
         "MPerBlock",
         "NPerBlock",
+        "KPerBlock",
+        "AK1",
         "BK1",
         "ConvBackwardDataSpecialization",
+        "MPerXDL",
+        "NPerXDL",
         "MXdlPerWave",
         "NXdlPerWave",
         "ABlockTransferSrcScalarPerVector",
-        "BBlockTransferSrcScalarPerVector"
+        "BBlockTransferSrcScalarPerVector",
+        "CShuffleMXdlPerWavePerShuffle",
+        "CShuffleNXdlPerWavePerShuffle"
     ],
     "num_output_params": 16,
     "input_params": [
+        "spatial_dim",
         "in_channels",
         "in_d",
         "in_h",
@@ -42,13 +50,19 @@
         "conv_stride_d",
         "conv_stride_h",
         "conv_stride_w",
+        "dilation_d",
+        "dilation_h",
+        "dilation_w",
         "batchsize",
+        "bias",
         "in_layout",
         "fil_layout",
         "out_layout",
-        "precision"
+        "precision",
+        "direction",
+        "group_count"
     ],
-    "num_input_params": 22,
+    "num_input_params": 29,
     "encodings": {
         "inputs": {
             "in_layout": {

@@ -1,5 +1,5 @@
 {
-    "generated_on": "28 Jul 2025, 07:20:27",
+    "generated_on": "04 Aug 2025, 14:15:11",
     "gpu": {
         "device_name": "AMD Instinct MI300X",
         "arch": "gfx942",
@@ -26,12 +26,18 @@
         "ABlockTransferDstScalarPerVector_K1",
         "BBlockTransferSrcScalarPerVector",
         "BBlockTransferDstScalarPerVector_K1",
+        "CShuffleMXdlPerWavePerShuffle",
+        "CShuffleNXdlPerWavePerShuffle",
         "CBlockTransferScalarPerVector_NWaveNPerXdl",
         "SplitK",
-        "BlkGemmPipelineVersion"
+        "KPerBlock",
+        "BlkGemmPipelineScheduler",
+        "BlkGemmPipelineVersion",
+        "NumGroupsToMerge"
     ],
     "num_output_params": 21,
     "input_params": [
+        "spatial_dim",
         "in_channels",
         "in_d",
         "in_h",
@@ -49,13 +55,19 @@
         "conv_stride_d",
         "conv_stride_h",
         "conv_stride_w",
+        "dilation_d",
+        "dilation_h",
+        "dilation_w",
         "batchsize",
+        "bias",
         "in_layout",
         "fil_layout",
         "out_layout",
-        "precision"
+        "precision",
+        "direction",
+        "group_count"
     ],
-    "num_input_params": 22,
+    "num_input_params": 29,
     "encodings": {
         "inputs": {
             "in_layout": {

@@ -48,6 +48,12 @@ protected:
         miopenDataType_t dataType         = miopenFloat,
         miopen::conv::Direction direction = miopen::conv::Direction::BackwardWeights)
     {
+        // TODO: translate one of these fdbkeys in to problem (with correct directions)
+        // (these are from the training data)
+        // 512-11-130-66-3x3x3-256-9-128-64-1-0x0x0-1x1x1-1x1x1-0-NCDHW-FP32-F
+        // 256-11-130-130-3x3x3-256-9-128-128-1-0x0x0-1x1x1-1x1x1-0-NCDHW-FP16-F
+        // 512-7-20-18-3x3x3-512-5-18-16-1-0x0x0-1x1x1-1x1x1-0-NCDHW-BF16-F
+
         std::vector<int> in_lengths      = {2, 3, 8, 8, 8};
         std::vector<int> weights_lengths = {4, 3, 3, 3, 3};
         std::vector<int> out_lengths     = {2, 4, 6, 6, 6};
