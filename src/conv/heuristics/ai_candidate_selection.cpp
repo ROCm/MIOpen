@@ -353,10 +353,6 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
             // Encode using sequence_encodings
             const auto enc_it = sequence_encodings.find(param_name);
 
-            // debug:
-            std::cout << "sequence_encodings contains param_name? "
-                      << (sequence_encodings.count(param_name) ? "yes" : "no") << std::endl;
-
             if(enc_it == sequence_encodings.end())
             {
                 // Try to cast param_value to float if no encoding is found
@@ -375,12 +371,6 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
 
             const auto& value_map = enc_it->second;
             const auto val_it     = value_map.find(param_value);
-
-            for(const auto& kv : value_map)
-            {
-                std::cout << "'" << kv.first << "' " << std::endl;
-            }
-            std::cout << std::endl;
 
             if(val_it == value_map.end())
             {
