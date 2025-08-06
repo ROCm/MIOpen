@@ -197,6 +197,40 @@ TEST_F(CandidateSelectionTest, EncodeKernelConfigsEdgeCases)
     EXPECT_THROW(model.EncodeKernelConfigs(candidates_long), std::exception);
 }
 
+TEST_F(CandidateSelectionTest, KernelStrMappingUnknownKernelThrows)
+{
+    CandidateSelectionMetadata meta(arch, solver);
+    EXPECT_THROW(meta.GetKernelStrMapping("unknown_kernel_name"), std::exception);
+}
+
+TEST_F(CandidateSelectionTest, OutputConstantRetrieval)
+{
+    CandidateSelectionMetadata meta(arch, solver);
+    // Try known and unknown output param names
+    if(!meta.output_params().empty())
+    {
+        auto known = meta.GetOutputConstant(meta.output_params()[0]);
+        // Should be either a value or nullopt, but not throw
+        SUCCEED();
+    }
+    auto unknown = meta.GetOutputConstant("nonexistent_param");
+    EXPECT_EQ(unknown, std::nullopt);
+}
+
+TEST_F(CandidateSelectionTest, InputOutputParamIndexThrows)
+{
+    CandidateSelectionMetadata meta(arch, solver);
+    EXPECT_THROW(meta.GetInputParamIndex("nonexistent_param"), std::exception);
+    EXPECT_THROW(meta.GetOutputParamIndex("nonexistent_param"), std::exception);
+}
+
+TEST_F(CandidateSelectionTest, EncodeKernelParamsBadValueThrows)
+{
+    CandidateSelectionMetadata meta(arch, solver);
+    std::vector<std::vector<std::string>> bad_params = {{kernel_name, "nonexistent_value", "nan"}};
+    EXPECT_THROW(EncodeKernelParams(bad_params, meta), std::exception);
+}
+
 TEST_F(CandidateSelectionTest, SelectBestCandidateValid)
 {
     CandidateSelectionModel model(arch, solver);
