@@ -42,10 +42,9 @@ namespace conv {
 std::map<std::string, float>
 GetFeatures3D(const miopen::conv::ProblemDescription&, int max_cu, const std::string& arch);
 std::vector<std::string> GetKernelAsTokens(const std::string& kernel);
-void FilterHeuristicKernels(const std::string& type,
-                            const std::vector<std::string>& valid_kernels,
-                            std::vector<int>& indexes,
-                            std::vector<std::vector<std::string>>& kernels);
+void FillHeuristicKernels(const std::vector<std::string>& valid_kernels,
+                          std::vector<int>& indexes,
+                          std::vector<std::vector<std::string>>& kernels);
 std::vector<int> GenerateSplitK(int max_split_k);
 std::pair<std::vector<std::vector<std::string>>, std::vector<std::pair<int, int>>>
 ExpandKernelParamsWithSplitK(const std::vector<std::vector<std::string>>& kernels,

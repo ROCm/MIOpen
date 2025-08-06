@@ -168,27 +168,18 @@ std::vector<std::string> GetKernelAsTokens(const std::string& kernel)
     return tokens;
 }
 
-// Helper: Filter kernels by type and collect indexes/tokens
-void FilterHeuristicKernels(const std::string& type,
-                            const std::vector<std::string>& valid_kernels,
-                            std::vector<int>& indexes,
-                            std::vector<std::vector<std::string>>& kernels)
+// Helper: Fill indexes and kernels from valid_kernels
+void FillHeuristicKernels(const std::vector<std::string>& valid_kernels,
+                          std::vector<int>& indexes,
+                          std::vector<std::vector<std::string>>& kernels)
 {
     indexes.clear();
     kernels.clear();
     for(std::size_t i = 0; i < valid_kernels.size(); ++i)
     {
         auto tokens = GetKernelAsTokens(valid_kernels[i]);
-        if(!tokens.empty() && tokens[0].starts_with(type)) // Check if tokens[0] starts with type
-        {
-            indexes.push_back(i);
-            kernels.push_back(tokens);
-        }
-        else
-        {
-            MIOPEN_LOG_I2("Skipping kernel: " << valid_kernels[i] << " as " << tokens[0]
-                                              << " does not match type: " << type);
-        }
+        indexes.push_back(i);
+        kernels.push_back(tokens);
     }
 }
 
@@ -243,10 +234,7 @@ bool RunParameterPredictionModel(
     // Filter kernels by type
     std::vector<int> heuristic_indexes;
     std::vector<std::vector<std::string>> heuristic_kernels;
-    // TODO: why "DeviceGroupedConvBwdWeight" hardcoded here? Should be given by the solver somehow.
-    FilterHeuristicKernels(
-        "DeviceGroupedConvBwdWeight", valid_kernels, heuristic_indexes, heuristic_kernels);
-
+    FillHeuristicKernels(valid_kernels, heuristic_indexes, heuristic_kernels);
     // Prepare features and split_k values
     const std::string& arch = ctx.GetStream().GetDeviceName();
 

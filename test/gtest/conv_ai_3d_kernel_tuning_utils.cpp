@@ -158,19 +158,6 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetKernelAsTokens)
     ASSERT_TRUE(empty.empty());
 }
 
-TEST_F(Conv3DKernelTuningUtilsTest, FilterHeuristicKernels)
-{
-    std::vector<std::string> kernels = {"typeA<param1>", "typeB<param2>", "typeA<param3>"};
-    std::vector<int> indexes;
-    std::vector<std::vector<std::string>> tokens;
-    FilterHeuristicKernels("typeA", kernels, indexes, tokens);
-
-    ASSERT_EQ(indexes.size(), 2u);
-    ASSERT_EQ(tokens.size(), 2u);
-    ASSERT_EQ(indexes[0], 0);
-    ASSERT_EQ(indexes[1], 2);
-}
-
 TEST_F(Conv3DKernelTuningUtilsTest, GenerateSplitK)
 {
     auto split_ks             = GenerateSplitK(8);
@@ -246,19 +233,6 @@ TEST_F(Conv3DKernelTuningUtilsTest, CandidateSelectionModelInitialization)
     {
         FAIL() << "Exception during model construction: " << ex.what();
     }
-}
-
-TEST_F(Conv3DKernelTuningUtilsTest, FilterHeuristicKernelsFunctionality)
-{
-    std::vector<std::string> valid_kernels = {
-        "DeviceGroupedConvBwdWeight_Xdl_CShuffle<param1,param2>", "OtherKernelType<param3,param4>"};
-    std::vector<int> indexes;
-    std::vector<std::vector<std::string>> tokens;
-    FilterHeuristicKernels("DeviceGroupedConvBwdWeight", valid_kernels, indexes, tokens);
-
-    ASSERT_EQ(indexes.size(), 1u);
-    ASSERT_EQ(tokens.size(), 1u);
-    ASSERT_EQ(tokens[0][0], "DeviceGroupedConvBwdWeight_Xdl_CShuffle");
 }
 
 TEST_F(Conv3DKernelTuningUtilsTest, ExpandKernelParamsWithSplitKFunctionality)
