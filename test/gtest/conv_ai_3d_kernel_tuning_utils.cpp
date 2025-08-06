@@ -40,6 +40,16 @@
 #include <miopen/filesystem.hpp>
 
 using namespace miopen::solver::conv;
+// Helper function for layout string to code (must match GetFeatures3D)
+int LayoutStringToCode(const std::string& layout)
+{
+    if(layout == "NCDHW")
+        return 0.0;
+    if(layout == "NDHWC")
+        return 1.0;
+    return -1.0; // Unknown
+}
+
 // dummy kernels for testing
 const std::vector<std::string> dummy_kernels = {
     "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64,64,64,4,Default,4,2,2,1,4,1,4,1,1,1>",
@@ -286,16 +296,28 @@ TEST_F(Conv3DKernelTuningUtilsTest, RunParameterPredictionModelReturnsValidResul
 
     ASSERT_TRUE(result);
     ASSERT_FALSE(kernel_id.empty()); // Optionally check kernel_id was set
+    // for debugging, print out selected kernel_id
+    std::cout << "Selected kernel_id: " << kernel_id << std::endl;
 }
 
-// Helper function for layout string to code (must match GetFeatures3D)
-int LayoutStringToCode(const std::string& layout)
+TEST_F(Conv3DKernelTuningUtilsTest, RunParameterPredictionModel_Fallback)
 {
-    if(layout == "NCDHW")
-        return 0.0;
-    if(layout == "NDHWC")
-        return 1.0;
-    return -1.0; // Unknown
+    // Use a fill_valid_kernels that returns an empty list
+    std::function<std::vector<std::string>(const miopen::conv::ProblemDescription&)> empty_kernels =
+        [](const miopen::conv::ProblemDescription&) { return std::vector<std::string>{}; };
+
+    auto problem =
+        GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::BackwardWeights);
+    int index = 0, split_k = 1;
+    std::string kernel_id;
+    std::string solver_name = "ConvHipImplicitGemm3DGroupWrwXdlops";
+    std::vector<std::string> valid_kernels;
+
+    bool result = miopen::solver::conv::RunParameterPredictionModel<float>(
+        ctx, problem, valid_kernels, index, split_k, kernel_id, empty_kernels, solver_name);
+
+    ASSERT_FALSE(result);
+    ASSERT_TRUE(kernel_id.empty());
 }
 
 void CheckGetFeatures3D_MapValues(const std::map<std::string, float>& features,
@@ -398,6 +420,43 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_DataTypes)
     auto problem_b  = GetReusableProblemDescription(miopenBFloat16);
     auto features_b = GetFeatures3D(problem_b, max_cu, arch);
     ASSERT_EQ(features_b.at("precision"), static_cast<float>(miopenBFloat16));
+}
+
+TEST_F(Conv3DKernelTuningUtilsTest, FullSolverPathway_ConvHipImplicitGemm3DGroupWrwXdlops)
+{
+    // Set up the problem and context
+    auto problem =
+        GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::BackwardWeights);
+
+    // Set device name to gfx942 for the handle/context
+    ctx = miopen::ExecutionContext(&handle);
+
+    // Instantiate the solver
+    ConvHipImplicitGemm3DGroupWrwXdlops solver;
+
+    // Check applicability
+    ASSERT_TRUE(solver.IsApplicable(ctx, problem)) << "Solver not applicable for this problem";
+
+    // Get default performance config
+    auto perf_cfg = solver.GetDefaultPerformanceConfig(ctx, problem);
+    ASSERT_TRUE(solver.IsValidPerformanceConfig(ctx, problem, perf_cfg))
+        << "Invalid performance config";
+
+    // Get solution
+    auto solution = solver.GetSolution(ctx, problem, perf_cfg);
+
+    // Check solution validity
+    ASSERT_FALSE(solution.construction_params.empty()) << "Solution construction_params is empty";
+    ASSERT_TRUE(solution.invoker_factory) << "Solution invoker_factory is not set";
+    ASSERT_GE(solution.workspace_sz, 0u) << "Workspace size should be non-negative";
+
+    std::cout << "Selected CK kernel_id: " << perf_cfg.kernel_id << std::endl;
+
+    // Optionally: Print kernel names for debug
+    for(const auto& cp : solution.construction_params)
+    {
+        std::cout << "Kernel name: " << cp.kernel_name << std::endl;
+    }
 }
 
 int main(int argc, char** argv)
