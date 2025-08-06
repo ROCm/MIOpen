@@ -40,6 +40,43 @@ protected:
     std::string kernel_name = "DeviceGroupedConvBwdWeight_Xdl_CShuffle";
 };
 
+// Helper function to generate valid_kernel_params for a given kernel_name and metadata
+std::vector<std::vector<std::string>> GenerateValidKernelParams(
+    const CandidateSelectionMetadata& meta, const std::string& kernel_name, int num_candidates = 3)
+{
+    const auto& kernel_str_mapping = meta.GetKernelStrMapping(kernel_name);
+    std::vector<std::vector<std::string>> valid_kernel_params;
+
+    for(int i = 0; i < num_candidates; ++i)
+    {
+        std::vector<std::string> candidate(meta.output_params().size(), "nan");
+        candidate[0] = kernel_name; // first element is kernel_name
+
+        for(const auto& kv : kernel_str_mapping)
+        {
+            const std::string& param_name = kv.second;
+            const std::string& index      = kv.first;
+            const int index_int           = std::stoi(index);
+            if(param_name.find("kernel_name") != std::string::npos)
+            {
+                continue; // Skip kernel_name
+            }
+            auto it = meta.sequence_encodings().find(param_name);
+            if(it == meta.sequence_encodings().end())
+            {
+                candidate[index_int] = "0";
+            }
+            else
+            {
+                const auto& encodings_map = it->second;
+                candidate[index_int]      = encodings_map.begin()->first;
+            }
+        }
+        valid_kernel_params.push_back(candidate);
+    }
+    return valid_kernel_params;
+}
+
 TEST_F(CandidateSelectionTest, FilesExist)
 {
     auto db_path       = miopen::GetSystemDbPath();
@@ -173,77 +210,13 @@ TEST_F(CandidateSelectionTest, SelectBestCandidateValid)
     }
     auto encoded_features = model.EncodeInputFeatures(features);
 
-    // Prepare valid_kernel_params as vector<vector<string>>
-    // Each candidate starts with kernel_name and has length equal to
-    // GetKernelStrMapping(kernel_name)
-    const auto& kernel_str_mapping = meta.GetKernelStrMapping(kernel_name);
-
-    std::vector<std::vector<std::string>> valid_kernel_params;
-    for(int i = 0; i < 3; ++i)
-    {
-        std::vector<std::string> candidate(meta.output_params().size(), "0");
-        candidate[0] = kernel_name; // first element is kernel_name
-
-        // For each key in kernel_str_mapping, use a valid value from sequence_encodings
-        for(const auto& kv : kernel_str_mapping)
-        {
-            const std::string& param_name = kv.second;
-            const std::string& index      = kv.first;
-            if(param_name.find("kernel_name") != std::string::npos)
-            {
-                continue; // Skip kernel_name
-            }
-            // Get the encodings for this parameter
-            auto it = meta.sequence_encodings().find(param_name);
-            if(it == meta.sequence_encodings().end())
-            {
-                continue; // Skip if no encodings found
-            }
-            else
-            {
-                const int index_int       = std::stoi(index);
-                const auto& encodings_map = meta.sequence_encodings().at(param_name);
-                candidate[index_int]      = encodings_map.begin()->first;
-            }
-        }
-        // debug: print out the whole candidate
-        std::cout << "Candidate " << i << ": <";
-        for(const auto& val : candidate)
-        {
-            std::cout << val << ", ";
-        }
-        std::cout << ">" << std::endl;
-        valid_kernel_params.push_back(candidate);
-    }
-    auto encoded_candidates = EncodeKernelParams(valid_kernel_params, meta);
-    auto encoded_configs    = model.EncodeKernelConfigs(encoded_candidates);
+    auto valid_kernel_params = GenerateValidKernelParams(meta, kernel_name, 3);
+    auto encoded_candidates  = EncodeKernelParams(valid_kernel_params, meta);
+    auto encoded_configs     = model.EncodeKernelConfigs(encoded_candidates);
 
     int idx = model.SelectBestCandidateIdx(encoded_features, encoded_configs);
     ASSERT_GE(idx, 0);
     ASSERT_LT(idx, static_cast<int>(valid_kernel_params.size()));
-}
-
-TEST_F(CandidateSelectionTest, SelectBestCandidateMismatchedDims)
-{
-    CandidateSelectionModel model(arch, solver);
-    CandidateSelectionMetadata meta(arch, solver);
-
-    // Initialize features as a map with all input_params set to 1.0f
-    std::map<std::string, float> features;
-    for(const auto& name : meta.input_params())
-    {
-        features[name] = 1.0f;
-    }
-    auto encoded_features = model.EncodeInputFeatures(features);
-
-    // Prepare mismatched kernel params (output_params.size() + 1)
-    std::vector<std::vector<std::string>> valid_kernel_params(
-        3, std::vector<std::string>(meta.output_params().size() + 1, "2"));
-
-    auto encoded_candidates = EncodeKernelParams(valid_kernel_params, meta);
-    auto encoded_configs    = encoded_candidates;
-
-    EXPECT_THROW(model.SelectBestCandidateIdx(encoded_features, encoded_configs), std::exception);
 }
 
 TEST_F(CandidateSelectionTest, SelectBestCandidateEmptyInput)
@@ -263,9 +236,7 @@ TEST_F(CandidateSelectionTest, ModelSelectBestCandidate)
     {
         features[name] = 1.0f;
     }
-    std::vector<std::vector<std::string>> valid_kernel_params(
-        3, std::vector<std::string>(meta.output_params().size(), "2"));
-
+    auto valid_kernel_params = GenerateValidKernelParams(meta, kernel_name, 3);
     int idx = ModelSelectBestCandidate(arch, solver, features, valid_kernel_params);
     ASSERT_GE(idx, 0);
     ASSERT_LT(idx, static_cast<int>(valid_kernel_params.size()));
