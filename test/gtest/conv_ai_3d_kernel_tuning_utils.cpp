@@ -433,6 +433,122 @@ TEST_F(Conv3DKernelTuningUtilsTest, FullSolverPathway_ConvHipImplicitGemm3DGroup
     }
 }
 
+TEST_F(Conv3DKernelTuningUtilsTest, FullSolverPathway_ConvHipImplicitGemm3DGroupAllDirections)
+{
+    struct SolverEntry
+    {
+        miopen::conv::Direction direction;
+        std::string label;
+        std::function<std::unique_ptr<void>()> create_solver;
+    };
+
+    // Use lambdas to create each solver type, cast to void* for generic handling
+    std::vector<SolverEntry> solvers = {
+        {miopen::conv::Direction::Forward,
+         "FWD",
+         []() { return std::make_unique<ConvHipImplicitGemm3DGroupFwdXdlops>(); }},
+        {miopen::conv::Direction::BackwardData,
+         "BWD",
+         []() { return std::make_unique<ConvHipImplicitGemm3DGroupBwdXdlops>(); }},
+        {miopen::conv::Direction::BackwardWeights,
+         "WRW",
+         []() { return std::make_unique<ConvHipImplicitGemm3DGroupWrwXdlops>(); }},
+    };
+
+    for(const auto& entry : solvers)
+    {
+        auto problem = GetReusableProblemDescription(miopenFloat, entry.direction);
+        ctx          = miopen::ExecutionContext(&handle);
+
+        // Use RTTI to dispatch to the correct solver type
+        std::unique_ptr<void> solver_base = entry.create_solver();
+
+        // Helper lambdas for each solver type
+        auto run_solver = [&](auto* solver, const std::string& label) {
+            ASSERT_TRUE(solver->IsApplicable(ctx, problem)) << label << " solver not applicable";
+            auto perf_cfg = solver->GetDefaultPerformanceConfig(ctx, problem);
+            ASSERT_TRUE(solver->IsValidPerformanceConfig(ctx, problem, perf_cfg))
+                << "Invalid " << label << " config";
+            auto solution = solver->GetSolution(ctx, problem, perf_cfg);
+            ASSERT_FALSE(solution.construction_params.empty())
+                << label << " construction_params empty";
+            ASSERT_TRUE(solution.invoker_factory) << label << " invoker_factory not set";
+            ASSERT_GE(solution.workspace_sz, 0u) << label << " workspace size negative";
+            std::cout << "[" << label << "] Selected CK kernel_id: " << perf_cfg.kernel_id
+                      << std::endl;
+            for(const auto& cp : solution.construction_params)
+                std::cout << "[" << label << "] Kernel name: " << cp.kernel_name << std::endl;
+        };
+
+        if(entry.label == "FWD")
+            run_solver(static_cast<ConvHipImplicitGemm3DGroupFwdXdlops*>(solver_base.get()),
+                       entry.label);
+        else if(entry.label == "BWD")
+            run_solver(static_cast<ConvHipImplicitGemm3DGroupBwdXdlops*>(solver_base.get()),
+                       entry.label);
+        else if(entry.label == "WRW")
+            run_solver(static_cast<ConvHipImplicitGemm3DGroupWrwXdlops*>(solver_base.get()),
+                       entry.label);
+    }
+}
+
+TEST_F(Conv3DKernelTuningUtilsTest, FullSolverPathway_ConvHipImplicitGemm3DGroupFwdXdlops)
+{
+    auto problem = GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::Forward);
+
+    ctx = miopen::ExecutionContext(&handle);
+
+    ConvHipImplicitGemm3DGroupFwdXdlops solver;
+
+    ASSERT_TRUE(solver.IsApplicable(ctx, problem)) << "FWD solver not applicable for this problem";
+
+    auto perf_cfg = solver.GetDefaultPerformanceConfig(ctx, problem);
+    ASSERT_TRUE(solver.IsValidPerformanceConfig(ctx, problem, perf_cfg))
+        << "Invalid FWD performance config";
+
+    auto solution = solver.GetSolution(ctx, problem, perf_cfg);
+
+    ASSERT_FALSE(solution.construction_params.empty())
+        << "FWD solution construction_params is empty";
+    ASSERT_TRUE(solution.invoker_factory) << "FWD solution invoker_factory is not set";
+    ASSERT_GE(solution.workspace_sz, 0u) << "FWD workspace size should be non-negative";
+
+    std::cout << "Selected FWD CK kernel_id: " << perf_cfg.kernel_id << std::endl;
+    for(const auto& cp : solution.construction_params)
+    {
+        std::cout << "FWD Kernel name: " << cp.kernel_name << std::endl;
+    }
+}
+
+TEST_F(Conv3DKernelTuningUtilsTest, FullSolverPathway_ConvHipImplicitGemm3DGroupBwdXdlops)
+{
+    auto problem =
+        GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::BackwardData);
+
+    ctx = miopen::ExecutionContext(&handle);
+
+    ConvHipImplicitGemm3DGroupBwdXdlops solver;
+
+    ASSERT_TRUE(solver.IsApplicable(ctx, problem)) << "BWD solver not applicable for this problem";
+
+    auto perf_cfg = solver.GetDefaultPerformanceConfig(ctx, problem);
+    ASSERT_TRUE(solver.IsValidPerformanceConfig(ctx, problem, perf_cfg))
+        << "Invalid BWD performance config";
+
+    auto solution = solver.GetSolution(ctx, problem, perf_cfg);
+
+    ASSERT_FALSE(solution.construction_params.empty())
+        << "BWD solution construction_params is empty";
+    ASSERT_TRUE(solution.invoker_factory) << "BWD solution invoker_factory is not set";
+    ASSERT_GE(solution.workspace_sz, 0u) << "BWD workspace size should be non-negative";
+
+    std::cout << "Selected BWD CK kernel_id: " << perf_cfg.kernel_id << std::endl;
+    for(const auto& cp : solution.construction_params)
+    {
+        std::cout << "BWD Kernel name: " << cp.kernel_name << std::endl;
+    }
+}
+
 int main(int argc, char** argv)
 {
     ::testing::InitGoogleTest(&argc, argv);

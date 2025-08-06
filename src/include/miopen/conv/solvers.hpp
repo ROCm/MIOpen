@@ -4512,7 +4512,8 @@ struct PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
         : PerformanceConfigHipImplicitGemm3DGroupFwdXdlops(0, "")
     {
     }
-    MIOPEN_INTERNALS_EXPORT void HeuristicInit(const miopen::conv::ProblemDescription&);
+    MIOPEN_INTERNALS_EXPORT void HeuristicInit(const ExecutionContext&,
+                                               const miopen::conv::ProblemDescription&);
     MIOPEN_INTERNALS_EXPORT bool SetNextValue(const miopen::conv::ProblemDescription&);
     MIOPEN_INTERNALS_EXPORT bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const
@@ -4668,7 +4669,8 @@ struct PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
         : PerformanceConfigHipImplicitGemm3DGroupBwdXdlops(0, "")
     {
     }
-    MIOPEN_INTERNALS_EXPORT void HeuristicInit(const miopen::conv::ProblemDescription&);
+    MIOPEN_INTERNALS_EXPORT void HeuristicInit(const ExecutionContext&,
+                                               const miopen::conv::ProblemDescription&);
     MIOPEN_INTERNALS_EXPORT bool SetNextValue(const miopen::conv::ProblemDescription&);
     MIOPEN_INTERNALS_EXPORT bool IsValidValue() const;
     bool IsValid(const ExecutionContext&, const miopen::conv::ProblemDescription& problem) const

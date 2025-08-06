@@ -34,12 +34,9 @@
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
-#include <miopen/conv/heuristics/ai_conv_3d_kernel_tuning_utils.hpp>
 #include <miopen/conv/heuristics/ai_heuristics.hpp>
 #include <miopen/conv/heuristics/ai_candidate_selection.hpp>
 #include <miopen/conv/heuristics/ai_conv_3d_kernel_tuning_utils.hpp>
-#include <miopen/conv/heuristics/ai_heuristics.hpp>
-#include <miopen/conv/heuristics/ai_candidate_selection.hpp>
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
@@ -481,39 +478,39 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
 #endif
 }
 
-// bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::SetNextValue(
-//     const ProblemDescription& problem)
-// {
-// #if MIOPEN_USE_COMPOSABLEKERNEL
-//     if(valid_kernels.empty())
-//     {
-//         // HeuristicInit(ctx, problem);
-//         // commented because ctx is not in scope here
-//         if(valid_kernels.empty())
-//         {
-//             return false;
-//         }
-//     }
-//     do
-//     {
-//         bool flag = NextTwoPower<1, 128>(split_k);
-//         if(!flag)
-//         {
-//             kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
-//             break;
-//         }
+bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::SetNextValue(
+    const ProblemDescription& problem)
+{
+#if MIOPEN_USE_COMPOSABLEKERNEL
+    if(valid_kernels.empty())
+    {
+        // HeuristicInit(ctx, problem);
+        // commented because ctx is not in scope here
+        if(valid_kernels.empty())
+        {
+            return false;
+        }
+    }
+    do
+    {
+        bool flag = NextTwoPower<1, 128>(split_k);
+        if(!flag)
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
+        }
 
-//         if(!NextLinear(0, valid_kernels.size() - 1, index))
-//         {
-//             kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
-//             break;
-//         }
-//         // All split_k and index values were iterated
-//         return false;
-//     } while(false);
-// #endif
-//     return true;
-// }
+        if(!NextLinear(0, valid_kernels.size() - 1, index))
+        {
+            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            break;
+        }
+        // All split_k and index values were iterated
+        return false;
+    } while(false);
+#endif
+    return true;
+}
 
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::IsValidValue() const
 {
