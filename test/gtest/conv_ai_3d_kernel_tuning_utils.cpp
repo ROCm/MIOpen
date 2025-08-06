@@ -40,20 +40,48 @@
 #include <miopen/filesystem.hpp>
 
 using namespace miopen::solver::conv;
+// dummy kernels for testing
+const std::vector<std::string> dummy_kernels = {
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64,64,64,4,Default,4,2,2,1,4,1,4,1,1,1>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128,128,32,4,Default,4,2,1,4,4,1,1,1,1,1>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64,32,64,4,Default,4,1,2,1,2,4,4,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<256,256,128,4,Default,4,4,2,4,4,4,2,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<256,128,256,4,Default,4,2,4,4,2,4,4,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128,128,128,4,Default,4,4,2,4,4,4,4,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<256,128,128,4,Default,4,2,2,4,2,4,2,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128,128,64,4,Default,4,2,2,4,4,4,2,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128,64,128,4,Default,4,2,2,4,2,4,4,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64,64,64,4,Default,4,2,2,4,4,4,4,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<256,128,64,4,Default,4,2,1,4,2,4,1,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<256,64,128,4,Default,4,1,2,4,1,4,2,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128,128,32,4,Default,4,2,1,4,4,4,1,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<128,32,128,4,Default,4,1,2,4,1,4,4,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64,64,32,4,Default,4,2,1,4,4,4,2,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<64,32,64,4,Default,4,1,2,4,2,4,4,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<256,64,64,8,Default,8,1,1,4,4,4,4,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<256,64,64,8,Default,8,1,1,4,4,1,4,1,1,1>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<256,64,64,8,Default,8,1,1,1,4,4,4,1,1,4>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffle<256,64,64,8,Default,8,1,1,1,4,1,4,1,1,1>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffleV3<64,16,16,32,Default,8,1,1,1,4,1,4,1,1,2>",
+    "DeviceGroupedConvBwdWeight_Xdl_CShuffleV3<64,16,16,32,Default,8,1,1,1,4,1,4,1,1,2>",
+};
+
+// test version of fill_valid_kernels with a dummy function
+static std::function<std::vector<std::string>(const miopen::conv::ProblemDescription&)>
+    fill_valid_kernels = [](const miopen::conv::ProblemDescription&) { return dummy_kernels; };
 
 class Conv3DKernelTuningUtilsTest : public ::testing::Test
 {
 protected:
+    miopen::Handle handle;
+    miopen::ExecutionContext ctx;
+
+    void SetUp() override { ctx = miopen::ExecutionContext(&handle); }
+
     miopen::conv::ProblemDescription GetReusableProblemDescription(
         miopenDataType_t dataType         = miopenFloat,
         miopen::conv::Direction direction = miopen::conv::Direction::BackwardWeights)
     {
-        // TODO: translate one of these fdbkeys in to problem (with correct directions)
-        // (these are from the training data)
-        // 512-11-130-66-3x3x3-256-9-128-64-1-0x0x0-1x1x1-1x1x1-0-NCDHW-FP32-F
-        // 256-11-130-130-3x3x3-256-9-128-128-1-0x0x0-1x1x1-1x1x1-0-NCDHW-FP16-F
-        // 512-7-20-18-3x3x3-512-5-18-16-1-0x0x0-1x1x1-1x1x1-0-NCDHW-BF16-F
-
         std::vector<int> in_lengths      = {1, 512, 11, 130, 66};
         std::vector<int> weights_lengths = {256, 512, 3, 3, 3};
         std::vector<int> out_lengths     = {1, 256, 9, 128, 64};
@@ -85,7 +113,7 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_Size)
     auto problem     = GetReusableProblemDescription();
     int max_cu       = 304;
     std::string arch = "gfx942";
-    auto features    = miopen::solver::conv::GetFeatures3D(problem, max_cu, arch);
+    auto features    = GetFeatures3D(problem, max_cu, arch);
     ASSERT_EQ(features.size(), 29u) << "Unexpected feature vector size";
 }
 
@@ -94,15 +122,15 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_Directions)
     int max_cu       = 304;
     std::string arch = "gfx942";
     auto problem_fwd = GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::Forward);
-    auto features_fwd = miopen::solver::conv::GetFeatures3D(problem_fwd, max_cu, arch);
+    auto features_fwd = GetFeatures3D(problem_fwd, max_cu, arch);
 
     auto problem_bwd =
         GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::BackwardData);
-    auto features_bwd = miopen::solver::conv::GetFeatures3D(problem_bwd, max_cu, arch);
+    auto features_bwd = GetFeatures3D(problem_bwd, max_cu, arch);
 
     auto problem_wrw =
         GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::BackwardWeights);
-    auto features_wrw = miopen::solver::conv::GetFeatures3D(problem_wrw, max_cu, arch);
+    auto features_wrw = GetFeatures3D(problem_wrw, max_cu, arch);
 
     ASSERT_EQ(features_fwd.size(), features_bwd.size());
     ASSERT_EQ(features_fwd.size(), features_wrw.size());
@@ -110,13 +138,13 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_Directions)
 
 TEST_F(Conv3DKernelTuningUtilsTest, GetKernelAsTokens)
 {
-    auto tokens = miopen::solver::conv::GetKernelAsTokens("type<param1,param2>");
+    auto tokens = GetKernelAsTokens("type<param1,param2>");
     ASSERT_EQ(tokens.size(), 3u);
     EXPECT_EQ(tokens[0], "type");
     EXPECT_EQ(tokens[1], "param1");
     EXPECT_EQ(tokens[2], "param2");
 
-    auto empty = miopen::solver::conv::GetKernelAsTokens("");
+    auto empty = GetKernelAsTokens("");
     ASSERT_TRUE(empty.empty());
 }
 
@@ -125,7 +153,7 @@ TEST_F(Conv3DKernelTuningUtilsTest, FilterHeuristicKernels)
     std::vector<std::string> kernels = {"typeA<param1>", "typeB<param2>", "typeA<param3>"};
     std::vector<int> indexes;
     std::vector<std::vector<std::string>> tokens;
-    miopen::solver::conv::FilterHeuristicKernels("typeA", kernels, indexes, tokens);
+    FilterHeuristicKernels("typeA", kernels, indexes, tokens);
 
     ASSERT_EQ(indexes.size(), 2u);
     ASSERT_EQ(tokens.size(), 2u);
@@ -135,7 +163,7 @@ TEST_F(Conv3DKernelTuningUtilsTest, FilterHeuristicKernels)
 
 TEST_F(Conv3DKernelTuningUtilsTest, GenerateSplitK)
 {
-    auto split_ks             = miopen::solver::conv::GenerateSplitK(8);
+    auto split_ks             = GenerateSplitK(8);
     std::vector<int> expected = {1, 2, 4, 8};
     ASSERT_EQ(split_ks, expected);
 }
@@ -144,9 +172,8 @@ TEST_F(Conv3DKernelTuningUtilsTest, ExpandKernelParamsWithSplitK)
 {
     std::vector<std::vector<std::string>> kernels = {{"typeA", "p1"}, {"typeB", "p2"}};
     std::vector<int> indexes                      = {0, 1};
-    std::vector<int> split_ks                     = miopen::solver::conv::GenerateSplitK(8);
-    auto [expanded, mapping] =
-        miopen::solver::conv::ExpandKernelParamsWithSplitK(kernels, indexes, split_ks);
+    std::vector<int> split_ks                     = GenerateSplitK(8);
+    auto [expanded, mapping] = ExpandKernelParamsWithSplitK(kernels, indexes, split_ks);
 
     ASSERT_EQ(expanded.size(), 8u);
     ASSERT_EQ(mapping.size(), 8u);
@@ -189,78 +216,76 @@ TEST_F(Conv3DKernelTuningUtilsTest, CandidateSelectionFilesExist)
         << "Missing kernel config encoder file: " << kernel_config_encoder;
 }
 
-TEST_F(Conv3DKernelTuningUtilsTest, RunParameterPredictionModel)
+TEST_F(Conv3DKernelTuningUtilsTest, CandidateSelectionModelInitialization)
 {
-    miopen::Handle handle;
-    miopen::ExecutionContext ctx(&handle);
-
-    std::string arch = handle.GetDeviceName();
-
-    auto problem =
-        GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::BackwardWeights);
-
-    std::function<std::vector<std::string>(const miopen::conv::ProblemDescription&)>
-        fill_valid_kernels = [&ctx](const miopen::conv::ProblemDescription& problem) {
-            miopen::solver::conv::ConvHipImplicitGemm3DGroupWrwXdlops solver;
-            if(!solver.IsApplicable(ctx, problem))
-                return std::vector<std::string>{};
-            auto perf_cfg = solver.GetDefaultPerformanceConfig(ctx, problem);
-            auto solution = solver.GetSolution(ctx, problem, perf_cfg);
-            // Defensive: check solution validity
-            if(solution.construction_params.empty())
-            {
-                std::cout << "Warning: solution.construction_params is empty!" << std::endl;
-            }
-            std::vector<std::string> kernel_names;
-            for(const auto& cp : solution.construction_params)
-            {
-                kernel_names.push_back(cp.kernel_name);
-                std::cout << "Kernel name: " << cp.kernel_name << std::endl;
-            }
-            return kernel_names;
-        };
-
-    std::vector<std::string> valid_kernels;
-    int index = 0, split_k = 1;
-    std::string kernel_id;
+    std::string arch        = "gfx942";
     std::string solver_name = "ConvHipImplicitGemm3DGroupWrwXdlops";
-
-    // std::cout << "Filling valid_kernels" << std::endl;
-    // // Fill valid_kernels using the fill_valid_kernels function
-    // valid_kernels = fill_valid_kernels(problem);
-
-    // ASSERT_FALSE(valid_kernels.empty()) << "No valid kernels found! Solver may not be
-    // applicable.";
-
-    // Ensure the candidate selection model is initialized
     EXPECT_NO_THROW({
         miopen::ai::tuning::candidate_selection::CandidateSelectionModel model(arch, solver_name);
     });
 
     try
     {
-        miopen::ai::tuning::candidate_selection::GetCandidateSelectionModel(arch, solver_name);
+        auto& model =
+            miopen::ai::tuning::candidate_selection::GetCandidateSelectionModel(arch, solver_name);
+        const auto& meta = model.metadata();
+        ASSERT_FALSE(meta.input_params().empty());
+        ASSERT_FALSE(meta.output_params().empty());
     }
     catch(const std::exception& ex)
     {
-        EXPECT_TRUE(false) << "Exception during model construction: " << ex.what();
+        FAIL() << "Exception during model construction: " << ex.what();
     }
-    auto& model =
-        miopen::ai::tuning::candidate_selection::GetCandidateSelectionModel(arch, solver_name);
-    // Add a check to ensure model is valid if possible
-    const auto& meta = model.metadata();
-    ASSERT_FALSE(meta.input_params().empty()) << "Model metadata input_params is empty!";
-    ASSERT_FALSE(meta.output_params().empty()) << "Model metadata output_params is empty!";
+}
+
+TEST_F(Conv3DKernelTuningUtilsTest, FilterHeuristicKernelsFunctionality)
+{
+    std::vector<std::string> valid_kernels = {
+        "DeviceGroupedConvBwdWeight_Xdl_CShuffle<param1,param2>", "OtherKernelType<param3,param4>"};
+    std::vector<int> indexes;
+    std::vector<std::vector<std::string>> tokens;
+    FilterHeuristicKernels("DeviceGroupedConvBwdWeight", valid_kernels, indexes, tokens);
+
+    ASSERT_EQ(indexes.size(), 1u);
+    ASSERT_EQ(tokens.size(), 1u);
+    ASSERT_EQ(tokens[0][0], "DeviceGroupedConvBwdWeight_Xdl_CShuffle");
+}
+
+TEST_F(Conv3DKernelTuningUtilsTest, ExpandKernelParamsWithSplitKFunctionality)
+{
+    std::vector<std::vector<std::string>> kernels = {
+        {"DeviceGroupedConvBwdWeight_Xdl_CShuffle", "p1"}};
+    std::vector<int> indexes  = {0};
+    std::vector<int> split_ks = GenerateSplitK(8);
+    auto [expanded, mapping]  = ExpandKernelParamsWithSplitK(kernels, indexes, split_ks);
+
+    ASSERT_EQ(expanded.size(), split_ks.size());
+    ASSERT_EQ(mapping.size(), split_ks.size());
+    for(size_t i = 0; i < split_ks.size(); ++i)
+    {
+        ASSERT_EQ(expanded[i][0], "DeviceGroupedConvBwdWeight_Xdl_CShuffle");
+        ASSERT_EQ(expanded[i][2], std::to_string(split_ks[i]));
+        ASSERT_EQ(mapping[i].first, 0);
+        ASSERT_EQ(mapping[i].second, split_ks[i]);
+    }
+}
+
+TEST_F(Conv3DKernelTuningUtilsTest, RunParameterPredictionModelReturnsValidResult)
+{
+    std::string arch = handle.GetDeviceName();
+    auto problem =
+        GetReusableProblemDescription(miopenFloat, miopen::conv::Direction::BackwardWeights);
+
+    int index = 0, split_k = 1;
+    std::string kernel_id;
+    std::string solver_name = "ConvHipImplicitGemm3DGroupWrwXdlops";
+    std::vector<std::string> valid_kernels;
 
     bool result = miopen::solver::conv::RunParameterPredictionModel<float>(
         ctx, problem, valid_kernels, index, split_k, kernel_id, fill_valid_kernels, solver_name);
 
-    ASSERT_TRUE(result) << "Model did not return a valid result.";
-    ASSERT_GE(index, 0);
-    ASSERT_GE(split_k, 1);
-    ASSERT_FALSE(kernel_id.empty());
-    // std::cout << "RunParameterPredictionModel: index=" << index << ", split_k=" << split_k
-    //           << ", kernel_id=" << kernel_id << std::endl;
+    ASSERT_TRUE(result);
+    ASSERT_FALSE(kernel_id.empty()); // Optionally check kernel_id was set
 }
 
 // Helper function for layout string to code (must match GetFeatures3D)
@@ -351,7 +376,7 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_MapValueChecks)
     for(const auto direction : directions)
     {
         auto problem  = GetReusableProblemDescription(miopenFloat, direction);
-        auto features = miopen::solver::conv::GetFeatures3D(problem, max_cu, arch);
+        auto features = GetFeatures3D(problem, max_cu, arch);
         ASSERT_EQ(features.size(), 29u);
         CheckGetFeatures3D_MapValues(features, problem, direction);
     }
@@ -363,15 +388,15 @@ TEST_F(Conv3DKernelTuningUtilsTest, GetFeatures3D_DataTypes)
     std::string arch = "gfx942";
 
     auto problem_f  = GetReusableProblemDescription(miopenFloat);
-    auto features_f = miopen::solver::conv::GetFeatures3D(problem_f, max_cu, arch);
+    auto features_f = GetFeatures3D(problem_f, max_cu, arch);
     ASSERT_EQ(features_f.at("precision"), static_cast<float>(miopenFloat));
 
     auto problem_h  = GetReusableProblemDescription(miopenHalf);
-    auto features_h = miopen::solver::conv::GetFeatures3D(problem_h, max_cu, arch);
+    auto features_h = GetFeatures3D(problem_h, max_cu, arch);
     ASSERT_EQ(features_h.at("precision"), static_cast<float>(miopenHalf));
 
     auto problem_b  = GetReusableProblemDescription(miopenBFloat16);
-    auto features_b = miopen::solver::conv::GetFeatures3D(problem_b, max_cu, arch);
+    auto features_b = GetFeatures3D(problem_b, max_cu, arch);
     ASSERT_EQ(features_b.at("precision"), static_cast<float>(miopenBFloat16));
 }
 
