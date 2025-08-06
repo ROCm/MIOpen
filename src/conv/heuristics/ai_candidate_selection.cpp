@@ -113,6 +113,15 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
         MIOPEN_THROW("Metadata file does not contain 'constants' section");
     }
 
+    if(metadata.contains("nantoken"))
+    {
+        nan_token_ = metadata["nantoken"].get<float>();
+    }
+    else
+    {
+        MIOPEN_THROW("Metadata file does not contain 'nantoken' section");
+    }
+
     if(metadata.contains("kernel_str_mapping"))
     {
         kernel_str_mapping_ = metadata["kernel_str_mapping"]
@@ -197,6 +206,12 @@ CandidateSelectionMetadata::GetKernelStrMapping(const std::string& kernel_name) 
         MIOPEN_THROW("Kernel string mapping not found for kernel: " + kernel_name);
     }
 }
+const std::map<std::string, std::map<std::string, int>>&
+CandidateSelectionMetadata::sequence_encodings() const
+{
+    return sequence_encodings_;
+}
+const float CandidateSelectionMetadata::GetNanToken() const { return nan_token_; }
 
 // --- CandidateSelectionModel ------------------------------------------------
 
@@ -302,9 +317,8 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
     std::vector<std::vector<float>> encoded_candidates;
     const auto& output_params      = metadata.output_params();
     const auto& sequence_encodings = metadata.sequence_encodings();
-
-    // NOTE: If candidate.size() < output_params.size(), extra output_params are ignored.
-    // The order of candidate elements is assumed to match output_params.
+    const std::string nan_token    = "nan";
+    const float nan_token_encoding = metadata.GetNanToken();
 
     for(const auto& candidate : valid_kernel_params)
     {
@@ -317,6 +331,7 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
             if(i == 0 && !candidate[i].empty())
             {
                 // this is the kernel_name, we use it to get the kernel_str_mapping
+                // TODO read from metadata
                 const auto& kernel_str_mapping = metadata.GetKernelStrMapping(candidate[i]);
             }
 
@@ -327,8 +342,21 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
             if(metadata.GetOutputConstant(param_name).has_value())
                 continue;
 
+            // Handle "nan" token
+            if(param_value == nan_token)
+            {
+                // If the value is "nan", we encode it as its encoding value (e.g. -1.0f)
+                encoded.push_back(nan_token_encoding);
+                continue;
+            }
+
             // Encode using sequence_encodings
             const auto enc_it = sequence_encodings.find(param_name);
+
+            // debug:
+            std::cout << "sequence_encodings contains param_name? "
+                      << (sequence_encodings.count(param_name) ? "yes" : "no") << std::endl;
+
             if(enc_it == sequence_encodings.end())
             {
                 // Try to cast param_value to float if no encoding is found
@@ -347,6 +375,13 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
 
             const auto& value_map = enc_it->second;
             const auto val_it     = value_map.find(param_value);
+
+            for(const auto& kv : value_map)
+            {
+                std::cout << "'" << kv.first << "' " << std::endl;
+            }
+            std::cout << std::endl;
+
             if(val_it == value_map.end())
             {
                 MIOPEN_THROW("No encoding found for value '" + param_value +

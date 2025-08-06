@@ -1,5 +1,5 @@
 {
-    "generated_on": "06 Aug 2025, 06:53:20",
+    "generated_on": "06 Aug 2025, 07:40:59",
     "gpu": {
         "device_name": "AMD Instinct MI300X",
         "arch": "gfx942",
@@ -222,5 +222,6 @@
         "outputs": {
             "017_NumGroupsToMerge": "<NA>"
         }
-    }
+    },
+    "nantoken": -1.0
 }

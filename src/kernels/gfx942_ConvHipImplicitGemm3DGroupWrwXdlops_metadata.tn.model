@@ -1,5 +1,5 @@
 {
-    "generated_on": "06 Aug 2025, 06:53:43",
+    "generated_on": "06 Aug 2025, 07:40:59",
     "gpu": {
         "device_name": "AMD Instinct MI300X",
         "arch": "gfx942",
@@ -219,5 +219,6 @@
             "016_BlkGemmPipelineScheduler": "BlkGemmPipelineScheduler: Intrawave",
             "018_NumGroupsToMerge": "1"
         }
-    }
+    },
+    "nantoken": -1.0
 }
