@@ -1,5 +1,5 @@
 {
-    "generated_on": "05 Aug 2025, 14:29:44",
+    "generated_on": "06 Aug 2025, 06:53:43",
     "gpu": {
         "device_name": "AMD Instinct MI300X",
         "arch": "gfx942",
@@ -17,7 +17,6 @@
         "001_BlockSize",
         "002_MPerBlock",
         "003_NPerBlock",
-        "004_K0PerBlock",
         "004_KPerBlock",
         "005_ConvBackwardWeightSpecialization",
         "006_K1",
@@ -35,14 +34,14 @@
         "018_NumGroupsToMerge",
         "019_SplitK"
     ],
-    "num_output_params": 21,
+    "num_output_params": 20,
     "kernel_str_mapping": {
         "DeviceGroupedConvBwdWeight_Xdl_CShuffle": {
             "0": "000_kernel_name",
             "1": "001_BlockSize",
             "2": "002_MPerBlock",
             "3": "003_NPerBlock",
-            "4": "004_K0PerBlock",
+            "4": "004_KPerBlock",
             "5": "005_ConvBackwardWeightSpecialization",
             "6": "006_K1",
             "7": "007_MXdlPerWave",
@@ -83,7 +82,7 @@
             "1": "001_BlockSize",
             "2": "002_MPerBlock",
             "3": "003_NPerBlock",
-            "4": "004_K0PerBlock",
+            "4": "004_KPerBlock",
             "5": "005_ConvBackwardWeightSpecialization",
             "6": "006_K1",
             "7": "007_MXdlPerWave",
@@ -217,7 +216,6 @@
         "outputs": {
             "013_CShuffleMXdlPerWavePerShuffle": "1",
             "014_CShuffleNXdlPerWavePerShuffle": "1",
-            "004_KPerBlock": "32",
             "016_BlkGemmPipelineScheduler": "BlkGemmPipelineScheduler: Intrawave",
             "018_NumGroupsToMerge": "1"
         }
