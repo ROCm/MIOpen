@@ -238,32 +238,25 @@ bool RunParameterPredictionModel(
         fill_valid_kernels,
     std::string solver_name)
 {
-    std::cerr << "RunParameterPredictionModel: entered" << std::endl;
     valid_kernels = fill_valid_kernels(problem);
-    std::cerr << "RunParameterPredictionModel: valid_kernels.size() = " << valid_kernels.size()
-              << std::endl;
 
     // Filter kernels by type
     std::vector<int> heuristic_indexes;
     std::vector<std::vector<std::string>> heuristic_kernels;
-    // TODO: why "DeviceGroupedConvBwdWeight" hardcoded here?
+    // TODO: why "DeviceGroupedConvBwdWeight" hardcoded here? Should be given by the solver somehow.
     FilterHeuristicKernels(
         "DeviceGroupedConvBwdWeight", valid_kernels, heuristic_indexes, heuristic_kernels);
-    std::cerr << "RunParameterPredictionModel: heuristic_kernels.size() = "
-              << heuristic_kernels.size() << std::endl;
+
     // Prepare features and split_k values
     const std::string& arch = ctx.GetStream().GetDeviceName();
-    std::cerr << "RunParameterPredictionModel: arch = " << arch << std::endl;
+
     std::map<std::string, float> features =
         GetFeatures3D(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
     std::vector<int> split_ks = GenerateSplitK(128); // TODO: make configurable
-    std::cerr << "RunParameterPredictionModel: split_ks.size() = " << split_ks.size() << std::endl;
 
     // Expand kernel params with split_k and keep mapping
     auto [expanded_params, mapping_pairs] =
         ExpandKernelParamsWithSplitK(heuristic_kernels, heuristic_indexes, split_ks);
-    std::cerr << "RunParameterPredictionModel: expanded_params.size() = " << expanded_params.size()
-              << std::endl;
 
     // Use AI model to select best candidate
     try

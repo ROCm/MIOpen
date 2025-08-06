@@ -309,7 +309,6 @@ const CandidateSelectionModel& GetCandidateSelectionModel(const std::string& arc
                          ", solver: " + solver + ". Exception: " + ex.what());
     }
 }
-
 std::vector<std::vector<float>>
 EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_params,
                    const CandidateSelectionMetadata& metadata)
@@ -317,68 +316,80 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
     std::vector<std::vector<float>> encoded_candidates;
     const auto& output_params      = metadata.output_params();
     const auto& sequence_encodings = metadata.sequence_encodings();
-    const std::string nan_token    = "nan";
     const float nan_token_encoding = metadata.GetNanToken();
 
     for(const auto& candidate : valid_kernel_params)
     {
-        std::vector<float> encoded;
-        for(size_t i = 0; i < candidate.size(); ++i)
+        // Get kernel_str_mapping for this candidate's kernel_name
+        if(candidate.empty())
+            MIOPEN_THROW("Candidate vector is empty, cannot extract kernel_name.");
+        const std::string& kernel_name = candidate[0];
+        const auto& kernel_str_mapping = metadata.GetKernelStrMapping(kernel_name);
+
+        // Build a map from param_name to value for this candidate
+        std::map<std::string, std::string> param_value_map;
+        for(const auto& kv : kernel_str_mapping)
         {
-            if(i >= output_params.size())
-                break; // Ignore extra candidate elements
+            size_t idx = std::stoi(kv.first);
+            if(idx < candidate.size())
+                param_value_map[kv.second] = candidate[idx];
+        }
 
-            if(i == 0 && !candidate[i].empty())
-            {
-                // this is the kernel_name, we use it to get the kernel_str_mapping
-                // TODO read from metadata
-                const auto& kernel_str_mapping = metadata.GetKernelStrMapping(candidate[i]);
-            }
-
-            const std::string& param_name  = output_params[i];
-            const std::string& param_value = candidate[i];
-
+        std::vector<float> encoded;
+        for(const auto& param_name : output_params)
+        {
             // Skip constant parameters
             if(metadata.GetOutputConstant(param_name).has_value())
                 continue;
 
-            // Handle "nan" token
-            if(param_value == nan_token)
-            {
-                // If the value is "nan", we encode it as its encoding value (e.g. -1.0f)
-                encoded.push_back(nan_token_encoding);
-                continue;
-            }
+            float value = nan_token_encoding;
 
-            // Encode using sequence_encodings
-            const auto enc_it = sequence_encodings.find(param_name);
-
-            if(enc_it == sequence_encodings.end())
+            auto val_it = param_value_map.find(param_name);
+            if(val_it != param_value_map.end())
             {
-                // Try to cast param_value to float if no encoding is found
-                try
+                const std::string& param_value = val_it->second;
+
+                // Handle "nan" token
+                if(param_value == "nan")
                 {
-                    float float_val = std::stof(param_value);
-                    encoded.push_back(float_val);
-                    continue;
+                    value = nan_token_encoding;
                 }
-                catch(const std::exception&)
+                else
                 {
-                    MIOPEN_THROW("No sequence encoding found for output parameter: " + param_name +
-                                 " and value '" + param_value + "' is not a valid float.");
+                    // Encode using sequence_encodings
+                    const auto enc_it = sequence_encodings.find(param_name);
+
+                    if(enc_it == sequence_encodings.end())
+                    {
+                        // Try to cast param_value to float if no encoding is found
+                        try
+                        {
+                            value = std::stof(param_value);
+                        }
+                        catch(const std::exception&)
+                        {
+                            MIOPEN_THROW(
+                                "No sequence encoding found for output parameter: " + param_name +
+                                " and value '" + param_value + "' is not a valid float.");
+                        }
+                    }
+                    else
+                    {
+                        const auto& value_map = enc_it->second;
+                        const auto map_it     = value_map.find(param_value);
+
+                        if(map_it == value_map.end())
+                        {
+                            MIOPEN_THROW("No encoding found for value '" + param_value +
+                                         "' of output parameter: " + param_name);
+                        }
+
+                        value = static_cast<float>(map_it->second);
+                    }
                 }
             }
-
-            const auto& value_map = enc_it->second;
-            const auto val_it     = value_map.find(param_value);
-
-            if(val_it == value_map.end())
-            {
-                MIOPEN_THROW("No encoding found for value '" + param_value +
-                             "' of output parameter: " + param_name);
-            }
-
-            encoded.push_back(static_cast<float>(val_it->second));
+            // If not present, value remains nan_token_encoding
+            encoded.push_back(value);
         }
         encoded_candidates.push_back(encoded);
     }
@@ -394,7 +405,9 @@ int ModelSelectBestCandidate(const std::string& arch,
     try
     {
         const auto& model = GetCandidateSelectionModel(arch, solver);
-
+        // debug: show that we successfully retrieved the model
+        MIOPEN_LOG_I2("Retrieved CandidateSelectionModel for arch: " << arch
+                                                                     << ", solver: " << solver);
         const auto& encoded_candidates = EncodeKernelParams(valid_kernel_params, model.metadata());
 
         if(encoded_candidates.empty())

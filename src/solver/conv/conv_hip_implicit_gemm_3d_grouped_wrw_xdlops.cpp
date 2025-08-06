@@ -396,7 +396,6 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     std::cerr << "HeuristicInit: AI heuristics enabled" << std::endl;
     if(!env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
     {
-        std::cerr << "HeuristicInit: AI heuristics block entered" << std::endl;
         bool ai_success = false;
         // force DataType to float: TODO: figure out how to properly handle this.
         using DataType = float;
@@ -404,18 +403,12 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
         // now capture it and use it in the FillValidKernelsIDs call
         auto fill_valid_kernels =
             [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
-            std::cerr << "HeuristicInit: fill_valid_kernels called" << std::endl;
             auto result =
                 miopen::solver::FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>,
                                                     CKArgs<DataType>>(problem);
-            std::cerr << "HeuristicInit: fill_valid_kernels returning, result.size() = "
-                      << result.size() << std::endl;
             return result;
         };
         std::string solver_name = "ConvHipImplicitGemm3DGroupWrwXdlops";
-        std::cerr << "Valid kernels before AI heuristics: " << valid_kernels.size() << std::endl;
-        std::cerr << "HeuristicInit: problem.GetInDataType() = " << problem.GetInDataType()
-                  << std::endl;
         switch(problem.GetInDataType())
         {
         // 3D conv heuristics are only valid for FP32, FP16, and BF16
@@ -488,39 +481,39 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
 #endif
 }
 
-bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::SetNextValue(
-    const ProblemDescription& problem)
-{
-#if MIOPEN_USE_COMPOSABLEKERNEL
-    if(valid_kernels.empty())
-    {
-        // HeuristicInit(ctx, problem);
-        // commented because ctx is not in scope here
-        if(valid_kernels.empty())
-        {
-            return false;
-        }
-    }
-    do
-    {
-        bool flag = NextTwoPower<1, 128>(split_k);
-        if(!flag)
-        {
-            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
-            break;
-        }
+// bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::SetNextValue(
+//     const ProblemDescription& problem)
+// {
+// #if MIOPEN_USE_COMPOSABLEKERNEL
+//     if(valid_kernels.empty())
+//     {
+//         // HeuristicInit(ctx, problem);
+//         // commented because ctx is not in scope here
+//         if(valid_kernels.empty())
+//         {
+//             return false;
+//         }
+//     }
+//     do
+//     {
+//         bool flag = NextTwoPower<1, 128>(split_k);
+//         if(!flag)
+//         {
+//             kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+//             break;
+//         }
 
-        if(!NextLinear(0, valid_kernels.size() - 1, index))
-        {
-            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
-            break;
-        }
-        // All split_k and index values were iterated
-        return false;
-    } while(false);
-#endif
-    return true;
-}
+//         if(!NextLinear(0, valid_kernels.size() - 1, index))
+//         {
+//             kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+//             break;
+//         }
+//         // All split_k and index values were iterated
+//         return false;
+//     } while(false);
+// #endif
+//     return true;
+// }
 
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::IsValidValue() const
 {
