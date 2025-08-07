@@ -42,7 +42,6 @@
 #include <miopen/any_solver.hpp>
 #include <miopen/filesystem.hpp>
 #include <miopen/anyramdb.hpp>
-#include <fstream>
 
 namespace miopen {
 namespace ai {
