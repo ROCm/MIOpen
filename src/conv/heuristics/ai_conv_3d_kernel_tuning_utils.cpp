@@ -238,25 +238,52 @@ bool RunParameterPredictionModel(
     // Prepare features and split_k values
     const std::string& arch = ctx.GetStream().GetDeviceName();
 
-    std::map<std::string, float> features =
-        GetFeatures3D(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
-    std::vector<int> split_ks = GenerateSplitK(128); // TODO: make configurable
-
-    // Expand kernel params with split_k and keep mapping
-    auto [expanded_params, mapping_pairs] =
-        ExpandKernelParamsWithSplitK(heuristic_kernels, heuristic_indexes, split_ks);
-
     // Use AI model to select best candidate
     try
     {
+        std::map<std::string, float> features =
+            GetFeatures3D(problem, ctx.GetStream().GetMaxComputeUnits(), arch);
+
+        std::vector<std::vector<std::string>> expanded_params = heuristic_kernels;
+        std::vector<std::pair<int, int>> mapping_pairs;
+        bool use_split_k = split_k == 1;
+        if(split_k > 1)
+        {
+            MIOPEN_THROW("Invalid initial split_k value for performing AI Heuristics: " +
+                         std::to_string(split_k) + ". Expected 0 (no split) or 1 (default split).");
+        }
+        if(use_split_k)
+        {
+            std::vector<int> split_ks = GenerateSplitK(128); // TODO: make configurable
+
+            // Expand kernel params with split_k and keep mapping
+            std::tie(expanded_params, mapping_pairs) =
+                ExpandKernelParamsWithSplitK(heuristic_kernels, heuristic_indexes, split_ks);
+        }
+        else
+        {
+
+            // If split_k is 0, we do not expand, just use the original kernels
+            for(size_t i = 0; i < heuristic_indexes.size(); ++i)
+            {
+                mapping_pairs.emplace_back(heuristic_indexes[i], 1); // Default split_k of 1
+            }
+        }
         int best_idx = ai::tuning::candidate_selection::ModelSelectBestCandidate(
             arch, solver_name, features, expanded_params);
 
         if(best_idx >= 0 && best_idx < static_cast<int>(mapping_pairs.size()))
         {
-            index     = mapping_pairs[best_idx].first;
-            split_k   = mapping_pairs[best_idx].second;
-            kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            index   = mapping_pairs[best_idx].first;
+            split_k = mapping_pairs[best_idx].second;
+            if(use_split_k)
+            {
+                kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+            }
+            else
+            {
+                kernel_id = valid_kernels[index];
+            }
             return true;
         }
         MIOPEN_LOG_I("AI prediction returned invalid kernel index, falling back");

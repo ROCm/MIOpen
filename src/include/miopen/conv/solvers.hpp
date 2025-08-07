@@ -4498,6 +4498,7 @@ struct PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
     : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DGroupFwdXdlops>
 {
     int index             = 0;
+    int split_k           = 0; // not used for this solver, but required for AI heuristics interface
     std::string kernel_id = "";
     std::vector<std::string> valid_kernels;
 
@@ -4655,6 +4656,7 @@ struct PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
     : PerfConfigBaseCK<PerformanceConfigHipImplicitGemm3DGroupBwdXdlops>
 {
     int index;
+    int split_k = 0; // not used for this solver, but required for AI heuristics interface
     std::string kernel_id;
     std::vector<std::string> valid_kernels;
     PerformanceConfigHipImplicitGemm3DGroupBwdXdlops(int idx, std::string kernl_id)

@@ -380,11 +380,48 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
 
                         if(map_it == value_map.end())
                         {
-                            MIOPEN_THROW("No encoding found for value '" + param_value +
-                                         "' of output parameter: " + param_name);
-                        }
+                            // Secondary check: try matching param_value with all whitespace removed
+                            std::string param_value_ws;
+                            std::remove_copy_if(param_value.begin(),
+                                                param_value.end(),
+                                                std::back_inserter(param_value_ws),
+                                                [](unsigned char c) { return std::isspace(c); });
 
-                        value = static_cast<float>(map_it->second);
+                            bool found_ws = false;
+                            for(const auto& kv : value_map)
+                            {
+                                std::string key_ws;
+                                std::remove_copy_if(
+                                    kv.first.begin(),
+                                    kv.first.end(),
+                                    std::back_inserter(key_ws),
+                                    [](unsigned char c) { return std::isspace(c); });
+                                if(param_value_ws == key_ws)
+                                {
+                                    value    = static_cast<float>(kv.second);
+                                    found_ws = true;
+                                    // TODO consider decreasing this verbosity
+                                    MIOPEN_LOG_I2("Found whitespace-stripped match for output "
+                                                  "parameter: " +
+                                                  param_name + " with value '" + param_value +
+                                                  "' matching '" + kv.first + "' in metadata.");
+                                    break;
+                                }
+                            }
+
+                            if(!found_ws)
+                            {
+                                MIOPEN_LOG_WE("No encoding found in metadata for value '" +
+                                              param_value + "' of output parameter: " + param_name);
+                                MIOPEN_LOG_WE("setting it to the NaN value");
+                                value = nan_token_encoding;
+                            }
+                        }
+                        else
+                        {
+                            // Use the encoded value from the map
+                            value = static_cast<float>(map_it->second);
+                        }
                     }
                 }
             }

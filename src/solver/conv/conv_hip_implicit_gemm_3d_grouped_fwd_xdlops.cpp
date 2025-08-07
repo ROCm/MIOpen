@@ -400,15 +400,18 @@ bool ConvHipImplicitGemm3DGroupFwdXdlops::CheckCKApplicability(
 }
 #endif
 
+static const miopen::ExecutionContext dummy_ctx;
 void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
     const miopen::ExecutionContext& ctx, const ProblemDescription& problem)
 {
     index     = 0;
     kernel_id = "";
+    split_k   = 0; // split_k is not used in this solver, but it is required by the interface
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    if(!env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR))
+    if(&ctx != &dummy_ctx &&
+       !env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR))
     {
         bool ai_success = false;
         using DataType  = float; // or appropriate type
@@ -487,7 +490,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::SetNextValue(
 {
     if(valid_kernels.empty())
     {
-        HeuristicInit(problem);
+        HeuristicInit(dummy_ctx, problem);
         assert(!valid_kernels.empty());
         return true;
     }
@@ -534,10 +537,10 @@ bool PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::operator==(
 
 PerformanceConfigHipImplicitGemm3DGroupFwdXdlops
 ConvHipImplicitGemm3DGroupFwdXdlops::GetDefaultPerformanceConfig(
-    const ExecutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemm3DGroupFwdXdlops pp;
-    pp.HeuristicInit(problem);
+    pp.HeuristicInit(ctx, problem);
     return pp;
 }
 

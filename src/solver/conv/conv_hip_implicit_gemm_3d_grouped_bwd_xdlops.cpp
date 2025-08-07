@@ -405,22 +405,25 @@ bool ConvHipImplicitGemm3DGroupBwdXdlops::CheckCKApplicability(
 }
 #endif
 
+static const miopen::ExecutionContext dummy_ctx;
 void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
     const miopen::ExecutionContext& ctx, const ProblemDescription& problem)
 {
     index     = 0;
     kernel_id = "";
+    split_k   = 0; // split_k is not used in this solver, but it is required by the interface
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
-    if(!env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR))
+    if(&ctx != &dummy_ctx &&
+       !env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR))
     {
         bool ai_success = false;
         using DataType  = float; // or appropriate type
 
         auto fill_valid_kernels =
             [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
-            return miopen::solver::FillValidKernelsIDs<DeviceOpGFwdDefaultPtrs<DataType>,
+            return miopen::solver::FillValidKernelsIDs<DeviceOpGBwdDefaultPtrs<DataType>,
                                                        CKArgs<DataType>>(problem);
         };
         std::string solver_name = "ConvHipImplicitGemm3DGroupBwdXdlops";
@@ -492,7 +495,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::SetNextValue(
 {
     if(valid_kernels.empty())
     {
-        HeuristicInit(problem);
+        HeuristicInit(dummy_ctx, problem);
         assert(!valid_kernels.empty());
         return true;
     }
@@ -539,10 +542,10 @@ bool PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::operator==(
 
 PerformanceConfigHipImplicitGemm3DGroupBwdXdlops
 ConvHipImplicitGemm3DGroupBwdXdlops::GetDefaultPerformanceConfig(
-    const ExecutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemm3DGroupBwdXdlops pp;
-    pp.HeuristicInit(problem);
+    pp.HeuristicInit(ctx, problem);
     return pp;
 }
 
