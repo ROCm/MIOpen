@@ -2,6 +2,34 @@
 # Change Log for MIOpen
 
 Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/)
+## MIOpen 3.5.0 for ROCm 7.0.0
+### Added
+* [Conv] Added misa kernels for gfx950
+* [Conv] Enabled split_k support for CK backward data solvers (2D)
+* Added grouped convolution + activation fusion
+* Added grouped convolution + bias + activation fusion
+* [BatchNorm] Enabled NHWC in OpenCL
+* Composable Kernel (CK) can now be built inline as part of MIOpen
+* Changed to using median value with outliers removed when deciding on the best solution to run
+* [Conv] Enabled CK wrw solver on gfx950 for bf16 datatype
+* [Conv] Updated igemm asm solver
+
+### Optimized
+* [BatchNorm] Optimized NHWC OpenCL kernels and improved heuristics
+* [RNN] Dynamic algorithm optimization
+* [Conv] Eliminated redundant clearing of output buffers
+* [RNN] Updated selection heuristics
+* Updated tuning for MI300
+
+### Resolved issues
+* Fixed a segmentation fault when user specifies workspace smaller than what is required
+* Fixed a layout calculation logic error that returned incorrect results and enabled less restrictive layout selection
+* Fixed memory access faults in misa kernels due to out-of-bounds memory usage
+* Fixed performance drop on gfx950 due to transpose kernel use
+* Fixed memory access fault caused by not allocating enough workspace
+* Fixed a name typo that caused kernel mismatches and long startup times
+
+
 ## MIOpen 3.4.0 for ROCm 6.4.0
 ### Added
 
