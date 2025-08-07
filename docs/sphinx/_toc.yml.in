@@ -45,7 +45,7 @@ subtrees:
 
 - caption: Samples
   entries:
-  - url: https://github.com/ROCm/MIOpen/tree/develop/samples
+  - url: https://github.com/ROCm/rocm-libraries/tree/develop/projects/miopen/samples
     title: MIOpen samples
 
 - caption: Reference
