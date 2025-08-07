@@ -67,9 +67,7 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
     }
     catch(const std::exception& ex)
     {
-        std::cerr << "JSON parse error: " << ex.what() << std::endl;
-        std::cerr.flush();
-        throw;
+        MIOPEN_THROW("JSON parse error in metadata file: " + path.string() + ": " + ex.what());
     }
 
     input_params_  = metadata.value("input_params", std::vector<std::string>{});
@@ -82,8 +80,9 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 
     if(metadata.contains("encodings"))
     {
-        feature_encodings_ = metadata["encodings"].value("inputs", decltype(feature_encodings_){});
-        sequence_encodings_ =
+        const feature_encodings_ =
+            metadata["encodings"].value("inputs", decltype(feature_encodings_){});
+        const sequence_encodings_ =
             metadata["encodings"].value("outputs", decltype(sequence_encodings_){});
     }
     else
@@ -93,8 +92,9 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 
     if(metadata.contains("decodings") && metadata["decodings"].contains("outputs"))
     {
-        sequence_decodings_ = metadata["decodings"]["outputs"]
-                                  .get<std::map<std::string, std::map<std::string, std::string>>>();
+        const sequence_decodings_ =
+            metadata["decodings"]["outputs"]
+                .get<std::map<std::string, std::map<std::string, std::string>>>();
     }
     else
     {
@@ -103,9 +103,9 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 
     if(metadata.contains("constants"))
     {
-        constants_features_ =
+        const constants_features_ =
             metadata["constants"].value("inputs", decltype(constants_features_){});
-        constants_sequence_ =
+        const constants_sequence_ =
             metadata["constants"].value("outputs", decltype(constants_sequence_){});
     }
     else
@@ -115,7 +115,7 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 
     if(metadata.contains("nantoken"))
     {
-        nan_token_ = metadata["nantoken"].get<float>();
+        const nan_token_ = metadata["nantoken"].get<float>();
     }
     else
     {
@@ -124,8 +124,9 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 
     if(metadata.contains("kernel_str_mapping"))
     {
-        kernel_str_mapping_ = metadata["kernel_str_mapping"]
-                                  .get<std::map<std::string, std::map<std::string, std::string>>>();
+        const kernel_str_mapping_ =
+            metadata["kernel_str_mapping"]
+                .get<std::map<std::string, std::map<std::string, std::string>>>();
     }
     else
     {
