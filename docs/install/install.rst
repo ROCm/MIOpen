@@ -67,6 +67,11 @@ Installing dependencies
 
 To install the MIOpen dependencies, use the ``install_deps.cmake`` command:
 
+.. note::
+
+   You can run ``install_deps.cmake`` from the ``rocm-libraries/projects/miopen`` directory.
+
+
 .. code:: shell
 
    cmake -P install_deps.cmake
