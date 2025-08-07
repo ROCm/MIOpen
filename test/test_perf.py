@@ -71,14 +71,13 @@ class Manager(mp.Process):
 
   def get_num_gpus(self):
     """Get num_gpus"""
-    #rocminfo will have 2 lines with gfx per gpu, arch name and target id
-    cmd = "/opt/rocm/bin/rocminfo | grep gfx | wc -l"
+    cmd = "/opt/rocm/bin/rocminfo | grep 'Device Type: *GPU' | wc -l"
     proc = subprocess.Popen(cmd,
                           shell=True,
                           stdout=subprocess.PIPE,
                           stderr=subprocess.STDOUT)
     output = proc.communicate()[0]
-    return int(output.decode('utf-8').strip()) / 2
+    return int(output.decode('utf-8').strip())
 
   def set_driver_cmds(self):
     if self.override:
