@@ -419,7 +419,8 @@ void PerformanceConfigHipImplicitGemm3DGroupBwdXdlops::HeuristicInit(
        !env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_BWD_XDLOPS_AI_HEUR))
     {
         bool ai_success = false;
-        using DataType  = float; // or appropriate type
+        using DataType = float; // This is a stupid hack. The same hold for the other three solvers.
+        // this should come from the problem description somehow. TODO; fix this.
 
         auto fill_valid_kernels =
             [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {

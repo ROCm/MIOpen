@@ -1,5 +1,5 @@
 {
-    "generated_on": "06 Aug 2025, 07:40:59",
+    "generated_on": "07 Aug 2025, 13:33:07",
     "gpu": {
         "device_name": "AMD Instinct MI300X",
         "arch": "gfx942",
@@ -29,10 +29,10 @@
         "013_CShuffleMXdlPerWavePerShuffle",
         "014_CShuffleNXdlPerWavePerShuffle",
         "015_CBlockTransferScalarPerVector_NWaveNPerXdl",
-        "016_BlkGemmPipelineScheduler",
-        "017_BlkGemmPipelineVersion",
-        "018_NumGroupsToMerge",
-        "019_SplitK"
+        "016_SplitK",
+        "017_BlkGemmPipelineScheduler",
+        "018_BlkGemmPipelineVersion",
+        "019_NumGroupsToMerge"
     ],
     "num_output_params": 20,
     "kernel_str_mapping": {
@@ -53,7 +53,7 @@
             "13": "013_CShuffleMXdlPerWavePerShuffle",
             "14": "014_CShuffleNXdlPerWavePerShuffle",
             "15": "015_CBlockTransferScalarPerVector_NWaveNPerXdl",
-            "16": "019_SplitK"
+            "16": "016_SplitK"
         },
         "DeviceGroupedConvBwdWeightTwoStage_Xdl_CShuffle": {
             "0": "000_kernel_name",
@@ -72,10 +72,10 @@
             "13": "013_CShuffleMXdlPerWavePerShuffle",
             "14": "014_CShuffleNXdlPerWavePerShuffle",
             "15": "015_CBlockTransferScalarPerVector_NWaveNPerXdl",
-            "16": "016_BlkGemmPipelineScheduler",
-            "17": "017_BlkGemmPipelineVersion",
-            "18": "018_NumGroupsToMerge",
-            "19": "019_SplitK"
+            "19": "016_SplitK",
+            "16": "017_BlkGemmPipelineScheduler",
+            "17": "018_BlkGemmPipelineVersion",
+            "18": "019_NumGroupsToMerge"
         },
         "DeviceGroupedConvBwdWeight_Xdl_CShuffleV3": {
             "0": "000_kernel_name",
@@ -94,7 +94,7 @@
             "13": "013_CShuffleMXdlPerWavePerShuffle",
             "14": "014_CShuffleNXdlPerWavePerShuffle",
             "15": "015_CBlockTransferScalarPerVector_NWaveNPerXdl",
-            "16": "019_SplitK"
+            "16": "016_SplitK"
         }
     },
     "input_params": [
@@ -159,7 +159,7 @@
                 "Default": 0,
                 "Filter1x1Stride1Pad0": 1
             },
-            "017_BlkGemmPipelineVersion": {
+            "018_BlkGemmPipelineVersion": {
                 "BlkGemmPipelineVersion: v1": 0,
                 "BlkGemmPipelineVersion: v2": 1,
                 "BlkGemmPipelineVersion: v5": 2
@@ -196,7 +196,7 @@
                 "0": "Default",
                 "1": "Filter1x1Stride1Pad0"
             },
-            "017_BlkGemmPipelineVersion": {
+            "018_BlkGemmPipelineVersion": {
                 "0": "BlkGemmPipelineVersion: v1",
                 "1": "BlkGemmPipelineVersion: v2",
                 "2": "BlkGemmPipelineVersion: v5"
@@ -216,8 +216,8 @@
         "outputs": {
             "013_CShuffleMXdlPerWavePerShuffle": "1",
             "014_CShuffleNXdlPerWavePerShuffle": "1",
-            "016_BlkGemmPipelineScheduler": "BlkGemmPipelineScheduler: Intrawave",
-            "018_NumGroupsToMerge": "1"
+            "017_BlkGemmPipelineScheduler": "BlkGemmPipelineScheduler: Intrawave",
+            "019_NumGroupsToMerge": "1"
         }
     },
     "nantoken": -1.0
