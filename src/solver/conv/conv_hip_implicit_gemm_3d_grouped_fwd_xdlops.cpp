@@ -413,18 +413,17 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
     if(&ctx != &dummy_ctx &&
        !env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_FWD_XDLOPS_AI_HEUR))
     {
-        bool ai_success = false;
-        using DataType  = float; // or appropriate type
-
-        auto fill_valid_kernels =
-            [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
-            return miopen::solver::FillValidKernelsIDs<DeviceOpGFwdDefaultPtrs<DataType>,
-                                                       CKArgs<DataType>>(problem);
-        };
+        bool ai_success         = false;
         std::string solver_name = "ConvHipImplicitGemm3DGroupFwdXdlops";
+
         switch(problem.GetInDataType())
         {
-        case miopenHalf:
+        case miopenHalf: {
+            auto fill_valid_kernels =
+                [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
+                return miopen::solver::FillValidKernelsIDs<DeviceOpGFwdDefaultPtrs<ck::half_t>,
+                                                           CKArgs<ck::half_t>>(problem);
+            };
             ai_success =
                 miopen::solver::conv::RunParameterPredictionModel<ck::half_t>(ctx,
                                                                               problem,
@@ -435,7 +434,13 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
                                                                               fill_valid_kernels,
                                                                               solver_name);
             break;
-        case miopenFloat:
+        }
+        case miopenFloat: {
+            auto fill_valid_kernels =
+                [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
+                return miopen::solver::FillValidKernelsIDs<DeviceOpGFwdDefaultPtrs<float>,
+                                                           CKArgs<float>>(problem);
+            };
             ai_success =
                 miopen::solver::conv::RunParameterPredictionModel<float>(ctx,
                                                                          problem,
@@ -446,7 +451,13 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
                                                                          fill_valid_kernels,
                                                                          solver_name);
             break;
-        case miopenBFloat16:
+        }
+        case miopenBFloat16: {
+            auto fill_valid_kernels =
+                [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
+                return miopen::solver::FillValidKernelsIDs<DeviceOpGFwdDefaultPtrs<ck::bhalf_t>,
+                                                           CKArgs<ck::bhalf_t>>(problem);
+            };
             ai_success =
                 miopen::solver::conv::RunParameterPredictionModel<ck::bhalf_t>(ctx,
                                                                                problem,
@@ -457,6 +468,7 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::HeuristicInit(
                                                                                fill_valid_kernels,
                                                                                solver_name);
             break;
+        }
         default: break;
         }
         if(ai_success)

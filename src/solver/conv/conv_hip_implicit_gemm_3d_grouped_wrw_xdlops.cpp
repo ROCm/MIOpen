@@ -51,21 +51,6 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
-template <typename DataType>
-using DeviceOpGWrw3DPtrs = ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-    DeviceOpGBwdWeightDefault<DataType>>;
-
-// Add these new template specializations for different alpha/beta cases
-template <typename DataType>
-using DeviceOpGWrw3DBilinearPtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightBilinear<DataType>>;
-
-template <typename DataType>
-using DeviceOpGWrw3DScalePtrs =
-    ck::tensor_operation::device::instance::DeviceOperationInstanceFactory<
-        DeviceOpGBwdWeightScale<DataType>>;
-
 namespace {
 
 template <typename DataType>
@@ -394,23 +379,18 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     if(&ctx != &dummy_ctx &&
        !env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
     {
-        bool ai_success = false;
-        // force DataType to float: TODO: figure out how to properly handle this.
-        using DataType = float;
-
-        // now capture it and use it in the FillValidKernelsIDs call
-        auto fill_valid_kernels =
-            [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
-            auto result =
-                miopen::solver::FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>,
-                                                    CKArgs<DataType>>(problem);
-            return result;
-        };
+        bool ai_success         = false;
         std::string solver_name = "ConvHipImplicitGemm3DGroupWrwXdlops";
+
         switch(problem.GetInDataType())
         {
-        // 3D conv heuristics are only valid for FP32, FP16, and BF16
-        case miopenHalf:
+        case miopenHalf: {
+            auto fill_valid_kernels =
+                [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
+                return miopen::solver::FillValidKernelsIDs<
+                    DeviceOpGBwdWeightDefaultPtrs<ck::half_t>,
+                    CKArgs<ck::half_t>>(problem);
+            };
             ai_success =
                 miopen::solver::conv::RunParameterPredictionModel<ck::half_t>(ctx,
                                                                               problem,
@@ -421,7 +401,13 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
                                                                               fill_valid_kernels,
                                                                               solver_name);
             break;
-        case miopenFloat:
+        }
+        case miopenFloat: {
+            auto fill_valid_kernels =
+                [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
+                return miopen::solver::FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<float>,
+                                                           CKArgs<float>>(problem);
+            };
             ai_success =
                 miopen::solver::conv::RunParameterPredictionModel<float>(ctx,
                                                                          problem,
@@ -432,7 +418,14 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
                                                                          fill_valid_kernels,
                                                                          solver_name);
             break;
-        case miopenBFloat16:
+        }
+        case miopenBFloat16: {
+            auto fill_valid_kernels =
+                [=](const miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
+                return miopen::solver::FillValidKernelsIDs<
+                    DeviceOpGBwdWeightDefaultPtrs<ck::bhalf_t>,
+                    CKArgs<ck::bhalf_t>>(problem);
+            };
             ai_success =
                 miopen::solver::conv::RunParameterPredictionModel<ck::bhalf_t>(ctx,
                                                                                problem,
@@ -443,12 +436,8 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
                                                                                fill_valid_kernels,
                                                                                solver_name);
             break;
-        case miopenInt64:
-        case miopenInt32:
-        case miopenFloat8_fnuz:
-        case miopenBFloat8_fnuz:
-        case miopenInt8:
-        case miopenDouble: break;
+        }
+        default: break;
         }
 
         if(ai_success)
