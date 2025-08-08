@@ -80,9 +80,8 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 
     if(metadata.contains("encodings"))
     {
-        const feature_encodings_ =
-            metadata["encodings"].value("inputs", decltype(feature_encodings_){});
-        const sequence_encodings_ =
+        feature_encodings_ = metadata["encodings"].value("inputs", decltype(feature_encodings_){});
+        sequence_encodings_ =
             metadata["encodings"].value("outputs", decltype(sequence_encodings_){});
     }
     else
@@ -92,9 +91,8 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 
     if(metadata.contains("decodings") && metadata["decodings"].contains("outputs"))
     {
-        const sequence_decodings_ =
-            metadata["decodings"]["outputs"]
-                .get<std::map<std::string, std::map<std::string, std::string>>>();
+        sequence_decodings_ = metadata["decodings"]["outputs"]
+                                  .get<std::map<std::string, std::map<std::string, std::string>>>();
     }
     else
     {
@@ -103,9 +101,9 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 
     if(metadata.contains("constants"))
     {
-        const constants_features_ =
+        constants_features_ =
             metadata["constants"].value("inputs", decltype(constants_features_){});
-        const constants_sequence_ =
+        constants_sequence_ =
             metadata["constants"].value("outputs", decltype(constants_sequence_){});
     }
     else
@@ -115,7 +113,7 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 
     if(metadata.contains("nantoken"))
     {
-        const nan_token_ = metadata["nantoken"].get<float>();
+        nan_token_ = metadata["nantoken"].get<float>();
     }
     else
     {
@@ -124,9 +122,8 @@ CandidateSelectionMetadata::CandidateSelectionMetadata(const std::string& arch,
 
     if(metadata.contains("kernel_str_mapping"))
     {
-        const kernel_str_mapping_ =
-            metadata["kernel_str_mapping"]
-                .get<std::map<std::string, std::map<std::string, std::string>>>();
+        kernel_str_mapping_ = metadata["kernel_str_mapping"]
+                                  .get<std::map<std::string, std::map<std::string, std::string>>>();
     }
     else
     {
