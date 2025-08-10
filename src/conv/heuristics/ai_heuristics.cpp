@@ -715,7 +715,7 @@ public:
     }
     
     bool IsProblemSupported(const conv::ProblemDescription& problem,
-                            const ExecutionContext& ctx) const override
+                            const ExecutionContext& /*ctx*/) const override
     {
         if(!problem.Is3d()) {
             return false;
