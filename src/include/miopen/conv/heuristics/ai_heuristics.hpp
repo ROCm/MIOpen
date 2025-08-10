@@ -36,6 +36,7 @@
 #include <algorithm>
 #include <queue>
 #include <fstream>
+#include <optional>
 #include <miopen/miopen.h>
 #include <nlohmann/json.hpp>
 #include <miopen/db_path.hpp>
@@ -145,7 +146,7 @@ class Metadata3D
 {
 private:
     const std::string arch_name;
-    const bool is_valid;  // Error handling flag
+    bool is_valid;  // Error handling flag
     
     // Loaded data (const members like 2D pattern)
     const std::vector<std::string> features;
@@ -164,18 +165,18 @@ private:
     const std::unordered_map<std::string, int> out_layout_encodings;
     
     // Helper functions for construction
-    static std::vector<std::string> LoadFeatures(const std::string& arch, bool& success);
-    static size_t LoadNumInputs(const std::string& arch, bool& success);
-    static size_t LoadNumOutputs(const std::string& arch, bool& success);
-    static size_t LoadNumSolvers(const std::string& arch, bool& success);
-    static std::unordered_map<size_t, std::string> LoadSolverMap(const std::string& arch, bool& success);
-    static std::vector<float> LoadFeaturesMean(const std::string& arch, size_t num_inputs, bool& success);
-    static std::vector<float> LoadFeaturesStd(const std::string& arch, size_t num_inputs, bool& success);
-    static std::unordered_map<std::string, int> LoadDirectionEncodings(const std::string& arch, bool& success);
-    static std::unordered_map<std::string, int> LoadPrecisionEncodings(const std::string& arch, bool& success);
-    static std::unordered_map<std::string, int> LoadInLayoutEncodings(const std::string& arch, bool& success);
-    static std::unordered_map<std::string, int> LoadFilLayoutEncodings(const std::string& arch, bool& success);
-    static std::unordered_map<std::string, int> LoadOutLayoutEncodings(const std::string& arch, bool& success);
+    static std::optional<std::vector<std::string>> LoadFeatures(const std::string& arch);
+    static std::optional<size_t> LoadNumInputs(const std::string& arch);
+    static std::optional<size_t> LoadNumOutputs(const std::string& arch);
+    static std::optional<size_t> LoadNumSolvers(const std::string& arch);
+    static std::optional<std::unordered_map<size_t, std::string>> LoadSolverMap(const std::string& arch);
+    static std::optional<std::vector<float>> LoadFeaturesMean(const std::string& arch, size_t num_inputs);
+    static std::optional<std::vector<float>> LoadFeaturesStd(const std::string& arch, size_t num_inputs);
+    static std::optional<std::unordered_map<std::string, int>> LoadDirectionEncodings(const std::string& arch);
+    static std::optional<std::unordered_map<std::string, int>> LoadPrecisionEncodings(const std::string& arch);
+    static std::optional<std::unordered_map<std::string, int>> LoadInLayoutEncodings(const std::string& arch);
+    static std::optional<std::unordered_map<std::string, int>> LoadFilLayoutEncodings(const std::string& arch);
+    static std::optional<std::unordered_map<std::string, int>> LoadOutLayoutEncodings(const std::string& arch);
 
 public:
     /**

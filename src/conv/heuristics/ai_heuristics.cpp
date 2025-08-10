@@ -789,8 +789,8 @@ protected:
 std::unique_ptr<Model3D> Get3DModel(const std::string& device)
 {
     MIOPEN_LOG_I2("Get3DModel called for device: " << device);
-    
-    if(device == "gfx942") {    
+    //I added gfx90a to the condition for testing purposes. We don't have a 3D model for gfx90a yet.
+    if(device == "gfx942" || device == "gfx90a") {    
         try {
             auto model = std::make_unique<Gfx942Model_3D>();
 

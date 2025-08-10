@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2023 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -34,205 +34,237 @@ namespace ai {
 namespace conv3d {
 
 // Helper function to safely load JSON with error handling
-static nlohmann::json LoadJSONSafe(const std::string& arch, bool& success)
+static std::optional<nlohmann::json> LoadJSONSafe(const std::string& arch)
 {
     try {
         const auto file_path = GetSystemDbPath() / (arch + "_metadata.tn.model");
-        auto json = common::LoadJSON(file_path);
-        success = true;
-        return json;
-    } catch (const std::exception&) {
-        success = false;
-        return nlohmann::json{};
+        return common::LoadJSON(file_path);
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load JSON for " << arch << ": " << e.what());
+        return std::nullopt;
     } catch (...) {
-        success = false;
-        return nlohmann::json{};
+        MIOPEN_LOG_I2("Failed to load JSON for " << arch << ": unknown error");
+        return std::nullopt;
     }
 }
 
 // Static helper functions for loading individual components
-std::vector<std::string> Metadata3D::LoadFeatures(const std::string& arch, bool& success)
+std::optional<std::vector<std::string>> Metadata3D::LoadFeatures(const std::string& arch)
 {
-    auto json = LoadJSONSafe(arch, success);
-    if (!success) return {};
+    auto json_opt = LoadJSONSafe(arch);
+    if (!json_opt) return std::nullopt;
     
     try {
-        return json["conv_params_used_as_features"].get<std::vector<std::string>>();
-    } catch (...) {
-        success = false;
-        return {};
+        return json_opt->at("conv_params_used_as_features").get<std::vector<std::string>>();
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load features for " << arch << ": " << e.what());
+        return std::nullopt;
     }
 }
 
-size_t Metadata3D::LoadNumInputs(const std::string& arch, bool& success)
+std::optional<size_t> Metadata3D::LoadNumInputs(const std::string& arch)
 {
-    auto json = LoadJSONSafe(arch, success);
-    if (!success) return 0;
+    auto json_opt = LoadJSONSafe(arch);
+    if (!json_opt) return std::nullopt;
     
     try {
-        return json["num_inputs"].get<size_t>();
-    } catch (...) {
-        success = false;
-        return 0;
+        return json_opt->at("num_inputs").get<size_t>();
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load num_inputs for " << arch << ": " << e.what());
+        return std::nullopt;
     }
 }
 
-size_t Metadata3D::LoadNumOutputs(const std::string& arch, bool& success)
+std::optional<size_t> Metadata3D::LoadNumOutputs(const std::string& arch)
 {
-    auto json = LoadJSONSafe(arch, success);
-    if (!success) return 0;
+    auto json_opt = LoadJSONSafe(arch);
+    if (!json_opt) return std::nullopt;
     
     try {
-        return json["num_outputs"].get<size_t>();
-    } catch (...) {
-        success = false;
-        return 0;
+        return json_opt->at("num_outputs").get<size_t>();
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load num_outputs for " << arch << ": " << e.what());
+        return std::nullopt;
     }
 }
 
-size_t Metadata3D::LoadNumSolvers(const std::string& arch, bool& success)
+std::optional<size_t> Metadata3D::LoadNumSolvers(const std::string& arch)
 {
-    auto json = LoadJSONSafe(arch, success);
-    if (!success) return 0;
+    auto json_opt = LoadJSONSafe(arch);
+    if (!json_opt) return std::nullopt;
     
     try {
-        return json["num_solvers"].get<size_t>();
-    } catch (...) {
-        success = false;
-        return 0;
+        return json_opt->at("num_solvers").get<size_t>();
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load num_solvers for " << arch << ": " << e.what());
+        return std::nullopt;
     }
 }
 
-std::unordered_map<size_t, std::string> Metadata3D::LoadSolverMap(const std::string& arch, bool& success)
+std::optional<std::unordered_map<size_t, std::string>> Metadata3D::LoadSolverMap(const std::string& arch)
 {
-    auto json = LoadJSONSafe(arch, success);
-    if (!success) return {};
+    auto json_opt = LoadJSONSafe(arch);
+    if (!json_opt) return std::nullopt;
     
     try {
-        return common::ReverseMap<std::string, size_t>(json["encodings"]["solver"]);
-    } catch (...) {
-        success = false;
-        return {};
+        return common::ReverseMap<std::string, size_t>(json_opt->at("encodings").at("solver"));
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load solver_map for " << arch << ": " << e.what());
+        return std::nullopt;
     }
 }
 
-std::vector<float> Metadata3D::LoadFeaturesMean(const std::string& arch, size_t num_inputs, bool& success)
+std::optional<std::vector<float>> Metadata3D::LoadFeaturesMean(const std::string& arch, size_t num_inputs)
 {
     // For now, return default values (could be enhanced to load from JSON stats)
-    if (success) {
-        return std::vector<float>(num_inputs, 0.0f);
-    }
-    return {};
+    // This is a simplified version that returns zeros for mean
+    return std::vector<float>(num_inputs, 0.0f);
 }
 
-std::vector<float> Metadata3D::LoadFeaturesStd(const std::string& arch, size_t num_inputs, bool& success)
+std::optional<std::vector<float>> Metadata3D::LoadFeaturesStd(const std::string& arch, size_t num_inputs)
 {
     // For now, return default values (could be enhanced to load from JSON stats)
-    if (success) {
-        return std::vector<float>(num_inputs, 1.0f);
-    }
-    return {};
+    // This is a simplified version that returns ones for std
+    return std::vector<float>(num_inputs, 1.0f);
 }
 
-std::unordered_map<std::string, int> Metadata3D::LoadDirectionEncodings(const std::string& arch, bool& success)
+std::optional<std::unordered_map<std::string, int>> Metadata3D::LoadDirectionEncodings(const std::string& arch)
 {
-    auto json = LoadJSONSafe(arch, success);
-    if (!success) return {};
+    auto json_opt = LoadJSONSafe(arch);
+    if (!json_opt) return std::nullopt;
     
     try {
-        return json["encodings"]["direction"].get<std::unordered_map<std::string, int>>();
-    } catch (...) {
-        success = false;
-        return {};
+        return json_opt->at("encodings").at("direction").get<std::unordered_map<std::string, int>>();
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load direction_encodings for " << arch << ": " << e.what());
+        return std::nullopt;
     }
 }
 
-std::unordered_map<std::string, int> Metadata3D::LoadPrecisionEncodings(const std::string& arch, bool& success)
+std::optional<std::unordered_map<std::string, int>> Metadata3D::LoadPrecisionEncodings(const std::string& arch)
 {
-    auto json = LoadJSONSafe(arch, success);
-    if (!success) return {};
+    auto json_opt = LoadJSONSafe(arch);
+    if (!json_opt) return std::nullopt;
     
     try {
-        return json["encodings"]["precision"].get<std::unordered_map<std::string, int>>();
-    } catch (...) {
-        success = false;
-        return {};
+        return json_opt->at("encodings").at("precision").get<std::unordered_map<std::string, int>>();
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load precision_encodings for " << arch << ": " << e.what());
+        return std::nullopt;
     }
 }
 
-std::unordered_map<std::string, int> Metadata3D::LoadInLayoutEncodings(const std::string& arch, bool& success)
+std::optional<std::unordered_map<std::string, int>> Metadata3D::LoadInLayoutEncodings(const std::string& arch)
 {
-    auto json = LoadJSONSafe(arch, success);
-    if (!success) return {};
+    auto json_opt = LoadJSONSafe(arch);
+    if (!json_opt) return std::nullopt;
     
     try {
-        return json["encodings"]["in_layout"].get<std::unordered_map<std::string, int>>();
-    } catch (...) {
-        success = false;
-        return {};
+        return json_opt->at("encodings").at("in_layout").get<std::unordered_map<std::string, int>>();
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load in_layout_encodings for " << arch << ": " << e.what());
+        return std::nullopt;
     }
 }
 
-std::unordered_map<std::string, int> Metadata3D::LoadFilLayoutEncodings(const std::string& arch, bool& success)
+std::optional<std::unordered_map<std::string, int>> Metadata3D::LoadFilLayoutEncodings(const std::string& arch)
 {
-    auto json = LoadJSONSafe(arch, success);
-    if (!success) return {};
+    auto json_opt = LoadJSONSafe(arch);
+    if (!json_opt) return std::nullopt;
     
     try {
-        return json["encodings"]["fil_layout"].get<std::unordered_map<std::string, int>>();
-    } catch (...) {
-        success = false;
-        return {};
+        return json_opt->at("encodings").at("fil_layout").get<std::unordered_map<std::string, int>>();
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load fil_layout_encodings for " << arch << ": " << e.what());
+        return std::nullopt;
     }
 }
 
-std::unordered_map<std::string, int> Metadata3D::LoadOutLayoutEncodings(const std::string& arch, bool& success)
+std::optional<std::unordered_map<std::string, int>> Metadata3D::LoadOutLayoutEncodings(const std::string& arch)
 {
-    auto json = LoadJSONSafe(arch, success);
-    if (!success) return {};
+    auto json_opt = LoadJSONSafe(arch);
+    if (!json_opt) return std::nullopt;
     
     try {
-        return json["encodings"]["out_layout"].get<std::unordered_map<std::string, int>>();
-    } catch (...) {
-        success = false;
-        return {};
+        return json_opt->at("encodings").at("out_layout").get<std::unordered_map<std::string, int>>();
+    } catch (const std::exception& e) {
+        MIOPEN_LOG_I2("Failed to load out_layout_encodings for " << arch << ": " << e.what());
+        return std::nullopt;
     }
 }
 
 // Constructor - loads all data immediately with error handling
 Metadata3D::Metadata3D(const std::string& arch)
     : arch_name(arch),
-      is_valid([&]() {
-          bool success = true;
-          
-          // Load basic data first to get num_inputs for mean/std vectors
-          LoadFeatures(arch, success);
-          LoadNumInputs(arch, success);
-          LoadNumOutputs(arch, success);
-          LoadNumSolvers(arch, success);
-          
-          return success;
-      }()),
-      features(LoadFeatures(arch, const_cast<bool&>(is_valid))),
-      num_inputs(LoadNumInputs(arch, const_cast<bool&>(is_valid))),
-      num_outputs(LoadNumOutputs(arch, const_cast<bool&>(is_valid))),
-      num_solvers(LoadNumSolvers(arch, const_cast<bool&>(is_valid))),
-      solver_map(LoadSolverMap(arch, const_cast<bool&>(is_valid))),
-      features_mean(LoadFeaturesMean(arch, num_inputs, const_cast<bool&>(is_valid))),
-      features_std(LoadFeaturesStd(arch, num_inputs, const_cast<bool&>(is_valid))),
-      direction_encodings_3d(LoadDirectionEncodings(arch, const_cast<bool&>(is_valid))),
-      precision_encodings_3d(LoadPrecisionEncodings(arch, const_cast<bool&>(is_valid))),
-      in_layout_encodings(LoadInLayoutEncodings(arch, const_cast<bool&>(is_valid))),
-      fil_layout_encodings(LoadFilLayoutEncodings(arch, const_cast<bool&>(is_valid))),
-      out_layout_encodings(LoadOutLayoutEncodings(arch, const_cast<bool&>(is_valid)))
+      is_valid(false),  // Initialize to false, will be set to true if all loads succeed
+      features(),
+      num_inputs(0),
+      num_outputs(0),
+      num_solvers(0),
+      solver_map(),
+      features_mean(),
+      features_std(),
+      direction_encodings_3d(),
+      precision_encodings_3d(),
+      in_layout_encodings(),
+      fil_layout_encodings(),
+      out_layout_encodings()
 {
-    if (is_valid) {
-        if (miopen::IsLogging(LoggingLevel::Info2)) {
-            MIOPEN_LOG_I2("Metadata3D loaded for arch: " << arch << 
-                         ", num_inputs=" << num_inputs << ", num_solvers=" << num_solvers);
-        }
-    } else {
-        MIOPEN_LOG_I2("Metadata3D Failed to initialize metadata for: " << arch );
+    // Load all components using std::optional pattern
+    auto features_opt = LoadFeatures(arch);
+    auto num_inputs_opt = LoadNumInputs(arch);
+    auto num_outputs_opt = LoadNumOutputs(arch);
+    auto num_solvers_opt = LoadNumSolvers(arch);
+    auto solver_map_opt = LoadSolverMap(arch);
+    
+    // Check if basic components loaded successfully
+    if (!features_opt || !num_inputs_opt || !num_outputs_opt || 
+        !num_solvers_opt || !solver_map_opt) {
+        MIOPEN_LOG_I2("Metadata3D: Failed to load basic components for " << arch);
+        return;
+    }
+    
+    // Now load mean/std with the known num_inputs
+    auto features_mean_opt = LoadFeaturesMean(arch, *num_inputs_opt);
+    auto features_std_opt = LoadFeaturesStd(arch, *num_inputs_opt);
+    
+    // Load encoding maps
+    auto direction_encodings_opt = LoadDirectionEncodings(arch);
+    auto precision_encodings_opt = LoadPrecisionEncodings(arch);
+    auto in_layout_encodings_opt = LoadInLayoutEncodings(arch);
+    auto fil_layout_encodings_opt = LoadFilLayoutEncodings(arch);
+    auto out_layout_encodings_opt = LoadOutLayoutEncodings(arch);
+    
+    // Check if all components loaded successfully
+    if (!features_mean_opt || !features_std_opt || 
+        !direction_encodings_opt || !precision_encodings_opt ||
+        !in_layout_encodings_opt || !fil_layout_encodings_opt || 
+        !out_layout_encodings_opt) {
+        MIOPEN_LOG_I2("Metadata3D: Failed to load encoding components for " << arch);
+        return;
+    }
+    
+    // All components loaded successfully, now we can safely move the data
+    // We need to const_cast because the members are const
+    const_cast<std::vector<std::string>&>(features) = std::move(*features_opt);
+    const_cast<size_t&>(num_inputs) = *num_inputs_opt;
+    const_cast<size_t&>(num_outputs) = *num_outputs_opt;
+    const_cast<size_t&>(num_solvers) = *num_solvers_opt;
+    const_cast<std::unordered_map<size_t, std::string>&>(solver_map) = std::move(*solver_map_opt);
+    const_cast<std::vector<float>&>(features_mean) = std::move(*features_mean_opt);
+    const_cast<std::vector<float>&>(features_std) = std::move(*features_std_opt);
+    const_cast<std::unordered_map<std::string, int>&>(direction_encodings_3d) = std::move(*direction_encodings_opt);
+    const_cast<std::unordered_map<std::string, int>&>(precision_encodings_3d) = std::move(*precision_encodings_opt);
+    const_cast<std::unordered_map<std::string, int>&>(in_layout_encodings) = std::move(*in_layout_encodings_opt);
+    const_cast<std::unordered_map<std::string, int>&>(fil_layout_encodings) = std::move(*fil_layout_encodings_opt);
+    const_cast<std::unordered_map<std::string, int>&>(out_layout_encodings) = std::move(*out_layout_encodings_opt);
+    
+    // Mark as valid after successful loading
+    is_valid = true;
+    
+    if (miopen::IsLogging(LoggingLevel::Info2)) {
+        MIOPEN_LOG_I2("Metadata3D loaded successfully for arch: " << arch << 
+                     ", num_inputs=" << num_inputs << ", num_solvers=" << num_solvers);
     }
 }
 
