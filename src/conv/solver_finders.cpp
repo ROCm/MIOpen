@@ -216,13 +216,13 @@ const std::vector<std::unique_ptr<ISolversFinder>>& GetConvSolverFinders()
 } // namespace conv
 
 /// Register invoker only for the best solution within algorithm.
-static std::vector<Solution> EvaluateInvokers(const Handle& handle,
-                                              const std::vector<solver::ConvSolution>& solutions,
-                                              const AlgorithmName& algorithm_name,
-                                              const NetworkConfig& network_config,
-                                              const AnyInvokeParams& invoke_ctx,
-                                              bool& is_result_optimal,
-                                              bool force_attach_binary)
+std::vector<Solution> EvaluateInvokers(const Handle& handle,
+                                       const std::vector<solver::ConvSolution>& solutions,
+                                       const AlgorithmName& algorithm_name,
+                                       const NetworkConfig& network_config,
+                                       const AnyInvokeParams& invoke_ctx,
+                                       bool& is_result_optimal,
+                                       bool force_attach_binary)
 {
     const auto arch = env::value(MIOPEN_DEVICE_ARCH);
     if(!arch.empty())
