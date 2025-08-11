@@ -4556,7 +4556,8 @@ struct ConvHipImplicitGemm3DGroupFwdXdlops final
     GetSolution(const ExecutionContext&,
                 const miopen::conv::ProblemDescription&,
                 const PerformanceConfigHipImplicitGemm3DGroupFwdXdlops&) const override;
-    float GetWti(const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
+    MIOPEN_INTERNALS_EXPORT float GetWti(const ExecutionContext&,
+                                         const miopen::conv::ProblemDescription&) const override;
 
     MIOPEN_INTERNALS_EXPORT size_t GetWorkspaceSize(
         const ExecutionContext&, const miopen::conv::ProblemDescription&) const override;
