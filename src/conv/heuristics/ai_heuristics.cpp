@@ -561,6 +561,16 @@ PredictionResult ProcessPredictions(const std::vector<float>& predictions,
     // Debug: Print raw prediction probabilities
     const std::string model_type = is3d ? "3D " : "";
     
+    // Log individual solver predictions with scores
+    if(miopen::IsLogging(LoggingLevel::Info2) && !solver_map.empty()) {
+        MIOPEN_LOG_I2("=== " << model_type << "Solver Predictions (Logits) ===");
+        for(size_t idx = 0; idx < predictions.size() && idx < solver_map.size(); idx++) {
+            if(solver_map.find(idx) != solver_map.end()) {
+                MIOPEN_LOG_I2("  [" << idx << "] " << solver_map.at(idx) 
+                             << " = " << predictions[idx]);
+            }
+        }
+    }
     
     // Sort solvers in order of their probabilities
     std::vector<std::pair<int, float>> sort_res(predictions.size());
@@ -571,6 +581,19 @@ PredictionResult ProcessPredictions(const std::vector<float>& predictions,
         return a.second > b.second;
     };
     std::sort(sort_res.begin(), sort_res.end(), cmp);
+
+    // Log sorted results (top solvers)
+    if(miopen::IsLogging(LoggingLevel::Info2) && !solver_map.empty()) {
+        MIOPEN_LOG_I2("=== " << model_type << "Top Ranked Solvers ===");
+        for(size_t i = 0; i < std::min(size_t(3), sort_res.size()); i++) {
+            const auto idx = sort_res[i].first;
+            const auto score = sort_res[i].second;
+            if(solver_map.find(idx) != solver_map.end()) {
+                MIOPEN_LOG_I2("  Rank " << (i+1) << ": " << solver_map.at(idx) 
+                             << " (score: " << score << ")");
+            }
+        }
+    }
 
     // Map solver idx to solver id and then to anysolver
     PredictionResult result;
