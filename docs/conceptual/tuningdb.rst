@@ -29,7 +29,6 @@ Enable this feature using these commands:
 
 .. code:: bash
 
-  export MIOPEN_FIND_MODE=3
   export MIOPEN_FIND_ENFORCE=3
   export MIOPEN_USER_DB_PATH="/user/specified/directory"
 
@@ -48,7 +47,6 @@ Enable this feature using these commands:
 
 .. code:: bash
 
-  export MIOPEN_FIND_MODE=3
   export MIOPEN_FIND_ENFORCE=3
   export MIOPEN_USER_DB_PATH="/user/specified/directory"
   export MIOPEN_SYSTEM_DB_PATH="$MIOPEN_USER_DB_PATH"
@@ -64,7 +62,6 @@ Then enable exhaustive tuning and run the unique commands.
 
 .. code:: bash
 
-  export MIOPEN_FIND_MODE=1
   export MIOPEN_FIND_ENFORCE=4
   export MIOPEN_USER_DB_PATH="/user/specified/directory"
 
