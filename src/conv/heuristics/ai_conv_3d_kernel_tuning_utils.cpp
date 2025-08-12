@@ -335,7 +335,7 @@ template bool RunParameterPredictionModel<ck::bhalf_t>(
     std::string);
 
 // helper function to get a dummy execution context for when we do not have a real context
-const miopen::ExecutionContext& GetDummyExecutionContext()
+const miopen::ExecutionContext& GetDummyCtx()
 {
     static miopen::ExecutionContext ctx;
     return ctx;

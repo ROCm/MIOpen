@@ -209,7 +209,7 @@ CandidateSelectionMetadata::sequence_encodings() const
 {
     return sequence_encodings_;
 }
-const float CandidateSelectionMetadata::GetNanToken() const { return nan_token_; }
+float CandidateSelectionMetadata::GetNanToken() const { return nan_token_; }
 
 // --- CandidateSelectionModel ------------------------------------------------
 
@@ -240,7 +240,7 @@ CandidateSelectionModel::EncodeInputFeatures(const std::map<std::string, float>&
         }
         else
         {
-            MIOPEN_THROW("Input feature not found in provided map: " + name);
+            MIOPEN_THROW((std::ostringstream() << "Input parameter not found: " << name).str());
         }
     }
 
@@ -302,9 +302,12 @@ const CandidateSelectionModel& GetCandidateSelectionModel(const std::string& arc
     }
     catch(const std::exception& ex)
     {
-        MIOPEN_THROW(miopenStatusInternalError,
-                     "Failed to construct CandidateSelectionModel for arch: " + arch +
-                         ", solver: " + solver + ". Exception: " + ex.what());
+        {
+            std::ostringstream oss;
+            oss << "Failed to construct CandidateSelectionModel for arch: " << arch
+                << ", solver: " << solver << ". Exception: " << ex.what();
+            MIOPEN_THROW(miopenStatusInternalError, oss.str());
+        }
     }
 }
 std::vector<std::vector<float>>
@@ -366,9 +369,10 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
                         }
                         catch(const std::exception&)
                         {
-                            MIOPEN_THROW(
-                                "No sequence encoding found for output parameter: " + param_name +
-                                " and value '" + param_value + "' is not a valid float.");
+                            std::ostringstream msg;
+                            msg << "No sequence encoding found for output parameter: " << param_name
+                                << " and value '" << param_value << "' is not a valid float.";
+                            MIOPEN_THROW(msg.str());
                         }
                     }
                     else
@@ -399,18 +403,21 @@ EncodeKernelParams(const std::vector<std::vector<std::string>>& valid_kernel_par
                                     value    = static_cast<float>(kv.second);
                                     found_ws = true;
                                     // TODO consider decreasing this verbosity
-                                    MIOPEN_LOG_I2("Found whitespace-stripped match for output "
-                                                  "parameter: " +
-                                                  param_name + " with value '" + param_value +
-                                                  "' matching '" + kv.first + "' in metadata.");
+                                    {
+                                        MIOPEN_LOG_I2(
+                                            "Found whitespace-stripped match for output parameter: "
+                                            << param_name << " with value '" << param_value
+                                            << "' matching '" << kv.first << "' in metadata.");
+                                    }
                                     break;
                                 }
                             }
 
                             if(!found_ws)
                             {
-                                MIOPEN_LOG_WE("No encoding found in metadata for value '" +
-                                              param_value + "' of output parameter: " + param_name);
+                                MIOPEN_LOG_WE("No encoding found in metadata for value '"
+                                              << param_value
+                                              << "' of output parameter: " << param_name);
                                 MIOPEN_LOG_WE("setting it to the NaN value");
                                 value = nan_token_encoding;
                             }
