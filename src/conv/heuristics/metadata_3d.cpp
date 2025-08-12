@@ -309,24 +309,18 @@ Metadata3D::Metadata3D(const std::string& arch)
 
     // All components loaded successfully, now we can safely move the data
     // We need to const_cast because the members are const
-    const_cast<std::vector<std::string>&>(features)                  = std::move(*features_opt);
-    const_cast<size_t&>(num_inputs)                                  = *num_inputs_opt;
-    const_cast<size_t&>(num_outputs)                                 = *num_outputs_opt;
-    const_cast<size_t&>(num_solvers)                                 = *num_solvers_opt;
-    const_cast<std::unordered_map<size_t, std::string>&>(solver_map) = std::move(*solver_map_opt);
-    const_cast<std::vector<float>&>(features_mean) = std::move(*features_mean_opt);
-    const_cast<std::vector<float>&>(features_std)  = std::move(*features_std_opt);
-    const_cast<std::unordered_map<std::string, int>&>(direction_encodings_3d) =
-        std::move(*direction_encodings_opt);
-    const_cast<std::unordered_map<std::string, int>&>(precision_encodings_3d) =
-        std::move(*precision_encodings_opt);
-    const_cast<std::unordered_map<std::string, int>&>(in_layout_encodings) =
-        std::move(*in_layout_encodings_opt);
-    const_cast<std::unordered_map<std::string, int>&>(fil_layout_encodings) =
-        std::move(*fil_layout_encodings_opt);
-    const_cast<std::unordered_map<std::string, int>&>(out_layout_encodings) =
-        std::move(*out_layout_encodings_opt);
-
+    features               = std::move(*features_opt);
+    num_inputs             = *num_inputs_opt;
+    num_outputs            = *num_outputs_opt;
+    num_solvers            = *num_solvers_opt;
+    solver_map             = std::move(*solver_map_opt);
+    features_mean          = std::move(*features_mean_opt);
+    features_std           = std::move(*features_std_opt);
+    direction_encodings_3d = std::move(*direction_encodings_opt);
+    precision_encodings_3d = std::move(*precision_encodings_opt);
+    in_layout_encodings    = std::move(*in_layout_encodings_opt);
+    fil_layout_encodings   = std::move(*fil_layout_encodings_opt);
+    out_layout_encodings   = std::move(*out_layout_encodings_opt);
     // Mark as valid after successful loading
     is_valid = true;
 
