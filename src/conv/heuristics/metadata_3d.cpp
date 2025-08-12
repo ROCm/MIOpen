@@ -140,16 +140,16 @@ Metadata3D::LoadSolverMap(const std::string& arch)
     }
 }
 
-std::optional<std::vector<float>> Metadata3D::LoadFeaturesMean(const std::string& arch,
-                                                               size_t num_inputs)
+std::optional<std::vector<float>>
+Metadata3D::LoadFeaturesMean([[maybe_unused]] const std::string& arch, size_t num_inputs)
 {
     // For now, return default values (could be enhanced to load from JSON stats)
     // This is a simplified version that returns zeros for mean
     return std::vector<float>(num_inputs, 0.0f);
 }
 
-std::optional<std::vector<float>> Metadata3D::LoadFeaturesStd(const std::string& arch,
-                                                              size_t num_inputs)
+std::optional<std::vector<float>>
+Metadata3D::LoadFeaturesStd([[maybe_unused]] const std::string& arch, size_t num_inputs)
 {
     // For now, return default values (could be enhanced to load from JSON stats)
     // This is a simplified version that returns ones for std
