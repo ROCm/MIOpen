@@ -115,7 +115,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION
 endif()
 if(WIN32)
     list(APPEND __clang_cxx_compile_options
-        -fdelayed-template-parsing
         -fms-extensions
         -fms-compatibility)
 endif()
