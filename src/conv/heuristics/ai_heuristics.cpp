@@ -873,8 +873,11 @@ namespace tuning {
 
 inline bool GetUseSinglePredictEnv()
 {
-    const char* env = std::getenv("MIOPEN_AI_FDEEP_USE_SINGLE_PREDICT");
-    return env != nullptr && std::string(env) == "1";
+    static bool cached = [] {
+        const char* env = std::getenv("MIOPEN_AI_FDEEP_USE_SINGLE_PREDICT");
+        return env != nullptr && std::string(env) == "1";
+    }();
+    return cached;
 }
 
 Metadata::Metadata(const std::string& arch, const std::string& solver)
