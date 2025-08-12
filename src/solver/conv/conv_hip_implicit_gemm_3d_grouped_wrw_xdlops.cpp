@@ -364,7 +364,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
     }
 }
 #endif
-static const miopen::ExecutionContext dummy_ctx;
+
 void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
     const miopen::ExecutionContext& ctx, const ProblemDescription& problem)
 {
@@ -376,7 +376,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
     // Try AI heuristics first if enabled
     std::cerr << "HeuristicInit: AI heuristics enabled" << std::endl;
-    if(&ctx != &dummy_ctx &&
+    if(&ctx != &GetDummyCtx() &&
        !env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
     {
         bool ai_success         = false;
@@ -475,7 +475,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::SetNextValue(
     if(valid_kernels.empty())
     {
         // feed in dummy context to only perform boilerplate initialization
-        HeuristicInit(dummy_ctx, problem);
+        HeuristicInit(GetDummyCtx(), problem);
         if(valid_kernels.empty())
         {
             return false;

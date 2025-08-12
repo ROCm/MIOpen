@@ -334,6 +334,13 @@ template bool RunParameterPredictionModel<ck::bhalf_t>(
     std::function<std::vector<std::string>(const ProblemDescription&)>,
     std::string);
 
+// helper function to get a dummy execution context for when we do not have a real context
+const miopen::ExecutionContext& GetDummyExecutionContext()
+{
+    static miopen::ExecutionContext ctx;
+    return ctx;
+}
+
 } // namespace conv
 } // namespace solver
 } // namespace miopen
