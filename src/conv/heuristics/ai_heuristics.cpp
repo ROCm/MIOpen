@@ -35,6 +35,7 @@
 #if MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK || MIOPEN_ENABLE_AI_KERNEL_TUNING
 #include <fdeep/fdeep.hpp>
 #include <miopen/filesystem.hpp>
+#include <mutex>
 
 // 3D AI heuristics - now declared properly in header
 // No need for local forward declarations since we include the header
@@ -871,12 +872,34 @@ std::unique_ptr<Model3D> Get3DModel(const std::string& device)
 #if MIOPEN_ENABLE_AI_KERNEL_TUNING
 namespace tuning {
 
+/**
+ * @brief Determines whether to use the single-predict optimization based on an environment
+ * variable.
+ *
+ * On the first call, reads the "MIOPEN_AI_FDEEP_USE_SINGLE_PREDICT" environment variable;
+ * if it is set to "1", single-predict mode is enabled. The result is stored in a static
+ * boolean so subsequent calls return the cached value without re-reading the environment.
+ *
+ * A mutex guards the one-time initialization to ensure thread-safe access when multiple
+ * threads call this function concurrently during startup.
+ *
+ * @return true if single-predict mode is enabled, false otherwise.
+ */
 inline bool GetUseSinglePredictEnv()
 {
-    static bool cached = [] {
-        const char* env = std::getenv("MIOPEN_AI_FDEEP_USE_SINGLE_PREDICT");
-        return env != nullptr && std::string(env) == "1";
-    }();
+    static std::mutex mtx;
+    static bool initialized = false;
+    static bool cached      = false;
+    if(!initialized)
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        if(!initialized)
+        {
+            const char* env = std::getenv("MIOPEN_AI_FDEEP_USE_SINGLE_PREDICT");
+            cached          = env != nullptr && std::string(env) == "1";
+            initialized     = true;
+        }
+    }
     return cached;
 }
 
