@@ -264,9 +264,9 @@ bool RunParameterPredictionModel(
         {
 
             // If split_k is 0, we do not expand, just use the original kernels
-            for(size_t i = 0; i < heuristic_indexes.size(); ++i)
+            for(int heuristic_index : heuristic_indexes)
             {
-                mapping_pairs.emplace_back(heuristic_indexes[i], 1); // Default split_k of 1
+                mapping_pairs.emplace_back(heuristic_index, 1); // Default split_k of 1
             }
         }
         int best_idx = ai::tuning::candidate_selection::ModelSelectBestCandidate(
