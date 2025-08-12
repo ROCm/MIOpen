@@ -61,7 +61,7 @@ public:
     const std::vector<std::string>& input_params() const { return input_params_; }
     const std::vector<std::string>& output_params() const { return output_params_; }
     const std::map<std::string, std::map<std::string, int>>& sequence_encodings() const;
-    const float GetNanToken() const;
+    float GetNanToken() const;
 
 private:
     // Internal mappings and encodings
