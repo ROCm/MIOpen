@@ -39,7 +39,7 @@ namespace miopen {
 namespace solver {
 namespace conv {
 
-const miopen::ExecutionContext& GetDummyExecutionContext();
+const miopen::ExecutionContext& GetDummyCtx();
 
 std::map<std::string, float>
 GetFeatures3D(const miopen::conv::ProblemDescription&, int max_cu, const std::string& arch);
