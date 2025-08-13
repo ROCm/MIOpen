@@ -253,6 +253,7 @@ static void ShrinkToFind10Results(std::vector<Solution>& found)
     found = std::move(out);
 }
 
+MIOPEN_INTERNALS_EXPORT
 std::vector<solver::ConvSolution>
 GetConvSolutions(const ExecutionContext& ctx,
                  const conv::ProblemDescription& problem,
@@ -274,6 +275,7 @@ GetConvSolutions(const ExecutionContext& ctx,
     return conv_sols;
 }
 
+MIOPEN_INTERNALS_EXPORT
 std::vector<Solution> EvaluateConvSolutions(const ExecutionContext& ctx,
                                             const conv::ProblemDescription& problem,
                                             const AnyInvokeParams& invoke_ctx,
@@ -319,6 +321,7 @@ std::vector<Solution> EvaluateConvSolutions(const ExecutionContext& ctx,
     return eval_sols;
 }
 
+MIOPEN_INTERNALS_EXPORT
 bool HasGoodSolution(const std::vector<miopenConvSolution_t> solutions,
                      const std::vector<Solution> eval_sols,
                      const bool model_result)
