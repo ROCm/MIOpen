@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2017 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,43 +28,17 @@
 #include "gtest_common.hpp"
 
 namespace {
-std::vector<std::vector<size_t>> tensorALensArr = {{32, 16, 8, 4, 4}, // tensor A
-                                                   {16, 20, 16, 8},
-                                                   {20, 16, 8},
-                                                   {1, 16, 8},
-                                                   {16, 8},
-                                                   {8}};
+std::vector<std::vector<size_t>> tensorALensArr    = {{1, 1, 4}, {1, 1, 8}, {1, 1, 32}}; // tensor A
+std::vector<std::vector<size_t>> tensorAStridesArr = {{4, 4, 1}, {8, 8, 1}, {32, 32, 1}};
 
-std::vector<std::vector<size_t>> tensorBLensArr = {{32, 16, 8, 4, 4}, // tensor B
-                                                   {32, 16, 1, 1, 1},
-                                                   {1, 16, 8, 1, 1},
-                                                   {1, 1, 8, 4, 1},
-                                                   {16, 20, 16, 8},
-                                                   {16, 20, 16, 1},
-                                                   {16, 20, 1, 1},
-                                                   {16, 1, 1, 1},
-                                                   {1, 20, 16, 8},
-                                                   {1, 20, 16, 1},
-                                                   {1, 20, 1, 1},
-                                                   {1, 1, 16, 8},
-                                                   {1, 1, 1, 8},
-                                                   {20, 16, 8},
-                                                   {20, 16, 1},
-                                                   {1, 16, 8},
-                                                   {1, 16, 1},
-                                                   {20, 1, 1},
-                                                   {16, 8},
-                                                   {16, 1},
-                                                   {1, 8},
-                                                   {8},
-                                                   {1}};
+std::vector<std::vector<size_t>> tensorBLensArr = {{1, 16, 4}, {1, 32, 8}, {1, 8, 32}}; // tensor B
+std::vector<std::vector<size_t>> tensorBStridesArr = {
+    {16 * 4, 4 * 1, 1}, {32 * 8, 8 * 1, 1}, {8 * 32, 32 * 1, 1}};
 
 std::vector<std::vector<int64_t>> offsetsArr = {
     {0, 0, 0}, {64, 32, 16}, {32, 16, 32}, {32, 16, 32}};
 
 std::vector<std::vector<float>> alphabetaArr = {{1, 1, 0}, {-1, 1, 1}, {1.0, 0.5, 0.3}};
-
-std::vector<std::vector<size_t>> stridesArr = {{8 * 16 * 20 * 16, 8 * 16 * 20, 8 * 16, 8, 1}};
 
 std::vector<bool> packedArr = {true, false};
 
@@ -172,7 +146,7 @@ private:
                          testCase.offsets[0],
                          testCase.offsets[1],
                          testCase.offsets[2],
-                         false); // it does not verify non-standard behaviour
+                         true);
 
         return handle.Read<T>(c_dev, tensorC.data.size());
     }
@@ -181,33 +155,25 @@ private:
     {
         const TestCase& testCase = GetParam();
 
-        float alpha1 = testCase.alphabeta[0];
         float alpha2 = testCase.alphabeta[1];
-        float beta   = testCase.alphabeta[2];
 
         if(testCase.operation == miopenTensorOpAdd)
         {
-            return CalculateOnCPUDataOp([alpha1, alpha2, beta](auto& C, auto A, auto B) {
-                C = A * alpha1 + B * alpha2 + C * beta;
-            });
+            return CalculateOnCPUDataOp([alpha2](auto A, auto B) { return A + B * alpha2; });
         }
         else if(testCase.operation == miopenTensorOpMul)
         {
-            return CalculateOnCPUDataOp([alpha1, alpha2, beta](auto& C, auto A, auto B) {
-                C = A * alpha1 * B * alpha2 + C * beta;
-            });
+            return CalculateOnCPUDataOp([alpha2](auto A, auto B) { return A * B * alpha2; });
         }
         else if(testCase.operation == miopenTensorOpMin)
         {
-            return CalculateOnCPUDataOp([alpha1, alpha2, beta](auto& C, auto A, auto B) {
-                C = std::min(A * alpha1, B * alpha2) + C * beta;
-            });
+            return CalculateOnCPUDataOp(
+                [alpha2](auto A, auto B) { return std::min(A, B * alpha2); });
         }
         else
         {
-            return CalculateOnCPUDataOp([alpha1, alpha2, beta](auto& C, auto A, auto B) {
-                C = std::max(A * alpha1, B * alpha2) + C * beta;
-            });
+            return CalculateOnCPUDataOp(
+                [alpha2](auto A, auto B) { return std::max(A, B * alpha2); });
         }
     }
 
@@ -216,20 +182,33 @@ private:
     {
         const TestCase& testCase = GetParam();
 
-        auto r = tensorC;
+        auto a = tensorA;
+        auto b = tensorB;
+        auto c = tensorC;
 
-        operate_over_subtensor<>(dataOp,
-                                 r.data,
-                                 tensorA.data,
-                                 tensorB.data,
-                                 r.desc,
-                                 tensorA.desc,
-                                 tensorB.desc,
-                                 testCase.offsets[2],
-                                 testCase.offsets[0],
-                                 testCase.offsets[1]);
+        auto a_idx = testCase.offsets[0];
+        auto b_idx = testCase.offsets[1];
+        auto c_idx = testCase.offsets[2];
 
-        return r.data;
+        // Currently non standard squashed operation is supported only on 3D tensors
+        // A/C tensors are 1x1xH, tensor B is 1xCxH (C > 1)
+        // This is simulated 3D non standard squashed tensor operation
+        for(auto i = 0; i < testCase.tensorlens_ac[2]; i++)
+        {
+            auto a_val = a.data[a_idx] * testCase.alphabeta[0];
+            auto c_val = c.data[c_idx] * testCase.alphabeta[2];
+            for(auto j = 0; j < testCase.tensorlens_b[1]; j++)
+            {
+                c_val += dataOp(a_val, b.data[b_idx]);
+                b_idx += testCase.stride_b[1];
+            }
+            c.data[c_idx] = c_val;
+            a_idx += testCase.stride_a[2];
+            c_idx += testCase.stride_c[2];
+            b_idx = testCase.offsets[1] + (i + 1) * testCase.stride_b[2];
+        }
+
+        return c.data;
     }
 
     void CompareResults(const std::vector<T>& tensorGPUData, const std::vector<T>& tensorCPUData)
@@ -237,7 +216,6 @@ private:
         const TestCase& testCase = GetParam();
 
         double tolerance = 1;
-
         if(std::is_same_v<T, half_float::half>)
         {
             // taken from original c-test
@@ -256,38 +234,19 @@ private:
     tensor<T> tensorC;
 };
 
-using GPU_TernaryTensorOps_FP32 = TensorOpsCommon<float>;
-using GPU_TernaryTensorOps_FP16 = TensorOpsCommon<half_float::half>;
-using GPU_TernaryTensorOps_FP64 = TensorOpsCommon<double>;
+using GPU_TernaryNonStandardSquashedTensorOps_FP32 = TensorOpsCommon<float>;
+using GPU_TernaryNonStandardSquashedTensorOps_FP16 = TensorOpsCommon<half_float::half>;
+using GPU_TernaryNonStandardSquashedTensorOps_FP64 = TensorOpsCommon<double>;
 
 namespace {
-bool checkTensorsCompatibility(const std::vector<size_t>& tensorALens,
-                               const std::vector<size_t>& tensorBLens)
-{
-    if(tensorALens.size() != tensorBLens.size())
-    {
-        return false;
-    }
-
-    for(size_t idx = 0; idx < tensorBLens.size(); ++idx)
-    {
-        if((tensorBLens[idx] != 1) && (tensorALens[idx] != tensorBLens[idx]))
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
 
 void AddTestCases(std::vector<TestCase>& testCases,
                   const std::vector<size_t>& tensorALens,
-                  const std::vector<size_t>& tensorBLens)
+                  const std::vector<size_t>& tensorBLens,
+                  const std::vector<size_t> stride_a,
+                  const std::vector<size_t> stride_b,
+                  const std::vector<size_t> stride_c)
 {
-    const auto& stride_a = stridesArr[0];
-    const auto& stride_b = stridesArr[0];
-    const auto& stride_c = stridesArr[0];
-
     for(bool packed : packedArr)
         for(const auto& offsets : offsetsArr)
         {
@@ -355,16 +314,15 @@ std::vector<TestCase> GenCases()
 {
     std::vector<TestCase> testCases;
 
-    for(const auto& tensorALens : tensorALensArr)
-        for(const auto& tensorBLens : tensorBLensArr)
-        {
-            if(!checkTensorsCompatibility(tensorALens, tensorBLens))
-            {
-                continue;
-            }
-
-            AddTestCases(testCases, tensorALens, tensorBLens);
-        }
+    for(int i = 0; i < tensorALensArr.size(); i++)
+    {
+        AddTestCases(testCases,
+                     tensorALensArr[i],
+                     tensorBLensArr[i],
+                     tensorAStridesArr[i],
+                     tensorBStridesArr[i],
+                     tensorAStridesArr[i]);
+    }
 
     return testCases;
 }
@@ -376,12 +334,12 @@ inline auto GetCases()
 }
 } // namespace
 
-TEST_P(GPU_TernaryTensorOps_FP32, TestFloat) { this->Run(); }
+TEST_P(GPU_TernaryNonStandardSquashedTensorOps_FP32, TestFloat) { this->Run(); }
 
-TEST_P(GPU_TernaryTensorOps_FP16, TestFloat16) { this->Run(); }
+TEST_P(GPU_TernaryNonStandardSquashedTensorOps_FP16, TestFloat16) { this->Run(); }
 
-TEST_P(GPU_TernaryTensorOps_FP64, TestDouble) { this->Run(); }
+TEST_P(GPU_TernaryNonStandardSquashedTensorOps_FP64, TestDouble) { this->Run(); }
 
-INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TernaryTensorOps_FP32, GetCases());
-INSTANTIATE_TEST_SUITE_P(Full, GPU_TernaryTensorOps_FP64, GetCases());
-INSTANTIATE_TEST_SUITE_P(Full, GPU_TernaryTensorOps_FP16, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TernaryNonStandardSquashedTensorOps_FP32, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TernaryNonStandardSquashedTensorOps_FP64, GetCases());
+INSTANTIATE_TEST_SUITE_P(Smoke, GPU_TernaryNonStandardSquashedTensorOps_FP16, GetCases());
