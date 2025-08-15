@@ -415,11 +415,18 @@ void CompileAgent(size_t thread_index,
     MIOPEN_LOG_I2("Thread: " << thread_index << " Done, completed tuning");
 }
 
+struct SolutionPerf
+{
+    std::string params;
+    float time;
+};
+
 template <class Solver, class Context, class Problem>
 auto GenericSearch(const Solver s,
                    const Context& context_,
                    const Problem& problem,
-                   const AnyInvokeParams& invoke_ctx_)
+                   const AnyInvokeParams& invoke_ctx_,
+                   std::vector<SolutionPerf>* perf_sols = nullptr)
     -> decltype(s.GetDefaultPerformanceConfig(context_, problem))
 {
     auto context                  = context_;
@@ -434,6 +441,12 @@ auto GenericSearch(const Solver s,
         copy.SetInvokeType(InvokeType::AutoTune);
         return copy;
     }();
+
+    // list of sampled solutions
+    if(perf_sols)
+    {
+        perf_sols->erase(perf_sols->begin(), perf_sols->end());
+    }
 
     auto& profile_h = context.GetStream();
     const AutoEnableProfiling enableProfiling{profile_h};
@@ -633,7 +646,12 @@ auto GenericSearch(const Solver s,
                             MIOPEN_LOG_I2("Mean is not better: " << elapsed_time
                                                                  << " >= " << best_time);
                         }
+
                     }
+                }
+                if(perf_sols)
+                {
+                    perf_sols->push_back({current_config.ToString(), elapsed_time});
                 }
             }
 
@@ -673,8 +691,13 @@ auto GenericSearch(const Solver s,
 
     if(!is_passed)
         MIOPEN_THROW("Search failed");
-    // Run once with the default config and show score.
 
+    if(perf_sols)
+        std::sort(perf_sols->begin(), perf_sols->end(), [](SolutionPerf a, SolutionPerf b) {
+            return a.time < b.time;
+        });
+
+    // Run once with the default config and show score.
     const auto& invoker = profile_h.PrepareInvoker(*default_solution.invoker_factory,
                                                    default_solution.construction_params);
     invoker(profile_h, invoke_ctx);
