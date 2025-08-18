@@ -26,6 +26,7 @@
 
 #include <miopen/errors.hpp>
 #include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
 TEST(CPU_test_errors_NONE, test_ocl_error)
 {
@@ -69,4 +70,54 @@ TEST(CPU_test_errors_NONE, test_error_string)
     {
         EXPECT_STREQ(miopenGetErrorString(status), message);
     }
+}
+
+TEST(CPU_test_errors_NONE, test_miopen_throw)
+{
+    const std::string err_msg1{"test error message"};
+    const std::string err_msg2{"another error message"};
+
+    EXPECT_THROW([&err_msg1]() { MIOPEN_THROW(err_msg1); }(), miopen::Exception);
+    EXPECT_THROW([&err_msg1]() { MIOPEN_THROW(miopenStatusInternalError, err_msg1); }(),
+                 miopen::Exception);
+
+    EXPECT_THROW(
+        {
+            try
+            {
+                MIOPEN_THROW(miopenStatusUnknownError, err_msg1);
+            }
+            catch(const miopen::Exception& e)
+            {
+                EXPECT_THAT(e.message, ::testing::StartsWith(__FILE__));
+                EXPECT_THAT(e.message, ::testing::EndsWith(err_msg1));
+
+                EXPECT_THAT(e.what(), ::testing::StartsWith(__FILE__));
+                EXPECT_THAT(e.what(), ::testing::EndsWith(err_msg1));
+
+                EXPECT_EQ(e.status, miopenStatusUnknownError);
+                throw;
+            }
+        },
+        miopen::Exception);
+
+    EXPECT_THROW(
+        {
+            try
+            {
+                MIOPEN_THROW(err_msg2);
+            }
+            catch(const miopen::Exception& e)
+            {
+                EXPECT_THAT(e.message, ::testing::StartsWith(__FILE__));
+                EXPECT_THAT(e.message, ::testing::EndsWith(err_msg2));
+
+                EXPECT_THAT(e.what(), ::testing::StartsWith(__FILE__));
+                EXPECT_THAT(e.what(), ::testing::EndsWith(err_msg2));
+
+                EXPECT_EQ(e.status, miopenStatusUnknownError);
+                throw;
+            }
+        },
+        miopen::Exception);
 }
