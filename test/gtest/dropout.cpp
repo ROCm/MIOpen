@@ -24,6 +24,7 @@
  *
  *******************************************************************************/
 
+#include <gmock/gmock.h>
 #include "gtest_common.hpp"
 #include <tensor_util.hpp>
 #include "dropout_util.hpp"
@@ -430,3 +431,134 @@ TEST_P(GPU_Dropout_FP16, TestFloat16) { this->Run(); }
 
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Dropout_FP32, GetCases());
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Dropout_FP16, GetCases());
+
+struct TestCaseValues
+{
+    const std::string msg;
+    const miopenStatus_t status;
+    const miopen::TensorDescriptor xDesc;
+    ConstData_t x;
+    const miopen::TensorDescriptor yDesc;
+    Data_t y;
+    miopen::TensorDescriptor noise_shape;
+    Data_t reserveSpace{nullptr};
+    size_t reserveSpaceSizeInBytes{0};
+};
+
+static void check_vals(miopen::DropoutDescriptor& dd, TestCaseValues& vals)
+{
+    EXPECT_THROW(
+        {
+            try
+            {
+                dd.Dropout(get_handle(),
+                           vals.noise_shape,
+                           vals.xDesc,
+                           vals.x,
+                           vals.yDesc,
+                           vals.y,
+                           vals.reserveSpace,
+                           vals.reserveSpaceSizeInBytes,
+                           0,
+                           0,
+                           0,
+                           false);
+            }
+            catch(const miopen::Exception& e)
+            {
+                if(vals.msg.length() > 0)
+                {
+                    EXPECT_THAT(e.message, ::testing::EndsWith(vals.msg));
+                    EXPECT_THAT(e.what(), ::testing::EndsWith(vals.msg));
+                }
+
+                EXPECT_EQ(e.status, vals.status);
+                throw;
+            }
+        },
+        miopen::Exception);
+}
+
+TEST(CPU_dropout_NONE, test_dropout_miopen_throw)
+{
+    miopen::DropoutDescriptor dd;
+
+    miopen::TensorDescriptor xDesc_int32_5(miopenInt32, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1});
+    miopen::TensorDescriptor yDesc_int32_5{miopenInt32, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}};
+
+    miopen::TensorDescriptor xDesc_int32_6{miopenInt32, {2, 2, 2, 2, 2, 2}, {1, 1, 2, 3, 4, 5}};
+    miopen::TensorDescriptor yDesc_int32_6{miopenInt32, {1, 1, 2, 3, 4, 5}, {1, 1, 2, 3, 4, 5}};
+
+    miopen::TensorDescriptor xDesc_int32_3(miopenInt32, {2, 2, 2}, {1, 1, 1});
+    miopen::TensorDescriptor yDesc_int32_3(miopenInt32, {1, 1, 1}, {1, 1, 1});
+
+    miopen::TensorDescriptor xDesc_int8_5(miopenInt8, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1});
+
+    miopen::TensorDescriptor noise_shape_2(miopenInt32, {9, 9}, {9, 9});
+    miopen::TensorDescriptor noise_shape_5(miopenInt32, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1});
+
+    int dumb_array[] = {1};
+    ConstData_t x{dumb_array};
+    Data_t y{dumb_array};
+    Data_t reserveSpace{dumb_array};
+
+    TestCaseValues testvals[] = {
+        // clang-format off
+        //exception message                                         exception status          xDesc          x        yDesc          y        noise_shape
+        {"",                                                        miopenStatusBadParm,      xDesc_int32_5, nullptr, yDesc_int32_5, nullptr, noise_shape_2}, // x or y is nullptr
+        {"",                                                        miopenStatusBadParm,      xDesc_int32_5, x,       yDesc_int32_5, nullptr, noise_shape_2}, // x or y is nullptr
+        {"",                                                        miopenStatusBadParm,      xDesc_int32_5, nullptr, yDesc_int32_5, y,       noise_shape_2}, // x or y is nullptr
+        {"Input/Output dimension does not match",                   miopenStatusUnknownError, xDesc_int32_3, x,       yDesc_int32_5, y,       noise_shape_2}, // xDesc and yDesc with different size
+        {"Only support 1D to 5D tensors",                           miopenStatusUnknownError, xDesc_int32_6, x,       yDesc_int32_6, y,       noise_shape_2}, // xDesc size > 5
+        {"Input/Output element size does not match",                miopenStatusUnknownError, xDesc_int32_3, x,       yDesc_int32_3, y,       noise_shape_2}, // xDesc and yDesc element size differs
+        {"Only support dropout with regular noise shape currently", miopenStatusUnknownError, xDesc_int32_5, x,       yDesc_int32_5, y,       noise_shape_2}, // xDesc/yDesc and noise_shape element size differs
+        {"Input/Output datatype does not match",                    miopenStatusUnknownError, xDesc_int8_5,  x,       yDesc_int32_5, y,       noise_shape_5}, // xDesc and yDesc diff type
+        {"Invalid dropout rate",                                    miopenStatusUnknownError, xDesc_int32_5, x,       yDesc_int32_5, y,       noise_shape_5} // incorrect dropout
+        // clang-format on
+    };
+
+    dd.dropout = 10.0;
+    for(auto& testval : testvals)
+    {
+        check_vals(dd, testval);
+    }
+
+    dd.dropout  = 0.0;
+    dd.use_mask = true;
+    {
+        // clang-format off
+        //                      exception message                exception status          xDesc          x  yDesc          y  noise_shape
+        TestCaseValues testval{"Insufficient reservespace size", miopenStatusUnknownError, xDesc_int32_5, x, yDesc_int32_5, y, noise_shape_5};
+        // clang-format on
+        check_vals(dd, testval);
+    }
+
+    dd.use_mask = false;
+    {
+        miopen::TensorDescriptor xDesc_test(miopenInt32, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1});
+        miopen::TensorDescriptor yDesc_test(miopenInt32, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1});
+        miopen::TensorDescriptor noise_shape_test(miopenInt32, {2, 2, 2, 2, 2}, {1, 1, 1, 1, 1});
+        // clang-format off
+        //                      exception message                exception status          xDesc          x  yDesc          y  noise_shape
+        TestCaseValues testval{"Insufficient reservespace size", miopenStatusUnknownError, xDesc_test, x, yDesc_test, y, noise_shape_test, reserveSpace, sizeof(dumb_array)};
+        // clang-format on
+        check_vals(dd, testval);
+    }
+
+    {
+        const size_t reservedSpace = get_handle().GetGlobalMemorySize();
+        // clang-format off
+        //                      exception message                                                      exception status          xDesc          x  yDesc          y  noise_shape
+        TestCaseValues testval{"Memory required by dropout forward configs exceeds GPU memory range.", miopenStatusUnknownError, xDesc_int32_5, x, yDesc_int32_5, y, noise_shape_5, reserveSpace, reservedSpace};
+        // clang-format on
+        check_vals(dd, testval);
+    }
+
+    {
+        // clang-format off
+        //                      exception message                             exception status          xDesc          x  yDesc          y  noise_shape
+        TestCaseValues testval{"Insufficient state size for parallel PRNG",   miopenStatusUnknownError, xDesc_int32_5, x, yDesc_int32_5, y, noise_shape_5, reserveSpace, sizeof(dumb_array)};
+        // clang-format on
+        check_vals(dd, testval);
+    }
+}
