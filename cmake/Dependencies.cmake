@@ -117,12 +117,15 @@ function(_fetch_composable_kernel VERSION HASH)
     _save_var(MIOPEN_REQ_LIBS_ONLY)
     _save_var(DISABLE_OFFLOAD_COMPRESS)
     _save_var(ENABLE_CLANG_CPP_CHECKS)
+    _save_var(BUILD_SHARED_LIBS)
+
 
     # Use GPU_ARCHs for CK as it stops CK's cmake from including the tests.
     set(GPU_ARCHS "${GPU_TARGETS}" CACHE INTERNAL "")
     set(CMAKE_BUILD_TYPE "Release" CACHE INTERNAL "")
     set(MIOPEN_REQ_LIBS_ONLY ON CACHE INTERNAL "")
     set(DISABLE_OFFLOAD_COMPRESS ON CACHE INTERNAL "")
+    set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
     set(ENABLE_CLANG_CPP_CHECKS OFF CACHE INTERNAL "")
 
     FetchContent_MakeAvailable(composable_kernel)
@@ -132,6 +135,13 @@ function(_fetch_composable_kernel VERSION HASH)
     _restore_var(MIOPEN_REQ_LIBS_ONLY)
     _restore_var(DISABLE_OFFLOAD_COMPRESS)
     _restore_var(ENABLE_CLANG_CPP_CHECKS)
+    _restore_var(BUILD_SHARED_LIBS)
+
+
+    set(MIOPEN_CK_INCLUDE_DIR ${composable_kernel_SOURCE_DIR}/include CACHE PATH "Path to ck includes")
+    set(MIOPEN_CK_LIBRARY_INCLUDE_DIR ${composable_kernel_SOURCE_DIR}/library/include CACHE PATH "Path to ck library includes")
+    set(MIOPEN_CK_BUILD_INCLUDE_DIR ${composable_kernel_BINARY_DIR}/include CACHE PATH "Path to ck build includes")
+
 
     _exclude_from_all(${composable_kernel_SOURCE_DIR})
     _mark_targets_as_system(${composable_kernel_SOURCE_DIR})
