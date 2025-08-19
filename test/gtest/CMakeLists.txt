@@ -168,6 +168,17 @@ else()
 
   add_gtest(miopen_gtest "${TESTS_CPP}")
 
+  if(MIOPEN_USE_COMPOSABLEKERNEL)
+    if(MIOPEN_BUILD_CK )
+        # The include directories also dont propagate correctly when using the non aliased targets.
+        # Manually including them fixes this problem for inline builds.
+        target_include_directories(miopen_gtest SYSTEM PRIVATE 
+            ${MIOPEN_CK_INCLUDE_DIR} 
+            ${MIOPEN_CK_BUILD_INCLUDE_DIR} 
+            ${MIOPEN_CK_LIBRARY_INCLUDE_DIR})
+    endif()
+  endif()
+
   add_custom_command(
     OUTPUT test_list
     COMMAND miopen_gtest --gtest_list_tests > test_list
