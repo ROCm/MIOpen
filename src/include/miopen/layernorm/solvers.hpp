@@ -27,7 +27,6 @@
 
 #include <miopen/layernorm/problem_description.hpp>
 #include <miopen/solver.hpp>
-#include <utility>
 
 namespace miopen {
 
@@ -66,6 +65,20 @@ struct Layernorm4DCKForward final : NormalizationSolver
                       const miopen::layernorm::ProblemDescription& problem) const override;
     ConvSolution GetSolution(const ExecutionContext& context,
                              const miopen::layernorm::ProblemDescription& problem) const override;
+};
+
+struct LayernormBackward final : NormalizationSolver
+{
+    const std::string& SolverDbId() const override { return GetSolverDbId<LayernormBackward>(); }
+
+    bool IsApplicable(const ExecutionContext& context,
+                      const miopen::layernorm::ProblemDescription& problem) const override;
+    ConvSolution GetSolution(const ExecutionContext& context,
+                             const miopen::layernorm::ProblemDescription& problem) const override;
+    std::size_t
+    GetWorkspaceSize(const ExecutionContext& context,
+                     const miopen::layernorm::ProblemDescription& problem) const override;
+    bool MayNeedWorkspace() const override { return true; }
 };
 
 struct AddLayernormForward final : NormalizationSolver

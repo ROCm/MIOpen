@@ -50,5 +50,40 @@ MIOPEN_INTERNALS_EXPORT miopenStatus_t LayerNormForward(const Handle& handle,
                                                         float epsilon,
                                                         int32_t normalized_dim);
 
+MIOPEN_INTERNALS_EXPORT std::size_t
+GetLayerNormBackwardWorkspaceSize(const Handle& handle,
+                                  const TensorDescriptor& dyDesc,
+                                  const TensorDescriptor& xDesc,
+                                  const TensorDescriptor& weightDesc,
+                                  const TensorDescriptor& meanDesc,
+                                  const TensorDescriptor& rstdDesc,
+                                  const TensorDescriptor& dxDesc,
+                                  const TensorDescriptor& dwDesc,
+                                  const TensorDescriptor& dbDesc,
+                                  miopenNormMode_t mode,
+                                  int32_t normalized_dim);
+
+MIOPEN_INTERNALS_EXPORT miopenStatus_t LayerNormBackward(const Handle& handle,
+                                                         Data_t workspace,
+                                                         size_t workspaceSizeInBytes,
+                                                         const TensorDescriptor& dyDesc,
+                                                         ConstData_t dy,
+                                                         const TensorDescriptor& xDesc,
+                                                         ConstData_t x,
+                                                         const TensorDescriptor& weightDesc,
+                                                         ConstData_t weight,
+                                                         const TensorDescriptor& meanDesc,
+                                                         ConstData_t mean,
+                                                         const TensorDescriptor& rstdDesc,
+                                                         ConstData_t rstd,
+                                                         const TensorDescriptor& dxDesc,
+                                                         Data_t dx,
+                                                         const TensorDescriptor& dwDesc,
+                                                         Data_t dw,
+                                                         const TensorDescriptor& dbDesc,
+                                                         Data_t db,
+                                                         miopenNormMode_t mode,
+                                                         int32_t normalized_dim);
+
 } // namespace miopen
 #endif // MIOPEN_LAYERNORM_HPP_

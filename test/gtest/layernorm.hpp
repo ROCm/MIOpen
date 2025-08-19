@@ -86,6 +86,102 @@ void cpu_layernorm_forward(tensor<T> input,
     });
 }
 
+template <class T>
+void cpu_layernorm_backward(tensor<T> dy,
+                            tensor<T> x,
+                            tensor<T> weight,
+                            tensor<T> mean,
+                            tensor<T> rstd,
+                            tensor<T>& ref_dx,
+                            int32_t dim,
+                            miopenNormMode_t mode)
+{
+    auto dims         = dy.desc.GetLengths();
+    size_t outer_size = 1;
+    size_t inner_size = 1;
+    size_t i          = 0;
+
+    for(; i < dim; i++)
+    {
+        outer_size *= dims[i];
+    }
+    for(; i < dims.size(); i++)
+    {
+        inner_size *= dims[i];
+    }
+
+    par_ford(outer_size)([&](int32_t o) {
+        float sum_dy_weight = 0;
+        float sum_dy_weight_x = 0;
+
+        ford(inner_size)([&](int32_t i) {
+            float pweight =
+                (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<float>(weight[i]);
+            float pdy     = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
+            float px      = static_cast<float>(x[o * inner_size + i]);
+            sum_dy_weight += pdy * pweight;
+            sum_dy_weight_x += pdy * px * pweight;
+        });
+
+        float scale = 1.0f / static_cast<float>(inner_size);
+        float prstd = static_cast<float>(rstd[o]);
+        float pmean = static_cast<float>(mean[o]);
+        float a     = prstd * prstd * prstd * scale * (sum_dy_weight_x - sum_dy_weight * pmean);
+        float b     = prstd * sum_dy_weight * scale - a * pmean;
+
+        ford(inner_size)([&](int32_t i) {
+            float pweight =
+                (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<float>(weight[i]);
+            float pdy     = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
+
+            float val = prstd * pdy * pweight - a * static_cast<float>(x[o * inner_size + i]) - b;
+            ref_dx[o * inner_size + i] = static_cast<T>(val);
+        });
+    });
+}
+
+template <class T>
+void cpu_layernorm_backward_weight_bias(tensor<T> dy,
+                                        tensor<T> x,
+                                        tensor<T> mean,
+                                        tensor<T> rstd,
+                                        tensor<T>& ref_dw,
+                                        tensor<T>& ref_db,
+                                        int32_t dim)
+{
+    auto dims         = dy.desc.GetLengths();
+    size_t outer_size = 1;
+    size_t inner_size = 1;
+    size_t i          = 0;
+
+    for(; i < dim; i++)
+    {
+        outer_size *= dims[i];
+    }
+    for(; i < dims.size(); i++)
+    {
+        inner_size *= dims[i];
+    }
+
+    par_ford(inner_size)([&](int32_t i) {
+        float sum_dw = 0;
+        float sum_db = 0;
+
+        ford(outer_size)([&](int32_t o) {
+            float prstd = static_cast<float>(rstd[o]);
+            float pmean = static_cast<float>(mean[o]);
+            float pdy   = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
+            float px    = static_cast<float>(x[o * inner_size + i]);
+
+            sum_dw += pdy * (px - pmean) * prstd;
+            sum_db += pdy;
+        });
+
+        ref_dw[i] = sum_dw;
+        ref_db[i] = sum_db;
+    });
+}
+
 struct LayerNormTestCase
 {
     size_t N;
@@ -93,13 +189,13 @@ struct LayerNormTestCase
     size_t D;
     size_t H;
     size_t W;
-    size_t nomalized_dim;
+    size_t normalized_dim;
     float eps;
     miopenNormMode_t ln_mode;
     friend std::ostream& operator<<(std::ostream& os, const LayerNormTestCase& tc)
     {
         return os << " N:" << tc.N << " C:" << tc.C << " D:" << tc.D << " H:" << tc.H
-                  << " W:" << tc.W << " dim:" << tc.nomalized_dim << " eps:" << tc.eps
+                  << " W:" << tc.W << " dim:" << tc.normalized_dim << " eps:" << tc.eps
                   << " LayerNorm_mode:" << tc.ln_mode;
     }
 
@@ -130,7 +226,7 @@ struct LayerNormTestCase
 };
 
 std::vector<LayerNormTestCase> LayerNormTestConfigs()
-{ // n c d h w nomalized_dim eps ln_mode
+{ // n c d h w normalized_dim eps ln_mode
     // clang-format off
     return {
         { 32,   1,   32,  32,  32  , 4, 1e-5, MIOPEN_ELEMENTWISE_AFFINE},   // 32x32x32 based on VoxNet arch
@@ -204,7 +300,7 @@ std::vector<LayerNormTestCase> LayerNormTestConfigs()
 }
 
 template <typename T = float>
-struct LayerNormTest : public ::testing::TestWithParam<LayerNormTestCase>
+struct LayerNormFwdTest : public ::testing::TestWithParam<LayerNormTestCase>
 {
 protected:
     void SetUp() override
@@ -213,19 +309,19 @@ protected:
         layernorm_config = GetParam();
         auto gen_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
 
-        nomalized_dim = layernorm_config.nomalized_dim;
-        eps           = layernorm_config.eps;
-        ln_mode       = layernorm_config.ln_mode;
+        normalized_dim = layernorm_config.normalized_dim;
+        eps            = layernorm_config.eps;
+        ln_mode        = layernorm_config.ln_mode;
 
         auto in_dim = layernorm_config.GetInput();
 
         input = tensor<T>{in_dim}.generate(gen_value);
 
         std::vector<size_t> inner_dim;
-        if(nomalized_dim == in_dim.size())
+        if(normalized_dim == in_dim.size())
             inner_dim = {1};
         else
-            inner_dim = {in_dim.begin() + nomalized_dim, in_dim.end()};
+            inner_dim = {in_dim.begin() + normalized_dim, in_dim.end()};
 
         if(ln_mode == MIOPEN_ELEMENTWISE_AFFINE)
         {
@@ -241,10 +337,10 @@ protected:
         }
 
         std::vector<size_t> outer_dim;
-        if(nomalized_dim == 0)
+        if(normalized_dim == 0)
             outer_dim = {1};
         else
-            outer_dim = {in_dim.begin(), in_dim.end() - (in_dim.size() - nomalized_dim)};
+            outer_dim = {in_dim.begin(), in_dim.begin() + normalized_dim};
 
         output = tensor<T>{in_dim};
         mean   = tensor<T>{outer_dim};
@@ -272,7 +368,7 @@ protected:
         auto&& handle = get_handle();
 
         cpu_layernorm_forward<T>(
-            input, weight, bias, ref_output, ref_mean, ref_rstd, eps, nomalized_dim, ln_mode);
+            input, weight, bias, ref_output, ref_mean, ref_rstd, eps, normalized_dim, ln_mode);
         miopenStatus_t status;
 
         status = miopen::LayerNormForward(handle,
@@ -290,7 +386,7 @@ protected:
                                           rstd_dev.get(),
                                           ln_mode,
                                           eps,
-                                          nomalized_dim);
+                                          normalized_dim);
 
         EXPECT_EQ(status, miopenStatusSuccess);
 
@@ -301,15 +397,9 @@ protected:
 
     void Verify()
     {
-        // Computation error of fp16 is ~2^13 (=8192) bigger than
-        // the one of fp32 because mantissa is shorter by 13 bits.
-        auto threshold = std::is_same<T, float>::value ? 1.5e-5 : 8.2e-2;
+        auto threshold = std::is_same<T, float>::value ? 1.5e-5 : 4e-3;
 
-        // bf16 mantissa has 7 bits, by 3 bits shorter than fp16.
-        if(std::is_same<T, bfloat16>::value)
-            threshold *= 8.0;
         auto error = miopen::rms_range(ref_output, output);
-
         EXPECT_TRUE(miopen::range_distance(ref_output) == miopen::range_distance(output));
         EXPECT_TRUE(error < threshold)
             << "Error output beyond tolerance Error:" << error << ",  Threshold: " << threshold;
@@ -344,7 +434,179 @@ protected:
     miopen::Allocator::ManageDataPtr mean_dev;
     miopen::Allocator::ManageDataPtr rstd_dev;
 
-    size_t nomalized_dim;
+    size_t normalized_dim;
     float eps;
+    miopenNormMode_t ln_mode;
+};
+
+template <typename T = float>
+struct LayerNormBwdTest : public ::testing::TestWithParam<LayerNormTestCase>
+{
+protected:
+    void SetUp() override
+    {
+        auto&& handle    = get_handle();
+        layernorm_config = GetParam();
+        auto gen_value   = [](auto...) { return prng::gen_descreet_uniform_sign<T>(1e-2, 100); };
+
+        normalized_dim = layernorm_config.normalized_dim;
+        ln_mode        = layernorm_config.ln_mode;
+
+        auto in_dim = layernorm_config.GetInput();
+
+        x = tensor<T>{in_dim}.generate(gen_value);
+
+        std::vector<size_t> inner_dim;
+        if(normalized_dim == in_dim.size())
+            inner_dim = {1};
+        else
+            inner_dim = {in_dim.begin() + normalized_dim, in_dim.end()};
+
+        if(ln_mode == MIOPEN_ELEMENTWISE_AFFINE)
+        {
+            auto gen_one  = [&](auto...) { return 1; };
+            auto gen_zero = [&](auto...) { return 0; };
+            weight        = tensor<T>{inner_dim}.generate(gen_one);
+            bias          = tensor<T>{inner_dim}.generate(gen_zero);
+        }
+        else
+        {
+            weight = tensor<T>{inner_dim}.generate(gen_value);
+            bias   = tensor<T>{inner_dim}.generate(gen_value);
+        }
+
+        std::vector<size_t> outer_dim;
+        if(normalized_dim == 0)
+            outer_dim = {1};
+        else
+            outer_dim = {in_dim.begin(), in_dim.begin() + normalized_dim};
+
+        x    = tensor<T>{in_dim}.generate(gen_value);
+        dy   = tensor<T>{in_dim}.generate(gen_value);
+        mean = tensor<T>{outer_dim}.generate(gen_value);
+        rstd = tensor<T>{outer_dim}.generate(gen_value);
+
+        dx = tensor<T>{in_dim};
+        dw = tensor<T>{inner_dim};
+        db = tensor<T>{inner_dim};
+        std::fill(dx.begin(), dx.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(dw.begin(), dw.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(db.begin(), db.end(), std::numeric_limits<T>::quiet_NaN());
+
+        ref_dx = tensor<T>{in_dim};
+        ref_dw = tensor<T>{inner_dim};
+        ref_db = tensor<T>{inner_dim};
+        std::fill(ref_dx.begin(), ref_dx.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(ref_dw.begin(), ref_dw.end(), std::numeric_limits<T>::quiet_NaN());
+        std::fill(ref_db.begin(), ref_db.end(), std::numeric_limits<T>::quiet_NaN());
+
+        std::vector<size_t> workspace_dims;
+
+        ws_sizeInBytes = miopen::GetLayerNormBackwardWorkspaceSize(
+            handle, dy.desc, x.desc, weight.desc, mean.desc, rstd.desc, dx.desc, dw.desc, db.desc, ln_mode, normalized_dim);
+
+        workspace_dims.push_back(ws_sizeInBytes / sizeof(T));
+        if(ws_sizeInBytes != 0)
+        {
+            workspace = tensor<T>{workspace_dims};
+            std::fill(workspace.begin(), workspace.end(), std::numeric_limits<T>::quiet_NaN());
+            workspace_dev = handle.Write(workspace.data);
+        }
+
+        x_dev      = handle.Write(x.data);
+        weight_dev = handle.Write(weight.data);
+        mean_dev   = handle.Write(mean.data);
+        rstd_dev   = handle.Write(rstd.data);
+        dy_dev     = handle.Write(dy.data);
+        dx_dev     = handle.Write(dx.data);
+        dw_dev     = handle.Write(dw.data);
+        db_dev     = handle.Write(db.data);
+    }
+
+    void RunTest()
+    {
+        auto&& handle = get_handle();
+        cpu_layernorm_backward<T>(dy, x, weight, mean, rstd, ref_dx, normalized_dim, ln_mode);
+        cpu_layernorm_backward_weight_bias<T>(dy, x, mean, rstd, ref_dw, ref_db, normalized_dim);
+
+        miopenStatus_t status;
+
+        status = miopen::LayerNormBackward(handle,
+                                           workspace_dev.get(),
+                                           ws_sizeInBytes,
+                                           dy.desc,
+                                           dy_dev.get(),
+                                           x.desc,
+                                           x_dev.get(),
+                                           weight.desc,
+                                           weight_dev.get(),
+                                           mean.desc,
+                                           mean_dev.get(),
+                                           rstd.desc,
+                                           rstd_dev.get(),
+                                           dx.desc,
+                                           dx_dev.get(),
+                                           dw.desc,
+                                           dw_dev.get(),
+                                           db.desc,
+                                           db_dev.get(),
+                                           ln_mode,
+                                           normalized_dim);
+
+        EXPECT_EQ(status, miopenStatusSuccess);
+
+        dx.data = handle.Read<T>(dx_dev, dx.data.size());
+        dw.data = handle.Read<T>(dw_dev, dw.data.size());
+        db.data = handle.Read<T>(db_dev, db.data.size());
+    }
+
+    void Verify()
+    {
+        auto threshold = std::is_same<T, float>::value ? 1.5e-5 : 4e-3;
+
+        auto error = miopen::rms_range(ref_dx, dx);
+        EXPECT_TRUE(miopen::range_distance(ref_dx) == miopen::range_distance(dx));
+        EXPECT_TRUE(error < threshold)
+            << "Error dx beyond tolerance Error:" << error << ",  Threshold: " << threshold;
+        error = miopen::rms_range(ref_dw, dw);
+        EXPECT_TRUE(miopen::range_distance(ref_dw) == miopen::range_distance(dw));
+        EXPECT_TRUE(error < threshold * 2)
+            << "Error dw beyond tolerance Error:" << error << ",  Threshold x 2: " << threshold * 2;
+        error = miopen::rms_range(ref_db, db);
+        EXPECT_TRUE(miopen::range_distance(ref_db) == miopen::range_distance(db));
+        EXPECT_TRUE(error < threshold * 2)
+            << "Error db beyond tolerance Error:" << error << ",  Threshold x 2: " << threshold * 2;
+    }
+    
+    LayerNormTestCase layernorm_config;
+
+    tensor<T> x;
+    tensor<T> weight;
+    tensor<T> bias;
+    tensor<T> mean;
+    tensor<T> rstd;
+    tensor<T> dy;
+    tensor<T> dx;
+    tensor<T> dw;
+    tensor<T> db;
+    tensor<T> workspace;
+
+    tensor<T> ref_dx;
+    tensor<T> ref_dw;
+    tensor<T> ref_db;
+
+    miopen::Allocator::ManageDataPtr x_dev;
+    miopen::Allocator::ManageDataPtr weight_dev;
+    miopen::Allocator::ManageDataPtr mean_dev;
+    miopen::Allocator::ManageDataPtr rstd_dev;
+    miopen::Allocator::ManageDataPtr dy_dev;
+    miopen::Allocator::ManageDataPtr dx_dev;
+    miopen::Allocator::ManageDataPtr dw_dev;
+    miopen::Allocator::ManageDataPtr db_dev;
+    miopen::Allocator::ManageDataPtr workspace_dev;
+
+    size_t ws_sizeInBytes;
+
+    int32_t normalized_dim;
     miopenNormMode_t ln_mode;
 };

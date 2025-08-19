@@ -2673,6 +2673,84 @@ MIOPEN_EXPORT miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                                                     const miopenTensorDescriptor_t rstdDesc,
                                                     void* rstd);
 
+/*! @brief Helper function to query the minimum workspace size required by the layernorm backward
+ * call
+ *
+ * @param handle                   MIOpen Handle (input)
+ * @param mode                     LayerNorm mode (input)
+ * @param dyDesc                   Tensor descriptor for data input tensor dy (input)
+ * @param xDesc                    Tensor descriptor for data input tensor x (input)
+ * @param weightDesc               Tensor descriptor for data input tensor weight (input)
+ * @param meanDesc                 Tensor descriptor for data input tensor mean (input)
+ * @param rstdDesc                 Tensor descriptor for data input tensor rstd (input)
+ * @param normalized_dim           Nomalized dimensions in the input array (input)
+ * @param dxDesc                   Tensor descriptor for output data tensor dx (input)
+ * @param dwDesc                   Tensor descriptor for output data tensor dw (input)
+ * @param dbDesc                   Tensor descriptor for output data tensor db (input)
+ * @param sizeInBytes              Pointer to data to return the minimum workspace size
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t
+miopenGetLayerNormBackwardWorkspaceSize(miopenHandle_t handle,
+                                        miopenNormMode_t mode,
+                                        const miopenTensorDescriptor_t dyDesc,
+                                        const miopenTensorDescriptor_t xDesc,
+                                        const miopenTensorDescriptor_t weightDesc,
+                                        const miopenTensorDescriptor_t meanDesc,
+                                        const miopenTensorDescriptor_t rstdDesc,
+                                        const int32_t normalized_dim,
+                                        const miopenTensorDescriptor_t dxDesc,
+                                        const miopenTensorDescriptor_t dwDesc,
+                                        const miopenTensorDescriptor_t dbDesc,
+                                        size_t* sizeInBytes);
+
+/*! @brief Execute a layernorm backward layer
+ *
+ * @param handle                   MIOpen handle (input)
+ * @param mode                     LayerNorm mode (input)
+ * @param workspace                Address of the allocated workspace data (input)
+ * @param workspaceSizeInBytes     Size in bytes of the allocated workspace data (input)
+ * @param dyDesc                   Tensor descriptor for data input tensor dy (input)
+ * @param dy                       Data tensor dy (input)
+ * @param xDesc                    Tensor descriptor for input data tensor x (input)
+ * @param x                        Data tensor x (input)
+ * @param weightDesc               Tensor descriptor for data input tensor weight (input)
+ * @param weight                   Data tensor weight (input)
+ * @param meanDesc                 Tensor descriptor for input data tensor mean (input)
+ * @param mean                     Data tensor mean (input)
+ * @param rstdDesc                 Tensor descriptor for input data tensor rstd (input)
+ * @param rstd                     Data tensor rstd (input)
+ * @param normalized_dim           Nomalized dimensions in the input array (input)
+ * @param dxDesc                   Tensor descriptor for output data tensor dx (input)
+ * @param dx                       Data tensor dx (output)
+ * @param dwDesc                   Tensor descriptor for output data tensor dw (input)
+ * @param dw                       Data tensor dw (output)
+ * @param dbDesc                   Tensor descriptor for output data tensor db (input)
+ * @param db                       Data tensor db (output)
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenLayerNormBackward(miopenHandle_t handle,
+                                                     miopenNormMode_t mode,
+                                                     void* workspace,
+                                                     size_t workspaceSizeInBytes,
+                                                     const miopenTensorDescriptor_t dyDesc,
+                                                     const void* dy,
+                                                     const miopenTensorDescriptor_t xDesc,
+                                                     const void* x,
+                                                     const miopenTensorDescriptor_t weightDesc,
+                                                     const void* weight,
+                                                     const miopenTensorDescriptor_t meanDesc,
+                                                     const void* mean,
+                                                     const miopenTensorDescriptor_t rstdDesc,
+                                                     const void* rstd,
+                                                     const int32_t normalized_dim,
+                                                     const miopenTensorDescriptor_t dxDesc,
+                                                     void* dx,
+                                                     const miopenTensorDescriptor_t dwDesc,
+                                                     void* dw,
+                                                     const miopenTensorDescriptor_t dbDesc,
+                                                     void* db);
+
 /** @} */
 // CLOSEOUT LAYERNORM DOXYGEN GROUP
 #endif
