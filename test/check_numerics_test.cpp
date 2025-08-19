@@ -154,12 +154,15 @@ struct numeric_inf : check_numeric_abnormal<T>
 
 int main(int argc, const char* argv[])
 {
+    printf("JFL: in unit test main()\n");
+
     std::vector<std::string> as(argv + 1, argv + argc);
     as.emplace_back("--float");
     for(auto&& arg : as)
     {
         if(arg == "--half")
         {
+            printf("JFL: --half\n");
             run_test<numeric_0<half_float::half>>();
             run_test<numeric_1<half_float::half>>();
             run_test<numeric_nan<half_float::half>>();
@@ -168,6 +171,7 @@ int main(int argc, const char* argv[])
         }
         if(arg == "--bfloat16")
         {
+            printf("JFL: --bfloat16\n");
             run_test<numeric_0<bfloat16>>();
             run_test<numeric_1<bfloat16>>();
             run_test<numeric_nan<bfloat16>>();
@@ -176,6 +180,7 @@ int main(int argc, const char* argv[])
         }
         if(arg == "--float")
         {
+            printf("JFL: --float\n");
             run_test<numeric_0<float>>();
             run_test<numeric_1<float>>();
             run_test<numeric_nan<float>>();
