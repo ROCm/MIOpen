@@ -29,7 +29,6 @@
 #include <miopen/problem_description_base.hpp>
 #include <miopen/tensor.hpp>
 #include <cassert>
-#include <string>
 
 namespace miopen {
 
@@ -54,7 +53,8 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& rstdDesc_,
                        float epsilon_,
                        int32_t normalized_dim_)
-        : mode(mode_),
+        : direction(Direction::Forward),
+          mode(mode_),
           xDesc(xDesc_),
           weightDesc(weightDesc_),
           biasDesc(biasDesc_),
@@ -63,6 +63,30 @@ struct ProblemDescription : ProblemDescriptionBase
           rstdDesc(rstdDesc_),
           epsilon(epsilon_),
           normalized_dim(normalized_dim_)
+    {
+    }
+
+    ProblemDescription(miopenNormMode_t mode_,
+                       const TensorDescriptor& dyDesc_,
+                       const TensorDescriptor& xDesc_,
+                       const TensorDescriptor& weightDesc_,
+                       const TensorDescriptor& meanDesc_,
+                       const TensorDescriptor& rstdDesc_,
+                       const TensorDescriptor& dxDesc_,
+                       const TensorDescriptor& dwDesc_,
+                       const TensorDescriptor& dbDesc_,
+                       int32_t normalized_dim_)
+            : direction(Direction::Backward),
+              mode(mode_),
+              xDesc(xDesc_),
+              weightDesc(weightDesc_),
+              meanDesc(meanDesc_),
+              rstdDesc(rstdDesc_),
+              dyDesc(dyDesc_),
+              dxDesc(dxDesc_),
+              dwDesc(dwDesc_),
+              dbDesc(dbDesc_),
+              normalized_dim(normalized_dim_)
     {
     }
 
@@ -76,7 +100,8 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& rstdDesc_,
                        float epsilon_,
                        int32_t normalized_dim_)
-        : mode(mode_),
+        : direction(Direction::Forward),
+          mode(mode_),
           xDesc(xDesc_),
           x2Desc(x2Desc_),
           weightDesc(weightDesc_),
@@ -135,6 +160,7 @@ struct ProblemDescription : ProblemDescriptionBase
     const TensorDescriptor& GetDYDesc() const { return dyDesc; }
     const TensorDescriptor& GetDXDesc() const { return dxDesc; }
     const TensorDescriptor& GetDWDesc() const { return dwDesc; }
+    const TensorDescriptor& GetDBDesc() const { return dbDesc; }
     float GetEpsilon() const { return epsilon; }
     int32_t GetNormalizedDim() const { return normalized_dim; }
 
@@ -229,7 +255,7 @@ struct ProblemDescription : ProblemDescriptionBase
         else
         {
             if(!(dyDesc.IsPacked() && xDesc.IsPacked() && weightDesc.IsPacked() &&
-                 rstdDesc.IsPacked() && dxDesc.IsPacked() && dwDesc.IsPacked()))
+                 rstdDesc.IsPacked() && dxDesc.IsPacked() && dwDesc.IsPacked() && dbDesc.IsPacked()))
             {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                 MIOPEN_THROW(miopenStatusBadParm,
@@ -270,6 +296,7 @@ private:
     TensorDescriptor dyDesc;
     TensorDescriptor dxDesc;
     TensorDescriptor dwDesc;
+    TensorDescriptor dbDesc;
 
     float epsilon;
     int32_t normalized_dim;

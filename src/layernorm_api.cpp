@@ -130,3 +130,115 @@ extern "C" miopenStatus_t miopenLayerNormForward(miopenHandle_t handle,
                                  normalized_dim);
     });
 }
+
+extern "C" miopenStatus_t
+miopenGetLayerNormBackwardWorkspaceSize(miopenHandle_t handle,
+                                        miopenNormMode_t mode,
+                                        const miopenTensorDescriptor_t dyDesc,
+                                        const miopenTensorDescriptor_t xDesc,
+                                        const miopenTensorDescriptor_t weightDesc,
+                                        const miopenTensorDescriptor_t meanDesc,
+                                        const miopenTensorDescriptor_t rstdDesc,
+                                        const int32_t normalized_dim,
+                                        const miopenTensorDescriptor_t dxDesc,
+                                        const miopenTensorDescriptor_t dwDesc,
+                                        const miopenTensorDescriptor_t dbDesc,
+                                        size_t* sizeInBytes)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        mode,
+                        dyDesc,
+                        xDesc,
+                        weightDesc,
+                        meanDesc,
+                        rstdDesc,
+                        normalized_dim,
+                        dxDesc,
+                        dwDesc,
+                        dbDesc);
+
+    return miopen::try_([&] {
+        miopen::deref(sizeInBytes) =
+            miopen::GetLayerNormBackwardWorkspaceSize(miopen::deref(handle),
+                                                      miopen::deref(dyDesc),
+                                                      miopen::deref(xDesc),
+                                                      miopen::deref(weightDesc),
+                                                      miopen::deref(meanDesc),
+                                                      miopen::deref(rstdDesc),
+                                                      miopen::deref(dxDesc),
+                                                      miopen::deref(dwDesc),
+                                                      miopen::deref(dbDesc),
+                                                      mode,
+                                                      normalized_dim);
+    });
+}
+
+extern "C" miopenStatus_t miopenLayerNormBackward(miopenHandle_t handle,
+                                                  miopenNormMode_t mode,
+                                                  void* workspace,
+                                                  size_t workspaceSizeInBytes,
+                                                  const miopenTensorDescriptor_t dyDesc,
+                                                  const void* dy,
+                                                  const miopenTensorDescriptor_t xDesc,
+                                                  const void* x,
+                                                  const miopenTensorDescriptor_t weightDesc,
+                                                  const void* weight,
+                                                  const miopenTensorDescriptor_t meanDesc,
+                                                  const void* mean,
+                                                  const miopenTensorDescriptor_t rstdDesc,
+                                                  const void* rstd,
+                                                  const int32_t normalized_dim,
+                                                  const miopenTensorDescriptor_t dxDesc,
+                                                  void* dx,
+                                                  const miopenTensorDescriptor_t dwDesc,
+                                                  void* dw,
+                                                  const miopenTensorDescriptor_t dbDesc,
+                                                  void* db)
+{
+    MIOPEN_LOG_FUNCTION(handle,
+                        mode,
+                        workspace,
+                        workspaceSizeInBytes,
+                        dyDesc,
+                        dy,
+                        xDesc,
+                        x,
+                        weightDesc,
+                        weight,
+                        meanDesc,
+                        mean,
+                        rstdDesc,
+                        rstd,
+                        normalized_dim,
+                        dxDesc,
+                        dx,
+                        dwDesc,
+                        dw,
+                        dbDesc,
+                        db);
+
+    LogCmdLayerNorm(dyDesc, mode, false);
+    return miopen::try_([&] {
+        miopen::LayerNormBackward(miopen::deref(handle),
+                                  DataCast(workspace),
+                                  workspaceSizeInBytes,
+                                  miopen::deref(dyDesc),
+                                  DataCast(dy),
+                                  miopen::deref(xDesc),
+                                  DataCast(x),
+                                  miopen::deref(weightDesc),
+                                  DataCast(weight),
+                                  miopen::deref(meanDesc),
+                                  DataCast(mean),
+                                  miopen::deref(rstdDesc),
+                                  DataCast(rstd),
+                                  miopen::deref(dxDesc),
+                                  DataCast(dx),
+                                  miopen::deref(dwDesc),
+                                  DataCast(dw),
+                                  miopen::deref(dbDesc),
+                                  DataCast(db),
+                                  mode,
+                                  normalized_dim);
+    });
+}

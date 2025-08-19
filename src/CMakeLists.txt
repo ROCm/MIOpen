@@ -297,6 +297,7 @@ set( MIOpen_Source
     solver/groupnorm/forward_groupnorm.cpp
     solver/getitem/backward_getitem.cpp
     solver/kthvalue/forward_kthvalue.cpp
+    solver/layernorm/backward_layernorm.cpp
     solver/layernorm/backward_t5layernorm.cpp
     solver/layernorm/forward_addlayernorm.cpp
     solver/layernorm/forward_layernorm.cpp
