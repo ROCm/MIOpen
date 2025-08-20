@@ -100,7 +100,8 @@ static inline bool IsXdlopsSupport(const ExecutionContext& ctx)
     // 2) llvm intrin may has incorrect results
     const bool is_xdlops_supported = ctx.GetStream().GetDeviceName() == "gfx908" ||
                                      ctx.GetStream().GetDeviceName() == "gfx90a" ||
-                                     ctx.GetStream().GetDeviceName() == "gfx942";
+                                     ctx.GetStream().GetDeviceName() == "gfx942" ||
+                                     ctx.GetStream().GetDeviceName() == "gfx950";
     return is_xdlops_supported && !env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_XDLOPS);
 }
 
