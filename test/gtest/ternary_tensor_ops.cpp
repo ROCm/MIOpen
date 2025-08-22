@@ -83,18 +83,6 @@ struct TestCase
     std::vector<float> alphabeta;
     bool packed;
     miopenTensorOp_t operation;
-
-    friend std::ostream& operator<<(std::ostream& os, const TestCase& tc)
-    {
-        return os << "TensorOp: " << tc.operation << std::endl
-                  << "A tensor: " << tc.tensorlens_ac[0] << "," << tc.tensorlens_ac[1] << ","
-                  << tc.tensorlens_ac[2] << std::endl
-                  << "B tensor: " << tc.tensorlens_b[0] << "," << tc.tensorlens_b[1] << ","
-                  << tc.tensorlens_b[2] << std::endl
-                  << "IsPacked: " << tc.packed << std::endl
-                  << "Offsets: " << tc.offsets[0] << "," << tc.offsets[1] << "," << tc.offsets[2]
-                  << std::endl;
-    }
 };
 
 template <typename T>
@@ -137,14 +125,12 @@ private:
             std::vector<size_t> real_strides(strides.begin() + (strides.size() - lens.size()),
                                              strides.end());
             auto r = tensor<T>{lens, real_strides}.generate(tensor_elem_gen_integer{max_value});
-            r.data.insert(r.data.begin(), offset, T());
+            r.data.resize(r.data.size() + offset);
             return r;
         }
         else
         {
-            auto r = tensor<T>{lens}.generate(tensor_elem_gen_integer{max_value});
-            r.data.insert(r.data.begin(), offset, T());
-            return r;
+            return tensor<T>{lens}.generate(tensor_elem_gen_integer{max_value});
         }
     }
 
@@ -247,7 +233,13 @@ private:
         double threshold = std::numeric_limits<T>::epsilon() * tolerance;
         double error     = miopen::rms_range(tensorCPUData, tensorGPUData);
 
-        ASSERT_LE(error, threshold) << testCase;
+        ASSERT_LE(error, threshold)
+            << "TensorOp: " << testCase.operation << std::endl
+            << "A tensor: " << tensorA.desc.ToString() << std::endl
+            << "B tensor: " << tensorB.desc.ToString() << std::endl
+            << "IsPacked: " << testCase.packed << std::endl
+            << "Offsets: " << testCase.offsets[0] << "," << testCase.offsets[1] << ","
+            << testCase.offsets[2] << std::endl;
     }
 
 private:
