@@ -142,18 +142,13 @@ bool checkNumericsImpl(
 {
     int numElements = dDesc.GetElementSize();
     static CheckNumericsResult abnormal_h; // TODO - this can be static for now since we are only checking one stream at a time
-    void *abnormal_d;
-    auto sz = sizeof(CheckNumericsResult);
-    //auto abnormal_d =
-    //    handle.Create(sizeof(CheckNumericsResult)); // TODO - someday avoid slow malloc/free here
-    MIOPEN_LOG(LoggingLevel::Info, "JFL: before hipMalloc...");
-    HIP_CHECK(hipMallocAsync(&abnormal_d, sz, handle.GetStream()));
-    //HIP_CHECK(hipMalloc(&abnormal_d, sz));
+    auto abnormal_d =
+        handle.CreateAsync(sizeof(CheckNumericsResult)); // TODO - someday avoid slow malloc/free here
 
     // Assign host function to the stream (note that hipMemsetAsync does not appear to work with hip graph)
     HIP_CHECK(hipLaunchHostFunc(handle.GetStream(), initCheckNumericsResult, &abnormal_h));
 
-    HIP_CHECK(hipMemcpyAsync(abnormal_d/*.get()*/, &abnormal_h, sz, hipMemcpyHostToDevice, handle.GetStream()));
+    HIP_CHECK(hipMemcpyAsync(abnormal_d.get(), &abnormal_h, sizeof(CheckNumericsResult), hipMemcpyHostToDevice, handle.GetStream()));
     const size_t threadsPerBlock = 256;
     const size_t numBlocks       = handle.GetMaxComputeUnits() * 6;
     const int computeStats       = (mode & CheckNumerics::ComputeStats);
@@ -164,9 +159,9 @@ bool checkNumericsImpl(
     const std::vector<size_t> vgd = {numBlocks, size_t{1}, size_t{1}};
     handle.AddKernel(
         "MIOpenCheckNumerics", "MIOpenCheckNumerics", program_name, kernel_name, vld, vgd, "")(
-        data, numElements, abnormal_d/*.get()*/, computeStats);
+        data, numElements, abnormal_d.get(), computeStats);
 
-    HIP_CHECK(hipMemcpyAsync(&abnormal_h, abnormal_d/*.get()*/, sz, hipMemcpyDeviceToHost, handle.GetStream()));
+    HIP_CHECK(hipMemcpyAsync(&abnormal_h, abnormal_d.get(), sizeof(CheckNumericsResult), hipMemcpyDeviceToHost, handle.GetStream()));
 
     CallbackData *callbackData = new CallbackData;
     callbackData->abnormal = &abnormal_h;
@@ -180,10 +175,6 @@ bool checkNumericsImpl(
 
     HIP_CHECK(hipLaunchHostFunc(handle.GetStream(), checkNumericsCallback, callbackData));
     MIOPEN_LOG(LoggingLevel::Info, "JFL: post 2nd hipLaunchHostFunc");
-
-    HIP_CHECK(hipFreeAsync(abnormal_d, handle.GetStream()));
-    //HIP_CHECK(hipFree(abnormal_d));
-    MIOPEN_LOG(LoggingLevel::Info, "JFL: after hipFreeAsync");
 
     hipStreamCaptureStatus captureStatus;
     hipStreamIsCapturing(handle.GetStream(), &captureStatus);

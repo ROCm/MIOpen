@@ -188,6 +188,7 @@ public:
     void Copy(ConstData_t src, Data_t dest, std::size_t size) const;
 
     Allocator::ManageDataPtr Create(std::size_t sz) const;
+    shared<Data_t> CreateAsync(std::size_t sz) const;
     Allocator::ManageDataPtr&
     WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz) const;
     void ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const;
