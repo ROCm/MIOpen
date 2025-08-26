@@ -417,13 +417,6 @@ void Handle::EnableProfiling(bool enable) const { this->impl->enable_profiling =
 
 float Handle::GetKernelTime() const { return this->impl->profiling_result; }
 
-Allocator::ManageDataPtr Handle::Create(std::size_t sz) const
-{
-    MIOPEN_HANDLE_LOCK
-    this->Finish();
-    return this->impl->allocator(sz);
-}
-
 void* async_allocator(void *context, size_t sz)
 {
     const auto available = GetAvailableMemory();
@@ -462,11 +455,16 @@ void async_deallocator(void *context, void* mem)
     MIOPEN_LOG_I2("hipFreeAsync " << size << " at " << mem << " Ok");
 }
 
-Allocator::ManageDataPtr Handle::CreateAsync(std::size_t sz) const
+Allocator::ManageDataPtr Handle::Create(std::size_t sz, bool async) const
 {
     MIOPEN_HANDLE_LOCK
-    Allocator allocator{async_allocator, async_deallocator, this->GetStream()};
-    return allocator(sz);
+    if(async) {
+        Allocator allocator{async_allocator, async_deallocator, this->GetStream()};
+        return allocator(sz);
+    }
+
+    this->Finish();
+    return this->impl->allocator(sz);
 }
 
 Allocator::ManageDataPtr&
