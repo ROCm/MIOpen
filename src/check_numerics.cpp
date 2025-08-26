@@ -144,7 +144,6 @@ bool checkNumericsImpl(
     CheckNumericsResult *abnormal_h = new CheckNumericsResult;
     auto abnormal_d =
         handle.CreateAsync(sizeof(CheckNumericsResult)); // TODO - someday avoid slow malloc/free here
-
     // Assign host function to the stream (note that hipMemsetAsync does not appear to work with hip graph)
     HIP_CHECK(hipLaunchHostFunc(handle.GetStream(), initCheckNumericsResult, abnormal_h));
 

@@ -424,49 +424,49 @@ Allocator::ManageDataPtr Handle::Create(std::size_t sz) const
     return this->impl->allocator(sz);
 }
 
-struct async_deleter
+void* async_allocator(void *context, size_t sz)
 {
-    void* context;
-
-    template <class T>
-    void operator()(T* mem) const
-    {
-        size_t size = 0;
-        auto status = hipMemPtrGetInfo(mem, &size);
-        if(status != hipSuccess)
-            MIOPEN_LOG_W("hipMemPtrGetInfo at " << mem << " status: " << status);
-
-        miopenAcceleratorQueue_t stream = static_cast<miopenAcceleratorQueue_t>(context);
-        status = hipFreeAsync(mem, stream);
-        if(status != hipSuccess)
-        {
-            MIOPEN_THROW_HIP_STATUS(status,
-                                    "hipFreeAsync " + std::to_string(size) + " at " + to_string(mem));
-        }
-
-        MIOPEN_LOG_I2("hipFreeAsync " << size << " at " << mem << " Ok");
-    }
-};
-
-shared<Data_t> Handle::CreateAsync(std::size_t sz) const
-{
-    MIOPEN_HANDLE_LOCK
-
     const auto available = GetAvailableMemory();
     MIOPEN_LOG_I2("GetAvailableMemory " << available);
     if(sz > available)
         MIOPEN_LOG_I("GetAvailableMemory reports unsufficient memory to allocate " << sz);
 
     void* ptr;
-    const auto status = hipMallocAsync(&ptr, sz, GetStream());
+    miopenAcceleratorQueue_t stream = static_cast<miopenAcceleratorQueue_t>(context);
+    const auto status = hipMallocAsync(&ptr, sz, stream);
     if(status == hipSuccess)
     {
         MIOPEN_LOG_I2("hipMallocAsync " << sz << " at " << ptr << " Ok");
-        return {ptr, async_deleter{GetStream()}};
+        return ptr;
     }
 
     MIOPEN_LOG_W("hipMallocAsync " << sz << " status: " << status);
     MIOPEN_THROW_HIP_STATUS(status, "hipMallocAsync " + std::to_string(sz));
+}
+
+void async_deallocator(void *context, void* mem)
+{
+    size_t size = 0;
+    auto status = hipMemPtrGetInfo(mem, &size);
+    if(status != hipSuccess)
+        MIOPEN_LOG_W("hipMemPtrGetInfo at " << mem << " status: " << status);
+
+    miopenAcceleratorQueue_t stream = static_cast<miopenAcceleratorQueue_t>(context);
+    status = hipFreeAsync(mem, stream);
+    if(status != hipSuccess)
+    {
+        MIOPEN_THROW_HIP_STATUS(status,
+                                "hipFreeAsync " + std::to_string(size) + " at " + to_string(mem));
+    }
+
+    MIOPEN_LOG_I2("hipFreeAsync " << size << " at " << mem << " Ok");
+}
+
+Allocator::ManageDataPtr Handle::CreateAsync(std::size_t sz) const
+{
+    MIOPEN_HANDLE_LOCK
+    Allocator allocator{async_allocator, async_deallocator, this->GetStream()};
+    return allocator(sz);
 }
 
 Allocator::ManageDataPtr&
