@@ -179,8 +179,7 @@ bool checkNumericsImpl(
     if (captureStatus == hipStreamCaptureStatusActive)
         return false;
 
-    MIOPEN_LOG(LoggingLevel::Info, "JFL: not capturing hip graph, need to sycnhronize");
-    HIP_CHECK(hipStreamSynchronize(handle.GetStream()));
+    handle.Finish(); // not capturing hip graph, need to sycnhronize
 
     MIOPEN_LOG(LoggingLevel::Info, "JFL: after captureStatus");
     bool isAbnormal = (abnormal_h->hasNan != 0) || (abnormal_h->hasInf != 0);
@@ -223,7 +222,6 @@ bool checkNumericsInput(const Handle& handle, const TensorDescriptor& dDesc, Con
 // Returns: 1 if abnormal value (inf or nan) detected in specified data, 0 otherwise
 bool checkNumericsOutput(const Handle& handle, const TensorDescriptor& dDesc, ConstData_t data)
 {
-    //handle.Finish();
     return checkNumericsImpl(handle, env::value(MIOPEN_CHECK_NUMERICS), dDesc, data, false);
 }
 
