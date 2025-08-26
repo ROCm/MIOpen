@@ -468,27 +468,41 @@ Allocator::ManageDataPtr Handle::Create(std::size_t sz, bool async) const
 }
 
 Allocator::ManageDataPtr&
-Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz) const
+Handle::WriteTo(const void* data, Allocator::ManageDataPtr& ddata, std::size_t sz, bool async) const
 {
     MIOPEN_HANDLE_LOCK
-    this->Finish();
-    auto status =
-        hipMemcpyWithStream(ddata.get(), data, sz, hipMemcpyHostToDevice, this->GetStream());
+    hipError_t status;
+
+    if(async) {
+        status = hipMemcpyAsync(ddata.get(), data, sz, hipMemcpyHostToDevice, this->GetStream());
+    } else {
+        this->Finish();
+        status =
+            hipMemcpyWithStream(ddata.get(), data, sz, hipMemcpyHostToDevice, this->GetStream());
+    }
+
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Hip error writing to buffer: ");
     return ddata;
 }
 
-void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz) const
+void Handle::ReadTo(void* data, const Allocator::ManageDataPtr& ddata, std::size_t sz, bool async) const
 {
-    ReadTo(data, ddata.get(), sz);
+    ReadTo(data, ddata.get(), sz, async);
 }
 
-void Handle::ReadTo(void* data, ConstData_t ddata, std::size_t sz) const
+void Handle::ReadTo(void* data, ConstData_t ddata, std::size_t sz, bool async) const
 {
     MIOPEN_HANDLE_LOCK
-    this->Finish();
-    auto status = hipMemcpyWithStream(data, ddata, sz, hipMemcpyDeviceToHost, this->GetStream());
+    hipError_t status;
+
+    if(async) {
+        status = hipMemcpyAsync(data, ddata, sz, hipMemcpyDeviceToHost, this->GetStream());
+    } else {
+        this->Finish();
+        status = hipMemcpyWithStream(data, ddata, sz, hipMemcpyDeviceToHost, this->GetStream());
+    }
+
     if(status != hipSuccess)
         MIOPEN_THROW_HIP_STATUS(status, "Hip error reading from buffer: ");
 }

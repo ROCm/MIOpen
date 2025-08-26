@@ -147,7 +147,7 @@ bool checkNumericsImpl(
     // Assign host function to the stream (note that hipMemsetAsync does not appear to work with hip graph)
     HIP_CHECK(hipLaunchHostFunc(handle.GetStream(), initCheckNumericsResult, abnormal_h));
 
-    HIP_CHECK(hipMemcpyAsync(abnormal_d.get(), abnormal_h, sizeof(CheckNumericsResult), hipMemcpyHostToDevice, handle.GetStream()));
+    handle.WriteTo(abnormal_h, abnormal_d, sizeof(CheckNumericsResult), true /* async */);
     const size_t threadsPerBlock = 256;
     const size_t numBlocks       = handle.GetMaxComputeUnits() * 6;
     const int computeStats       = (mode & CheckNumerics::ComputeStats);
@@ -159,8 +159,7 @@ bool checkNumericsImpl(
     handle.AddKernel(
         "MIOpenCheckNumerics", "MIOpenCheckNumerics", program_name, kernel_name, vld, vgd, "")(
         data, numElements, abnormal_d.get(), computeStats);
-
-    HIP_CHECK(hipMemcpyAsync(abnormal_h, abnormal_d.get(), sizeof(CheckNumericsResult), hipMemcpyDeviceToHost, handle.GetStream()));
+    handle.ReadTo(abnormal_h, abnormal_d, sizeof(CheckNumericsResult), true /* async */);
 
     CallbackData *callbackData = new CallbackData;
     callbackData->abnormal = abnormal_h;
