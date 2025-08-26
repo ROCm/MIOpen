@@ -141,14 +141,14 @@ bool checkNumericsImpl(
     const Handle& handle, int mode, const TensorDescriptor& dDesc, ConstData_t data, bool isInput)
 {
     int numElements = dDesc.GetElementSize();
-    static CheckNumericsResult abnormal_h; // TODO - this can be static for now since we are only checking one stream at a time
+    CheckNumericsResult *abnormal_h = new CheckNumericsResult;
     auto abnormal_d =
         handle.CreateAsync(sizeof(CheckNumericsResult)); // TODO - someday avoid slow malloc/free here
 
     // Assign host function to the stream (note that hipMemsetAsync does not appear to work with hip graph)
-    HIP_CHECK(hipLaunchHostFunc(handle.GetStream(), initCheckNumericsResult, &abnormal_h));
+    HIP_CHECK(hipLaunchHostFunc(handle.GetStream(), initCheckNumericsResult, abnormal_h));
 
-    HIP_CHECK(hipMemcpyAsync(abnormal_d.get(), &abnormal_h, sizeof(CheckNumericsResult), hipMemcpyHostToDevice, handle.GetStream()));
+    HIP_CHECK(hipMemcpyAsync(abnormal_d.get(), abnormal_h, sizeof(CheckNumericsResult), hipMemcpyHostToDevice, handle.GetStream()));
     const size_t threadsPerBlock = 256;
     const size_t numBlocks       = handle.GetMaxComputeUnits() * 6;
     const int computeStats       = (mode & CheckNumerics::ComputeStats);
@@ -161,10 +161,10 @@ bool checkNumericsImpl(
         "MIOpenCheckNumerics", "MIOpenCheckNumerics", program_name, kernel_name, vld, vgd, "")(
         data, numElements, abnormal_d.get(), computeStats);
 
-    HIP_CHECK(hipMemcpyAsync(&abnormal_h, abnormal_d.get(), sizeof(CheckNumericsResult), hipMemcpyDeviceToHost, handle.GetStream()));
+    HIP_CHECK(hipMemcpyAsync(abnormal_h, abnormal_d.get(), sizeof(CheckNumericsResult), hipMemcpyDeviceToHost, handle.GetStream()));
 
     CallbackData *callbackData = new CallbackData;
-    callbackData->abnormal = &abnormal_h;
+    callbackData->abnormal = abnormal_h;
     callbackData->mode = mode;
     callbackData->isInput = isInput;
     callbackData->numElements = numElements;
@@ -185,7 +185,7 @@ bool checkNumericsImpl(
     HIP_CHECK(hipStreamSynchronize(handle.GetStream()));
 
     MIOPEN_LOG(LoggingLevel::Info, "JFL: after captureStatus");
-    bool isAbnormal = (abnormal_h.hasNan != 0) || (abnormal_h.hasInf != 0);
+    bool isAbnormal = (abnormal_h->hasNan != 0) || (abnormal_h->hasInf != 0);
 
     if(isAbnormal)
     {
