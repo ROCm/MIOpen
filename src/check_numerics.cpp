@@ -93,15 +93,9 @@ std::string GetKernelName(miopenDataType_t data_type)
 
 void initCheckNumericsResult(void* args)
 {
-    CheckNumericsResult h_args{*(reinterpret_cast<CheckNumericsResult*>(args))};
-    h_args.sum    = 0.0f;
-    h_args.absSum = 0.0f;
-    h_args.min    = 0.0f;
-    h_args.max    = 0.0f;
-
-    h_args.hasZero = 0;
-    h_args.hasNan  = 0;
-    h_args.hasInf  = 0;
+    CheckNumericsResult *args_h = static_cast<CheckNumericsResult*>(args);
+    CheckNumericsResult blank{};
+    *args_h = blank;
 }
 
 void checkNumericsCallback(void *data)
@@ -144,9 +138,7 @@ bool checkNumericsImpl(
     CheckNumericsResult *abnormal_h = new CheckNumericsResult;
     auto abnormal_d =
         handle.Create(sizeof(CheckNumericsResult), true /* async */); // TODO - someday avoid slow malloc/free here
-    // Assign host function to the stream (note that hipMemsetAsync does not appear to work with hip graph)
     HIP_CHECK(hipLaunchHostFunc(handle.GetStream(), initCheckNumericsResult, abnormal_h));
-
     handle.WriteTo(abnormal_h, abnormal_d, sizeof(CheckNumericsResult), true /* async */);
     const size_t threadsPerBlock = 256;
     const size_t numBlocks       = handle.GetMaxComputeUnits() * 6;
