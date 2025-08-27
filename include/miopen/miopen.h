@@ -8515,6 +8515,49 @@ MIOPEN_EXPORT miopenStatus_t miopenMultiMarginLossForward(miopenHandle_t handle,
 // CLOSEOUT LossFunction DOXYGEN GROUP
 #endif // MIOPEN_BETA_API
 
+/*! @ingroup handle
+ * @enum miopenTuningPolicy_t
+ * Tuning policy for MIOpen Find-related calls.
+ * Supports only the following policies of MIOpenFindEnforce:
+ * 1. None: Do not enforce anything.
+ * 2. DbUpdate: Tune and update the database.
+ * 3. Search: Search the database first; if no record is found, tune but do not update the database.
+ * 4. SearchDbUpdate: Combination of Search and DbUpdate.
+ * 5. DbClean: Remove existing entry, do not tune.
+ * Note: MIOpenFindEnforce has additional features that are not supported by TuningPolicy.
+ * Note: TuningPolicy has higher priority over MIOPEN_FIND_ENFORCE.
+ */
+typedef enum
+{
+    miopenTuningPolicyNone     = 1, /* do not enforce anything */
+    miopenTuningPolicyDbUpdate = 2, /* tune and update the db  */
+    miopenTuningPolicySearch =
+        3, /* search db first, if record not found tune but do not update the db */
+    miopenTuningPolicySearchDbUpdate = 4, /* combination of Search and DbUpdate */
+    miopenTuningPolicyDbClean        = 5, /* remove existing entry, do not tune */
+} miopenTuningPolicy_t;
+
+/*! @ingroup handle
+ * @brief Update tuning policy for a specific handle. API alternative for MIOPEN_FIND_ENFORCE
+ * environment variable.
+ *
+ * @param [in] handle              MIOpen Handle to update
+ * @param [in] newValue            New tuning policy value. Default value is miopenTuningPolicyNone
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenSetTuningPolicy(miopenHandle_t handle,
+                                                   miopenTuningPolicy_t newValue);
+
+/*! @ingroup handle
+ * @brief Get tuning policy from a handle.
+ *
+ * @param [in] handle              MIOpen Handle to fetch value from
+ * @param [in] value               Would be set to the current tuning policy value. Must not be null
+ * @return                         miopenStatus_t
+ */
+MIOPEN_EXPORT miopenStatus_t miopenGetTuningPolicy(miopenHandle_t handle,
+                                                   miopenTuningPolicy_t* value);
+
 #ifdef __cplusplus
 }
 #endif

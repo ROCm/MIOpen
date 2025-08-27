@@ -55,6 +55,16 @@ MIOPEN_EXPORT bool FindEnforceDisable = false;
 
 } // namespace debug
 
+static_assert(FindEnforceAction::None == static_cast<FindEnforceAction>(miopenTuningPolicyNone));
+static_assert(FindEnforceAction::DbUpdate ==
+              static_cast<FindEnforceAction>(miopenTuningPolicyDbUpdate));
+static_assert(FindEnforceAction::Search ==
+              static_cast<FindEnforceAction>(miopenTuningPolicySearch));
+static_assert(FindEnforceAction::SearchDbUpdate ==
+              static_cast<FindEnforceAction>(miopenTuningPolicySearchDbUpdate));
+static_assert(FindEnforceAction::DbClean ==
+              static_cast<FindEnforceAction>(miopenTuningPolicyDbClean));
+
 namespace {
 
 const char* ToCString(const FindEnforceAction mode)
