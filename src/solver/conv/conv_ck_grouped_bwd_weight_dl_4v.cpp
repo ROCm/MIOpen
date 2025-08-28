@@ -624,7 +624,7 @@ bool ConvDepthwiseWrw::FindCachedSolution(const ExecutionContext& ctx, size_t ha
                             invoker.ShowInfo(argument);
                             {
                                 WorkAroundHipEventProfiler prf(handle);
-                                invoker.Run(argument, StreamConfig{nullptr, false});
+                                invoker.Run(argument, StreamConfig{handle.GetStream(), false});
                             }
 
                             if (DirectCkMgr::GetInst()->enableLog)
@@ -785,7 +785,7 @@ ConvSolution ConvDepthwiseWrw::GetBestSolution(const ExecutionContext& ctx,
 
                                     invoker.ShowInfo(argument);
                                     WorkAroundHipEventProfiler prf(handle);
-                                    float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
+                                    float avg_time = invoker.Run(argument, StreamConfig{handle.GetStream(), false});
 
                                     if(handle.IsProfilingEnabled())
                                     {

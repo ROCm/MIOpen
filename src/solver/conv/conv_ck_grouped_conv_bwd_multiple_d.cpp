@@ -583,7 +583,7 @@ bool ConvDepthwiseBwd::FindCachedSolution(const ExecutionContext& ctx, size_t ha
                                                             OutElementOp{});
                             {
                                 WorkAroundHipEventProfiler prf(handle);
-                                invoker.Run(argument, StreamConfig{nullptr, false});
+                                invoker.Run(argument, StreamConfig{handle.GetStream(), false});
                             }
                             if (DirectCkMgr::GetInst()->enableLog)
                                     std::cout << "Cached jin bwd is called" << std::endl;
@@ -734,7 +734,7 @@ ConvSolution ConvDepthwiseBwd::GetBestSolution(const ExecutionContext& ctx,
 
                                 {
                                     WorkAroundHipEventProfiler prf(handle);
-                                    float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
+                                    float avg_time = invoker.Run(argument, StreamConfig{handle.GetStream(), false});
 
                                     if(handle.IsProfilingEnabled())
                                     {

@@ -561,16 +561,16 @@ bool ConvDepthwiseFwd::FindCachedSolution(const ExecutionContext& ctx, size_t ha
                         {
                             WorkAroundHipEventProfiler prf(handle);
 
-                            invoker.Run(argument, StreamConfig{nullptr, false});
+                            invoker.Run(argument, StreamConfig{handle.GetStream(), false});
                         }
                         if (DirectCkMgr::GetInst()->enableLog)
                             std::cout << "Cached qun fwd is called" << std::endl;
-                            if(handle.IsProfilingEnabled())
-                            {
-                                elapsed += handle.GetKernelTime();
-                                DirectCkMgr::GetInst()->launchCount[ST_QUN_FWD] ++;
-                                DirectCkMgr::GetInst()->hitCacheCount[ST_QUN_FWD] ++;
-                            }
+                        if(handle.IsProfilingEnabled())
+                        {
+                            elapsed += handle.GetKernelTime();
+                            DirectCkMgr::GetInst()->launchCount[ST_QUN_FWD] ++;
+                            DirectCkMgr::GetInst()->hitCacheCount[ST_QUN_FWD] ++;
+                        }
                       //  printf("bef 2: %f\n", elapsed);
                         
                         if(!trans_output_skippable)
@@ -711,7 +711,7 @@ ConvSolution ConvDepthwiseFwd::GetBestSolution(const ExecutionContext& ctx,
 
                                 {
                                     WorkAroundHipEventProfiler prf(handle);
-                                    float avg_time = invoker.Run(argument, StreamConfig{nullptr, false});
+                                    float avg_time = invoker.Run(argument, StreamConfig{handle.GetStream(), false});
 
                                     if(handle.IsProfilingEnabled())
                                     {
