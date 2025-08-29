@@ -344,3 +344,128 @@ extern "C" __global__ void Op4dTensorGeneric(MIOPEN_TYPE* a,
 }
 
 #endif
+
+#ifdef USE_5D_TENSOR_GENERIC
+// NCDHW
+// (samples, color_depth, frames, height, width)
+// b_ - dimensions left unused due to calculation through strides
+extern "C" __global__ void Op5dTensorGeneric(const MIOPEN_TYPE* a,
+                                             const MIOPEN_TYPE* b,
+                                             MIOPEN_TYPE* c,
+                                             const uint64_t Aoffset,
+                                             const uint64_t Boffset,
+                                             const uint64_t Coffset,
+                                             [[maybe_unused]] const uint64_t b_c,
+                                             [[maybe_unused]] const uint64_t b_d,
+                                             [[maybe_unused]] const uint64_t b_h,
+                                             [[maybe_unused]] const uint64_t b_w,
+                                             const uint64_t c_c,
+                                             const uint64_t c_d,
+                                             const uint64_t c_h,
+                                             const uint64_t c_w,
+                                             const uint64_t a_nstride,
+                                             const uint64_t a_cstride,
+                                             const uint64_t a_dstride,
+                                             const uint64_t a_hstride,
+                                             const uint64_t a_wstride,
+                                             const uint64_t b_nstride,
+                                             const uint64_t b_cstride,
+                                             const uint64_t b_dstride,
+                                             const uint64_t b_hstride,
+                                             const uint64_t b_wstride,
+                                             const uint64_t c_nstride,
+                                             const uint64_t c_cstride,
+                                             const uint64_t c_dstride,
+                                             const uint64_t c_hstride,
+                                             const uint64_t c_wstride,
+                                             const MIOPEN_TYPE alpha0,
+                                             const MIOPEN_TYPE alpha1,
+                                             const MIOPEN_TYPE beta,
+                                             const uint64_t total_work,
+                                             const bool use_beta)
+{
+    // offsets
+    const MIOPEN_TYPE* a_off = a + Aoffset;
+    const MIOPEN_TYPE* b_off = b + Boffset;
+    MIOPEN_TYPE* c_off       = c + Coffset;
+
+    // coordinates decomposition for gid
+    uint64_t gid = static_cast<uint64_t>(blockIdx.x) * blockDim.x + threadIdx.x;
+    if(gid >= static_cast<uint64_t>(total_work))
+        return;
+
+    const uint64_t step = static_cast<uint64_t>(gridDim.x) * blockDim.x;
+
+    // stride products for C (for gid decomposition)
+    const uint64_t T1 = (uint64_t)c_w;
+    const uint64_t T2 = (uint64_t)c_h * T1;
+    const uint64_t T3 = (uint64_t)c_d * T2;
+    const uint64_t T4 = (uint64_t)c_c * T3;
+
+    const uint64_t n_idx      = gid / T4;
+    const uint64_t residual_n = gid % T4;
+
+    const uint64_t c_idx      = residual_n / T3;
+    const uint64_t residual_c = residual_n % T3;
+
+    const uint64_t d_idx      = residual_c / T2;
+    const uint64_t residual_d = residual_c % T2;
+
+    const uint64_t h_idx = residual_d / T1;
+    const uint64_t w_idx = residual_d % T1;
+
+    // starting pointers for A, C, B
+    const MIOPEN_TYPE* a_ptr = a_off + n_idx * a_nstride + c_idx * a_cstride + d_idx * a_dstride +
+                               h_idx * a_hstride + w_idx * a_wstride;
+    MIOPEN_TYPE* c_ptr = c_off + n_idx * c_nstride + c_idx * c_cstride + d_idx * c_dstride +
+                         h_idx * c_hstride + w_idx * c_wstride;
+
+    const MIOPEN_TYPE* b_ptr =
+        b_off + (b_nstride ? n_idx * b_nstride : 0) + (b_cstride ? c_idx * b_cstride : 0) +
+        (b_dstride ? d_idx * b_dstride : 0) + (b_hstride ? h_idx * b_hstride : 0) +
+        (b_wstride ? w_idx * b_wstride : 0);
+
+    // deltas (just for convenience of step definition)
+    const ptrdiff_t delta_n         = static_cast<ptrdiff_t>(step / T4);
+    const ptrdiff_t step_residual_n = static_cast<ptrdiff_t>(step % T4);
+
+    const ptrdiff_t delta_c         = static_cast<ptrdiff_t>(step_residual_n / T3);
+    const ptrdiff_t step_residual_c = static_cast<ptrdiff_t>(step_residual_n % T3);
+
+    const ptrdiff_t delta_d         = static_cast<ptrdiff_t>(step_residual_c / T2);
+    const ptrdiff_t step_residual_d = static_cast<ptrdiff_t>(step_residual_c % T2);
+
+    const ptrdiff_t delta_h = static_cast<ptrdiff_t>(step_residual_d / T1);
+    const ptrdiff_t delta_w = static_cast<ptrdiff_t>(step_residual_d % T1);
+
+    // decided to use ptrdiff_t here to follow the C++ idiomatic approach for pointer arithmetic.
+    // in MIOpen strides are always non-negative, but it's good practice to use the canonical signed
+    // type for pointer differences/shifts (no size_t even though it would fit here).
+    const ptrdiff_t a_step = delta_n * a_nstride + delta_c * a_cstride + delta_d * a_dstride +
+                             delta_h * a_hstride + delta_w * a_wstride;
+
+    const ptrdiff_t c_step = delta_n * c_nstride + delta_c * c_cstride + delta_d * c_dstride +
+                             delta_h * c_hstride + delta_w * c_wstride;
+
+    const ptrdiff_t b_step =
+        (b_nstride ? delta_n * b_nstride : 0) + (b_cstride ? delta_c * b_cstride : 0) +
+        (b_dstride ? delta_d * b_dstride : 0) + (b_hstride ? delta_h * b_hstride : 0) +
+        (b_wstride ? delta_w * b_wstride : 0);
+
+    // total runs
+    const uint64_t it_count = (total_work - gid + step - 1) / step;
+
+    for(uint64_t i = 0; i < it_count; ++i)
+    {
+        const MIOPEN_TYPE a_val = *a_ptr;
+        const MIOPEN_TYPE b_val = *b_ptr;
+        const MIOPEN_TYPE c_in  = use_beta ? *c_ptr : (MIOPEN_TYPE)0;
+
+        *c_ptr = MIOPEN_TENSOR_OP(b_val * alpha1, a_val * alpha0) + beta * c_in;
+
+        a_ptr += a_step;
+        b_ptr += b_step;
+        c_ptr += c_step;
+    }
+}
+#endif
