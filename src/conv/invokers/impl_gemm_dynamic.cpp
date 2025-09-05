@@ -11,6 +11,11 @@
 namespace miopen {
 namespace conv {
 
+#define WORKAROUND_CK_ISSUE_1184 1
+#if WORKAROUND_CK_ISSUE_1184
+using WorkAroundHipEventProfiler = HipEventProfiler;
+#endif
+
 static inline uint32_t igemm_find_tile_size_with_upper_bound(
     uint32_t out_size, size_t upper_bound, uint32_t stride, uint32_t dilation, uint32_t filter)
 {
@@ -927,110 +932,96 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
 
     return [=](const std::vector<Kernel>& kernels) mutable {
         return [=](const Handle& handle, const AnyInvokeParams& primitive_parameters) mutable {
-            decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
-            const auto& tensors     = data_ctx.tensors;
-            const auto& workSpace   = data_ctx.workSpace;
-            const auto ker =
-                handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
-            float elapsed = 0;
-
-            auto trans_input_buf =
-                trans_input_size == 0
-                    ? null_buf
-                    : handle.CreateSubBuffer(workSpace, trans_input_offset, trans_input_size);
-            auto trans_weight_buf =
-                trans_weight_size == 0
-                    ? null_buf
-                    : handle.CreateSubBuffer(workSpace, trans_weight_offset, trans_weight_size);
-            auto trans_output_buf =
-                trans_output_size == 0
-                    ? null_buf
-                    : handle.CreateSubBuffer(workSpace, trans_output_offset, trans_output_size);
-            auto cast_buf = cast_size == 0
-                                ? null_buf
-                                : handle.CreateSubBuffer(workSpace, cast_offset, cast_size);
-
-            if(need_set_zero)
+            handle.ResetKernelTime();
             {
-                auto zero_buf = need_cast
-                                    ? cast_buf.get()
-                                    : ((is_nchw && !trans_input_skippable) ? trans_input_buf.get()
-                                                                           : tensors.out);
-                auto& zero_desc =
-                    need_cast
-                        ? cast_desc
-                        : tensors.outDesc; // use the same desc for NCHW/NHWC for this dense tensor
-                float zero = 0.f;
+                WorkAroundHipEventProfiler prf(handle);
+                decltype(auto) data_ctx = primitive_parameters.CastTo<conv::DataInvokeParams>();
+                const auto& tensors     = data_ctx.tensors;
+                const auto& workSpace   = data_ctx.workSpace;
+                const auto ker =
+                    handle.Run(kernels[(isGfx90aFp16altSupport && data_ctx.gfx90aFp16alt) ? 1 : 0]);
+                float elapsed = 0;
 
-                SetTensor(handle, zero_desc, zero_buf, &zero);
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-            }
+                auto trans_input_buf =
+                    trans_input_size == 0
+                        ? null_buf
+                        : handle.CreateSubBuffer(workSpace, trans_input_offset, trans_input_size);
+                auto trans_weight_buf =
+                    trans_weight_size == 0
+                        ? null_buf
+                        : handle.CreateSubBuffer(workSpace, trans_weight_offset, trans_weight_size);
+                auto trans_output_buf =
+                    trans_output_size == 0
+                        ? null_buf
+                        : handle.CreateSubBuffer(workSpace, trans_output_offset, trans_output_size);
+                auto cast_buf = cast_size == 0
+                                    ? null_buf
+                                    : handle.CreateSubBuffer(workSpace, cast_offset, cast_size);
 
-            if(is_nchw)
-            {
-                if(!trans_output_skippable)
+                if(need_set_zero)
                 {
-                    auto& karg_output = opArgsTrans[trans_output_idx];
-                    karg_output[0]    = OpKernelArg(trans_output_buf.get());
-                    karg_output[1]    = OpKernelArg(tensors.in);
-                    handle.Run(kernels[kID_trans_start + trans_output_idx])(karg_output);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
+                    auto zero_buf = need_cast
+                                        ? cast_buf.get()
+                                        : ((is_nchw && !trans_input_skippable) ? trans_input_buf.get()
+                                                                            : tensors.out);
+                    auto& zero_desc =
+                        need_cast
+                            ? cast_desc
+                            : tensors.outDesc; // use the same desc for NCHW/NHWC for this dense tensor
+                    float zero = 0.f;
+
+                    SetTensor(handle, zero_desc, zero_buf, &zero);
                 }
-                if(!trans_weight_skippable)
+
+                if(is_nchw)
                 {
-                    auto& karg_weight = opArgsTrans[trans_weight_idx];
-                    karg_weight[0]    = OpKernelArg(trans_weight_buf.get());
-                    karg_weight[1]    = OpKernelArg(tensors.w);
-                    handle.Run(kernels[kID_trans_start + trans_weight_idx])(karg_weight);
-                    if(handle.IsProfilingEnabled())
-                        elapsed += handle.GetKernelTime();
+                    if(!trans_output_skippable)
+                    {
+                        auto& karg_output = opArgsTrans[trans_output_idx];
+                        karg_output[0]    = OpKernelArg(trans_output_buf.get());
+                        karg_output[1]    = OpKernelArg(tensors.in);
+                        handle.Run(kernels[kID_trans_start + trans_output_idx])(karg_output);
+                    }
+                    if(!trans_weight_skippable)
+                    {
+                        auto& karg_weight = opArgsTrans[trans_weight_idx];
+                        karg_weight[0]    = OpKernelArg(trans_weight_buf.get());
+                        karg_weight[1]    = OpKernelArg(tensors.w);
+                        handle.Run(kernels[kID_trans_start + trans_weight_idx])(karg_weight);
+                    }
                 }
-            }
 
-            opArgs[0] = need_cast ? OpKernelArg(cast_buf.get())
-                                  : ((is_nchw && !trans_input_skippable)
-                                         ? OpKernelArg(trans_input_buf.get())
-                                         : OpKernelArg(tensors.out));
-            opArgs[1] = (is_nchw && !trans_weight_skippable) ? OpKernelArg(trans_weight_buf.get())
-                                                             : OpKernelArg(tensors.w);
-            opArgs[2] = (is_nchw && !trans_output_skippable) ? OpKernelArg(trans_output_buf.get())
-                                                             : OpKernelArg(tensors.in);
+                opArgs[0] = need_cast ? OpKernelArg(cast_buf.get())
+                                    : ((is_nchw && !trans_input_skippable)
+                                            ? OpKernelArg(trans_input_buf.get())
+                                            : OpKernelArg(tensors.out));
+                opArgs[1] = (is_nchw && !trans_weight_skippable) ? OpKernelArg(trans_weight_buf.get())
+                                                                : OpKernelArg(tensors.w);
+                opArgs[2] = (is_nchw && !trans_output_skippable) ? OpKernelArg(trans_output_buf.get())
+                                                                : OpKernelArg(tensors.in);
 
-            ker(opArgs);
-            if(handle.IsProfilingEnabled())
-                elapsed += handle.GetKernelTime();
+                ker(opArgs);
 
-            if(need_cast)
-            {
-                CastTensor(handle,
-                           &lowp_quant,
-                           false,
-                           cast_desc,
-                           cast_buf.get(),
-                           tensors.outDesc,
-                           (is_nchw && !trans_input_skippable) ? trans_input_buf.get()
-                                                               : tensors.out,
-                           0,
-                           0);
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-            }
-            if((is_nchw && !trans_input_skippable))
-            {
-                auto& karg_input = opArgsTrans[trans_input_idx];
-                karg_input[0]    = OpKernelArg(tensors.out);
-                karg_input[1]    = OpKernelArg(trans_input_buf.get());
-                handle.Run(kernels[kID_trans_start + trans_input_idx])(karg_input);
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-            }
-
-            if(handle.IsProfilingEnabled())
-            {
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed);
+                if(need_cast)
+                {
+                    CastTensor(handle,
+                            &lowp_quant,
+                            false,
+                            cast_desc,
+                            cast_buf.get(),
+                            tensors.outDesc,
+                            (is_nchw && !trans_input_skippable) ? trans_input_buf.get()
+                                                                : tensors.out,
+                            0,
+                            0);
+                }
+                if((is_nchw && !trans_input_skippable))
+                {
+                    auto& karg_input = opArgsTrans[trans_input_idx];
+                    karg_input[0]    = OpKernelArg(tensors.out);
+                    karg_input[1]    = OpKernelArg(trans_input_buf.get());
+                    handle.Run(kernels[kID_trans_start + trans_input_idx])(karg_input);
+                }
             }
         };
     };

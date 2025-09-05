@@ -336,18 +336,15 @@ ConvSolution InitAnyInvokerFactory(const ProblemDescriptionType& problem,
          sh_conv_ptr = std::shared_ptr{std::move(*ptr_iter)}](const std::vector<Kernel>&) mutable {
             return [ck_args = std::move(ck_args), sh_conv_ptr = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx);
-                auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+                handle.ResetKernelTime();
                 {
                     WorkAroundHipEventProfiler prf(handle);
-                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
-                }
-                if(handle.IsProfilingEnabled())
-                {
-                    float elapsed_time = handle.GetKernelTime();
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed_time);
+                    const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+                    auto argument_ptr    = ck_args.MakeArgPtr(sh_conv_ptr, data_ctx);
+                    auto invoker_ptr     = sh_conv_ptr->MakeInvokerPointer();
+                    {
+                        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                    }
                 }
             };
         };
@@ -1117,84 +1114,79 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
                 ck_buff_des         = ck_buff_des](const Handle& handle,
                                            const AnyInvokeParams& primitive_parameters) mutable {
             handle.ResetKernelTime();
-
-            const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-            Data_t workspace_ptr = GetWorkspacePointer<CastType>(data_ctx);
-            ValidateWorkspacePointer<CastType>(workspace_ptr);
-
-            input1_tr_inst.AssignBuffer(handle, workspace_ptr);
-            input2_tr_inst.AssignBuffer(handle, workspace_ptr);
-            output_tr_inst.AssignBuffer(handle, workspace_ptr);
-            output_init_tr_inst.AssignBuffer(handle, workspace_ptr);
-
-            // if FusionInvokeParams extract tensors from the params
-            // conversion operator applied here to convert to ConvTensors
-            auto conv_tensors = GetTensors(data_ctx);
-
-            /// \todo remove this when DataInvokeParams stops swapping
-            // "in" and "out" tensors for backward pass
-            if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
-            {
-                // this is backward pass, swap back input and output
-                std::swap(conv_tensors.x, conv_tensors.y);
-                std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
-            }
-
-            float elapsed = 0.0f;
-
-            // ConvertFrom automatically keeps kernel time and accumulates
-            input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-            input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-            output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
-            elapsed = handle.IsProfilingEnabled() ? handle.GetKernelTime() : 0.0f;
-
-            if constexpr(ZeroOutputs)
-            {
-                /// Note: Need to clear buffer memory for output since all values may not be set.
-                output_tr_inst.ZeroOutBuffer(handle);
-                if(handle.IsProfilingEnabled())
-                    elapsed += handle.GetKernelTime();
-            }
-
-            std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
-                &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
-
-            // sort by tag in order: Input, Weights, Output
-            std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
-                return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
-            });
-
-            std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr =
-                MakeNCHWCKArgPtr<IsSplitKNeeded<DeviceOpType>(),
-                                 std::decay_t<decltype(*sh_conv_ptr)>,
-                                 CKArgsType,
-                                 CastType>(ck_args, sh_conv_ptr, tr_ptrs, data_ctx, split_k);
-
-            shared<Data_t> buf_handle{};
-            if(ck_buff_des.has_value() && ck_buff_des->ck_size && workspace_ptr)
-            {
-                buf_handle = handle.CreateSubBuffer(
-                    workspace_ptr, ck_buff_des->ck_offset, ck_buff_des->ck_size);
-                assert(buf_handle.get());
-                sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
-            }
-
-            auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
             {
                 WorkAroundHipEventProfiler prf(handle);
-                MIOPEN_LOG_I2("kernel_name = " << kernel_id);
-                invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+                Data_t workspace_ptr = GetWorkspacePointer<CastType>(data_ctx);
+                ValidateWorkspacePointer<CastType>(workspace_ptr);
+    
+                input1_tr_inst.AssignBuffer(handle, workspace_ptr);
+                input2_tr_inst.AssignBuffer(handle, workspace_ptr);
+                output_tr_inst.AssignBuffer(handle, workspace_ptr);
+                output_init_tr_inst.AssignBuffer(handle, workspace_ptr);
+    
+                // if FusionInvokeParams extract tensors from the params
+                // conversion operator applied here to convert to ConvTensors
+                auto conv_tensors = GetTensors(data_ctx);
+    
+                /// \todo remove this when DataInvokeParams stops swapping
+                // "in" and "out" tensors for backward pass
+                if(output_tr_inst.GetConvOperandTag() == internal::ConvOperandTag::Input)
+                {
+                    // this is backward pass, swap back input and output
+                    std::swap(conv_tensors.x, conv_tensors.y);
+                    std::swap(conv_tensors.xDesc, conv_tensors.yDesc);
+                }
+    
+                float elapsed = 0.0f;
+    
+                // ConvertFrom automatically keeps kernel time and accumulates
+                input1_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+                input2_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+                output_init_tr_inst.ConvertFrom(handle, kernels, conv_tensors);
+                elapsed = handle.IsProfilingEnabled() ? handle.GetKernelTime() : 0.0f;
+    
+                if constexpr(ZeroOutputs)
+                {
+                    /// Note: Need to clear buffer memory for output since all values may not be set.
+                    output_tr_inst.ZeroOutBuffer(handle);
+                    if(handle.IsProfilingEnabled())
+                        elapsed += handle.GetKernelTime();
+                }
+    
+                std::array<internal::TransposeInstanceTagged*, 3> tr_ptrs = {
+                    &input1_tr_inst, &input2_tr_inst, &output_tr_inst};
+    
+                // sort by tag in order: Input, Weights, Output
+                std::sort(tr_ptrs.begin(), tr_ptrs.end(), [](const auto& left, const auto& right) {
+                    return left->GetConvOperandTagAsInt() < right->GetConvOperandTagAsInt();
+                });
+    
+                std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr =
+                    MakeNCHWCKArgPtr<IsSplitKNeeded<DeviceOpType>(),
+                                     std::decay_t<decltype(*sh_conv_ptr)>,
+                                     CKArgsType,
+                                     CastType>(ck_args, sh_conv_ptr, tr_ptrs, data_ctx, split_k);
+    
+                shared<Data_t> buf_handle{};
+                if(ck_buff_des.has_value() && ck_buff_des->ck_size && workspace_ptr)
+                {
+                    buf_handle = handle.CreateSubBuffer(
+                        workspace_ptr, ck_buff_des->ck_offset, ck_buff_des->ck_size);
+                    assert(buf_handle.get());
+                    sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), buf_handle.get());
+                }
+    
+                auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
+                {
+                    MIOPEN_LOG_I2("kernel_name = " << kernel_id);
+                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                }
+    
+                
+                // ConvertTo automatically keeps kernel time and accumulates
+                output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
             }
-
-            if(handle.IsProfilingEnabled())
-            {
-                elapsed += handle.GetKernelTime();
-                handle.ResetKernelTime();
-                handle.AccumKernelTime(elapsed);
-            }
-
-            // ConvertTo automatically keeps kernel time and accumulates
-            output_tr_inst.ConvertTo(handle, kernels, conv_tensors);
         };
     };
 
@@ -1252,48 +1244,44 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                     should_allocated_wrw_buffer = should_allocated_wrw_buffer,
                     sh_conv_ptr                 = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-                std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr =
-                    MakeNHWCCKArgPtr<IsSplitKNeeded<DeviceOpType>(),
-                                     std::decay_t<decltype(*sh_conv_ptr)>,
-                                     CKArgsType,
-                                     CastType>(sh_conv_ptr, ck_args, data_ctx, split_k);
-
-                float elapsed = 0.0f;
-                if(alpha_beta_case == DEFAULT)
-                {
-                    if constexpr(ZeroOutputs)
-                    {
-                        ZeroOutTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw);
-
-                        if(handle.IsProfilingEnabled())
-                        {
-                            elapsed += handle.GetKernelTime();
-                        }
-                    }
-                }
-                // use captured value, other wise getting warning
-                // "lambda capture is not used" since this variable is only used in assert.
-                (void)should_allocated_wrw_buffer;
-                assert((should_allocated_wrw_buffer && data_ctx.workSpace != nullptr) ||
-                       !(should_allocated_wrw_buffer && data_ctx.workSpace == nullptr));
-                if(data_ctx.workSpace)
-                {
-                    sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
-                }
-
-                auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
+                handle.ResetKernelTime();
                 {
                     WorkAroundHipEventProfiler prf(handle);
-                    MIOPEN_LOG_I2("kernel_name = " << kernel_id);
-                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
-                }
+                    const auto& data_ctx = primitive_parameters.CastTo<CastType>();
+                    std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr =
+                        MakeNHWCCKArgPtr<IsSplitKNeeded<DeviceOpType>(),
+                                        std::decay_t<decltype(*sh_conv_ptr)>,
+                                        CKArgsType,
+                                        CastType>(sh_conv_ptr, ck_args, data_ctx, split_k);
 
-                if(handle.IsProfilingEnabled())
-                {
-                    elapsed += handle.GetKernelTime();
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed);
+                    float elapsed = 0.0f;
+                    if(alpha_beta_case == DEFAULT)
+                    {
+                        if constexpr(ZeroOutputs)
+                        {
+                            ZeroOutTensor(handle, data_ctx.tensors.dwDesc, data_ctx.tensors.dw);
+
+                            if(handle.IsProfilingEnabled())
+                            {
+                                elapsed += handle.GetKernelTime();
+                            }
+                        }
+                    }
+                    // use captured value, other wise getting warning
+                    // "lambda capture is not used" since this variable is only used in assert.
+                    (void)should_allocated_wrw_buffer;
+                    assert((should_allocated_wrw_buffer && data_ctx.workSpace != nullptr) ||
+                        !(should_allocated_wrw_buffer && data_ctx.workSpace == nullptr));
+                    if(data_ctx.workSpace)
+                    {
+                        sh_conv_ptr->SetWorkSpacePointer(argument_ptr.get(), data_ctx.workSpace);
+                    }
+
+                    auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
+                    {
+                        MIOPEN_LOG_I2("kernel_name = " << kernel_id);
+                        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                    }
                 }
             };
         };
@@ -1315,41 +1303,33 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
                     ck_args     = std::move(ck_args),
                     sh_conv_ptr = std::move(sh_conv_ptr)](
                        const Handle& handle, const AnyInvokeParams& primitive_parameters) {
-                const auto& data_ctx = primitive_parameters.CastTo<CastType>();
-
-                std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr =
-                    MakeNHWCCKArgPtr<IsSplitKNeeded<DeviceOpType>(),
-                                     std::decay_t<decltype(*sh_conv_ptr)>,
-                                     CKArgsType,
-                                     CastType>(sh_conv_ptr, ck_args, data_ctx, split_k);
-
-                auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
-
-                // Zero out the buffer for output data since it won't always write all output
-                // values.
-                float elapsed = 0.0f;
-                if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams> &&
-                             ZeroOutputs)
-                {
-                    ZeroOutTensor(handle, data_ctx.tensors.outDesc, data_ctx.tensors.out);
-
-                    if(handle.IsProfilingEnabled())
-                    {
-                        elapsed += handle.GetKernelTime();
-                    }
-                }
-
+                handle.ResetKernelTime();
                 {
                     WorkAroundHipEventProfiler prf(handle);
-                    MIOPEN_LOG_I2("kernel_name = " << kernel_id);
-                    invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
-                }
+                    const auto& data_ctx = primitive_parameters.CastTo<CastType>();
 
-                if(handle.IsProfilingEnabled())
-                {
-                    elapsed += handle.GetKernelTime();
-                    handle.ResetKernelTime();
-                    handle.AccumKernelTime(elapsed);
+                    std::unique_ptr<ck::tensor_operation::device::BaseArgument> argument_ptr =
+                        MakeNHWCCKArgPtr<IsSplitKNeeded<DeviceOpType>(),
+                                        std::decay_t<decltype(*sh_conv_ptr)>,
+                                        CKArgsType,
+                                        CastType>(sh_conv_ptr, ck_args, data_ctx, split_k);
+
+                    auto invoker_ptr = sh_conv_ptr->MakeInvokerPointer();
+
+                    // Zero out the buffer for output data since it won't always write all output
+                    // values.
+                    float elapsed = 0.0f;
+                    if constexpr(std::is_same_v<CastType, miopen::conv::DataInvokeParams> &&
+                                ZeroOutputs)
+                    {
+                        ZeroOutTensor(handle, data_ctx.tensors.outDesc, data_ctx.tensors.out);
+                    }
+
+                    {
+                        MIOPEN_LOG_I2("kernel_name = " << kernel_id);
+                        invoker_ptr->Run(argument_ptr.get(), {handle.GetStream(), false});
+                    }
+
                 }
             };
         };

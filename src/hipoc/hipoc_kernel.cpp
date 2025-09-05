@@ -47,6 +47,7 @@ HipEventProfiler::HipEventProfiler(const Handle& handle_)
     {
         start = make_hip_event();
         stop  = make_hip_event();
+        hipDeviceSynchronize();
         hipEventRecord(start.get(), handle.GetStream());
     }
 }
