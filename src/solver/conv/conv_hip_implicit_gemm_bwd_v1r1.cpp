@@ -650,13 +650,9 @@ bool ConvHipImplicitGemmBwdDataV1R1::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
-    if(problem.IsFp32())
-    {
-        // Missing instruction: v_mac_f32
-        const auto dev_name = ctx.GetStream().GetDeviceName();
-        if(dev_name == "gfx942")
-            return false;
-    }
+    // Missing instruction: v_mac_f32
+    if(problem.IsFp32() && static_ck::GfxHasMissingFp32Intrinsics(ctx.GetStream().GetDeviceName()))
+        return false;
     if(!problem.IsDirectionBackwardData())
         return false;
     if(!problem.Is2d() && !(problem.Is3d() && problem.IsFp32()))

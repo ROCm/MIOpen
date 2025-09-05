@@ -57,8 +57,18 @@ static inline bool IsComposableKernelSupportedHardware(const ExecutionContext& c
             c.GetStream().GetMaxComputeUnits() == 64) ||
            c.GetStream().GetDeviceName() == "gfx900" || c.GetStream().GetDeviceName() == "gfx906" ||
            c.GetStream().GetDeviceName() == "gfx908" || c.GetStream().GetDeviceName() == "gfx90a" ||
-           c.GetStream().GetDeviceName() == "gfx942" ||
+           c.GetStream().GetDeviceName() == "gfx942" || StartsWith(c.GetStream().GetDeviceName(), "gfx95") ||
            StartsWith(c.GetStream().GetDeviceName(), "gfx103");
+}
+
+static inline bool GfxHasMissingBf16Intrinsics(const std::string& device_name)
+{
+    return device_name == "gfx942" || StartsWith(device_name, "gfx95");
+}
+
+static inline bool GfxHasMissingFp32Intrinsics(const std::string& device_name)
+{
+    return device_name == "gfx942" || StartsWith(device_name, "gfx95");
 }
 
 static inline bool support_amd_buffer_atomic_fadd(const std::string& device_name)
