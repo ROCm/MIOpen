@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2017 - 2025 Advanced Micro Devices, Inc. All rights Reserved.
+Copyright (C) Advanced Micro Devices, Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -20,7 +20,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-------------------------------------------------------------------------------
+---
 
 The following files
  - src/include/miopen/kernel_cache.hpp
@@ -44,8 +44,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-
-------------------------------------------------------------------------------
+---
 
 driver/mloSoftmaxHost.hpp is available under a BSD-2-Clause license
 
@@ -77,8 +76,7 @@ WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
 
-
-------------------------------------------------------------------------------
+---
 
 The file src/md5.cpp is derived from a public domain implementation. The
 original license text is as follows:
