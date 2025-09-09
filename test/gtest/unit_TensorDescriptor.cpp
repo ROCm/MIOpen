@@ -239,7 +239,7 @@ public:
             TestCase{{miopenHalf, {2, 2, 2, 1}, {1000, 100, 10, 10000}}, {"NCHW"}, ignore_degenerate_strides},
             TestCase{{miopenHalf, {1, 2, 2, 2}, {1, 1, 100, 10}}, {"NHWC"}, ignore_degenerate_strides},
             TestCase{{miopenHalf, {2, 2, 1, 2}, {1000, 1, 10000, 10}}, {"NHWC"}, ignore_degenerate_strides},
-            TestCase{{miopenHalf, {2, 2, 2, 1}, {1000, 1, 100, 10000}}, {"NHWC"}, ignore_degenerate_strides},          
+            TestCase{{miopenHalf, {2, 2, 2, 1}, {1000, 1, 100, 10000}}, {"NHWC"}, ignore_degenerate_strides},
             TestCase{{miopenHalf, {2, 1, 2, 2}, {1, 1, 100, 10}}, {"CHWN"}, ignore_degenerate_strides},
             TestCase{{miopenHalf, {2, 2, 1, 2}, {1, 1000, 10000, 10}}, {"CHWN"}, ignore_degenerate_strides},
             TestCase{{miopenHalf, {2, 2, 2, 1}, {1, 1000, 100, 10000}}, {"CHWN"}, ignore_degenerate_strides},
@@ -248,7 +248,7 @@ public:
             TestCase{{miopenHalf, {1, 1, 1, 1}, {1, 1000, 100, 10}}, {"NCHW", "NHWC", "CHWN"}, ignore_degenerate_strides},
 
             TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1000, 100, 10, 1}}, {"NCDHW", "NDHWC"}, ignore_degenerate_strides},
-            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, {"NCDHW", "NDHWC"}, ignore_degenerate_strides},     
+            TestCase{{miopenHalf, {1, 1, 1, 1, 1}, {10000, 1, 1000, 100, 10}}, {"NCDHW", "NDHWC"}, ignore_degenerate_strides},
             TestCase{{miopenHalf, {1, 2, 2, 2, 2}, {1, 1000, 100, 10, 1}}, {"NCDHW"}, ignore_degenerate_strides},
             TestCase{{miopenHalf, {2, 1, 2, 2, 2}, {10000, 100000, 100, 10, 1}}, {"NCDHW", "NDHWC"}, ignore_degenerate_strides},
             TestCase{{miopenHalf, {2, 2, 1, 2, 2}, {10000, 1000, 100000, 10, 1}}, {"NCDHW"}, ignore_degenerate_strides},

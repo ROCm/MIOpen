@@ -43,7 +43,7 @@ fi
 arches=$($ROCMINFO | grep -e ' gfx' -e 'Compute Unit:' | awk '/Name/{ arch= $2} /Compute Unit:/ {if(arch != "") { all_arches[(arch "-" $3)] }} END { for (a in all_arches) { print a}  }')
 backend="hip"
 
-while IFS= read -r line ; 
+while IFS= read -r line ;
 do
     arch=$(echo $line | awk -F"-" '{print $1}')
     package=$arch

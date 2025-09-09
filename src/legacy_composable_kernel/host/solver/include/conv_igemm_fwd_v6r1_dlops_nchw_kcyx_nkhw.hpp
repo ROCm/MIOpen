@@ -15,19 +15,19 @@ struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
 
         // clang-format off
         param <<
-            " -DCK_PARAM_ABDataTypeEnum=" << 
+            " -DCK_PARAM_ABDataTypeEnum=" <<
                 ABDataTypeEnum <<
-            " -DCK_PARAM_AccDataTypeEnum=" << 
+            " -DCK_PARAM_AccDataTypeEnum=" <<
                 AccDataTypeEnum <<
-            " -DCK_PARAM_CDataTypeEnum=" << 
+            " -DCK_PARAM_CDataTypeEnum=" <<
                 CDataTypeEnum <<
-            " -DCK_PARAM_BlockSize=" << 
+            " -DCK_PARAM_BlockSize=" <<
                 BlockSize <<
-            " -DCK_PARAM_GN0=" << 
+            " -DCK_PARAM_GN0=" <<
                 GN0 <<
-            " -DCK_PARAM_GK1=" << 
+            " -DCK_PARAM_GK1=" <<
                 GK1 <<
-            " -DCK_PARAM_GM1PerBlockGM11=" 
+            " -DCK_PARAM_GM1PerBlockGM11="
                 << GM1PerBlockGM11 <<
             " -DCK_PARAM_GN1PerBlockGN11=" <<
                 GN1PerBlockGN11 <<
@@ -56,7 +56,7 @@ struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
                 ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[1] << "," <<
                 ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[2] << "," <<
                 ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[3] << "," <<
-                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[4] << 
+                ABlockTransferThreadClusterLengths_GK0_GM0_GM10_GM11_GK1[4] <<
             " -DCK_PARAM_ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1=" <<
                 ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[0] << "," <<
                 ABlockTransferSrcVectorTensorLengths_GK0_GM0_GM10_GM11_GK1[1] << "," <<
@@ -80,19 +80,19 @@ struct CompileParameterConvIgemmFwdV6r1DlopsNchwKcyxNkhw
                 BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
                 BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
                 BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
-                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[4] << 
+                BBlockTransferThreadClusterLengths_GK0_GN0_GN10_GN11_GK1[4] <<
             " -DCK_PARAM_BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" <<
                 BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0] << "," <<
                 BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
                 BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
                 BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
-                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4] << 
+                BBlockTransferSrcVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4] <<
             " -DCK_PARAM_BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1=" <<
                 BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[0] << "," <<
                 BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[1] << "," <<
                 BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[2] << "," <<
                 BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[3] << "," <<
-                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4] << 
+                BBlockTransferDstVectorTensorLengths_GK0_GN0_GN10_GN11_GK1[4] <<
             " -DCK_PARAM_CThreadTransferDstScalarPerVector=" <<
                 CThreadTransferDstScalarPerVector <<
             " -DCK_PARAM_HasMainKBlockLoop=" <<

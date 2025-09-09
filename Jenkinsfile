@@ -196,7 +196,7 @@ pipeline {
             when {
                 expression { params.BUILD_PACKAGE_AND_CHECKS && params.TARGET_NOGPU && params.DATATYPE_NA }
             }
-            parallel 
+            parallel
             {
                 stage("HIP Package") {
                     agent{ label rocmnode("nogpu") }
@@ -260,7 +260,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Tuna Fin Build Test') 
+                stage('Tuna Fin Build Test')
                 {
                     agent{ label rocmnode("nogpu") }
                     environment{

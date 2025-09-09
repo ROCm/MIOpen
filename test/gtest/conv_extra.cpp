@@ -96,8 +96,8 @@ std::vector<std::string> GetTestCases(const std::string& float_arg)
     else
     {
         return common_test_cases;
-    } 
-    // clang-format on    
+    }
+    // clang-format on
 }
 
 using TestCase = decltype(GetTestCases(""))::value_type;

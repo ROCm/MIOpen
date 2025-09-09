@@ -62,7 +62,7 @@ These modes include:
 *  fast find
 *  hybrid find
 *  dynamic hybrid find
- 
+
 For more information about the MIOpen find modes, see :ref:`Find modes <find_modes>`.
 
 Using MIOPEN_FIND_ENFORCE
@@ -85,7 +85,7 @@ are:
   only recommended for debugging purposes.
 * ``DB_CLEAN``/``(5)``: Removes optimized values related to the "problem configuration" from User
   PerfDb. Auto-tune is blocked, even if explicitly requested. System PerfDb is left intact.
-  
+
   .. caution::
 
       Use the ``DB_CLEAN`` option with care.

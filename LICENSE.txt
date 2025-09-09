@@ -111,4 +111,3 @@ The primary goals of this implementation are portability and ease of use.
 It is meant to be fast, but not as fast as possible.  Some known
 optimizations are not included to reduce source code size and avoid
 compile-time configuration.
-

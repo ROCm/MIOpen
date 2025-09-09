@@ -2,7 +2,7 @@
 # usage: resnet50_v1.5.sh <prec> <bs> [<cast1>] [<cast2>]
 # where prec is the precision arg for the driver command
 # bs is the batchsize for the network to use
-# cast1 and cast2 are the cast types for the input tensors. 
+# cast1 and cast2 are the cast types for the input tensors.
 # For forward, they are input and weights tensors
 # for backwards data, they are weights and output tensors
 # for backwards weights, they are input and output tensors

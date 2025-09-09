@@ -151,7 +151,7 @@ You can build the library from the ``build`` directory using the ``Release`` con
 .. code:: shell
 
    cmake --build . --config Release
-   
+
 or
 
 .. code:: shell
@@ -183,7 +183,7 @@ To build the driver, use the ``MIOpenDriver`` target:
 .. code:: shell
 
    cmake --build . --config Release --target MIOpenDriver
-   
+
 or
 
 .. code:: shell
@@ -198,7 +198,7 @@ To run tests, use the ``check`` target:
 .. code:: shell
 
    cmake --build . --config Release --target check
-   
+
 or
 
 .. code:: shell
@@ -254,7 +254,7 @@ To pull all files or a single large file, use:
 .. code:: shell
 
    git lfs pull --exclude=
- 
+
 or
 
 .. code:: shell
