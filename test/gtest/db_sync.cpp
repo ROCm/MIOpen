@@ -331,6 +331,7 @@ void ParseFDBbVal(const std::string& val, std::vector<FDBVal>& fdb_vals)
 void GetPerfDbVals(const fs::path& filename,
                    const conv::ProblemDescription& problem_config,
                    std::unordered_map<std::string, std::string>& vals,
+                   std::string& key,
                    std::string& select_query)
 {
 #if MIOPEN_ENABLE_SQLITE && MIOPEN_USE_SQLITE_PERFDB
@@ -369,7 +370,7 @@ void GetPerfDbVals(const fs::path& filename,
             ss << "x";
         ss << value;
     });
-    const auto key = ss.str();
+    key = ss.str();
 
     if(perf_db_map.find(key) != perf_db_map.end())
     {
@@ -694,6 +695,7 @@ void CheckFDBEntry(size_t thread_index,
                    size_t total_threads,
                    std::vector<FDBLine>& data,
                    miopen::RamDb& find_db_rw,
+                   miopen::RamDb& perf_db_rw,
                    const miopen::ExecutionContext& _ctx,
                    std::atomic<size_t>& counter)
 {
@@ -721,7 +723,8 @@ void CheckFDBEntry(size_t thread_index,
 
         std::unordered_map<std::string, std::string> pdb_vals;
         std::string pdb_select_query;
-        miopen::GetPerfDbVals(pdb_file_path, problem, pdb_vals, pdb_select_query);
+        std::string pdb_key;
+        miopen::GetPerfDbVals(pdb_file_path, problem, pdb_vals, pdb_key, pdb_select_query);
 
         // This is an opportunity to link up fdb and pdb entries
         auto fdb_idx = 0; // check kdb only for the fastest kernel
@@ -760,12 +763,14 @@ void CheckFDBEntry(size_t thread_index,
             if(env::enabled(MIOPEN_DBSYNC_CLEAN) && not solv.IsApplicable(ctx, problem))
             {
                 MIOPEN_LOG_W("Inapplicable solver found fdb-key:"
-                             << kinder.first << ", Solver" << val.solver_id << ":"
-                             << ", Removing entry from fdb and pdb");
+                             << kinder.first << ", pdb-key:" << pdb_key << ", solver:"
+                             << val.solver_id << ", Removing entry from fdb, pdb and updb");
                 find_db_rw.Remove(kinder.first, id.ToString());
-                db.Remove(problem, id.ToString());
-                MIOPEN_LOG_W("Removal Complete fdb-key:" << kinder.first << ": solver"
-                                                         << val.solver_id);
+                perf_db_rw.Remove(pdb_key, id.ToString()); // remove from system pdb
+                db.Remove(problem, id.ToString());         // remove from user pdb
+                MIOPEN_LOG_W("Removal complete for fdb-key:" << kinder.first
+                                                             << ", pdb-key:" << pdb_key
+                                                             << ", solver:" << val.solver_id);
                 continue;
             }
             else
@@ -804,12 +809,14 @@ void CheckFDBEntry(size_t thread_index,
                     if(env::enabled(MIOPEN_DBSYNC_CLEAN) && not res)
                     {
                         MIOPEN_LOG_W("Invalid perf config found fdb-key:"
-                                     << kinder.first << ", Solver" << val.solver_id << ":"
-                                     << perf_cfg << ", Removing entry from fdb and pdb");
+                                     << kinder.first << ", pdb-key:" << pdb_key << ", solver:"
+                                     << val.solver_id << ", Removing entry from fdb, pdb and updb");
                         find_db_rw.Remove(kinder.first, id.ToString());
-                        db.Remove(problem, id.ToString());
-                        MIOPEN_LOG_W("Removal Complete fdb-key:" << kinder.first << ": solver"
-                                                                 << val.solver_id);
+                        perf_db_rw.Remove(pdb_key, id.ToString()); // remove from system pdb
+                        db.Remove(problem, id.ToString());         // remove from user pdb
+                        MIOPEN_LOG_W("Removal complete for fdb-key:"
+                                     << kinder.first << ", pdb-key:" << pdb_key
+                                     << ", solver:" << val.solver_id);
                         continue;
                     }
                     else
@@ -937,8 +944,19 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
         miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::FindDb, fdb_file_path.string(), true);
     auto& find_db_rw =
         miopen::RamDb::GetCached(miopen::DbKinds::FindDb, fdb_file_path.string(), false);
-    // assert that find_db.cache is not empty, since that indicates the file was not readable
-    ASSERT_TRUE(!find_db.GetCacheMap().empty()) << "Find DB does not have any entries";
+    // Ensure that find_db.cache is not empty, since that indicates the file was not readable
+    EXPECT_TRUE(!find_db.GetCacheMap().empty())
+        << "Find DB does not have any entries; the file may not be readable.";
+
+    const auto& perf_db =
+        miopen::ReadonlyRamDb::GetCached(miopen::DbKinds::PerfDb, pdb_file_path.string(), true);
+    auto& perf_db_rw =
+        miopen::RamDb::GetCached(miopen::DbKinds::PerfDb, pdb_file_path.string(), false);
+    // Ensure that perf_db.cache is not empty, since that indicates the file was not readable
+    EXPECT_TRUE(!perf_db.GetCacheMap().empty())
+        << "Perf DB does not have any entries; the file may not be readable.";
+    ASSERT_TRUE(!find_db.GetCacheMap().empty() && !perf_db.GetCacheMap().empty())
+        << "Aborting test due to empty/unreadable db(s).";
 
     // Convert the map to a vector
     std::vector<FDBLine> fdb_data;
@@ -960,6 +978,7 @@ void StaticFDBSync(const std::string& arch, const size_t num_cu)
                             total_threads,
                             std::ref(fdb_data),
                             std::ref(find_db_rw),
+                            std::ref(perf_db_rw),
                             std::ref(_ctx),
                             std::ref(counter));
 
