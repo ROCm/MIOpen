@@ -1,6 +1,6 @@
 # MIOpenDriver
 
-The `MIOpenDriver` enables the user to test the functionality of any particular 
+The `MIOpenDriver` enables the user to test the functionality of any particular
 layer in MIOpen in both the forward and backward direction. MIOpen is shipped with `MIOpenDriver` and its install directory is `miopen/bin` located in the install directory path.
 
 
@@ -68,7 +68,7 @@ Summary of base_args meant for different datatypes and different operations:
 | :------------------- | :---------------------: | :-------------------: | :----------------: |
 | conv                 | ✓ | ✓ | ✓ |
 | CBAInfer             | x | x | ✓ |
-| CAInfer              | x | x | ✓ | 
+| CAInfer              | x | x | ✓ |
 | pool                 | ✓ | ✓ | x |
 | lrn                  | ✓ | ✓ | x |
 | activ                | ✓ | ✓ | x |
@@ -76,7 +76,7 @@ Summary of base_args meant for different datatypes and different operations:
 | bnorm                | ✓ | ✓ | ✓ |
 | rnn                  | ✓ | ✓ | x |
 | gemm                 | ✓ | ✓ | x |
-| ctc                  | ✓ | x | x |   
+| ctc                  | ✓ | x | x |
 | dropout              | ✓ | ✓ | x |
 | tensorop             | ✓ | x | x |
 | reduce               | ✓ | ✓ | x |
@@ -103,11 +103,11 @@ Summary of base_args meant for different datatypes and different operations:
 
 ## Executing MIOpenDriver
 
-To execute from the build directory: 
+To execute from the build directory:
 
 ```./bin/MIOpenDriver *base_arg* *layer_specific_args*```
 
-Or to execute the default configuration simpily run: 
+Or to execute the default configuration simpily run:
 
 ```./bin/MIOpenDriver *base_arg*```
 
@@ -115,11 +115,11 @@ MIOpenDriver example usages:
 
 - Convolution with search on:
 
-```./bin/MIOpenDriver conv -W 32 -H 32 -c 3 -k 32 -x 5 -y 5 -p 2 -q 2```   
+```./bin/MIOpenDriver conv -W 32 -H 32 -c 3 -k 32 -x 5 -y 5 -p 2 -q 2```
 
 - Forward convolution with search off:
 
-```./bin/MIOpenDriver conv -W 32 -H 32 -c 3 -k 32 -x 5 -y 5 -p 2 -q 2 -s 0 -F 1```  
+```./bin/MIOpenDriver conv -W 32 -H 32 -c 3 -k 32 -x 5 -y 5 -p 2 -q 2 -s 0 -F 1```
 
 - Convolution with half or bfloat16 input type
 
@@ -128,7 +128,7 @@ MIOpenDriver example usages:
 
 - Pooling with default parameters:
 
-```./bin/MIOpenDriver pool```  
+```./bin/MIOpenDriver pool```
 
 - LRN with default parameters and timing on:
 
@@ -136,7 +136,7 @@ MIOpenDriver example usages:
 
 - Batch normalization with spatial fwd train, saving mean and variance tensors:
 
-```./bin/MIOpenDriver bnorm -F 1 -n 32 -c 512 -H 16 -W 16 -m 1 -s 1```  
+```./bin/MIOpenDriver bnorm -F 1 -n 32 -c 512 -H 16 -W 16 -m 1 -s 1```
 
 - RNN with forward and backwards pass, no bias, bi-directional and LSTM mode
 

@@ -14,7 +14,7 @@ to optimize convolutions for different filter and input sizes.
 MIOpen is one of the first libraries to publicly support the ``bfloat16`` data type for convolutions, which
 allows for efficient training at lower precision without loss of accuracy.
 
-The MIOpen public repository is located at 
+The MIOpen public repository is located at
 `<https://github.com/ROCm/rocm-libraries/tree/develop/projects/miopen>`_.
 
 .. note::
@@ -33,7 +33,7 @@ The MIOpen public repository is located at
     * :doc:`Build MIOpen using Docker <./install/docker-build>`
 
 .. grid:: 2
-  :gutter: 3  
+  :gutter: 3
 
   .. grid-item-card:: Conceptual
 

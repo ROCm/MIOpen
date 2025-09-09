@@ -93,7 +93,7 @@ function(add_gtest TEST_NAME TEST_CPP)
     if (NOT MIOPEN_TEST_DEEPBENCH)
         add_gtest_negative_filter("*DeepBench*")
     endif()
-    
+
     if (NOT MIOPEN_TEST_CONV)
         add_gtest_negative_filter("*MIOpenTestConv*")
     endif()
@@ -118,7 +118,7 @@ function(add_gtest TEST_NAME TEST_CPP)
     # Note: Due to the following cmake issue with gtest_discover_tests https://gitlab.kitware.com/cmake/cmake/-/issues/17812 you cannot pass PROPERTIES as a list.
     #       To work around this limitation, we are passing the environment variables in the format ENVIRONMENT;value1=${value1};ENVIRONMENT;value2=${value2}.
     # bn tests are run sequentially since running tests in parallel was causing large tensor case fail with insufficient memory error.
-    if("${TEST_NAME}" STREQUAL "test_bn_bwd_serial_run" OR "${TEST_NAME}" STREQUAL "test_bn_fwd_train_serial_run" OR "${TEST_NAME}" STREQUAL "test_bn_infer_serial_run") 
+    if("${TEST_NAME}" STREQUAL "test_bn_bwd_serial_run" OR "${TEST_NAME}" STREQUAL "test_bn_fwd_train_serial_run" OR "${TEST_NAME}" STREQUAL "test_bn_infer_serial_run")
       gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES RUN_SERIAL TRUE ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
     else()
       gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
@@ -172,9 +172,9 @@ else()
     if(MIOPEN_BUILD_CK )
         # The include directories also dont propagate correctly when using the non aliased targets.
         # Manually including them fixes this problem for inline builds.
-        target_include_directories(miopen_gtest SYSTEM PRIVATE 
-            ${MIOPEN_CK_INCLUDE_DIR} 
-            ${MIOPEN_CK_BUILD_INCLUDE_DIR} 
+        target_include_directories(miopen_gtest SYSTEM PRIVATE
+            ${MIOPEN_CK_INCLUDE_DIR}
+            ${MIOPEN_CK_BUILD_INCLUDE_DIR}
             ${MIOPEN_CK_LIBRARY_INCLUDE_DIR})
     endif()
   endif()

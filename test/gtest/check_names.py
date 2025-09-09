@@ -109,7 +109,7 @@ def check_naming_schema(args):
     return 0
 
 # This function makes sure that we don't have explicit name conflicts in gtest folder
-# For example if you have GPU_SomeTestName_FP32 in file1.cpp and same GPU_SomeTestName_FP32 in file2.cpp 
+# For example if you have GPU_SomeTestName_FP32 in file1.cpp and same GPU_SomeTestName_FP32 in file2.cpp
 # in gtest folder, there will be a naming conflict when both files are combined into one single test binary miopen_gtest
 # If such a situation is detected we should force a developer to make proper unique naming for the tests in PR.
 
@@ -137,7 +137,7 @@ def check_names_uniqueness() :
         files_count += 1
         with open(file_name) as f:
             for line in f:
-                if re.match(test_regexp, line):               
+                if re.match(test_regexp, line):
                     m = re.search('\((.*),', line)
                     if (m is None):
                         continue
@@ -158,7 +158,7 @@ def check_names_uniqueness() :
 
     if error_count > 0:
         return -1
-    
+
     return 0
 
 def main():

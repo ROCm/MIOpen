@@ -44,11 +44,11 @@ static void LogCmdSoftmax(const miopenTensorDescriptor_t xDesc,
         else
             ss << "softmax";
         // clang-format off
-        ss << " -n " << miopen::deref(xDesc).GetLengths()[0] 
-           << " -c " << miopen::deref(xDesc).GetLengths()[1] 
+        ss << " -n " << miopen::deref(xDesc).GetLengths()[0]
+           << " -c " << miopen::deref(xDesc).GetLengths()[1]
            << " -H " << miopen::deref(xDesc).GetLengths()[2]
            << " -W " << miopen::deref(xDesc).GetLengths()[3]
-           << " -F " << ((is_fwd) ? "1" : "2") 
+           << " -F " << ((is_fwd) ? "1" : "2")
            << " -a " << algo << " -m " << mode
            << " -A " << ((alpha == nullptr)?"1": std::to_string(*static_cast<const float*>(alpha)))
            << " -B " << ((beta == nullptr)?"0":std::to_string(*static_cast<const float*>(beta)));

@@ -92,15 +92,15 @@ LogCmdLRN(const miopenLRNDescriptor_t lrnDesc, const miopenTensorDescriptor_t xD
         else if(miopen::deref(xDesc).GetType() == miopenHalf)
             ss << "lrnfp16";
         // clang-format off
-        ss << " -A " << miopen::deref(lrnDesc).GetAlpha() 
-           << " -B " << miopen::deref(lrnDesc).GetBeta() 
-           << " -F " << ((is_fwd) ? "1" : "2") 
-           << " -H " << miopen::deref(xDesc).GetLengths()[2] 
+        ss << " -A " << miopen::deref(lrnDesc).GetAlpha()
+           << " -B " << miopen::deref(lrnDesc).GetBeta()
+           << " -F " << ((is_fwd) ? "1" : "2")
+           << " -H " << miopen::deref(xDesc).GetLengths()[2]
            << " -K " << miopen::deref(lrnDesc).GetK()
            << " -N " << miopen::deref(lrnDesc).GetN()
-           << " -W " << miopen::deref(xDesc).GetLengths()[3] 
+           << " -W " << miopen::deref(xDesc).GetLengths()[3]
            << " -c " << miopen::deref(xDesc).GetLengths()[1]
-           << " -m " << miopen::deref(lrnDesc).GetMode() 
+           << " -m " << miopen::deref(lrnDesc).GetMode()
            << " -n " << miopen::deref(xDesc).GetLengths()[0];
         // clang-format on
 

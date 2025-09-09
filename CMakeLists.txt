@@ -394,7 +394,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "Build without hipbBLASLt")
     endif()
 else()
-    #CK is only enabled when HIP backend is selected   
+    #CK is only enabled when HIP backend is selected
     set(MIOPEN_USE_COMPOSABLEKERNEL Off)
     if(MIOPEN_USE_HIPRTC)
         message(FATAL_ERROR "HIPRTC cannot be used without HIP backend")

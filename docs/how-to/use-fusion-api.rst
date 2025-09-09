@@ -283,7 +283,7 @@ The following abbreviations apply to the combination column in the following tab
 *  **B**: Bias
 *  **N**: Batch Normalization
 *  **A**: Activation
- 
+
 For example, CBA refers to convolution plus bias plus activation.
 
 Convolution-based FP32 fusion for inference

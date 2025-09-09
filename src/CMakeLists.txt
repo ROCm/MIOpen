@@ -191,7 +191,7 @@ set( MIOpen_Source
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
-    softmarginloss/problem_description.cpp 
+    softmarginloss/problem_description.cpp
     softmarginloss_api.cpp
     softmax.cpp
     softmax_api.cpp
@@ -862,15 +862,15 @@ target_include_directories(MIOpen PUBLIC
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
     if(MIOPEN_BUILD_CK )
-        # the aliased target doesnt exist when we build CK inline as part of MIOPEN.  The aliased target only is not 
-        # global when you build it so we dont have access to it. 
+        # the aliased target doesnt exist when we build CK inline as part of MIOPEN.  The aliased target only is not
+        # global when you build it so we dont have access to it.
         set(MIOPEN_CK_LINK_FLAGS device_conv_operations hip::host)
 
         # The include directories also dont propagate correctly when using the non aliased targets.
         # Manually including them fixes this problem for inline builds.
-        target_include_directories(MIOpen SYSTEM PRIVATE 
-            ${MIOPEN_CK_INCLUDE_DIR} 
-            ${MIOPEN_CK_BUILD_INCLUDE_DIR} 
+        target_include_directories(MIOpen SYSTEM PRIVATE
+            ${MIOPEN_CK_INCLUDE_DIR}
+            ${MIOPEN_CK_BUILD_INCLUDE_DIR}
             ${MIOPEN_CK_LIBRARY_INCLUDE_DIR})
     else()
         # Use the aliased targets when we pull CK from /opt/rocm or other place on disc.
