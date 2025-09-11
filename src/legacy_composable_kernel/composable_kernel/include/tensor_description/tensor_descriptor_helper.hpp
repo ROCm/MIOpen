@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef CK_TENSOR_DESCRIPTOR_HELPER_HPP
 #define CK_TENSOR_DESCRIPTOR_HELPER_HPP
 

@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef CK_THREADWISE_CONTRACTION_DLOPS_HPP
 #define CK_THREADWISE_CONTRACTION_DLOPS_HPP
 

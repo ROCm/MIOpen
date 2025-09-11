@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef CK_GRIDWISE_CONTRACTION_DLOPS_V1R2_HPP
 #define CK_GRIDWISE_CONTRACTION_DLOPS_V1R2_HPP
 

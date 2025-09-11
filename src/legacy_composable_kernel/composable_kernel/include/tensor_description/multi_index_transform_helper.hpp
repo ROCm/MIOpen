@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef CK_MULTI_INDEX_TRANSFORM_HELPER_HPP
 #define CK_MULTI_INDEX_TRANSFORM_HELPER_HPP
 
