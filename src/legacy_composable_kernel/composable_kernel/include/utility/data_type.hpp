@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef CK_FLOAT_TYPE_AMD_HPP
 #define CK_FLOAT_TYPE_AMD_HPP
 

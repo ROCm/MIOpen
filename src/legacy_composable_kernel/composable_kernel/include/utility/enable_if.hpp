@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef CK_ENABLE_IF_HPP
 #define CK_ENABLE_IF_HPP
 

@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef CONVOLUTION_PROBLEM_DESCRIPTOR
 #define CONVOLUTION_PROBLEM_DESCRIPTOR
 
