@@ -353,6 +353,10 @@ inline void DefaultConfigSpatialSingle(const miopen::batchnorm::ProblemDescripti
         }
         valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
     }
+    else
+    {
+        valid_kernels.push_back(GetKernelIdFromVariant(1, 1));
+    }
 }
 
 // Check if spatial multiple implementation can be used for a given problem

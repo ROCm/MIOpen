@@ -128,6 +128,8 @@ inline std::vector<BN2DTestCase> Network2DLarge()
         {768, 1, 23, 23, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {832, 1, 14, 14, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {832, 1, 28, 28, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        // {1, 512, 7, 7, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
+        // {1, 512, 7, 7, miopen::batchnorm::Direction::Backward, 1, 1},
         // edge cases
         {69328, 1, 22, 22, miopen::batchnorm::Direction::ForwardTraining, 1, 1},
         {69328, 1, 13, 79, miopen::batchnorm::Direction::ForwardTraining, 1, 1}
