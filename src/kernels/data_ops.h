@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wundef"
 #define UNUSED __attribute__((__unused__))
