@@ -509,9 +509,10 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_gfx11_1024vgprs_fp16_fp16acc_f2x3_c16_stride1.inc
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_metadata.inc
         kernels/winograd/Conv_Winograd_Rage_v4_6_0_gfx94x_fp16_fp32acc_f2x3_stride1.inc
-        kernels/winograd/Conv_Winograd_Rage_v4_6_0_metadata.inc
-        kernels/winograd/Conv_Winograd_Rage_v4_7_0_gfx94x_fp16_fp32acc_f2x3_stride1.inc
-        kernels/winograd/Conv_Winograd_Rage_v4_7_0_metadata.inc
+        kernels/winograd/Conv_Winograd_Rage_v4_X_X_metadata.inc
+        kernels/winograd/Conv_Winograd_Rage_v4_9_0_gfx94x_fp16_fp32acc_f2x3_stride1.inc
+        kernels/winograd/Conv_Winograd_Rage_v4_9_0_gfx94x_fp32_fp32acc_f2x3_stride1.inc
+        kernels/winograd/Conv_Winograd_Rage_v4_9_0_gfx94x_bf16_fp32acc_f2x3_stride1.inc
         kernels/xform_bidirect_winograd_code.inc
         kernels/xform_data_filter.inc
         kernels/xform_kd_cov2.inc
@@ -647,7 +648,9 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c16_stride1.s
         kernels/winograd/Conv_Winograd_Fury_v2_4_1_fp16_fp16acc_f2x3_c32_stride1.s
         kernels/winograd/Conv_Winograd_Rage_v4_6_0_fp16_fp32acc_f2x3_stride1.s
-        kernels/winograd/Conv_Winograd_Rage_v4_7_0_fp16_fp32acc_f2x3_stride1.s
+        kernels/winograd/Conv_Winograd_Rage_v4_9_0_fp16_fp32acc_f2x3_stride1.s
+        kernels/winograd/Conv_Winograd_Rage_v4_9_0_fp32_fp32acc_f2x3_stride1.s
+        kernels/winograd/Conv_Winograd_Rage_v4_9_0_bf16_fp32acc_f2x3_stride1.s
         kernels/xform_data.s
         kernels/xform_filter.s
         kernels/xform_bidirect_winograd_data.s

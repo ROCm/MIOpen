@@ -126,18 +126,12 @@ amdhsa.kernels:
    .size \kernel_name, .Lfunc_end0 - \kernel_name
 .endm
 
-.macro EPILOG_KERNEL_DESCRIPTOR kernel_name:req
+.macro EPILOG_KERNEL_DESCRIPTOR sc:req, wc:req, accum_offset:req, wg_x:req, kernel_name:req
 
 kernel_end \kernel_name
 
-.if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4 && .amdgcn.gfx_generation_stepping == 2)
-    sgpr_cnt = 80
-    vgpr_cnt = 164
-    workgroup_size_x = 768
-.endif
-
-.amdgcn.next_free_sgpr = sgpr_cnt
-.amdgcn.next_free_vgpr = vgpr_cnt
+.amdgcn.next_free_sgpr = \sc
+.amdgcn.next_free_vgpr = \wc
 
 __group_segment_fixed_size = 65536
 __sgpr_dispatch_ptr = 1
@@ -148,6 +142,7 @@ __sgpr_workgroup_id_z = 0
 __sgpr_workgroup_info = 0
 __vgpr_workitem_id = 1
 __reserve_vcc = 1
+__accum_offset = \accum_offset
 __float_round_mode_32 = 0
 __float_round_mode_16_64 = 0
 __float_denorm_mode_32 = 0
@@ -171,7 +166,7 @@ __fp16_overflow = 0
 	.amdhsa_reserve_vcc                      __reserve_vcc
     .amdhsa_next_free_sgpr                   .amdgcn.next_free_sgpr
     .amdhsa_next_free_vgpr                   .amdgcn.next_free_vgpr
-	.amdhsa_accum_offset                     .amdgcn.next_free_vgpr
+	.amdhsa_accum_offset                     __accum_offset
 	.amdhsa_float_round_mode_32              __float_round_mode_32
 	.amdhsa_float_round_mode_16_64           __float_round_mode_16_64
 	.amdhsa_float_denorm_mode_32             __float_denorm_mode_32
@@ -186,27 +181,22 @@ __fp16_overflow = 0
 .end_amdhsa_kernel
 .endif
 
-METADATA_WRAPPER sgpr_cnt, vgpr_cnt, workgroup_size_x, <\kernel_name>
+METADATA_WRAPPER \sc, \wc, \wg_x, <\kernel_name>
 
 .endm
 
-.macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version:req, kernel_name_postfix:req
-    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConvRage_v4_6_0_gfx\machine_version\()\kernel_name_postfix
+.macro PROLOG_KERNEL_DESCRIPTOR_WRAPPER machine_version:req, kernel_version:req, kernel_name_postfix:req
+    PROLOG_KERNEL_DESCRIPTOR miopenSp3AsmConvRage_v\kernel_version\()_gfx\machine_version\()\kernel_name_postfix
 .endm
 
-.macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER machine_version:req, kernel_name_postfix:req
-    EPILOG_KERNEL_DESCRIPTOR miopenSp3AsmConvRage_v4_6_0_gfx\machine_version\()\kernel_name_postfix
+.macro EPILOG_KERNEL_DESCRIPTOR_WRAPPER sc:req, wc:req, accum_offset:req, wg_x:req, machine_version:req, kernel_version:req, kernel_name_postfix:req
+    EPILOG_KERNEL_DESCRIPTOR \sc, \wc, \accum_offset, \wg_x, miopenSp3AsmConvRage_v\kernel_version\()_gfx\machine_version\()\kernel_name_postfix
 .endm
 
-.macro KERNEL_PROLOG kernel_name_postfix:req
-	PROLOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
+.macro KERNEL_PROLOG kernel_version:req, kernel_name_postfix:req
+	PROLOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_version, \kernel_name_postfix
 .endm
 
-.macro KERNEL_EPILOG kernel_name_postfix:req
-	EPILOG_KERNEL_DESCRIPTOR_WRAPPER %.amdgcn.gfx_generation_number, \kernel_name_postfix
+.macro KERNEL_EPILOG sc:req, wc:req, accum_offset:req, wg_x:req, kernel_version:req, kernel_name_postfix:req
+	EPILOG_KERNEL_DESCRIPTOR_WRAPPER \sc, \wc, \accum_offset, \wg_x, %.amdgcn.gfx_generation_number, \kernel_version, \kernel_name_postfix
 .endm
-
-.if (.amdgcn.gfx_generation_number != 9 || .amdgcn.gfx_generation_minor != 4 && .amdgcn.gfx_generation_stepping != 2)
-    .error "Unsupported gfx version"
-    .end
-.endif
