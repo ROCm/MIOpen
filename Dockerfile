@@ -52,6 +52,12 @@ RUN if [ "$MIOPEN_SCCACHE" != "" ]; then \
     chmod +x ${SCCACHE_INSTALL_LOCATION}/sccache; \
     fi
 
+# Add DVC repo
+RUN mkdir -p /etc/apt/keyrings && \
+    wget -qO - https://dvc.org/deb/iterative.asc | sudo gpg --dearmor -o /etc/apt/keyrings/packages.iterative.gpg && \
+    echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/packages.iterative.gpg] https://dvc.org/deb/ stable main" | sudo tee /etc/apt/sources.list.d/dvc.list && \
+    chmod 644 /etc/apt/keyrings/packages.iterative.gpg /etc/apt/sources.list.d/dvc.list
+
 # Install dependencies
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
@@ -74,7 +80,8 @@ RUN apt-get update && \
     rocm-developer-tools \
     rocm-llvm-dev \
     rpm \
-    software-properties-common && \
+    software-properties-common \
+    dvc && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* &&\
     rm -rf amdgpu-install* && \

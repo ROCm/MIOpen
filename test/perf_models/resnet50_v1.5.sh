@@ -1,7 +1,8 @@
+#!/bin/bash
+
 # Copyright © Advanced Micro Devices, Inc., or its affiliates.
 # SPDX-License-Identifier:  MIT
 
-#!/bin/bash
 # usage: resnet50_v1.5.sh <prec> <bs> [<cast1>] [<cast2>]
 # where prec is the precision arg for the driver command
 # bs is the batchsize for the network to use

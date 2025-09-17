@@ -1,7 +1,9 @@
+#!/bin/bash
+
 # Copyright © Advanced Micro Devices, Inc., or its affiliates.
 # SPDX-License-Identifier:  MIT
 
-#!/bin/bash
+
 set -e
 COMPILERS_HASH_DIR=${COMPILERS_HASH_DIR:-"/tmp/.sccache"}
 SCCACHE_EXTRAFILES=${SCCACHE_EXTRAFILES:-"${COMPILERS_HASH_DIR}/rocm_compilers_hash_file"}

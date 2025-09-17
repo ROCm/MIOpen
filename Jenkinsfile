@@ -50,7 +50,7 @@ def runDbSyncJob(def utils)
 {
     script {
         withWorkingDir {
-            utils.buildHipClangJobAndReboot(lfs_pull: true,
+            utils.buildHipClangJobAndReboot(dvc_pull: true,
                                 setup_flags: "-DMIOPEN_TEST_DBSYNC=1",
                                 make_targets: 'test_db_sync',
                                 execute_cmd: './bin/test_db_sync',
