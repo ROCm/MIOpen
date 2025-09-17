@@ -309,42 +309,24 @@ To format the code per commit, you can install githooks:
 ./.githooks/install
 ```
 
-## Storing large file using Git Large File Storage
+## Storing large files using Data Versioning System
 
-Git Large File Storage (LFS) replaces large files, such as audio samples, videos, datasets, and graphics
-with text pointers inside Git, while storing the file contents on a remote server. In MIOpen, we use Gi
-LFS to store our large files, such as our kernel database files (*.kdb) that are normally > 0.5 GB.
+[Data Versioning System (DVS)](https://dvc.org/) replaces large files, such as audio samples, videos, datasets, and
+graphics with text pointers inside Git, while storing the file contents on a remote server. In MIOpen, we use DVC to
+store our large files, such as our kernel database files (*.kdb) that are normally > 0.5 GB.
 
-You can install Git LFS using the following code:
+You can install DVC using the [instructions provided for your platform here](https://dvc.org/doc/install).
 
-```shell
-sudo apt install git-lfs
-git lfs install
-```
-
-In the Git repository where you want to use Git LFS, track the file type using the following code (if the
-file type has already been tracked, you can skip this step):
+You can [pull](https://dvc.org/doc/command-reference/pull) all large files or a single large file using:
 
 ```shell
-git lfs track "*.file_type"
-git add .gitattributes
-```
-
-You can pull all or a single large file using:
-
-```shell
-git lfs pull --exclude=
+dvc pull
 or
-git lfs pull --exclude= --include "filename"
+dvc pull "filename"
 ```
 
-Update the large files and push to GitHub using:
-
-```shell
-git add my_large_files
-git commit -m "the message"
-git push
-```
+If you are familiar with using Git LFS, a key difference with DVC is that you must manually run `dvc pull` after you 
+switch branches or merge changes in Git to ensure any large binaries are kept in sync with your checkout.
 
 ## Installing the dependencies manually
 
