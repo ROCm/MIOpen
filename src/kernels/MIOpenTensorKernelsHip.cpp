@@ -344,3 +344,89 @@ extern "C" __global__ void Op4dTensorGeneric(MIOPEN_TYPE* a,
 }
 
 #endif
+
+#ifdef USE_4D_TENSOR_LITE
+extern "C" __global__ void Op4dTensorLite(const MIOPEN_TYPE* a,
+                                          const MIOPEN_TYPE* b,
+                                          MIOPEN_TYPE* c,
+                                          const MIOPEN_TYPE alpha0,
+                                          const MIOPEN_TYPE alpha1,
+                                          const MIOPEN_TYPE beta,
+                                          const long Aoffset,
+                                          const long Boffset,
+                                          const long Coffset,
+                                          const long total_work,
+                                          const int use_beta)
+{
+    int gid0 = blockIdx.x * blockDim.x + threadIdx.x;
+    int global_size = gridDim.x * blockDim.x;
+
+    MIOPEN_TYPE a_dat[RD_BLCK];
+    MIOPEN_TYPE b_dat[RD_BLCK];
+    MIOPEN_TYPE c_dat[RD_BLCK];
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wfloat-equal"
+    if(beta == static_cast<MIOPEN_TYPE>(0))
+#pragma clang diagnostic pop
+    {
+        for(; gid0 < total_work; gid0 += global_size)
+        {
+            int index = gid0 * RD_BLCK;
+
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                c_dat[i] = static_cast<MIOPEN_TYPE>(0);
+            }
+
+            *(reinterpret_cast<READ_TYPE*>(a_dat)) = *(reinterpret_cast<const READ_TYPE*>(a + index + Aoffset));
+            *(reinterpret_cast<READ_TYPE*>(b_dat)) = *(reinterpret_cast<const READ_TYPE*>(b + index + Boffset));
+            if(use_beta == 1)
+            {
+                *(reinterpret_cast<READ_TYPE*>(c_dat)) = *(reinterpret_cast<const READ_TYPE*>(c + index + Coffset));
+            }
+
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                if(use_beta == 1)
+                {
+                    c_dat[i] = static_cast<MIOPEN_TYPE>(0);
+                }
+                c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1);
+            }
+
+            *(reinterpret_cast<READ_TYPE*>(c + index + Coffset)) = *(reinterpret_cast<READ_TYPE*>(c_dat));
+        }
+    }
+    else
+    {
+        for(; gid0 < total_work; gid0 += global_size)
+        {
+            int index = gid0 * RD_BLCK;
+
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                c_dat[i] = (MIOPEN_TYPE)0;
+            }
+
+            *(reinterpret_cast<READ_TYPE*>(a_dat)) = *(reinterpret_cast<const READ_TYPE*>(a + index + Aoffset));
+            *(reinterpret_cast<READ_TYPE*>(b_dat)) = *(reinterpret_cast<const READ_TYPE*>(b + index + Boffset));
+            if(use_beta == 1)
+            {
+                *(reinterpret_cast<READ_TYPE*>(c_dat)) = *(reinterpret_cast<const READ_TYPE*>(c + index + Coffset));
+            }
+
+            for(int i = 0; i < RD_BLCK; ++i)
+            {
+                if(use_beta == 1)
+                {
+                    c_dat[i] *= beta;
+                }
+                c_dat[i] += MIOPEN_TENSOR_OP(a_dat[i] * alpha0, b_dat[i] * alpha1);
+            }
+
+            *(reinterpret_cast<READ_TYPE*>(c + index + Coffset)) = *(reinterpret_cast<READ_TYPE*>(c_dat));
+        }
+    }
+}
+#endif // USE_4D_TENSOR_LITE
