@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef GUARD_MIOPEN_CHECK_NUMERICS_HPP
 #define GUARD_MIOPEN_CHECK_NUMERICS_HPP
 

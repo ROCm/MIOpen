@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #include "cpu_multi_head_attention.hpp"
 
 struct CPU_Mha_FP32 : test::cpu::CPUMHATest<float, float>

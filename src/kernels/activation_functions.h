@@ -1,3 +1,5 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
 
 #ifndef MIOPEN_NRN_OP_ID
 #define MIOPEN_NRN_OP_ID 0

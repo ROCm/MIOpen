@@ -1,4 +1,5 @@
-
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
 
 def rocmnode(name) {
     def node_name = 'rocmtest'

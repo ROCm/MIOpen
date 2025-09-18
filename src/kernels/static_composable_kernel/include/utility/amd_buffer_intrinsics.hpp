@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef CK_AMD_BUFFER_INTRINSIC_HPP
 #define CK_AMD_BUFFER_INTRINSIC_HPP
 
