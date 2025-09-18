@@ -23,13 +23,12 @@
  * SOFTWARE.
  *
  *******************************************************************************/
-
-.include "Conv_Winograd_Rage_v4_X_X_metadata.inc"
+.include "Conv_Winograd_Rage_v4_6_0_metadata.inc"
 
 .if (.amdgcn.gfx_generation_number == 9 && .amdgcn.gfx_generation_minor == 4 && .amdgcn.gfx_generation_stepping == 2)
-    KERNEL_PROLOG 4_6_0, _fp16_fp32acc_f2x3_stride1
+    KERNEL_PROLOG _fp16_fp32acc_f2x3_stride1
     .include "Conv_Winograd_Rage_v4_6_0_gfx94x_fp16_fp32acc_f2x3_stride1.inc"
-    KERNEL_EPILOG 80, 164, 164, 768, 4_6_0, _fp16_fp32acc_f2x3_stride1
+    KERNEL_EPILOG _fp16_fp32acc_f2x3_stride1
 .else
     .error "Unsupported gfx version"
 .endif

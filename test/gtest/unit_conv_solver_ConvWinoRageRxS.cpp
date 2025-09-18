@@ -34,10 +34,10 @@ auto GetConvTestCases(miopenDataType_t datatype)
 
     return std::vector{
         // clang-format off
-        // rage v4.6 and v4.9(fp32 and bf16)
+        // rage v4.6
         TestCase{{1, 16, 135, 240}, {16, 16, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype},
         TestCase{{2,  4,  64,  64}, {16,  4, 3, 3}, {1, 1}, {1, 1}, {1, 1}, datatype},
-        // rage v4.9
+        // rage v4.7
         TestCase{{1, 16, 135, 240}, {16, 16, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype},
         TestCase{{2,  4,  64,  64}, {16,  4, 5, 5}, {2, 2}, {1, 1}, {1, 1}, datatype},
         // group convs
@@ -76,12 +76,6 @@ const auto& GetTestParams()
 using GPU_UnitTestConvSolverWinoRage2x3Fwd_FP16 = GPU_UnitTestConvSolverFwd_FP16;
 using GPU_UnitTestConvSolverWinoRage2x3Bwd_FP16 = GPU_UnitTestConvSolverBwd_FP16;
 using GPU_UnitTestConvSolverWinoRage2x3Wrw_FP16 = GPU_UnitTestConvSolverWrw_FP16;
-using GPU_UnitTestConvSolverWinoRage2x3Fwd_FP32 = GPU_UnitTestConvSolverFwd_FP32;
-using GPU_UnitTestConvSolverWinoRage2x3Bwd_FP32 = GPU_UnitTestConvSolverBwd_FP32;
-using GPU_UnitTestConvSolverWinoRage2x3Wrw_FP32 = GPU_UnitTestConvSolverWrw_FP32;
-using GPU_UnitTestConvSolverWinoRage2x3Fwd_BFP16 = GPU_UnitTestConvSolverFwd_BFP16;
-using GPU_UnitTestConvSolverWinoRage2x3Bwd_BFP16 = GPU_UnitTestConvSolverBwd_BFP16;
-using GPU_UnitTestConvSolverWinoRage2x3Wrw_BFP16 = GPU_UnitTestConvSolverWrw_BFP16;
 using CPU_UnitTestConvSolverWinoRage2x3DevApplicabilityFwd_NONE =
     CPU_UnitTestConvSolverDevApplicabilityFwd_NONE;
 
@@ -96,36 +90,6 @@ TEST_P(GPU_UnitTestConvSolverWinoRage2x3Bwd_FP16, ConvWinoRageRxSf2x3)
 };
 
 TEST_P(GPU_UnitTestConvSolverWinoRage2x3Wrw_FP16, ConvWinoRageRxSf2x3)
-{
-    this->RunTest(miopen::solver::conv::ConvWinoRageRxS<2, 3>{});
-};
-
-TEST_P(GPU_UnitTestConvSolverWinoRage2x3Fwd_FP32, ConvWinoRageRxSf2x3)
-{
-    this->RunTest(miopen::solver::conv::ConvWinoRageRxS<2, 3>{});
-};
-
-TEST_P(GPU_UnitTestConvSolverWinoRage2x3Bwd_FP32, ConvWinoRageRxSf2x3)
-{
-    this->RunTest(miopen::solver::conv::ConvWinoRageRxS<2, 3>{});
-};
-
-TEST_P(GPU_UnitTestConvSolverWinoRage2x3Wrw_FP32, ConvWinoRageRxSf2x3)
-{
-    this->RunTest(miopen::solver::conv::ConvWinoRageRxS<2, 3>{});
-};
-
-TEST_P(GPU_UnitTestConvSolverWinoRage2x3Fwd_BFP16, ConvWinoRageRxSf2x3)
-{
-    this->RunTest(miopen::solver::conv::ConvWinoRageRxS<2, 3>{});
-};
-
-TEST_P(GPU_UnitTestConvSolverWinoRage2x3Bwd_BFP16, ConvWinoRageRxSf2x3)
-{
-    this->RunTest(miopen::solver::conv::ConvWinoRageRxS<2, 3>{});
-};
-
-TEST_P(GPU_UnitTestConvSolverWinoRage2x3Wrw_BFP16, ConvWinoRageRxSf2x3)
 {
     this->RunTest(miopen::solver::conv::ConvWinoRageRxS<2, 3>{});
 };
@@ -153,42 +117,6 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          testing::Combine(testing::Values(GetTestParams()),
                                           testing::Values(miopenConvolutionAlgoWinograd),
                                           testing::ValuesIn(GetConvTestCasesWrw(miopenHalf))));
-
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverWinoRage2x3Fwd_FP32,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoWinograd),
-                                          testing::ValuesIn(GetConvTestCases(miopenFloat))));
-
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverWinoRage2x3Bwd_FP32,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoWinograd),
-                                          testing::ValuesIn(GetConvTestCases(miopenFloat))));
-
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverWinoRage2x3Wrw_FP32,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoWinograd),
-                                          testing::ValuesIn(GetConvTestCasesWrw(miopenFloat))));
-
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverWinoRage2x3Fwd_BFP16,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoWinograd),
-                                          testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
-
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverWinoRage2x3Bwd_BFP16,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoWinograd),
-                                          testing::ValuesIn(GetConvTestCases(miopenBFloat16))));
-
-INSTANTIATE_TEST_SUITE_P(Smoke,
-                         GPU_UnitTestConvSolverWinoRage2x3Wrw_BFP16,
-                         testing::Combine(testing::Values(GetTestParams()),
-                                          testing::Values(miopenConvolutionAlgoWinograd),
-                                          testing::ValuesIn(GetConvTestCasesWrw(miopenBFloat16))));
 
 // Device applicability test
 INSTANTIATE_TEST_SUITE_P(Smoke,
