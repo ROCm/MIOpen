@@ -32,6 +32,26 @@
 
 namespace {
 
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS)
+
+auto GetTestCompilerRegressionCases()
+{
+    const auto env_regression_check =
+        std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH"},
+                   std::pair{wa::MIOPEN_DEBUG_TUNING_ITERATIONS_MAX, 1},
+                   std::pair{MIOPEN_FIND_MODE, "normal"},
+                   std::pair{MIOPEN_DEBUG_CONV_DIRECT_ASM_WRW1X1_PERF_VALS, "2,8,4,2,4,2,2,4,0,2"},
+                   std::pair{MIOPEN_DEBUG_FIND_ONLY_SOLVER, "ConvAsmBwdWrW1x1"}};
+
+    const std::string vw = " --verbose --disable-forward --disable-backward-data";
+
+    return std::vector{
+        // clang-format off
+    std::pair{env_regression_check, vw + " --input 1 4 6 6 --weights 4 4 1 1 --pads_strides_dilations 0 0 1 1 1 1"}
+        // clang-format on
+    };
+}
+
 auto GetTestCases()
 {
     const auto env_w1 = std::tuple{std::pair{MIOPEN_FIND_ENFORCE, "SEARCH_DB_UPDATE"},
@@ -48,7 +68,8 @@ auto GetTestCases()
     };
 }
 
-using TestCase = decltype(GetTestCases())::value_type;
+using RegrTestCase = decltype(GetTestCompilerRegressionCases())::value_type;
+using TestCase     = decltype(GetTestCases())::value_type;
 
 bool SkipTest() { return get_handle_xnack(); }
 
@@ -60,6 +81,10 @@ bool IsTestSupportedForDevice()
 }
 
 } // namespace
+
+class GPU_Conv2dSingleAsmBwdWrw_FP32 : public FloatTestCase<std::vector<RegrTestCase>>
+{
+};
 
 class GPU_Conv2dTuningAsmBwdWrw_FP32 : public FloatTestCase<std::vector<TestCase>>
 {
@@ -78,6 +103,18 @@ TEST_P(GPU_Conv2dTuningAsmBwdWrw_FP32, FloatTest_smoke_solver_convasmbwdwrw)
     if(IsTestSupportedForDevice() && !SkipTest())
     {
         invoke_with_params<conv2d_driver, GPU_Conv2dTuningAsmBwdWrw_FP32>(tuning_check);
+    }
+    else
+    {
+        GTEST_SKIP();
+    }
+};
+
+TEST_P(GPU_Conv2dSingleAsmBwdWrw_FP32, FloatTest_smoke_solver_convasmbwdwrw)
+{
+    if(IsTestSupportedForDevice() && !SkipTest())
+    {
+        invoke_with_params<conv2d_driver, GPU_Conv2dSingleAsmBwdWrw_FP32>(compiler_check);
     }
     else
     {
@@ -109,6 +146,9 @@ TEST_P(GPU_Conv2dTuningAsmBwdWrw_BFP16, Bf16Test_smoke_solver_convasmbwdwrw)
     }
 };
 
+INSTANTIATE_TEST_SUITE_P(Smoke,
+                         GPU_Conv2dSingleAsmBwdWrw_FP32,
+                         testing::Values(GetTestCompilerRegressionCases()));
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningAsmBwdWrw_FP32, testing::Values(GetTestCases()));
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningAsmBwdWrw_FP16, testing::Values(GetTestCases()));
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Conv2dTuningAsmBwdWrw_BFP16, testing::Values(GetTestCases()));

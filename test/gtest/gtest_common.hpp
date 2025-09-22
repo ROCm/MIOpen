@@ -120,6 +120,14 @@ inline void tuning_check(const std::string& err)
     default_check(err);
 }
 
+inline void compiler_check(const std::string& err)
+{
+    // the test should fail if kernel build failed.
+    EXPECT_FALSE(err.find("Error") != std::string::npos ||
+                 err.find("Code object build failed") != std::string::npos);
+    default_check(err);
+}
+
 inline void db_check(const std::string& err)
 {
     EXPECT_FALSE(err.find("Perf Db: record not found") != std::string::npos);
