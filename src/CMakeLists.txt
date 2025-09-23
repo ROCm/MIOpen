@@ -351,9 +351,6 @@ set( MIOpen_Source
 
 if(MIOPEN_ENABLE_AI_KERNEL_TUNING OR MIOPEN_ENABLE_AI_IMMED_MODE_FALLBACK)
     list(APPEND MIOpen_Source conv/heuristics/ai_heuristics.cpp)
-    list(APPEND MIOpen_Source conv/heuristics/metadata_3d.cpp)
-    list(APPEND MIOpen_Source conv/heuristics/ai_candidate_selection.cpp)
-    list(APPEND MIOpen_Source conv/heuristics/ai_conv_3d_kernel_tuning_utils.cpp)
     list(APPEND MIOpen_Source anyramdb.cpp)
 endif()
 
