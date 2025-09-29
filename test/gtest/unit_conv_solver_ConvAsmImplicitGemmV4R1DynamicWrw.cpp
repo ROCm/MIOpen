@@ -54,6 +54,10 @@ auto GetConvTestCasesFull(miopenDataType_t datatype)
         TestCase{{128, 256, 56, 56}, { 64, 256, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
         TestCase{{ 64, 512, 28, 28}, {256, 512, 1, 1}, {0, 0}, {2, 2}, {1, 1}, datatype},
         TestCase{{ 64, 512, 14, 14}, {256, 512, 1, 1}, {0, 0}, {1, 1}, {1, 1}, datatype},
+        // Regression tests for wo=1/ho=1 stride clamping bug  
+        TestCase{{32, 3, 1, 1}, {64, 3,  3,  5}, {1, 2}, {100, 7}, {1, 1}, datatype},
+        TestCase{{32, 3, 2, 2}, {64, 3,  3,  5}, {2, 4}, {  4, 6}, {1, 1}, datatype},
+        TestCase{{32, 3, 7, 9}, {64, 3, 10, 12}, {3, 3}, {  4, 5}, {1, 1}, datatype},
         // clang-format on
     };
 }
