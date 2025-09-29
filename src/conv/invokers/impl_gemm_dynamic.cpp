@@ -10,9 +10,12 @@
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/batched_transpose_sol.hpp>
 #include <boost/any.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 
 namespace miopen {
 namespace conv {
+
+using ProblemInterpreter = solver::ProblemInterpreter;
 
 static inline uint32_t igemm_find_tile_size_with_upper_bound(
     uint32_t out_size, size_t upper_bound, uint32_t stride, uint32_t dilation, uint32_t filter)
@@ -118,29 +121,29 @@ InvokerFactory MakeImplGemmDynamicForward1x1InvokerFactory(const ProblemDescript
 InvokerFactory MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
                                                              const int cfg)
 {
-    int hi         = problem.GetOutHeight();
-    int wi         = problem.GetOutWidth();
-    int n          = problem.GetInBatchSize();
-    int k          = problem.GetInChannels();
-    int c          = problem.GetOutChannels();
-    int ho         = problem.GetInHeight();
-    int wo         = problem.GetInWidth();
-    int stride_h   = problem.GetInHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    int stride_w   = problem.GetInWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    int dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    int dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
-    int pad_h      = problem.GetPadH();
-    int pad_w      = problem.GetPadW();
-    int y          = problem.GetWeightsHeight();
-    int x          = problem.GetWeightsWidth();
+    const int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    const int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    const int n           = ProblemInterpreter::GetBatchN(problem);
+    const int k           = ProblemInterpreter::GetOutputChannelK(problem);
+    const int c           = ProblemInterpreter::GetInputChannelC(problem);
+    const int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    const int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    const auto stride_h   = ProblemInterpreter::GetAdjustedAsmInputStrideH(problem);
+    const auto stride_w   = ProblemInterpreter::GetAdjustedAsmInputStrideW(problem);
+    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
+    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
+    const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
+    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
 
     int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
     int gcd_stride_dilation_w = solver::gcd(stride_w, dilation_w);
     int y_tilda               = stride_h / gcd_stride_dilation_h;
     int x_tilda               = stride_w / gcd_stride_dilation_w;
 
-    int y_dot = (y + y_tilda - 1) / y_tilda;
-    int x_dot = (x + x_tilda - 1) / x_tilda;
+    int y_dot = solver::integer_divide_ceil(y, y_tilda);
+    int x_dot = solver::integer_divide_ceil(x, x_tilda);
 
     int h_tilda = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
     int w_tilda = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
@@ -252,30 +255,31 @@ InvokerFactory
 MakeImplGemmDynamicBackwardDataInvokerFactory(const ProblemDescription& problem,
                                               const solver::TunableImplicitGemmGTCDynamic_t& cfg)
 {
-    int hi         = problem.GetOutHeight();
-    int wi         = problem.GetOutWidth();
-    int n          = problem.GetInBatchSize();
-    int k          = problem.GetInChannels();
-    int c          = problem.GetOutChannels();
-    int ho         = problem.GetInHeight();
-    int wo         = problem.GetInWidth();
-    int stride_h   = problem.GetOutHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    int stride_w   = problem.GetOutWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    int dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    int dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
-    int pad_h      = problem.GetPadH();
-    int pad_w      = problem.GetPadW();
-    int y          = problem.GetWeightsHeight();
-    int x          = problem.GetWeightsWidth();
-    int group      = problem.GetGroupCount();
+    const int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    const int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    const int n           = ProblemInterpreter::GetBatchN(problem);
+    const int k           = ProblemInterpreter::GetOutputChannelK(problem);
+    const int c           = ProblemInterpreter::GetInputChannelC(problem);
+    const int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    const int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    const auto stride_h   = ProblemInterpreter::GetAdjustedAsmInputStrideH(problem);
+    const auto stride_w   = ProblemInterpreter::GetAdjustedAsmInputStrideW(problem);
+    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
+    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
+    const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
+    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
+    const auto group      = ProblemInterpreter::GetGroupCountG(problem);
 
     int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
     int gcd_stride_dilation_w = solver::gcd(stride_w, dilation_w);
-    int y_tilda               = stride_h / gcd_stride_dilation_h;
-    int x_tilda               = stride_w / gcd_stride_dilation_w;
 
-    int y_dot = (y + y_tilda - 1) / y_tilda;
-    int x_dot = (x + x_tilda - 1) / x_tilda;
+    int y_tilda = stride_h / gcd_stride_dilation_h;
+    int x_tilda = stride_w / gcd_stride_dilation_w;
+
+    int y_dot = solver::integer_divide_ceil(y, y_tilda);
+    int x_dot = solver::integer_divide_ceil(x, x_tilda);
 
     int h_tilda = ho + (dilation_h * (y - 1) + stride_h - 1) / stride_h;
     int w_tilda = wo + (dilation_w * (x - 1) + stride_w - 1) / stride_w;
@@ -437,25 +441,25 @@ InvokerFactory MakeImplGemmDynamicForwardXdlopsNHWCInvokerFactory(
     const ProblemDescription& problem,
     const solver::conv::PerformanceConfigAsmImplicitGemmGTCFwdXdlopsNHWC& config)
 {
-    int hi         = problem.GetInHeight();
-    int wi         = problem.GetInWidth();
-    int n          = problem.GetInBatchSize();
-    int k          = problem.GetOutChannels();
-    int c          = problem.GetInChannels();
-    int ho         = problem.GetOutHeight();
-    int wo         = problem.GetOutWidth();
-    int stride_h   = problem.GetKernelStrideH();
-    int stride_w   = problem.GetKernelStrideW();
-    int dilation_h = problem.GetDilationH();
-    int dilation_w = problem.GetDilationW();
-    int pad_h      = problem.GetPadH();
-    int pad_w      = problem.GetPadW();
-    int y          = problem.GetWeightsHeight();
-    int x          = problem.GetWeightsWidth();
-    int group      = problem.GetGroupCount();
-    int c_karg     = c / group;
-    int y_karg     = y;
-    int x_karg     = x;
+    const int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    const int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    const int n           = ProblemInterpreter::GetBatchN(problem);
+    const int k           = ProblemInterpreter::GetOutputChannelK(problem);
+    const int c           = ProblemInterpreter::GetInputChannelC(problem);
+    const int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    const int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    const auto stride_h   = ProblemInterpreter::GetAdjustedAsmInputStrideH(problem);
+    const auto stride_w   = ProblemInterpreter::GetAdjustedAsmInputStrideW(problem);
+    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
+    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
+    const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
+    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
+    const auto group      = ProblemInterpreter::GetGroupCountG(problem);
+    int c_karg            = c / group;
+    int y_karg            = y;
+    int x_karg            = x;
 
     int splits_4G = solver::igemm_split_batch_size(
         hi, wi, ho, wo, n, k, c, miopen::GetTypeSize(problem.GetInDataType()));
@@ -730,22 +734,22 @@ InvokerFactory MakeImplGemmDynamicBackwardDataXdlopsNHWCInvokerFactory(
     const ProblemDescription& problem,
     const solver::conv::PerformanceConfigAsmImplicitGemmGTCBwdXdlopsNHWC& config)
 {
-    int hi         = problem.GetOutHeight();
-    int wi         = problem.GetOutWidth();
-    int n          = problem.GetInBatchSize();
-    int k          = problem.GetInChannels();
-    int c          = problem.GetOutChannels();
-    int ho         = problem.GetInHeight();
-    int wo         = problem.GetInWidth();
-    int stride_h   = problem.GetOutHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    int stride_w   = problem.GetOutWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    int dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    int dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
-    int pad_h      = problem.GetPadH();
-    int pad_w      = problem.GetPadW();
-    int y          = problem.GetWeightsHeight();
-    int x          = problem.GetWeightsWidth();
-    int group      = problem.GetGroupCount();
+    const int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    const int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    const int n           = ProblemInterpreter::GetBatchN(problem);
+    const int k           = ProblemInterpreter::GetOutputChannelK(problem);
+    const int c           = ProblemInterpreter::GetInputChannelC(problem);
+    const int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    const int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    const auto stride_h   = ProblemInterpreter::GetAdjustedAsmInputStrideH(problem);
+    const auto stride_w   = ProblemInterpreter::GetAdjustedAsmInputStrideW(problem);
+    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
+    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
+    const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
+    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
+    const auto group      = ProblemInterpreter::GetGroupCountG(problem);
 
     int gcd_stride_dilation_h = solver::gcd(stride_h, dilation_h);
     int gcd_stride_dilation_w = solver::gcd(stride_w, dilation_w);
