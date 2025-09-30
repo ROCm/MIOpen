@@ -67,6 +67,12 @@ inline std::tuple<size_t, std::string> GetRDBLCKandREADTYPE(size_t len, miopenDa
 {
     const std::string data_type = GetDataType(type);
     size_t RD_BLCK              = (len % 4 == 0) ? 4 : (len % 2 == 0) ? 2 : 1;
+
+    if(data_type == "half" && RD_BLCK == 4)
+    {
+        RD_BLCK = 2;
+    }
+
     return std::make_tuple(RD_BLCK,
                            (RD_BLCK == 1) ? data_type : data_type + std::to_string(RD_BLCK));
 }
