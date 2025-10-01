@@ -42,9 +42,7 @@
 #include <algorithm>
 #include <array>
 #include <cfloat>
-#include <cstdlib>
 #include <cstring>
-#include <fstream>
 #include <memory>
 #include <numeric>
 #include <sstream>
@@ -117,6 +115,7 @@ private:
     float dropout;
     unsigned long long seed;
     bool use_mask;
+    bool multithread;
 };
 
 template <typename Tgpu, typename Tref>
@@ -128,6 +127,7 @@ int DropoutDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
     {
         miopenEnableProfiling(GetHandle(), true);
     }
+
     return miopenStatusSuccess;
 }
 
@@ -140,6 +140,7 @@ int DropoutDriver<Tgpu, Tref>::GetandSetData()
 
     dropout  = static_cast<float>(inflags.GetValueDouble("dropout"));
     use_mask = static_cast<bool>(inflags.GetValueInt("use_mask"));
+    multithread = (inflags.GetValueInt("mt") != 0);
 
     auto seed_low  = static_cast<unsigned long long>(std::max(inflags.GetValueInt("seed_low"), 0));
     auto seed_high = static_cast<unsigned long long>(std::max(inflags.GetValueInt("seed_high"), 0));
@@ -177,6 +178,7 @@ int DropoutDriver<Tgpu, Tref>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "wall", 'w', "0", "Wall-clock Time Each Layer, Requires time == 1 (Default=0)", "int");
     inflags.AddInputFlag("dump_output", 'o', "0", "Dumps the output buffers (Default=0)", "int");
+    inflags.AddInputFlag("mt", 'u', "0", "Use multithreaded version (Default=0)", "int");
 
     return 0;
 }
@@ -361,6 +363,7 @@ template <typename Tgpu, typename Tref>
 int DropoutDriver<Tgpu, Tref>::RunForwardCPU()
 {
     InitKernelStateEmulator(states_host, DropoutDesc);
+
     RunDropoutForwardEmulator<Tgpu, Tref>(GetHandle(),
                                           DropoutDesc,
                                           inputTensor,
@@ -427,8 +430,27 @@ int DropoutDriver<Tgpu, Tref>::RunBackwardGPU()
 template <typename Tgpu, typename Tref>
 int DropoutDriver<Tgpu, Tref>::RunBackwardCPU()
 {
-    RunDropoutBackwardEmulator<Tgpu, Tref>(
-        DropoutDesc, outputTensor, dout.data, inputTensor, din_host.data, reservespace_host);
+    const auto t1 = std::chrono::high_resolution_clock::now();
+    for(int i = 0 , iter = inflags.GetValueInt("iter"); i < iter; ++i)
+    {
+        if(multithread)
+        {
+            RunDropoutBackwardEmulatorMT<Tgpu, Tref>(DropoutDesc, outputTensor, dout.data, inputTensor, din_host.data, reservespace_host);
+        }
+        else
+        {
+            RunDropoutBackwardEmulator<Tgpu, Tref>(DropoutDesc, outputTensor, dout.data, inputTensor, din_host.data, reservespace_host);
+        }
+    }
+    const auto t2 = std::chrono::high_resolution_clock::now();
+
+    if(inflags.GetValueInt("time") == 1)
+    {
+        using float_ms = std::chrono::duration<float, std::milli>;
+        int iter = inflags.GetValueInt("iter");
+        const auto dt = (iter > 1)  ? float_ms(t2 - t1).count() / iter : float_ms(t2 - t1).count();
+        printf("CPU Time Backward Dropout. Elapsed: %f ms (average)\n", dt);
+    }
 
     if(inflags.GetValueInt("dump_output"))
     {
