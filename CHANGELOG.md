@@ -16,6 +16,7 @@ Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/proj
 ### Optimized
 
 * [Conv] Enabled Composable Kernel (CK) implicit gemms on gfx950.
+* [Conv] Improve Composable Kernel (CK) kernel selection during tuning
 
 ### Resolved issues
 

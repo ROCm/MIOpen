@@ -553,15 +553,6 @@ auto GenericSearch(const Solver s,
 
             try
             {
-                if(default_solution.workspace_sz != current_solution.workspace_sz)
-                {
-                    ret = -2;
-                    MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
-                                     << "Workspace size should not depend on PerformanceConfig: "
-                                     << default_solution.workspace_sz
-                                     << " != " << current_solution.workspace_sz);
-                }
-
                 invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
                                                    current_solution.construction_params);
 
