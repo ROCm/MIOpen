@@ -396,28 +396,6 @@ def buildHipClangJob(Map conf=[:]){
         return retimage
 }
 
-def reboot(){
-    build job: 'reboot-slaves', propagate: false , parameters: [string(name: 'server', value: "${env.NODE_NAME}"),]
-}
-
-def buildHipClangJobAndReboot(Map conf=[:]){
-    try{
-        buildHipClangJob(conf)
-        cleanWs()
-    }
-    catch(e){
-        echo "throwing error exception for the stage"
-        echo 'Exception occurred: ' + e.toString()
-        throw e
-    }
-    finally{
-        if (conf.get("needs_reboot", true)) {
-            reboot()
-        }
-    }
-}
-
-
 def RunPerfTest(Map conf=[:]){
     def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --group-add render --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
     try {
