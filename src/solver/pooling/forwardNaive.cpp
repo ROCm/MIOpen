@@ -211,7 +211,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
     {
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenPoolingForwardNaive.cl";
+        kernel.kernel_file = "MIOpenPoolingForwardNaive.cpp";
         kernel.kernel_name = "mloPoolingForwardNaive";
 
         auto build_params = KernelBuildParameters{
@@ -221,7 +221,7 @@ PoolingForwardNaive::GetSolution(const ExecutionContext& context,
             {"MLO_POOLING_IS2D_KERNEL", static_cast<int>(is2d_kernel)},
         };
         build_params << GetDataTypeKBP(bot.GetType());
-        kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         // [Informative] The total number of kernels required to cover the whole
         // forward pooling problem space is 3*4*2*2 = 48. The solver is dynamic.

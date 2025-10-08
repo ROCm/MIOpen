@@ -79,6 +79,7 @@ public:
 };
 
 #if HIP_PACKAGE_VERSION_FLAT >= 6001024024ULL
+
 template <>
 class numeric_limits<int>
 {
@@ -86,6 +87,47 @@ public:
     static constexpr __device__ int max() noexcept { return 2147483647; }
     static constexpr __device__ int min() noexcept { return -2147483648; }
 };
+
+template <>
+class numeric_limits<unsigned char>
+{
+public:
+    static constexpr __device__ unsigned char max() noexcept { return -1; }
+    static constexpr __device__ unsigned char min() noexcept { return 0; }
+};
+
+template <>
+class numeric_limits<unsigned short>
+{
+public:
+    static constexpr __device__ unsigned short max() noexcept { return -1; }
+    static constexpr __device__ unsigned short min() noexcept { return 0; }
+};
+
+template <>
+class numeric_limits<unsigned int>
+{
+public:
+    static constexpr __device__ unsigned int max() noexcept { return -1; }
+    static constexpr __device__ unsigned int min() noexcept { return 0; }
+};
+
+template <>
+class numeric_limits<unsigned long>
+{
+public:
+    static constexpr __device__ unsigned long max() noexcept { return -1; }
+    static constexpr __device__ unsigned long min() noexcept { return 0; }
+};
+
+template <>
+class numeric_limits<unsigned long long>
+{
+public:
+    static constexpr __device__ unsigned long long max() noexcept { return -1; }
+    static constexpr __device__ unsigned long long min() noexcept { return 0; }
+};
+
 #endif
 
 } // namespace std

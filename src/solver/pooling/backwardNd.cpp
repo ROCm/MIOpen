@@ -73,7 +73,7 @@ PoolingBackwardNd::GetSolution(const ExecutionContext&,
     auto result = ConvSolution{miopenStatusSuccess};
 
     auto kernel        = KernelInfo{};
-    kernel.kernel_file = "MIOpenPoolingBwdND.cl";
+    kernel.kernel_file = "MIOpenPoolingBwdND.cpp";
     kernel.kernel_name = "mloPoolingND";
 
     if(problem.GetPooling().GetMode() == miopenPoolingMax)
@@ -165,12 +165,10 @@ PoolingBackwardNd::GetSolution(const ExecutionContext&,
             {"TERRITORY_OVERLAP", static_cast<int>(territory_overlap)},
             {"MLO_POOLING_INDEX_TYPE",
              get_pooling_index_type_name(problem.GetPooling().GetIndexType())},
-            {"MLO_POOLING_INDEX_MAX",
-             get_pooling_index_type_max_name(problem.GetPooling().GetIndexType())},
         }
         << GetDataTypeKBP(problem.GetDYDesc().GetType());
 
-    kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+    kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
     kernel.l_wk = {wavesize, 1, 1};
     kernel.g_wk = {wavesize * grp_num, 1, 1};
