@@ -27,13 +27,13 @@ RUN apt-get update && \
     curl -fsSL https://repo.radeon.com/rocm/rocm.gpg.key | gpg --dearmor -o /etc/apt/trusted.gpg.d/rocm-keyring.gpg
 
 # Get and install amdgpu-install.
-RUN wget https://repo.radeon.com/amdgpu-install/6.4.1/ubuntu/jammy/amdgpu-install_6.4.60401-1_all.deb --no-check-certificate && \
+RUN wget https://repo.radeon.com/amdgpu-install/6.4.3/ubuntu/jammy/amdgpu-install_6.4.60403-1_all.deb --no-check-certificate && \
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-unauthenticated \
-       ./amdgpu-install_6.4.60401-1_all.deb
+       ./amdgpu-install_6.4.60403-1_all.deb
 
 # Add rocm repository
-RUN export ROCM_APT_VER=6.4.1; \
+RUN export ROCM_APT_VER=6.4.3; \
     echo $ROCM_APT_VER &&\
     sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/amdgpu/$ROCM_APT_VER/ubuntu jammy main > /etc/apt/sources.list.d/amdgpu.list' &&\
     sh -c 'echo deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/rocm-keyring.gpg] https://repo.radeon.com/rocm/apt/$ROCM_APT_VER jammy main > /etc/apt/sources.list.d/rocm.list'
@@ -68,6 +68,7 @@ RUN apt-get update && \
     gdb \
     git \
     git-lfs \
+    half \
     lbzip2 \
     lcov \
     libncurses5-dev \
@@ -77,8 +78,10 @@ RUN apt-get update && \
     python3-pip \
     python3-venv \
     redis \
+    rocblas-dev \
     rocm-developer-tools \
     rocm-llvm-dev \
+    rocrand-dev \
     rpm \
     software-properties-common \
     dvc && \
@@ -86,7 +89,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* &&\
     rm -rf amdgpu-install* && \
 # Remove unnecessary rocm components that take a lot of space
-    apt-get remove -y composablekernel-dev miopen-hip rocfft rocsparse
+    apt-get remove -y miopen-hip
 
 # Setup ubsan environment to printstacktrace
 ENV UBSAN_OPTIONS=print_stacktrace=1
@@ -168,8 +171,10 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     -D MIOPEN_REQ_LIBS_ONLY=ON \
     -D DISABLE_OFFLOAD_COMPRESS=ON \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j ${num_threads} install && \
-    sccache -s
+    make -j ${num_threads} install && \    
+    if [ "$MIOPEN_SCCACHE" != "" ]; then \
+    sccache -s; \
+    fi
 
 # Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS
 RUN sed -i '/composable_kernel/d' /requirements.txt

@@ -46,7 +46,7 @@ const auto& GetTestParams()
 {
     static const auto params = [] {
 #if WORKAROUND_LWPMIOPEN_1392
-        Gpu supported_gpus = Gpu::All & ~(Gpu::gfx110X | Gpu::gfx120X);
+        Gpu supported_gpus = Gpu::All & ~(Gpu::gfx110X | Gpu::gfx115X | Gpu::gfx120X);
 #else
         Gpu supported_gpus = Gpu::All;
 #endif

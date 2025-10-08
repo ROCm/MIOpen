@@ -313,6 +313,7 @@ void test_arch_name()
                        "gfx1100",
                        "gfx1101",
                        "gfx1102",
+                       "gfx1151",
                        "gfx1200",
                        "gfx1201"};
     auto this_arch  = h.GetDeviceName();

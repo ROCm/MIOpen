@@ -86,6 +86,8 @@ Gpu GetDevGpuType()
             return Gpu::gfx103X;
         else if(miopen::StartsWith(dev_name, "gfx110"))
             return Gpu::gfx110X;
+        else if(miopen::StartsWith(dev_name, "gfx115"))
+            return Gpu::gfx115X;
         else if(miopen::StartsWith(dev_name, "gfx120"))
             return Gpu::gfx120X;
         else
@@ -126,6 +128,9 @@ const std::multimap<Gpu, DevDescription>& GetAllKnownDevices()
         {Gpu::gfx110X, {"gfx1101", 27}},
         {Gpu::gfx110X, {"gfx1101", 30}},
         {Gpu::gfx110X, {"gfx1102", 16}},
+        {Gpu::gfx115X, {"gfx1150", 24}},
+        {Gpu::gfx115X, {"gfx1151", 40}},
+        {Gpu::gfx115X, {"gfx1152", 8}},
         {Gpu::gfx120X, {"gfx1201", 32}},
         {Gpu::gfx120X, {"gfx1201", 28}}
         // clang-format on

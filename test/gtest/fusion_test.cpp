@@ -35,7 +35,7 @@
 namespace {
 bool IsTestSupportedForDevice()
 {
-    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+    using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X, Gpu::gfx115X>;
     // gfx120X is not enabled due to WORKAROUND_SWDEV_479810
     using d_mask = disabled<Gpu::None>;
     return ::IsTestSupportedForDevMask<d_mask, e_mask>();

@@ -116,6 +116,7 @@ enum class architecture : int
     unknown,
     gfx103x,
     gfx110x,
+    gfx115x,
     gfx120x,
 };
 
@@ -144,20 +145,23 @@ struct launch_dimension
     static constexpr unsigned int grp2 = static_cast<unsigned int>(Grp2);
 };
 
-template <int Gfx103x, int Gfx110x, int Gfx120x>
+template <int Gfx103x, int Gfx110x, int Gfx120x, int Gfx115x>
 struct architecture_switch
 {
     static_assert(Gfx103x == 0 || Gfx103x == 1, "Gfx103x must be 0 or 1");
     static_assert(Gfx110x == 0 || Gfx110x == 1, "Gfx110x must be 0 or 1");
     static_assert(Gfx120x == 0 || Gfx120x == 1, "Gfx120x must be 0 or 1");
-    static_assert(Gfx103x + Gfx110x + Gfx120x == 1 || Gfx103x + Gfx110x + Gfx120x == 0,
+    static_assert(Gfx115x == 0 || Gfx115x == 1, "Gfx115x must be 0 or 1");
+    static_assert(Gfx103x + Gfx110x + Gfx120x + Gfx115x == 1 || Gfx103x + Gfx110x + Gfx120x + Gfx115x == 0,
                   "only one of these configs can be chosen.");
     static constexpr architecture value =
         static_cast<bool>(Gfx103x)
             ? architecture::gfx103x
             : (static_cast<bool>(Gfx110x)
                    ? architecture::gfx110x
-                   : (static_cast<bool>(Gfx120x) ? architecture::gfx120x : architecture::unknown));
+                   : (static_cast<bool>(Gfx120x) 
+                          ? architecture::gfx120x
+                          : (static_cast<bool>(Gfx115x) ? architecture::gfx115x : architecture::unknown)));
 };
 
 template <typename MiopenConfig,
@@ -227,7 +231,7 @@ struct proto_config
     static constexpr bool use_amdgnc =
         MiopenConfig::use_amdgnc &&
         !(target_arch == architecture::gfx103x || target_arch == architecture::gfx110x ||
-          target_arch == architecture::gfx120x) &&
+          target_arch == architecture::gfx120x || target_arch == architecture::gfx115x) &&
         !(use_nodpp && (variant != 0));
 #else
     static constexpr bool use_amdgnc = false;
@@ -274,7 +278,7 @@ using config = miopen::batchnorm::detail::proto_config<
     miopen::batchnorm::detail::half_max,
     miopen::batchnorm::detail::flt_max,
     miopen::batchnorm::detail::launch_dimension<MIO_BN_GRP0, MIO_BN_GRP1, MIO_BN_GRP2>,
-    miopen::batchnorm::detail::architecture_switch<MIO_BN_GFX103X, MIO_BN_GFX110X, MIO_BN_GFX120X>,
+    miopen::batchnorm::detail::architecture_switch<MIO_BN_GFX103X, MIO_BN_GFX110X, MIO_BN_GFX120X, MIO_BN_GFX115X>,
     MIO_BN_VARIANT,
     MIO_BN_NCHW,
     MIO_BN_MAXN,

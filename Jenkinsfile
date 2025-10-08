@@ -60,6 +60,20 @@ def runDbSyncJob(def utils)
     }
 }
 
+def runBuildAndSingleGtestJob(def utils, def flags, def build_timeout_minutes=420)
+{
+    script {
+        withWorkingDir {
+            def single_gtest_flags = " -DMIOPEN_TEST_DISCRETE=OFF -DGTEST_PARALLEL_LEVEL=4 "
+            utils.buildHipClangJob(
+                setup_flags: single_gtest_flags + flags, 
+                build_cmd: "LLVM_PATH=/opt/rocm/llvm CTEST_PARALLEL_LEVEL=4 make -j\$(nproc) install miopen_gtest check",
+                build_install:true,
+                build_timeout:build_timeout_minutes)
+        }
+    }
+}
+
 //launch develop branch nightly jobs
 CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 0 * * * % RUN_NIGHTLY_TESTS=true;BUILD_PACKAGE_AND_CHECKS=false;BUILD_FULL_TESTS=false;TARGET_GFX908=true;TARGET_GFX90A=true;TARGET_GFX942=true''' : ""
 
@@ -120,6 +134,10 @@ pipeline {
             defaultValue: false,
             description: "Navi3 currently fails to build with instruction not supported on this GPU error")
         booleanParam(
+            name: "TARGET_NAVI35",
+            defaultValue: env.BRANCH_NAME == "develop" ? true : false,
+            description: "Navi3.5 Strix Halo")
+        booleanParam(
             name: "TARGET_NAVI4",
             defaultValue: false,
             description: "Navi4 currently fails to build with instruction not supported on this GPU error")
@@ -175,6 +193,11 @@ pipeline {
         NOMLIR_flags    = " -DMIOPEN_USE_MLIR=Off"
         REPO_DIR        = "${repoDir}"
         REPO_NAME       = "${repoName}"
+
+        Build_timeout_minutes = 420
+
+
+        
     }
     stages{
         stage('Build Docker'){
@@ -393,11 +416,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Bf16_flags + Full_test, build_install: true)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test + Bf16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -415,11 +434,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Bf16_flags + Full_test, build_install: true)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test + Bf16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -437,11 +452,23 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx942") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Bf16_flags + Full_test, build_install: true)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test + Bf16_flags, Build_timeout_minutes)
+                    }
+                }
+                stage('Bf16 Hip All Install gfx115X') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI35 && params.DATATYPE_BF16 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("strix") }
+                    environment{
+                        gfx115x_filter_flags = " -DMIOPEN_TEST_GFX115X=On "
+                    }
+                    steps{
+                        runBuildAndSingleGtestJob(utils, gfx115x_filter_flags + Full_test + Bf16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -459,11 +486,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Full_test + Fp16_flags, build_install: true)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test + Fp16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -481,11 +504,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Full_test + Fp16_flags, build_install: true)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test + Fp16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -503,11 +522,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx942") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Full_test + Fp16_flags, build_install: true)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test + Fp16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -525,11 +540,24 @@ pipeline {
                     }
                     agent{ label rocmnode("navi32") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Full_test + Fp16_flags)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test + Fp16_flags, Build_timeout_minutes)
+                    }
+                }
+                stage('Fp16 Hip All Install gfx115X') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI35 && params.DATATYPE_FP16 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("strix") }
+                    environment{
+                        gfx115x_filter_flags = " -DMIOPEN_TEST_GFX115X=On "
+                        build_timeout_minutes = 420
+                    }
+                    steps{
+                        runBuildAndSingleGtestJob(utils, gfx115x_filter_flags + Full_test + Fp16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -547,11 +575,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Full_test)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -569,11 +593,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Full_test)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -591,11 +611,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx942") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Full_test)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -613,11 +629,24 @@ pipeline {
                     }
                     agent{ label rocmnode("navi32") }
                     steps{
-                        script {
-                            withWorkingDir {
-                                utils.buildHipClangJob(setup_flags: Full_test, build_install: true)
-                            }
-                        }
+                        runBuildAndSingleGtestJob(utils, Full_test, Build_timeout_minutes)
+                    }
+                }
+                stage('Fp32 Hip All Install gfx115X') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_NAVI35 && params.DATATYPE_FP32 }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("strix") }
+                    environment{
+                        gfx115x_filter_flags = " -DMIOPEN_TEST_GFX115X=On "
+                        build_timeout_minutes = 420
+                    }
+                    steps{
+                        runBuildAndSingleGtestJob(utils, gfx115x_filter_flags + Full_test, Build_timeout_minutes)
                     }
                     post {
                         always {

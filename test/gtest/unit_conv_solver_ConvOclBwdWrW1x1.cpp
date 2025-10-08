@@ -43,7 +43,7 @@ const auto& GetTestParams()
 {
     static const auto params = [] {
         // gfx10 and gfx11 are disabled due to WORKAROUND_SWDEV_266868
-        Gpu supported_gpus = Gpu::All & ~(Gpu::gfx103X | Gpu::gfx110X);
+        Gpu supported_gpus = Gpu::All & ~(Gpu::gfx103X | Gpu::gfx110X | Gpu::gfx115X);
         auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();
         return p;

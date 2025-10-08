@@ -108,7 +108,7 @@ function(add_gtest TEST_NAME TEST_CPP)
     #it prints the message only once
     set(TMPFNAME _dummy_static_variable_${name})
     if (NOT COMMAND ${TMPFNAME})
-      message(STATUS "TEST_FILTER ${MIOPEN_GTEST_FILTER}")
+      message(STATUS "MIOPEN_GTEST_FILTER ${MIOPEN_GTEST_FILTER}")
       # Define a function so next time it will exist
       function(${TMPFNAME})
       endfunction()
@@ -123,6 +123,59 @@ function(add_gtest TEST_NAME TEST_CPP)
     else()
       gtest_discover_tests(${TEST_NAME} DISCOVERY_TIMEOUT 300 DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR} PROPERTIES ${TEST_ENVIRONMENT_VARIABLES} TEST_FILTER "${MIOPEN_GTEST_FILTER}")
     endif()
+  else()
+    set(MIOPEN_GTEST_PREFIX)
+    set(MIOPEN_GTEST_FILTER_NEGATIVE)
+
+    if (MIOPEN_TEST_ALL)
+      set(MIOPEN_GTEST_PREFIX "")
+    else()
+      set(MIOPEN_GTEST_PREFIX "Smoke")
+    endif()
+
+    if (NOT MIOPEN_TEST_MLIR)
+        add_gtest_negative_filter("*MLIRTest*")
+    endif()
+
+    if (NOT MIOPEN_TEST_DBSYNC)
+        add_gtest_negative_filter("*DBSync*")
+    endif()
+
+    if (NOT MIOPEN_TEST_DEEPBENCH)
+        add_gtest_negative_filter("*DeepBench*")
+    endif()
+    
+    if (NOT MIOPEN_TEST_CONV)
+        add_gtest_negative_filter("*MIOpenTestConv*")
+    endif()
+
+    if(MIOPEN_NO_GPU)
+        add_gtest_negative_filter("*GPU*")
+    endif()
+    
+    if(MIOPEN_TEST_GFX115X)
+        add_gtest_negative_filter("Smoke/GPU_BNFWDTrainLargeFusedActivation2D_FP32.BnV2LargeFWD_TrainCKfp32Activation/NCHW_BNSpatial_testBNAPIV1_Dim_2_test_id_32") # Temporarily disabled until gfx1151 CI nodes have fw 31 or higher installed
+        add_gtest_negative_filter("Smoke/GPU_BNFWDTrainLarge2D_FP32.BnV2LargeFWD_TrainCKfp32/NCHW_BNSpatial_testBNAPIV2_Dim_2_test_id_64") # Temporarily disabled until gfx1151 CI nodes have fw 31 or higher installed
+        add_gtest_negative_filter("*SerialRun3D*") # These FP32 SerialRun3D tests use so much memory that they have a risk of timing out the machine during tests
+    endif()
+
+    # when building the single gtest, add them in a sharded manner
+    # loop over GTEST_PARALLEL_LEVEL
+    set(MIOPEN_GTEST_FILTER "${MIOPEN_GTEST_PREFIX}*${MIOPEN_GTEST_SUFFIX}*:${MIOPEN_GTEST_PREFIX}*NONE*${MIOPEN_GTEST_FILTER_NEGATIVE}")
+
+    message(STATUS "MIOPEN_GTEST_FILTER ${MIOPEN_GTEST_FILTER}")
+
+    foreach(i RANGE 1 ${GTEST_PARALLEL_LEVEL})
+      add_test(NAME ${TEST_NAME}_shard${i}
+        COMMAND ${TEST_NAME} --gtest_filter=${MIOPEN_GTEST_FILTER}
+        WORKING_DIRECTORY "${PROJECT_BINARY_DIR}/${DATABASE_INSTALL_DIR}"
+      )
+      math(EXPR SHARD_INDEX "${i} - 1")
+      set_tests_properties(${TEST_NAME}_shard${i} PROPERTIES
+        ENVIRONMENT "MIOPEN_USER_DB_PATH=${CMAKE_CURRENT_BINARY_DIR};MIOPEN_INVOKED_FROM_CTEST=1;GTEST_TOTAL_SHARDS=${GTEST_PARALLEL_LEVEL};GTEST_SHARD_INDEX=${SHARD_INDEX}"
+      )
+    endforeach()
+
   endif()
   target_link_libraries(${TEST_NAME} BZip2::BZip2)
   if(WIN32)

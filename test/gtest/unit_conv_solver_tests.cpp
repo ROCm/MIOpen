@@ -42,6 +42,7 @@ std::vector<Gpu> gpus{Gpu::gfx900,
                       Gpu::gfx950,
                       Gpu::gfx103X,
                       Gpu::gfx110X,
+                      Gpu::gfx115X,
                       Gpu::gfx120X};
 
 std::vector<miopenDataType_t> types{miopenHalf,
@@ -156,5 +157,6 @@ TEST(CPU_UnitConvSolverToleranceTests_NONE, testSetMulti)
     EXPECT_EQ(all, tol.Get(Gpu::gfx950, miopenFloat));
     EXPECT_EQ(all, tol.Get(Gpu::gfx103X, miopenFloat));
     EXPECT_EQ(all, tol.Get(Gpu::gfx110X, miopenFloat));
+    EXPECT_EQ(all, tol.Get(Gpu::gfx115X, miopenFloat));
     EXPECT_EQ(all, tol.Get(Gpu::gfx120X, miopenFloat));
 }

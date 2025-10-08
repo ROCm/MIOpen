@@ -55,6 +55,7 @@ static inline bool is_ck_supported_hardware(const Handle& handle)
            StartsWith(handle.GetDeviceName(), "gfx1100") ||
            StartsWith(handle.GetDeviceName(), "gfx1101") ||
            StartsWith(handle.GetDeviceName(), "gfx1102") ||
+           StartsWith(handle.GetDeviceName(), "gfx1151") ||
            StartsWith(handle.GetDeviceName(), "gfx1200") ||
            StartsWith(handle.GetDeviceName(), "gfx1201");
 }
