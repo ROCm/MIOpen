@@ -153,7 +153,7 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
     {
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenPoolingND.cl";
+        kernel.kernel_file = "MIOpenPoolingND.cpp";
         kernel.kernel_name = "mloPoolingNDFwd";
 
         int pooling_method = (problem.GetPooling().mode == miopenPoolingMax)
@@ -182,8 +182,6 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
             {"STRIDE_W", kp.stride_w},
             {"MLO_POOLING_INDEX_TYPE",
              get_pooling_index_type_name(problem.GetPooling().GetIndexType())},
-            {"MLO_POOLING_INDEX_MAX",
-             get_pooling_index_type_max_name(problem.GetPooling().GetIndexType())},
         };
 
         if(problem.SaveIndex())
@@ -195,7 +193,7 @@ ConvSolution PoolingForwardNd::GetSolution(const ExecutionContext&,
 
         build_params << GetDataTypeKBP(problem.GetXDesc().GetType());
 
-        kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         kernel.l_wk = {lcl_work, 1, 1};
         kernel.g_wk = {lcl_work * grp_num, 1, 1};

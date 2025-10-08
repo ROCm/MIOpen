@@ -157,7 +157,7 @@ ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,
     {
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenPooling.cl";
+        kernel.kernel_file = "MIOpenPooling.cpp";
         kernel.kernel_name = "mloPoolingG";
 
         const kernel_params kp(problem);
@@ -196,7 +196,6 @@ ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,
             {"MLO_POOLING_GROUP_SZ0", grp_tile0},
             {"MLO_POOLING_GROUP_SZ1", grp_tile1},
             {"MLO_POOLING_INDEX_TYPE", get_pooling_index_type_name(pool_d.GetIndexType())},
-            {"MLO_POOLING_INDEX_MAX", get_pooling_index_type_max_name(pool_d.GetIndexType())},
         };
 
         if(problem.SaveIndex())
@@ -209,7 +208,7 @@ ConvSolution PoolingForward2d::GetSolution(const ExecutionContext&,
 
         build_params << GetDataTypeKBP(problem.GetXDesc().GetType());
 
-        kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         kernel.l_wk.push_back(grp_tile0);
         kernel.l_wk.push_back(grp_tile1);
