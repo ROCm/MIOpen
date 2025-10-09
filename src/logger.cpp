@@ -26,6 +26,7 @@
 #include <miopen/env.hpp>
 #include <miopen/logger.hpp>
 #include <miopen/config.h>
+#include <miopen/sysinfo_utils.hpp>
 
 #include <cstdlib>
 #include <chrono>
@@ -181,6 +182,7 @@ std::string LoggingPrefix()
     std::stringstream ss;
     if(env::enabled(MIOPEN_ENABLE_LOGGING_MPMT))
     {
+        ss << sysinfo::GetSystemHostname() << ' ';
         ss << GetProcessAndThreadId() << ' ';
     }
     ss << "MIOpen";
