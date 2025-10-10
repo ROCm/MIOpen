@@ -122,7 +122,6 @@ class GPU_conv_extra_I8 : public testing::TestWithParam<std::vector<TestCase>>
     MIOPEN_DECLARE_GTEST_USES_TEST_DRIVE();
 };
 
-
 bool IsTestSupportedForDevice()
 {
     using namespace miopen::debug;

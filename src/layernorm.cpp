@@ -92,10 +92,17 @@ std::size_t GetLayerNormBackwardWorkspaceSize(const Handle& handle,
                                               miopenNormMode_t mode,
                                               int32_t normalized_dim)
 {
-    auto ctx = ExecutionContext{&handle};
-    const auto problem =
-        layernorm::ProblemDescription{
-            mode, dyDesc, xDesc, weightDesc, meanDesc, rstdDesc, dxDesc, dwDesc, dbDesc, normalized_dim};
+    auto ctx           = ExecutionContext{&handle};
+    const auto problem = layernorm::ProblemDescription{mode,
+                                                       dyDesc,
+                                                       xDesc,
+                                                       weightDesc,
+                                                       meanDesc,
+                                                       rstdDesc,
+                                                       dxDesc,
+                                                       dwDesc,
+                                                       dbDesc,
+                                                       normalized_dim};
 
     const auto algo    = AlgorithmName{"LayerNormBackward"};
     const auto solvers = solver::SolverContainer<solver::layernorm::LayernormBackward>{};
@@ -127,15 +134,22 @@ miopenStatus_t LayerNormBackward(const Handle& handle,
                                  miopenNormMode_t mode,
                                  int32_t normalized_dim)
 {
-    const auto problem =
-        layernorm::ProblemDescription{mode, dyDesc, xDesc, weightDesc, meanDesc, rstdDesc, dxDesc, dwDesc, dbDesc, normalized_dim};
+    const auto problem = layernorm::ProblemDescription{mode,
+                                                       dyDesc,
+                                                       xDesc,
+                                                       weightDesc,
+                                                       meanDesc,
+                                                       rstdDesc,
+                                                       dxDesc,
+                                                       dwDesc,
+                                                       dbDesc,
+                                                       normalized_dim};
 
     const auto invoke_params = [&]() {
-        auto tmp           = layernorm::BwdInvokeParams{};
-        tmp.type           = InvokeType::Run;
-        tmp.dyDesc         = &dyDesc;
-        tmp.workspace      = workspace,
-        tmp.workspace_size = workspaceSizeInBytes;
+        auto tmp      = layernorm::BwdInvokeParams{};
+        tmp.type      = InvokeType::Run;
+        tmp.dyDesc    = &dyDesc;
+        tmp.workspace = workspace, tmp.workspace_size = workspaceSizeInBytes;
         tmp.dy             = dy;
         tmp.x              = x;
         tmp.weight         = weight;

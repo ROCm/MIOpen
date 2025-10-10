@@ -163,7 +163,8 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
         std::min(
             size_t(std::min(size_t(MAX_PRNG_STATE), miopen::deref(handle).GetImage3dMaxWidth()) /
                    256),
-            ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256)) * 256;
+            ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256)) *
+        256;
 
     const bool bound_dropout_rate = miopen::float_equal(dropout_rate, 1.0);
     for(int i0 = 0; i0 < in_len[0]; i0++)
@@ -200,31 +201,33 @@ struct Indexer
     const size_t len4;
 
     Indexer(size_t len0_, size_t len1_, size_t len2_, size_t len3_, size_t len4_)
-        : len0(len0_), len1(len1_), len2(len2_), len3(len3_), len4(len4_) {}
+        : len0(len0_), len1(len1_), len2(len2_), len3(len3_), len4(len4_)
+    {
+    }
 
     auto get(int begin) const
     {
         const int size0 = (len1 * len2 * len3 * len4);
-        size_t i0 = begin/size0;
-        begin -= i0*size0;
+        size_t i0       = begin / size0;
+        begin -= i0 * size0;
 
         const int size1 = (len2 * len3 * len4);
-        size_t i1 = begin/size1;
-        begin -=  i1*size1;
+        size_t i1       = begin / size1;
+        begin -= i1 * size1;
 
         const int size2 = (len3 * len4);
-        size_t i2 = begin/size2;
-        begin -=  i2*size2;
+        size_t i2       = begin / size2;
+        begin -= i2 * size2;
 
         const int size3 = len4;
-        size_t i3 = begin/size3;
-        begin -=  i3*size3;
+        size_t i3       = begin / size3;
+        begin -= i3 * size3;
 
         size_t i4 = begin;
         return std::make_tuple(i0, i1, i2, i3, i4);
     }
 
-    void step(size_t &i0, size_t &i1, size_t &i2, size_t &i3, size_t &i4) const
+    void step(size_t& i0, size_t& i1, size_t& i2, size_t& i3, size_t& i4) const
     {
         if(++i4 == len4)
         {
@@ -295,7 +298,6 @@ void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
                     in_str,
                     out_len,
                     out_str);
-
 
     for(int i0 = 0; i0 < in_len[0]; i0++)
         for(int i1 = 0; i1 < in_len[1]; i1++)
@@ -370,7 +372,7 @@ void RunDropoutBackwardEmulatorMT(const miopenDropoutDescriptor_t dropoutDesc,
                     out_str);
 
     const bool bound_dropout_rate = miopen::float_equal(dropout_rate, 1.0);
-    const size_t full_size = in_len[0] * in_len[1] * in_len[2] * in_len[3] * in_len[4];
+    const size_t full_size        = in_len[0] * in_len[1] * in_len[2] * in_len[3] * in_len[4];
     const Indexer ind(in_len[0], in_len[1], in_len[2], in_len[3], in_len[4]);
 
     const auto calc = [&](const size_t begin, const size_t end) {
@@ -378,18 +380,16 @@ void RunDropoutBackwardEmulatorMT(const miopenDropoutDescriptor_t dropoutDesc,
 
         for(size_t i = begin; i < end; ++i)
         {
-            const size_t oi = out_offset + i0 * out_str[0] + i1 * out_str[1] + i2 * out_str[2] + i3 * out_str[3] + i4;
-            const size_t ii = in_offset  + i0 * in_str[0]  + i1 * in_str[1]  + i2 * in_str[2]  + i3 * in_str[3]  + i4;
-            const size_t ri = rsvsp_offset +
-                        i0 * in_len[1] * in_len[2] * in_len[3] * in_len[4] +
-                        i1 * in_len[2] * in_len[3] * in_len[4] +
-                        i2 * in_len[3] * in_len[4] +
-                        i3 * in_len[4] +
-                        i4;
+            const size_t oi = out_offset + i0 * out_str[0] + i1 * out_str[1] + i2 * out_str[2] +
+                              i3 * out_str[3] + i4;
+            const size_t ii =
+                in_offset + i0 * in_str[0] + i1 * in_str[1] + i2 * in_str[2] + i3 * in_str[3] + i4;
+            const size_t ri = rsvsp_offset + i0 * in_len[1] * in_len[2] * in_len[3] * in_len[4] +
+                              i1 * in_len[2] * in_len[3] * in_len[4] + i2 * in_len[3] * in_len[4] +
+                              i3 * in_len[4] + i4;
 
-            din[ii] = static_cast<Tref>(bool(reservespace[ri]) && !bound_dropout_rate
-                                            ? dout[oi] / (1 - dropout_rate)
-                                            : 0);
+            din[ii] = static_cast<Tref>(
+                bool(reservespace[ri]) && !bound_dropout_rate ? dout[oi] / (1 - dropout_rate) : 0);
             ind.step(i0, i1, i2, i3, i4);
         }
     };
@@ -397,11 +397,10 @@ void RunDropoutBackwardEmulatorMT(const miopenDropoutDescriptor_t dropoutDesc,
     const size_t chunk_size = full_size / std::thread::hardware_concurrency();
     if(chunk_size > 1024)
     {
-        par_for(std::thread::hardware_concurrency(), [&](size_t i) {
-            calc(i * chunk_size, (i+1) * chunk_size);
-        });
+        par_for(std::thread::hardware_concurrency(),
+                [&](size_t i) { calc(i * chunk_size, (i + 1) * chunk_size); });
 
-        if(std::thread::hardware_concurrency()*chunk_size < full_size)
+        if(std::thread::hardware_concurrency() * chunk_size < full_size)
         {
             calc(std::thread::hardware_concurrency() * chunk_size, full_size);
         }

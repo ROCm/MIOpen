@@ -148,6 +148,12 @@ TEST_P(GPU_LayerNormBwdTest_BFP16, LayerNormTestBw)
 INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormTest_FP32, testing::ValuesIn(LayerNormTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormTest_FP16, testing::ValuesIn(LayerNormTestConfigs()));
 INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormTest_BFP16, testing::ValuesIn(LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormBwdTest_FP32, testing::ValuesIn(LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormBwdTest_FP16, testing::ValuesIn(LayerNormTestConfigs()));
-INSTANTIATE_TEST_SUITE_P(Full, GPU_LayerNormBwdTest_BFP16, testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_LayerNormBwdTest_FP32,
+                         testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_LayerNormBwdTest_FP16,
+                         testing::ValuesIn(LayerNormTestConfigs()));
+INSTANTIATE_TEST_SUITE_P(Full,
+                         GPU_LayerNormBwdTest_BFP16,
+                         testing::ValuesIn(LayerNormTestConfigs()));

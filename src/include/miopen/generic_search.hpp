@@ -634,7 +634,6 @@ auto GenericSearch(const Solver s,
                             MIOPEN_LOG_I2("Mean is not better: " << elapsed_time
                                                                  << " >= " << best_time);
                         }
-
                     }
                 }
                 if(perf_sols)

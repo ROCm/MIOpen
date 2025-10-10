@@ -68,10 +68,10 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
     auto output_dtype = miopen::GetDataType(problem.GetDXDesc().GetType());
     auto dims         = problem.GetDYDesc().GetLengths();
 
-    auto outer_size =
-        std::accumulate(dims.begin(), dims.begin() + problem.GetNormalizedDim(), 1ULL, std::multiplies<size_t>());
-    auto inner_size =
-        std::accumulate(dims.begin() + problem.GetNormalizedDim(), dims.end(), 1ULL, std::multiplies<size_t>());
+    auto outer_size = std::accumulate(
+        dims.begin(), dims.begin() + problem.GetNormalizedDim(), 1ULL, std::multiplies<size_t>());
+    auto inner_size = std::accumulate(
+        dims.begin() + problem.GetNormalizedDim(), dims.end(), 1ULL, std::multiplies<size_t>());
 
     auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
 
@@ -256,10 +256,14 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
 
                 auto dims = params.dyDesc->GetLengths();
 
-                auto outer_size =
-                    std::accumulate(dims.begin(), dims.begin() + params.normalized_dim, 1ULL, std::multiplies<size_t>());
-                auto inner_size =
-                    std::accumulate(dims.begin() + params.normalized_dim, dims.end(), 1ULL, std::multiplies<size_t>());
+                auto outer_size = std::accumulate(dims.begin(),
+                                                  dims.begin() + params.normalized_dim,
+                                                  1ULL,
+                                                  std::multiplies<size_t>());
+                auto inner_size = std::accumulate(dims.begin() + params.normalized_dim,
+                                                  dims.end(),
+                                                  1ULL,
+                                                  std::multiplies<size_t>());
 
                 auto reqd_work_item_cnt = get_reqd_work_item_cnt(handle_);
                 auto parallelism_size =
@@ -294,7 +298,8 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
                                             inner_size,
                                             parallelism_size);
 
-                weight_bias_kernel(params.workspace, params.dw, params.db, inner_size, parallelism_size);
+                weight_bias_kernel(
+                    params.workspace, params.dw, params.db, inner_size, parallelism_size);
 
                 if(handle_.IsProfilingEnabled())
                 {
@@ -311,16 +316,20 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
     {
         result.invoker_factory = [](const std::vector<Kernel>& kernels) {
             return [=](const Handle& handle_, const AnyInvokeParams& raw_params) {
-                decltype(auto) kernel        = handle_.Run(kernels[0]);
+                decltype(auto) kernel             = handle_.Run(kernels[0]);
                 decltype(auto) weight_bias_kernel = handle_.Run(kernels[1]);
                 decltype(auto) params = raw_params.CastTo<miopen::layernorm::BwdInvokeParams>();
 
                 auto dims = params.dyDesc->GetLengths();
 
-                auto outer_size =
-                    std::accumulate(dims.begin(), dims.begin() + params.normalized_dim, 1ULL, std::multiplies<size_t>());
-                auto inner_size =
-                    std::accumulate(dims.begin() + params.normalized_dim, dims.end(), 1ULL, std::multiplies<size_t>());
+                auto outer_size = std::accumulate(dims.begin(),
+                                                  dims.begin() + params.normalized_dim,
+                                                  1ULL,
+                                                  std::multiplies<size_t>());
+                auto inner_size = std::accumulate(dims.begin() + params.normalized_dim,
+                                                  dims.end(),
+                                                  1ULL,
+                                                  std::multiplies<size_t>());
 
                 auto elapsed = 0.f;
                 HipEventPtr start;
@@ -372,11 +381,11 @@ LayernormBackward::GetWorkspaceSize(const ExecutionContext& context,
 {
     auto dims = problem.GetDYDesc().GetLengths();
 
-    auto outer_size =
-        std::accumulate(dims.begin(), dims.begin() + problem.GetNormalizedDim(), 1ULL, std::multiplies<size_t>());
+    auto outer_size = std::accumulate(
+        dims.begin(), dims.begin() + problem.GetNormalizedDim(), 1ULL, std::multiplies<size_t>());
 
-    auto inner_size =
-        std::accumulate(dims.begin() + problem.GetNormalizedDim(), dims.end(), 1ULL, std::multiplies<size_t>());
+    auto inner_size = std::accumulate(
+        dims.begin() + problem.GetNormalizedDim(), dims.end(), 1ULL, std::multiplies<size_t>());
 
     auto reqd_work_item_cnt = get_reqd_work_item_cnt(context);
 

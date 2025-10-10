@@ -134,9 +134,9 @@ __device__ void layernormbwdcontiguous(const TI* __restrict__ dy,
 
     __shared__ FLOAT_ACCUM ltmp1[LOCAL_SIZE];
     __shared__ FLOAT_ACCUM ltmp2[LOCAL_SIZE];
-    FLOAT_ACCUM sum_dy_weight = 0;
+    FLOAT_ACCUM sum_dy_weight   = 0;
     FLOAT_ACCUM sum_dy_weight_x = 0;
-    
+
     // Reduce sums
     if(dy)
     {
@@ -144,9 +144,11 @@ __device__ void layernormbwdcontiguous(const TI* __restrict__ dy,
         {
             size_t x_idx = gid * inner_size + i;
 
-            FLOAT_ACCUM pdy_pweight = CVT_FLOAT2ACCUM(dy[x_idx]) * ((mode == MIOPEN_ELEMENTWISE_AFFINE) ? CVT_FP32_2ACCUM(1.0f)
-                                                                                                        : CVT_FLOAT2ACCUM(weight[i]));
-            
+            FLOAT_ACCUM pdy_pweight =
+                CVT_FLOAT2ACCUM(dy[x_idx]) * ((mode == MIOPEN_ELEMENTWISE_AFFINE)
+                                                  ? CVT_FP32_2ACCUM(1.0f)
+                                                  : CVT_FLOAT2ACCUM(weight[i]));
+
             sum_dy_weight += pdy_pweight;
             sum_dy_weight_x += pdy_pweight * CVT_FLOAT2ACCUM(x[x_idx]);
         }
@@ -165,25 +167,25 @@ __device__ void layernormbwdcontiguous(const TI* __restrict__ dy,
         __syncthreads();
     }
 
-    sum_dy_weight = ltmp1[0];
-    sum_dy_weight_x = ltmp2[0];
+    sum_dy_weight     = ltmp1[0];
+    sum_dy_weight_x   = ltmp2[0];
     FLOAT_ACCUM scale = 1.0f / inner_size;
     FLOAT_ACCUM prstd = CVT_FLOAT2ACCUM(rstd[gid]);
     FLOAT_ACCUM pmean = CVT_FLOAT2ACCUM(mean[gid]);
-    FLOAT_ACCUM a = prstd * prstd * prstd * scale * (sum_dy_weight_x - sum_dy_weight * pmean);
-    FLOAT_ACCUM b = prstd * sum_dy_weight * scale - a * pmean;
+    FLOAT_ACCUM a     = prstd * prstd * prstd * scale * (sum_dy_weight_x - sum_dy_weight * pmean);
+    FLOAT_ACCUM b     = prstd * sum_dy_weight * scale - a * pmean;
 
     // Backward calculation
     for(uint64_t i = lid; i < inner_size; i += LOCAL_SIZE)
     {
         size_t idx = gid * inner_size + i;
 
-        FLOAT_ACCUM pdy = dy ? CVT_FLOAT2ACCUM(dy[idx]) : 0;
+        FLOAT_ACCUM pdy     = dy ? CVT_FLOAT2ACCUM(dy[idx]) : 0;
         FLOAT_ACCUM pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE) ? CVT_FP32_2ACCUM(1.0f)
                                                                   : CVT_FLOAT2ACCUM(weight[i]);
 
         FLOAT_ACCUM val = prstd * pdy * pweight - a * CVT_FLOAT2ACCUM(x[idx]) - b;
-        dx[idx] = CVT_ACCUM2FLOAT(val);
+        dx[idx]         = CVT_ACCUM2FLOAT(val);
     }
 }
 
@@ -203,7 +205,7 @@ __device__ void layernormbwdweightbiascontiguous(const TI* __restrict__ dy,
     {
         FLOAT_ACCUM sum_dw = 0;
         FLOAT_ACCUM sum_db = 0;
-        
+
         // Backward calculation
         for(uint64_t i = 0; i < outer_size; ++i)
         {
@@ -211,7 +213,7 @@ __device__ void layernormbwdweightbiascontiguous(const TI* __restrict__ dy,
 
             FLOAT_ACCUM prstd = CVT_FLOAT2ACCUM(rstd[i]);
             FLOAT_ACCUM pmean = CVT_FLOAT2ACCUM(mean[i]);
-            FLOAT_ACCUM pdy = dy ? CVT_FLOAT2ACCUM(dy[input_idx]) : 0;
+            FLOAT_ACCUM pdy   = dy ? CVT_FLOAT2ACCUM(dy[input_idx]) : 0;
 
             sum_dw += prstd * pdy * (CVT_FLOAT2ACCUM(x[input_idx]) - pmean);
             sum_db += pdy;
@@ -243,7 +245,7 @@ __device__ void layernormbwdweightbiascontiguousparallel(const TI* __restrict__ 
     if(gid >= inner_size * parallel_size)
         return;
 
-    uint64_t pid = gid / inner_size;
+    uint64_t pid       = gid / inner_size;
     uint64_t input_idx = gid;
 
     FLOAT_ACCUM sum_dw = 0;
@@ -256,7 +258,7 @@ __device__ void layernormbwdweightbiascontiguousparallel(const TI* __restrict__ 
         {
             FLOAT_ACCUM prstd = CVT_FLOAT2ACCUM(rstd[i]);
             FLOAT_ACCUM pmean = CVT_FLOAT2ACCUM(mean[i]);
-            FLOAT_ACCUM pdy = CVT_FLOAT2ACCUM(dy[input_idx]);
+            FLOAT_ACCUM pdy   = CVT_FLOAT2ACCUM(dy[input_idx]);
 
             sum_dw += pdy * prstd * (CVT_FLOAT2ACCUM(x[input_idx]) - pmean);
             sum_db += pdy;
@@ -264,7 +266,7 @@ __device__ void layernormbwdweightbiascontiguousparallel(const TI* __restrict__ 
         }
     }
 
-    workspace[gid] = CVT_ACCUM2FLOAT(sum_dw);
+    workspace[gid]                              = CVT_ACCUM2FLOAT(sum_dw);
     workspace[gid + parallel_size * inner_size] = CVT_ACCUM2FLOAT(sum_db);
 }
 
@@ -619,14 +621,15 @@ extern "C" __global__ void LayernormBwdWeightBiasContiguous(const INPUT_TYPE* __
         dy, x, mean, rstd, dw, db, outer_size, inner_size);
 }
 
-extern "C" __global__ void LayernormBwdWeightBiasContiguousParallel(const INPUT_TYPE* __restrict__ dy,
-                                                                    const INPUT_TYPE* __restrict__ x,
-                                                                    const INPUT_TYPE* __restrict__ mean,
-                                                                    const INPUT_TYPE* __restrict__ rstd,
-                                                                    OUTPUT_TYPE* __restrict__ workspace,
-                                                                    uint64_t outer_size,
-                                                                    uint64_t inner_size,
-                                                                    uint64_t parallel_size)
+extern "C" __global__ void
+LayernormBwdWeightBiasContiguousParallel(const INPUT_TYPE* __restrict__ dy,
+                                         const INPUT_TYPE* __restrict__ x,
+                                         const INPUT_TYPE* __restrict__ mean,
+                                         const INPUT_TYPE* __restrict__ rstd,
+                                         OUTPUT_TYPE* __restrict__ workspace,
+                                         uint64_t outer_size,
+                                         uint64_t inner_size,
+                                         uint64_t parallel_size)
 {
     layernormbwdweightbiascontiguousparallel<INPUT_TYPE, OUTPUT_TYPE>(
         dy, x, mean, rstd, workspace, outer_size, inner_size, parallel_size);

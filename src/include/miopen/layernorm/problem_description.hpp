@@ -76,17 +76,17 @@ struct ProblemDescription : ProblemDescriptionBase
                        const TensorDescriptor& dwDesc_,
                        const TensorDescriptor& dbDesc_,
                        int32_t normalized_dim_)
-            : direction(Direction::Backward),
-              mode(mode_),
-              xDesc(xDesc_),
-              weightDesc(weightDesc_),
-              meanDesc(meanDesc_),
-              rstdDesc(rstdDesc_),
-              dyDesc(dyDesc_),
-              dxDesc(dxDesc_),
-              dwDesc(dwDesc_),
-              dbDesc(dbDesc_),
-              normalized_dim(normalized_dim_)
+        : direction(Direction::Backward),
+          mode(mode_),
+          xDesc(xDesc_),
+          weightDesc(weightDesc_),
+          meanDesc(meanDesc_),
+          rstdDesc(rstdDesc_),
+          dyDesc(dyDesc_),
+          dxDesc(dxDesc_),
+          dwDesc(dwDesc_),
+          dbDesc(dbDesc_),
+          normalized_dim(normalized_dim_)
     {
     }
 
@@ -255,7 +255,8 @@ struct ProblemDescription : ProblemDescriptionBase
         else
         {
             if(!(dyDesc.IsPacked() && xDesc.IsPacked() && weightDesc.IsPacked() &&
-                 rstdDesc.IsPacked() && dxDesc.IsPacked() && dwDesc.IsPacked() && dbDesc.IsPacked()))
+                 rstdDesc.IsPacked() && dxDesc.IsPacked() && dwDesc.IsPacked() &&
+                 dbDesc.IsPacked()))
             {
 #if MIOPEN_BUILD_DEV || !MIOPEN_NDEBUG
                 MIOPEN_THROW(miopenStatusBadParm,

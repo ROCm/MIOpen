@@ -58,18 +58,18 @@ struct BwdInvokeParams : public miopen::InvokeParams
 
     const TensorDescriptor* dyDesc = nullptr;
 
-    ConstData_t dy = nullptr;
-    ConstData_t x = nullptr;
-    ConstData_t weight = nullptr;
-    ConstData_t mean = nullptr;
-    ConstData_t rstd = nullptr;
-    Data_t dx = nullptr;
-    Data_t dw = nullptr;
-    Data_t db = nullptr;
-    Data_t workspace = nullptr;
+    ConstData_t dy         = nullptr;
+    ConstData_t x          = nullptr;
+    ConstData_t weight     = nullptr;
+    ConstData_t mean       = nullptr;
+    ConstData_t rstd       = nullptr;
+    Data_t dx              = nullptr;
+    Data_t dw              = nullptr;
+    Data_t db              = nullptr;
+    Data_t workspace       = nullptr;
     int32_t normalized_dim = 0;
-    size_t workspace_size = 0;
-    miopenNormMode_t mode = MIOPEN_ELEMENTWISE_AFFINE;
+    size_t workspace_size  = 0;
+    miopenNormMode_t mode  = MIOPEN_ELEMENTWISE_AFFINE;
 
     std::size_t GetWorkspaceSize() const { return workspace_size; }
     Data_t GetWorkspace() const { return workspace; }

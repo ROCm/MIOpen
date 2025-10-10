@@ -111,12 +111,11 @@ void cpu_layernorm_backward(tensor<T> dy,
     }
 
     par_ford(outer_size)([&](int32_t o) {
-        float sum_dy_weight = 0;
+        float sum_dy_weight   = 0;
         float sum_dy_weight_x = 0;
 
         ford(inner_size)([&](int32_t i) {
-            float pweight =
-                (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<float>(weight[i]);
+            float pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<float>(weight[i]);
             float pdy     = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
             float px      = static_cast<float>(x[o * inner_size + i]);
             sum_dy_weight += pdy * pweight;
@@ -130,8 +129,7 @@ void cpu_layernorm_backward(tensor<T> dy,
         float b     = prstd * sum_dy_weight * scale - a * pmean;
 
         ford(inner_size)([&](int32_t i) {
-            float pweight =
-                (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<float>(weight[i]);
+            float pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<float>(weight[i]);
             float pdy     = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
 
             float val = prstd * pdy * pweight - a * static_cast<float>(x[o * inner_size + i]) - b;
@@ -502,8 +500,17 @@ protected:
 
         std::vector<size_t> workspace_dims;
 
-        ws_sizeInBytes = miopen::GetLayerNormBackwardWorkspaceSize(
-            handle, dy.desc, x.desc, weight.desc, mean.desc, rstd.desc, dx.desc, dw.desc, db.desc, ln_mode, normalized_dim);
+        ws_sizeInBytes = miopen::GetLayerNormBackwardWorkspaceSize(handle,
+                                                                   dy.desc,
+                                                                   x.desc,
+                                                                   weight.desc,
+                                                                   mean.desc,
+                                                                   rstd.desc,
+                                                                   dx.desc,
+                                                                   dw.desc,
+                                                                   db.desc,
+                                                                   ln_mode,
+                                                                   normalized_dim);
 
         workspace_dims.push_back(ws_sizeInBytes / sizeof(T));
         if(ws_sizeInBytes != 0)

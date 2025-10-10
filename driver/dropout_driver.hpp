@@ -138,8 +138,8 @@ int DropoutDriver<Tgpu, Tref>::GetandSetData()
     SetTensorNd(inputTensor, in_len, data_type);
     SetTensorNd(outputTensor, in_len, data_type);
 
-    dropout  = static_cast<float>(inflags.GetValueDouble("dropout"));
-    use_mask = static_cast<bool>(inflags.GetValueInt("use_mask"));
+    dropout     = static_cast<float>(inflags.GetValueDouble("dropout"));
+    use_mask    = static_cast<bool>(inflags.GetValueInt("use_mask"));
     multithread = (inflags.GetValueInt("mt") != 0);
 
     auto seed_low  = static_cast<unsigned long long>(std::max(inflags.GetValueInt("seed_low"), 0));
@@ -431,15 +431,25 @@ template <typename Tgpu, typename Tref>
 int DropoutDriver<Tgpu, Tref>::RunBackwardCPU()
 {
     const auto t1 = std::chrono::high_resolution_clock::now();
-    for(int i = 0 , iter = inflags.GetValueInt("iter"); i < iter; ++i)
+    for(int i = 0, iter = inflags.GetValueInt("iter"); i < iter; ++i)
     {
         if(multithread)
         {
-            RunDropoutBackwardEmulatorMT<Tgpu, Tref>(DropoutDesc, outputTensor, dout.data, inputTensor, din_host.data, reservespace_host);
+            RunDropoutBackwardEmulatorMT<Tgpu, Tref>(DropoutDesc,
+                                                     outputTensor,
+                                                     dout.data,
+                                                     inputTensor,
+                                                     din_host.data,
+                                                     reservespace_host);
         }
         else
         {
-            RunDropoutBackwardEmulator<Tgpu, Tref>(DropoutDesc, outputTensor, dout.data, inputTensor, din_host.data, reservespace_host);
+            RunDropoutBackwardEmulator<Tgpu, Tref>(DropoutDesc,
+                                                   outputTensor,
+                                                   dout.data,
+                                                   inputTensor,
+                                                   din_host.data,
+                                                   reservespace_host);
         }
     }
     const auto t2 = std::chrono::high_resolution_clock::now();
@@ -447,8 +457,8 @@ int DropoutDriver<Tgpu, Tref>::RunBackwardCPU()
     if(inflags.GetValueInt("time") == 1)
     {
         using float_ms = std::chrono::duration<float, std::milli>;
-        int iter = inflags.GetValueInt("iter");
-        const auto dt = (iter > 1)  ? float_ms(t2 - t1).count() / iter : float_ms(t2 - t1).count();
+        int iter       = inflags.GetValueInt("iter");
+        const auto dt  = (iter > 1) ? float_ms(t2 - t1).count() / iter : float_ms(t2 - t1).count();
         printf("CPU Time Backward Dropout. Elapsed: %f ms (average)\n", dt);
     }
 

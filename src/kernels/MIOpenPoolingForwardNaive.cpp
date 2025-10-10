@@ -28,7 +28,7 @@
 #include "miopen_cstdint.hpp"
 #include "pooling_functions.h"
 
-#if (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+#if(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE) || (MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
 #define AVERAGE_OPS 1
 #else
 #define AVERAGE_OPS 0

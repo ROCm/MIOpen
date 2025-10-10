@@ -1139,11 +1139,14 @@ ConvSolution InitInvokerFactoryNCHW(const ExecutionContext& ctx,
         return {miopenStatusInvalidValue};
     }
 
-    if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>) {
+    if constexpr(std::is_same_v<CastType, miopen::conv::WrWInvokeParams>)
+    {
         auto ck_ws_size = ck_args.GetCKSplitkWorkspaceSize(*ptr_iter, split_k.value_or(1));
         _ck_buff_des.emplace(ck_ws_size, 0);
         result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem, ck_ws_size);
-    } else {
+    }
+    else
+    {
         result.workspace_sz = GetWorkspaceSizeLayoutTransformConv(problem);
     }
 
@@ -1289,7 +1292,7 @@ ConvSolution InitInvokerFactoryNHWC(const ExecutionContext&,
         ConvSolution result;
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
         miopenAlphaBetaCase_t alpha_beta_case = problem.GetAlphaBetaCase();
-        auto ck_args = CKArgsType{problem};
+        auto ck_args                          = CKArgsType{problem};
         auto ck_ws_size = ck_args.GetCKSplitkWorkspaceSize(*ptr_iter, split_k.value_or(1));
         [[maybe_unused]] bool should_allocated_wrw_buffer = ck_ws_size > 0;
 
