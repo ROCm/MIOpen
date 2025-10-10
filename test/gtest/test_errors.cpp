@@ -196,16 +196,16 @@ TEST(CPU_test_errors_NONE, test_miopen_throw_if)
 
 TEST(CPU_test_errors_NONE, test_exception_setcontext_directly)
 {
-    const std::string test_file = "test_file.cpp";
-    const int test_line = 123;
-    const std::string test_msg = "direct context test";
+    const std::string test_file         = "test_file.cpp";
+    const int test_line                 = 123;
+    const std::string test_msg          = "direct context test";
     const std::string expected_hostname = miopen::sysinfo::GetSystemHostname();
-    
+
     miopen::Exception ex(miopenStatusBadParm, test_msg);
     ex = ex.SetContext(test_file, test_line);
-    
-    std::string expected_message = expected_hostname + ":" + test_file + ":" + std::to_string(test_line) + ": " + test_msg;
+
+    std::string expected_message =
+        expected_hostname + ":" + test_file + ":" + std::to_string(test_line) + ": " + test_msg;
     EXPECT_EQ(ex.message, expected_message);
     EXPECT_EQ(ex.status, miopenStatusBadParm);
 }
-
