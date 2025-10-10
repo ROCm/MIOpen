@@ -20,16 +20,19 @@ std::string GetSystemHostname()
 {
     char name[256] = "";
 #ifdef __linux__
-    if (gethostname(name, sizeof(name)) == 0) {
+    if(gethostname(name, sizeof(name)) == 0)
+    {
         return {name};
     }
 #elif defined(_WIN32)
     WSADATA wsaData;
     int wsaResult = WSAStartup(MAKEWORD(2, 2), &wsaData);
-    if (wsaResult == 0) {
+    if(wsaResult == 0)
+    {
         int hostnameResult = gethostname(name, sizeof(name));
         WSACleanup();
-        if (hostnameResult == 0) {
+        if(hostnameResult == 0)
+        {
             return {name};
         }
     }
