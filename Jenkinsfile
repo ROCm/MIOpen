@@ -2,7 +2,7 @@ def repoName = scm.getUserRemoteConfigs()[0].getUrl().tokenize('/').last().repla
 
 def repoDir = "./"
 if (repoName == "rocm-libraries") {
-    repoDir = "/projects/miopen"
+    repoDir = "projects/miopen"
 }
 
 def rocmnode(name) {
@@ -242,21 +242,11 @@ pipeline {
                 }
                 stage('Clang Format') {
                     agent{ label rocmnode("nogpu") }
-                    environment{
-                        execute_cmd = "find ${repoDir} -iname \'*.h\' \
-                                -o -iname \'*.hpp\' \
-                                -o -iname \'*.cpp\' \
-                                -o -iname \'*.h.in\' \
-                                -o -iname \'*.hpp.in\' \
-                                -o -iname \'*.cpp.in\' \
-                                -o -iname \'*.cl\' \
-                                | grep -v -E '(build/)|(install/)|(fin/)' \
-                                | xargs -n 1 -P 1 -I{} -t sh -c \'clang-format-12 -style=file {} | diff - {}\'"
-                    }
+                    
                     steps{
                         script {
                             withWorkingDir {
-                                utils.buildHipClangJob(setup_cmd: "", build_cmd: "", execute_cmd: execute_cmd, needs_gpu:false)
+                                utils.buildHipClangJob(make_targets: "check_format", needs_gpu:false)
                             }
                         }
                     }
