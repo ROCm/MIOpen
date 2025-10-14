@@ -28,9 +28,9 @@
 #include <miopen/handle.hpp>
 
 #include <miopen/binary_cache.hpp>
+#include <miopen/config.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
-#include <miopen/export_internals.h>
 #include <miopen/handle_lock.hpp>
 #include <miopen/invoker.hpp>
 #include <miopen/kernel_cache.hpp>

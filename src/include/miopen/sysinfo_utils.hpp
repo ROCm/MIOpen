@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <miopen/export_internals.h>
+#include <miopen/config.hpp>
 #include <string>
 
 namespace miopen {
