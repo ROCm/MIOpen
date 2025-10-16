@@ -25,6 +25,7 @@
  *******************************************************************************/
 
 #include <miopen/errors.hpp>
+#include <miopen/sysinfo_utils.hpp>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
@@ -76,6 +77,7 @@ TEST(CPU_test_errors_NONE, test_miopen_throw)
 {
     const std::string err_msg1{"test error message"};
     const std::string err_msg2{"another error message"};
+    const std::string expected_hostname = miopen::sysinfo::GetSystemHostname();
 
     EXPECT_THROW([&err_msg1]() { MIOPEN_THROW(err_msg1); }(), miopen::Exception);
     EXPECT_THROW([&err_msg1]() { MIOPEN_THROW(miopenStatusInternalError, err_msg1); }(),
@@ -89,10 +91,12 @@ TEST(CPU_test_errors_NONE, test_miopen_throw)
             }
             catch(const miopen::Exception& e)
             {
-                EXPECT_THAT(e.message, ::testing::StartsWith(__FILE__));
+                EXPECT_THAT(e.message, ::testing::StartsWith(expected_hostname));
+                EXPECT_THAT(e.message, ::testing::HasSubstr(__FILE__));
                 EXPECT_THAT(e.message, ::testing::EndsWith(err_msg1));
 
-                EXPECT_THAT(e.what(), ::testing::StartsWith(__FILE__));
+                EXPECT_THAT(e.what(), ::testing::StartsWith(expected_hostname));
+                EXPECT_THAT(e.what(), ::testing::HasSubstr(__FILE__));
                 EXPECT_THAT(e.what(), ::testing::EndsWith(err_msg1));
 
                 EXPECT_EQ(e.status, miopenStatusUnknownError);
@@ -109,15 +113,99 @@ TEST(CPU_test_errors_NONE, test_miopen_throw)
             }
             catch(const miopen::Exception& e)
             {
-                EXPECT_THAT(e.message, ::testing::StartsWith(__FILE__));
+                EXPECT_THAT(e.message, ::testing::StartsWith(expected_hostname));
+                EXPECT_THAT(e.message, ::testing::HasSubstr(__FILE__));
                 EXPECT_THAT(e.message, ::testing::EndsWith(err_msg2));
 
-                EXPECT_THAT(e.what(), ::testing::StartsWith(__FILE__));
+                EXPECT_THAT(e.what(), ::testing::StartsWith(expected_hostname));
+                EXPECT_THAT(e.what(), ::testing::HasSubstr(__FILE__));
                 EXPECT_THAT(e.what(), ::testing::EndsWith(err_msg2));
+
+                // Verify the format: hostname:file:line: message
+                std::string expected_prefix = expected_hostname + ":" + __FILE__ + ":";
+                EXPECT_THAT(e.message, ::testing::StartsWith(expected_prefix));
 
                 EXPECT_EQ(e.status, miopenStatusUnknownError);
                 throw;
             }
         },
         miopen::Exception);
+}
+
+TEST(CPU_test_errors_NONE, test_miopen_throw_if)
+{
+    const std::string err_msg1{"test error message"};
+    const std::string err_msg2{"another error message"};
+    const std::string expected_hostname = miopen::sysinfo::GetSystemHostname();
+    const std::string fail_condition("failed condition: true");
+
+    EXPECT_THROW([&err_msg1]() { MIOPEN_THROW_IF(true, err_msg1); }(), miopen::Exception);
+
+    EXPECT_THROW(
+        {
+            try
+            {
+                MIOPEN_THROW_IF(true, err_msg1);
+            }
+            catch(const miopen::Exception& e)
+            {
+                EXPECT_THAT(e.message, ::testing::StartsWith(expected_hostname));
+                EXPECT_THAT(e.message, ::testing::HasSubstr(__FILE__));
+                EXPECT_THAT(e.message, ::testing::HasSubstr(err_msg1));
+                EXPECT_THAT(e.message, ::testing::EndsWith(fail_condition));
+
+                EXPECT_THAT(e.what(), ::testing::StartsWith(expected_hostname));
+                EXPECT_THAT(e.what(), ::testing::HasSubstr(__FILE__));
+                EXPECT_THAT(e.what(), ::testing::HasSubstr(err_msg1));
+                EXPECT_THAT(e.what(), ::testing::EndsWith(fail_condition));
+
+                EXPECT_EQ(e.status, miopenStatusInternalError);
+                throw;
+            }
+        },
+        miopen::Exception);
+
+    EXPECT_THROW(
+        {
+            try
+            {
+                MIOPEN_THROW_IF(true, err_msg2);
+            }
+            catch(const miopen::Exception& e)
+            {
+                EXPECT_THAT(e.message, ::testing::StartsWith(expected_hostname));
+                EXPECT_THAT(e.message, ::testing::HasSubstr(__FILE__));
+                EXPECT_THAT(e.message, ::testing::HasSubstr(err_msg2));
+                EXPECT_THAT(e.message, ::testing::EndsWith(fail_condition));
+
+                EXPECT_THAT(e.what(), ::testing::StartsWith(expected_hostname));
+                EXPECT_THAT(e.what(), ::testing::HasSubstr(__FILE__));
+                EXPECT_THAT(e.what(), ::testing::HasSubstr(err_msg2));
+                EXPECT_THAT(e.message, ::testing::EndsWith(fail_condition));
+
+                // Verify the format: hostname:file:line: message
+                std::string expected_prefix = expected_hostname + ":" + __FILE__ + ":";
+                EXPECT_THAT(e.message, ::testing::StartsWith(expected_prefix));
+
+                EXPECT_EQ(e.status, miopenStatusInternalError);
+                throw;
+            }
+        },
+        miopen::Exception);
+}
+
+TEST(CPU_test_errors_NONE, test_exception_setcontext_directly)
+{
+    const std::string test_file         = "test_file.cpp";
+    const int test_line                 = 123;
+    const std::string test_msg          = "direct context test";
+    const std::string expected_hostname = miopen::sysinfo::GetSystemHostname();
+
+    miopen::Exception ex(miopenStatusBadParm, test_msg);
+    ex = ex.SetContext(test_file, test_line);
+
+    std::string expected_message =
+        expected_hostname + ":" + test_file + ":" + std::to_string(test_line) + ": " + test_msg;
+    EXPECT_EQ(ex.message, expected_message);
+    EXPECT_EQ(ex.status, miopenStatusBadParm);
 }

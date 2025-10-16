@@ -167,7 +167,7 @@ static void LogCmdDropout(const miopenDropoutDescriptor_t dropoutDesc,
            << " -l " << (miopen::deref(dropoutDesc).seed & 0xFFFFFFFF)
            << " -m " << ((miopen::deref(dropoutDesc).seed >> 32) & 0xFFFFFFFF)
            << " -p " << std::to_string(miopen::deref(dropoutDesc).dropout);
-        // clang-format on 
+        // clang-format on
         MIOPEN_LOG_DRIVER_CMD(ss.str());
     }
 }

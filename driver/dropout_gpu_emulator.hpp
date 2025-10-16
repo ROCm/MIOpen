@@ -26,20 +26,14 @@
 #ifndef GUARD_MIOPEN_DROPOUT_GPU_EMULATOR_HPP
 #define GUARD_MIOPEN_DROPOUT_GPU_EMULATOR_HPP
 
-#include <cmath>
-#include <cassert>
-#include <algorithm>
-#include <cstdlib>
-#include <cstring>
-#include <cfloat>
-#include <fstream>
-#include <memory>
-#include <numeric>
-#include <sstream>
-#include <vector>
-#include <array>
 #include <miopen/dropout.hpp>
 #include <miopen/float_equal.hpp>
+#include <miopen/par_for.hpp>
+
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <vector>
 
 // disable __device__ qualifiers
 #ifdef FQUALIFIERS
@@ -143,8 +137,8 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
         printf("CPU verification: Input/Output element size does not match\n");
     }
 
-    auto use_mask     = miopen::deref(dropoutDesc).use_mask;
-    auto dropout_rate = miopen::deref(dropoutDesc).dropout;
+    const auto use_mask     = miopen::deref(dropoutDesc).use_mask;
+    const auto dropout_rate = miopen::deref(dropoutDesc).dropout;
     if(dropout_rate < 0.0 || dropout_rate > 1.0)
     {
         printf("CPU verification: Invalid dropout rate\n");
@@ -165,13 +159,13 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
                     out_len,
                     out_str);
 
-    size_t glb_sz =
+    const size_t glb_sz =
         std::min(
             size_t(std::min(size_t(MAX_PRNG_STATE), miopen::deref(handle).GetImage3dMaxWidth()) /
                    256),
-            ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256)) *
-        256;
+            ((in_len[4] * in_len[3] * in_len[2] * in_len[1] * in_len[0] + 255) / 256)) * 256;
 
+    const bool bound_dropout_rate = miopen::float_equal(dropout_rate, 1.0);
     for(int i0 = 0; i0 < in_len[0]; i0++)
         for(int i1 = 0; i1 < in_len[1]; i1++)
             for(int i2 = 0; i2 < in_len[2]; i2++)
@@ -191,11 +185,66 @@ void RunDropoutForwardEmulator(miopenHandle_t handle,
                             reservespace[ri] =
                                 prng::xorwow_uniform(&states[si % glb_sz]) > dropout_rate;
 
-                        out[oi] = bool(reservespace[ri]) && !miopen::float_equal(dropout_rate, 1.0)
+                        out[oi] = bool(reservespace[ri]) && !bound_dropout_rate
                                       ? static_cast<Tref>(in[ii] / (1 - dropout_rate))
                                       : 0;
                     }
 }
+
+struct Indexer
+{
+    const size_t len0;
+    const size_t len1;
+    const size_t len2;
+    const size_t len3;
+    const size_t len4;
+
+    Indexer(size_t len0_, size_t len1_, size_t len2_, size_t len3_, size_t len4_)
+        : len0(len0_), len1(len1_), len2(len2_), len3(len3_), len4(len4_) {}
+
+    auto get(int begin) const
+    {
+        const int size0 = (len1 * len2 * len3 * len4);
+        size_t i0 = begin/size0;
+        begin -= i0*size0;
+
+        const int size1 = (len2 * len3 * len4);
+        size_t i1 = begin/size1;
+        begin -=  i1*size1;
+
+        const int size2 = (len3 * len4);
+        size_t i2 = begin/size2;
+        begin -=  i2*size2;
+
+        const int size3 = len4;
+        size_t i3 = begin/size3;
+        begin -=  i3*size3;
+
+        size_t i4 = begin;
+        return std::make_tuple(i0, i1, i2, i3, i4);
+    }
+
+    void step(size_t &i0, size_t &i1, size_t &i2, size_t &i3, size_t &i4) const
+    {
+        if(++i4 == len4)
+        {
+            i4 = 0;
+            if(++i3 == len3)
+            {
+                i3 = 0;
+                if(++i2 == len2)
+                {
+                    i2 = 0;
+                    if(++i1 == len1)
+                    {
+                        i1 = 0;
+                        ++i0;
+                    }
+                }
+            }
+        }
+    }
+};
 
 template <typename Tgpu, typename Tref = Tgpu>
 void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
@@ -226,7 +275,7 @@ void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
         printf("CPU verification: Input/Output element size does not match\n");
     }
 
-    auto dropout_rate = miopen::deref(dropoutDesc).dropout;
+    const auto dropout_rate = miopen::deref(dropoutDesc).dropout;
     if(dropout_rate < 0.0 || dropout_rate > 1.0)
     {
         printf("CPU verification: Invalid dropout rate\n");
@@ -246,6 +295,7 @@ void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
                     in_str,
                     out_len,
                     out_str);
+
 
     for(int i0 = 0; i0 < in_len[0]; i0++)
         for(int i1 = 0; i1 < in_len[1]; i1++)
@@ -267,6 +317,99 @@ void RunDropoutBackwardEmulator(const miopenDropoutDescriptor_t dropoutDesc,
                                                         ? dout[oi] / (1 - dropout_rate)
                                                         : 0);
                     }
+}
+
+template <typename Tgpu, typename Tref = Tgpu>
+void RunDropoutBackwardEmulatorMT(const miopenDropoutDescriptor_t dropoutDesc,
+                                  const miopenTensorDescriptor_t outputTensor,
+                                  std::vector<Tgpu>& dout,
+                                  const miopenTensorDescriptor_t inputTensor,
+                                  std::vector<Tref>& din,
+                                  std::vector<unsigned char>& reservespace,
+                                  size_t in_offset    = 0,
+                                  size_t out_offset   = 0,
+                                  size_t rsvsp_offset = 0)
+{
+    auto in_dim  = miopen::deref(inputTensor).GetNumDims();
+    auto out_dim = miopen::deref(outputTensor).GetNumDims();
+    if(in_dim != out_dim)
+    {
+        printf("CPU verification: Input/Output dimension does not match\n");
+        return;
+    }
+
+    if(in_dim > 5)
+    {
+        printf("CPU verification: Only support 1D to 5D tensors\n");
+    }
+
+    if(miopen::deref(inputTensor).GetElementSize() != miopen::deref(outputTensor).GetElementSize())
+    {
+        printf("CPU verification: Input/Output element size does not match\n");
+    }
+
+    const auto dropout_rate = miopen::deref(dropoutDesc).dropout;
+    if(dropout_rate < 0.0 || dropout_rate > 1.0)
+    {
+        printf("CPU verification: Invalid dropout rate\n");
+    }
+
+    // support up to 5D tensor
+    std::vector<size_t> in_len(5, 1);
+    std::vector<size_t> in_str(5, 1);
+    std::vector<size_t> out_len(5, 1);
+    std::vector<size_t> out_str(5, 1);
+
+    ExpandTensorDim(miopen::deref(inputTensor).GetLengths(),
+                    miopen::deref(inputTensor).GetStrides(),
+                    miopen::deref(outputTensor).GetLengths(),
+                    miopen::deref(outputTensor).GetStrides(),
+                    in_len,
+                    in_str,
+                    out_len,
+                    out_str);
+
+    const bool bound_dropout_rate = miopen::float_equal(dropout_rate, 1.0);
+    const size_t full_size = in_len[0] * in_len[1] * in_len[2] * in_len[3] * in_len[4];
+    const Indexer ind(in_len[0], in_len[1], in_len[2], in_len[3], in_len[4]);
+
+    const auto calc = [&](const size_t begin, const size_t end) {
+        auto [i0, i1, i2, i3, i4] = ind.get(begin);
+
+        for(size_t i = begin; i < end; ++i)
+        {
+            const size_t oi = out_offset + i0 * out_str[0] + i1 * out_str[1] + i2 * out_str[2] + i3 * out_str[3] + i4;
+            const size_t ii = in_offset  + i0 * in_str[0]  + i1 * in_str[1]  + i2 * in_str[2]  + i3 * in_str[3]  + i4;
+            const size_t ri = rsvsp_offset +
+                        i0 * in_len[1] * in_len[2] * in_len[3] * in_len[4] +
+                        i1 * in_len[2] * in_len[3] * in_len[4] +
+                        i2 * in_len[3] * in_len[4] +
+                        i3 * in_len[4] +
+                        i4;
+
+            din[ii] = static_cast<Tref>(bool(reservespace[ri]) && !bound_dropout_rate
+                                            ? dout[oi] / (1 - dropout_rate)
+                                            : 0);
+            ind.step(i0, i1, i2, i3, i4);
+        }
+    };
+
+    const size_t chunk_size = full_size / std::thread::hardware_concurrency();
+    if(chunk_size > 1024)
+    {
+        par_for(std::thread::hardware_concurrency(), [&](size_t i) {
+            calc(i * chunk_size, (i+1) * chunk_size);
+        });
+
+        if(std::thread::hardware_concurrency()*chunk_size < full_size)
+        {
+            calc(std::thread::hardware_concurrency() * chunk_size, full_size);
+        }
+    }
+    else // process small tensors in single thread
+    {
+        calc(0, full_size);
+    }
 }
 
 #endif // GUARD_MIOPEN_DROPOUT_GPU_EMULATOR_HPP

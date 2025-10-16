@@ -456,7 +456,11 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
     START_TIME
     int rc = 0;
 
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    const bool measure = inflags.GetValueInt("time");
+    const auto iters   = inflags.GetValueInt("iter");
+
+    float time = 0.f;
+    for(int i = 0; i < iters; i++)
     {
         rc |= miopenPoolingForward(GetHandle(),
                                    poolDesc,
@@ -469,19 +473,23 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunForwardGPU()
                                    do_backward,
                                    mask_dev->GetMem(),
                                    0);
+        if(rc == 0 && measure)
+        {
+            float iterationTime;
+            miopenGetKernelTime(GetHandle(), &iterationTime);
+            time += iterationTime;
+        }
     }
-    if(inflags.GetValueInt("time") == 1)
+
+    if(measure)
     {
-        float time = 0.0;
-        if(rc == 0)
-            miopenGetKernelTime(GetHandle(), &time);
+        time /= iters;
 
         STOP_TIME
         if(WALL_CLOCK)
-            printf("Wall-clock Time Forward Pooling Elapsed: %f ms\n",
-                   t.gettime_ms() / inflags.GetValueInt("iter"));
-
-        printf("GPU Kernel Time Forward Pooling Elapsed: %f ms\n", time);
+            std::cout << "Wall-clock Time Forward Pooling Elapsed: "
+                      << t.gettime_ms() / inflags.GetValueInt("iter") << " ms" << std::endl;
+        std::cout << "GPU Kernel Time Forward Pooling Elapsed: " << time << " ms" << std::endl;
     }
 
     out_dev->FromGPU(GetStream(), out.data());
@@ -526,7 +534,11 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunBackwardGPU()
     START_TIME
     int rc = 0;
 
-    for(int i = 0; i < inflags.GetValueInt("iter"); i++)
+    const bool measure = inflags.GetValueInt("time");
+    const auto iters   = inflags.GetValueInt("iter");
+
+    float time = 0.f;
+    for(int i = 0; i < iters; i++)
     {
         rc |= miopenPoolingBackward(GetHandle(),
                                     poolDesc,
@@ -541,18 +553,24 @@ int PoolDriver_impl<Tgpu, Tref, Index>::RunBackwardGPU()
                                     dInputTensor,
                                     din_dev->GetMem(),
                                     mask_dev->GetMem());
+
+        if(rc == 0 && measure)
+        {
+            float iterationTime;
+            miopenGetKernelTime(GetHandle(), &iterationTime);
+            time += iterationTime;
+        }
     }
-    if(inflags.GetValueInt("time") == 1)
+
+    if(measure)
     {
-        float time = 0.0;
-        if(rc == 0)
-            miopenGetKernelTime(GetHandle(), &time);
+        time /= iters;
 
         STOP_TIME
         if(WALL_CLOCK)
-            printf("Wall-clock Time Backward Pooling Elapsed: %f ms\n",
-                   t.gettime_ms() / inflags.GetValueInt("iter"));
-        printf("GPU Kernel Time Backward Pooling Elapsed: %f ms\n", time);
+            std::cout << "Wall-clock Time Backward Pooling Elapsed: "
+                      << t.gettime_ms() / inflags.GetValueInt("iter") << " ms" << std::endl;
+        std::cout << "GPU Kernel Time Backward Pooling Elapsed: " << time << " ms" << std::endl;
     }
 
     din_dev->FromGPU(GetStream(), din.data());

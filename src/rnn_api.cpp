@@ -645,7 +645,7 @@ static void LogCmdRNN(const miopenSeqTensorDescriptor_t xDesc,
            << " -K " << seq_len_array
            << " -a " << (miopen::deref(rnnDesc).algoMode == miopenRNNdefault ? "0" : "1")
            << rnn_io_layout;
-        
+
 
         if(dir == ForwardInference || dir == ForwardTraining)
            ss << " -c " << ((dir == ForwardTraining)?"0":"1");

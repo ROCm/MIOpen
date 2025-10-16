@@ -1,4 +1,5 @@
-
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
 
 def rocmnode(name) {
     def node_name = 'rocmtest'
@@ -21,7 +22,7 @@ def rocmnode(name) {
 
 def buildJob(compiler, flags, image, test, testargs){
 
-        env.HSA_ENABLE_SDMA=0 
+        env.HSA_ENABLE_SDMA=0
         checkout scm
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def retimage
@@ -72,7 +73,7 @@ pipeline {
                         buildJob("hcc", buildflag, image, 'test_bn_peract_test', '--all -n 2 --verbose --disable-verification-cache')
                     }
                 }
-                
+
                 stage("Batch Norm Spatial 2D") {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -85,43 +86,42 @@ pipeline {
                         buildJob("hcc", buildflag, image, 'test_bn_3d_peract_test', '--all -n 4 --verbose --disable-verification-cache')
                     }
                 }
-                
+
                 stage("Batch Norm Spatial 3D") {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob("hcc", buildflag, image, 'test_bn_3d_spatial_test', '--all -n 4 --verbose --disable-verification-cache')
                     }
                 }
-                
+
                 stage("Softmax 2D") {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob("hcc", buildflag, image, 'test_soft_max', '--all -n 4 --verbose --disable-verification-cache')
                     }
                 }
-                
+
                 stage("Local Response Normalization") {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob("hcc", buildflag, image, 'test_lrn_test', '--all -n 4 --verbose --disable-verification-cache')                        
+                        buildJob("hcc", buildflag, image, 'test_lrn_test', '--all -n 4 --verbose --disable-verification-cache')
                     }
                 }
 
                 stage("Pooling 2D") {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob("hcc", buildflag, image, 'test_pooling2d', '--all -n 8 --verbose --disable-verification-cache')                        
+                        buildJob("hcc", buildflag, image, 'test_pooling2d', '--all -n 8 --verbose --disable-verification-cache')
                     }
                 }
 
                 stage("Pooling 3D") {
                     agent{ label rocmnode("vega") }
                     steps{
-                        buildJob("hcc", buildflag, image, 'test_pooling3d', '--all -n 8 --verbose --disable-verification-cache')                        
+                        buildJob("hcc", buildflag, image, 'test_pooling3d', '--all -n 8 --verbose --disable-verification-cache')
                     }
                 }
             }
         }
-    }    
+    }
 }
-

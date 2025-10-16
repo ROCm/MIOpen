@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #include <string_view>
 
 // json_attention_golden_data calculated with pytorch
@@ -249,7 +252,7 @@ static const std::string_view json_dO_val =
 })json";
 
 static const std::string_view json_str_dV = R"json({
-    "tensor": 
+    "tensor":
     [
         [
           0.46276405453681946,
@@ -316,7 +319,7 @@ static const std::string_view json_str_dV = R"json({
 })json";
 
 static const std::string_view json_str_dQ = R"json({
-    "tensor": 
+    "tensor":
     [
         [
           0.028277257457375526,
@@ -384,7 +387,7 @@ static const std::string_view json_str_dQ = R"json({
 })json";
 
 static const std::string_view json_str_dK = R"json({
-    "tensor": 
+    "tensor":
     [
 
         [
@@ -418,7 +421,7 @@ static const std::string_view json_str_dK = R"json({
              -0.1604647934436798
         ],
 
-        
+
         [
           -0.18692390620708466,
           -0.1738758087158203,

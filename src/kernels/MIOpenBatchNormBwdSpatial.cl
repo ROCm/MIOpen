@@ -307,7 +307,6 @@ MIOpenBatchNormBwdSpatial(const __global _FLOAT* __restrict x_in,
     _FLOAT_ACCUM db         = (_FLOAT_ACCUM)0.;
     _FLOAT_ACCUM ds         = (_FLOAT_ACCUM)0.;
     _FLOAT_PREC xhat        = (_FLOAT_PREC)0.;
-    _FLOAT_PREC dyvalue     = (_FLOAT_PREC)0.;
 
 #if(MIO_BN_USESAVED == 1)
     __local _FLOAT_PREC lmean, lvar;

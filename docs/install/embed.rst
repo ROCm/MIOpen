@@ -25,7 +25,7 @@ Follow these steps to build and configure MIOpen for an embedded system.
       mkdir build; cd build;
 
 3. Add the embedded build configuration.
-   
+
    The minimum static build configuration, without an
    embedded precompiled kernels package or
    FindDb, is the following:

@@ -31,6 +31,7 @@
 #include <miopen/gcn_asm_utils.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 #include <miopen/conv/asm_implicit_gemm.hpp>
+#include <miopen/solver/problem_description_interpreter.hpp>
 
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_ASM_BWD_GTC_XDLOPS)
 
@@ -793,22 +794,22 @@ FindImplicitGemmGtcDynamicBwdKernel(const ProblemDescription& problem)
     auto tunables = GetImplicitGemmGtcDynamicBwdTunablesList(problem);
 
     // so far, "group" is only supported by bwd fp16 kernels
-    const auto group      = problem.IsFp16() ? problem.GetGroupCount() : 1;
-    const int hi          = problem.GetOutHeight();
-    const int wi          = problem.GetOutWidth();
-    const int n           = problem.GetBatchSize();
-    const int k           = problem.GetInChannels() / group;
-    const int c           = problem.GetOutChannels() / group;
-    const int ho          = problem.GetInHeight();
-    const int wo          = problem.GetInWidth();
-    const auto stride_h   = problem.GetOutHeight() > 1 ? problem.GetKernelStrideH() : 1;
-    const auto stride_w   = problem.GetOutWidth() > 1 ? problem.GetKernelStrideW() : 1;
-    const auto dilation_h = problem.GetWeightsHeight() > 1 ? problem.GetDilationH() : 1;
-    const auto dilation_w = problem.GetWeightsWidth() > 1 ? problem.GetDilationW() : 1;
-    const auto pad_h      = problem.GetPadH();
-    const auto pad_w      = problem.GetPadW();
-    const int y           = problem.GetWeightsHeight();
-    const int x           = problem.GetWeightsWidth();
+    const auto group      = problem.IsFp16() ? ProblemInterpreter::GetGroupCountG(problem) : 1;
+    const int hi          = ProblemInterpreter::GetInputHeightHi(problem);
+    const int wi          = ProblemInterpreter::GetInputWidthWi(problem);
+    const int n           = ProblemInterpreter::GetBatchN(problem);
+    const int k           = ProblemInterpreter::GetOutputChannelK(problem) / group;
+    const int c           = ProblemInterpreter::GetInputChannelC(problem) / group;
+    const int ho          = ProblemInterpreter::GetOutputHeightHo(problem);
+    const int wo          = ProblemInterpreter::GetOutputWidthWo(problem);
+    const auto stride_h   = ProblemInterpreter::GetAdjustedAsmInputStrideH(problem);
+    const auto stride_w   = ProblemInterpreter::GetAdjustedAsmInputStrideW(problem);
+    const auto pad_h      = ProblemInterpreter::GetInputLeftPadH(problem);
+    const auto pad_w      = ProblemInterpreter::GetInputLeftPadW(problem);
+    const auto dilation_h = ProblemInterpreter::GetAdjustedConvolutionDilationH(problem);
+    const auto dilation_w = ProblemInterpreter::GetAdjustedConvolutionDilationW(problem);
+    const int y           = ProblemInterpreter::GetFilterHeightY(problem);
+    const int x           = ProblemInterpreter::GetFilterWidthX(problem);
 
     const auto gcd_stride_dilation_h = gcd(stride_h, dilation_h);
     const auto gcd_stride_dilation_w = gcd(stride_w, dilation_w);
@@ -1012,7 +1013,7 @@ bool ConvAsmImplicitGemmGTCDynamicBwdXdlops::IsApplicable(const ExecutionContext
         return false;
 
     // So far, "group" is not supported by the bwd fp32 kernels
-    if(problem.IsFp32() && problem.GetGroupCount() != 1)
+    if(problem.IsFp32() && ProblemInterpreter::GetGroupCountG(problem) != 1)
         return false;
 
     if(!problem.IsLayoutDefault())

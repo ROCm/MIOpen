@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef CK_BLOCKWISE_GEMM_DLOPS_V3_HPP
 #define CK_BLOCKWISE_GEMM_DLOPS_V3_HPP
 

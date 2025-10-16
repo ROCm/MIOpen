@@ -93,4 +93,3 @@ Unset these variables using these commands:
   unset MIOPEN_FIND_MODE
   unset MIOPEN_FIND_ENFORCE
   unset MIOPEN_SYSTEM_DB_PATH
-

@@ -52,7 +52,7 @@ const auto& GetTestParams()
         Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx103X;
         if constexpr(datatype != miopenFloat)
         {
-            supported_gpus = supported_gpus | Gpu::gfx94X;
+            supported_gpus = supported_gpus | Gpu::gfx94X | Gpu::gfx950;
         }
         auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.EnableDeprecatedSolvers();

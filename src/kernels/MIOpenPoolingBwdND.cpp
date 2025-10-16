@@ -2,7 +2,7 @@
  *
  * MIT License
  *
- * Copyright (c) 2019 Advanced Micro Devices, Inc.
+ * Copyright (c) 2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,39 +24,38 @@
  *
  *******************************************************************************/
 
+#include <hip/hip_runtime.h>
+#include "miopen_cstdint.hpp"
+#include "miopen_limits.hpp"
 #include "float_types.h"
 #include "pooling_functions.h"
 
 #if MLO_POOLING_OP_ID == MLO_POOLING_OP_MAX
 
-#ifndef MLO_POOLING_INDEX_MAX
-#error "MLO_POOLING_INDEX_MAX not defined"
-#endif
-
-__attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0, 1, 1))) __kernel void
-mloPoolingNDMaxBwd(const __global _FLOAT* top_df,
-                   __global _FLOAT* bot_df,
-                   __global index_t* mask,
-                   const uint pad_d,
-                   const uint pad_h,
-                   const uint pad_w,
-                   const uint batch,
-                   const uint chal,
-                   const uint bot_d,
-                   const uint bot_h,
-                   const uint bot_w,
-                   const uint top_d,
-                   const uint top_h,
-                   const uint top_w,
-                   const uint bot_str_b,
-                   const uint bot_str_c,
-                   const uint bot_str_d,
-                   const uint bot_str_h,
-                   const uint top_str_b,
-                   const uint top_str_c,
-                   const uint top_str_d,
-                   const uint top_str_h,
-                   const uint total_work)
+extern "C" __global__ __launch_bounds__((MLO_POOLING_GROUP_SZ0)) //
+    void mloPoolingNDMaxBwd(const FLOAT* top_df,
+                            FLOAT* bot_df,
+                            index_t* mask,
+                            const unsigned int pad_d,
+                            const unsigned int pad_h,
+                            const unsigned int pad_w,
+                            const unsigned int batch,
+                            const unsigned int chal,
+                            const unsigned int bot_d,
+                            const unsigned int bot_h,
+                            const unsigned int bot_w,
+                            const unsigned int top_d,
+                            const unsigned int top_h,
+                            const unsigned int top_w,
+                            const unsigned int bot_str_b,
+                            const unsigned int bot_str_c,
+                            const unsigned int bot_str_d,
+                            const unsigned int bot_str_h,
+                            const unsigned int top_str_b,
+                            const unsigned int top_str_c,
+                            const unsigned int top_str_d,
+                            const unsigned int top_str_h,
+                            const unsigned int total_work)
 {
 
     int bot_blk_w = (bot_w + PIX_W_PER_WORK - 1) / PIX_W_PER_WORK;
@@ -67,7 +66,8 @@ mloPoolingNDMaxBwd(const __global _FLOAT* top_df,
     bot_blk_h = max(bot_blk_h, 1);
     bot_blk_d = max(bot_blk_d, 1);
 
-    for(uint gid = get_global_id(0); gid < total_work; gid += MAX_ACTIV_WORKITEM)
+    for(unsigned int gid = blockIdx.x * MLO_POOLING_GROUP_SZ0 + threadIdx.x; gid < total_work;
+        gid += MAX_ACTIV_WORKITEM)
     {
         int b_id = gid / chal / bot_blk_w / bot_blk_h / bot_blk_d;
         int c_id = (gid / bot_blk_w / bot_blk_h / bot_blk_d) % chal;
@@ -87,11 +87,11 @@ mloPoolingNDMaxBwd(const __global _FLOAT* top_df,
         int top_h_end = (bot_h_id + PIX_H_PER_WORK - 1 + pad_h) / STRIDE_H + 1;
         int top_w_end = (bot_w_id + PIX_W_PER_WORK - 1 + pad_w) / STRIDE_W + 1;
 
-        top_d_end = min(top_d_end, (int)top_d);
-        top_h_end = min(top_h_end, (int)top_h);
-        top_w_end = min(top_w_end, (int)top_w);
+        top_d_end = min(top_d_end, static_cast<int>(top_d));
+        top_h_end = min(top_h_end, static_cast<int>(top_h));
+        top_w_end = min(top_w_end, static_cast<int>(top_w));
 
-        _FLOAT bot_data[PIX_D_PER_WORK][PIX_H_PER_WORK][PIX_W_PER_WORK] = {0};
+        FLOAT bot_data[PIX_D_PER_WORK][PIX_H_PER_WORK][PIX_W_PER_WORK] = {FLOAT{0}};
 
         for(int h = top_d_start; h < top_d_end; ++h)
         {
@@ -99,15 +99,17 @@ mloPoolingNDMaxBwd(const __global _FLOAT* top_df,
             {
                 for(int i = top_w_start; i < top_w_end; ++i)
                 {
-                    uint top_gbl_off =
+                    unsigned int top_gbl_off =
                         b_id * top_str_b + c_id * top_str_c + h * top_str_d + j * top_str_h + i;
 
-                    _FLOAT top_val   = b_id < batch ? top_df[top_gbl_off] : 0;
-                    index_t mask_idx = b_id < batch ? mask[top_gbl_off] : MLO_POOLING_INDEX_MAX;
+                    FLOAT top_val    = b_id < batch ? top_df[top_gbl_off] : FLOAT{0};
+                    index_t mask_idx = b_id < batch
+                                           ? mask[top_gbl_off]
+                                           : std::numeric_limits<MLO_POOLING_INDEX_TYPE>::max();
 
-                    uint mask_d_id = mask_idx / bot_h / bot_w;
-                    uint mask_h_id = (mask_idx / bot_w) % bot_h;
-                    uint mask_w_id = mask_idx % bot_w;
+                    unsigned int mask_d_id = mask_idx / bot_h / bot_w;
+                    unsigned int mask_h_id = (mask_idx / bot_w) % bot_h;
+                    unsigned int mask_w_id = mask_idx % bot_w;
 
                     if(mask_d_id >= bot_d_id && mask_h_id >= bot_h_id && mask_w_id >= bot_w_id &&
                        mask_d_id < bot_d_id + PIX_D_PER_WORK &&
@@ -124,20 +126,20 @@ mloPoolingNDMaxBwd(const __global _FLOAT* top_df,
             }
         }
 
-        uint bot_off = b_id * bot_str_b + c_id * bot_str_c + bot_d_id * bot_str_d +
-                       bot_h_id * bot_str_h + bot_w_id;
+        unsigned int bot_off = b_id * bot_str_b + c_id * bot_str_c + bot_d_id * bot_str_d +
+                               bot_h_id * bot_str_h + bot_w_id;
 
-        for(uint m = 0; m < PIX_D_PER_WORK; m++)
+        for(unsigned int m = 0; m < PIX_D_PER_WORK; m++)
         {
-            for(uint k = 0; k < PIX_H_PER_WORK; k++)
+            for(unsigned int k = 0; k < PIX_H_PER_WORK; k++)
             {
-                for(uint l = 0; l < PIX_W_PER_WORK; l++)
+                for(unsigned int l = 0; l < PIX_W_PER_WORK; l++)
                 {
 
                     if(bot_d_id + m < bot_d && bot_h_id + k < bot_h && bot_w_id + l < bot_w &&
                        b_id < batch)
                     {
-                        uint bot_idx = bot_off + m * bot_str_d + k * bot_str_h + l;
+                        unsigned int bot_idx = bot_off + m * bot_str_d + k * bot_str_h + l;
 
                         bot_df[bot_idx] = bot_data[m][k][l];
                     }
@@ -149,29 +151,29 @@ mloPoolingNDMaxBwd(const __global _FLOAT* top_df,
 
 #elif MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE || MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE
 
-__attribute__((reqd_work_group_size(MLO_POOLING_GROUP_SZ0, 1, 1))) __kernel void
-mloPoolingNDAveBwd(const __global _FLOAT* top_df,
-                   __global _FLOAT* bot_df,
-                   const uint pad_d,
-                   const uint pad_h,
-                   const uint pad_w,
-                   const uint batch,
-                   const uint chal,
-                   const uint bot_d,
-                   const uint bot_h,
-                   const uint bot_w,
-                   const uint top_d,
-                   const uint top_h,
-                   const uint top_w,
-                   const uint bot_str_b,
-                   const uint bot_str_c,
-                   const uint bot_str_d,
-                   const uint bot_str_h,
-                   const uint top_str_b,
-                   const uint top_str_c,
-                   const uint top_str_d,
-                   const uint top_str_h,
-                   const uint total_work)
+extern "C" __global__ __launch_bounds__(MLO_POOLING_GROUP_SZ0) //
+    void mloPoolingNDAveBwd(const FLOAT* top_df,
+                            FLOAT* bot_df,
+                            const unsigned int pad_d,
+                            const unsigned int pad_h,
+                            const unsigned int pad_w,
+                            const unsigned int batch,
+                            const unsigned int chal,
+                            const unsigned int bot_d,
+                            const unsigned int bot_h,
+                            const unsigned int bot_w,
+                            const unsigned int top_d,
+                            const unsigned int top_h,
+                            const unsigned int top_w,
+                            const unsigned int bot_str_b,
+                            const unsigned int bot_str_c,
+                            const unsigned int bot_str_d,
+                            const unsigned int bot_str_h,
+                            const unsigned int top_str_b,
+                            const unsigned int top_str_c,
+                            const unsigned int top_str_d,
+                            const unsigned int top_str_h,
+                            const unsigned int total_work)
 {
 
     int bot_blk_w = (bot_w + PIX_W_PER_WORK - 1) / PIX_W_PER_WORK;
@@ -182,7 +184,8 @@ mloPoolingNDAveBwd(const __global _FLOAT* top_df,
     bot_blk_h = max(bot_blk_h, 1);
     bot_blk_d = max(bot_blk_d, 1);
 
-    for(uint gid = get_global_id(0); gid < total_work; gid += MAX_ACTIV_WORKITEM)
+    for(unsigned int gid = blockIdx.x * MLO_POOLING_GROUP_SZ0 + threadIdx.x; gid < total_work;
+        gid += MAX_ACTIV_WORKITEM)
     {
         int b_id = gid / chal / bot_blk_w / bot_blk_h / bot_blk_d;
         int c_id = (gid / bot_blk_w / bot_blk_h / bot_blk_d) % chal;
@@ -202,43 +205,48 @@ mloPoolingNDAveBwd(const __global _FLOAT* top_df,
         int top_h_end = (bot_h_id + PIX_H_PER_WORK - 1 + pad_h) / STRIDE_H + 1;
         int top_w_end = (bot_w_id + PIX_W_PER_WORK - 1 + pad_w) / STRIDE_W + 1;
 
-        top_d_end = min(top_d_end, (int)top_d);
-        top_h_end = min(top_h_end, (int)top_h);
-        top_w_end = min(top_w_end, (int)top_w);
+        top_d_end = min(top_d_end, static_cast<int>(top_d));
+        top_h_end = min(top_h_end, static_cast<int>(top_h));
+        top_w_end = min(top_w_end, static_cast<int>(top_w));
 
-        _FLOAT_ACCUM bot_data[PIX_D_PER_WORK][PIX_H_PER_WORK][PIX_W_PER_WORK] = {0};
+        FLOAT_ACCUM bot_data[PIX_D_PER_WORK][PIX_H_PER_WORK][PIX_W_PER_WORK] = {FLOAT_ACCUM{0}};
 
         for(int h = top_d_start; h < top_d_end; ++h)
         {
             int dstart = h * STRIDE_D - pad_d;
-            int dend   = min((dstart + KERNEL_SZ_D), (int)bot_d);
+            int dend   = min((dstart + KERNEL_SZ_D), static_cast<int>(bot_d));
             dstart     = max(dstart, 0);
 
             for(int j = top_h_start; j < top_h_end; ++j)
             {
                 int hstart = j * STRIDE_H - pad_h;
-                int hend   = min((hstart + KERNEL_SZ_H), (int)bot_h);
+                int hend   = min((hstart + KERNEL_SZ_H), static_cast<int>(bot_h));
                 hstart     = max(hstart, 0);
 
                 for(int i = top_w_start; i < top_w_end; ++i)
                 {
                     int wstart = i * STRIDE_W - pad_w;
-                    int wend   = min((wstart + KERNEL_SZ_W), (int)bot_w);
+                    int wend   = min((wstart + KERNEL_SZ_W), static_cast<int>(bot_w));
                     wstart     = max(wstart, 0);
 
-                    uint pool_size =
-#if MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE
-                        KERNEL_SZ_W * KERNEL_SZ_H * KERNEL_SZ_D;
-#else
-                        (dend - dstart) * (hend - hstart) * (wend - wstart);
-#endif
-                    pool_size = (pool_size == 0) ? 1 : pool_size;
+                    auto inv_pool_size = FLOAT_ACCUM{0};
+                    if constexpr(MLO_POOLING_OP_ID == MLO_POOLING_OP_AVE_INCLUSIVE)
+                    {
+                        inv_pool_size = FLOAT_ACCUM{1} /
+                                        CVT_INTEGRAL2ACCUM(KERNEL_SZ_W * KERNEL_SZ_H * KERNEL_SZ_D);
+                    }
+                    else
+                    {
+                        int pool_size = (dend - dstart) * (hend - hstart) * (wend - wstart);
+                        pool_size     = (pool_size == 0) ? 1 : pool_size;
+                        inv_pool_size = approxRcp(CVT_INTEGRAL2ACCUM(pool_size));
+                    }
 
-                    uint top_gbl_off =
+                    unsigned int top_gbl_off =
                         b_id * top_str_b + c_id * top_str_c + h * top_str_d + j * top_str_h + i;
-                    _FLOAT_ACCUM add_val =
+                    FLOAT_ACCUM add_val =
                         b_id < batch ? CVT_FLOAT2ACCUM(top_df[top_gbl_off]) : CVT_FP32_2ACCUM(0.0f);
-                    add_val /= CVT_INTEGRAL2ACCUM(pool_size);
+                    add_val *= inv_pool_size;
 
                     for(int m = dstart; m < dend; ++m)
                     {
@@ -259,20 +267,20 @@ mloPoolingNDAveBwd(const __global _FLOAT* top_df,
             }
         }
 
-        uint bot_off = b_id * bot_str_b + c_id * bot_str_c + bot_d_id * bot_str_d +
-                       bot_h_id * bot_str_h + bot_w_id;
+        unsigned int bot_off = b_id * bot_str_b + c_id * bot_str_c + bot_d_id * bot_str_d +
+                               bot_h_id * bot_str_h + bot_w_id;
 
-        for(uint m = 0; m < PIX_D_PER_WORK; m++)
+        for(unsigned int m = 0; m < PIX_D_PER_WORK; m++)
         {
-            for(uint k = 0; k < PIX_H_PER_WORK; k++)
+            for(unsigned int k = 0; k < PIX_H_PER_WORK; k++)
             {
-                for(uint l = 0; l < PIX_W_PER_WORK; l++)
+                for(unsigned int l = 0; l < PIX_W_PER_WORK; l++)
                 {
 
                     if(bot_d_id + m < bot_d && bot_h_id + k < bot_h && bot_w_id + l < bot_w &&
                        b_id < batch)
                     {
-                        uint bot_idx = bot_off + m * bot_str_d + k * bot_str_h + l;
+                        unsigned int bot_idx = bot_off + m * bot_str_d + k * bot_str_h + l;
 
                         bot_df[bot_idx] = CVT_ACCUM2FLOAT(bot_data[m][k][l]);
                     }
@@ -281,4 +289,5 @@ mloPoolingNDAveBwd(const __global _FLOAT* top_df,
         }
     }
 }
+
 #endif

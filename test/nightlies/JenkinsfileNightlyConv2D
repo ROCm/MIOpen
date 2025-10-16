@@ -1,3 +1,5 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
 
 def rocmnode(name) {
     def node_name = 'rocmtest'
@@ -21,9 +23,9 @@ def rocmnode(name) {
 
 def buildJob(compiler, flags, image, test, testargs){
 
-        env.HSA_ENABLE_SDMA=0 
+        env.HSA_ENABLE_SDMA=0
         checkout scm
-        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined" 
+        def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def retimage
         try {
             retimage = docker.build("${image}", "--build-arg PREFIX=/usr/local .")
@@ -85,21 +87,21 @@ pipeline {
                         buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 2 2 1 1 1 1')
                     }
                 }
-                
+
                 stage("2D pads_strides_dilations 3 3 2 2 1 1") {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 3 3 2 2 1 1')
                     }
                 }
-                
+
                 stage("2D pads_strides_dilations 0 0 1 1 2 2") {
                     agent{ label rocmnode("vega") }
                     steps{
                         buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 0 0 1 1 2 2')
                     }
                 }
-                
+
                 stage("2D pads_strides_dilations 2 2 1 1 4 3") {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -120,7 +122,7 @@ pipeline {
                         buildJob("hcc", buildflag, image, test, '--all -n 4 --verbose --disable-verification-cache --pads_strides_dilations 1 1 1 1 1 1')
                     }
                 }
-                
+
                 /*stage("2D pads_strides_dilations 1 1 2 2 1 1") {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -141,6 +143,5 @@ pipeline {
                 }*/
             }
         }
-    }    
+    }
 }
-

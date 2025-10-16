@@ -577,7 +577,7 @@ protected:
         EXPECT_TRUE(error < threshold * 2)
             << "Error db beyond tolerance Error:" << error << ",  Threshold x 2: " << threshold * 2;
     }
-    
+
     LayerNormTestCase layernorm_config;
 
     tensor<T> x;

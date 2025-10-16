@@ -1,3 +1,5 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
 
 def rocmnode(name) {
     def node_name = 'rocmtest'
@@ -20,7 +22,7 @@ def rocmnode(name) {
 
 def buildJob(compiler, flags, image, test, testargs){
 
-        env.HSA_ENABLE_SDMA=0 
+        env.HSA_ENABLE_SDMA=0
         checkout scm
         def dockerOpts="--device=/dev/kfd --device=/dev/dri --group-add video --cap-add=SYS_PTRACE --security-opt seccomp=unconfined"
         def retimage
@@ -71,7 +73,7 @@ pipeline {
                         buildJob("hcc", buildflag, image, 'test_cba_inference', '--all -n 4 --verbose --disable-verification-cache')
                     }
                 }
-                
+
                 stage("CBNA inference") {
                     agent{ label rocmnode("vega") }
                     steps{
@@ -92,6 +94,5 @@ pipeline {
                 }
             }
         }
-    }    
+    }
 }
-

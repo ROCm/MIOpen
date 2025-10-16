@@ -11,7 +11,7 @@ ARG CCACHE_COMMIT=7f1572ae9ca958fa923a66235f6a64a360b03523
 ARG MIOPEN_SCCACHE=""
 ARG MIOPEN_SCCACHE_CUSTOM_CACHE_BUSTER="MiOpen-Docker-CK"
 
-# GPU_ARCHS should be defined as a build arg rather than hardcoded here. 
+# GPU_ARCHS should be defined as a build arg rather than hardcoded here.
 ARG GPU_ARCHS=none
 
 ARG COMPILER_LAUNCHER=""
@@ -161,10 +161,10 @@ RUN echo Building for GPU Archs: ${GPU_ARCHS} && \
     -D MIOPEN_REQ_LIBS_ONLY=ON \
     -D DISABLE_OFFLOAD_COMPRESS=ON \
     -D CMAKE_CXX_FLAGS=" -O3 " .. && \
-    make -j ${num_threads} install && \ 
+    make -j ${num_threads} install && \
     sccache -s
 
-# Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS 
+# Composable Kernel installed separated from rbuild to take in values from GPU_ARCHS
 RUN sed -i '/composable_kernel/d' /requirements.txt
 
 # rbuild is used to trigger build of requirements.txt, dev-requirements.txt
@@ -173,7 +173,7 @@ RUN if [ "$USE_FIN" = "ON" ]; then \
     else \
     rbuild prepare -s develop -d $PREFIX -DGPU_ARCHS="${GPU_ARCHS}"; \
     fi && \
-    ccache -s 
+    ccache -s
 
 # Utilize multi-stage build in order to squash the container.
 FROM ubuntu:22.04

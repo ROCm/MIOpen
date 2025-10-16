@@ -121,6 +121,11 @@ option(MIOPEN_ENABLE_FIN "Enable the fin driver for MIOpen"  OFF)
 option(MIOPEN_ENABLE_FIN_INTERFACE "Enable internal interface for the fin" ${MIOPEN_ENABLE_FIN})
 option(MIOPEN_STRIP_SYMBOLS "Strip symbols in release mode" ON)
 
+option(MIOPEN_INCBIN "Include kernels using incbin" OFF)
+if(MIOPEN_INCBIN)
+    enable_language(ASM)
+endif()
+
 option(MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM "Workaround: Use boost::filesystem instead of std::filesystem" OFF)
 message(STATUS "MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM ${MIOPEN_WORKAROUND_USE_BOOST_FILESYSTEM}")
 
@@ -130,7 +135,7 @@ if(MIOPEN_STRIP_SYMBOLS AND NOT WIN32 AND NOT APPLE)
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
 endif()
 
-rocm_setup_version(VERSION 3.5.0)
+rocm_setup_version(VERSION 3.5.1)
 
 list( APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake )
 include(TargetFlags)
@@ -201,8 +206,9 @@ set( MIOPEN_BACKEND ${MIOPEN_DEFAULT_BACKEND} CACHE STRING
     "Which of MIOpens's backends to use?" )
 set_property( CACHE MIOPEN_BACKEND PROPERTY STRINGS
     OpenCL HIP HIPOC HIPNOGPU)
-
-set_var_to_condition(MIOPEN_BUILD_DRIVER_DEFAULT (NOT MIOPEN_EMBED_BUILD) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")))
+    
+# On Windows, internal symbols are only exported when BUILD_TESTING=true. As a result, building driver with BUILD_TESTING=false will result in failure.
+set_var_to_condition(MIOPEN_BUILD_DRIVER_DEFAULT (NOT MIOPEN_EMBED_BUILD) AND (NOT (MIOPEN_BACKEND STREQUAL "HIPNOGPU")) AND ((NOT WIN32) OR BUILD_TESTING))  
 option(MIOPEN_BUILD_DRIVER "Build MIOpenDriver (and use it in tests)" ${MIOPEN_BUILD_DRIVER_DEFAULT})
 message(STATUS "MIOPEN_BUILD_DRIVER: ${MIOPEN_BUILD_DRIVER}" )
 
@@ -394,7 +400,7 @@ if( MIOPEN_BACKEND STREQUAL "HIP" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN_B
         message(STATUS "Build without hipbBLASLt")
     endif()
 else()
-    #CK is only enabled when HIP backend is selected   
+    #CK is only enabled when HIP backend is selected
     set(MIOPEN_USE_COMPOSABLEKERNEL Off)
     if(MIOPEN_USE_HIPRTC)
         message(FATAL_ERROR "HIPRTC cannot be used without HIP backend")

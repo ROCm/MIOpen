@@ -17,7 +17,7 @@ You can build MIOpen using Docker by either downloading a prebuilt image or crea
    You can find prebuilt Docker images at `ROCm Docker Hub <https://hub.docker.com/r/rocm/miopen/tags>`_.
 
 *  Building your own image
-  
+
    #. To build the Docker image, use ``docker build``:
 
       .. code-block:: bash
@@ -34,4 +34,3 @@ You can build MIOpen using Docker by either downloading a prebuilt image or crea
 
    #. Enter the Docker environment and run ``git clone MIOpen``. You can now build MIOpen using
       CMake. For instructions on how to build MIOpen from source, see :doc:`building MIOpen <./build-source>`.
-

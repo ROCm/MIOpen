@@ -112,7 +112,7 @@ private:
 struct UnitTestConvSolverParams
 {
     UnitTestConvSolverParams();
-    UnitTestConvSolverParams(Gpu supported_devs);
+    UnitTestConvSolverParams(Gpu supported_devs_);
 
     void UseCpuRef();
     void EnableDeprecatedSolvers();

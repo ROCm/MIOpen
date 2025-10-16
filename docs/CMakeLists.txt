@@ -25,6 +25,6 @@
 include(ROCMSphinxDoc)
 rocm_add_sphinx_doc(
     .
-    BUILDER html 
+    BUILDER html
     OUTPUT_DIR html
 )

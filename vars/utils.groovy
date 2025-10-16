@@ -109,7 +109,7 @@ def cmake_build(Map conf=[:]){
 
     if (conf.get("vcache_enable","") == "true"){
         //grab root of node workspace. not guaranteed to be /var/jenkins
-        String remote_root = env.WORKSPACE.substring(0, env.WORKSPACE.lastIndexOf("workspace/")) 
+        String remote_root = env.WORKSPACE.substring(0, env.WORKSPACE.lastIndexOf("workspace/"))
         def vcache = conf.get(vcache_path,"${remote_root}/.cache/miopen/vcache")
         build_envs = " MIOPEN_VERIFY_CACHE_PATH='${vcache}' " + build_envs
     } else{
@@ -267,7 +267,9 @@ def getDockerImage(Map conf=[:])
     try{
         echo "Pulling down image: ${image}"
         dockerImage = docker.image("${image}")
-        dockerImage.pull()
+        withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
+            dockerImage.pull()
+        }
     }
     catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
         echo "The job was cancelled or aborted"
@@ -295,7 +297,9 @@ def getDockerImage(Map conf=[:])
         try{
             echo "Pulling down perf test image: ${image}"
             dockerImage = docker.image("${image}")
-            dockerImage.pull()
+            withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
+                dockerImage.pull()
+            }
         }
         catch(org.jenkinsci.plugins.workflow.steps.FlowInterruptedException e){
             echo "The job was cancelled or aborted"
@@ -372,7 +376,7 @@ def buildHipClangJob(Map conf=[:]){
             }
 
             //grab root of node workspace. not guaranteed to be /var/jenkins
-            String remote_root = env.WORKSPACE.substring(0, env.WORKSPACE.lastIndexOf("workspace/")) 
+            String remote_root = env.WORKSPACE.substring(0, env.WORKSPACE.lastIndexOf("workspace/"))
             withDockerContainer(image: image, args: dockerOpts + " -v=${remote_root}:${remote_root}") {
                 timeout(time: 420, unit:'MINUTES')
                 {
@@ -417,10 +421,12 @@ def RunPerfTest(Map conf=[:]){
         def docker_image = conf.get("docker_image")
         def miopen_install_path = conf.get("miopen_install_path", "/opt/rocm")
         def results_dir = conf.get("results_dir", "${env.WORKSPACE}/${env.REPO_DIR}/results")
-        docker_image.pull()
+        withDockerRegistry([ credentialsId: "docker_test_cred", url: "" ]) {
+            docker_image.pull()
+        }
         echo "docker image: ${docker_image}"
         //grab root of node workspace. not guaranteed to be /var/jenkins
-        String remote_root = env.WORKSPACE.substring(0, env.WORKSPACE.lastIndexOf("workspace/")) 
+        String remote_root = env.WORKSPACE.substring(0, env.WORKSPACE.lastIndexOf("workspace/"))
         docker_image.inside(dockerOpts + " -v=${remote_root}:${remote_root}")
         {
             timeout(time: 100, unit: 'MINUTES')

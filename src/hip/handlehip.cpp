@@ -28,6 +28,7 @@
 #include <miopen/handle.hpp>
 
 #include <miopen/binary_cache.hpp>
+#include <miopen/config.hpp>
 #include <miopen/env.hpp>
 #include <miopen/errors.hpp>
 #include <miopen/handle_lock.hpp>
@@ -142,20 +143,22 @@ void default_deallocator(void*, void* mem)
         MIOPEN_LOG_I2("hipFree " << size << " at " << mem << " Ok");
 }
 
-int get_device_id() // Get random device
+} // namespace
+
+MIOPEN_INTERNALS_EXPORT int get_device_id() // Get random device
 {
     int device;
     auto status = hipGetDevice(&device);
     if(status != hipSuccess)
-        MIOPEN_THROW("No device");
+        MIOPEN_THROW_HIP_STATUS(status, "No device");
     return device;
 }
 
-void set_device(int id)
+MIOPEN_INTERNALS_EXPORT void set_device(int id)
 {
     auto status = hipSetDevice(id);
     if(status != hipSuccess)
-        MIOPEN_THROW("Error setting device");
+        MIOPEN_THROW_HIP_STATUS(status, "Error setting device " + std::to_string(id));
 }
 
 #if MIOPEN_BUILD_DEV
@@ -172,8 +175,6 @@ int set_default_device()
     return (pid % n);
 }
 #endif
-
-} // namespace
 
 // NOLINTNEXTLINE (cppcoreguidelines-avoid-non-const-global-variables)
 static thread_local unsigned int meopenHandle_current_stream_id = 0;

@@ -553,24 +553,12 @@ auto GenericSearch(const Solver s,
 
             try
             {
-                if(default_solution.workspace_sz != current_solution.workspace_sz)
-                {
-                    ret = -2;
-                    MIOPEN_LOG_E('#' << n_current << " (" << n_runs_total << ") "
-                                     << "Workspace size should not depend on PerformanceConfig: "
-                                     << default_solution.workspace_sz
-                                     << " != " << current_solution.workspace_sz);
-                }
-
                 invoker = profile_h.PrepareInvoker(*current_solution.invoker_factory,
                                                    current_solution.construction_params);
 
-                // Warm-up run for first time invoker is used
-                if(n_current == 0)
-                {
-                    invoker(profile_h, invoke_ctx);
-                    profile_h.ResetKernelTime();
-                }
+                // Warm-up run for every configuration to eliminate cold-start bias
+                invoker(profile_h, invoke_ctx);
+                profile_h.ResetKernelTime();
 
                 invoker(profile_h, invoke_ctx);
                 elapsed_time = profile_h.GetKernelTime();

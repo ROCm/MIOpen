@@ -23,10 +23,21 @@
  * SOFTWARE.
  *
  *******************************************************************************/
+
 #ifndef MIOPEN_NRN_OP_ID
 #define MIOPEN_NRN_OP_ID 0
 #endif
 
+#ifndef MIOPEN_USE_FPMIX
+#define MIOPEN_USE_FPMIX 0
+#endif
+
+#ifndef MIOPEN_USE_BFPMIX
+#define MIOPEN_USE_BFPMIX 0
+#endif
+
+// TODO: this should also be deprecated
+// There is a system in configurations.hpp
 #if MIOPEN_USE_FP16 == 1
 #define FP_TYPE half
 #define FP_TYPE_PREC float
@@ -37,6 +48,7 @@
 #define MAX_VAL HALF_MAX
 #endif
 #endif
+// TODO: this should also be deprecated
 #if MIOPEN_USE_FP32 == 1
 #define FP_TYPE float
 #define FP_TYPE_PREC float
@@ -47,7 +59,47 @@
 #define MAX_VAL FLT_MAX
 #endif
 #endif
+// TODO: this should also be deprecated
+#if MIOPEN_USE_FPMIX == 1
+#define FP_TYPE _Float16
 
+#ifdef MIO_BN_NODPP
+#undef MIO_BN_NODPP
+#define MIO_BN_NODPP 0
+#endif
+
+#ifdef FP_TYPE_PREC
+#undef FP_TYPE_PREC
+#endif
+#define FP_TYPE_PREC float
+
+#ifdef EPSILON
+#undef EPSILON
+#endif
+#define EPSILON static_cast<FP_TYPE>(0.000001)
+
+#endif
+// TODO: this should also be deprecated
+#if MIOPEN_USE_BFPMIX == 1
+#define FP_TYPE ushort
+
+#ifdef MIO_BN_NODPP
+#undef MIO_BN_NODPP
+#define MIO_BN_NODPP 0
+#endif
+
+#ifdef FP_TYPE_PREC
+#undef FP_TYPE_PREC
+#endif
+#define FP_TYPE_PREC float
+
+#ifdef EPSILON
+#undef EPSILON
+#endif
+#define EPSILON static_cast<FP_TYPE_PREC>(0.000001)
+#endif
+
+// TODO: this should also be deprecated
 #define PPCAT_NX(A, B) A##B
 #define PPCAT(A, B) PPCAT_NX(A, B)
 #define TWO 2

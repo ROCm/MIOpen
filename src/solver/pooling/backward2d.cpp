@@ -194,7 +194,7 @@ PoolingBackward2d::GetSolution(const ExecutionContext&,
     {
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenPoolingBwd.cl";
+        kernel.kernel_file = "MIOpenPoolingBwd.cpp";
 
         if(problem.GetPooling().GetMode() == miopenPoolingMax)
         {
@@ -230,8 +230,6 @@ PoolingBackward2d::GetSolution(const ExecutionContext&,
                 {"MLO_POOLBWD_GROUP_SZ1", kp.grp_tile1},
                 {"MLO_POOLING_INDEX_TYPE",
                  get_pooling_index_type_name(problem.GetPooling().GetIndexType())},
-                {"MLO_POOLING_INDEX_MAX",
-                 get_pooling_index_type_max_name(problem.GetPooling().GetIndexType())},
                 {"USE_IMG_INDEX",
                  problem.GetPooling().GetWorkspaceIndexMode() == miopenPoolingWorkspaceIndexImage
                      ? 1
@@ -239,7 +237,7 @@ PoolingBackward2d::GetSolution(const ExecutionContext&,
             }
             << GetDataTypeKBP(problem.GetXDesc().GetType());
 
-        kernel.comp_options = build_params.GenerateFor(kbp::OpenCL{});
+        kernel.comp_options = build_params.GenerateFor(kbp::HIP{});
 
         kernel.l_wk = {kp.grp_tile0, kp.grp_tile1, 1};
         kernel.g_wk = {

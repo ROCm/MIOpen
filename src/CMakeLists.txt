@@ -61,7 +61,6 @@ function(add_kernels FILE_NAME VAR_PREFIX VAR_SUFFIX KERNEL_FILES)
     set(INIT_KERNELS_LIST)
     set(KERNELS_DECLS)
     foreach(KERNEL_FILE ${KERNEL_FILES})
-        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${KERNEL_FILE})
         get_filename_component(KERNEL_FILENAME ${KERNEL_FILE} NAME)
         get_filename_component(BASE_NAME ${KERNEL_FILE} NAME_WE)
         string(TOUPPER "${BASE_NAME}" KEY_NAME)
@@ -191,7 +190,7 @@ set( MIOpen_Source
     rope_api.cpp
     rope/problem_description.cpp
     scalar.cpp
-    softmarginloss/problem_description.cpp 
+    softmarginloss/problem_description.cpp
     softmarginloss_api.cpp
     softmax.cpp
     softmax_api.cpp
@@ -338,6 +337,7 @@ set( MIOpen_Source
     solver/tensorOp/OpTensorFwdBias.cpp
     solver/tensorOp/OpTensorLeadingOnes.cpp
     subbuffers.cpp
+    sysinfo_utils.cpp
     t5layernorm_api.cpp
     target_properties.cpp
     temp_file.cpp
@@ -390,7 +390,14 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ${COMPOSABLE_KERNEL_INCLUDE}
         ${COMPOSABLE_KERNEL_DYNAMIC_ASM_INCLUDE}
         ${GPU_GENERAL_TENSOR_REORDER_KERNEL_HIP_INCLUDE}
+        kernels/vector_types.hpp
+        kernels/static_unroll.hpp
         kernels/activation_functions.hpp
+        kernels/batchnorm_functions.hpp
+        kernels/bnorm_spatial_activation_functions.hpp
+        kernels/reduction_functions.hpp
+        kernels/configuration.hpp
+        kernels/default_configurations.hpp
         kernels/gpu_reference_kernel/fp8_kern_types.h
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride1.inc
         kernels/Conv_Winograd_v13_3_12_fp16dot_stride2_dec.inc
@@ -486,6 +493,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/conv_common.inc
         kernels/conv_sizes.inc
         kernels/float_types.h
+        kernels/pooling_functions.h
         kernels/gpr_alloc.inc
         kernels/hip_atomic.hpp
         kernels/hip_f8_impl.hpp
@@ -535,6 +543,7 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenBatchNormActivFwdTrainPerAct.cl
         kernels/MIOpenBatchNormActivFwdTrainSpatial.cl
         kernels/MIOpenBatchNormFwdTrainSpatial.cl
+        kernels/MIOpenBatchNormFwdTrainSpatialHIP.cpp
         kernels/MIOpenBatchNormFwdTrainPerAct.cl
         kernels/MIOpenBatchNormFwdInferSpatial.cl
         kernels/MIOpenBatchNormFwdInferPerAct.cl
@@ -553,11 +562,11 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         kernels/MIOpenMultiMarginLoss.cpp
         kernels/MIOpenNeuron.cl
         kernels/MIOpenPReLU.cpp
-        kernels/MIOpenPooling.cl
-        kernels/MIOpenPoolingBwd.cl
-        kernels/MIOpenPoolingBwdND.cl
-        kernels/MIOpenPoolingForwardNaive.cl
-        kernels/MIOpenPoolingND.cl
+        kernels/MIOpenPooling.cpp
+        kernels/MIOpenPoolingBwd.cpp
+        kernels/MIOpenPoolingBwdND.cpp
+        kernels/MIOpenPoolingForwardNaive.cpp
+        kernels/MIOpenPoolingND.cpp
         kernels/MIOpenConv1x1S.cl
         kernels/MIOpenConv1x1J1.cl
         kernels/MIOpenConv1x1J1_stride.cl
@@ -698,7 +707,6 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
         ocl/convolutionocl.cpp
         ocl/lrn_ocl.cpp
         ocl/mloNorm.cpp
-        ocl/pooling_ocl.cpp
         ocl/rnnocl.cpp
         ocl/utilocl.cpp
         ocl/ctcocl.cpp
@@ -778,16 +786,29 @@ if( MIOPEN_BACKEND MATCHES "OpenCL" OR MIOPEN_BACKEND STREQUAL "HIPOC" OR MIOPEN
                 set(KERNEL_SRC_HPP_FILENAME batch_${KERNELS_BATCH_ID}.cpp.hpp)
                 set(KERNEL_SRC_HPP_PATH ${PROJECT_BINARY_DIR}/inlined_kernels/${KERNEL_SRC_HPP_FILENAME})
                 set(KERNEL_SRC_CPP_PATH ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.cpp)
+                set(KERNEL_SRC_ASM_PATH ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.S)
+                set(KERNEL_SRC_BIN_PATH ${PROJECT_BINARY_DIR}/inlined_kernels/batch_${KERNELS_BATCH_ID}.bin)
 
-                add_custom_command(
-                    OUTPUT ${KERNEL_SRC_HPP_PATH}
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
-                    COMMAND $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
-                    COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}${MESSAGE_SUFFIX}"
-                    )
-                configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
-                list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_PATH} ${KERNEL_SRC_HPP_PATH})
+                if(MIOPEN_INCBIN)
+                    add_custom_command(
+                        OUTPUT ${KERNEL_SRC_HPP_PATH} ${KERNEL_SRC_ASM_PATH} ${KERNEL_SRC_BIN_PATH}
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                        DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
+                        COMMAND $<TARGET_FILE:addkernels> -asm ${KERNEL_SRC_ASM_PATH} ${KERNEL_SRC_BIN_PATH} -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
+                        COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}${MESSAGE_SUFFIX}"
+                        )
+                    list(APPEND MIOpen_Source ${KERNEL_SRC_HPP_PATH} ${KERNEL_SRC_ASM_PATH})
+                else()
+                    add_custom_command(
+                        OUTPUT ${KERNEL_SRC_HPP_PATH}
+                        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                        DEPENDS addkernels ${KERNELS_BATCH} ${KERNEL_INCLUDES}
+                        COMMAND $<TARGET_FILE:addkernels> -target ${KERNEL_SRC_HPP_PATH} -extern ${EXTRA_OPTIONS} -source ${KERNELS_BATCH}
+                        COMMENT "Inlining kernels batch #${KERNELS_BATCH_ID}${MESSAGE_SUFFIX}"
+                        )
+                    configure_file(kernels/kernels_batch.cpp.in ${KERNEL_SRC_CPP_PATH})
+                    list(APPEND MIOpen_Source ${KERNEL_SRC_CPP_PATH} ${KERNEL_SRC_HPP_PATH})
+                endif()
 
                 set(KERNELS_BATCH)
                 math(EXPR KERNELS_BATCH_ID "1+${KERNELS_BATCH_ID}")
@@ -862,15 +883,15 @@ target_include_directories(MIOpen PUBLIC
 
 if(MIOPEN_USE_COMPOSABLEKERNEL)
     if(MIOPEN_BUILD_CK )
-        # the aliased target doesnt exist when we build CK inline as part of MIOPEN.  The aliased target only is not 
-        # global when you build it so we dont have access to it. 
+        # the aliased target doesnt exist when we build CK inline as part of MIOPEN.  The aliased target only is not
+        # global when you build it so we dont have access to it.
         set(MIOPEN_CK_LINK_FLAGS device_conv_operations hip::host)
 
         # The include directories also dont propagate correctly when using the non aliased targets.
         # Manually including them fixes this problem for inline builds.
-        target_include_directories(MIOpen SYSTEM PRIVATE 
-            ${MIOPEN_CK_INCLUDE_DIR} 
-            ${MIOPEN_CK_BUILD_INCLUDE_DIR} 
+        target_include_directories(MIOpen SYSTEM PRIVATE
+            ${MIOPEN_CK_INCLUDE_DIR}
+            ${MIOPEN_CK_BUILD_INCLUDE_DIR}
             ${MIOPEN_CK_LIBRARY_INCLUDE_DIR})
     else()
         # Use the aliased targets when we pull CK from /opt/rocm or other place on disc.

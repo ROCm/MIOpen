@@ -1,3 +1,6 @@
+// Copyright © Advanced Micro Devices, Inc., or its affiliates.
+// SPDX-License-Identifier:  MIT
+
 #ifndef GUARD_REDUCTION_FUNCTIONS_H
 #define GUARD_REDUCTION_FUNCTIONS_H
 
