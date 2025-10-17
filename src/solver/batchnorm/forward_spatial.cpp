@@ -308,7 +308,9 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_FPMIX", static_cast<int>(bfpmixparm)},
             {"MIOPEN_USE_BFPMIX", static_cast<int>(bbfpmixparam)},
             {"MIO_SAVE_MEAN_VARIANCE", static_cast<int>(problem.GetResultSave())},
-            {"MIO_RUNNING_RESULT", static_cast<int>(problem.GetResultRunning())},
+            {"MIO_RUNNING_RESULT",
+             context.is_for_generic_search ? static_cast<int>(0)
+                                           : static_cast<int>(problem.GetResultRunning())},
             {"MIO_BN_VARIANT", variant},
             {"MIO_BN_LDS_SIZE", ldsnogcn},
             {"MIO_BN_LDSGCN_SIZE", std::to_string(ldsgcn)},
@@ -396,8 +398,9 @@ ConvSolution BnFwdTrainingSpatial::GetSolution(const ExecutionContext& context,
             decltype(auto) params = raw_params.CastTo<miopen::batchnorm::FwdTrainInvokeParams>();
             const auto resultsave =
                 params.resultSaveMean != nullptr && params.resultSaveInvVariance != nullptr;
-            const auto resultrunning =
-                params.resultRunningMean != nullptr && params.resultRunningVariance != nullptr;
+            const auto resultrunning = params.resultRunningMean != nullptr &&
+                                       params.resultRunningVariance != nullptr &&
+                                       !context.is_for_generic_search;
 
             float alpha_activ = problem.GetActivationDesc().GetAlpha();
             float beta_activ  = problem.GetActivationDesc().GetBeta();
