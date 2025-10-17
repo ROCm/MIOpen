@@ -291,4 +291,46 @@ static_assert(miopenConvolutionFindModeTrustVerifyFull ==
                   static_cast<miopenConvolutionFindMode_t>(FindMode::Values::TrustVerifyFull),
               "API is not in sync with the implementation.");
 
+bool IsValidCombination(const FindEnforce& enforce, const FindMode& mode)
+{
+    FindEnforceAction action = enforce.GetAction();
+    FindMode::Values value   = mode.Get();
+
+    // Always safe with no enforcement
+    if(action == FindEnforceAction::None)
+        return true;
+
+    // Always safe with Search-only enforcement
+    if(action == FindEnforceAction::Search)
+        return true;
+
+    // Always safe with Normal mode
+    if(value == FindMode::Values::Normal)
+        return true;
+
+    // Unsafe: Fast/Hybrid modes with database operations
+    if((value == FindMode::Values::Fast || value == FindMode::Values::Hybrid ||
+        value == FindMode::Values::DeprecatedFastHybrid ||
+        value == FindMode::Values::DynamicHybrid) &&
+       (action == FindEnforceAction::DbUpdate || action == FindEnforceAction::SearchDbUpdate ||
+        action == FindEnforceAction::DbClean))
+    {
+        MIOPEN_LOG_W("Unsafe combination: Specified find mode and enforcement may lead to "
+                     "incomplete database entries.");
+        return false;
+    }
+
+    // Unsafe: Trust modes (not public API accessible) with database operations
+    if((value == FindMode::Values::TrustVerify || value == FindMode::Values::TrustVerifyFull) &&
+       (action == FindEnforceAction::DbUpdate || action == FindEnforceAction::SearchDbUpdate ||
+        action == FindEnforceAction::DbClean))
+    {
+        MIOPEN_LOG_W("Unsafe combination: Specified find mode and enforcement depends on DB "
+                     "completeness and is therefore risky.");
+        return false;
+    }
+
+    return false;
+}
+
 } // namespace miopen
