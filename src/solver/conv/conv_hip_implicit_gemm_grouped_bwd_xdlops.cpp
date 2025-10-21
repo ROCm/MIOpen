@@ -577,6 +577,8 @@ bool ConvHipImplicitGemmGroupBwdXdlops::IsApplicable(
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_GROUP_BWD_XDLOPS))
         return false;
+    if(problem.GetConv().attribute.deterministic)
+        return false;
     if(problem.HasMixedDataTypes())
         return false;
     if(!problem.AllTensorsDimsFitIntoInt())
