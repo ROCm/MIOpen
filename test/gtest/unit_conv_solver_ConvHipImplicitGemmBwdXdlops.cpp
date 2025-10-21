@@ -36,6 +36,7 @@
 
 namespace {
 
+// Non-deterministic test cases (for GPU smoke tests)
 auto GetConvSmokeTestCases(miopenDataType_t datatype)
 {
     using TestCase = miopen::unit_tests::ConvTestCase;
@@ -45,6 +46,20 @@ auto GetConvSmokeTestCases(miopenDataType_t datatype)
         TestCase{{datatype, miopenTensorNHWC, {1, 32, 8, 8}},
                  {datatype, miopenTensorNHWC, {32, 32, 1, 1}},
                  datatype, {{0, 0}, {1, 1}, {1, 1}}},
+        // clang-format on
+    };
+}
+
+// Deterministic test case (for CPU deterministic applicability test)
+auto GetConvDeterministicTestCases(miopenDataType_t datatype)
+{
+    using TestCase = miopen::unit_tests::ConvTestCase;
+
+    return std::vector{
+        // clang-format off
+        TestCase{{datatype, miopenTensorNHWC, {1, 32, 8, 8}},
+                 {datatype, miopenTensorNHWC, {32, 32, 1, 1}},
+                 datatype, {{0, 0}, {1, 1}, {1, 1}, 1, true}},
         // clang-format on
     };
 }
@@ -97,6 +112,8 @@ using GPU_UnitTestConvSolverImplicitGemmBwdXdlops_BFP16 = GPU_UnitTestConvSolver
 using GPU_UnitTestConvSolverImplicitGemmBwdXdlops_FP32  = GPU_UnitTestConvSolverBwd_FP32;
 using CPU_UnitTestConvSolverImplicitGemmBwdXdlopsDevApplicability_FP16 =
     CPU_UnitTestConvSolverDevApplicabilityBwd_NONE;
+using CPU_UnitTestConvSolverImplicitGemmBwdXdlopsDeterministicApplicability_NONE =
+    CPU_UnitTestConvSolverDevApplicabilityBwd_NONE;
 
 TEST_P(GPU_UnitTestConvSolverImplicitGemmBwdXdlops_FP16, ConvHipImplicitGemmBwdXdlops)
 {
@@ -114,6 +131,12 @@ TEST_P(GPU_UnitTestConvSolverImplicitGemmBwdXdlops_FP32, ConvHipImplicitGemmBwdX
 };
 
 TEST_P(CPU_UnitTestConvSolverImplicitGemmBwdXdlopsDevApplicability_FP16, SOLVER_NAME_DEV_APP)
+{
+    this->RunTest(miopen::solver::conv::ConvHipImplicitGemmBwdXdlops{});
+};
+
+TEST_P(CPU_UnitTestConvSolverImplicitGemmBwdXdlopsDeterministicApplicability_NONE,
+       ConvHipImplicitGemmBwdXdlops)
 {
     this->RunTest(miopen::solver::conv::ConvHipImplicitGemmBwdXdlops{});
 };
@@ -162,3 +185,9 @@ INSTANTIATE_TEST_SUITE_P(Smoke,
                          CPU_UnitTestConvSolverImplicitGemmBwdXdlopsDevApplicability_FP16,
                          testing::Combine(testing::Values(GetTestParams(miopenHalf)),
                                           testing::Values(GetConvSmokeTestCases(miopenHalf)[0])));
+
+INSTANTIATE_TEST_SUITE_P(
+    Smoke,
+    CPU_UnitTestConvSolverImplicitGemmBwdXdlopsDeterministicApplicability_NONE,
+    testing::Combine(testing::Values(Gpu::None),
+                     testing::Values(GetConvDeterministicTestCases(miopenHalf)[0])));
