@@ -375,7 +375,8 @@ void PerformanceConfigHipImplicitGemm3DGroupFwdXdlops::Init(const ProblemDescrip
             return static_cast<std::size_t>(it - valid_kernels.begin());
 
         // Not found: return 0
-        MIOPEN_LOG_E("Not found :" << index << "-" << kernel_id);
+        MIOPEN_LOG_I2("Hard-coded heuristics could not find kernel: "
+                      << kernel_id << ". Falling back to default kernel at index 0.");
         return 0;
     };
 
