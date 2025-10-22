@@ -75,7 +75,7 @@ def runBuildAndSingleGtestJob(def utils, def flags, def build_timeout_minutes=42
 }
 
 //launch develop branch nightly jobs
-CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 0 * * * % RUN_NIGHTLY_TESTS=true;BUILD_PACKAGE_AND_CHECKS=false;BUILD_FULL_TESTS=false;TARGET_GFX908=true;TARGET_GFX90A=true;TARGET_GFX942=true''' : ""
+CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 0 * * * % RUN_NIGHTLY_TESTS=true;RUN_GFX908_DBSYNC_AND_FULL_TESTS_NIGHTLY=true;BUILD_PACKAGE_AND_CHECKS=false;BUILD_FULL_TESTS=false;TARGET_GFX908=true;TARGET_GFX90A=true;TARGET_GFX942=true''' : ""
 
 pipeline {
     agent none
@@ -119,7 +119,7 @@ pipeline {
             description: "")
         booleanParam(
             name: "TARGET_GFX908",
-            defaultValue: env.BRANCH_NAME == "develop" ? true : false,
+            defaultValue: false,
             description: "")
         booleanParam(
             name: "TARGET_GFX90A",
@@ -180,6 +180,10 @@ pipeline {
             name: "RUN_NIGHTLY_TESTS",
             defaultValue: false,
             description: "Run the nightly tests (default: OFF)")
+        booleanParam(
+            name: "RUN_GFX908_DBSYNC_AND_FULL_TESTS_NIGHTLY",
+            defaultValue: false,
+            description: "Run the gfx908 DBSync + full tests in nightly (default: OFF)")
     }
 
     environment{
@@ -894,6 +898,78 @@ pipeline {
                                 utils.buildHipClangJob(build_type: 'debug', make_targets: Smoke_targets, build_install: true)
                             }
                         }
+                    }
+                    post {
+                        always {
+                            cleanWs()
+                        }
+                    }
+                }
+                stage('Dbsync gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 && params.RUN_GFX908_DBSYNC_AND_FULL_TESTS_NIGHTLY }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        runDbSyncJob(utils)
+                    }
+                    post {
+                        always {
+                            cleanWs()
+                        }
+                    }
+                }
+                stage('Bf16 Hip Install All gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 && params.RUN_GFX908_DBSYNC_AND_FULL_TESTS_NIGHTLY }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        runBuildAndSingleGtestJob(utils, Full_test + Bf16_flags, Build_timeout_minutes)
+                    }
+                    post {
+                        always {
+                            cleanWs()
+                        }
+                    }
+                }
+                stage('Fp16 Hip All Install gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 && params.RUN_GFX908_DBSYNC_AND_FULL_TESTS_NIGHTLY }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        runBuildAndSingleGtestJob(utils, Full_test + Fp16_flags, Build_timeout_minutes)
+                    }
+                    post {
+                        always {
+                            cleanWs()
+                        }
+                    }
+                }
+                stage('Fp32 Hip All gfx908') {
+                    when {
+                        beforeAgent true
+                        expression { params.TARGET_GFX908 && params.RUN_GFX908_DBSYNC_AND_FULL_TESTS_NIGHTLY }
+                    }
+                    options {
+                        retry(2)
+                    }
+                    agent{ label rocmnode("gfx908") }
+                    steps{
+                        runBuildAndSingleGtestJob(utils, Full_test, Build_timeout_minutes)
                     }
                     post {
                         always {
