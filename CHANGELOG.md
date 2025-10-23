@@ -2,11 +2,6 @@
 # Change Log for MIOpen
 
 Full documentation for MIOpen is available [here](https://rocm.docs.amd.com/projects/MIOpen/en/latest/)
-## (Unreleased) MIOpen <upcoming_release_number> for ROCm <upcoming_release_number>
-### Changed
-
-* `MIOPEN_FIND_ENFORCE` no longer forces Normal for `MIOPEN_FIND_MODE` when using non-database update operations.
-
 ## MIOpen 3.5.1 for ROCm 7.1.0
 ### Added
 
