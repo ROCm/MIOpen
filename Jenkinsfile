@@ -37,16 +37,19 @@ def get_branch_name(){
 ///   * "Performance Dataset" is a performance test with a specified dataset.
 /// Target := { gfx908 | gfx90a | gfx942 } [ Xnack+ ]
 
-def utils
+utils = null
 
 def withWorkingDir(Closure body) {
     checkout scm
     dir("${env.WORKSPACE}/${env.REPO_DIR}") {
+        if (utils == null) {
+            utils = load "vars/utils.groovy"
+        }
         body()
     }
 }
 
-def runDbSyncJob(def utils)
+def runDbSyncJob()
 {
     script {
         withWorkingDir {
@@ -60,7 +63,7 @@ def runDbSyncJob(def utils)
     }
 }
 
-def runBuildAndSingleGtestJob(def utils, def flags, def build_timeout_minutes=420)
+def runBuildAndSingleGtestJob(def flags, def build_timeout_minutes=420)
 {
     script {
         withWorkingDir {
@@ -212,7 +215,6 @@ pipeline {
             steps{
                 script {
                     withWorkingDir {
-                        utils = load "vars/utils.groovy"
                         utils.getDockerImage()
                     }
                 }
@@ -356,7 +358,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        runDbSyncJob(utils)
+                        runDbSyncJob()
                     }
                     post {
                         always {
@@ -374,7 +376,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        runDbSyncJob(utils)
+                        runDbSyncJob()
                     }
                     post {
                         always {
@@ -392,7 +394,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx942") }
                     steps{
-                        runDbSyncJob(utils)
+                        runDbSyncJob()
                     }
                     post {
                         always {
@@ -410,7 +412,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test + Bf16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test + Bf16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -428,7 +430,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test + Bf16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test + Bf16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -446,7 +448,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx942") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test + Bf16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test + Bf16_flags, Build_timeout_minutes)
                     }
                 }
                 stage('Bf16 Hip All Install gfx115X') {
@@ -462,7 +464,7 @@ pipeline {
                         gfx115x_filter_flags = " -DMIOPEN_TEST_GFX115X=On "
                     }
                     steps{
-                        runBuildAndSingleGtestJob(utils, gfx115x_filter_flags + Full_test + Bf16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(gfx115x_filter_flags + Full_test + Bf16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -480,7 +482,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test + Fp16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test + Fp16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -498,7 +500,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test + Fp16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test + Fp16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -516,7 +518,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx942") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test + Fp16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test + Fp16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -534,7 +536,7 @@ pipeline {
                     }
                     agent{ label rocmnode("navi32") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test + Fp16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test + Fp16_flags, Build_timeout_minutes)
                     }
                 }
                 stage('Fp16 Hip All Install gfx115X') {
@@ -551,7 +553,7 @@ pipeline {
                         build_timeout_minutes = 420
                     }
                     steps{
-                        runBuildAndSingleGtestJob(utils, gfx115x_filter_flags + Full_test + Fp16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(gfx115x_filter_flags + Full_test + Fp16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -569,7 +571,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -587,7 +589,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx90a") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -605,7 +607,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx942") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -623,7 +625,7 @@ pipeline {
                     }
                     agent{ label rocmnode("navi32") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test, Build_timeout_minutes)
                     }
                 }
                 stage('Fp32 Hip All Install gfx115X') {
@@ -640,7 +642,7 @@ pipeline {
                         build_timeout_minutes = 420
                     }
                     steps{
-                        runBuildAndSingleGtestJob(utils, gfx115x_filter_flags + Full_test, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(gfx115x_filter_flags + Full_test, Build_timeout_minutes)
                     }
                     post {
                         always {
