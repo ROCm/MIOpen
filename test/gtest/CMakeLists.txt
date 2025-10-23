@@ -18,6 +18,13 @@ set(SOURCES
     unit_conv_solver.cpp
     )
 
+
+# We use a special entry point for HIP backend testing so we can detect and flag any HIP errors that tests don't
+# clean up themselves
+if(MIOPEN_BACKEND_HIP)
+  list(APPEND SOURCES main_hip.cpp)
+endif()
+
 if(MIOPEN_BACKEND_OPENCL)
   set(SKIP_TESTS dumpTensorTest.cpp)
 endif()
