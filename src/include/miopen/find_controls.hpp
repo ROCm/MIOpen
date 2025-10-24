@@ -85,9 +85,8 @@ public:
     template <class Context>
     bool IsSearch(const Context& context) const
     {
-        return IsEnabled(context) && (action == FindEnforceAction::Search ||
-                                      action == FindEnforceAction::SearchDbUpdate ||
-                                      action == FindEnforceAction::DbUpdate);
+        return IsEnabled(context) &&
+               (action == FindEnforceAction::Search || action == FindEnforceAction::SearchDbUpdate);
     }
 
     template <class Context>

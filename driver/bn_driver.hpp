@@ -177,6 +177,8 @@ private:
     miopenTensorLayout_t bn_layout;
 
     GPUMem::Check buffer_check = GPUMem::Check::None;
+
+    int tuning_policy;
 };
 
 template <typename TInput, typename Tref, typename TAcc, typename TScaleBias, typename TOut>
@@ -190,6 +192,12 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::ParseCmdLineArgs(int 
     }
 
     buffer_check = GetGpuBufferCheck(inflags);
+
+    tuning_policy = inflags.GetValueInt("tuning_policy");
+    if(tuning_policy != 0)
+    {
+        miopenSetTuningPolicy(GetHandle(), static_cast<miopenTuningPolicy_t>(tuning_policy));
+    }
 
     return miopenStatusSuccess;
 }
@@ -344,6 +352,11 @@ int BatchNormDriver<TInput, Tref, TAcc, TScaleBias, TOut>::AddCmdLineArgs()
     inflags.AddInputFlag(
         "activ_beta", 'y', "1.0", "Activation function parameter beta (Default=1.0)", "float");
     AddGpuBufferCheckFlag(inflags);
+    inflags.AddInputFlag("tuning_policy",
+                         '&',
+                         "0",
+                         "MIOpen tuning policy (Default=0, or no tuning policy set)",
+                         "int");
 
     return miopenStatusSuccess;
 }
