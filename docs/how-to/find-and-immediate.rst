@@ -247,5 +247,5 @@ modes by using the ``MIOPEN_FIND_MODE`` environment variable with one of these v
 * ``TRUST_VERIFY_FULL``/``7`` (trust verify full find): Checks :doc:`FindDb <../conceptual/finddb>`
   Same as TRUST_VERIFY, with no limitations on tuning time.
 
-The default find mode is ``TRUST_VERIFY``. To run the full ``NORMAL`` find mode, use
+The default find mode is ``DYNAMIC_HYBRID``. To run the full ``NORMAL`` find mode, use
 ``export MIOPEN_FIND_MODE=NORMAL`` or ``export MIOPEN_FIND_MODE=1``.

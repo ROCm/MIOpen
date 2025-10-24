@@ -32,6 +32,9 @@ Enable this feature using these commands:
   export MIOPEN_FIND_ENFORCE=3
   export MIOPEN_USER_DB_PATH="/user/specified/directory"
 
+Note that the ``miopenSetTuningPolicy()`` API method can be used instead of the ``MIOPEN_FIND_ENFORCE``
+environment variable.
+
 Exhaustive tuning
 ----------------------------------------------------------------------------------------------------------
 
