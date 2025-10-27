@@ -85,7 +85,7 @@ AddLayernormForward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenLayerNorm.cpp";
+        kernel.kernel_file = "MIOpenAddLayerNorm.cpp";
         kernel.kernel_name = "AddLayernormFwdContiguous";
 
         const auto build_params = KernelBuildParameters{

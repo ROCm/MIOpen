@@ -52,6 +52,14 @@ int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
                                    int32_t normalized_dim,
                                    miopenNormMode_t mode)
 {
+    auto layout   = miopen::deref(inputDesc).GetLayoutEnum();
+    size_t stride = 1;
+    if(normalized_dim > 1 && layout.has_value() &&
+       (layout.value() == miopenTensorNHWC || layout.value() == miopenTensorNDHWC))
+    {
+        stride = miopen::deref(inputDesc).GetLengths()[1]; // stride = C
+    }
+
     auto dims         = miopen::deref(inputDesc).GetLengths();
     size_t outer_size = 1;
     size_t inner_size = 1;
@@ -60,38 +68,51 @@ int32_t mloLayerNormForwardRunHost(miopenTensorDescriptor_t inputDesc,
     for(size_t i = 0ULL; i < dims.size(); ++i)
     {
         if(i < norm_dim)
-            outer_size *= dims[i];
+        {
+            if(!(stride > 1 && i == 1))
+            {
+                outer_size *= dims[i];
+            }
+        }
         else
+        {
             inner_size *= dims[i];
+        }
     }
 
     int32_t ret = 0;
 
     for(int32_t o = 0; o < outer_size; o++)
     {
-        Tcheck pmean = 0.0f;
-        Tcheck pvar  = 0.0f;
-        for(int32_t i = 0; i < inner_size; i++)
+        for(int32_t s = 0; s < stride; s++)
         {
-            Tcheck tmp = static_cast<Tcheck>(input[o * inner_size + i]);
-            pmean += tmp;
-            pvar += tmp * tmp;
-        }
+            Tcheck pmean = 0.0f;
+            Tcheck pvar  = 0.0f;
+            for(int32_t i = 0; i < inner_size; i++)
+            {
+                Tcheck tmp = static_cast<Tcheck>(input[o * inner_size * stride + i * stride + s]);
+                pmean += tmp;
+                pvar += tmp * tmp;
+            }
 
-        pmean        = pmean / inner_size;
-        pvar         = pvar / inner_size - pmean * pmean;
-        Tcheck prstd = 1.0f / sqrt(pvar + eps);
+            pmean        = pmean / inner_size;
+            pvar         = pvar / inner_size - pmean * pmean;
+            Tcheck prstd = 1.0f / sqrt(pvar + eps);
 
-        meanhost[o] = pmean;
-        rstdhost[o] = prstd;
+            meanhost[o * stride + s] = pmean;
+            rstdhost[o * stride + s] = prstd;
 
-        for(int32_t i = 0; i < inner_size; i++)
-        {
-            Tcheck pweight =
-                (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<Tcheck>(weight[i]);
-            Tcheck pbias = (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 0 : static_cast<Tcheck>(bias[i]);
-            outputhost[o * inner_size + i] =
-                (static_cast<Tcheck>(input[o * inner_size + i]) - pmean) * prstd * pweight + pbias;
+            for(int32_t i = 0; i < inner_size; i++)
+            {
+                Tcheck pweight =
+                    (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<Tcheck>(weight[i]);
+                Tcheck pbias =
+                    (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 0 : static_cast<Tcheck>(bias[i]);
+                outputhost[o * inner_size * stride + i * stride + s] =
+                    (static_cast<Tcheck>(input[o * inner_size * stride + i * stride + s]) - pmean) *
+                        prstd * pweight +
+                    pbias;
+            }
         }
     }
     return ret;
@@ -108,6 +129,14 @@ int32_t mloLayerNormBackwardRunHost(miopenTensorDescriptor_t dyDesc,
                                     int32_t normalized_dim,
                                     miopenNormMode_t mode)
 {
+    auto layout   = miopen::deref(dyDesc).GetLayoutEnum();
+    size_t stride = 1;
+    if(normalized_dim > 1 && layout.has_value() &&
+       (layout.value() == miopenTensorNHWC || layout.value() == miopenTensorNDHWC))
+    {
+        stride = miopen::deref(dyDesc).GetLengths()[1]; // stride = C
+    }
+
     auto dims         = miopen::deref(dyDesc).GetLengths();
     size_t outer_size = 1;
     size_t inner_size = 1;
@@ -116,42 +145,56 @@ int32_t mloLayerNormBackwardRunHost(miopenTensorDescriptor_t dyDesc,
     for(size_t i = 0ULL; i < dims.size(); ++i)
     {
         if(i < norm_dim)
-            outer_size *= dims[i];
+        {
+            if(!(stride > 1 && i == 1))
+            {
+                outer_size *= dims[i];
+            }
+        }
         else
+        {
             inner_size *= dims[i];
+        }
     }
 
     int32_t ret = 0;
 
     for(int o = 0; o < outer_size; ++o)
     {
-        Tcheck sum_dy_weight   = 0;
-        Tcheck sum_dy_weight_x = 0;
-
-        for(int i = 0; i < inner_size; ++i)
+        for(int s = 0; s < stride; ++s)
         {
-            Tcheck pweight =
-                (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<Tcheck>(weight[i]);
-            Tcheck pdy = dy ? static_cast<Tcheck>(dy[o * inner_size + i]) : 0;
-            Tcheck px  = static_cast<Tcheck>(x[o * inner_size + i]);
-            sum_dy_weight += pdy * pweight;
-            sum_dy_weight_x += pdy * px * pweight;
-        }
+            Tcheck sum_dy_weight   = 0;
+            Tcheck sum_dy_weight_x = 0;
 
-        Tcheck scale = 1.0f / static_cast<Tcheck>(inner_size);
-        Tcheck prstd = static_cast<Tcheck>(rstdhost[o]);
-        Tcheck pmean = static_cast<Tcheck>(meanhost[o]);
-        Tcheck a     = prstd * prstd * prstd * scale * (sum_dy_weight_x - sum_dy_weight * pmean);
-        Tcheck b     = prstd * sum_dy_weight * scale - a * pmean;
+            for(int i = 0; i < inner_size; ++i)
+            {
+                Tcheck pweight =
+                    (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<Tcheck>(weight[i]);
+                Tcheck pdy =
+                    dy ? static_cast<Tcheck>(dy[o * inner_size * stride + i * stride + s]) : 0;
+                Tcheck px = static_cast<Tcheck>(x[o * inner_size * stride + i * stride + s]);
+                sum_dy_weight += pdy * pweight;
+                sum_dy_weight_x += pdy * px * pweight;
+            }
 
-        for(int i = 0; i < inner_size; ++i)
-        {
-            Tcheck pweight =
-                (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<Tcheck>(weight[i]);
-            Tcheck pdy = dy ? static_cast<Tcheck>(dy[o * inner_size + i]) : 0;
+            Tcheck scale = 1.0f / static_cast<Tcheck>(inner_size);
+            Tcheck prstd = static_cast<Tcheck>(rstdhost[o * stride + s]);
+            Tcheck pmean = static_cast<Tcheck>(meanhost[o * stride + s]);
+            Tcheck a = prstd * prstd * prstd * scale * (sum_dy_weight_x - sum_dy_weight * pmean);
+            Tcheck b = prstd * sum_dy_weight * scale - a * pmean;
 
-            Tcheck val = prstd * pdy * pweight - a * static_cast<Tcheck>(x[o * inner_size + i]) - b;
-            dxhost[o * inner_size + i] = static_cast<Tcheck>(val);
+            for(int i = 0; i < inner_size; ++i)
+            {
+                Tcheck pweight =
+                    (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<Tcheck>(weight[i]);
+                Tcheck pdy =
+                    dy ? static_cast<Tcheck>(dy[o * inner_size * stride + i * stride + s]) : 0;
+
+                Tcheck val = prstd * pdy * pweight -
+                             a * static_cast<Tcheck>(x[o * inner_size * stride + i * stride + s]) -
+                             b;
+                dxhost[o * inner_size * stride + i * stride + s] = static_cast<Tcheck>(val);
+            }
         }
     }
 
@@ -168,6 +211,13 @@ int32_t mloLayerNormBackwardWeightBiasRunHost(miopenTensorDescriptor_t dyDesc,
                                               Tcheck* dbhost,
                                               int32_t normalized_dim)
 {
+    auto layout   = miopen::deref(dyDesc).GetLayoutEnum();
+    size_t stride = 1;
+    if(normalized_dim > 1 && (layout == miopenTensorNHWC || layout == miopenTensorNDHWC))
+    {
+        stride = miopen::deref(dyDesc).GetLengths()[1]; // stride = C
+    }
+
     auto dims         = miopen::deref(dyDesc).GetLengths();
     size_t outer_size = 1;
     size_t inner_size = 1;
@@ -178,9 +228,16 @@ int32_t mloLayerNormBackwardWeightBiasRunHost(miopenTensorDescriptor_t dyDesc,
     for(size_t i = 0ULL; i < dims.size(); ++i)
     {
         if(i < norm_dim)
-            outer_size *= dims[i];
+        {
+            if(!(stride > 1 && i == 1))
+            {
+                outer_size *= dims[i];
+            }
+        }
         else
+        {
             inner_size *= dims[i];
+        }
     }
 
     for(int i = 0; i < inner_size; ++i)
@@ -188,15 +245,19 @@ int32_t mloLayerNormBackwardWeightBiasRunHost(miopenTensorDescriptor_t dyDesc,
         Tcheck sum_dw = 0;
         Tcheck sum_db = 0;
 
-        for(int o = 0; o < outer_size; ++o)
+        for(int s = 0; s < stride; ++s)
         {
-            Tcheck prstd = static_cast<Tcheck>(rstdhost[o]);
-            Tcheck pmean = static_cast<Tcheck>(meanhost[o]);
-            Tcheck pdy   = dy ? static_cast<Tcheck>(dy[o * inner_size + i]) : 0;
-            Tcheck px    = static_cast<Tcheck>(x[o * inner_size + i]);
+            for(int o = 0; o < outer_size; ++o)
+            {
+                Tcheck prstd = static_cast<Tcheck>(rstdhost[o * stride + s]);
+                Tcheck pmean = static_cast<Tcheck>(meanhost[o * stride + s]);
+                Tcheck pdy =
+                    dy ? static_cast<Tcheck>(dy[o * inner_size * stride + i * stride + s]) : 0;
+                Tcheck px = static_cast<Tcheck>(x[o * inner_size * stride + i * stride + s]);
 
-            sum_dw += pdy * (px - pmean) * prstd;
-            sum_db += pdy;
+                sum_dw += pdy * (px - pmean) * prstd;
+                sum_db += pdy;
+            }
         }
 
         dwhost[i] = sum_dw;
@@ -232,6 +293,7 @@ public:
 
     int GetandSetData() override;
     std::vector<int> GetInputTensorLengthsFromCmdLine();
+    void ValidateLayout();
 
     int AllocateBuffersAndCopy() override;
 
@@ -325,9 +387,8 @@ int LayerNormDriver<Tgpu, Tref>::ParseCmdLineArgs(int argc, char* argv[])
 template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::GetandSetData()
 {
-    auto inTensorParam = inflags.GetValueTensor("input");
-
-    auto in_len = inTensorParam.lengths;
+    auto in_len = GetInputTensorLengthsFromCmdLine();
+    ValidateLayout();
 
     dim = inflags.GetValueInt("normalized_dim");
 
@@ -346,8 +407,9 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     else
         outer_len = {in_len.begin(), in_len.end() - (in_len.size() - dim)};
 
-    if(SetTensorNd(inputDesc, in_len, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error parsing input tensor: " + inflags.GetValueStr("input") + ".");
+    if(SetTensorNd(inputDesc, in_len, inflags.GetValueStr("layout"), data_type) !=
+       miopenStatusSuccess)
+        MIOPEN_THROW("Error parsing input tensor.");
 
     if(SetTensorNd(weightDesc, inner_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting weight tensor.");
@@ -355,8 +417,9 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(biasDesc, inner_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting bias tensor.");
 
-    if(SetTensorNd(outputDesc, in_len, data_type) != miopenStatusSuccess)
-        MIOPEN_THROW("Error setting doutput tensor.");
+    if(SetTensorNd(outputDesc, in_len, inflags.GetValueStr("layout"), data_type) !=
+       miopenStatusSuccess)
+        MIOPEN_THROW("Error setting output tensor.");
 
     if(SetTensorNd(meanDesc, outer_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting mean tensor.");
@@ -364,10 +427,10 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(rstdDesc, outer_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting rstd tensor.");
 
-    if(SetTensorNd(dyDesc, in_len, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(dyDesc, in_len, inflags.GetValueStr("layout"), data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting dy tensor.");
 
-    if(SetTensorNd(dxDesc, in_len, data_type) != miopenStatusSuccess)
+    if(SetTensorNd(dxDesc, in_len, inflags.GetValueStr("layout"), data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting dx tensor.");
 
     if(SetTensorNd(dwDesc, inner_len, data_type) != miopenStatusSuccess)
@@ -376,7 +439,7 @@ int LayerNormDriver<Tgpu, Tref>::GetandSetData()
     if(SetTensorNd(dbDesc, inner_len, data_type) != miopenStatusSuccess)
         MIOPEN_THROW("Error setting db tensor.");
 
-    eps  = static_cast<double>(inflags.GetValueDouble("eps"));
+    eps  = inflags.GetValueDouble("eps");
     mode = miopenNormMode_t(inflags.GetValueInt("mode"));
 
     return 0;
@@ -386,10 +449,25 @@ template <typename Tgpu, typename Tref>
 int LayerNormDriver<Tgpu, Tref>::AddCmdLineArgs()
 {
     inflags.AddInputFlag("forw", 'F', "0", "Run only Forward LayerNorm (Default=0)", "int");
-    inflags.AddTensorFlag("input", 'X', "100x3x32x32", "input tensor descriptor");
+    inflags.AddInputFlag("layout",
+                         'L',
+                         "",
+                         "Tensor layout: [NCHW, NHWC, NCDHW, NDHWC, NW] (Default=NCDHW/NCHW/NW)",
+                         "string",
+                         true);
+    inflags.AddInputFlag("in_n", 'N', "100", "Input batch size (Default=100)", "int");
+    inflags.AddInputFlag("in_c", 'C', "3", "Input channel number (Default=3)", "int");
+    inflags.AddInputFlag("in_h", 'H', "32", "Input height (Default=32)", "int");
+    inflags.AddInputFlag("in_w", 'W', "32", "Input width (Default=32)", "int");
+    inflags.AddInputFlag("in_d", 'D', "0", "Input depth (Default=0)", "int");
 
     inflags.AddInputFlag("eps", 'e', "0.00001", "Alpha (Default=0.00001)", "double");
-    inflags.AddInputFlag("normalized_dim", 'o', "3", "Normalized Dim (Default=3)", "int");
+    inflags.AddInputFlag(
+        "normalized_dim",
+        'o',
+        "3",
+        "Normalized Dim, given in NCDHW/NCHW/NW regardless of specified layout (Default=3)",
+        "int");
     inflags.AddInputFlag(
         "mode", 'm', "0", "elemwise affine mode (0), weight and bias mode (1) (Default=0)", "int");
 
@@ -794,6 +872,107 @@ int LayerNormDriver<Tgpu, Tref>::VerifyBackward()
     }
 
     return miopenStatusSuccess;
+}
+
+template <typename Tgpu, typename Tref>
+std::vector<int> LayerNormDriver<Tgpu, Tref>::GetInputTensorLengthsFromCmdLine()
+{
+    int in_n = inflags.GetValueInt("in_n");
+    int in_c = inflags.GetValueInt("in_c");
+    int in_h = inflags.GetValueInt("in_h");
+    int in_w = inflags.GetValueInt("in_w");
+    int in_d = inflags.GetValueInt("in_d");
+
+    if(in_d != 0)
+    {
+        return std::vector<int>{in_n, in_c, in_d, in_h, in_w};
+    }
+    else if(in_c != 0 && in_h != 0)
+    {
+        return std::vector<int>{in_n, in_c, in_h, in_w};
+    }
+    else if(in_n != 0 && in_c == 0 && in_h == 0 && in_w != 0)
+    {
+        return std::vector<int>{in_n, in_w};
+    }
+    else
+    {
+        MIOPEN_THROW("Invalid tensor sizes");
+    }
+}
+
+template <typename Tgpu, typename Tref>
+void LayerNormDriver<Tgpu, Tref>::ValidateLayout()
+{
+    auto layout_value = inflags.GetValueStr("layout");
+    int in_d          = inflags.GetValueInt("in_d");
+    int in_c          = inflags.GetValueInt("in_c");
+    int in_h          = inflags.GetValueInt("in_h");
+    if(layout_value.empty())
+    {
+        if(in_d != 0)
+        {
+            inflags.SetValue("layout", "NCDHW");
+        }
+        else if(in_c != 0 && in_h != 0)
+        {
+            inflags.SetValue("layout", "NCHW");
+        }
+        else
+        {
+            inflags.SetValue("layout", "NW");
+        }
+    }
+    else if(layout_value != "NCHW" && layout_value != "NHWC" && layout_value != "NCDHW" &&
+            layout_value != "NDHWC" && layout_value != "NW")
+    {
+        std::cerr << "Invalid layout parameter value: " << layout_value << std::endl;
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
+    }
+    else if((in_d == 0 || in_c == 0 || in_h == 0) &&
+            (layout_value == "NCDHW" || layout_value == "NDHWC"))
+    {
+        std::cerr << "The input depth (in_d), channels (in_c) and height (in_h) must be greater "
+                     "than zero for layouts NCDHW and NDHWC"
+                  << std::endl;
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
+    }
+    else if(in_d != 0 && (layout_value == "NCHW" || layout_value == "NHWC"))
+    {
+        std::cerr << "The input depth (in_d) must be zero and the input channels (in_c) and height "
+                     "(in_h) must be greater than zero for layouts NCHW and NHWC"
+                  << std::endl;
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
+    }
+    else if((in_d != 0 || in_c != 0 || in_h != 0) && layout_value == "NW")
+    {
+        std::cerr
+            << "The input depth (in_d), channels (in_c) and height (in_h) be zero for layout NW"
+            << std::endl;
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
+    }
+
+    int normalized_dim = inflags.GetValueInt("normalized_dim");
+    if(normalized_dim >= 5 && (layout_value == "NCDHW" || layout_value == "NDHWC"))
+    {
+        std::cerr << "The normalized dimension (normalized_dim) must be less than 5 for layouts "
+                     "NCDHW and NDHWC"
+                  << std::endl;
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
+    }
+    else if(normalized_dim >= 4 && (layout_value == "NCHW" || layout_value == "NHWC"))
+    {
+        std::cerr << "The normalized dimension (normalized_dim) must be less than 4 for layouts "
+                     "NCHW and NHWC"
+                  << std::endl;
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
+    }
+    else if(normalized_dim >= 2 && layout_value == "NW")
+    {
+        std::cerr << "The normalized dimension (normalized_dim) must be less than 2 for layout NW"
+                  << std::endl;
+        exit(EXIT_FAILURE); // NOLINT (concurrency-mt-unsafe)
+    }
 }
 
 #endif // GUARD_MIOPEN_LAYERNORM_DRIVER_HPP

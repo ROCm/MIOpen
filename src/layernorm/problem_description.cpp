@@ -38,6 +38,7 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     auto dims         = xDesc.GetLengths();
     size_t outer_size = 1;
     size_t inner_size = 1;
+    size_t stride     = 1;
 
     if((mode == MIOPEN_WEIGHT_BIAS_T5) || (mode == MIOPEN_ELEMENTWISE_AFFINE_T5))
     {
@@ -46,8 +47,20 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
     }
     else
     {
-        outer_size = std::accumulate(
-            dims.begin(), dims.begin() + normalized_dim, 1ULL, std::multiplies<size_t>());
+        auto layout = xDesc.GetLayoutEnum();
+        if(normalized_dim > 1 && layout.has_value() &&
+           (layout.value() == miopenTensorNHWC || layout.value() == miopenTensorNDHWC))
+        {
+            stride = xDesc.GetLengths()[1]; // stride = C
+        }
+
+        for(size_t i = 0; i < normalized_dim; ++i)
+        {
+            if(!(stride > 1 && i == 1))
+            {
+                outer_size *= dims[i];
+            }
+        }
         inner_size = std::accumulate(
             dims.begin() + normalized_dim, dims.end(), 1ULL, std::multiplies<size_t>());
     }
@@ -71,6 +84,8 @@ NetworkConfig ProblemDescription::MakeNetworkConfig() const
         ss << "addlayernorm";
     if((mode == MIOPEN_WEIGHT_BIAS_T5) || (mode == MIOPEN_ELEMENTWISE_AFFINE_T5))
         ss << "t5layernorm";
+
+    ss << "stride" << stride;
 
     return NetworkConfig{ss.str()};
 }

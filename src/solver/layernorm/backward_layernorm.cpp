@@ -68,8 +68,22 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
     auto output_dtype = miopen::GetDataType(problem.GetDXDesc().GetType());
     auto dims         = problem.GetDYDesc().GetLengths();
 
-    auto outer_size = std::accumulate(
-        dims.begin(), dims.begin() + problem.GetNormalizedDim(), 1ULL, std::multiplies<size_t>());
+    auto layout   = problem.GetXDesc().GetLayoutEnum();
+    size_t stride = 1;
+    if(problem.GetNormalizedDim() > 1 && layout.has_value() &&
+       (layout.value() == miopenTensorNHWC || layout.value() == miopenTensorNDHWC))
+    {
+        stride = problem.GetXDesc().GetLengths()[1]; // stride = C
+    }
+
+    size_t outer_size = 1;
+    for(size_t i = 0; i < problem.GetNormalizedDim(); i++)
+    {
+        if(!(stride > 1 && i == 1))
+        {
+            outer_size *= dims[i];
+        }
+    }
     auto inner_size = std::accumulate(
         dims.begin() + problem.GetNormalizedDim(), dims.end(), 1ULL, std::multiplies<size_t>());
 
@@ -77,7 +91,7 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
 
     {
         size_t xlocalsize = LOCAL_SIZE;
-        size_t xgridsize  = outer_size * xlocalsize;
+        size_t xgridsize  = outer_size * stride * xlocalsize;
         size_t ylocalsize = 1;
         size_t ygridsize  = 1;
         size_t zlocalsize = 1;
@@ -86,7 +100,7 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
         auto kernel = KernelInfo{};
 
         kernel.kernel_file = "MIOpenLayerNorm.cpp";
-        kernel.kernel_name = "LayernormBwdContiguous";
+        kernel.kernel_name = "LayernormBwd";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -94,7 +108,11 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"OUTER_SIZE", outer_size},
+            {"INNER_SIZE", inner_size},
+            {"STRIDE", stride},
             {"LOCAL_SIZE", LOCAL_SIZE},
+            {"PARALLEL_SIZE", 1},
             {"MIOPEN_ELEMENTWISE_AFFINE", 0},
             {"MIOPEN_WEIGHT_BIAS", 1},
             {"MIOPEN_ELEMENTWISE_AFFINE_FUSED_ADD", 2},
@@ -118,10 +136,9 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
 
     if(is_parallelism(reqd_work_item_cnt, inner_size, outer_size))
     {
-        {
-            auto parallelism_size =
-                get_parallelism_size(reqd_work_item_cnt, inner_size, outer_size);
+        auto parallelism_size = get_parallelism_size(reqd_work_item_cnt, inner_size, outer_size);
 
+        {
             size_t xlocalsize = LOCAL_SIZE;
             size_t xgridsize  = AlignUp(parallelism_size * inner_size, xlocalsize);
             size_t ylocalsize = 1;
@@ -132,7 +149,7 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
             auto kernel = KernelInfo{};
 
             kernel.kernel_file = "MIOpenLayerNorm.cpp";
-            kernel.kernel_name = "LayernormBwdWeightBiasContiguousParallel";
+            kernel.kernel_name = "LayernormBwdWeightBiasParallel";
 
             const auto build_params = KernelBuildParameters{
                 {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -140,6 +157,10 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
                 {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
                 {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
                 {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+                {"OUTER_SIZE", outer_size},
+                {"INNER_SIZE", inner_size},
+                {"STRIDE", stride},
+                {"PARALLEL_SIZE", parallelism_size},
                 {"LOCAL_SIZE", LOCAL_SIZE},
                 {"MIOPEN_ELEMENTWISE_AFFINE", 0},
                 {"MIOPEN_WEIGHT_BIAS", 1},
@@ -173,7 +194,7 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
             auto kernel = KernelInfo{};
 
             kernel.kernel_file = "MIOpenLayerNorm.cpp";
-            kernel.kernel_name = "LayernormBwdContiguousReduceSum";
+            kernel.kernel_name = "LayernormBwdReduceSum";
 
             const auto build_params = KernelBuildParameters{
                 {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -181,6 +202,10 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
                 {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
                 {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
                 {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+                {"OUTER_SIZE", outer_size},
+                {"INNER_SIZE", inner_size},
+                {"STRIDE", stride},
+                {"PARALLEL_SIZE", parallelism_size},
                 {"LOCAL_SIZE", LOCAL_SIZE},
                 {"MIOPEN_ELEMENTWISE_AFFINE", 0},
                 {"MIOPEN_WEIGHT_BIAS", 1},
@@ -215,7 +240,7 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
         auto kernel = KernelInfo{};
 
         kernel.kernel_file = "MIOpenLayerNorm.cpp";
-        kernel.kernel_name = "LayernormBwdWeightBiasContiguous";
+        kernel.kernel_name = "LayernormBwdWeightBias";
 
         const auto build_params = KernelBuildParameters{
             {"MIOPEN_USE_FP16", static_cast<int>(dtype == miopenHalf)},
@@ -223,6 +248,10 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
             {"MIOPEN_USE_BFP16", static_cast<int>(dtype == miopenBFloat16)},
             {"INPUT_TYPE", input_dtype == "bfloat16" ? "ushort" : input_dtype},
             {"OUTPUT_TYPE", output_dtype == "bfloat16" ? "ushort" : output_dtype},
+            {"OUTER_SIZE", outer_size},
+            {"INNER_SIZE", inner_size},
+            {"STRIDE", stride},
+            {"PARALLEL_SIZE", 1},
             {"LOCAL_SIZE", LOCAL_SIZE},
             {"MIOPEN_ELEMENTWISE_AFFINE", 0},
             {"MIOPEN_WEIGHT_BIAS", 1},
@@ -254,12 +283,23 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
                 decltype(auto) weight_bias_kernel          = handle_.Run(kernels[2]);
                 decltype(auto) params = raw_params.CastTo<miopen::layernorm::BwdInvokeParams>();
 
-                auto dims = params.dyDesc->GetLengths();
+                auto dims     = params.dyDesc->GetLengths();
+                auto layout   = params.dyDesc->GetLayoutEnum();
+                size_t stride = 1;
+                if(params.normalized_dim > 1 && layout.has_value() &&
+                   (layout.value() == miopenTensorNHWC || layout.value() == miopenTensorNDHWC))
+                {
+                    stride = dims[1]; // stride = C
+                }
 
-                auto outer_size = std::accumulate(dims.begin(),
-                                                  dims.begin() + params.normalized_dim,
-                                                  1ULL,
-                                                  std::multiplies<size_t>());
+                size_t outer_size = 1;
+                for(size_t i = 0; i < params.normalized_dim; i++)
+                {
+                    if(!(stride > 1 && i == 1))
+                    {
+                        outer_size *= dims[i];
+                    }
+                }
                 auto inner_size = std::accumulate(dims.begin() + params.normalized_dim,
                                                   dims.end(),
                                                   1ULL,
@@ -286,7 +326,6 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
                        params.mean,
                        params.rstd,
                        params.dx,
-                       inner_size,
                        static_cast<int32_t>(params.mode));
 
                 weight_bias_parallel_kernel(params.dy,
@@ -294,12 +333,9 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
                                             params.mean,
                                             params.rstd,
                                             params.workspace,
-                                            outer_size,
-                                            inner_size,
                                             parallelism_size);
 
-                weight_bias_kernel(
-                    params.workspace, params.dw, params.db, inner_size, parallelism_size);
+                weight_bias_kernel(params.workspace, params.dw, params.db, parallelism_size);
 
                 if(handle_.IsProfilingEnabled())
                 {
@@ -320,17 +356,6 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
                 decltype(auto) weight_bias_kernel = handle_.Run(kernels[1]);
                 decltype(auto) params = raw_params.CastTo<miopen::layernorm::BwdInvokeParams>();
 
-                auto dims = params.dyDesc->GetLengths();
-
-                auto outer_size = std::accumulate(dims.begin(),
-                                                  dims.begin() + params.normalized_dim,
-                                                  1ULL,
-                                                  std::multiplies<size_t>());
-                auto inner_size = std::accumulate(dims.begin() + params.normalized_dim,
-                                                  dims.end(),
-                                                  1ULL,
-                                                  std::multiplies<size_t>());
-
                 auto elapsed = 0.f;
                 HipEventPtr start;
                 HipEventPtr stop;
@@ -348,17 +373,10 @@ LayernormBackward::GetSolution(const ExecutionContext& context,
                        params.mean,
                        params.rstd,
                        params.dx,
-                       inner_size,
                        static_cast<int32_t>(params.mode));
 
-                weight_bias_kernel(params.dy,
-                                   params.x,
-                                   params.mean,
-                                   params.rstd,
-                                   params.dw,
-                                   params.db,
-                                   outer_size,
-                                   inner_size);
+                weight_bias_kernel(
+                    params.dy, params.x, params.mean, params.rstd, params.dw, params.db);
 
                 if(handle_.IsProfilingEnabled())
                 {

@@ -80,7 +80,7 @@ T5LayernormForward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenLayerNorm.cpp";
+        kernel.kernel_file = "MIOpenT5LayerNorm.cpp";
         kernel.kernel_name = "T5LayernormFwdContiguous";
 
         const auto build_params = KernelBuildParameters{

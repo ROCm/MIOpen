@@ -82,7 +82,7 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenLayerNorm.cpp";
+        kernel.kernel_file = "MIOpenT5LayerNorm.cpp";
         kernel.kernel_name = "T5LayernormBwdContiguous";
 
         const auto build_params = KernelBuildParameters{
@@ -128,7 +128,7 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
 
             auto kernel = KernelInfo{};
 
-            kernel.kernel_file = "MIOpenLayerNorm.cpp";
+            kernel.kernel_file = "MIOpenT5LayerNorm.cpp";
             kernel.kernel_name = "T5LayernormBwdWeightContiguousParallel";
 
             const auto build_params = KernelBuildParameters{
@@ -169,7 +169,7 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
 
             auto kernel = KernelInfo{};
 
-            kernel.kernel_file = "MIOpenLayerNorm.cpp";
+            kernel.kernel_file = "MIOpenT5LayerNorm.cpp";
             kernel.kernel_name = "T5LayernormBwdContiguousReduceSum";
 
             const auto build_params = KernelBuildParameters{
@@ -211,7 +211,7 @@ T5LayernormBackward::GetSolution(const ExecutionContext& context,
 
         auto kernel = KernelInfo{};
 
-        kernel.kernel_file = "MIOpenLayerNorm.cpp";
+        kernel.kernel_file = "MIOpenT5LayerNorm.cpp";
         kernel.kernel_name = "T5LayernormBwdWeightContiguous";
 
         const auto build_params = KernelBuildParameters{
