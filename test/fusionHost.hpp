@@ -146,7 +146,7 @@ void batchNormSpatialHostInference(const tensor<T>& input,
 
     int n_batches, channels, height, width;
     std::tie(n_batches, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
-    par_for(channels, 1, [&](int cidx) { // via channel
+    miopen::par_for(channels, 1, [&](int cidx) { // via channel
         V mean           = estimatedMean(0, cidx, 0, 0);
         V variance       = estimatedVariance(0, cidx, 0, 0);
         double invertVar = 1.0 / sqrt(variance + epsilon);
@@ -179,7 +179,7 @@ void batchNormPerActivHostInference(const tensor<T>& input,
 {
     int n_batches, channels, height, width;
     std::tie(n_batches, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
-    par_for(channels, 1, [&](int cidx) { // via channel
+    miopen::par_for(channels, 1, [&](int cidx) { // via channel
         for(int row = 0; row < height; row++)
         { // via rows
             for(int column = 0; column < width; column++)
@@ -219,7 +219,7 @@ void batchNormSpatialHostFwdTrain(const tensor<T>& input,
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
     const auto nhw                             = double(height * width * n_batch);
 
-    par_for(channels, 1, [&](int cidx) {
+    miopen::par_for(channels, 1, [&](int cidx) {
         double elemStd        = 0.;
         double variance_accum = 0.;
         double mean_accum     = 0.;
@@ -312,7 +312,7 @@ void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
     {
         tensor<AccDataType> input_norm =
             tensor<AccDataType>{x_input.desc.GetLayout_t(), x_input.desc.GetLengths()};
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double mean           = 0.0;
             double invVar         = 0.0;
             double elemStd        = 0.;
@@ -367,7 +367,7 @@ void batchNormSpatialHostBwdTrain(const tensor<XDataType>& x_input,
                                dy_input.data);
     }
 
-    par_for(channels, 1, [&](int cidx) {
+    miopen::par_for(channels, 1, [&](int cidx) {
         double elemStd = 0.;
         unsigned int xhat_index;
         double mean   = 0.0;
@@ -479,7 +479,7 @@ void batchNormActivSpatialHostBwdTrain(miopenActivationMode_t activMode,
     auto nhw                                   = double(height * width * n_batch);
     int in_cstride                             = height * width;
 
-    par_for(channels, 1, [&](int cidx) {
+    miopen::par_for(channels, 1, [&](int cidx) {
         double elemStd = 0.;
         unsigned int xhat_index;
         double mean   = static_cast<double>(savedMean(0, cidx, 0, 0));   // HxW elements
@@ -564,7 +564,7 @@ void batchNormPerActHostFwdTrain(const tensor<T>& input,
     std::tie(n_batch, channels, height, width) = miopen::tien<4>(input.desc.GetLengths());
     const auto n                               = double(n_batch);
 
-    par_for(channels, 1, [&](int cidx) {
+    miopen::par_for(channels, 1, [&](int cidx) {
         double mean_accum     = 0.;
         double variance_accum = 0.;
         double elemStd        = 0.;
@@ -650,7 +650,7 @@ void batchNormPerActHostBwdTrain(const tensor<XDataType>& x_input,
     int in_cstride                             = height * width;
     auto n                                     = double(n_batch);
 
-    par_for(channels, 1, [&](int cidx) {
+    miopen::par_for(channels, 1, [&](int cidx) {
         double elemStd = 0.;
         unsigned int xhat_index;
         double mean       = 0.;
@@ -725,7 +725,7 @@ void batchNormActivPerActHostBwdTrain(miopenActivationMode_t activMode,
     int in_cstride                             = height * width;
     auto n                                     = double(n_batch);
 
-    par_for(channels, 1, [&](int cidx) {
+    miopen::par_for(channels, 1, [&](int cidx) {
         double elemStd = 0.;
         unsigned int xhat_index;
         double mean       = 0.;
@@ -853,7 +853,7 @@ inline void activationHostInfer(miopenActivationMode_t activMode,
                                 std::vector<T>& output)
 {
     visitActivationHostInfer(activMode, gamma, beta, alpha, [&](auto f) {
-        par_for(input.size(), 1, [&](int index) {
+        miopen::par_for(input.size(), 1, [&](int index) {
             output[index] = static_cast<T>(f(static_cast<double>(input[index])));
         });
     });
@@ -920,7 +920,7 @@ inline void activationHostBnormBwd(miopenActivationMode_t activMode,
 {
     double dummy;
     visitActivationHostBwd(activMode, gamma, beta, alpha, [&](auto f) {
-        par_for(dyinput.size(), 1, [&](int index) {
+        miopen::par_for(dyinput.size(), 1, [&](int index) {
             output[index] = static_cast<T>(
                 f(static_cast<double>(dyinput[index]), static_cast<double>(xinput[index]), dummy));
         });
@@ -938,7 +938,7 @@ inline void activationHostBwd(miopenActivationMode_t activMode,
                               std::vector<T>& output)
 {
     visitActivationHostBwd(activMode, gamma, beta, alpha, [&](auto f) {
-        par_for(dyinput.size(), 1, [&](int index) {
+        miopen::par_for(dyinput.size(), 1, [&](int index) {
             output[index] = static_cast<T>(f(static_cast<double>(dyinput[index]),
                                              static_cast<double>(xinput[index]),
                                              static_cast<double>(yinput[index])));

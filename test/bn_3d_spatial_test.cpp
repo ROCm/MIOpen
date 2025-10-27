@@ -118,7 +118,7 @@ struct verify_forward_train_3d_bn_spatial
         const unsigned int in_cstride = depth * height * width;
         const auto ndhw               = double(in_cstride * n_batch);
 
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double elemStd        = 0.;
             double variance_accum = 0.;
             double mean_accum     = 0.;
@@ -408,7 +408,7 @@ struct verify_forward_infer_3d_bn_spatial_recalc
         const unsigned int in_cstride = depth * height * width;
         const auto ndhw               = double(in_cstride * n_batch);
 
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double elemStd        = 0.;
             double variance_accum = 0.;
             double mean_accum     = 0.;
@@ -576,7 +576,7 @@ struct verify_forward_infer_3d_bn_spatial_use_est
         auto out = input;
         std::fill(out.begin(), out.end(), 0);
 
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double elemStd  = 0.;
             double variance = estVar(0, cidx, 0, 0, 0);
             double mean     = estMean(0, cidx, 0, 0, 0);
@@ -713,7 +713,7 @@ struct verify_backward_3d_bn_spatial_recalc
         const unsigned int in_cstride = depth * in_dstride;
         const auto ndhw               = double(in_cstride * n_batch);
 
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double elemStd = 0.;
             unsigned int xhat_index;
             double mean     = 0.;
@@ -1012,7 +1012,7 @@ struct verify_backward_3d_bn_spatial_use_saved
         const unsigned int in_cstride = depth * in_dstride;
         const auto ndhw               = double(in_cstride * n_batch);
 
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double elemStd = 0.;
             unsigned int xhat_index;
             double mean   = savedMean(0, cidx, 0, 0, 0);   // HxW elements

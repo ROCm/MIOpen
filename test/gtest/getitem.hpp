@@ -73,7 +73,7 @@ void cpu_getitem_backward(tensor<T> dy,
         auto index_dim = dims[j];
         auto dim_size  = output_dims[j];
 
-        par_ford(index_numel)([&](int32_t o) {
+        miopen::par_ford(index_numel)([&](int32_t o) {
             int32_t getitem_index = indexs[j][o];
 
             if(getitem_index >= 0 && getitem_index < dim_size)
@@ -97,7 +97,7 @@ void cpu_getitem_backward(tensor<T> dy,
     }
 
     // GetItem
-    par_ford(dy_numel)([&](int32_t o) {
+    miopen::par_ford(dy_numel)([&](int32_t o) {
         tensor_layout_t<5> ncdhw(dy_tv, o);
         tensor_layout_t<5> idx(ncdhw);
 

@@ -152,7 +152,7 @@ struct verify_tensor_transform_layout
             int y_n, y_c, y_h, y_w;
             std::tie(y_n, y_c, y_h, y_w) = miopen::tien<4>(dstDesc.GetLengths());
 
-            par_ford(y_n, y_c, y_h, y_w)([&](int l, int k, int i, int j) {
+            miopen::par_ford(y_n, y_c, y_h, y_w)([&](int l, int k, int i, int j) {
                 if(k < x_c)
                 {
                     float tmp_fp =

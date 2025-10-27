@@ -193,14 +193,14 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
 
         if(test_case.mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
         {
-            par_ford(in_n)([&](int o) {
+            miopen::par_ford(in_n)([&](int o) {
                 if(test_case.algo == MIOPEN_SOFTMAX_FAST)
                 {
                     double sum = 0;
-                    ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                    miopen::ford(in_c, in_h, in_w)([&](int w, int i, int j) {
                         sum += std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j]);
                     });
-                    ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                    miopen::ford(in_c, in_h, in_w)([&](int w, int i, int j) {
                         out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
                             alpha * (std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j]) /
                                      sum) +
@@ -210,7 +210,7 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
                 else
                 {
                     T max_c = std::numeric_limits<T>::lowest();
-                    ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                    miopen::ford(in_c, in_h, in_w)([&](int w, int i, int j) {
                         max_c = std::max(max_c, input[o * in_nstr + w * in_cstr + i * in_hstr + j]);
                     });
 
@@ -220,14 +220,14 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
                                              ? NEGATIVE_CUTOFF_VAL_FP16
                                              : NEGATIVE_CUTOFF_VAL_FP32;
                         double sum     = neg_inf;
-                        ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                        miopen::ford(in_c, in_h, in_w)([&](int w, int i, int j) {
                             sum = logaddexp(
                                 double(input[o * in_nstr + w * in_cstr + i * in_hstr + j] - max_c),
                                 sum,
                                 neg_inf);
                         });
 
-                        ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                        miopen::ford(in_c, in_h, in_w)([&](int w, int i, int j) {
                             out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
                                 alpha * (input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
                                          max_c - sum) +
@@ -237,12 +237,12 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
                     else
                     {
                         double sum = 0;
-                        ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                        miopen::ford(in_c, in_h, in_w)([&](int w, int i, int j) {
                             sum += std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
                                             max_c);
                         });
 
-                        ford(in_c, in_h, in_w)([&](int w, int i, int j) {
+                        miopen::ford(in_c, in_h, in_w)([&](int w, int i, int j) {
                             out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
                                 alpha *
                                     (std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
@@ -256,14 +256,14 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
         }
         else
         {
-            par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
+            miopen::par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
                 if(test_case.algo == MIOPEN_SOFTMAX_FAST)
                 {
                     double sum = 0;
-                    ford(in_c)([&](int w) {
+                    miopen::ford(in_c)([&](int w) {
                         sum += std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j]);
                     });
-                    ford(in_c)([&](int w) {
+                    miopen::ford(in_c)([&](int w) {
                         out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
                             alpha * (std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j]) /
                                      sum) +
@@ -273,7 +273,7 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
                 else
                 {
                     T max_c = std::numeric_limits<T>::lowest();
-                    ford(in_c)([&](int w) {
+                    miopen::ford(in_c)([&](int w) {
                         max_c = std::max(max_c, input[o * in_nstr + w * in_cstr + i * in_hstr + j]);
                     });
 
@@ -283,14 +283,14 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
                                              ? NEGATIVE_CUTOFF_VAL_FP16
                                              : NEGATIVE_CUTOFF_VAL_FP32;
                         double sum     = neg_inf;
-                        ford(in_c)([&](int w) {
+                        miopen::ford(in_c)([&](int w) {
                             sum = logaddexp(
                                 double(input[o * in_nstr + w * in_cstr + i * in_hstr + j] - max_c),
                                 sum,
                                 neg_inf);
                         });
 
-                        ford(in_c)([&](int w) {
+                        miopen::ford(in_c)([&](int w) {
                             out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
                                 alpha * (input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
                                          max_c - sum) +
@@ -300,12 +300,12 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
                     else
                     {
                         double sum = 0;
-                        ford(in_c)([&](int w) {
+                        miopen::ford(in_c)([&](int w) {
                             sum += std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
                                             max_c);
                         });
 
-                        ford(in_c)([&](int w) {
+                        miopen::ford(in_c)([&](int w) {
                             out[o * out_nstr + w * out_cstr + i * out_hstr + j] =
                                 alpha *
                                     (std::exp(input[o * in_nstr + w * in_cstr + i * in_hstr + j] -
@@ -363,9 +363,9 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
 
         if(test_case.mode == MIOPEN_SOFTMAX_MODE_INSTANCE)
         {
-            par_ford(in_n)([&](int o) {
+            miopen::par_ford(in_n)([&](int o) {
                 double sum = 0;
-                ford(in_c, in_h, in_w)([&](int c, int i, int j) {
+                miopen::ford(in_c, in_h, in_w)([&](int c, int i, int j) {
                     if(test_case.algo == MIOPEN_SOFTMAX_LOG)
                     {
                         sum += dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
@@ -377,7 +377,7 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
                     }
                 });
 
-                ford(in_c, in_h, in_w)([&](int c, int i, int j) {
+                miopen::ford(in_c, in_h, in_w)([&](int c, int i, int j) {
                     if(test_case.algo == MIOPEN_SOFTMAX_LOG)
                     {
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =
@@ -398,9 +398,9 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
         }
         else
         {
-            par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
+            miopen::par_ford(in_n, in_h, in_w)([&](int o, int i, int j) {
                 double sum = 0;
-                ford(in_c)([&](int c) {
+                miopen::ford(in_c)([&](int c) {
                     if(test_case.algo == MIOPEN_SOFTMAX_LOG)
                     {
                         sum += dout[o * out_nstr + c * out_cstr + i * out_hstr + j];
@@ -412,7 +412,7 @@ struct SoftmaxCommon : public testing::TestWithParam<TestCase>
                     }
                 });
 
-                ford(in_c)([&](int c) {
+                miopen::ford(in_c)([&](int c) {
                     if(test_case.algo == MIOPEN_SOFTMAX_LOG)
                     {
                         din[o * in_nstr + c * in_cstr + i * in_hstr + j] =

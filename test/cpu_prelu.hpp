@@ -47,7 +47,7 @@ void cpu_prelu_backward(const tensor<T> input,
 
     auto weight_grad_collector = std::vector<float>(N);
 
-    par_ford(N)([&](int gid) {
+    miopen::par_ford(N)([&](int gid) {
         auto tensor_layout = tensor_layout_t<5>(input_tv, gid);
         float input_v      = static_cast<float>(input[input_tv.get_tensor_view_idx(tensor_layout)]);
         float grad_v =
@@ -85,10 +85,10 @@ void cpu_prelu_backward(const tensor<T> input,
             size_t inner_size = std::accumulate(
                 &input_tv.size[2], &input_tv.size[4], 1ul, std::multiplies<size_t>());
             size_t outer_size = inner_size * input_tv.size[1];
-            par_ford(weight.desc.GetElementSize())([&](int i) {
+            miopen::par_ford(weight.desc.GetElementSize())([&](int i) {
                 double sum = 0;
-                ford(input_tv.size[0])([&](int j) {
-                    ford(inner_size)([&](int k) {
+                miopen::ford(input_tv.size[0])([&](int j) {
+                    miopen::ford(inner_size)([&](int k) {
                         sum += static_cast<double>(
                             weight_grad_collector[j * outer_size + i * inner_size + k]);
                     });

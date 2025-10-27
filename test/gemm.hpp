@@ -26,7 +26,7 @@
 #ifndef GUARD_GEMM_HPP
 #define GUARD_GEMM_HPP
 
-#include "ford.hpp"
+#include <miopen/ford.hpp>
 #include <miopen/returns.hpp>
 
 template <class AF, class BF, class CF>
@@ -34,16 +34,16 @@ void gemm(std::size_t n, std::size_t m, std::size_t k, AF a, BF b, CF c)
 {
     auto inner_loop = [&](int i, int j) {
         double x = 0.0;
-        ford(k)([&](int kk) { x += a(i, kk) * b(kk, j); });
+        miopen::ford(k)([&](int kk) { x += a(i, kk) * b(kk, j); });
         c(i, j, x);
     };
     if(n * m > 32)
     {
-        par_ford(n, m)(inner_loop);
+        miopen::par_ford(n, m)(inner_loop);
     }
     else
     {
-        ford(n, m)(inner_loop);
+        miopen::ford(n, m)(inner_loop);
     }
 }
 

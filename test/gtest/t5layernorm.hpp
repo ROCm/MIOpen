@@ -50,10 +50,10 @@ void cpu_t5layernorm_forward(tensor<T> x,
         outer_size *= dims[i];
     }
 
-    par_ford(outer_size)([&](int32_t o) {
+    miopen::par_ford(outer_size)([&](int32_t o) {
         float pvar = 0;
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             float tmp = static_cast<float>(x[o * inner_size + i]);
             pvar += tmp * tmp;
         });
@@ -63,7 +63,7 @@ void cpu_t5layernorm_forward(tensor<T> x,
 
         ref_rstd[o] = static_cast<T>(prstd);
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             float pweight = mode ? static_cast<float>(weight[i]) : 1;
             ref_y[o * inner_size + i] =
                 static_cast<T>(static_cast<float>(x[o * inner_size + i]) * prstd * pweight);
@@ -88,10 +88,10 @@ void cpu_t5layernorm_backward(tensor<T> dy,
         outer_size *= dims[i];
     }
 
-    par_ford(outer_size)([&](int32_t o) {
+    miopen::par_ford(outer_size)([&](int32_t o) {
         float sum = 0;
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             float pweight = mode ? static_cast<float>(weight[i]) : 1;
             float pdy     = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
             float px      = static_cast<float>(x[o * inner_size + i]);
@@ -102,7 +102,7 @@ void cpu_t5layernorm_backward(tensor<T> dy,
         float prstd = static_cast<float>(rstd[o]);
         float a     = sum * prstd * prstd * prstd * s;
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             float pweight = mode ? static_cast<float>(weight[i]) : 1;
             float pdy     = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
 
@@ -125,10 +125,10 @@ void cpu_t5layernorm_backward_weight(
         outer_size *= dims[i];
     }
 
-    par_ford(inner_size)([&](int32_t o) {
+    miopen::par_ford(inner_size)([&](int32_t o) {
         float sum = 0;
 
-        ford(outer_size)([&](int32_t i) {
+        miopen::ford(outer_size)([&](int32_t i) {
             float prstd = static_cast<float>(rstd[i]);
             float pdy   = (dy.GetSize() != 0) ? static_cast<float>(dy[i * inner_size + o]) : 0;
             float px    = static_cast<float>(x[i * inner_size + o]);

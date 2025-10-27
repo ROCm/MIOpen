@@ -47,7 +47,7 @@ void cpu_transformers_adam_w(tensor<T1>& params,
     if(is_amp && found_inf)
         return;
 
-    par_ford(params.GetSize())([&](int32_t i) {
+    miopen::par_ford(params.GetSize())([&](int32_t i) {
         T1 param      = params[i];
         T1 exp_avg    = exp_avgs[i];
         T1 exp_avg_sq = exp_avg_sqs[i];

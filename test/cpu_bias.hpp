@@ -72,9 +72,9 @@ void cpu_bias_backward_data_impl(const tensor<Tout>& out, tensor<Tbias>& bias)
     std::array<std::size_t, NSpatialDim> out_spatial_len{};
     std::copy_n(out.desc.GetLengths().begin() + 2, NSpatialDim, out_spatial_len.begin());
 
-    par_ford(out_k_len)([&](auto out_k_id) {
+    miopen::par_ford(out_k_len)([&](auto out_k_id) {
         auto ford_out_n_spatial =
-            miopen::unpacker(miopen::prepender(ford, out_n_len))(out_spatial_len);
+            miopen::unpacker(miopen::prepender(miopen::ford, out_n_len))(out_spatial_len);
 
         double acc = 0;
         ford_out_n_spatial([&](auto out_n_id, auto... out_spatial_id_pack) {

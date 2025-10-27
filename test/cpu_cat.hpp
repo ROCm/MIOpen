@@ -48,12 +48,12 @@ void cpu_cat_forward(std::vector<tensor<T>> inputs, tensor<T>& ref_output, int32
 
     size_t output_start_offset = 0;
 
-    par_ford(inputs.size())([&](int32_t i) {
+    miopen::par_ford(inputs.size())([&](int32_t i) {
         auto input        = inputs[i];
         size_t dim_size   = inputs[i].desc.GetLengths()[dim];
         size_t copy_size  = inner_size / output_dim_size * dim_size;
         size_t input_size = outer_size * copy_size;
-        ford(input_size)([&](int32_t o) {
+        miopen::ford(input_size)([&](int32_t o) {
             size_t outer_idx = o / copy_size;
             size_t copy_idx  = o % copy_size;
             ref_output[output_start_offset + (outer_idx * inner_size) + copy_idx] =

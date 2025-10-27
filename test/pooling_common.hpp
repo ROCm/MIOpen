@@ -145,7 +145,7 @@ struct verify_forward_pooling
         std::copy_n(out.desc.GetLengths().begin() + 2, SptDim, out_spatial_len.begin());
 
         auto par_ford_out =
-            miopen::unpacker(miopen::prepender(par_ford, b_n, k_n))(out_spatial_len);
+            miopen::unpacker(miopen::prepender(miopen::par_ford, b_n, k_n))(out_spatial_len);
 
         par_ford_out([&](int o, int w, auto... out_spatial_id_pack) {
             auto out_spatial_id = make_array(out_spatial_id_pack...);
@@ -168,7 +168,7 @@ struct verify_forward_pooling
                     : std::accumulate(win_sz.begin(), win_sz.end(), 1, std::multiplies<int>());
 
             double acc = op.start();
-            miopen::unpacker(ford)(win_sz)([&](auto... in_spatial_id_pack) {
+            miopen::unpacker(miopen::ford)(win_sz)([&](auto... in_spatial_id_pack) {
                 auto in_spatial_id = make_array(in_spatial_id_pack...);
                 std::array<std::size_t, SptDim + 2> idx{};
                 idx[0] = o;
@@ -261,15 +261,15 @@ struct verify_backward_pooling
         std::copy_n(filter.GetPads().begin(), SptDim, pads.begin());
         std::array<int, SptDim> kers{};
         std::copy_n(filter.GetLengths().begin(), SptDim, kers.begin());
-        auto ford_ker = miopen::unpacker(ford)(kers);
+        auto ford_ker = miopen::unpacker(miopen::ford)(kers);
 
         int out_n = out.desc.GetLengths()[0];
         int out_c = out.desc.GetLengths()[1];
         std::array<int, SptDim> out_spatial_len{};
         std::copy_n(out.desc.GetLengths().begin() + 2, SptDim, out_spatial_len.begin());
-        auto ford_out = miopen::unpacker(ford)(out_spatial_len);
+        auto ford_out = miopen::unpacker(miopen::ford)(out_spatial_len);
 
-        par_ford(out_n, out_c)([&](int o, int w) {
+        miopen::par_ford(out_n, out_c)([&](int o, int w) {
             if(filter.GetMode() == miopenPoolingMax)
             {
                 ford_out([&](auto... out_spatial_id_pack) {
@@ -376,7 +376,7 @@ struct verify_backward_pooling
             }
         });
 
-        miopen::unpacker(ford)(in_dim)([&](auto... in_id_pack) {
+        miopen::unpacker(miopen::ford)(in_dim)([&](auto... in_id_pack) {
             auto in_id          = make_array(in_id_pack...);
             std::size_t din_idx = 0;
             for(int i = 0; i < SptDim + 2; i++)

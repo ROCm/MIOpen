@@ -170,7 +170,7 @@ void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
             if(inputMode == 1)
             {
                 // for(int bs = 0; bs < batch_n; bs++)
-                par_for(batch_n, 4, [&](int bs) {
+                miopen::par_for(batch_n, 4, [&](int bs) {
                     for(int h = 0; h < hy_h; h++)
                     {
                         rsvspace.at(hid_shift + bs * hy_stride + h) += in.at(bs * in_stride + h);
@@ -186,7 +186,7 @@ void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
                 if(biased)
                 {
                     // for(int bs = 0; bs < batch_n; bs++)
-                    par_for(batch_n, 4, [&](int bs) {
+                    miopen::par_for(batch_n, 4, [&](int bs) {
                         for(int h = 0; h < hy_stride; h++)
                         {
                             rsvspace.at(hid_shift + bs * hy_stride + h) +=
@@ -219,7 +219,7 @@ void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
                 if(biased)
                 {
                     // for(int bs = 0; bs < batch_n; bs++)
-                    par_for(batch_n, 4, [&](int bs) {
+                    miopen::par_for(batch_n, 4, [&](int bs) {
                         for(int h = 0; h < hy_stride; h++)
                         {
                             rsvspace.at(hid_shift + bs * hy_stride + h) +=
@@ -278,7 +278,7 @@ void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
                 int wei_shift_bias_temp = wei_shift_bias + bi * li * 2 * hy_h;
 
                 // for(int bs = 0; bs < batch_n; bs++)
-                par_for(batch_n, 4, [&](int bs) {
+                miopen::par_for(batch_n, 4, [&](int bs) {
                     for(int h = 0; h < hy_stride; h++)
                     {
                         rsvspace.at(hid_shift + bs * hy_stride + h) +=
@@ -327,7 +327,7 @@ void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
                     {
                         int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
 
-                        par_for(in_n.at(ti), 4, [&](int bs) {
+                        miopen::par_for(in_n.at(ti), 4, [&](int bs) {
                             for(int h = 0; h < hy_h; h++)
                             {
                                 rsvspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
@@ -361,7 +361,7 @@ void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
                         {
                             int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
 
-                            par_for(in_n.at(seqLength - 1 - ti), 4, [&](int bs) {
+                            miopen::par_for(in_n.at(seqLength - 1 - ti), 4, [&](int bs) {
                                 for(int h = 0; h < hy_h; h++)
                                 {
                                     rsvspace.at(hid_shift + baccbi * hy_stride + hy_h +
@@ -398,7 +398,7 @@ void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
                 {
                     int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
 
-                    par_for(in_n.at(ti), 4, [&](int bs) {
+                    miopen::par_for(in_n.at(ti), 4, [&](int bs) {
                         for(int h = 0; h < hy_h; h++)
                         {
                             rsvspace.at(hid_shift + bacc * hy_stride + bs * hy_stride + h) +=
@@ -473,7 +473,7 @@ void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
                     {
                         int wei_shift_bias_temp = wei_shift_bias + bi * (li * 2 + 1) * hy_h;
 
-                        par_for(in_n.at(seqLength - ti), 4, [&](int bs) {
+                        miopen::par_for(in_n.at(seqLength - ti), 4, [&](int bs) {
                             for(int h = 0; h < hy_h; h++)
                             {
                                 rsvspace.at(hid_shift + baccbi * hy_stride + hy_h + bs * hy_stride +
@@ -485,7 +485,7 @@ void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
             }
 
             // for(int bs = 0; bs < in_n[ti]; bs++)
-            par_for(in_n.at(ti), 4, [&](int bs) {
+            miopen::par_for(in_n.at(ti), 4, [&](int bs) {
                 for(int h = 0; h < hy_h; h++)
                 {
                     hy_host.at(hx_shift + bs * uni_stride + h) =
@@ -502,7 +502,7 @@ void RNNFwdTrainCPUVerify(const miopen::Handle& handle,
             if(bidirection)
             {
                 // for(int bs = 0; bs < in_n.at(seqLength - 1 - ti); bs++)
-                par_for(in_n.at(seqLength - 1 - ti), 4, [&](int bs) {
+                miopen::par_for(in_n.at(seqLength - 1 - ti), 4, [&](int bs) {
                     for(int h = 0; h < hy_h; h++)
                     {
                         hy_host.at(hx_shift + hy_n * hy_h + bs * uni_stride + h) = activfunc(

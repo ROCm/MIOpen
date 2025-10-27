@@ -72,7 +72,7 @@ void cpu_softmarginloss_backward(const tensor<T>& input,
     auto dO_tv       = miopen::get_inner_expanded_tv<5>(dO.desc);
     auto dI_tv       = miopen::get_inner_expanded_tv<5>(ref_dI.desc);
 
-    par_ford(input_numel)([&](size_t gid) {
+    miopen::par_ford(input_numel)([&](size_t gid) {
         tensor_layout_t<5> idx(i_tv, gid);
         // Convert to double for better precision
         double i   = input[i_tv.get_tensor_view_idx(idx)];

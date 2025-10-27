@@ -64,7 +64,7 @@ struct verify_lrn_forward
         if(mode == miopenLRNCrossChannel)
         {
             auto alphaoverarea = alpha / lrn_n;
-            par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
+            miopen::par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
                 int start = c < radius_lower ? 0 : (c - radius_lower);
                 int end   = (c + radius_upper + 1) > channels ? channels : (c + radius_upper + 1);
 
@@ -84,7 +84,7 @@ struct verify_lrn_forward
         else
         {
             double alphaoverarea = radius_upper == 0 ? 1 : alpha / (lrn_n * lrn_n);
-            par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
+            miopen::par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
                 double scale = 0;
                 int left     = (w - radius_lower) < 0 ? 0 : (w - radius_lower);
                 int right    = (w + radius_upper + 1) > width ? width : (w + radius_upper + 1);
@@ -180,7 +180,7 @@ struct verify_lrn_bwd
             auto adjust_area       = lrn_n * lrn_n;
             auto cache_ratio_value = 2 * alpha * beta / adjust_area;
 
-            par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
+            miopen::par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
                 int left   = w < radius_upper ? 0 : (w - radius_upper);
                 int right  = (w + radius_lower + 1) > width ? width : (w + radius_lower + 1);
                 int top    = h < radius_upper ? 0 : (h - radius_upper);
@@ -205,7 +205,7 @@ struct verify_lrn_bwd
         {
             auto cache_ratio_value = 2 * alpha * beta / lrn_n;
 
-            par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
+            miopen::par_ford(n_batch, channels, height, width)([&](int b, int c, int h, int w) {
                 int start = c < radius_upper ? 0 : (c - radius_upper);
                 int end   = (c + radius_lower + 1) > channels ? channels : (c + radius_lower + 1);
 
@@ -342,7 +342,7 @@ public:
             tensor_elem_gen_integer{max_value});
         auto dout = tensor<T>{n_batch, channels, height, width}.generate(
             tensor_elem_gen_integer{max_value});
-        par_ford(n_batch, channels, height, width)(
+        miopen::par_ford(n_batch, channels, height, width)(
             [&](int b, int c, int h, int w) { scale(b, c, h, w) += 1; });
 
         VerifyLrnBwd(lrn, cpu_results, dout, input, scale);

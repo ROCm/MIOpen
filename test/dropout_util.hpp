@@ -37,10 +37,9 @@
 #include <utility>
 
 #include <miopen/dropout.hpp>
+#include <miopen/ford.hpp>
 #include <miopen/miopen.h>
 #include <miopen/tensor.hpp>
-
-#include "ford.hpp"
 
 // disable __device__ qualifiers
 #ifdef FQUALIFIERS
@@ -205,7 +204,7 @@ void DropoutBackwardVerify(const miopen::DropoutDescriptor& DropoutDesc,
                     out_len,
                     out_str);
 
-    par_ford(in_len[0], in_len[1], in_len[2], in_len[3], in_len[4])(
+    miopen::par_ford(in_len[0], in_len[1], in_len[2], in_len[3], in_len[4])(
         [&](int i0, int i1, int i2, int i3, int i4) {
             size_t oi = out_offset + i0 * out_str[0] + i1 * out_str[1] + i2 * out_str[2] +
                         i3 * out_str[3] + i4;

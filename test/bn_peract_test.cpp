@@ -120,7 +120,7 @@ struct verify_forward_train_bn_per_activation
         auto saveInvVar = tensor<U>{1, channels, height, width};
         const auto n    = double(n_batch);
 
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double mean_accum     = 0.;
             double variance_accum = 0.;
             double elemStd        = 0.;
@@ -349,7 +349,7 @@ struct verify_forward_infer_bn_per_activation_recalc
 
         const auto n = double(n_batch);
 
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double elemStd        = 0.;
             double elemInvVar     = 0.;
             double mean_accum     = 0.;
@@ -493,7 +493,7 @@ struct verify_forward_infer_bn_per_activation_use_est
         auto out = tensor<T>{n_batch, channels, height, width};
         std::fill(out.begin(), out.end(), 0);
 
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double elemStd    = 0.;
             double mean       = 0.;
             double variance   = 0.;
@@ -625,7 +625,7 @@ struct verify_backward_bn_per_activation_use_saved
         const unsigned int in_cstride = height * width;
         const auto n                  = double(n_batch);
 
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double elemStd = 0.;
             unsigned int xhat_index;
             double mean       = 0.;
@@ -806,7 +806,7 @@ struct verify_backward_bn_per_activation_recalc
         const unsigned int in_cstride = height * width;
         const auto n                  = double(n_batch);
 
-        par_for(channels, 1, [&](int cidx) {
+        miopen::par_for(channels, 1, [&](int cidx) {
             double elemStd = 0.;
             unsigned int xhat_index;
             double mean       = 0.;

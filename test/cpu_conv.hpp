@@ -120,8 +120,8 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
     // f(x0, x1, xs...)
     // f1(xs...) = f(x0, x1, xs...)
     // f2(xs_array) = f1(xs...)
-    auto par_ford_out_nk_spatial =
-        miopen::unpacker(miopen::prepender(par_ford, out_n_len, wei_k_len))(out_spatial_len);
+    auto par_ford_out_nk_spatial = miopen::unpacker(
+        miopen::prepender(miopen::par_ford, out_n_len, wei_k_len))(out_spatial_len);
 
     par_ford_out_nk_spatial([&](std::size_t out_n_id,
                                 std::size_t out_k_id,
@@ -131,10 +131,10 @@ void cpu_convolution_forward_impl(const tensor<Tin>& in,
         std::size_t group_id = out_k_id / wei_k_len_per_group;
         Tacc acc             = 0;
 
-        ford(wei_c_len)([&](std::size_t wei_c_id) {
+        miopen::ford(wei_c_len)([&](std::size_t wei_c_id) {
             std::size_t in_c_id = group_id * wei_c_len + wei_c_id;
 
-            auto ford_wei_spatial = miopen::unpacker(ford)(wei_spatial_len);
+            auto ford_wei_spatial = miopen::unpacker(miopen::ford)(wei_spatial_len);
 
             ford_wei_spatial([&](auto... wei_spatial_id_pack) {
                 auto wei_spatial_id = make_array(wei_spatial_id_pack...);
@@ -233,7 +233,7 @@ void cpu_convolution_backward_data_impl(tensor<Tin>& in,
     std::copy_n(out.desc.GetLengths().begin() + 2, ConvDim, out_spatial_len.begin());
 
     auto par_ford_in_nc_spatial =
-        miopen::unpacker(miopen::prepender(par_ford, in_n_len, in_c_len))(in_spatial_len);
+        miopen::unpacker(miopen::prepender(miopen::par_ford, in_n_len, in_c_len))(in_spatial_len);
 
     par_ford_in_nc_spatial(
         [&](std::size_t in_n_id, std::size_t in_c_id, auto... in_spatial_id_pack) {
@@ -243,8 +243,8 @@ void cpu_convolution_backward_data_impl(tensor<Tin>& in,
 
             Tacc acc = 0;
 
-            ford(wei_k_len_per_group)([&](std::size_t wei_k_id_inside_group) {
-                auto ford_wei_spatial = miopen::unpacker(ford)(wei_spatial_len);
+            miopen::ford(wei_k_len_per_group)([&](std::size_t wei_k_id_inside_group) {
+                auto ford_wei_spatial = miopen::unpacker(miopen::ford)(wei_spatial_len);
 
                 ford_wei_spatial([&](auto... wei_spatial_id_pack) {
                     auto wei_spatial_id = make_array(wei_spatial_id_pack...);
@@ -325,8 +325,8 @@ void cpu_convolution_backward_weight_impl(const tensor<Tin>& in,
     std::copy_n(wei.desc.GetLengths().begin() + 2, ConvDim, wei_spatial_len.begin());
     std::copy_n(out.desc.GetLengths().begin() + 2, ConvDim, out_spatial_len.begin());
 
-    auto par_ford_wei_kc_spatial =
-        miopen::unpacker(miopen::prepender(par_ford, wei_k_len, wei_c_len))(wei_spatial_len);
+    auto par_ford_wei_kc_spatial = miopen::unpacker(
+        miopen::prepender(miopen::par_ford, wei_k_len, wei_c_len))(wei_spatial_len);
 
     par_ford_wei_kc_spatial(
         [&](std::size_t wei_k_id, std::size_t wei_c_id, auto... wei_spatial_id_pack) {
@@ -337,8 +337,8 @@ void cpu_convolution_backward_weight_impl(const tensor<Tin>& in,
 
             Tacc acc = 0;
 
-            ford(out_n_len)([&](std::size_t out_n_id) {
-                auto ford_out_spatial = miopen::unpacker(ford)(out_spatial_len);
+            miopen::ford(out_n_len)([&](std::size_t out_n_id) {
+                auto ford_out_spatial = miopen::unpacker(miopen::ford)(out_spatial_len);
 
                 ford_out_spatial([&](auto... out_spatial_id_pack) {
                     auto out_spatial_id = make_array(out_spatial_id_pack...);

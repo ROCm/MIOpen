@@ -43,7 +43,7 @@ void cpu_rope_forward(tensor<T> x, tensor<T> cos, tensor<T> sin, tensor<T>& ref_
     auto rotary_numel =
         std::accumulate(cos_dims.begin(), cos_dims.end(), 1L, std::multiplies<int64_t>());
 
-    par_ford(input_numel)([&](size_t o) {
+    miopen::par_ford(input_numel)([&](size_t o) {
         size_t freq_idx = o % rotary_numel;
 
         T input             = static_cast<T>(x[o]);
@@ -68,7 +68,7 @@ void cpu_rope_backward(tensor<T> dy, tensor<T> cos, tensor<T> sin, tensor<T>& re
     auto rotary_numel =
         std::accumulate(cos_dims.begin(), cos_dims.end(), 1L, std::multiplies<int64_t>());
 
-    par_ford(input_numel)([&](size_t o) {
+    miopen::par_ford(input_numel)([&](size_t o) {
         size_t freq_idx = o % rotary_numel;
 
         T output_grad = static_cast<T>(dy[o]);

@@ -50,12 +50,12 @@ void cpu_calculation_forward(tensor<T> input,
     auto inner_size = std::accumulate(
         input_dims.begin() + dim + 1, input_dims.end(), 1ULL, std::multiplies<uint64_t>());
 
-    par_ford(output_numel)([&](size_t o) {
+    miopen::par_ford(output_numel)([&](size_t o) {
         size_t input_idx = (o / inner_size) * inner_size * reduce_size + o % inner_size;
 
         T calculation = static_cast<T>(0);
 
-        ford(reduce_size)([&](size_t i) {
+        miopen::ford(reduce_size)([&](size_t i) {
             T val = input[input_idx];
             if(nanPropagation && std::isnan(val))
             {

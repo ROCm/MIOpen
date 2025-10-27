@@ -48,11 +48,11 @@ void cpu_groupnorm_forward(tensor<T> input,
     size_t outer_size = dims[0] * num_groups;
     size_t inner_size = numel / outer_size;
 
-    par_ford(outer_size)([&](int32_t o) {
+    miopen::par_ford(outer_size)([&](int32_t o) {
         T mean_v = 0.0f;
         T var_v  = 0.0f;
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             T tmp = input[o * inner_size + i];
             mean_v += tmp;
             var_v += tmp * tmp;
@@ -65,7 +65,7 @@ void cpu_groupnorm_forward(tensor<T> input,
         ref_mean[o] = mean_v;
         ref_rstd[o] = rstd_v;
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             size_t idx = o * inner_size + i;
             size_t c   = (idx / numel_per_channel) % num_channels;
             T weight_v = mode ? weight[c] : 1;

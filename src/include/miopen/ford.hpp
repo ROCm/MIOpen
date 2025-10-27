@@ -41,6 +41,8 @@
 
 #include <future>
 
+namespace miopen {
+
 // An improved async, that doesn't block
 template <class Function>
 std::future<typename std::invoke_result<Function>::type> detach_async(Function&& f)
@@ -58,43 +60,6 @@ auto then(std::future<T> f, Work w) -> std::future<decltype(w(f.get()))>
     return std::async(std::launch::deferred,
                       [=, f = std::move(f)]() mutable { return w(f.get()); });
 }
-
-struct joinable_thread : std::thread
-{
-    template <class... Xs>
-    joinable_thread(Xs&&... xs) : std::thread(std::forward<Xs>(xs)...) // NOLINT
-    {
-    }
-
-    joinable_thread& operator=(joinable_thread&& other) = default;
-    joinable_thread(joinable_thread&& other)            = default;
-
-    ~joinable_thread()
-    {
-        if(this->joinable())
-            this->join();
-    }
-};
-
-struct thread_factory
-{
-    template <class F>
-    joinable_thread operator()(std::size_t& work, std::size_t n, std::size_t grainsize, F f) const
-    {
-        auto result = joinable_thread([=] {
-            std::size_t start = work;
-            std::size_t last  = std::min(n, work + grainsize);
-            for(std::size_t i = start; i < last; i++)
-            {
-                f(i);
-            }
-        });
-        work += grainsize;
-        return result;
-    }
-};
-
-using miopen::par_for; // NOLINT
 
 template <class T>
 struct ford_wrapper
@@ -145,11 +110,13 @@ struct par_ford_impl
                            lens.begin(),
                            indices.begin(),
                            [&](size_t stride, size_t len) { return (i / stride) % len; });
-            miopen::unpack(f, indices);
+            unpack(f, indices);
         });
     }
 };
 
 static constexpr ford_wrapper<par_ford_impl> par_ford{};
+
+} // namespace miopen
 
 #endif

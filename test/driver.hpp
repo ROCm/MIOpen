@@ -756,7 +756,7 @@ struct test_driver
         if(miopen::fs::exists(f) and not retry)
         {
             miss = false;
-            return detach_async([=] {
+            return miopen::detach_async([=] {
                 result_type result;
                 load(f.string(), result);
                 return result;
@@ -765,7 +765,7 @@ struct test_driver
         else
         {
             miss = true;
-            return then(cpu_async(v, xs...), [=](auto data) {
+            return miopen::then(cpu_async(v, xs...), [=](auto data) {
                 save(f.string(), data);
                 return data;
             });

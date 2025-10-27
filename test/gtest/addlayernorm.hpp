@@ -59,11 +59,11 @@ void cpu_addlayernorm_forward(tensor<T> input,
         inner_size *= dims[i];
     }
 
-    par_ford(outer_size)([&](int32_t o) {
+    miopen::par_ford(outer_size)([&](int32_t o) {
         float mean_v = 0;
         float var_v  = 0;
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             float tmp = static_cast<float>(input[o * inner_size + i]) +
                         static_cast<float>(input2[o * inner_size + i]);
             mean_v += tmp;
@@ -77,7 +77,7 @@ void cpu_addlayernorm_forward(tensor<T> input,
         ref_mean[o] = static_cast<T>(mean_v);
         ref_rstd[o] = static_cast<T>(rstd_v);
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             float weight_v =
                 (mode == MIOPEN_ELEMENTWISE_AFFINE_FUSED_ADD) ? 1 : static_cast<float>(weight[i]);
             float bias_v =

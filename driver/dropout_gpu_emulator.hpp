@@ -397,8 +397,8 @@ void RunDropoutBackwardEmulatorMT(const miopenDropoutDescriptor_t dropoutDesc,
     const size_t chunk_size = full_size / std::thread::hardware_concurrency();
     if(chunk_size > 1024)
     {
-        par_for(std::thread::hardware_concurrency(),
-                [&](size_t i) { calc(i * chunk_size, (i + 1) * chunk_size); });
+        miopen::par_for(std::thread::hardware_concurrency(),
+                        [&](size_t i) { calc(i * chunk_size, (i + 1) * chunk_size); });
 
         if(std::thread::hardware_concurrency() * chunk_size < full_size)
         {

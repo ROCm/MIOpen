@@ -58,11 +58,11 @@ void cpu_layernorm_forward(tensor<T> input,
         inner_size *= dims[i];
     }
 
-    par_ford(outer_size)([&](int32_t o) {
+    miopen::par_ford(outer_size)([&](int32_t o) {
         float mean_v = 0;
         float var_v  = 0;
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             float tmp = static_cast<float>(input[o * inner_size + i]);
             mean_v += tmp;
             var_v += tmp * tmp;
@@ -75,7 +75,7 @@ void cpu_layernorm_forward(tensor<T> input,
         ref_mean[o] = static_cast<T>(mean_v);
         ref_rstd[o] = static_cast<T>(rstd_v);
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             float weight_v =
                 (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<float>(weight[i]);
             float bias_v = (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 0 : static_cast<float>(bias[i]);
@@ -110,11 +110,11 @@ void cpu_layernorm_backward(tensor<T> dy,
         inner_size *= dims[i];
     }
 
-    par_ford(outer_size)([&](int32_t o) {
+    miopen::par_ford(outer_size)([&](int32_t o) {
         float sum_dy_weight   = 0;
         float sum_dy_weight_x = 0;
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             float pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<float>(weight[i]);
             float pdy     = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
             float px      = static_cast<float>(x[o * inner_size + i]);
@@ -128,7 +128,7 @@ void cpu_layernorm_backward(tensor<T> dy,
         float a     = prstd * prstd * prstd * scale * (sum_dy_weight_x - sum_dy_weight * pmean);
         float b     = prstd * sum_dy_weight * scale - a * pmean;
 
-        ford(inner_size)([&](int32_t i) {
+        miopen::ford(inner_size)([&](int32_t i) {
             float pweight = (mode == MIOPEN_ELEMENTWISE_AFFINE) ? 1 : static_cast<float>(weight[i]);
             float pdy     = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
 
@@ -161,11 +161,11 @@ void cpu_layernorm_backward_weight_bias(tensor<T> dy,
         inner_size *= dims[i];
     }
 
-    par_ford(inner_size)([&](int32_t i) {
+    miopen::par_ford(inner_size)([&](int32_t i) {
         float sum_dw = 0;
         float sum_db = 0;
 
-        ford(outer_size)([&](int32_t o) {
+        miopen::ford(outer_size)([&](int32_t o) {
             float prstd = static_cast<float>(rstd[o]);
             float pmean = static_cast<float>(mean[o]);
             float pdy   = (dy.GetSize() != 0) ? static_cast<float>(dy[o * inner_size + i]) : 0;
