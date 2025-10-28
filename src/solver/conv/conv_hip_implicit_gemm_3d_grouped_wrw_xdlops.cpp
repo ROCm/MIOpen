@@ -47,6 +47,9 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
+/// https://github.com/ROCm/rocm-libraries/issues/2293 AI heuristics splitk validity issue.
+#define WORKAROUND_ROCMLIBS_ISSUE_2293 1
+
 namespace miopen {
 namespace solver {
 namespace conv {
@@ -387,7 +390,8 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::InitValidKernels(
 #endif
 
 void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
-    const miopen::ExecutionContext& ctx, const ::miopen::conv::ProblemDescription& problem)
+    [[maybe_unused]] const miopen::ExecutionContext& ctx,
+    const ::miopen::conv::ProblemDescription& problem)
 {
     index     = 0;
     kernel_id = "None";
@@ -395,7 +399,7 @@ void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     // 1. AI heuristics (if enabled)
-#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+#if(WORKAROUND_ROCMLIBS_ISSUE_2293 == 0) && MIOPEN_ENABLE_AI_KERNEL_TUNING
     if(&ctx != &GetDummyCtx() &&
        !env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
     {
