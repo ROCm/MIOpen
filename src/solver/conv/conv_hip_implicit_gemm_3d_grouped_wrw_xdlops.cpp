@@ -47,8 +47,10 @@ MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
 
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 /// https://github.com/ROCm/rocm-libraries/issues/2293 AI heuristics splitk validity issue.
 #define WORKAROUND_ROCMLIBS_ISSUE_2293 1
+#endif
 
 namespace miopen {
 namespace solver {
