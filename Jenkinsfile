@@ -917,7 +917,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        runDbSyncJob(utils)
+                        runDbSyncJob()
                     }
                     post {
                         always {
@@ -935,7 +935,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test + Bf16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test + Bf16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -953,7 +953,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test + Fp16_flags, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test + Fp16_flags, Build_timeout_minutes)
                     }
                     post {
                         always {
@@ -971,7 +971,7 @@ pipeline {
                     }
                     agent{ label rocmnode("gfx908") }
                     steps{
-                        runBuildAndSingleGtestJob(utils, Full_test, Build_timeout_minutes)
+                        runBuildAndSingleGtestJob(Full_test, Build_timeout_minutes)
                     }
                     post {
                         always {
