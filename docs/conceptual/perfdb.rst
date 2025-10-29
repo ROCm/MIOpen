@@ -51,9 +51,11 @@ In order for auto-tuning to begin, the following conditions must be met:
 * The value of the ``exhaustiveSearch`` parameter is set to ``true``
 * Neither the System nor User PerfDb can contain values for the relevant "problem configuration".
 
-You can override the latter two conditions and force the search using the
-``-MIOPEN_FIND_ENFORCE`` environment variable. You can also use this variable to remove values
-from User PerfDb, as described in the following section.
+You can override the latter two conditions and force the search using either the API call
+``miopenSetTuningPolicy()`` or the ``-MIOPEN_FIND_ENFORCE`` environment variable. In addition to
+controlling the auto-tuning behaviour of convolutions, both ``miopenSetTuningPolicy()`` and
+``-MIOPEN_FIND_ENFORCE`` can be used to control the tuning for batch normalization.
+See the following section for more details.
 
 To optimize performance, MIOpen provides several find modes to accelerate find API calls.
 These modes include:
@@ -65,7 +67,7 @@ These modes include:
 
 For more information about the MIOpen find modes, see :ref:`Find modes <find_modes>`.
 
-Using MIOPEN_FIND_ENFORCE
+Using MIOPEN_FIND_ENFORCE or miopenSetTuningPolicy() to control auto-tuning
 ----------------------------------------------------------------------------------------------------------
 
 ``MIOPEN_FIND_ENFORCE`` supports case-insensitive symbolic and numeric values. The possible values
@@ -89,6 +91,20 @@ are:
   .. caution::
 
       Use the ``DB_CLEAN`` option with care.
+
+Note that the API call miopenSetTuningPolicy() can be used to set the same modes as
+``MIOPEN_FIND_ENFORCE``.  For example, to set the ``SEARCH`` mode, code like the following could be used:
+.. code-block:: c
+
+    miopenSetTuningPolicy(handle, miopenTuningPolicySearch);
+    miopenBatchNorm*()
+    miopenSetTuningPolicy(handle, miopenTuningPolicyNone);
+
+Note that this API method is supported for both convolutions and batchnorms, although batchnorm does
+not support a policy of ``DB_UPDATE`` (this will be a no-op and the user should specify ``SEARCH_DB_UPDATE``
+instead if they want ``DB_UPDATE`` behavior).
+
+If both the API method and environment variable are used, then the API method takes precedence.
 
 Updating MIOpen and User PerfDb
 ==========================================================

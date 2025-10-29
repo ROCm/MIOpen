@@ -27,23 +27,34 @@
 #include <vector>
 #include <cstdint>
 
-#include <miopen/conv/solvers.hpp>
 #include <miopen/env.hpp>
+
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
+MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR)
+
+#include <miopen/conv/solvers.hpp>
 #include <miopen/generic_search.hpp>
 #include <miopen/conv/wrw_invoke_params.hpp>
 #include <miopen/solver/problem_description_interpreter.hpp>
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 #include <miopen/solver/ck_utility_common.hpp>
+#if MIOPEN_ENABLE_AI_KERNEL_TUNING
+#include <miopen/conv/heuristics/ai_heuristics.hpp>
+#include <miopen/conv/heuristics/ai_candidate_selection.hpp>
+#include <miopen/conv/heuristics/ai_conv_3d_kernel_tuning_utils.hpp>
+#endif
 #endif
 #include <miopen/solver/implicitgemm_ck_util.hpp>
 #include <miopen/solver/implicitgemm_util.hpp>
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS)
+
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+/// https://github.com/ROCm/rocm-libraries/issues/2293 AI heuristics splitk validity issue.
+#define WORKAROUND_ROCMLIBS_ISSUE_2293 1
+#endif
 
 namespace miopen {
 namespace solver {
 namespace conv {
-
-using ProblemDescription = miopen::conv::ProblemDescription;
 
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
 
@@ -52,7 +63,7 @@ namespace {
 template <typename DataType>
 struct CKArgs
 {
-    CKArgs(const ProblemDescription& problem)
+    CKArgs(const ::miopen::conv::ProblemDescription& problem)
     {
         G               = ProblemInterpreter::GetGroupCountG(problem);
         N               = ProblemInterpreter::GetBatchN(problem);
@@ -304,35 +315,39 @@ struct CKArgs
     std::array<ck::index_t, 3> lPadding;
     std::array<ck::index_t, 3> rPadding;
 };
-} // namespace
 
 template <typename DataType>
-void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(const ProblemDescription& problem)
+std::vector<std::string>
+FillValidKernelsByAlphaBeta(const ::miopen::conv::ProblemDescription& problem)
 {
     switch(problem.GetAlphaBetaCase())
     {
     case BILINEAR:
-        valid_kernels =
-            FillValidKernelsIDs<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(
-                problem);
-        break;
+        return FillValidKernelsIDs<DeviceOpGBwdWeightBilinearPtrs<DataType>, CKArgs<DataType>>(
+            problem);
     case SCALE:
-        valid_kernels =
-            FillValidKernelsIDs<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(problem);
-        break;
+        return FillValidKernelsIDs<DeviceOpGBwdWeightScalePtrs<DataType>, CKArgs<DataType>>(
+            problem);
     default:
-        valid_kernels =
-            FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
-        break;
+        return FillValidKernelsIDs<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(
+            problem);
     }
-    index     = 0;
-    split_k   = 1;
-    kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+}
+} // namespace
+
+template <typename DataType>
+void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::Init(
+    const ::miopen::conv::ProblemDescription& problem)
+{
+    valid_kernels = FillValidKernelsByAlphaBeta<DataType>(problem);
+    index         = 0;
+    split_k       = 1;
+    kernel_id     = valid_kernels[index] + "+" + std::to_string(split_k);
 }
 
 template <typename DataType>
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::CheckIsSupportCKArgs(
-    const ProblemDescription& problem) const
+    const ::miopen::conv::ProblemDescription& problem) const
 {
     switch(problem.GetAlphaBetaCase())
     {
@@ -350,7 +365,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::CheckIsSupportCKArgs(
 
 template <typename DataType>
 bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
-    const ProblemDescription& problem) const
+    const ::miopen::conv::ProblemDescription& problem) const
 {
     switch(problem.GetAlphaBetaCase())
     {
@@ -362,38 +377,114 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::CheckCKApplicability(
         return IsCKApplicable<DeviceOpGBwdWeightDefaultPtrs<DataType>, CKArgs<DataType>>(problem);
     }
 }
-#endif
-
-void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
-    [[maybe_unused]] const ProblemDescription& problem)
+void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::InitValidKernels(
+    const ::miopen::conv::ProblemDescription& problem)
 {
-    index     = 0;
-    split_k   = 1;
-    kernel_id = "";
-
-#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetInDataType())
     {
     case miopenHalf: Init<ck::half_t>(problem); break;
     case miopenFloat: Init<float>(problem); break;
     case miopenInt8: Init<int8_t>(problem); break;
     case miopenBFloat16: Init<ck::bhalf_t>(problem); break;
-    case miopenInt64:
-    case miopenInt32:
-    case miopenFloat8_fnuz:
-    case miopenBFloat8_fnuz:
-    case miopenDouble: break;
+    default: break; // Unsupported data types - valid_kernels remains empty
+    }
+}
+#endif
+
+void PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::HeuristicInit(
+    [[maybe_unused]] const miopen::ExecutionContext& ctx,
+    const ::miopen::conv::ProblemDescription& problem)
+{
+    index     = 0;
+    kernel_id = "None";
+    split_k   = 1; // This solver uses split_k, so initialize to 1
+
+#if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
+    // 1. AI heuristics (if enabled)
+#if(WORKAROUND_ROCMLIBS_ISSUE_2293 == 0) && MIOPEN_ENABLE_AI_KERNEL_TUNING
+    if(&ctx != &GetDummyCtx() &&
+       !env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS_AI_HEUR))
+    {
+        MIOPEN_LOG_I2(
+            "Step 1: Attempting AI heuristics for data type: " << problem.GetInDataType());
+
+        std::string solver_name = "ConvHipImplicitGemm3DGroupWrwXdlops";
+
+        bool ai_success = false;
+        miopen::ai::tuning::candidate_selection::CandidateSelectionResult result;
+
+        auto run_ai_heuristics = [&](auto CKDataType) {
+            using T = decltype(CKDataType);
+            auto fill_valid_kernels =
+                [=](const ::miopen::conv::ProblemDescription& problem) -> std::vector<std::string> {
+                return FillValidKernelsByAlphaBeta<T>(problem);
+            };
+            return miopen::solver::conv::RunParameterPredictionModel<T>(ctx,
+                                                                        problem,
+                                                                        valid_kernels,
+                                                                        index,
+                                                                        split_k,
+                                                                        kernel_id,
+                                                                        fill_valid_kernels,
+                                                                        solver_name);
+        };
+        switch(problem.GetInDataType())
+        {
+        case miopenHalf: std::tie(ai_success, result) = run_ai_heuristics(ck::half_t{}); break;
+        case miopenFloat: std::tie(ai_success, result) = run_ai_heuristics(float{}); break;
+        case miopenBFloat16: std::tie(ai_success, result) = run_ai_heuristics(ck::bhalf_t{}); break;
+        default: break;
+        }
+
+        if(ai_success && !result.IsEmpty())
+        {
+            MIOPEN_LOG_I("Step 1: AI heuristics selected kernel: " << kernel_id);
+            return;
+        }
+        else
+        {
+            MIOPEN_LOG_I2("Step 1: AI heuristics failed, proceeding to default initialization");
+            // print results to log to help debugging
+            if(!ai_success)
+                MIOPEN_LOG_I2("Step 1: AI heuristics internal failure");
+            else if(result.IsEmpty())
+                MIOPEN_LOG_I2("Step 1: AI heuristics returned empty result");
+        }
+    }
+    else
+    {
+        MIOPEN_LOG_I2("Step 1: AI heuristics skipped (disabled or dummy context)");
+    }
+#else
+    MIOPEN_LOG_I2("Step 1: AI heuristics not available (MIOPEN_ENABLE_AI_KERNEL_TUNING disabled)");
+#endif
+
+    // 2. Default: index remains 0, first valid_kernel will be used
+    MIOPEN_LOG_I2("Step 2: Using default initialization (index=0)");
+    InitValidKernels(problem);
+    if(!valid_kernels.empty())
+    {
+        index     = 0;
+        split_k   = 1;
+        kernel_id = valid_kernels[index] + "+" + std::to_string(split_k);
+        MIOPEN_LOG_I("Step 2: Default initialization selected kernel: " << kernel_id
+                                                                        << " at index: 0");
+    }
+    else
+    {
+        MIOPEN_LOG_W("Step 2: Default initialization failed - no valid kernels found");
     }
 #endif
 }
 
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::SetNextValue(
-    const ProblemDescription& problem)
+    const ::miopen::conv::ProblemDescription& problem)
 {
 #if MIOPEN_USE_COMPOSABLEKERNEL
     if(valid_kernels.empty())
     {
-        HeuristicInit(problem);
+        // For generic search, we want all available kernels, not heuristic selection
+        InitValidKernels(problem);
         if(valid_kernels.empty())
         {
             return false;
@@ -426,7 +517,7 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::IsValidValue() const
 }
 
 bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::IsValid(
-    [[maybe_unused]] const ProblemDescription& problem) const
+    [[maybe_unused]] const ::miopen::conv::ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetInDataType())
@@ -453,24 +544,24 @@ bool PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::operator==(
 
 PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
 ConvHipImplicitGemm3DGroupWrwXdlops::GetDefaultPerformanceConfig(
-    const ExecutionContext&, const ProblemDescription& problem) const
+    const ExecutionContext& ctx, const ::miopen::conv::ProblemDescription& problem) const
 {
     PerformanceConfigHipImplicitGemm3DGroupWrwXdlops pp;
-    pp.HeuristicInit(problem);
+    pp.HeuristicInit(ctx, problem);
     return pp;
 }
 
 bool ConvHipImplicitGemm3DGroupWrwXdlops::IsValidPerformanceConfig(
     const ExecutionContext&,
-    const ProblemDescription& problem,
+    const ::miopen::conv::ProblemDescription& problem,
     const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops& config) const
 {
     return config.IsValid(problem);
 }
 
 template <typename DataType>
-size_t
-ConvHipImplicitGemm3DGroupWrwXdlops::GetCKMaxWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvHipImplicitGemm3DGroupWrwXdlops::GetCKMaxWorkspaceSize(
+    const ::miopen::conv::ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetAlphaBetaCase())
@@ -490,8 +581,8 @@ ConvHipImplicitGemm3DGroupWrwXdlops::GetCKMaxWorkspaceSize(const ProblemDescript
 #endif
 }
 
-size_t
-ConvHipImplicitGemm3DGroupWrwXdlops::GetCKMaxWorkspaceSize(const ProblemDescription& problem) const
+size_t ConvHipImplicitGemm3DGroupWrwXdlops::GetCKMaxWorkspaceSize(
+    const ::miopen::conv::ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     switch(problem.GetInDataType())
@@ -510,9 +601,8 @@ ConvHipImplicitGemm3DGroupWrwXdlops::GetCKMaxWorkspaceSize(const ProblemDescript
     return 0; // other types not applicable for this solver
 }
 
-size_t
-ConvHipImplicitGemm3DGroupWrwXdlops::GetWorkspaceSize(const ExecutionContext&,
-                                                      const ProblemDescription& problem) const
+size_t ConvHipImplicitGemm3DGroupWrwXdlops::GetWorkspaceSize(
+    const ExecutionContext&, const ::miopen::conv::ProblemDescription& problem) const
 {
     auto ck_ws_size = GetCKMaxWorkspaceSize(problem);
     return GetWorkspaceSizeLayoutTransformConv(problem, ck_ws_size);
@@ -520,7 +610,7 @@ ConvHipImplicitGemm3DGroupWrwXdlops::GetWorkspaceSize(const ExecutionContext&,
 
 PerformanceConfigHipImplicitGemm3DGroupWrwXdlops
 ConvHipImplicitGemm3DGroupWrwXdlops::Search(const ExecutionContext& ctx,
-                                            const ProblemDescription& problem,
+                                            const ::miopen::conv::ProblemDescription& problem,
                                             const AnyInvokeParams& invoke_ctx) const
 {
     return GenericSearch(*this, ctx, problem, invoke_ctx);
@@ -528,7 +618,7 @@ ConvHipImplicitGemm3DGroupWrwXdlops::Search(const ExecutionContext& ctx,
 
 bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
     [[maybe_unused]] const ExecutionContext& ctx,
-    [[maybe_unused]] const ProblemDescription& problem) const
+    [[maybe_unused]] const ::miopen::conv::ProblemDescription& problem) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
     if(env::disabled(MIOPEN_DEBUG_3D_CONV_IMPLICIT_GEMM_HIP_WRW_XDLOPS))
@@ -571,7 +661,7 @@ bool ConvHipImplicitGemm3DGroupWrwXdlops::IsApplicable(
 
 ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
     [[maybe_unused]] const ExecutionContext& ctx,
-    [[maybe_unused]] const ProblemDescription& problem,
+    [[maybe_unused]] const ::miopen::conv::ProblemDescription& problem,
     [[maybe_unused]] const PerformanceConfigHipImplicitGemm3DGroupWrwXdlops& config) const
 {
 #if MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL
@@ -633,6 +723,14 @@ ConvSolution ConvHipImplicitGemm3DGroupWrwXdlops::GetSolution(
     return {};
 #endif
 }
+
+#if !(MIOPEN_BACKEND_HIP && MIOPEN_USE_COMPOSABLEKERNEL)
+void miopen::solver::conv::PerformanceConfigHipImplicitGemm3DGroupWrwXdlops::InitValidKernels(
+    const ::miopen::conv::ProblemDescription&)
+{
+    // No-op stub for non-CK builds
+}
+#endif
 
 } // namespace conv
 } // namespace solver

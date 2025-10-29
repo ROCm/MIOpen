@@ -7,6 +7,7 @@
 #include <miopen/tensor.hpp>
 #include <miopen/conv/problem_description.hpp>
 #include <miopen/conv/solvers.hpp>
+#include <miopen/env.hpp>
 #include <sstream>
 
 using Problem = miopen::conv::ProblemDescription;
@@ -64,7 +65,7 @@ protected:
                                                         miopen::conv::Direction::Forward);
 
         Config cfg;
-        cfg.HeuristicInit(problem);
+        cfg.HeuristicInit(ctx, problem);
         EXPECT_TRUE(cfg.index != 0) << "index is 0:" << test_case.conv;
     }
 };

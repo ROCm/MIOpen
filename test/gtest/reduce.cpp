@@ -30,6 +30,19 @@
 #include "cpu_reduce_util.hpp"
 #include "workspace.hpp"
 
+// Recently added FP16, BFP16 and I8 reduce custom test cases fail compiler staging tests
+#define WORKAROUND_ISSUE_895 1
+
+#if WORKAROUND_ISSUE_895
+#define CAN_BE_DISABLED_HalfTest_reduce_custom_fp16 DISABLED_HalfTest_reduce_custom_fp16
+#define CAN_BE_DISABLED_BHalfTest_reduce_custom_fp16 DISABLED_BHalfTest_reduce_custom_bfp16
+#define CAN_BE_DISABLED_IntTest_reduce_custom_fp16 DISABLED_IntTest_reduce_custom_i8
+#else
+#define CAN_BE_DISABLED_HalfTest_reduce_custom_fp16 HalfTest_reduce_custom_fp16
+#define CAN_BE_DISABLED_BHalfTest_reduce_custom_fp16 BHalfTest_reduce_custom_bfp16
+#define CAN_BE_DISABLED_IntTest_reduce_custom_fp16 IntTest_reduce_custom_i8
+#endif
+
 namespace {
 
 using TestCase = std::tuple<std::vector<std::size_t>,
@@ -38,6 +51,31 @@ using TestCase = std::tuple<std::vector<std::size_t>,
                             miopenNanPropagation_t,
                             miopenReduceTensorIndices_t,
                             std::vector<float>>;
+
+template <typename T, class TVerifier>
+auto GetCpuImplResult(miopenDataType_t compTypeVal, const TVerifier& verifier)
+{
+    if(compTypeVal == miopenFloat)
+    {
+        if(std::is_same<T, double>::value)
+            return verifier.template cpuImpl<double>();
+        else
+            return verifier.template cpuImpl<float>();
+    }
+    else if(compTypeVal == miopenHalf)
+    {
+        if(std::is_same<T, double>::value)
+            return verifier.template cpuImpl<double>();
+        else if(std::is_same<T, float>::value)
+            return verifier.template cpuImpl<float>();
+        else
+            return verifier.template cpuImpl<half_float::half>();
+    }
+    else if(compTypeVal == miopenDouble)
+        return verifier.template cpuImpl<double>();
+
+    throw std::runtime_error("Type is not supported!");
+}
 
 template <class T, bool toVerifyData>
 struct verify_reduce_with_indices
@@ -82,26 +120,8 @@ struct verify_reduce_with_indices
     {
         using reduce::convert_type;
 
-        std::tuple<tensor<T>, tensor<int>> results;
-
-        if(compTypeVal == miopenFloat)
-        {
-            if(std::is_same<T, double>::value)
-                results = cpuImpl<double>();
-            else
-                results = cpuImpl<float>();
-        }
-        else if(compTypeVal == miopenHalf)
-        {
-            if(std::is_same<T, double>::value)
-                results = cpuImpl<double>();
-            else if(std::is_same<T, float>::value)
-                results = cpuImpl<float>();
-            else
-                results = cpuImpl<half_float::half>();
-        }
-        else if(compTypeVal == miopenDouble)
-            results = cpuImpl<double>();
+        const std::tuple<tensor<T>, tensor<int>> results =
+            GetCpuImplResult<T, verify_reduce_with_indices>(compTypeVal, *this);
 
         if(toVerifyData)
         {
@@ -170,16 +190,6 @@ struct verify_reduce_with_indices
     template <typename compType>
     std::tuple<tensor<T>, tensor<int>> cpuImpl() const
     {
-        using reduce::binop_with_nan_check;
-        using reduce::binop_with_nan_check2;
-        using reduce::convert_type;
-        using reduce::float_equal_one;
-        using reduce::float_equal_zero;
-        using reduce::PosUnaryOpFn;
-        using reduce::PreUnaryOpFn;
-        using reduce::ReduceOpFn2;
-        using reduce::ReduceOpZeroVal;
-
         auto inLengths  = input.desc.GetLengths();
         auto outLengths = output.desc.GetLengths();
         auto inStrides  = input.desc.GetStrides();
@@ -217,25 +227,86 @@ struct verify_reduce_with_indices
 
         bool reduceAllDims = invariantDims.empty();
 
-        auto opReduce = ReduceOpFn2<compType>(reduceOp);
+        auto opReduce = reduce::ReduceOpFn2<compType>(reduceOp);
 
         std::size_t divider = std::accumulate(
             toReduceLengths.begin(), toReduceLengths.end(), std::size_t{1}, std::multiplies<>{});
 
-        auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
+        auto PreUnaryOp = reduce::PreUnaryOpFn<compType>(reduceOp, divider);
 
         if(reduceAllDims)
         {
-            std::vector<std::vector<std::size_t>> indexes_1;
+            cpuImplReduceAllDims<compType>(
+                inLengths, inStrides, PreUnaryOp, opReduce, res, res_indices);
+        }
+        else
+        {
+            cpuImplReduceFewDims<compType>(invariantLengths,
+                                           toReduceLengths,
+                                           inLengths,
+                                           invariantDims,
+                                           outStrides,
+                                           toReduceDims,
+                                           inStrides,
+                                           PreUnaryOp,
+                                           opReduce,
+                                           res,
+                                           res_indices);
+        };
 
-            get_all_indexes(inLengths, 0, indexes_1);
+        return (std::make_tuple(res, res_indices));
+    }
 
-            compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
+    template <typename compType>
+    void cpuImplReduceFewDims(const std::vector<std::size_t>& invariantLengths,
+                              const std::vector<std::size_t>& toReduceLengths,
+                              const std::vector<std::size_t>& inLengths,
+                              const std::vector<int>& invariantDims,
+                              const std::vector<std::size_t>& outStrides,
+                              const std::vector<int>& toReduceDims,
+                              const std::vector<std::size_t>& inStrides,
+                              auto& PreUnaryOp,
+                              auto& opReduce,
+                              tensor<T>& res,
+                              tensor<int>& res_indices) const
+    {
+        using reduce::convert_type;
+
+        std::vector<std::vector<std::size_t>> indexes_1, indexes_2;
+
+        get_all_indexes(invariantLengths, 0, indexes_1);
+        get_all_indexes(toReduceLengths, 0, indexes_2);
+
+        // go through indexes of the invariant dimensions
+        for(const auto& index_1 : indexes_1)
+        {
+            std::vector<std::size_t> src_index;
+            std::vector<std::size_t> dst_index;
+
+            src_index.resize(inLengths.size());
+            dst_index.resize(inLengths.size());
+
+            std::fill(dst_index.begin(), dst_index.end(), 0);
+
+            for(int k = 0; k < invariantDims.size(); k++)
+                dst_index[invariantDims[k]] = index_1[k];
+
+            auto dst_offset = get_offset_from_index(outStrides, dst_index);
+
+            // generate the part of the index belonging to the invariant dims
+            for(int k = 0; k < invariantDims.size(); k++)
+                src_index[invariantDims[k]] = index_1[k];
+
+            compType accuVal = reduce::ReduceOpZeroVal<compType>(reduceOp);
             int accuIndex    = 0;
 
-            // go through indexes of the invariant dimensions
-            for(const auto& src_index : indexes_1)
+            // go through indexes of the toReduce dimensions
+            for(const auto& index_2 : indexes_2)
             {
+                // generate the part of the index belonging to the toReduce dims
+                for(int k = 0; k < toReduceDims.size(); k++)
+                    src_index[toReduceDims[k]] = index_2[k];
+
                 auto src_offset = get_offset_from_index(inStrides, src_index);
 
                 auto currVal = convert_type<compType>(input.data[src_offset]);
@@ -244,91 +315,73 @@ struct verify_reduce_with_indices
                 // actually done
                 PreUnaryOp(currVal);
 
-                int currIndex = get_flatten_offset(inLengths, src_index);
-                binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
-            }
+                auto currIndex = get_flatten_offset(toReduceLengths, index_2);
+                reduce::binop_with_nan_check2(
+                    nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
+            };
 
             // scale the accumulated value
-            if(!float_equal_one(alpha))
+            if(!reduce::float_equal_one(alpha))
                 accuVal *= convert_type<compType>(alpha);
 
             // scale the prior dst value and add it to the accumulated value
-            if(!float_equal_zero(beta))
+            if(!reduce::float_equal_zero(beta))
             {
-                accuVal += convert_type<compType>(output.data[0]) * convert_type<compType>(beta);
+                accuVal +=
+                    convert_type<compType>(output.data[dst_offset]) * convert_type<compType>(beta);
             }
 
             // store the reduced value to dst location
-            res.data[0]         = convert_type<T>(accuVal);
-            res_indices.data[0] = accuIndex;
-        }
-        else
-        {
-            std::vector<std::vector<std::size_t>> indexes_1, indexes_2;
-
-            get_all_indexes(invariantLengths, 0, indexes_1);
-            get_all_indexes(toReduceLengths, 0, indexes_2);
-
-            // go through indexes of the invariant dimensions
-            for(const auto& index_1 : indexes_1)
-            {
-                std::vector<std::size_t> src_index;
-                std::vector<std::size_t> dst_index;
-
-                src_index.resize(inLengths.size());
-                dst_index.resize(inLengths.size());
-
-                std::fill(dst_index.begin(), dst_index.end(), 0);
-
-                for(int k = 0; k < invariantDims.size(); k++)
-                    dst_index[invariantDims[k]] = index_1[k];
-
-                auto dst_offset = get_offset_from_index(outStrides, dst_index);
-
-                // generate the part of the index belonging to the invariant dims
-                for(int k = 0; k < invariantDims.size(); k++)
-                    src_index[invariantDims[k]] = index_1[k];
-
-                compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
-                int accuIndex    = 0;
-
-                // go through indexes of the toReduce dimensions
-                for(const auto& index_2 : indexes_2)
-                {
-                    // generate the part of the index belonging to the toReduce dims
-                    for(int k = 0; k < toReduceDims.size(); k++)
-                        src_index[toReduceDims[k]] = index_2[k];
-
-                    auto src_offset = get_offset_from_index(inStrides, src_index);
-
-                    auto currVal = convert_type<compType>(input.data[src_offset]);
-
-                    // unary operation before reducing, only needed by AMAX. For MIN/MAX, nothing is
-                    // actually done
-                    PreUnaryOp(currVal);
-
-                    auto currIndex = get_flatten_offset(toReduceLengths, index_2);
-                    binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
-                };
-
-                // scale the accumulated value
-                if(!float_equal_one(alpha))
-                    accuVal *= convert_type<compType>(alpha);
-
-                // scale the prior dst value and add it to the accumulated value
-                if(!float_equal_zero(beta))
-                {
-                    accuVal += convert_type<compType>(output.data[dst_offset]) *
-                               convert_type<compType>(beta);
-                }
-
-                // store the reduced value to dst location
-                res.data[dst_offset]         = convert_type<T>(accuVal);
-                res_indices.data[dst_offset] = accuIndex; // store the index
-            };
+            res.data[dst_offset]         = convert_type<T>(accuVal);
+            res_indices.data[dst_offset] = accuIndex; // store the index
         };
+    }
 
-        return (std::make_tuple(res, res_indices));
+    template <typename compType>
+    void cpuImplReduceAllDims(const std::vector<std::size_t>& inLengths,
+                              const std::vector<std::size_t>& inStrides,
+                              auto& PreUnaryOp,
+                              auto& opReduce,
+                              tensor<T>& res,
+                              tensor<int>& res_indices) const
+    {
+        using reduce::convert_type;
+
+        std::vector<std::vector<std::size_t>> indexes_1;
+
+        get_all_indexes(inLengths, 0, indexes_1);
+
+        compType accuVal = reduce::ReduceOpZeroVal<compType>(reduceOp);
+        int accuIndex    = 0;
+
+        // go through indexes of the invariant dimensions
+        for(const auto& src_index : indexes_1)
+        {
+            auto src_offset = get_offset_from_index(inStrides, src_index);
+
+            auto currVal = convert_type<compType>(input.data[src_offset]);
+
+            // unary operation before reducing, only needed by AMAX. For MIN/MAX, nothing is
+            // actually done
+            PreUnaryOp(currVal);
+
+            int currIndex = get_flatten_offset(inLengths, src_index);
+            reduce::binop_with_nan_check2(nanOpt, opReduce, accuVal, currVal, accuIndex, currIndex);
+        }
+
+        // scale the accumulated value
+        if(!reduce::float_equal_one(alpha))
+            accuVal *= convert_type<compType>(alpha);
+
+        // scale the prior dst value and add it to the accumulated value
+        if(!reduce::float_equal_zero(beta))
+        {
+            accuVal += convert_type<compType>(output.data[0]) * convert_type<compType>(beta);
+        }
+
+        // store the reduced value to dst location
+        res.data[0]         = convert_type<T>(accuVal);
+        res_indices.data[0] = accuIndex;
     }
 
     std::tuple<tensor<T>, tensor<int>> gpuImpl() const
@@ -437,26 +490,7 @@ struct verify_reduce_no_indices
     {
         using reduce::convert_type;
 
-        tensor<T> result;
-
-        if(compTypeVal == miopenFloat)
-        {
-            if(std::is_same<T, double>::value)
-                result = cpuImpl<double>();
-            else
-                result = cpuImpl<float>();
-        }
-        else if(compTypeVal == miopenHalf)
-        {
-            if(std::is_same<T, double>::value)
-                result = cpuImpl<double>();
-            else if(std::is_same<T, float>::value)
-                result = cpuImpl<float>();
-            else
-                result = cpuImpl<half_float::half>();
-        }
-        else if(compTypeVal == miopenDouble)
-            result = cpuImpl<double>();
+        const tensor<T> result = GetCpuImplResult<T, verify_reduce_no_indices>(compTypeVal, *this);
 
         const auto& dimLengths = output.desc.GetLengths();
         auto result_dataFloat  = tensor<float>(dimLengths);
@@ -470,16 +504,6 @@ struct verify_reduce_no_indices
     template <typename compType>
     tensor<T> cpuImpl() const
     {
-        using reduce::binop_with_nan_check;
-        using reduce::binop_with_nan_check2;
-        using reduce::convert_type;
-        using reduce::float_equal_one;
-        using reduce::float_equal_zero;
-        using reduce::PosUnaryOpFn;
-        using reduce::PreUnaryOpFn;
-        using reduce::ReduceOpFn;
-        using reduce::ReduceOpZeroVal;
-
         auto inLengths  = input.desc.GetLengths();
         auto outLengths = output.desc.GetLengths();
         auto inStrides  = input.desc.GetStrides();
@@ -512,111 +536,153 @@ struct verify_reduce_no_indices
 
         bool reduceAllDims = invariantDims.empty();
 
-        auto opReduce = ReduceOpFn<compType>(reduceOp);
+        auto opReduce = reduce::ReduceOpFn<compType>(reduceOp);
 
         std::size_t divider = std::accumulate(
             toReduceLengths.begin(), toReduceLengths.end(), std::size_t{1}, std::multiplies<>{});
 
-        auto PreUnaryOp = PreUnaryOpFn<compType>(reduceOp, divider);
-        auto PosUnaryOp = PosUnaryOpFn<compType>(reduceOp, divider);
+        auto PreUnaryOp = reduce::PreUnaryOpFn<compType>(reduceOp, divider);
+        auto PosUnaryOp = reduce::PosUnaryOpFn<compType>(reduceOp, divider);
 
         if(reduceAllDims)
         {
-            std::vector<std::vector<std::size_t>> indexes_1;
+            cpuImplReduceAllDims<compType>(
+                inLengths, inStrides, PreUnaryOp, opReduce, PosUnaryOp, res);
+        }
+        else
+        {
+            cpuImplReduceFewDims<compType>(invariantLengths,
+                                           toReduceLengths,
+                                           inLengths,
+                                           invariantDims,
+                                           outStrides,
+                                           toReduceDims,
+                                           inStrides,
+                                           PreUnaryOp,
+                                           opReduce,
+                                           PosUnaryOp,
+                                           res);
+        };
 
-            get_all_indexes(inLengths, 0, indexes_1);
+        return (res);
+    }
 
-            compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
+    template <typename compType>
+    void cpuImplReduceFewDims(const std::vector<std::size_t>& invariantLengths,
+                              const std::vector<std::size_t>& toReduceLengths,
+                              const std::vector<std::size_t>& inLengths,
+                              const std::vector<int>& invariantDims,
+                              const std::vector<std::size_t>& outStrides,
+                              const std::vector<int>& toReduceDims,
+                              const std::vector<std::size_t>& inStrides,
+                              auto& PreUnaryOp,
+                              auto& opReduce,
+                              auto& PosUnaryOp,
+                              tensor<T>& res) const
+    {
+        using reduce::convert_type;
 
-            // go through indexes of the invariant dimensions
-            for(const auto& src_index : indexes_1)
+        std::vector<std::vector<std::size_t>> indexes_1, indexes_2;
+
+        get_all_indexes(invariantLengths, 0, indexes_1);
+        get_all_indexes(toReduceLengths, 0, indexes_2);
+
+        // go through indexes of the invariant dimensions
+        for(const auto& index_1 : indexes_1)
+        {
+            std::vector<std::size_t> src_index;
+            std::vector<std::size_t> dst_index;
+
+            src_index.resize(inLengths.size());
+            dst_index.resize(inLengths.size());
+
+            std::fill(dst_index.begin(), dst_index.end(), 0);
+
+            for(int k = 0; k < invariantDims.size(); k++)
+                dst_index[invariantDims[k]] = index_1[k];
+
+            auto dst_offset = get_offset_from_index(outStrides, dst_index);
+
+            // generate the part of the index belonging to the invariant dims
+            for(int k = 0; k < invariantDims.size(); k++)
+                src_index[invariantDims[k]] = index_1[k];
+
+            compType accuVal = reduce::ReduceOpZeroVal<compType>(reduceOp);
+
+            // go through indexes of the toReduce dimensions
+            for(const auto& index_2 : indexes_2)
             {
+                // generate the part of the index belonging to the toReduce dims
+                for(int k = 0; k < toReduceDims.size(); k++)
+                    src_index[toReduceDims[k]] = index_2[k];
+
                 auto src_offset = get_offset_from_index(inStrides, src_index);
 
                 auto currVal = convert_type<compType>(input.data[src_offset]);
 
                 PreUnaryOp(currVal);
 
-                binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
+                reduce::binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
             };
 
             PosUnaryOp(accuVal);
 
             // scale the accumulated value
-            if(!float_equal_one(alpha))
+            if(!reduce::float_equal_one(alpha))
                 accuVal *= convert_type<compType>(alpha);
 
             // scale the prior dst value and add it to the accumulated value
-            if(!float_equal_zero(beta))
-                accuVal += convert_type<compType>(output.data[0]) * convert_type<compType>(beta);
+            if(!reduce::float_equal_zero(beta))
+            {
+                accuVal +=
+                    convert_type<compType>(output.data[dst_offset]) * convert_type<compType>(beta);
+            }
 
             // store the reduced value to dst location
-            res.data[0] = convert_type<T>(accuVal);
+            res.data[dst_offset] = convert_type<T>(accuVal);
         }
-        else
+    }
+
+    template <typename compType>
+    void cpuImplReduceAllDims(const std::vector<std::size_t>& inLengths,
+                              const std::vector<std::size_t>& inStrides,
+                              auto& PreUnaryOp,
+                              auto& opReduce,
+                              auto& PosUnaryOp,
+                              tensor<T>& res) const
+    {
+        using reduce::convert_type;
+
+        std::vector<std::vector<std::size_t>> indexes_1;
+
+        get_all_indexes(inLengths, 0, indexes_1);
+
+        compType accuVal = reduce::ReduceOpZeroVal<compType>(reduceOp);
+
+        // go through indexes of the invariant dimensions
+        for(const auto& src_index : indexes_1)
         {
-            std::vector<std::vector<std::size_t>> indexes_1, indexes_2;
+            auto src_offset = get_offset_from_index(inStrides, src_index);
 
-            get_all_indexes(invariantLengths, 0, indexes_1);
-            get_all_indexes(toReduceLengths, 0, indexes_2);
+            auto currVal = convert_type<compType>(input.data[src_offset]);
 
-            // go through indexes of the invariant dimensions
-            for(const auto& index_1 : indexes_1)
-            {
-                std::vector<std::size_t> src_index;
-                std::vector<std::size_t> dst_index;
+            PreUnaryOp(currVal);
 
-                src_index.resize(inLengths.size());
-                dst_index.resize(inLengths.size());
-
-                std::fill(dst_index.begin(), dst_index.end(), 0);
-
-                for(int k = 0; k < invariantDims.size(); k++)
-                    dst_index[invariantDims[k]] = index_1[k];
-
-                auto dst_offset = get_offset_from_index(outStrides, dst_index);
-
-                // generate the part of the index belonging to the invariant dims
-                for(int k = 0; k < invariantDims.size(); k++)
-                    src_index[invariantDims[k]] = index_1[k];
-
-                compType accuVal = ReduceOpZeroVal<compType>(reduceOp);
-
-                // go through indexes of the toReduce dimensions
-                for(const auto& index_2 : indexes_2)
-                {
-                    // generate the part of the index belonging to the toReduce dims
-                    for(int k = 0; k < toReduceDims.size(); k++)
-                        src_index[toReduceDims[k]] = index_2[k];
-
-                    auto src_offset = get_offset_from_index(inStrides, src_index);
-
-                    auto currVal = convert_type<compType>(input.data[src_offset]);
-
-                    PreUnaryOp(currVal);
-
-                    binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
-                };
-
-                PosUnaryOp(accuVal);
-
-                // scale the accumulated value
-                if(!float_equal_one(alpha))
-                    accuVal *= convert_type<compType>(alpha);
-
-                // scale the prior dst value and add it to the accumulated value
-                if(!float_equal_zero(beta))
-                {
-                    accuVal += convert_type<compType>(output.data[dst_offset]) *
-                               convert_type<compType>(beta);
-                }
-
-                // store the reduced value to dst location
-                res.data[dst_offset] = convert_type<T>(accuVal);
-            };
+            reduce::binop_with_nan_check(nanOpt, opReduce, accuVal, currVal);
         };
 
-        return (res);
+        PosUnaryOp(accuVal);
+
+        // scale the accumulated value
+        if(!reduce::float_equal_one(alpha))
+            accuVal *= convert_type<compType>(alpha);
+
+        // scale the prior dst value and add it to the accumulated value
+        if(!reduce::float_equal_zero(beta))
+            accuVal += convert_type<compType>(output.data[0]) * convert_type<compType>(beta);
+
+        // store the reduced value to dst location
+        res.data[0] = convert_type<T>(accuVal);
     }
 
     tensor<float> gpu() const
@@ -746,6 +812,61 @@ inline auto GetCases()
 {
     static const auto cases = GenCases<T>();
     return cases;
+}
+
+inline auto GetCasesReduceCustomTestSet1()
+{
+    static TestCase test_case = std::make_tuple(std::vector<size_t>{1024, 30528, 1},
+                                                std::vector<int>{0, 1, 2},
+                                                MIOPEN_REDUCE_TENSOR_ADD,
+                                                MIOPEN_PROPAGATE_NAN,
+                                                MIOPEN_REDUCE_TENSOR_NO_INDICES,
+                                                std::vector<float>{1.0f, 0.0f});
+
+    return testing::Values(test_case);
+}
+
+inline auto GetCasesReduceCustomTestSet2()
+{
+    static std::vector<float> alphabeta = {1.0f, 0.0f};
+
+    constexpr miopenReduceTensorOp_t add = MIOPEN_REDUCE_TENSOR_ADD;
+    constexpr miopenReduceTensorOp_t mul = MIOPEN_REDUCE_TENSOR_MUL;
+    constexpr miopenReduceTensorOp_t min = MIOPEN_REDUCE_TENSOR_MIN;
+    constexpr miopenReduceTensorOp_t max = MIOPEN_REDUCE_TENSOR_MAX;
+
+    constexpr miopenNanPropagation_t nan   = MIOPEN_PROPAGATE_NAN;
+    constexpr miopenNanPropagation_t nonan = MIOPEN_NOT_PROPAGATE_NAN;
+
+    constexpr miopenReduceTensorIndices_t noind = MIOPEN_REDUCE_TENSOR_NO_INDICES;
+    constexpr miopenReduceTensorIndices_t ind   = MIOPEN_REDUCE_TENSOR_FLATTENED_INDICES;
+
+    // clang-format off
+    static std::vector<TestCase> test_cases = {
+        std::make_tuple(std::vector<size_t>{8, 2, 1}, std::vector<int>{0, 1, 2}, add, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{160, 10, 1}, std::vector<int>{0, 1, 2}, add, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{7, 1024, 1}, std::vector<int>{0, 1, 2}, add, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{3, 1, 1}, std::vector<int>{0, 1, 2}, add, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{3, 1, 1}, std::vector<int>{0, 1, 2}, mul, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{3, 1, 1}, std::vector<int>{0, 1, 2}, max, nan, ind, alphabeta),
+        std::make_tuple(std::vector<size_t>{3, 2, 1}, std::vector<int>{1, 2}, max, nan, ind, alphabeta),
+        std::make_tuple(std::vector<size_t>{6, 2, 1}, std::vector<int>{1, 2}, max, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{6, 2, 1}, std::vector<int>{1, 2}, min, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{2, 2, 1}, std::vector<int>{1, 2}, add, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{4, 3, 1}, std::vector<int>{1, 2}, max, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{3, 4, 1}, std::vector<int>{1, 2}, max, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{3, 4, 1}, std::vector<int>{0, 2}, max, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{2048, 32, 1}, std::vector<int>{0, 2}, max, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{4, 3, 1}, std::vector<int>{1, 2}, min, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{3, 4, 1}, std::vector<int>{0, 2}, min, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{2048, 32, 1}, std::vector<int>{0, 2}, min, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{12, 11, 1}, std::vector<int>{0, 1, 2}, add, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{13, 4, 7, 7},std::vector<int>{0, 1, 2, 3}, add, nan, noind, alphabeta),
+        std::make_tuple(std::vector<size_t>{64, 3, 280, 81}, std::vector<int>{0}, add, nonan, noind, alphabeta),
+    };
+    // clang-format on
+
+    return testing::ValuesIn(test_cases);
 }
 
 } // anonymous namespace
@@ -1054,3 +1175,66 @@ TEST_P(GPU_Reduce_FP64, TestDouble) { this->Run(); }
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Reduce_FP32, GetCases<float>());
 INSTANTIATE_TEST_SUITE_P(Smoke, GPU_Reduce_FP16, GetCases<half_float::half>());
 INSTANTIATE_TEST_SUITE_P(Full, GPU_Reduce_FP64, GetCases<double>());
+
+// Reduce Custom Tests
+template <typename T>
+class ReduceCustomCommon : public ReduceCommon<T>
+{
+    void SetUp() override
+    {
+        using e_mask = enabled<Gpu::gfx94X, Gpu::gfx103X, Gpu::gfx110X>;
+        using d_mask = disabled<Gpu::Default>;
+        if(!::IsTestSupportedForDevMask<d_mask, e_mask>())
+        {
+            GTEST_SKIP();
+        }
+
+        ReduceCommon<T>::SetUp();
+    }
+};
+
+// original file reduce_custom_fp32.cpp
+class GPU_reduce_custom_fp32_FP32 : public ReduceCustomCommon<float>
+{
+};
+
+class GPU_reduce_custom_fp32_FP16 : public ReduceCustomCommon<half_float::half>
+{
+};
+
+class GPU_reduce_custom_fp32_BFP16 : public ReduceCustomCommon<bfloat16>
+{
+};
+
+class GPU_reduce_custom_fp32_I8 : public ReduceCustomCommon<int8_t>
+{
+};
+
+TEST_P(GPU_reduce_custom_fp32_FP32, FloatTest_reduce_custom_fp32) { this->Run(); };
+INSTANTIATE_TEST_SUITE_P(Full, GPU_reduce_custom_fp32_FP32, GetCasesReduceCustomTestSet1());
+
+TEST_P(GPU_reduce_custom_fp32_FP16, CAN_BE_DISABLED_HalfTest_reduce_custom_fp16) { this->Run(); };
+INSTANTIATE_TEST_SUITE_P(Full, GPU_reduce_custom_fp32_FP16, GetCasesReduceCustomTestSet1());
+
+TEST_P(GPU_reduce_custom_fp32_BFP16, CAN_BE_DISABLED_BHalfTest_reduce_custom_fp16) { this->Run(); };
+INSTANTIATE_TEST_SUITE_P(Full, GPU_reduce_custom_fp32_BFP16, GetCasesReduceCustomTestSet1());
+
+TEST_P(GPU_reduce_custom_fp32_I8, CAN_BE_DISABLED_IntTest_reduce_custom_fp16) { this->Run(); };
+INSTANTIATE_TEST_SUITE_P(Full, GPU_reduce_custom_fp32_I8, GetCasesReduceCustomTestSet1());
+
+// original file reduce_custom_fp32_fp16.cpp
+class GPU_reduce_custom_fp32_fp16_FP32 : public ReduceCustomCommon<float>
+{
+};
+
+class GPU_reduce_custom_fp32_fp16_FP16 : public ReduceCustomCommon<half_float::half>
+{
+};
+
+TEST_P(GPU_reduce_custom_fp32_fp16_FP32, FloatTest_reduce_custom_fp32_fp16) { this->Run(); };
+
+TEST_P(GPU_reduce_custom_fp32_fp16_FP16, HalfTest_reduce_custom_fp32_fp16) { this->Run(); };
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_reduce_custom_fp32_fp16_FP32, GetCasesReduceCustomTestSet2());
+
+INSTANTIATE_TEST_SUITE_P(Full, GPU_reduce_custom_fp32_fp16_FP16, GetCasesReduceCustomTestSet2());

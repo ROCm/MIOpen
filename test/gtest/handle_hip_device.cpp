@@ -26,6 +26,13 @@ protected:
         }
     }
 
+    void TearDown() override
+    {
+        // Clear any HIP error triggered by asking for an invalid device ordinal
+        hipGetLastError();
+        hipExtGetLastError();
+    }
+
     int device_count_ = 0;
 };
 
