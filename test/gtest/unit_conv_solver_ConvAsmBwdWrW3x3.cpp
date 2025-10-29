@@ -49,7 +49,6 @@ const auto& GetTestParams()
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
         p.CheckXnackDisabled();
-        p.EnableDeprecatedSolvers();
         return p;
     }();
     return params;
@@ -63,7 +62,6 @@ const auto& GetTestParamsFp32()
             miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908);
         p.Tunable(5);
         p.CheckXnackDisabled();
-        p.EnableDeprecatedSolvers();
         return p;
     }();
     return params;

@@ -58,22 +58,14 @@ const auto& GetTestParams()
 {
     static const auto params = [] {
         Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx103X;
-        if constexpr(datatype != miopenFloat)
-        {
-            supported_gpus = supported_gpus | Gpu::gfx94X | Gpu::gfx950;
-        }
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
-        p.EnableDeprecatedSolvers();
+        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
         /// \todo 250.0f is too much. The solver needs to be checked.
         p.SetTolerance(Gpu::gfx908, miopenHalf, 250.0f);
         p.SetTolerance(Gpu::gfx90A, miopenHalf, 250.0f);
-        p.SetTolerance(Gpu::gfx94X, miopenHalf, 250.0f);
-        p.SetTolerance(Gpu::gfx950, miopenHalf, 250.0f);
         p.SetTolerance(Gpu::gfx908, miopenBFloat16, 30.0f);
         p.SetTolerance(Gpu::gfx90A, miopenBFloat16, 30.0f);
-        p.SetTolerance(Gpu::gfx950, miopenBFloat16, 30.0f);
         return p;
     }();
     return params;

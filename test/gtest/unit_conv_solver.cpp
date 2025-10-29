@@ -38,48 +38,10 @@
 
 #include "../workspace.hpp"
 
-MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
-
 namespace miopen {
 namespace unit_tests {
 
 namespace {
-
-class DeprecatedSolversScopedEnabler
-{
-public:
-    DeprecatedSolversScopedEnabler() noexcept {}
-    DeprecatedSolversScopedEnabler(const DeprecatedSolversScopedEnabler&) = delete;
-    DeprecatedSolversScopedEnabler(DeprecatedSolversScopedEnabler&&)      = delete;
-    DeprecatedSolversScopedEnabler& operator=(const DeprecatedSolversScopedEnabler&) = delete;
-    DeprecatedSolversScopedEnabler& operator=(DeprecatedSolversScopedEnabler&&) = delete;
-
-    ~DeprecatedSolversScopedEnabler()
-    {
-        if(changed)
-        {
-            if(prev)
-                lib_env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, false);
-            else
-                lib_env::clear(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
-        }
-    }
-
-    void Enable()
-    {
-        if(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
-            prev = lib_env::value<bool>(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS);
-        if(prev != true)
-        {
-            lib_env::update(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS, true);
-            changed = true;
-        }
-    }
-
-private:
-    std::optional<bool> prev;
-    bool changed = false;
-};
 
 class ConvAttrFp16AltScopedSetter
 {
@@ -306,15 +268,12 @@ UnitTestConvSolverParams::UnitTestConvSolverParams() : UnitTestConvSolverParams(
 UnitTestConvSolverParams::UnitTestConvSolverParams(Gpu supported_devs_)
     : supported_devs(supported_devs_),
       use_cpu_ref(false),
-      enable_deprecated_solvers(false),
       tunable(false),
       check_xnack_disabled(false)
 {
 }
 
 void UnitTestConvSolverParams::UseCpuRef() { use_cpu_ref = true; }
-
-void UnitTestConvSolverParams::EnableDeprecatedSolvers() { enable_deprecated_solvers = true; }
 
 void UnitTestConvSolverParams::Tunable(std::size_t iterations_max_)
 {
@@ -339,8 +298,6 @@ std::ostream& operator<<(std::ostream& os, const UnitTestConvSolverParams& p)
        << std::dec;
     if(p.use_cpu_ref)
         os << ", CpuRef:" << p.use_cpu_ref;
-    if(p.enable_deprecated_solvers)
-        os << ", EnDerpSolver:" << p.enable_deprecated_solvers;
     if(p.tunable)
         os << ", IterMax:" << p.tuning_iterations_max;
     if(p.check_xnack_disabled)
@@ -851,12 +808,6 @@ void UnitTestConvSolverBase::RunTestImpl(const miopen::solver::conv::ConvSolverI
                                          const ConvTestCase& conv_config,
                                          miopenConvAlgorithm_t algo)
 {
-    DeprecatedSolversScopedEnabler deprecated_solv_enabler;
-    if(params.enable_deprecated_solvers)
-    {
-        deprecated_solv_enabler.Enable();
-    }
-
     ConvAttrFp16AltScopedSetter conv_attr_fp16_alt_setter;
     if(params.conv_attr_fp16_alt)
         conv_attr_fp16_alt_setter.SetValue(params.conv_attr_fp16_alt.value());
@@ -874,12 +825,6 @@ void UnitTestConvSolverDevApplicabilityBase::RunTestImpl(
     miopen::conv::Direction direction,
     const ConvTestCase& conv_config)
 {
-    DeprecatedSolversScopedEnabler deprecated_solv_enabler;
-    if(params.enable_deprecated_solvers)
-    {
-        deprecated_solv_enabler.Enable();
-    }
-
     ConvAttrFp16AltScopedSetter conv_attr_fp16_alt_setter;
     if(params.conv_attr_fp16_alt)
         conv_attr_fp16_alt_setter.SetValue(params.conv_attr_fp16_alt.value());

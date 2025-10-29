@@ -56,8 +56,6 @@
 #include <boost/range/adaptor/transformed.hpp>
 #include <ostream>
 
-MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS)
-
 namespace miopen {
 namespace solver {
 
@@ -728,22 +726,6 @@ inline SolverRegistrar::SolverRegistrar(IdRegistryData& registry)
     Register(registry, ++id, Primitive::Normalization, layernorm::LayernormBackward().SolverDbId());
     // IMPORTANT: New solvers should be added to the end of the function, and don't leave a white
     // space between this comment and the newly registered solver(s)!
-}
-
-bool ThisSolverIsDeprecatedStatic::IsDisabled(const ExecutionContext& ctx)
-{
-    const bool device_is_allowed = [&]() {
-        if(env::enabled(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS))
-            return true;
-        const auto device = ctx.GetStream().GetTargetProperties().Name();
-        return device == "gfx803"                       // Fiji
-               || device == "gfx900"                    // Vega10
-               || device == "gfx906"                    // Vega20, MI50/60
-               || device == "gfx908"                    // MI100
-               || device == "gfx90a"                    // MI200
-               || miopen::StartsWith(device, "gfx103"); // Navi2x
-    }();
-    return !device_is_allowed;
 }
 
 } // namespace solver

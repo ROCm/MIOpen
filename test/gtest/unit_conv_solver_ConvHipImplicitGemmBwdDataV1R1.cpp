@@ -55,7 +55,6 @@ const auto& GetTestParams()
             supported_gpus = supported_gpus | Gpu::gfx94X | Gpu::gfx950;
         }
         auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
-        p.EnableDeprecatedSolvers();
         p.Tunable(5);
         return p;
     }();

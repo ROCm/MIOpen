@@ -50,12 +50,7 @@ const auto& GetTestParams()
 {
     static const auto params = [] {
         Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx103X;
-        if constexpr(datatype != miopenFloat)
-        {
-            supported_gpus = supported_gpus | Gpu::gfx94X | Gpu::gfx950;
-        }
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
-        p.EnableDeprecatedSolvers();
+        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
         /// \todo 40.0f is too much. The solver needs to be checked.

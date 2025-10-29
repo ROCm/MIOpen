@@ -125,7 +125,6 @@ struct UnitTestConvSolverParams
 
     Gpu supported_devs;
     bool use_cpu_ref;
-    bool enable_deprecated_solvers;
     bool tunable;
     bool check_xnack_disabled;
     std::size_t tuning_iterations_max;

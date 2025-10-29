@@ -46,7 +46,6 @@ const auto& GetTestParams()
                                                               Gpu::gfx908 | Gpu::gfx90A);
         p.Tunable(5);
         p.CheckXnackDisabled();
-        p.EnableDeprecatedSolvers();
         return p;
     }();
     return params;

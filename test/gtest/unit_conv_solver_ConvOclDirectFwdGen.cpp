@@ -42,8 +42,8 @@ auto GetConvTestCases(miopenDataType_t datatype)
 const auto& GetTestParams()
 {
     static const auto params = [] {
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::All);
-        p.EnableDeprecatedSolvers();
+        Gpu supported_gpus = Gpu::gfx900 | Gpu::gfx906 | Gpu::gfx908 | Gpu::gfx90A | Gpu::gfx103X;
+        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         return p;
     }();
     return params;

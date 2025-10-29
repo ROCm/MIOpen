@@ -244,12 +244,6 @@ struct IsTunable : std::is_base_of<TunableSolverTrait, Solver>
                   "Raw trait shouldn't be passed, explicit type is needed");
 };
 
-// Use struct as a syntactic sugar to make the intent as clear as possible.
-struct ThisSolverIsDeprecatedStatic
-{
-    MIOPEN_INTERNALS_EXPORT static bool IsDisabled(const ExecutionContext& ctx);
-};
-
 } // namespace solver
 } // namespace miopen
 

@@ -523,7 +523,8 @@ bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
 {
     if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT_ASM_1X1U))
         return false;
-    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(name, "gfx90")))
         return false;
     if(!ctx.use_asm_kernels)
         return false;
@@ -549,9 +550,6 @@ bool ConvAsm1x1U::IsApplicable(const ExecutionContext& ctx, const ProblemDescrip
     if(target.Xnack() && *target.Xnack())
         return false;
 
-    const std::string name = ctx.GetStream().GetDeviceName();
-    if(!(StartsWith(name, "gfx90")))
-        return false;
     if(!problem.IsLayoutDefault())
         return false;
 

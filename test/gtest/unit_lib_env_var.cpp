@@ -33,9 +33,9 @@ namespace {
 MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_UNKNOWN_ENVIRONMENT_VARIABLE)
 
 // If these env variables are removed from the library, they need to be replaced with some others.
-MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS) // some bool variable
-MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX)     // some uint64 variable
-MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)          // some string variable
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_CONV_DIRECT)           // some bool variable
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_TUNING_ITERATIONS_MAX) // some uint64 variable
+MIOPEN_LIB_ENV_VAR(MIOPEN_DEBUG_FIND_ONLY_SOLVER)      // some string variable
 
 class EnvVarRestorer
 {
@@ -109,7 +109,7 @@ class UnitTestLibEnvVarRestore : public ::testing::TestWithParam<TestParams>
 public:
     void RunTest()
     {
-        const std::string_view name = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS.name;
+        const std::string_view name = MIOPEN_DEBUG_CONV_DIRECT.name;
 
         const auto old_v = miopen::debug::env::GetEnvVariable(name);
         if(!old_v.has_value())
@@ -155,7 +155,7 @@ class UnitTestLibEnvVarBool : public ::testing::TestWithParam<TestParams>
 public:
     void RunTest()
     {
-        const std::string_view name = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS.name;
+        const std::string_view name = MIOPEN_DEBUG_CONV_DIRECT.name;
         EnvVarRestorer restorer(name);
 
         // Set 0
@@ -230,7 +230,7 @@ class UnitTestLibEnvVarWrapper : public ::testing::TestWithParam<TestParams>
 public:
     void RunTest()
     {
-        const auto var = MIOPEN_DEBUG_ENABLE_DEPRECATED_SOLVERS;
+        const auto var = MIOPEN_DEBUG_CONV_DIRECT;
         EnvVarRestorer restorer(var.name);
 
         // Set false

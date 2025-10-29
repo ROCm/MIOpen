@@ -47,12 +47,13 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
 {
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_FWD_V4R1))
         return false;
-    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90") || StartsWith(name, "gfx103")))
         return false;
     if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
     // Missing instruction: v_mac_f32
-    if(problem.IsFp32() && static_ck::GfxHasMissingFp32Intrinsics(ctx.GetStream().GetDeviceName()))
+    if(problem.IsFp32() && static_ck::GfxHasMissingFp32Intrinsics(name))
         return false;
     if(problem.GetConv().attribute.deterministic)
         return false;
@@ -72,7 +73,7 @@ bool ConvHipImplicitGemmV4R1Fwd::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
 
     if(problem.IsTensorsCasted())
@@ -100,12 +101,13 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
 {
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_WRW_V4R1))
         return false;
-    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90") || StartsWith(name, "gfx103")))
         return false;
     if(!static_ck::IsComposableKernelSupportedHardware(ctx))
         return false;
     // Missing instruction: v_mac_f32
-    if(problem.IsFp32() && static_ck::GfxHasMissingFp32Intrinsics(ctx.GetStream().GetDeviceName()))
+    if(problem.IsFp32() && static_ck::GfxHasMissingFp32Intrinsics(name))
         return false;
     if(!problem.IsDirectionBackwardWrW())
         return false;
@@ -121,7 +123,7 @@ bool ConvHipImplicitGemmV4R1WrW::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(!problem.IsLayoutDefault())
         return false;
-    if(ctx.GetStream().GetDeviceName() == "gfx90a" && problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
     if(problem.IsTensorsCasted())
         return false;

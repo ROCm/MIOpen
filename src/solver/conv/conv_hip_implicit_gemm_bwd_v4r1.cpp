@@ -735,7 +735,8 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
     if(!env::enabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1))
         return false;
 #endif
-    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90") || StartsWith(name, "gfx103")))
         return false;
 
     if(env::disabled(MIOPEN_DEBUG_CONV_IMPLICIT_GEMM_HIP_BWD_V4R1))
@@ -747,7 +748,7 @@ bool ConvHipImplicitGemmBwdDataV4R1::IsApplicable(const ExecutionContext& ctx,
         return false;
 
     // Missing instruction: v_mac_f32
-    if(problem.IsFp32() && static_ck::GfxHasMissingFp32Intrinsics(ctx.GetStream().GetDeviceName()))
+    if(problem.IsFp32() && static_ck::GfxHasMissingFp32Intrinsics(name))
         return false;
 
     if(!problem.IsDirectionBackwardData())

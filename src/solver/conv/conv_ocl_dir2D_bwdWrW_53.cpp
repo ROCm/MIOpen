@@ -49,7 +49,8 @@ bool ConvOclBwdWrW53::IsApplicable(const ExecutionContext& ctx,
 {
     if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_WRW53))
         return false;
-    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90") || StartsWith(name, "gfx103")))
         return false;
     if(!ctx.use_opencl_convolutions)
         return false;
@@ -115,7 +116,6 @@ bool ConvOclBwdWrW53::IsApplicable(const ExecutionContext& ctx,
     /// Resolve NaN issue on gfx908, manifested on Jenkins.
     /// Note that there is another solver, ConvOclBwdWrW2, that has very similar
     /// performance and applicable for the affected "popular" configs (7x7 filter, 1x1 padding).
-    const auto name = ctx.GetStream().GetDeviceName();
     workaround =
         workaround || (problem.IsFp16() && (name == "gfx908") && problem.GetWeightsWidth() == 7 &&
                        problem.GetWeightsHeight() == 7 && problem.GetPadW() == 1);

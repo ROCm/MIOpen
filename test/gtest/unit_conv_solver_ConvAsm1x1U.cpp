@@ -47,7 +47,6 @@ const auto& GetTestParams()
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
         p.CheckXnackDisabled();
-        p.EnableDeprecatedSolvers();
         return p;
     }();
     return params;

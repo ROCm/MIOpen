@@ -30,9 +30,6 @@
 #include <miopen/env.hpp>
 #include <miopen/conv/invokers/gen_x_w_y_pad.hpp>
 
-// LWPMIOPEN-1392: Disabling failing deprecated Ocl solvers for Gfx11 and Gfx12
-#define WORKAROUND_LWPMIOPEN_1392 (HIP_PACKAGE_VERSION_FLAT >= 6004000000)
-
 MIOPEN_DECLARE_ENV_VAR_BOOL(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD)
 
 namespace miopen {
@@ -44,21 +41,10 @@ using ProblemDescription = miopen::conv::ProblemDescription;
 bool ConvOclDirectFwd::IsApplicable(const ExecutionContext& ctx,
                                     const ProblemDescription& problem) const
 {
-// Disable this solver due to random GPU memory access faults on gfx11 and gfx12
-#if WORKAROUND_LWPMIOPEN_1392
-    {
-        const auto device = ctx.GetStream().GetTargetProperties().Name();
-        if(miopen::StartsWith(device, "gfx11") || miopen::StartsWith(device, "gfx12"))
-        {
-            if(!env::enabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD))
-                return false;
-        }
-    }
-#endif
-
     if(env::disabled(MIOPEN_DEBUG_CONV_DIRECT_OCL_FWD))
         return false;
-    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90") || StartsWith(name, "gfx103")))
         return false;
     if(!ctx.use_opencl_convolutions)
         return false;

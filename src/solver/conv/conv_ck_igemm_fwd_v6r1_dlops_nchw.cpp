@@ -97,7 +97,8 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
     {
         return false;
     }
-    if(ThisSolverIsDeprecatedStatic::IsDisabled(ctx))
+    const std::string name = ctx.GetStream().GetDeviceName();
+    if(!(StartsWith(name, "gfx8") || StartsWith(name, "gfx90") || StartsWith(name, "gfx103")))
         return false;
     if(!ctx.use_hip_kernels)
         return false;
@@ -119,8 +120,7 @@ bool ConvCkIgemmFwdV6r1DlopsNchw::IsApplicable(const ExecutionContext& ctx,
         return false;
     if(problem.GetGroupCount() != 1)
         return false;
-    if(ctx.GetStream().GetTargetProperties().Name() == "gfx90a" &&
-       problem.IsGfx90aFp16altRequired())
+    if(name == "gfx90a" && problem.IsGfx90aFp16altRequired())
         return false;
     if(!legacy_ck::IsIndexRangeLargeEnough(problem))
         return false;

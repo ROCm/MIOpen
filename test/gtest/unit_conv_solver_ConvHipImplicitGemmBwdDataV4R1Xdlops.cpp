@@ -108,13 +108,7 @@ const auto& GetTestParams()
 {
     static const auto params = [] {
         Gpu supported_gpus = Gpu::gfx908 | Gpu::gfx90A;
-        if constexpr(datatype != miopenBFloat16)
-        {
-            supported_gpus = supported_gpus | Gpu::gfx94X | Gpu::gfx950;
-        }
-
-        auto p = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
-        p.EnableDeprecatedSolvers();
+        auto p             = miopen::unit_tests::UnitTestConvSolverParams(supported_gpus);
         p.Tunable(5);
         p.SetConvAttrFp16Alt(0);
         return p;
@@ -130,7 +124,6 @@ const auto& GetTestParamsFull()
 {
     static const auto params = [] {
         auto p = miopen::unit_tests::UnitTestConvSolverParams(Gpu::gfx908);
-        p.EnableDeprecatedSolvers();
         p.Tunable(1000);
         return p;
     }();
