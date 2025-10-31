@@ -619,6 +619,8 @@ else()
     set(PERFDB_SUFFIX ".txt")
 endif()
 
+# Per-GPU database artifact installation (PDB's, FDB's KDB's)
+
 function(unpack_db db_bzip2_file)
     get_filename_component(__fname ${db_bzip2_file} NAME_WLE)
     add_custom_command(OUTPUT ${KERNELS_BINARY_DIR}/${__fname}
@@ -642,19 +644,6 @@ function(unpack_db db_bzip2_file)
     set(__fname ${__fname} PARENT_SCOPE)
 endfunction()
 
-file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.db.bz2" "${KERNELS_SOURCE_DIR}/*.db.txt.bz2")
-file(GLOB FIND_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/*.fdb.txt.bz2")
-
-foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES} ${FIND_DB_BZIP_FILES})
-    unpack_db(${DB_BZIP_FILE})
-    if(MIOPEN_EMBED_DB STREQUAL "" AND NOT MIOPEN_DISABLE_SYSDB AND NOT ENABLE_ASAN_PACKAGING)
-        install(FILES ${KERNELS_BINARY_DIR}/${__fname}
-                DESTINATION ${DATABASE_INSTALL_DIR})
-    endif()
-endforeach()
-
-# Begin KDB package creation
-
 function(install_kdb FILE_NAME COMPONENT_NAME)
     if(EXISTS "${FILE_NAME}")
         unpack_db(${FILE_NAME})
@@ -672,24 +661,44 @@ function(install_kdb FILE_NAME COMPONENT_NAME)
     set(DVC_MISSING_FILES ${DVC_MISSING_FILES} PARENT_SCOPE)
 endfunction()
 
-# Both the lists below should be in sync always
-set(KDB_BZ2_FILES gfx942.kdb.bz2 gfx90a.kdb.bz2 gfx1030.kdb.bz2 gfx908.kdb.bz2 gfx906.kdb.bz2 gfx900.kdb.bz2)
-set(COMPONENT_LST gfx942kdb gfx90akdb gfx1030kdb gfx908kdb gfx906kdb gfx900kdb)
+function(install_gpu_databases gfx_target)
+    message(STATUS "Adding support for installing ${gfx_target} database artifacts")
+    get_property(_targets GLOBAL PROPERTY MIOPEN_INSTALL_GPU_DATABASES)
+    if("${gfx_target}" IN_LIST _targets)
+        message(FATAL_ERROR "AMDGPU target ${gfx_target} already defined")
+    endif()
+    
+    set(KDB_FILENAME "${gfx_target}.kdb.bz2")
+    if(${KDB_FILENAME} IN_LIST KDB_BZ2_FILES)
+        set(KDB_COMPONENT_NAME "${gfx_target}kdb")
+        install_kdb(${KERNELS_SOURCE_DIR}/${KDB_FILENAME} ${KDB_COMPONENT_NAME})
+    endif()
+    set(DVC_MISSING_FILES ${DVC_MISSING_FILES} PARENT_SCOPE)
 
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.17)
-    foreach(__file __component IN ZIP_LISTS KDB_BZ2_FILES COMPONENT_LST)
-        install_kdb(${KERNELS_SOURCE_DIR}/${__file} ${__component})
+    file(GLOB PERF_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/${gfx_target}*.db.bz2" "${KERNELS_SOURCE_DIR}/${gfx_target}*.db.txt.bz2")
+    file(GLOB FIND_DB_BZIP_FILES CONFIGURE_DEPENDS "${KERNELS_SOURCE_DIR}/${gfx_target}*.fdb.txt.bz2")
+
+    foreach(DB_BZIP_FILE ${PERF_DB_BZIP_FILES} ${FIND_DB_BZIP_FILES})
+        unpack_db(${DB_BZIP_FILE})
+        if(MIOPEN_EMBED_DB STREQUAL "" AND NOT MIOPEN_DISABLE_SYSDB AND NOT ENABLE_ASAN_PACKAGING)
+            install(FILES ${KERNELS_BINARY_DIR}/${__fname}
+                    DESTINATION ${DATABASE_INSTALL_DIR})
+        endif()
     endforeach()
-else()
-    # TODO: Upgrade minimum CMake to version 3.17+ and use IN ZIP_LISTS instead
-    list(LENGTH KDB_BZ2_FILES __length)
-    math(EXPR __high "${__length} - 1")
-    foreach(__index RANGE ${__high})
-        list(GET COMPONENT_LST ${__index} __component)
-        list(GET KDB_BZ2_FILES ${__index} __file)
-        install_kdb(${KERNELS_SOURCE_DIR}/${__file} ${__component})
-    endforeach()
-endif()
+endfunction()
+
+# The default behaviour when no list of AMDGPU targets is supplied should be to
+# install for all targets; this was the behaviour before MIOPEN_INSTALL_GPU_DATABASES
+# was added.
+set(ALL_GPU_DATABASES gfx803 gfx900 gfx906 gfx908 gfx90a gfx942 gfx1030)
+set(MIOPEN_INSTALL_GPU_DATABASES "${ALL_GPU_DATABASES}" CACHE LIST "List of AMDGPU targets for which to install databases")
+
+# This list should be updated when a new KDB file is added to the project
+set(KDB_BZ2_FILES gfx942.kdb.bz2 gfx90a.kdb.bz2 gfx1030.kdb.bz2 gfx908.kdb.bz2 gfx906.kdb.bz2 gfx900.kdb.bz2)
+
+foreach(_gfx_target ${MIOPEN_INSTALL_GPU_DATABASES})
+    install_gpu_databases(${_gfx_target})
+endforeach()
 
 if(DVC_MISSING_FILES)
     string(REPLACE ";" ", " __dvc_missing_files "${DVC_MISSING_FILES}")
